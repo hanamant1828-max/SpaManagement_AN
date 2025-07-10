@@ -1,0 +1,117 @@
+Spa & Salon Digital Business Suite – Development Modules
+This document outlines the core modules to be developed as part of the Spa & Salon Digital Business Suite.
+Each feature is designed for seamless operations, enhanced client experience, and efficient management—customized for single-location salons.
+
+1. Dashboard – Business Overview
+Central panel for live data visualization
+
+View daily appointments, revenue, and client check-ins
+
+Snapshot of staff activity, available slots, and recent bookings
+
+Display stock alerts, expiring packages, and expense trends
+
+Quick access to calendar, billing, reports, and inventory
+
+Role-based widgets (admin, manager, staff)
+Goal: Deliver a real-time operational overview for informed decision-making
+
+2. Smart Booking & Calendar
+Unified calendar for online bookings and walk-ins
+
+Color-coded by staff or service for clarity
+
+Drag-and-drop rescheduling with clash detection
+
+Add notes, mark no-shows, or block slots
+Goal: Minimize human error and optimize appointment slots
+
+3. Staff Management
+Add/edit/delete staff profiles with shift schedules
+
+Configure off-days, availability, and commissions
+
+Define system access roles (admin/stylist/cashier)
+
+View performance metrics linked to bookings
+Goal: Ensure fair workload distribution and operational clarity
+
+4. Client History & Loyalty
+Maintain full client profile: preferences, allergies, visit notes
+
+Track service frequency, past purchases, and feedback
+
+Auto-tag loyal or inactive clients for targeted offers
+Goal: Deliver personalized experiences and boost retention
+
+5. Face Recognition Check-In
+AI-based check-in using customer face ID
+
+Auto-load client profile and current booking
+
+Secured image storage with role-based access
+Goal: Provide a modern, contactless, front-desk-free entry experience
+
+6. WhatsApp Notification System
+Auto reminders for appointments and package usage
+
+Send thank-you messages and personalized promos
+
+Two-way opt-in for rescheduling confirmations
+Goal: Reduce no-shows and engage clients on their preferred platform
+
+7. Billing & Payment System
+Auto-generate branded invoices with GST/tips/discounts
+
+One-click send to email or WhatsApp
+
+Track payments by mode and maintain history
+Goal: Ensure seamless checkout with clear records
+
+8. Subscription Packages
+Offer prepaid service bundles (3, 6, 12-month durations)
+
+Track usage, session count, and expiry dates
+
+Trigger auto alerts for nearing end-of-package
+Goal: Generate upfront revenue and improve client loyalty
+
+9. Inventory & Product Tracking
+Add consumables linked to services (e.g. wax, creams)
+
+Log supplier info, stock-in/out, and current availability
+
+Alert for low stock or near-expiry items
+Goal: Prevent out-of-stock errors and service disruptions
+
+10. Reports & Insights
+Daily, weekly, and monthly sales dashboards
+
+Top-performing staff, peak hours, and service trends
+
+Downloadable and printable reports for meetings or audits
+Goal: Turn raw data into actionable business intelligence
+
+11. User & Access Control Panel
+Create user accounts with specific role access
+
+Log and audit user actions (edit, export, delete)
+
+Allow temporary access with auto-expiry
+Goal: Maintain operational security and control without micromanagement
+
+12. Daily Expense Tracker
+Log daily operating expenses (utilities, purchases, etc.)
+
+Filter reports by category, staff, or time period
+
+Compare against earnings for cashflow analysis
+Goal: Simplify expense monitoring and profitability tracking
+
+13. Expiring Product Alerts
+Monitor expiry dates for inventory items
+
+Notify staff/admin when items are near expiry
+
+Prevent use of expired items in services
+Goal: Maintain quality control and client safety
