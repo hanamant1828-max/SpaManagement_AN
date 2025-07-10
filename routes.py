@@ -128,7 +128,9 @@ def bookings():
                          filter_date=filter_date,
                          clients=clients,
                          services=services,
-                         staff=staff)
+                         staff=staff,
+                         timedelta=timedelta,
+                         date=date)
 
 @app.route('/bookings/add', methods=['POST'])
 @login_required
