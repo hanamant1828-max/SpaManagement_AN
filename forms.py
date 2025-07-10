@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, TextAreaField, FloatField, IntegerField, DateField, DateTimeField, BooleanField, TimeField
-from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange
+from wtforms import StringField, PasswordField, SelectField, TextAreaField, FloatField, IntegerField, DateField, DateTimeField, BooleanField, TimeField, HiddenField, SubmitField
+from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
 from wtforms.widgets import TextArea
+from datetime import datetime, date
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=25)])
@@ -122,3 +123,194 @@ class StaffScheduleForm(FlaskForm):
     start_time = TimeField('Start Time', validators=[DataRequired()])
     end_time = TimeField('End Time', validators=[DataRequired()])
     is_available = BooleanField('Available', default=True)
+
+# Advanced Forms for Real-World Operations
+
+class ReviewForm(FlaskForm):
+    """Customer review and rating form"""
+    client_id = HiddenField('Client ID', validators=[DataRequired()])
+    appointment_id = HiddenField('Appointment ID')
+    staff_id = SelectField('Staff Member', coerce=int, validators=[Optional()])
+    service_id = SelectField('Service', coerce=int, validators=[Optional()])
+    rating = SelectField('Rating', choices=[
+        (5, '⭐⭐⭐⭐⭐ Excellent'),
+        (4, '⭐⭐⭐⭐ Good'),
+        (3, '⭐⭐⭐ Average'),
+        (2, '⭐⭐ Poor'),
+        (1, '⭐ Very Poor')
+    ], coerce=int, validators=[DataRequired()])
+    comment = TextAreaField('Review Comment', validators=[Optional(), Length(max=500)])
+    is_public = BooleanField('Make this review public', default=True)
+
+class CommunicationForm(FlaskForm):
+    """Client communication tracking form"""
+    client_id = SelectField('Client', coerce=int, validators=[DataRequired()])
+    type = SelectField('Communication Type', choices=[
+        ('email', 'Email'),
+        ('sms', 'SMS'),
+        ('whatsapp', 'WhatsApp'),
+        ('call', 'Phone Call'),
+        ('in_person', 'In Person')
+    ], validators=[DataRequired()])
+    subject = StringField('Subject', validators=[Optional(), Length(max=200)])
+    message = TextAreaField('Message', validators=[DataRequired()])
+    
+    def validate_subject(self, field):
+        if self.type.data in ['email', 'sms', 'whatsapp'] and not field.data:
+            raise ValidationError('Subject is required for this communication type.')
+
+class PromotionForm(FlaskForm):
+    """Marketing promotion form"""
+    name = StringField('Promotion Name', validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    discount_type = SelectField('Discount Type', choices=[
+        ('percentage', 'Percentage Discount'),
+        ('fixed_amount', 'Fixed Amount Discount')
+    ], validators=[DataRequired()])
+    discount_value = FloatField('Discount Value', validators=[DataRequired(), NumberRange(min=0)])
+    start_date = DateField('Start Date', validators=[DataRequired()])
+    end_date = DateField('End Date', validators=[DataRequired()])
+    usage_limit = IntegerField('Usage Limit', validators=[Optional(), NumberRange(min=1)])
+    applicable_services = SelectField('Applicable Services', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
+    
+    def validate_end_date(self, field):
+        if field.data and self.start_date.data and field.data <= self.start_date.data:
+            raise ValidationError('End date must be after start date.')
+
+class WaitlistForm(FlaskForm):
+    """Client waitlist form"""
+    client_id = SelectField('Client', coerce=int, validators=[DataRequired()])
+    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
+    staff_id = SelectField('Preferred Staff (Optional)', coerce=int, validators=[Optional()])
+    preferred_date = DateField('Preferred Date', validators=[DataRequired()])
+    preferred_time = TimeField('Preferred Time', validators=[Optional()])
+    is_flexible = BooleanField('Flexible with time/date', default=False)
+    expires_at = DateTimeField('Expires At', validators=[Optional()])
+    
+    def validate_preferred_date(self, field):
+        if field.data and field.data < date.today():
+            raise ValidationError('Preferred date cannot be in the past.')
+
+class ProductSaleForm(FlaskForm):
+    """Retail product sale form"""
+    inventory_id = SelectField('Product', coerce=int, validators=[DataRequired()])
+    client_id = SelectField('Client (Optional)', coerce=int, validators=[Optional()])
+    quantity = IntegerField('Quantity', validators=[DataRequired(), NumberRange(min=1)])
+    unit_price = FloatField('Unit Price', validators=[DataRequired(), NumberRange(min=0)])
+    payment_method = SelectField('Payment Method', choices=[
+        ('cash', 'Cash'),
+        ('card', 'Card'),
+        ('online', 'Online Payment'),
+        ('store_credit', 'Store Credit')
+    ], validators=[DataRequired()])
+
+class RecurringAppointmentForm(FlaskForm):
+    """Recurring appointment setup form"""
+    client_id = SelectField('Client', coerce=int, validators=[DataRequired()])
+    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
+    staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    frequency = SelectField('Frequency', choices=[
+        ('weekly', 'Weekly'),
+        ('biweekly', 'Every 2 Weeks'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Every 3 Months')
+    ], validators=[DataRequired()])
+    day_of_week = SelectField('Day of Week', choices=[
+        (0, 'Monday'),
+        (1, 'Tuesday'),
+        (2, 'Wednesday'),
+        (3, 'Thursday'),
+        (4, 'Friday'),
+        (5, 'Saturday'),
+        (6, 'Sunday')
+    ], coerce=int, validators=[DataRequired()])
+    time_slot = TimeField('Time', validators=[DataRequired()])
+    start_date = DateField('Start Date', validators=[DataRequired()])
+    end_date = DateField('End Date (Optional)', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
+    
+    def validate_start_date(self, field):
+        if field.data and field.data < date.today():
+            raise ValidationError('Start date cannot be in the past.')
+    
+    def validate_end_date(self, field):
+        if field.data and self.start_date.data and field.data <= self.start_date.data:
+            raise ValidationError('End date must be after start date.')
+
+class BusinessSettingsForm(FlaskForm):
+    """Business settings configuration form"""
+    business_name = StringField('Business Name', validators=[DataRequired(), Length(max=100)])
+    business_phone = StringField('Business Phone', validators=[DataRequired(), Length(max=20)])
+    business_email = StringField('Business Email', validators=[DataRequired(), Email()])
+    business_address = TextAreaField('Business Address', validators=[DataRequired()])
+    tax_rate = FloatField('Tax Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)])
+    currency_symbol = StringField('Currency Symbol', validators=[DataRequired(), Length(max=5)])
+    appointment_buffer = IntegerField('Appointment Buffer (minutes)', validators=[Optional(), NumberRange(min=0, max=60)])
+    booking_advance_days = IntegerField('Max Booking Advance (days)', validators=[Optional(), NumberRange(min=1, max=365)])
+    cancellation_hours = IntegerField('Cancellation Notice Required (hours)', validators=[Optional(), NumberRange(min=1, max=72)])
+    no_show_fee = FloatField('No-Show Fee', validators=[Optional(), NumberRange(min=0)])
+    
+class AdvancedClientForm(ClientForm):
+    """Enhanced client form with advanced fields"""
+    preferred_communication = SelectField('Preferred Communication', choices=[
+        ('email', 'Email'),
+        ('sms', 'SMS'),
+        ('whatsapp', 'WhatsApp'),
+        ('phone', 'Phone Call')
+    ], default='email', validators=[DataRequired()])
+    marketing_consent = BooleanField('Marketing Consent', default=True)
+    referral_source = SelectField('How did you hear about us?', choices=[
+        ('', 'Select Source'),
+        ('google', 'Google Search'),
+        ('social_media', 'Social Media'),
+        ('friend_referral', 'Friend Referral'),
+        ('advertisement', 'Advertisement'),
+        ('walk_in', 'Walk-in'),
+        ('repeat_client', 'Repeat Client'),
+        ('other', 'Other')
+    ], validators=[Optional()])
+    emergency_contact = StringField('Emergency Contact', validators=[Optional(), Length(max=100)])
+    emergency_phone = StringField('Emergency Phone', validators=[Optional(), Length(max=20)])
+
+class AdvancedUserForm(UserForm):
+    """Enhanced staff form with advanced fields"""
+    employee_id = StringField('Employee ID', validators=[Optional(), Length(max=20)])
+    department = SelectField('Department', choices=[
+        ('', 'Select Department'),
+        ('hair', 'Hair Department'),
+        ('skincare', 'Skincare Department'),
+        ('massage', 'Massage Therapy'),
+        ('nails', 'Nail Services'),
+        ('reception', 'Reception'),
+        ('management', 'Management')
+    ], validators=[Optional()])
+    hire_date = DateField('Hire Date', validators=[Optional()])
+    specialties = TextAreaField('Specialties', validators=[Optional()], 
+                               description='List staff specialties and certifications')
+    
+class QuickBookingForm(FlaskForm):
+    """Quick walk-in booking form"""
+    client_name = StringField('Client Name', validators=[DataRequired(), Length(max=100)])
+    client_phone = StringField('Phone Number', validators=[DataRequired(), Length(max=20)])
+    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
+    staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    appointment_time = DateTimeField('Appointment Time', validators=[DataRequired()])
+    notes = TextAreaField('Notes', validators=[Optional()])
+    is_walk_in = HiddenField(default='true')
+
+class PaymentForm(FlaskForm):
+    """Payment processing form"""
+    appointment_id = HiddenField('Appointment ID', validators=[DataRequired()])
+    amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0)])
+    payment_method = SelectField('Payment Method', choices=[
+        ('cash', 'Cash'),
+        ('card', 'Credit/Debit Card'),
+        ('online', 'Online Payment'),
+        ('gift_card', 'Gift Card'),
+        ('store_credit', 'Store Credit'),
+        ('insurance', 'Insurance')
+    ], validators=[DataRequired()])
+    tips = FloatField('Tips', validators=[Optional(), NumberRange(min=0)])
+    discount = FloatField('Discount', validators=[Optional(), NumberRange(min=0)])
+    notes = TextAreaField('Payment Notes', validators=[Optional()])

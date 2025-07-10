@@ -4,8 +4,8 @@ from werkzeug.security import generate_password_hash
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import app, db
-from models import User, Client, Service, Appointment, Inventory, Expense, Invoice, Package, StaffSchedule, ClientPackage, PackageService
-from forms import LoginForm, UserForm, ClientForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm
+from models import User, Client, Service, Appointment, Inventory, Expense, Invoice, Package, StaffSchedule, ClientPackage, PackageService, Review, Communication, Commission, ProductSale, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings
+from forms import LoginForm, UserForm, ClientForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedClientForm, AdvancedUserForm, QuickBookingForm, PaymentForm
 import utils
 
 @app.context_processor
@@ -692,32 +692,423 @@ def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
 
-# Initialize default data if running for the first time
+# Initialize comprehensive default data for real-world operations
 def create_default_data():
-    # Create default admin user if no users exist
+    """Create default admin user and comprehensive sample data"""
     if User.query.count() == 0:
+        # Create default admin user
         admin = User(
             username='admin',
             email='admin@spa.com',
             first_name='System',
             last_name='Administrator',
-            role='admin'
+            role='admin',
+            employee_id='EMP001',
+            department='management',
+            hire_date=date.today()
         )
         admin.set_password('admin123')
-        
         db.session.add(admin)
         
-        # Add some default services
-        services = [
-            Service(name='Basic Haircut', duration=30, price=25.00, category='hair'),
-            Service(name='Hair Wash & Blow Dry', duration=45, price=35.00, category='hair'),
-            Service(name='Facial Treatment', duration=60, price=60.00, category='facial'),
-            Service(name='Relaxing Massage', duration=90, price=80.00, category='massage'),
-            Service(name='Manicure', duration=45, price=30.00, category='nails'),
-            Service(name='Pedicure', duration=60, price=40.00, category='nails'),
+        # Create sample staff members
+        staff_members = [
+            User(
+                username='sarah_stylist',
+                email='sarah@spa.com',
+                first_name='Sarah',
+                last_name='Johnson',
+                role='staff',
+                commission_rate=15.0,
+                hourly_rate=25.0,
+                employee_id='EMP002',
+                department='hair',
+                hire_date=date.today(),
+                specialties='Hair cutting, coloring, styling'
+            ),
+            User(
+                username='maria_therapist',
+                email='maria@spa.com',
+                first_name='Maria',
+                last_name='Garcia',
+                role='staff',
+                commission_rate=20.0,
+                hourly_rate=30.0,
+                employee_id='EMP003',
+                department='massage',
+                hire_date=date.today(),
+                specialties='Swedish massage, deep tissue, aromatherapy'
+            )
         ]
         
-        for service in services:
-            db.session.add(service)
+        for staff in staff_members:
+            staff.set_password('staff123')
+            db.session.add(staff)
         
+        # Create sample clients with advanced fields
+        clients = [
+            Client(
+                first_name='Emma',
+                last_name='Wilson',
+                email='emma@example.com',
+                phone='555-1234',
+                preferences='Prefers morning appointments',
+                allergies='None known',
+                preferred_communication='email',
+                referral_source='google',
+                marketing_consent=True,
+                total_visits=5,
+                total_spent=375.00
+            ),
+            Client(
+                first_name='Lisa',
+                last_name='Martinez',
+                email='lisa@example.com',
+                phone='555-5678',
+                preferences='Regular facials',
+                allergies='Sensitive to fragrances',
+                preferred_communication='sms',
+                referral_source='friend_referral',
+                marketing_consent=True,
+                total_visits=12,
+                total_spent=890.00,
+                is_vip=True
+            )
+        ]
+        
+        db.session.add_all(clients)
+        
+        # Create comprehensive services
+        services = [
+            Service(name='Hair Cut & Style', duration=60, price=45.00, category='hair', description='Professional haircut with styling'),
+            Service(name='Hair Color & Highlights', duration=120, price=95.00, category='hair', description='Full color service with highlights'),
+            Service(name='Deep Cleansing Facial', duration=90, price=75.00, category='facial', description='Deep pore cleansing facial treatment'),
+            Service(name='Anti-Aging Facial', duration=75, price=85.00, category='facial', description='Advanced anti-aging treatment'),
+            Service(name='Swedish Massage', duration=60, price=80.00, category='massage', description='Relaxing full-body Swedish massage'),
+            Service(name='Deep Tissue Massage', duration=90, price=110.00, category='massage', description='Therapeutic deep tissue massage'),
+            Service(name='Manicure', duration=45, price=35.00, category='nails', description='Classic manicure with polish'),
+            Service(name='Gel Manicure', duration=60, price=45.00, category='nails', description='Long-lasting gel manicure'),
+            Service(name='Pedicure', duration=60, price=45.00, category='nails', description='Relaxing pedicure with massage'),
+            Service(name='Body Wrap', duration=75, price=95.00, category='body', description='Detoxifying body wrap treatment')
+        ]
+        
+        db.session.add_all(services)
+        
+        # Create comprehensive inventory
+        inventory_items = [
+            Inventory(name='Professional Shampoo', category='consumables', current_stock=15, min_stock_level=5, unit_price=12.99, supplier_name='Beauty Supply Co'),
+            Inventory(name='Organic Facial Cleanser', category='consumables', current_stock=8, min_stock_level=3, unit_price=24.99, supplier_name='Natural Beauty'),
+            Inventory(name='Premium Massage Oil', category='consumables', current_stock=12, min_stock_level=4, unit_price=18.50, supplier_name='Wellness Products'),
+            Inventory(name='Luxury Nail Polish Set', category='retail', current_stock=25, min_stock_level=10, unit_price=8.99, supplier_name='Nail Care Ltd'),
+            Inventory(name='Hair Styling Tools', category='equipment', current_stock=5, min_stock_level=2, unit_price=125.00, supplier_name='Pro Tools Inc'),
+            Inventory(name='Disposable Towels', category='cleaning', current_stock=200, min_stock_level=50, unit_price=0.25, supplier_name='Hygiene Supply'),
+            Inventory(name='Aromatherapy Candles', category='retail', current_stock=30, min_stock_level=15, unit_price=12.99, supplier_name='Scent Works')
+        ]
+        
+        db.session.add_all(inventory_items)
+        
+        # Create business settings
+        settings = [
+            BusinessSettings(setting_key='business_name', setting_value='Elite Spa & Wellness', description='Business name'),
+            BusinessSettings(setting_key='business_phone', setting_value='555-SPA-RELAX', description='Main business phone'),
+            BusinessSettings(setting_key='business_email', setting_value='info@elitespa.com', description='Business email'),
+            BusinessSettings(setting_key='tax_rate', setting_value='8.5', data_type='float', description='Tax rate percentage'),
+            BusinessSettings(setting_key='currency_symbol', setting_value='$', description='Currency symbol'),
+            BusinessSettings(setting_key='appointment_buffer', setting_value='15', data_type='integer', description='Buffer time between appointments'),
+            BusinessSettings(setting_key='booking_advance_days', setting_value='60', data_type='integer', description='Maximum days to book in advance'),
+            BusinessSettings(setting_key='cancellation_hours', setting_value='24', data_type='integer', description='Cancellation notice required in hours'),
+            BusinessSettings(setting_key='no_show_fee', setting_value='25.00', data_type='float', description='No-show fee amount')
+        ]
+        
+        db.session.add_all(settings)
+        
+        try:
+            db.session.commit()
+            print("Comprehensive default data created successfully")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating default data: {e}")
+
+# Advanced Routes for Real-World Operations
+
+@app.route('/communications')
+@login_required
+def communications():
+    """Client communication management"""
+    if not current_user.can_access('communications'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    communications = Communication.query.order_by(Communication.created_at.desc()).limit(50).all()
+    clients = Client.query.filter_by(is_active=True).all()
+    form = CommunicationForm()
+    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    
+    return render_template('communications.html', 
+                         communications=communications, 
+                         form=form,
+                         clients=clients)
+
+@app.route('/communications/add', methods=['POST'])
+@login_required
+def add_communication():
+    """Add new communication record"""
+    form = CommunicationForm()
+    clients = Client.query.filter_by(is_active=True).all()
+    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    
+    if form.validate_on_submit():
+        communication = Communication(
+            client_id=form.client_id.data,
+            type=form.type.data,
+            subject=form.subject.data,
+            message=form.message.data,
+            created_by=current_user.id,
+            status='sent'
+        )
+        
+        db.session.add(communication)
         db.session.commit()
+        flash('Communication logged successfully', 'success')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
+    
+    return redirect(url_for('communications'))
+
+@app.route('/promotions')
+@login_required
+def promotions():
+    """Marketing promotions management"""
+    if not current_user.can_access('promotions'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    active_promotions = Promotion.query.filter_by(is_active=True).all()
+    expired_promotions = Promotion.query.filter_by(is_active=False).all()
+    form = PromotionForm()
+    
+    return render_template('promotions.html', 
+                         active_promotions=active_promotions,
+                         expired_promotions=expired_promotions,
+                         form=form)
+
+@app.route('/promotions/add', methods=['POST'])
+@login_required
+def add_promotion():
+    """Add new promotion"""
+    form = PromotionForm()
+    
+    if form.validate_on_submit():
+        promotion = Promotion(
+            name=form.name.data,
+            description=form.description.data,
+            discount_type=form.discount_type.data,
+            discount_value=form.discount_value.data,
+            start_date=form.start_date.data,
+            end_date=form.end_date.data,
+            usage_limit=form.usage_limit.data,
+            is_active=form.is_active.data
+        )
+        
+        db.session.add(promotion)
+        db.session.commit()
+        flash('Promotion created successfully', 'success')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
+    
+    return redirect(url_for('promotions'))
+
+@app.route('/waitlist')
+@login_required
+def waitlist():
+    """Client waitlist management"""
+    if not current_user.can_access('waitlist'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    waiting_clients = Waitlist.query.filter_by(status='waiting').all()
+    contacted_clients = Waitlist.query.filter_by(status='contacted').all()
+    
+    form = WaitlistForm()
+    clients = Client.query.filter_by(is_active=True).all()
+    services = Service.query.filter_by(is_active=True).all()
+    staff = User.query.filter(User.role.in_(['staff', 'manager']), User.is_active == True).all()
+    
+    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.service_id.choices = [(s.id, s.name) for s in services]
+    form.staff_id.choices = [(0, 'Any Staff')] + [(s.id, s.full_name) for s in staff]
+    
+    return render_template('waitlist.html',
+                         waiting_clients=waiting_clients,
+                         contacted_clients=contacted_clients,
+                         form=form)
+
+@app.route('/waitlist/add', methods=['POST'])
+@login_required
+def add_waitlist():
+    """Add client to waitlist"""
+    form = WaitlistForm()
+    clients = Client.query.filter_by(is_active=True).all()
+    services = Service.query.filter_by(is_active=True).all()
+    staff = User.query.filter(User.role.in_(['staff', 'manager']), User.is_active == True).all()
+    
+    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.service_id.choices = [(s.id, s.name) for s in services]
+    form.staff_id.choices = [(0, 'Any Staff')] + [(s.id, s.full_name) for s in staff]
+    
+    if form.validate_on_submit():
+        waitlist_entry = Waitlist(
+            client_id=form.client_id.data,
+            service_id=form.service_id.data,
+            staff_id=form.staff_id.data if form.staff_id.data != 0 else None,
+            preferred_date=form.preferred_date.data,
+            preferred_time=form.preferred_time.data,
+            is_flexible=form.is_flexible.data,
+            expires_at=form.expires_at.data
+        )
+        
+        db.session.add(waitlist_entry)
+        db.session.commit()
+        flash('Client added to waitlist successfully', 'success')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
+    
+    return redirect(url_for('waitlist'))
+
+@app.route('/product-sales')
+@login_required
+def product_sales():
+    """Retail product sales management"""
+    if not current_user.can_access('sales'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    recent_sales = ProductSale.query.order_by(ProductSale.sale_date.desc()).limit(20).all()
+    
+    form = ProductSaleForm()
+    products = Inventory.query.filter_by(category='retail', is_active=True).all()
+    clients = Client.query.filter_by(is_active=True).all()
+    
+    form.inventory_id.choices = [(p.id, f"{p.name} - ${p.unit_price}") for p in products]
+    form.client_id.choices = [(0, 'Walk-in Customer')] + [(c.id, c.full_name) for c in clients]
+    
+    return render_template('product_sales.html',
+                         recent_sales=recent_sales,
+                         form=form)
+
+@app.route('/product-sales/add', methods=['POST'])
+@login_required
+def add_product_sale():
+    """Process product sale"""
+    form = ProductSaleForm()
+    products = Inventory.query.filter_by(category='retail', is_active=True).all()
+    clients = Client.query.filter_by(is_active=True).all()
+    
+    form.inventory_id.choices = [(p.id, f"{p.name} - ${p.unit_price}") for p in products]
+    form.client_id.choices = [(0, 'Walk-in Customer')] + [(c.id, c.full_name) for c in clients]
+    
+    if form.validate_on_submit():
+        product = Inventory.query.get(form.inventory_id.data)
+        
+        if product.current_stock >= form.quantity.data:
+            sale = ProductSale(
+                inventory_id=form.inventory_id.data,
+                client_id=form.client_id.data if form.client_id.data != 0 else None,
+                staff_id=current_user.id,
+                quantity=form.quantity.data,
+                unit_price=form.unit_price.data,
+                total_amount=form.quantity.data * form.unit_price.data,
+                payment_method=form.payment_method.data
+            )
+            
+            # Update inventory
+            product.current_stock -= form.quantity.data
+            
+            # Update client spending if applicable
+            if form.client_id.data != 0:
+                client = Client.query.get(form.client_id.data)
+                client.total_spent += sale.total_amount
+            
+            # Update staff sales
+            current_user.total_sales += sale.total_amount
+            
+            db.session.add(sale)
+            db.session.commit()
+            flash('Product sale recorded successfully', 'success')
+        else:
+            flash('Insufficient stock for this sale', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
+    
+    return redirect(url_for('product_sales'))
+
+@app.route('/recurring-appointments')
+@login_required
+def recurring_appointments():
+    """Recurring appointment management"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    active_recurring = RecurringAppointment.query.filter_by(is_active=True).all()
+    form = RecurringAppointmentForm()
+    
+    clients = Client.query.filter_by(is_active=True).all()
+    services = Service.query.filter_by(is_active=True).all()
+    staff = User.query.filter(User.role.in_(['staff', 'manager']), User.is_active == True).all()
+    
+    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.service_id.choices = [(s.id, s.name) for s in services]
+    form.staff_id.choices = [(s.id, s.full_name) for s in staff]
+    
+    return render_template('recurring_appointments.html',
+                         active_recurring=active_recurring,
+                         form=form)
+
+@app.route('/business-settings')
+@login_required
+def business_settings():
+    """Business configuration settings"""
+    if not current_user.has_role('admin'):
+        flash('Access denied - Admin only', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    settings = {s.setting_key: s.setting_value for s in BusinessSettings.query.all()}
+    form = BusinessSettingsForm()
+    
+    # Populate form with current settings
+    if settings:
+        form.business_name.data = settings.get('business_name', '')
+        form.business_phone.data = settings.get('business_phone', '')
+        form.business_email.data = settings.get('business_email', '')
+        form.business_address.data = settings.get('business_address', '')
+        form.tax_rate.data = float(settings.get('tax_rate', 0))
+        form.currency_symbol.data = settings.get('currency_symbol', '$')
+        form.appointment_buffer.data = int(settings.get('appointment_buffer', 15))
+        form.booking_advance_days.data = int(settings.get('booking_advance_days', 60))
+        form.cancellation_hours.data = int(settings.get('cancellation_hours', 24))
+        form.no_show_fee.data = float(settings.get('no_show_fee', 0))
+    
+    return render_template('business_settings.html', form=form, settings=settings)
+
+@app.route('/reviews')
+@login_required
+def reviews():
+    """Customer reviews management"""
+    if not current_user.can_access('reviews'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    recent_reviews = Review.query.order_by(Review.created_at.desc()).limit(20).all()
+    avg_rating = db.session.query(func.avg(Review.rating)).scalar() or 0
+    
+    return render_template('reviews.html',
+                         recent_reviews=recent_reviews,
+                         avg_rating=round(avg_rating, 1))

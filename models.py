@@ -1,8 +1,9 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
+import json
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -19,6 +20,18 @@ class User(UserMixin, db.Model):
     # Staff-specific fields
     commission_rate = db.Column(db.Float, default=0.0)
     hourly_rate = db.Column(db.Float, default=0.0)
+    employee_id = db.Column(db.String(20), unique=True)
+    department = db.Column(db.String(50))
+    hire_date = db.Column(db.Date)
+    
+    # Performance tracking
+    total_sales = db.Column(db.Float, default=0.0)
+    total_clients_served = db.Column(db.Integer, default=0)
+    average_rating = db.Column(db.Float, default=0.0)
+    
+    # Availability and preferences
+    work_schedule = db.Column(db.Text)  # JSON for weekly schedule
+    specialties = db.Column(db.Text)  # JSON for service specialties
     
     # Relationships
     appointments = db.relationship('Appointment', backref='assigned_staff', lazy=True)
@@ -70,6 +83,17 @@ class Client(db.Model):
     # Loyalty status
     loyalty_points = db.Column(db.Integer, default=0)
     is_vip = db.Column(db.Boolean, default=False)
+    
+    # Communication preferences
+    preferred_communication = db.Column(db.String(20), default='email')  # email, sms, whatsapp
+    marketing_consent = db.Column(db.Boolean, default=True)
+    reminder_preferences = db.Column(db.Text)  # JSON for reminder settings
+    
+    # Advanced client tracking
+    referral_source = db.Column(db.String(100))
+    lifetime_value = db.Column(db.Float, default=0.0)
+    last_no_show = db.Column(db.DateTime)
+    no_show_count = db.Column(db.Integer, default=0)
     
     # Relationships
     appointments = db.relationship('Appointment', backref='client', lazy=True)
@@ -221,3 +245,153 @@ class StaffSchedule(db.Model):
     
     # Relationship
     staff = db.relationship('User', backref='schedules')
+
+# Advanced Models for Real-World Operations
+
+class Review(db.Model):
+    """Customer reviews and ratings"""
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    comment = db.Column(db.Text)
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    staff = db.relationship('User', backref='reviews')
+    service = db.relationship('Service', backref='reviews')
+    appointment = db.relationship('Appointment', backref='review', uselist=False)
+
+class Communication(db.Model):
+    """Track all communications with clients"""
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    type = db.Column(db.String(20), nullable=False)  # email, sms, whatsapp, call, in_person
+    subject = db.Column(db.String(200))
+    message = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending')  # pending, sent, delivered, failed
+    sent_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Relationships
+    creator = db.relationship('User', backref='communications')
+
+class Commission(db.Model):
+    """Track staff commissions and payroll"""
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))
+    service_amount = db.Column(db.Float, nullable=False)
+    commission_rate = db.Column(db.Float, nullable=False)
+    commission_amount = db.Column(db.Float, nullable=False)
+    pay_period_start = db.Column(db.Date, nullable=False)
+    pay_period_end = db.Column(db.Date, nullable=False)
+    is_paid = db.Column(db.Boolean, default=False)
+    paid_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    staff = db.relationship('User', backref='commissions')
+    appointment = db.relationship('Appointment', backref='commission', uselist=False)
+
+class ProductSale(db.Model):
+    """Track retail product sales"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    total_amount = db.Column(db.Float, nullable=False)
+    sale_date = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_method = db.Column(db.String(20))
+    is_refunded = db.Column(db.Boolean, default=False)
+    
+    # Relationships
+    product = db.relationship('Inventory', backref='sales')
+    client = db.relationship('Client', backref='product_purchases')
+    staff = db.relationship('User', backref='product_sales')
+
+class Promotion(db.Model):
+    """Marketing promotions and discounts"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    discount_type = db.Column(db.String(20), nullable=False)  # percentage, fixed_amount
+    discount_value = db.Column(db.Float, nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    usage_limit = db.Column(db.Integer)
+    times_used = db.Column(db.Integer, default=0)
+    applicable_services = db.Column(db.Text)  # JSON for service IDs
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Waitlist(db.Model):
+    """Client waitlist for fully booked times"""
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    preferred_date = db.Column(db.Date, nullable=False)
+    preferred_time = db.Column(db.Time)
+    is_flexible = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default='waiting')  # waiting, contacted, booked, expired
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime)
+    
+    # Relationships
+    client = db.relationship('Client', backref='waitlist_entries')
+    service = db.relationship('Service', backref='waitlist_entries')
+    staff = db.relationship('User', backref='waitlist_requests')
+
+class RecurringAppointment(db.Model):
+    """Recurring appointment templates"""
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    frequency = db.Column(db.String(20), nullable=False)  # weekly, biweekly, monthly
+    day_of_week = db.Column(db.Integer)  # 0=Monday, 6=Sunday
+    time_slot = db.Column(db.Time, nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    client = db.relationship('Client', backref='recurring_appointments')
+    service = db.relationship('Service', backref='recurring_bookings')
+    staff = db.relationship('User', backref='recurring_schedule')
+
+class Location(db.Model):
+    """Support for multiple locations/branches"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(120))
+    manager_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    is_active = db.Column(db.Boolean, default=True)
+    operating_hours = db.Column(db.Text)  # JSON for weekly hours
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    manager = db.relationship('User', backref='managed_locations')
+
+class BusinessSettings(db.Model):
+    """Global business settings and preferences"""
+    id = db.Column(db.Integer, primary_key=True)
+    setting_key = db.Column(db.String(50), unique=True, nullable=False)
+    setting_value = db.Column(db.Text)
+    data_type = db.Column(db.String(20), default='string')  # string, integer, float, boolean, json
+    description = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Relationships
+    updater = db.relationship('User', backref='setting_updates')

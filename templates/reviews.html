@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Reviews - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-star me-2"></i>Customer Reviews
+                </h1>
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <span class="badge bg-warning fs-6 p-2">
+                            <i class="fas fa-star"></i> {{ avg_rating }}/5.0 Average Rating
+                        </span>
+                    </div>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addReviewModal">
+                        <i class="fas fa-plus me-2"></i>Add Review
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ avg_rating }}</h3>
+                    <p class="mb-0">Average Rating</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ recent_reviews|length }}</h3>
+                    <p class="mb-0">Total Reviews</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">
+                        {{ recent_reviews|selectattr('rating', 'ge', 4)|list|length }}
+                    </h3>
+                    <p class="mb-0">Positive Reviews</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-danger">
+                        {{ recent_reviews|selectattr('rating', 'le', 2)|list|length }}
+                    </h3>
+                    <p class="mb-0">Needs Attention</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reviews -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Customer Reviews</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_reviews %}
+                        <div class="row">
+                            {% for review in recent_reviews %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100 {% if review.rating <= 2 %}border-danger{% elif review.rating >= 4 %}border-success{% endif %}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">{{ review.client.full_name }}</h6>
+                                            <div class="rating">
+                                                {% for i in range(1, 6) %}
+                                                    {% if i <= review.rating %}
+                                                        <i class="fas fa-star text-warning"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star text-muted"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        {% if review.service %}
+                                        <p class="text-muted small mb-2">
+                                            <i class="fas fa-spa me-1"></i>{{ review.service.name }}
+                                            {% if review.staff %}
+                                                • <i class="fas fa-user me-1"></i>{{ review.staff.full_name }}
+                                            {% endif %}
+                                        </p>
+                                        {% endif %}
+                                        
+                                        {% if review.comment %}
+                                        <p class="card-text">{{ review.comment }}</p>
+                                        {% endif %}
+                                        
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">{{ utils.format_date(review.created_at.date()) }}</small>
+                                            {% if review.is_public %}
+                                                <span class="badge bg-success">Public</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Private</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No reviews yet</h5>
+                            <p class="text-muted">Customer reviews will help improve service quality and attract new clients.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Review Modal -->
+<div class="modal fade" id="addReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Customer Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_review') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Client</label>
+                        <select class="form-select" name="client_id" required>
+                            <option value="">Select Client</option>
+                            {% for client in recent_reviews %}
+                                <option value="{{ client.client.id }}">{{ client.client.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <select class="form-select" name="rating" required>
+                            <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                            <option value="4">⭐⭐⭐⭐ Good</option>
+                            <option value="3">⭐⭐⭐ Average</option>
+                            <option value="2">⭐⭐ Poor</option>
+                            <option value="1">⭐ Very Poor</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Review Comment</label>
+                        <textarea class="form-control" name="comment" rows="4" placeholder="What did the customer say about their experience?"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_public" checked>
+                        <label class="form-check-label">Make this review public</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
