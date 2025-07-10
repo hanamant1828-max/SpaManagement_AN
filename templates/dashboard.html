@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Spa & Salon Management Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                <small class="text-muted">Business Overview</small>
+            </h1>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Today's Appointments
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ stats.todays_appointments }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Today's Revenue
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.total_revenue_today) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Monthly Revenue
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.total_revenue_month) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Total Clients
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ stats.total_clients }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Appointments -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Appointments</h6>
+                    <a href="{{ url_for('bookings') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-calendar-plus me-1"></i>View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_appointments %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Service</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for appointment in recent_appointments %}
+                                    <tr>
+                                        <td>{{ appointment.client.full_name }}</td>
+                                        <td>{{ appointment.service.name }}</td>
+                                        <td>{{ utils.format_datetime(appointment.appointment_date) }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ utils.get_status_class(appointment.status) }}">
+                                                {{ appointment.status.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No recent appointments found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">Alerts & Notifications</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Low Stock Alerts -->
+                    {% if low_stock_items %}
+                        <div class="alert alert-warning" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Low Stock Items
+                            </h6>
+                            <ul class="mb-0">
+                                {% for item in low_stock_items %}
+                                <li>{{ item.name }} ({{ item.current_stock }} remaining)</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <!-- Expiring Items -->
+                    {% if expiring_items %}
+                        <div class="alert alert-danger" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-clock me-2"></i>Expiring Soon
+                            </h6>
+                            <ul class="mb-0">
+                                {% for item in expiring_items %}
+                                <li>{{ item.name }} (expires {{ utils.format_date(item.expiry_date) }})</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if not low_stock_items and not expiring_items %}
+                        <div class="alert alert-success" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>All systems normal
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if current_user.can_access('bookings') %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{{ url_for('bookings') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-calendar-plus fa-2x mb-2 d-block"></i>
+                                New Appointment
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if current_user.can_access('clients') %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{{ url_for('clients') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-user-plus fa-2x mb-2 d-block"></i>
+                                Add Client
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if current_user.can_access('billing') %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{{ url_for('billing') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-file-invoice fa-2x mb-2 d-block"></i>
+                                View Billing
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if current_user.can_access('reports') %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{{ url_for('reports') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-chart-bar fa-2x mb-2 d-block"></i>
+                                View Reports
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

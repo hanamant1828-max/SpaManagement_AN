@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Bookings - Spa & Salon Management Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>Bookings & Calendar
+                </h1>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAppointmentModal">
+                    <i class="fas fa-plus me-2"></i>New Appointment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="date" class="form-label">Select Date</label>
+                            <input type="date" class="form-control" name="date" id="date" 
+                                   value="{{ filter_date.strftime('%Y-%m-%d') }}" onchange="this.form.submit()">
+                        </div>
+                        <div class="col-md-8">
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('bookings', date=(filter_date - timedelta(days=1)).strftime('%Y-%m-%d')) }}" 
+                                   class="btn btn-outline-secondary">
+                                    <i class="fas fa-chevron-left"></i> Previous Day
+                                </a>
+                                <a href="{{ url_for('bookings', date=date.today().strftime('%Y-%m-%d')) }}" 
+                                   class="btn btn-outline-primary">Today</a>
+                                <a href="{{ url_for('bookings', date=(filter_date + timedelta(days=1)).strftime('%Y-%m-%d')) }}" 
+                                   class="btn btn-outline-secondary">
+                                    Next Day <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointments List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Appointments for {{ filter_date.strftime('%B %d, %Y') }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if appointments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Client</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Duration</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for appointment in appointments %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ utils.format_time(appointment.appointment_date.time()) }}</strong><br>
+                                            <small class="text-muted">{{ utils.format_time(appointment.end_time.time()) }}</small>
+                                        </td>
+                                        <td>
+                                            <div>{{ appointment.client.full_name }}</div>
+                                            <small class="text-muted">{{ appointment.client.phone }}</small>
+                                        </td>
+                                        <td>{{ appointment.service.name }}</td>
+                                        <td>{{ appointment.assigned_staff.full_name }}</td>
+                                        <td>{{ appointment.service.duration }} min</td>
+                                        <td>{{ utils.format_currency(appointment.amount) }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ utils.get_status_class(appointment.status) }}">
+                                                {{ appointment.status.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                {% if appointment.status == 'scheduled' %}
+                                                <button class="btn btn-sm btn-success" 
+                                                        onclick="updateStatus({{ appointment.id }}, 'confirmed')">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                {% endif %}
+                                                
+                                                {% if appointment.status in ['scheduled', 'confirmed'] %}
+                                                <button class="btn btn-sm btn-warning" 
+                                                        onclick="updateStatus({{ appointment.id }}, 'in_progress')">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                                {% endif %}
+                                                
+                                                {% if appointment.status == 'in_progress' %}
+                                                <button class="btn btn-sm btn-primary" 
+                                                        onclick="updateStatus({{ appointment.id }}, 'completed')">
+                                                    <i class="fas fa-stop"></i>
+                                                </button>
+                                                {% endif %}
+                                                
+                                                <button class="btn btn-sm btn-outline-secondary" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#editAppointmentModal" 
+                                                        onclick="editAppointment({{ appointment.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No appointments scheduled for this date</h5>
+                            <p class="text-muted">Click "New Appointment" to schedule one.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Appointment Modal -->
+<div class="modal fade" id="addAppointmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>New Appointment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_appointment') }}">
+                <div class="modal-body">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_id" class="form-label">Client *</label>
+                                {{ form.client_id(class="form-select") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="service_id" class="form-label">Service *</label>
+                                {{ form.service_id(class="form-select", onchange="updateServicePrice()") }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="staff_id" class="form-label">Staff Member *</label>
+                                {{ form.staff_id(class="form-select") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="appointment_date" class="form-label">Date & Time *</label>
+                                {{ form.appointment_date(class="form-control", type="datetime-local") }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Amount</label>
+                                {{ form.amount(class="form-control", step="0.01") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discount" class="form-label">Discount</label>
+                                {{ form.discount(class="form-control", step="0.01") }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        {{ form.notes(class="form-control", rows="3") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Appointment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script>
+function updateServicePrice() {
+    const serviceSelect = document.getElementById('service_id');
+    const amountInput = document.getElementById('amount');
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    
+    if (selectedOption && selectedOption.text.includes('$')) {
+        const price = selectedOption.text.split('$')[1];
+        amountInput.value = price;
+    }
+}
+
+function updateStatus(appointmentId, status) {
+    // In a real implementation, this would make an AJAX call to update the status
+    if (confirm(`Are you sure you want to mark this appointment as ${status.replace('_', ' ')}?`)) {
+        // Make AJAX call here
+        location.reload();
+    }
+}
+
+function editAppointment(appointmentId) {
+    // In a real implementation, this would populate the edit modal with appointment data
+    console.log('Edit appointment:', appointmentId);
+}
+</script>
+{% endblock %}

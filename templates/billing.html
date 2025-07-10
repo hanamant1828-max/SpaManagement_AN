@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Billing & Payments - Spa & Salon Management Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-file-invoice-dollar me-2"></i>Billing & Payments
+            </h1>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Pending Payments
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ pending_appointments|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Pending Amount
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">
+                                {{ utils.format_currency(pending_appointments|sum(attribute='amount') or 0) }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Recent Invoices
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">{{ recent_invoices|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-invoice fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Pending Payments -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">Pending Payments</h6>
+                </div>
+                <div class="card-body">
+                    {% if pending_appointments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Client</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Amount</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for appointment in pending_appointments %}
+                                    <tr>
+                                        <td>{{ utils.format_date(appointment.appointment_date.date()) }}</td>
+                                        <td>
+                                            <div>{{ appointment.client.full_name }}</div>
+                                            <small class="text-muted">{{ appointment.client.phone }}</small>
+                                        </td>
+                                        <td>{{ appointment.service.name }}</td>
+                                        <td>{{ appointment.assigned_staff.full_name }}</td>
+                                        <td>
+                                            <strong>{{ utils.format_currency(appointment.amount) }}</strong>
+                                            {% if appointment.discount > 0 %}
+                                                <br><small class="text-success">
+                                                    Discount: -{{ utils.format_currency(appointment.discount) }}
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('mark_paid', appointment_id=appointment.id) }}" 
+                                                   class="btn btn-sm btn-success"
+                                                   onclick="return confirm('Mark this payment as received?')">
+                                                    <i class="fas fa-check me-1"></i>Mark Paid
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="generateInvoice({{ appointment.id }})">
+                                                    <i class="fas fa-file-invoice me-1"></i>Invoice
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5 class="text-success">All payments up to date!</h5>
+                            <p class="text-muted">No pending payments at the moment.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Payment</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-money-bill-wave me-2 text-success"></i>
+                                Cash Payment
+                            </div>
+                            <button class="btn btn-sm btn-outline-success">Select</button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-credit-card me-2 text-primary"></i>
+                                Card Payment
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary">Select</button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-mobile-alt me-2 text-info"></i>
+                                Digital Wallet
+                            </div>
+                            <button class="btn btn-sm btn-outline-info">Select</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" placeholder="Amount" step="0.01">
+                            <button class="btn btn-primary" type="button">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Invoices -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Invoices</h6>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createInvoiceModal">
+                        <i class="fas fa-plus me-1"></i>Create Invoice
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if recent_invoices %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Client</th>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for invoice in recent_invoices %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ invoice.invoice_number }}</strong>
+                                        </td>
+                                        <td>
+                                            <div>{{ invoice.client.full_name }}</div>
+                                            <small class="text-muted">{{ invoice.client.phone }}</small>
+                                        </td>
+                                        <td>{{ utils.format_date(invoice.invoice_date.date()) }}</td>
+                                        <td>{{ utils.format_currency(invoice.total_amount) }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ utils.get_status_class(invoice.payment_status) }}">
+                                                {{ invoice.payment_status.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="viewInvoice({{ invoice.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" 
+                                                        onclick="printInvoice({{ invoice.id }})">
+                                                    <i class="fas fa-print"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" 
+                                                        onclick="sendInvoice({{ invoice.id }})">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No invoices yet</h5>
+                            <p class="text-muted">Create your first invoice to get started.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Invoice Modal -->
+<div class="modal fade" id="createInvoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>Create Invoice
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createInvoiceForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Client</label>
+                                <select class="form-select" required>
+                                    <option value="">Select Client</option>
+                                    <!-- Clients will be populated here -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Subtotal</label>
+                                <input type="number" class="form-control" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Tax (%)</label>
+                                <input type="number" class="form-control" step="0.01" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Discount</label>
+                                <input type="number" class="form-control" step="0.01" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Create Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function generateInvoice(appointmentId) {
+    // In a real implementation, this would generate an invoice for the appointment
+    console.log('Generate invoice for appointment:', appointmentId);
+}
+
+function viewInvoice(invoiceId) {
+    // In a real implementation, this would display the invoice
+    console.log('View invoice:', invoiceId);
+}
+
+function printInvoice(invoiceId) {
+    // In a real implementation, this would open a print-friendly version
+    console.log('Print invoice:', invoiceId);
+}
+
+function sendInvoice(invoiceId) {
+    // In a real implementation, this would send the invoice via email/WhatsApp
+    console.log('Send invoice:', invoiceId);
+}
+</script>
+
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid var(--bs-primary) !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid var(--bs-success) !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid var(--bs-warning) !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid var(--bs-info) !important;
+}
+</style>
+{% endblock %}
