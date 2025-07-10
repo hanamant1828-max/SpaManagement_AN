@@ -95,6 +95,38 @@
                         </a>
                     </li>
                     {% endif %}
+                    
+                    {% if current_user.can_access('packages') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('packages') }}">
+                            <i class="fas fa-gift me-1"></i>Packages
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if current_user.can_access('notifications') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('notifications') }}">
+                            <i class="fas fa-bell me-1"></i>Notifications
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if current_user.can_access('checkin') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('checkin') }}">
+                            <i class="fas fa-user-check me-1"></i>Check-In
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if current_user.can_access('alerts') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('alerts') }}">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Alerts
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav">

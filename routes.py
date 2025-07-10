@@ -547,6 +547,107 @@ def add_service():
     
     return redirect(url_for('settings'))
 
+# Subscription Packages Management
+@app.route('/packages')
+@login_required
+def packages():
+    packages = Package.query.all()
+    client_packages = ClientPackage.query.filter_by(is_active=True).all()
+    return render_template('packages.html', packages=packages, client_packages=client_packages)
+
+@app.route('/packages/add', methods=['POST'])
+@login_required
+def add_package():
+    form = PackageForm()
+    if form.validate_on_submit():
+        package = Package(
+            name=form.name.data,
+            description=form.description.data,
+            duration_months=form.duration_months.data,
+            total_price=form.total_price.data,
+            discount_percentage=form.discount_percentage.data or 0.0
+        )
+        db.session.add(package)
+        db.session.commit()
+        flash('Package added successfully', 'success')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
+    return redirect(url_for('packages'))
+
+# WhatsApp Notification System
+@app.route('/notifications')
+@login_required
+def notifications():
+    # Get upcoming appointments for notifications
+    tomorrow = datetime.now() + timedelta(days=1)
+    upcoming_appointments = Appointment.query.filter(
+        Appointment.appointment_date >= datetime.now(),
+        Appointment.appointment_date <= tomorrow,
+        Appointment.status == 'scheduled'
+    ).all()
+    
+    # Get clients with expiring packages
+    expiring_packages = ClientPackage.query.filter(
+        ClientPackage.expiry_date <= datetime.now() + timedelta(days=7),
+        ClientPackage.is_active == True
+    ).all()
+    
+    return render_template('notifications.html', 
+                         upcoming_appointments=upcoming_appointments,
+                         expiring_packages=expiring_packages)
+
+# Face Recognition Check-In
+@app.route('/checkin')
+@login_required
+def checkin():
+    # Get today's appointments for check-in
+    today = datetime.now().date()
+    todays_appointments = Appointment.query.filter(
+        func.date(Appointment.appointment_date) == today,
+        Appointment.status.in_(['scheduled', 'confirmed'])
+    ).all()
+    
+    return render_template('checkin.html', appointments=todays_appointments)
+
+@app.route('/checkin/<int:appointment_id>')
+@login_required
+def process_checkin(appointment_id):
+    appointment = Appointment.query.get_or_404(appointment_id)
+    appointment.status = 'in_progress'
+    db.session.commit()
+    flash(f'Checked in {appointment.client.full_name} for {appointment.service.name}', 'success')
+    return redirect(url_for('checkin'))
+
+# Expiring Product Alerts
+@app.route('/alerts')
+@login_required
+def alerts():
+    # Get low stock items
+    low_stock_items = Inventory.query.filter(
+        Inventory.current_stock <= Inventory.min_stock_level,
+        Inventory.is_active == True
+    ).all()
+    
+    # Get expiring items (within 30 days)
+    expiring_soon = Inventory.query.filter(
+        Inventory.expiry_date <= datetime.now().date() + timedelta(days=30),
+        Inventory.expiry_date > datetime.now().date(),
+        Inventory.is_active == True
+    ).all()
+    
+    # Get expired items
+    expired_items = Inventory.query.filter(
+        Inventory.expiry_date <= datetime.now().date(),
+        Inventory.is_active == True
+    ).all()
+    
+    return render_template('alerts.html', 
+                         low_stock_items=low_stock_items,
+                         expiring_soon=expiring_soon,
+                         expired_items=expired_items)
+
 # API endpoints for AJAX requests
 @app.route('/api/appointments/<date>')
 @login_required
@@ -590,7 +691,6 @@ def internal_error(error):
     return render_template('500.html'), 500
 
 # Initialize default data if running for the first time
-@app.before_first_request
 def create_default_data():
     # Create default admin user if no users exist
     if User.query.count() == 0:

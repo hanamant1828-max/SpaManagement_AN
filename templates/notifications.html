@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}WhatsApp Notifications{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-bell me-2"></i>WhatsApp Notifications</h1>
+                <button type="button" class="btn btn-primary">
+                    <i class="fab fa-whatsapp me-2"></i>Send Bulk Messages
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ upcoming_appointments|length }}</h4>
+                            <p>Pending Reminders</p>
+                        </div>
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ expiring_packages|length }}</h4>
+                            <p>Expiring Packages</p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Appointment Reminders -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-calendar-check me-2"></i>Appointment Reminders</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_appointments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Service</th>
+                                    <th>Date & Time</th>
+                                    <th>Phone</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in upcoming_appointments %}
+                                <tr>
+                                    <td>{{ appointment.client.full_name }}</td>
+                                    <td>{{ appointment.service.name }}</td>
+                                    <td>{{ appointment.appointment_date.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                                    <td>{{ appointment.client.phone }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success">
+                                            <i class="fab fa-whatsapp me-1"></i>Send Reminder
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>All reminders sent!</h5>
+                        <p class="text-muted">No pending appointment reminders.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Expiry Notifications -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-gift me-2"></i>Package Expiry Alerts</h5>
+                </div>
+                <div class="card-body">
+                    {% if expiring_packages %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Package</th>
+                                    <th>Expiry Date</th>
+                                    <th>Sessions Left</th>
+                                    <th>Phone</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client_package in expiring_packages %}
+                                <tr>
+                                    <td>{{ client_package.client.full_name }}</td>
+                                    <td>{{ client_package.package.name }}</td>
+                                    <td>{{ client_package.expiry_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ client_package.total_sessions - client_package.sessions_used }}</td>
+                                    <td>{{ client_package.client.phone }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning">
+                                            <i class="fab fa-whatsapp me-1"></i>Send Alert
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>No expiring packages!</h5>
+                        <p class="text-muted">All client packages are current.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
