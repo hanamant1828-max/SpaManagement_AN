@@ -441,3 +441,93 @@ body {
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
+
+/* ========== VERTICAL SIDEBAR LAYOUT STYLES ========== */
+
+/* Layout adjustments for sidebar */
+body {
+    padding-top: 56px; /* Height of fixed navbar */
+}
+
+@media (min-width: 992px) {
+    body {
+        padding-left: 280px; /* Sidebar width */
+    }
+    
+    #sidebar {
+        width: 280px;
+        position: fixed;
+        top: 56px;
+        left: 0;
+        bottom: 0;
+        z-index: 1000;
+        border-right: 1px solid #dee2e6;
+    }
+    
+    .main-content {
+        margin-left: 0;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 991px) {
+    .main-content {
+        padding: 20px 15px;
+    }
+}
+
+/* Sidebar styling */
+#sidebar {
+    background-color: #343a40 !important;
+}
+
+#sidebar .nav-link {
+    color: #ffffff !important;
+    padding: 12px 20px;
+    margin: 2px 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+    font-weight: 500;
+}
+
+#sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--bs-primary);
+    color: #ffffff !important;
+    transform: translateX(2px);
+}
+
+#sidebar .nav-link.active {
+    background-color: var(--bs-primary);
+    border-left-color: #ffffff;
+    color: #ffffff !important;
+}
+
+#sidebar .nav-link i {
+    width: 20px;
+    text-align: center;
+    margin-right: 10px;
+}
+
+/* Offcanvas customization for mobile */
+.offcanvas-header {
+    background-color: #343a40;
+    border-bottom: 1px solid #495057 !important;
+}
+
+.offcanvas-body {
+    background-color: #343a40;
+    padding: 0;
+}
+
+/* Top navbar fixed styling */
+.navbar.fixed-top {
+    z-index: 1030;
+}
+
+/* Active nav link detection */
+.nav-link.active {
+    background-color: var(--bs-primary) !important;
+    color: white !important;
+}

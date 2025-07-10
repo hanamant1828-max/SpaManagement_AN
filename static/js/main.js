@@ -1011,3 +1011,62 @@ th[data-sortable]:hover {
 if (document.head) {
     document.head.insertAdjacentHTML('beforeend', additionalStyles);
 }
+
+// ========== VERTICAL SIDEBAR NAVIGATION FUNCTIONS ==========
+
+// Set active navigation link based on current page
+function setActiveNavLink() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('#sidebar .nav-link');
+    
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        
+        // Check if link href matches current path
+        const linkPath = new URL(link.href).pathname;
+        if (linkPath === currentPath || (currentPath === '/' && linkPath.includes('dashboard'))) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// Setup mobile sidebar auto-close functionality
+function setupMobileSidebarClose() {
+    const sidebarLinks = document.querySelectorAll('#sidebar .nav-link');
+    const sidebar = document.getElementById('sidebar');
+    
+    if (sidebar) {
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // Close sidebar on mobile after clicking a link
+                if (window.innerWidth < 992) {
+                    const offcanvas = bootstrap.Offcanvas.getInstance(sidebar);
+                    if (offcanvas) {
+                        offcanvas.hide();
+                    }
+                }
+            });
+        });
+    }
+}
+
+// Initialize sidebar functionality when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setActiveNavLink();
+    setupMobileSidebarClose();
+    
+    // Update active link on page navigation
+    window.addEventListener('popstate', setActiveNavLink);
+    
+    // Handle sidebar state on window resize
+    window.addEventListener('resize', function() {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && window.innerWidth >= 992) {
+            // Hide offcanvas on desktop
+            const offcanvas = bootstrap.Offcanvas.getInstance(sidebar);
+            if (offcanvas) {
+                offcanvas.hide();
+            }
+        }
+    });
+});
