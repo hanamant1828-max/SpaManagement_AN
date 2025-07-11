@@ -3,6 +3,8 @@
 {% block title %}Face Management{% endblock %}
 
 {% block content %}
+<!-- Hidden CSRF token for JavaScript -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -221,30 +223,50 @@ document.getElementById('saveface').addEventListener('click', async function() {
         return;
     }
     
+    // Show loading state
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    
     try {
-        // In a real implementation, this would send the image to the server
-        // for face encoding processing using libraries like face_recognition
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
+                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+        
+        const requestBody = {
+            client_id: parseInt(selectedClientId),
+            face_image: capturedImageData
+        };
+        
+        console.log('Sending face data:', {
+            client_id: requestBody.client_id,
+            image_size: capturedImageData.length
+        });
+        
         const response = await fetch('/api/save_face', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                ...(csrfToken && {'X-CSRFToken': csrfToken})
             },
-            body: JSON.stringify({
-                client_id: selectedClientId,
-                face_image: capturedImageData
-            })
+            body: JSON.stringify(requestBody)
         });
         
-        if (response.ok) {
-            alert('Face data saved successfully!');
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            alert(`Face data saved successfully for ${result.client_name}!`);
             location.reload(); // Refresh to show updated list
         } else {
-            alert('Error saving face data');
+            console.error('Server error:', result);
+            alert(`Error saving face data: ${result.error || 'Unknown error'}`);
         }
     } catch (err) {
-        console.error('Error saving face:', err);
-        alert('Error saving face data');
+        console.error('Network error saving face:', err);
+        alert(`Network error: ${err.message}`);
+    } finally {
+        // Reset button state
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-save me-1"></i>Save Face';
     }
 });
 
@@ -266,18 +288,25 @@ function resetCamera() {
 // Remove face function
 function removeFace(clientId) {
     if (confirm('Are you sure you want to remove this face registration?')) {
+        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
+                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+        
         fetch(`/api/remove_face/${clientId}`, {
             method: 'DELETE',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                ...(csrfToken && {'X-CSRFToken': csrfToken})
             }
-        }).then(response => {
-            if (response.ok) {
+        }).then(async response => {
+            const result = await response.json();
+            if (response.ok && result.success) {
                 alert('Face data removed successfully');
                 location.reload();
             } else {
-                alert('Error removing face data');
+                alert(`Error removing face data: ${result.error || 'Unknown error'}`);
             }
+        }).catch(err => {
+            console.error('Error removing face:', err);
+            alert(`Network error: ${err.message}`);
         });
     }
 }

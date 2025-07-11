@@ -1170,46 +1170,71 @@ def save_face():
     if not current_user.can_access('clients') or not current_user.has_role('admin'):
         return jsonify({'error': 'Access denied'}), 403
     
-    data = request.get_json()
-    client_id = data.get('client_id')
-    face_image = data.get('face_image')
-    
-    if not client_id or not face_image:
-        return jsonify({'error': 'Missing client_id or face_image'}), 400
-    
-    client = Client.query.get_or_404(client_id)
-    
     try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No JSON data received'}), 400
+            
+        client_id = data.get('client_id')
+        face_image = data.get('face_image')
+        
+        if not client_id:
+            return jsonify({'error': 'Client ID is required'}), 400
+        if not face_image:
+            return jsonify({'error': 'Face image is required'}), 400
+        
+        client = Client.query.get(client_id)
+        if not client:
+            return jsonify({'error': 'Client not found'}), 404
+        
         import base64
         import os
         from datetime import datetime
         
-        # Save the image (remove data:image/jpeg;base64, prefix)
+        # Handle different image formats
         if face_image.startswith('data:image'):
-            face_image = face_image.split(',')[1]
+            header, image_data = face_image.split(',', 1)
+            image_format = header.split('/')[1].split(';')[0]  # Extract format (jpeg, png, etc.)
+        else:
+            image_data = face_image
+            image_format = 'jpg'
+        
+        # Validate base64 data
+        try:
+            decoded_image = base64.b64decode(image_data)
+        except Exception as decode_error:
+            return jsonify({'error': f'Invalid image data: {str(decode_error)}'}), 400
         
         # Create uploads directory if it doesn't exist
         upload_dir = os.path.join('static', 'uploads', 'faces')
         os.makedirs(upload_dir, exist_ok=True)
         
-        # Save image file
-        filename = f"face_{client_id}_{int(datetime.timestamp(datetime.now()))}.jpg"
+        # Save image file with proper extension
+        timestamp = int(datetime.timestamp(datetime.now()))
+        filename = f"face_{client_id}_{timestamp}.{image_format}"
         filepath = os.path.join(upload_dir, filename)
         
+        # Write image file
         with open(filepath, 'wb') as f:
-            f.write(base64.b64decode(face_image))
+            f.write(decoded_image)
         
         # Update client with face data
         client.face_image_url = f"/static/uploads/faces/{filename}"
-        client.face_encoding = "simulated_encoding_data"  # In real app, this would be actual face encoding
+        client.face_encoding = f"face_encoding_{timestamp}"  # Simulated encoding
         
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Face data saved successfully'})
+        return jsonify({
+            'success': True, 
+            'message': 'Face data saved successfully',
+            'client_name': client.full_name,
+            'image_url': client.face_image_url
+        })
     
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error saving face data: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/remove_face/<int:client_id>', methods=['DELETE'])
 @login_required
