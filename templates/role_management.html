@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}Role & Permission Management{% endblock %}
+
+{% block content %}
+<!-- Hidden CSRF token for JavaScript -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-users-cog me-2"></i>Role & Permission Management</h1>
+                <div>
+                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                        <i class="fas fa-plus me-2"></i>Add Role
+                    </button>
+                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#permissionMatrixModal">
+                        <i class="fas fa-table me-2"></i>Permission Matrix
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Cards -->
+    <div class="row">
+        {% for role in roles %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-{{ 'crown' if role.name == 'admin' else 'user-tie' if role.name == 'manager' else 'user' }} me-2"></i>
+                        {{ role.display_name }}
+                    </h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="editRole({{ role.id }})">
+                                <i class="fas fa-edit me-2"></i>Edit Role
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="managePermissions({{ role.id }})">
+                                <i class="fas fa-key me-2"></i>Manage Permissions
+                            </a></li>
+                            {% if role.name not in ['admin'] %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteRole({{ role.id }})">
+                                <i class="fas fa-trash me-2"></i>Delete Role
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text text-muted">{{ role.description }}</p>
+                    
+                    <!-- Permission Count -->
+                    <div class="mb-3">
+                        <small class="text-muted">Permissions:</small>
+                        <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                {% set permission_count = role.permissions|length %}
+                                {% set total_permissions = 132 %}  <!-- You can make this dynamic -->
+                                {% set percentage = (permission_count / total_permissions * 100)|round(1) %}
+                                <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%"></div>
+                            </div>
+                            <span class="badge bg-primary">{{ permission_count }}</span>
+                        </div>
+                    </div>
+
+                    <!-- User Count -->
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Users with this role:</small>
+                        <span class="badge bg-info">{{ role.users|length }} users</span>
+                    </div>
+
+                    <!-- Top Permissions Preview -->
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Key Permissions:</small>
+                        {% set top_permissions = role.permissions[:5] %}
+                        {% for rp in top_permissions %}
+                        <span class="badge bg-light text-dark me-1 mb-1">{{ rp.permission.display_name }}</span>
+                        {% endfor %}
+                        {% if role.permissions|length > 5 %}
+                        <span class="badge bg-secondary">+{{ role.permissions|length - 5 }} more</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-outline-primary btn-sm w-100" onclick="managePermissions({{ role.id }})">
+                        <i class="fas fa-cog me-2"></i>Configure Permissions
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Module-wise Permission Overview -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-sitemap me-2"></i>13 Core Modules - Permission Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% set modules = {
+                            'dashboard': {'icon': 'chart-line', 'color': 'primary'},
+                            'bookings': {'icon': 'calendar-alt', 'color': 'success'},
+                            'staff': {'icon': 'users', 'color': 'info'},
+                            'clients': {'icon': 'user-friends', 'color': 'warning'},
+                            'face_recognition': {'icon': 'camera', 'color': 'danger'},
+                            'communications': {'icon': 'comments', 'color': 'secondary'},
+                            'billing': {'icon': 'receipt', 'color': 'primary'},
+                            'packages': {'icon': 'box', 'color': 'success'},
+                            'inventory': {'icon': 'warehouse', 'color': 'info'},
+                            'reports': {'icon': 'chart-bar', 'color': 'warning'},
+                            'user_management': {'icon': 'user-cog', 'color': 'danger'},
+                            'expenses': {'icon': 'money-bill', 'color': 'secondary'},
+                            'system_management': {'icon': 'cogs', 'color': 'dark'}
+                        } %}
+                        
+                        {% for module, config in modules.items() %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="card border-{{ config.color }}" style="cursor: pointer;" onclick="showModulePermissions('{{ module }}')">
+                                <div class="card-body text-center py-3">
+                                    <i class="fas fa-{{ config.icon }} fa-2x text-{{ config.color }} mb-2"></i>
+                                    <h6 class="card-title mb-1">{{ module.replace('_', ' ').title() }}</h6>
+                                    <small class="text-muted">
+                                        {{ permissions_by_module.get(module, [])|length }} permissions
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Role Modal -->
+<div class="modal fade" id="addRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addRoleForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="roleName" class="form-label">Role Name</label>
+                        <input type="text" class="form-control" id="roleName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="roleDisplayName" class="form-label">Display Name</label>
+                        <input type="text" class="form-control" id="roleDisplayName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="roleDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="roleDescription" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Role</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Permission Management Modal -->
+<div class="modal fade" id="permissionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Permissions - <span id="modalRoleName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Module Selection -->
+                    <div class="col-md-3">
+                        <h6>Select Module:</h6>
+                        <div class="list-group" id="moduleList">
+                            <!-- Modules will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Permission Selection -->
+                    <div class="col-md-9">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 id="selectedModuleTitle">Select a module to view permissions</h6>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="selectAllPermissions()">
+                                    <i class="fas fa-check-double me-1"></i>Select All
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deselectAllPermissions()">
+                                    <i class="fas fa-times me-1"></i>Deselect All
+                                </button>
+                            </div>
+                        </div>
+                        <div id="permissionList" class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                            <p class="text-muted text-center">Select a module to view its permissions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePermissions()">Save Permissions</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permission Matrix Modal -->
+<div class="modal fade" id="permissionMatrixModal" tabindex="-1">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Permission Matrix</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="min-width: 200px;">Permission</th>
+                                {% for role in roles %}
+                                <th class="text-center" style="min-width: 100px;">{{ role.display_name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for module, perms in permissions_by_module.items() %}
+                            <tr class="table-secondary">
+                                <td colspan="{{ roles|length + 1 }}">
+                                    <strong><i class="fas fa-folder me-2"></i>{{ module.replace('_', ' ').title() }} Module</strong>
+                                </td>
+                            </tr>
+                            {% for permission in perms %}
+                            <tr>
+                                <td>{{ permission.display_name }}</td>
+                                {% for role in roles %}
+                                <td class="text-center">
+                                    {% set has_permission = permission in [rp.permission for rp in role.permissions] %}
+                                    {% if has_permission %}
+                                    <i class="fas fa-check text-success"></i>
+                                    {% else %}
+                                    <i class="fas fa-times text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentRoleId = null;
+let allPermissions = {};
+let rolePermissions = {};
+
+// Load permissions data
+{% set permissions_json = {} %}
+{% for module, perms in permissions_by_module.items() %}
+    {% set perms_list = [] %}
+    {% for perm in perms %}
+        {% set perm_dict = {'id': perm.id, 'name': perm.name, 'display_name': perm.display_name} %}
+        {% set _ = perms_list.append(perm_dict) %}
+    {% endfor %}
+    {% set _ = permissions_json.update({module: perms_list}) %}
+{% endfor %}
+
+allPermissions = {{ permissions_json | tojson }};
+
+function editRole(roleId) {
+    // Implementation for editing role
+    alert('Edit role functionality - to be implemented');
+}
+
+function deleteRole(roleId) {
+    if (confirm('Are you sure you want to delete this role? This action cannot be undone.')) {
+        fetch(`/api/roles/${roleId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error deleting role');
+            }
+        });
+    }
+}
+
+function managePermissions(roleId) {
+    currentRoleId = roleId;
+    
+    // Load current role permissions
+    fetch(`/api/roles/${roleId}/permissions`)
+        .then(response => response.json())
+        .then(data => {
+            rolePermissions = data.permissions || [];
+            document.getElementById('modalRoleName').textContent = data.role_name;
+            
+            // Populate module list
+            populateModuleList();
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('permissionModal')).show();
+        });
+}
+
+function populateModuleList() {
+    const moduleList = document.getElementById('moduleList');
+    moduleList.innerHTML = '';
+    
+    Object.keys(allPermissions).forEach((module, index) => {
+        const moduleItem = document.createElement('a');
+        moduleItem.className = 'list-group-item list-group-item-action';
+        moduleItem.href = '#';
+        moduleItem.innerHTML = `
+            <i class="fas fa-folder me-2"></i>
+            ${module.replace('_', ' ').toUpperCase()}
+            <small class="text-muted d-block">${allPermissions[module].length} permissions</small>
+        `;
+        moduleItem.onclick = (e) => {
+            e.preventDefault();
+            selectModule(module);
+        };
+        
+        if (index === 0) {
+            moduleItem.classList.add('active');
+            selectModule(module);
+        }
+        
+        moduleList.appendChild(moduleItem);
+    });
+}
+
+function selectModule(module) {
+    // Update active module in list
+    document.querySelectorAll('#moduleList .list-group-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.list-group-item').classList.add('active');
+    
+    // Update permission list
+    document.getElementById('selectedModuleTitle').textContent = 
+        `${module.replace('_', ' ').toUpperCase()} Module Permissions`;
+    
+    const permissionList = document.getElementById('permissionList');
+    permissionList.innerHTML = '';
+    
+    allPermissions[module].forEach(permission => {
+        const isChecked = rolePermissions.includes(permission.name);
+        
+        const permissionDiv = document.createElement('div');
+        permissionDiv.className = 'form-check mb-2';
+        permissionDiv.innerHTML = `
+            <input class="form-check-input" type="checkbox" value="${permission.name}" 
+                   id="perm_${permission.id}" ${isChecked ? 'checked' : ''}>
+            <label class="form-check-label" for="perm_${permission.id}">
+                <strong>${permission.display_name}</strong>
+                <small class="text-muted d-block">${permission.name}</small>
+            </label>
+        `;
+        
+        permissionList.appendChild(permissionDiv);
+    });
+}
+
+function selectAllPermissions() {
+    document.querySelectorAll('#permissionList input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function deselectAllPermissions() {
+    document.querySelectorAll('#permissionList input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+function savePermissions() {
+    const selectedPermissions = Array.from(
+        document.querySelectorAll('#permissionList input[type="checkbox"]:checked')
+    ).map(checkbox => checkbox.value);
+    
+    fetch(`/api/roles/${currentRoleId}/permissions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+        },
+        body: JSON.stringify({
+            permissions: selectedPermissions
+        })
+    }).then(response => {
+        if (response.ok) {
+            alert('Permissions updated successfully!');
+            location.reload();
+        } else {
+            alert('Error updating permissions');
+        }
+    });
+}
+
+function showModulePermissions(module) {
+    // Show module permissions in a simple alert for now
+    const permissions = allPermissions[module] || [];
+    const permissionNames = permissions.map(p => p.display_name).join('\n');
+    alert(`${module.replace('_', ' ').toUpperCase()} Module Permissions:\n\n${permissionNames}`);
+}
+
+// Add role form submission
+document.getElementById('addRoleForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('roleName').value,
+        display_name: document.getElementById('roleDisplayName').value,
+        description: document.getElementById('roleDescription').value
+    };
+    
+    fetch('/api/roles', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+        },
+        body: JSON.stringify(formData)
+    }).then(response => {
+        if (response.ok) {
+            alert('Role created successfully!');
+            location.reload();
+        } else {
+            alert('Error creating role');
+        }
+    });
+});
+</script>
+{% endblock %}

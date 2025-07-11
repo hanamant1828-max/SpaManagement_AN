@@ -1368,6 +1368,131 @@ def system_management():
                          department_form=department_form,
                          setting_form=setting_form)
 
+@app.route('/role-management')
+@login_required
+def role_management():
+    """Advanced role and permission management interface"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all roles with their permissions
+    roles = Role.query.all()
+    
+    # Get all permissions grouped by module
+    permissions_by_module = {}
+    for permission in Permission.query.order_by(Permission.module, Permission.name).all():
+        if permission.module not in permissions_by_module:
+            permissions_by_module[permission.module] = []
+        permissions_by_module[permission.module].append(permission)
+    
+    return render_template('role_management.html',
+                         roles=roles,
+                         permissions_by_module=permissions_by_module)
+
+@app.route('/api/roles', methods=['POST'])
+@login_required
+def create_role():
+    """Create a new role"""
+    if not current_user.can_access('system_management'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    data = request.get_json()
+    
+    try:
+        role = Role(
+            name=data['name'],
+            display_name=data['display_name'],
+            description=data.get('description', ''),
+            is_active=True
+        )
+        
+        db.session.add(role)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Role created successfully'})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>', methods=['DELETE'])
+@login_required
+def delete_role(role_id):
+    """Delete a role"""
+    if not current_user.can_access('system_management'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    role = Role.query.get_or_404(role_id)
+    
+    # Prevent deletion of admin role
+    if role.name == 'admin':
+        return jsonify({'error': 'Cannot delete admin role'}), 400
+    
+    try:
+        # Remove role permissions
+        RolePermission.query.filter_by(role_id=role_id).delete()
+        
+        # Update users with this role to default role
+        User.query.filter_by(role_id=role_id).update({'role_id': None})
+        
+        db.session.delete(role)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Role deleted successfully'})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['GET'])
+@login_required
+def get_role_permissions(role_id):
+    """Get permissions for a specific role"""
+    if not current_user.can_access('system_management'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    role = Role.query.get_or_404(role_id)
+    permissions = [rp.permission.name for rp in role.permissions]
+    
+    return jsonify({
+        'role_name': role.display_name,
+        'permissions': permissions
+    })
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
+@login_required
+def update_role_permissions(role_id):
+    """Update permissions for a specific role"""
+    if not current_user.can_access('system_management'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    role = Role.query.get_or_404(role_id)
+    data = request.get_json()
+    permission_names = data.get('permissions', [])
+    
+    try:
+        # Remove existing permissions
+        RolePermission.query.filter_by(role_id=role_id).delete()
+        
+        # Add new permissions
+        for permission_name in permission_names:
+            permission = Permission.query.filter_by(name=permission_name).first()
+            if permission:
+                role_permission = RolePermission(
+                    role_id=role_id,
+                    permission_id=permission.id
+                )
+                db.session.add(role_permission)
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Permissions updated successfully'})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/add-role', methods=['POST'])
 @login_required
 def add_role():
