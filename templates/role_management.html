@@ -251,8 +251,11 @@
                                 <td>{{ permission.display_name }}</td>
                                 {% for role in roles %}
                                 <td class="text-center">
-                                    {% set has_permission = permission in [rp.permission for rp in role.permissions] %}
-                                    {% if has_permission %}
+                                    {% set role_permission_names = [] %}
+                                    {% for rp in role.permissions %}
+                                        {% set _ = role_permission_names.append(rp.permission.name) %}
+                                    {% endfor %}
+                                    {% if permission.name in role_permission_names %}
                                     <i class="fas fa-check text-success"></i>
                                     {% else %}
                                     <i class="fas fa-times text-muted"></i>
