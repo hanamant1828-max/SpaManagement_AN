@@ -210,6 +210,21 @@
                             <i class="fas fa-cog me-2"></i>User & Access Control
                         </a>
                     </li>
+                    
+                    <!-- System Management -->
+                    {% if current_user.can_access('system_management') %}
+                    <li class="nav-item mt-3 mb-2">
+                        <div class="nav-section-header px-3">
+                            <span class="text-muted small">SYSTEM MANAGEMENT</span>
+                        </div>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('system_management') }}">
+                            <i class="fas fa-server me-2"></i>System Configuration
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </nav>
         </div>

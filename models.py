@@ -5,6 +5,87 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 import json
 
+# CRUD System Models for Dynamic Configuration
+class Role(db.Model):
+    """Dynamic roles management"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    users = db.relationship('User', backref='user_role', lazy=True, foreign_keys='User.role_id')
+    permissions = db.relationship('RolePermission', backref='role', lazy=True, cascade='all, delete-orphan')
+
+class Permission(db.Model):
+    """Dynamic permissions management"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    module = db.Column(db.String(50), nullable=False)  # dashboard, staff, clients, etc.
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    role_permissions = db.relationship('RolePermission', backref='permission', lazy=True, cascade='all, delete-orphan')
+
+class RolePermission(db.Model):
+    """Many-to-many relationship for roles and permissions"""
+    id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
+    permission_id = db.Column(db.Integer, db.ForeignKey('permission.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (db.UniqueConstraint('role_id', 'permission_id'),)
+
+class Category(db.Model):
+    """Dynamic categories for services, products, etc."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    category_type = db.Column(db.String(50), nullable=False)  # service, product, expense, etc.
+    color = db.Column(db.String(7), default='#007bff')  # Hex color for UI
+    icon = db.Column(db.String(50), default='fas fa-tag')  # Font Awesome icon
+    is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    services = db.relationship('Service', backref='service_category', lazy=True)
+    inventory = db.relationship('Inventory', backref='inventory_category', lazy=True)
+    expenses = db.relationship('Expense', backref='expense_category', lazy=True)
+
+class Department(db.Model):
+    """Dynamic departments for staff"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    manager_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    staff = db.relationship('User', backref='staff_department', lazy=True, foreign_keys='User.department_id')
+    managed_by = db.relationship('User', backref='managed_departments', lazy=True, foreign_keys='Department.manager_id')
+
+class SystemSetting(db.Model):
+    """Dynamic system settings"""
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.Text)
+    data_type = db.Column(db.String(20), default='string')  # string, integer, float, boolean, json
+    category = db.Column(db.String(50), nullable=False)  # business, appearance, notifications, etc.
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    is_public = db.Column(db.Boolean, default=False)  # Can be accessed by non-admin users
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
@@ -12,7 +93,11 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='staff')  # admin, manager, staff, cashier
+    
+    # Dynamic role system
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=True)
+    role = db.Column(db.String(20), nullable=False, default='staff')  # Fallback for compatibility
+    
     phone = db.Column(db.String(20))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -21,7 +106,8 @@ class User(UserMixin, db.Model):
     commission_rate = db.Column(db.Float, default=0.0)
     hourly_rate = db.Column(db.Float, default=0.0)
     employee_id = db.Column(db.String(20), unique=True)
-    department = db.Column(db.String(50))
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
+    department = db.Column(db.String(50))  # Fallback for compatibility
     hire_date = db.Column(db.Date)
     
     # Performance tracking
@@ -48,10 +134,18 @@ class User(UserMixin, db.Model):
         return f"{self.first_name} {self.last_name}"
 
     def has_role(self, role):
+        # Support both dynamic and legacy role systems
+        if self.user_role:
+            return self.user_role.name == role
         return self.role == role
 
     def can_access(self, resource):
-        # Define role-based access control
+        # Dynamic permissions from role-permission system
+        if self.user_role:
+            user_permissions = [rp.permission.name for rp in self.user_role.permissions if rp.permission.is_active]
+            return 'all' in user_permissions or resource in user_permissions
+        
+        # Fallback to legacy permissions
         permissions = {
             'admin': ['all'],
             'manager': ['dashboard', 'bookings', 'clients', 'staff', 'billing', 'inventory', 'expenses', 'reports'],
@@ -59,6 +153,12 @@ class User(UserMixin, db.Model):
             'cashier': ['dashboard', 'bookings', 'billing']
         }
         return 'all' in permissions.get(self.role, []) or resource in permissions.get(self.role, [])
+    
+    def get_role_name(self):
+        """Get the role name from dynamic system or fallback"""
+        if self.user_role:
+            return self.user_role.name
+        return self.role
 
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -120,7 +220,8 @@ class Service(db.Model):
     description = db.Column(db.Text)
     duration = db.Column(db.Integer, nullable=False)  # in minutes
     price = db.Column(db.Float, nullable=False)
-    category = db.Column(db.String(50), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -181,7 +282,8 @@ class Inventory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    category = db.Column(db.String(50), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
     current_stock = db.Column(db.Integer, default=0)
     min_stock_level = db.Column(db.Integer, default=5)
     unit_price = db.Column(db.Float, default=0.0)
@@ -207,7 +309,8 @@ class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(200), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    category = db.Column(db.String(50), nullable=False)  # utilities, supplies, maintenance, etc.
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
     expense_date = db.Column(db.Date, nullable=False, default=date.today)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receipt_number = db.Column(db.String(50))

@@ -4,8 +4,8 @@ from werkzeug.security import generate_password_hash
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import app, db
-from models import User, Client, Service, Appointment, Inventory, Expense, Invoice, Package, StaffSchedule, ClientPackage, PackageService, Review, Communication, Commission, ProductSale, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings
-from forms import LoginForm, UserForm, ClientForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedClientForm, AdvancedUserForm, QuickBookingForm, PaymentForm
+from models import User, Client, Service, Appointment, Inventory, Expense, Invoice, Package, StaffSchedule, ClientPackage, PackageService, Review, Communication, Commission, ProductSale, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings, Role, Permission, RolePermission, Category, Department, SystemSetting
+from forms import LoginForm, UserForm, ClientForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedClientForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
 import utils
 
 @app.context_processor
@@ -694,8 +694,113 @@ def internal_error(error):
 
 # Initialize comprehensive default data for real-world operations
 def create_default_data():
-    """Create default admin user and comprehensive sample data"""
+    """Create default data for the application"""
+    # Create default roles and permissions first
+    if Role.query.count() == 0:
+        # Create default permissions
+        permissions = [
+            Permission(name='all', display_name='All Permissions', description='Full system access', module='system'),
+            Permission(name='dashboard', display_name='Dashboard Access', description='View dashboard', module='dashboard'),
+            Permission(name='bookings', display_name='Booking Management', description='Manage appointments', module='bookings'),
+            Permission(name='clients', display_name='Client Management', description='Manage clients', module='clients'),
+            Permission(name='staff', display_name='Staff Management', description='Manage staff', module='staff'),
+            Permission(name='billing', display_name='Billing & Payments', description='Handle billing', module='billing'),
+            Permission(name='inventory', display_name='Inventory Management', description='Manage inventory', module='inventory'),
+            Permission(name='expenses', display_name='Expense Tracking', description='Track expenses', module='expenses'),
+            Permission(name='reports', display_name='Reports & Analytics', description='View reports', module='reports'),
+            Permission(name='system_management', display_name='System Management', description='System configuration', module='system'),
+        ]
+        
+        for permission in permissions:
+            db.session.add(permission)
+        
+        db.session.flush()  # Get IDs
+        
+        # Create default roles
+        roles = [
+            Role(name='admin', display_name='Administrator', description='Full system access', is_active=True),
+            Role(name='manager', display_name='Manager', description='Management access', is_active=True),
+            Role(name='staff', display_name='Staff Member', description='Basic staff access', is_active=True),
+            Role(name='cashier', display_name='Cashier', description='Billing and payments', is_active=True),
+        ]
+        
+        for role in roles:
+            db.session.add(role)
+        
+        db.session.flush()  # Get IDs
+        
+        # Assign permissions to roles
+        admin_role = Role.query.filter_by(name='admin').first()
+        manager_role = Role.query.filter_by(name='manager').first()
+        staff_role = Role.query.filter_by(name='staff').first()
+        cashier_role = Role.query.filter_by(name='cashier').first()
+        
+        # Admin gets all permissions
+        all_permission = Permission.query.filter_by(name='all').first()
+        db.session.add(RolePermission(role_id=admin_role.id, permission_id=all_permission.id))
+        
+        # Manager permissions
+        manager_permissions = ['dashboard', 'bookings', 'clients', 'staff', 'billing', 'inventory', 'expenses', 'reports']
+        for perm_name in manager_permissions:
+            perm = Permission.query.filter_by(name=perm_name).first()
+            db.session.add(RolePermission(role_id=manager_role.id, permission_id=perm.id))
+        
+        # Staff permissions
+        staff_permissions = ['dashboard', 'bookings', 'clients']
+        for perm_name in staff_permissions:
+            perm = Permission.query.filter_by(name=perm_name).first()
+            db.session.add(RolePermission(role_id=staff_role.id, permission_id=perm.id))
+        
+        # Cashier permissions
+        cashier_permissions = ['dashboard', 'bookings', 'billing']
+        for perm_name in cashier_permissions:
+            perm = Permission.query.filter_by(name=perm_name).first()
+            db.session.add(RolePermission(role_id=cashier_role.id, permission_id=perm.id))
+        
+        db.session.commit()
+        print("Default roles and permissions created successfully!")
+    
+    # Create default categories
+    if Category.query.count() == 0:
+        categories = [
+            Category(name='face', display_name='Face', category_type='service', color='#ff6b6b', icon='fas fa-smile'),
+            Category(name='body', display_name='Body', category_type='service', color='#4ecdc4', icon='fas fa-user'),
+            Category(name='nails', display_name='Nails', category_type='service', color='#45b7d1', icon='fas fa-hand-sparkles'),
+            Category(name='hair', display_name='Hair', category_type='service', color='#f9ca24', icon='fas fa-cut'),
+            Category(name='skincare', display_name='Skincare', category_type='product', color='#6c5ce7', icon='fas fa-leaf'),
+            Category(name='cosmetics', display_name='Cosmetics', category_type='product', color='#fd79a8', icon='fas fa-palette'),
+            Category(name='supplies', display_name='Supplies', category_type='expense', color='#74b9ff', icon='fas fa-box'),
+            Category(name='utilities', display_name='Utilities', category_type='expense', color='#00b894', icon='fas fa-bolt'),
+        ]
+        
+        for category in categories:
+            db.session.add(category)
+        
+        db.session.commit()
+        print("Default categories created successfully!")
+    
+    # Create default departments
+    if Department.query.count() == 0:
+        departments = [
+            Department(name='spa', display_name='Spa Services', description='Facial and body treatments'),
+            Department(name='salon', display_name='Salon Services', description='Hair and beauty services'),
+            Department(name='nails', display_name='Nail Services', description='Manicure and pedicure'),
+            Department(name='management', display_name='Management', description='Administrative staff'),
+        ]
+        
+        for department in departments:
+            db.session.add(department)
+        
+        db.session.commit()
+        print("Default departments created successfully!")
+    
+    # Create default users
     if User.query.count() == 0:
+        # Get the roles we just created
+        admin_role = Role.query.filter_by(name='admin').first()
+        manager_role = Role.query.filter_by(name='manager').first()
+        staff_role = Role.query.filter_by(name='staff').first()
+        
         # Create default admin user
         admin = User(
             username='admin',
@@ -703,6 +808,7 @@ def create_default_data():
             first_name='System',
             last_name='Administrator',
             role='admin',
+            role_id=admin_role.id if admin_role else None,
             employee_id='EMP001',
             department='management',
             hire_date=date.today()
@@ -718,21 +824,9 @@ def create_default_data():
                 first_name='Sarah',
                 last_name='Johnson',
                 role='staff',
+                role_id=staff_role.id if staff_role else None,
                 commission_rate=15.0,
                 hourly_rate=25.0,
-                employee_id='EMP002',
-                department='hair',
-                hire_date=date.today(),
-                specialties='Hair cutting, coloring, styling'
-            ),
-            User(
-                username='maria_therapist',
-                email='maria@spa.com',
-                first_name='Maria',
-                last_name='Garcia',
-                role='staff',
-                commission_rate=20.0,
-                hourly_rate=30.0,
                 employee_id='EMP003',
                 department='massage',
                 hire_date=date.today(),
@@ -1112,3 +1206,209 @@ def reviews():
     return render_template('reviews.html',
                          recent_reviews=recent_reviews,
                          avg_rating=round(avg_rating, 1))
+
+# CRUD Routes for Dynamic System Management
+
+@app.route('/system-management')
+@login_required
+def system_management():
+    """System management dashboard"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all data for the system management page
+    roles = Role.query.all()
+    permissions = Permission.query.all()
+    categories = Category.query.all()
+    departments = Department.query.all()
+    system_settings = SystemSetting.query.all()
+    
+    # Initialize forms
+    role_form = RoleForm()
+    permission_form = PermissionForm()
+    category_form = CategoryForm()
+    department_form = DepartmentForm()
+    setting_form = SystemSettingForm()
+    
+    # Populate form choices
+    role_form.permissions.choices = [(p.id, p.display_name) for p in permissions]
+    department_form.manager_id.choices = [(0, 'No Manager')] + [(u.id, u.full_name) for u in User.query.filter_by(is_active=True).all()]
+    
+    return render_template('system_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         categories=categories,
+                         departments=departments,
+                         system_settings=system_settings,
+                         role_form=role_form,
+                         permission_form=permission_form,
+                         category_form=category_form,
+                         department_form=department_form,
+                         setting_form=setting_form)
+
+@app.route('/add-role', methods=['POST'])
+@login_required
+def add_role():
+    """Add new role"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = RoleForm()
+    form.permissions.choices = [(p.id, p.display_name) for p in Permission.query.all()]
+    
+    if form.validate_on_submit():
+        try:
+            role = Role(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(role)
+            db.session.flush()  # Get the ID
+            
+            # Add permissions
+            for permission_id in form.permissions.data:
+                role_permission = RolePermission(
+                    role_id=role.id,
+                    permission_id=permission_id
+                )
+                db.session.add(role_permission)
+            
+            db.session.commit()
+            flash('Role added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding role: {str(e)}', 'danger')
+    else:
+        flash('Please fix the form errors', 'danger')
+    
+    return redirect(url_for('system_management'))
+
+@app.route('/add-permission', methods=['POST'])
+@login_required
+def add_permission():
+    """Add new permission"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = PermissionForm()
+    
+    if form.validate_on_submit():
+        try:
+            permission = Permission(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                module=form.module.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(permission)
+            db.session.commit()
+            flash('Permission added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding permission: {str(e)}', 'danger')
+    else:
+        flash('Please fix the form errors', 'danger')
+    
+    return redirect(url_for('system_management'))
+
+@app.route('/add-category', methods=['POST'])
+@login_required
+def add_category():
+    """Add new category"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = CategoryForm()
+    
+    if form.validate_on_submit():
+        try:
+            category = Category(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                category_type=form.category_type.data,
+                color=form.color.data or '#007bff',
+                icon=form.icon.data or 'fas fa-tag',
+                is_active=form.is_active.data,
+                sort_order=form.sort_order.data or 0
+            )
+            db.session.add(category)
+            db.session.commit()
+            flash('Category added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding category: {str(e)}', 'danger')
+    else:
+        flash('Please fix the form errors', 'danger')
+    
+    return redirect(url_for('system_management'))
+
+@app.route('/add-department', methods=['POST'])
+@login_required
+def add_department():
+    """Add new department"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = DepartmentForm()
+    form.manager_id.choices = [(0, 'No Manager')] + [(u.id, u.full_name) for u in User.query.filter_by(is_active=True).all()]
+    
+    if form.validate_on_submit():
+        try:
+            department = Department(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                manager_id=form.manager_id.data if form.manager_id.data != 0 else None,
+                is_active=form.is_active.data
+            )
+            db.session.add(department)
+            db.session.commit()
+            flash('Department added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding department: {str(e)}', 'danger')
+    else:
+        flash('Please fix the form errors', 'danger')
+    
+    return redirect(url_for('system_management'))
+
+@app.route('/add-setting', methods=['POST'])
+@login_required
+def add_setting():
+    """Add new system setting"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = SystemSettingForm()
+    
+    if form.validate_on_submit():
+        try:
+            setting = SystemSetting(
+                key=form.key.data,
+                value=form.value.data,
+                data_type=form.data_type.data,
+                category=form.category.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                is_public=form.is_public.data
+            )
+            db.session.add(setting)
+            db.session.commit()
+            flash('Setting added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding setting: {str(e)}', 'danger')
+    else:
+        flash('Please fix the form errors', 'danger')
+    
+    return redirect(url_for('system_management'))

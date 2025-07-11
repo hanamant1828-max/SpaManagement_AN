@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, TextAreaField, FloatField, IntegerField, DateField, DateTimeField, BooleanField, TimeField, HiddenField, SubmitField
+from wtforms import StringField, PasswordField, SelectField, TextAreaField, FloatField, IntegerField, DateField, DateTimeField, BooleanField, TimeField, HiddenField, SubmitField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
-from wtforms.widgets import TextArea
+from wtforms.widgets import TextArea, CheckboxInput, ListWidget
 from datetime import datetime, date
 
 class LoginForm(FlaskForm):
@@ -314,3 +314,76 @@ class PaymentForm(FlaskForm):
     tips = FloatField('Tips', validators=[Optional(), NumberRange(min=0)])
     discount = FloatField('Discount', validators=[Optional(), NumberRange(min=0)])
     notes = TextAreaField('Payment Notes', validators=[Optional()])
+
+# CRUD System Forms for Dynamic Configuration
+
+class RoleForm(FlaskForm):
+    """Role management form"""
+    name = StringField('Role Name', validators=[DataRequired(), Length(min=3, max=50)])
+    display_name = StringField('Display Name', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
+    permissions = SelectMultipleField('Permissions', coerce=int, validators=[Optional()])
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Will be populated dynamically from database
+        self.permissions.choices = []
+
+class PermissionForm(FlaskForm):
+    """Permission management form"""
+    name = StringField('Permission Name', validators=[DataRequired(), Length(min=3, max=50)])
+    display_name = StringField('Display Name', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    module = StringField('Module', validators=[DataRequired(), Length(min=3, max=50)])
+    is_active = BooleanField('Active', default=True)
+
+class CategoryForm(FlaskForm):
+    """Category management form"""
+    name = StringField('Category Name', validators=[DataRequired(), Length(min=3, max=50)])
+    display_name = StringField('Display Name', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    category_type = SelectField('Category Type', choices=[
+        ('service', 'Service Category'),
+        ('product', 'Product Category'),
+        ('expense', 'Expense Category'),
+        ('inventory', 'Inventory Category')
+    ], validators=[DataRequired()])
+    color = StringField('Color', validators=[Optional(), Length(min=7, max=7)])
+    icon = StringField('Icon', validators=[Optional(), Length(max=50)])
+    is_active = BooleanField('Active', default=True)
+    sort_order = IntegerField('Sort Order', validators=[Optional(), NumberRange(min=0)])
+
+class DepartmentForm(FlaskForm):
+    """Department management form"""
+    name = StringField('Department Name', validators=[DataRequired(), Length(min=3, max=50)])
+    display_name = StringField('Display Name', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    manager_id = SelectField('Manager', coerce=int, validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Will be populated dynamically from database
+        self.manager_id.choices = []
+
+class SystemSettingForm(FlaskForm):
+    """System setting management form"""
+    key = StringField('Setting Key', validators=[DataRequired(), Length(min=3, max=100)])
+    value = TextAreaField('Value', validators=[Optional()])
+    data_type = SelectField('Data Type', choices=[
+        ('string', 'String'),
+        ('integer', 'Integer'),
+        ('float', 'Float'),
+        ('boolean', 'Boolean'),
+        ('json', 'JSON')
+    ], validators=[DataRequired()])
+    category = StringField('Category', validators=[DataRequired(), Length(min=3, max=50)])
+    display_name = StringField('Display Name', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    is_public = BooleanField('Public Setting', default=False)
+
+class MultiCheckboxField(SelectMultipleField):
+    """Custom field for multiple checkboxes"""
+    widget = ListWidget(prefix_label=False)
+    option_widget = CheckboxInput()
