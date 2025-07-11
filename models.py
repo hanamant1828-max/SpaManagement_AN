@@ -179,6 +179,8 @@ class Client(db.Model):
     preferences = db.Column(db.Text)
     allergies = db.Column(db.Text)
     notes = db.Column(db.Text)
+    face_encoding = db.Column(db.Text)  # Store face encoding as JSON string
+    face_image_url = db.Column(db.String(255))  # Store face image path
     
     # Loyalty status
     loyalty_points = db.Column(db.Integer, default=0)

@@ -1143,6 +1143,102 @@ def add_product_sale():
     
     return redirect(url_for('product_sales'))
 
+# Face Recognition Management Routes
+@app.route('/face_management')
+@login_required
+def face_management():
+    if not current_user.can_access('clients') or not current_user.has_role('admin'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all clients for face registration
+    clients = Client.query.filter_by(is_active=True).order_by(Client.first_name).all()
+    
+    # Get clients who already have face data
+    clients_with_faces = Client.query.filter(
+        Client.face_encoding.isnot(None),
+        Client.is_active == True
+    ).order_by(Client.first_name).all()
+    
+    return render_template('face_management.html', 
+                         clients=clients, 
+                         clients_with_faces=clients_with_faces)
+
+@app.route('/api/save_face', methods=['POST'])
+@login_required
+def save_face():
+    if not current_user.can_access('clients') or not current_user.has_role('admin'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    data = request.get_json()
+    client_id = data.get('client_id')
+    face_image = data.get('face_image')
+    
+    if not client_id or not face_image:
+        return jsonify({'error': 'Missing client_id or face_image'}), 400
+    
+    client = Client.query.get_or_404(client_id)
+    
+    try:
+        import base64
+        import os
+        from datetime import datetime
+        
+        # Save the image (remove data:image/jpeg;base64, prefix)
+        if face_image.startswith('data:image'):
+            face_image = face_image.split(',')[1]
+        
+        # Create uploads directory if it doesn't exist
+        upload_dir = os.path.join('static', 'uploads', 'faces')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Save image file
+        filename = f"face_{client_id}_{int(datetime.timestamp(datetime.now()))}.jpg"
+        filepath = os.path.join(upload_dir, filename)
+        
+        with open(filepath, 'wb') as f:
+            f.write(base64.b64decode(face_image))
+        
+        # Update client with face data
+        client.face_image_url = f"/static/uploads/faces/{filename}"
+        client.face_encoding = "simulated_encoding_data"  # In real app, this would be actual face encoding
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Face data saved successfully'})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/remove_face/<int:client_id>', methods=['DELETE'])
+@login_required
+def remove_face(client_id):
+    if not current_user.can_access('clients') or not current_user.has_role('admin'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    client = Client.query.get_or_404(client_id)
+    
+    try:
+        # Remove face image file if it exists
+        if client.face_image_url:
+            import os
+            image_path = client.face_image_url.replace('/static/', 'static/')
+            if os.path.exists(image_path):
+                os.remove(image_path)
+        
+        # Clear face data from database
+        client.face_encoding = None
+        client.face_image_url = None
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Face data removed successfully'})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/recurring-appointments')
 @login_required
 def recurring_appointments():

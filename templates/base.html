@@ -96,6 +96,14 @@
                             <i class="fas fa-user-check me-2"></i>Face Recognition Check-In
                         </a>
                     </li>
+                    
+                    {% if current_user.has_role('admin') %}
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('face_management') }}">
+                            <i class="fas fa-user-friends me-2"></i>Face Management
+                        </a>
+                    </li>
+                    {% endif %}
                     {% endif %}
                     
                     {% if current_user.can_access('notifications') %}
