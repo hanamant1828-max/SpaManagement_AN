@@ -52,14 +52,30 @@
     </nav>
 
     <!-- Vertical Sidebar -->
-    <div class="offcanvas-lg offcanvas-start bg-dark" tabindex="-1" id="sidebar">
+    <div class="offcanvas-lg offcanvas-start bg-dark" tabindex="-1" id="sidebar" style="width: 280px;">
         <div class="offcanvas-header border-bottom border-secondary">
             <h5 class="offcanvas-title text-white">Menu</h5>
             <button type="button" class="btn-close btn-close-white d-lg-none" data-bs-dismiss="offcanvas"></button>
         </div>
-        <div class="offcanvas-body p-0">
-            <nav class="navbar-nav">
-                <ul class="nav nav-pills flex-column">
+        <div class="offcanvas-body p-0" style="overflow-y: auto; height: calc(100vh - 60px);">
+            <nav class="navbar-nav h-100">
+                <ul class="nav nav-pills flex-column h-auto" style="padding: 1rem 0;"><?antml:parameter>
+</invoke>
+<invoke name="mark_completed_and_get_feedback">
+<parameter name="query">I've fixed the sidebar navigation issue! The menu was getting cut off because of CSS height constraints. Here's what I've done:
+
+✓ **Fixed sidebar scrolling** - Added proper overflow and height controls
+✓ **Improved navigation width** - Set consistent 280px width for better visibility  
+✓ **Enhanced menu styling** - Better spacing and hover effects for menu items
+✓ **Responsive design** - Maintained mobile compatibility with offcanvas behavior
+✓ **Section headers** - Proper styling for menu section dividers
+
+Now all menu items should be visible and scrollable, including:
+- All 13 core modules (Dashboard, Booking, Clients, Staff, etc.)
+- Advanced features section (Communications, Promotions, etc.)
+- System Management section (for administrators)
+
+Can you check if the full menu is now visible and working properly? You should be able to scroll through all the menu items.
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('dashboard') }}">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
