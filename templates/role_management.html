@@ -295,8 +295,8 @@ let rolePermissions = {};
 allPermissions = {{ permissions_json | tojson }};
 
 function editRole(roleId) {
-    // Implementation for editing role
-    alert('Edit role functionality - to be implemented');
+    // For now, redirect to manage permissions which is the main editing function
+    managePermissions(roleId);
 }
 
 function deleteRole(roleId) {
@@ -321,7 +321,12 @@ function managePermissions(roleId) {
     
     // Load current role permissions
     fetch(`/api/roles/${roleId}/permissions`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load permissions');
+            }
+            return response.json();
+        })
         .then(data => {
             rolePermissions = data.permissions || [];
             document.getElementById('modalRoleName').textContent = data.role_name;
@@ -331,6 +336,10 @@ function managePermissions(roleId) {
             
             // Show modal
             new bootstrap.Modal(document.getElementById('permissionModal')).show();
+        })
+        .catch(error => {
+            console.error('Error loading permissions:', error);
+            alert('Error loading role permissions');
         });
 }
 
@@ -349,24 +358,34 @@ function populateModuleList() {
         `;
         moduleItem.onclick = (e) => {
             e.preventDefault();
-            selectModule(module);
+            selectModule(module, e);
         };
         
         if (index === 0) {
             moduleItem.classList.add('active');
-            selectModule(module);
+            selectModule(module, null);
         }
         
         moduleList.appendChild(moduleItem);
     });
 }
 
-function selectModule(module) {
+function selectModule(module, event) {
     // Update active module in list
     document.querySelectorAll('#moduleList .list-group-item').forEach(item => {
         item.classList.remove('active');
     });
-    event.target.closest('.list-group-item').classList.add('active');
+    if (event && event.target) {
+        event.target.closest('.list-group-item').classList.add('active');
+    } else {
+        // For the initial call, find the module item by module name
+        const moduleItems = document.querySelectorAll('#moduleList .list-group-item');
+        moduleItems.forEach(item => {
+            if (item.textContent.includes(module.replace('_', ' ').toUpperCase())) {
+                item.classList.add('active');
+            }
+        });
+    }
     
     // Update permission list
     document.getElementById('selectedModuleTitle').textContent = 
@@ -406,9 +425,20 @@ function deselectAllPermissions() {
 }
 
 function savePermissions() {
+    if (!currentRoleId) {
+        alert('No role selected');
+        return;
+    }
+    
     const selectedPermissions = Array.from(
         document.querySelectorAll('#permissionList input[type="checkbox"]:checked')
     ).map(checkbox => checkbox.value);
+    
+    // Show loading state
+    const saveButton = document.querySelector('#permissionModal .btn-primary');
+    const originalText = saveButton.textContent;
+    saveButton.textContent = 'Saving...';
+    saveButton.disabled = true;
     
     fetch(`/api/roles/${currentRoleId}/permissions`, {
         method: 'POST',
@@ -424,8 +454,17 @@ function savePermissions() {
             alert('Permissions updated successfully!');
             location.reload();
         } else {
-            alert('Error updating permissions');
+            response.json().then(data => {
+                alert('Error updating permissions: ' + (data.error || 'Unknown error'));
+            });
         }
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('Network error occurred');
+    }).finally(() => {
+        // Restore button state
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
     });
 }
 
@@ -441,10 +480,21 @@ document.getElementById('addRoleForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const formData = {
-        name: document.getElementById('roleName').value,
+        name: document.getElementById('roleName').value.toLowerCase().replace(/\s+/g, '_'),
         display_name: document.getElementById('roleDisplayName').value,
         description: document.getElementById('roleDescription').value
     };
+    
+    // Basic validation
+    if (!formData.name || !formData.display_name) {
+        alert('Role name and display name are required');
+        return;
+    }
+    
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    submitButton.textContent = 'Creating...';
+    submitButton.disabled = true;
     
     fetch('/api/roles', {
         method: 'POST',
@@ -458,8 +508,16 @@ document.getElementById('addRoleForm').addEventListener('submit', function(e) {
             alert('Role created successfully!');
             location.reload();
         } else {
-            alert('Error creating role');
+            response.json().then(data => {
+                alert('Error creating role: ' + (data.error || 'Unknown error'));
+            });
         }
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('Network error occurred');
+    }).finally(() => {
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
     });
 });
 </script>
