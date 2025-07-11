@@ -1,212 +1,242 @@
 # Spa & Salon Digital Business Suite
 
-A comprehensive web-based management system for spa and salon businesses, built with Flask and featuring all essential business operations.
+A comprehensive web-based management system for spa and salon businesses with role-based access control, appointment booking, client management, inventory tracking, billing, and advanced business analytics.
 
-## 🌟 Features
+## 🌟 Features Overview
 
-### Complete Business Management (13 Modules)
-1. **Dashboard** - Real-time business overview with analytics
-2. **Smart Booking & Calendar** - Appointment management with color coding
+### Core Business Modules (13)
+1. **Dashboard** - Real-time business metrics and KPIs
+2. **Smart Booking & Calendar** - Unified appointment management
 3. **Staff Management** - Employee profiles, schedules, and performance
-4. **Client History & Loyalty** - Complete customer profiles and tracking
-5. **Face Recognition Check-In** - AI-powered customer check-in system
-6. **WhatsApp Notifications** - Automated appointment reminders and alerts
+4. **Client Management** - Complete customer profiles and history
+5. **Face Recognition Check-In** - Biometric client identification
+6. **WhatsApp & Communications** - Multi-channel messaging system
 7. **Billing & Payment System** - Invoice generation and payment tracking
-8. **Subscription Packages** - Prepaid service bundles management
+8. **Subscription Packages** - Package sales and management
 9. **Inventory & Product Tracking** - Stock management with alerts
-10. **Reports & Insights** - Business analytics with charts and trends
-11. **User & Access Control** - Role-based permissions and security
-12. **Daily Expense Tracker** - Business expense categorization
-13. **Expiring Product Alerts** - Product safety and quality control
+10. **Reports & Insights** - Business analytics and reporting
+11. **User & Access Control** - Role-based permission system
+12. **Daily Expense Tracker** - Business expense management
+13. **System Management** - Configuration and administration
 
-### Technical Features
-- 🎨 **Modern UI** - Professional dark theme with vertical sidebar navigation
-- 📱 **Mobile Responsive** - Works seamlessly on all devices
-- 🔐 **Secure Authentication** - Role-based access control
-- 📊 **Real-time Analytics** - Dashboard with live business metrics
-- 🗄️ **PostgreSQL Database** - Robust data storage with relationships
-- ⚡ **Performance Optimized** - Connection pooling and health checks
+### Advanced Features
+- **Client Communications** - Track all customer interactions
+- **Marketing Promotions** - Discount and campaign management
+- **Client Waitlist** - Professional queuing system
+- **Product Sales (POS)** - Retail sales with inventory sync
+- **Recurring Appointments** - Automated scheduling
+- **Customer Reviews** - Review collection and analytics
+- **Business Settings** - Configurable parameters
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Python 3.11+
 - PostgreSQL database
-- Environment variables (see below)
+- Modern web browser
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/santu5496/SpaManagement.git
-   cd SpaManagement
-   ```
-
-2. **Install dependencies**
+1. **Clone or Download** the project files
+2. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-
-3. **Set environment variables**
+   
+3. **Set Environment Variables**:
    ```bash
-   export SESSION_SECRET="your-secret-key-here"
    export DATABASE_URL="postgresql://user:password@localhost/spa_db"
+   export SESSION_SECRET="your-secret-key-here"
    ```
 
-4. **Run the application**
+4. **Initialize Database**:
    ```bash
-   python main.py
+   python create_comprehensive_permissions.py
+   python assign_comprehensive_permissions.py
    ```
 
-5. **Access the application**
-   - Open http://localhost:5000
-   - Login with: `admin` / `admin123`
+5. **Start Application**:
+   ```bash
+   gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
+   ```
 
-## 🏗️ Architecture
+6. **Access Application**: Open `http://localhost:5000`
 
-### Backend (Flask)
-- **Framework**: Flask with SQLAlchemy ORM
-- **Authentication**: Flask-Login with role-based access
-- **Forms**: WTForms with CSRF protection
-- **Database**: PostgreSQL with automatic table creation
+## 👤 User Roles & Permissions
 
-### Frontend
-- **UI Framework**: Bootstrap 5 with dark theme
-- **Icons**: Font Awesome 6.4.0
-- **Charts**: Chart.js for data visualization
-- **Layout**: Responsive vertical sidebar navigation
+### Administrator (Full Access)
+- Complete system access with all 132 permissions
+- System configuration and role management
+- User management and security settings
+- Business analytics and reporting
 
-### Database Models
-- **User** - Staff and admin accounts with roles
-- **Client** - Customer profiles with history
-- **Service** - Available treatments and pricing
-- **Appointment** - Booking management with status
-- **Inventory** - Product and supply tracking
-- **Expense** - Business cost management
-- **Package** - Subscription service bundles
+### Manager (75+ Permissions)
+- Staff scheduling and performance management
+- Client relationship management
+- Inventory and supplier management
+- Financial reporting and analytics
+- Marketing campaign management
 
-## 📊 User Roles
+### Staff (20+ Permissions)
+- Daily appointment management
+- Client check-in and service delivery
+- Basic inventory viewing
+- Point-of-sale operations
+- Communication with clients
 
-### Administrator
-- Full system access
-- User management
-- Financial reports
-- System settings
+### Cashier (15+ Permissions)
+- Billing and payment processing
+- Package sales and redemption
+- Product sales (POS)
+- Basic reporting for transactions
+- Client payment history
 
-### Manager
-- Staff scheduling
-- Client management
-- Inventory oversight
-- Basic reporting
+## 📱 How to Use
 
-### Staff
-- Appointment handling
-- Client check-in
-- Service recording
-- Basic inventory updates
+### Dashboard
+- **Overview**: Real-time business metrics
+- **Today's Stats**: Appointments, revenue, client count
+- **Charts**: Revenue trends and appointment analytics
+- **Quick Actions**: Access to frequently used features
 
-### Cashier
-- Payment processing
-- Invoice generation
-- Basic client lookup
-- Daily transactions
+### Appointment Management
+1. **View Calendar**: See all appointments in monthly/weekly view
+2. **Book Appointment**: 
+   - Select client, service, staff, and time
+   - Add notes and special requirements
+   - Confirm booking with automatic notifications
+3. **Check-In**: Use face recognition or manual check-in
+4. **Reschedule**: Drag-and-drop or edit appointment details
 
-## 🔧 Configuration
+### Client Management
+1. **Add New Client**:
+   - Personal information and contact details
+   - Preferences, allergies, and notes
+   - Communication preferences
+2. **Client History**: View all past appointments and services
+3. **Loyalty Tracking**: Monitor visit frequency and spending
+4. **Face Registration**: Capture biometric data for check-in
 
-### Environment Variables
-```bash
-SESSION_SECRET=your-super-secret-key
-DATABASE_URL=postgresql://username:password@host:port/database
-```
+### Staff Management
+1. **Staff Profiles**: Personal info, skills, and specialties
+2. **Schedule Management**: Set availability and working hours
+3. **Performance Tracking**: Monitor bookings and revenue
+4. **Commission Tracking**: Calculate and track earnings
 
-### Database Setup
-The application automatically creates all required tables on first run. Default admin user is created with credentials: `admin` / `admin123`
+### Inventory Management
+1. **Product Catalog**: Manage services, products, and supplies
+2. **Stock Levels**: Track quantities and set reorder points
+3. **Low Stock Alerts**: Automatic notifications for restocking
+4. **Supplier Management**: Track vendors and purchase orders
 
-## 📱 Mobile Support
+### Billing & Payments
+1. **Invoice Generation**: Automatic billing after services
+2. **Payment Processing**: Multiple payment methods
+3. **Package Sales**: Sell and track service packages
+4. **Financial Reports**: Revenue, expenses, and profit analysis
 
-The application is fully responsive with:
-- Collapsible sidebar navigation
-- Touch-friendly interface
-- Optimized forms and tables
-- Mobile-first design approach
+## 🔧 System Administration
+
+### Role Management
+1. **Access**: System Management → Role Management
+2. **Create Role**: Define new roles with specific permissions
+3. **Assign Permissions**: Use dropdown interface to select from 132 permissions
+4. **Permission Matrix**: View complete role-permission mapping
+
+### System Configuration
+- **Business Settings**: Tax rates, policies, operating hours
+- **Categories**: Service types, product categories, expense types
+- **Departments**: Organize staff into departments
+- **System Settings**: Application-wide configuration
+
+### Data Management
+- **Backup**: Regular database backups recommended
+- **Reports**: Export data for external analysis
+- **Maintenance**: Monitor system performance and logs
 
 ## 🛡️ Security Features
 
-- Password hashing with Werkzeug
-- CSRF protection on all forms
-- Role-based access control
-- Session management
-- SQL injection prevention
+- **Role-Based Access Control**: 132 granular permissions
+- **CSRF Protection**: Form validation and security
+- **Session Management**: Secure user authentication
+- **Password Hashing**: Secure credential storage
+- **Input Validation**: Prevent malicious data entry
 
-## 📈 Business Intelligence
+## 📊 Business Analytics
 
-### Dashboard Analytics
-- Today's revenue and appointments
-- Monthly trends and comparisons
-- Staff performance metrics
+### Dashboard Metrics
+- Daily/Monthly revenue tracking
+- Appointment completion rates
 - Client retention statistics
+- Staff performance indicators
 
-### Reporting Features
-- Customizable date ranges
-- Export to CSV functionality
-- Print-friendly layouts
-- Visual charts and graphs
+### Reports Available
+- **Revenue Reports**: Financial performance over time
+- **Client Analytics**: Demographics and behavior
+- **Staff Performance**: Individual and team metrics
+- **Inventory Reports**: Stock levels and usage
+- **Custom Reports**: Flexible data analysis
 
-## 🔔 Notification System
+## 💼 Business Workflows
 
-### WhatsApp Integration (Ready)
-- Appointment reminders
-- Package expiry alerts
-- Thank you messages
-- Promotional offers
+### Daily Operations
+1. **Morning Setup**: Check today's appointments and staff schedule
+2. **Client Check-In**: Use face recognition or manual process
+3. **Service Delivery**: Update appointment status and notes
+4. **Payment Processing**: Handle billing and payments
+5. **Inventory Updates**: Track product usage and sales
 
-### System Alerts
-- Low stock notifications
-- Expiring product warnings
-- Upcoming appointment reminders
-- Payment due alerts
+### Weekly Management
+- Review staff performance and schedules
+- Analyze revenue and client trends
+- Update inventory and reorder supplies
+- Process staff commissions and payroll
 
-## 📦 Deployment
+### Monthly Administration
+- Generate comprehensive business reports
+- Review and update system settings
+- Analyze client retention and growth
+- Plan marketing campaigns and promotions
 
-### Replit Deployment
-1. Fork this repository to Replit
-2. Set environment variables in Secrets
-3. Run the application
-4. Use Replit's deployment feature for production
+## 🔌 API Endpoints
 
-### Traditional Hosting
-1. Set up PostgreSQL database
-2. Configure environment variables
-3. Install dependencies
-4. Run with Gunicorn for production
+### Role Management
+- `GET /role-management` - Role management interface
+- `POST /api/roles` - Create new role
+- `GET /api/roles/<id>/permissions` - Get role permissions
+- `POST /api/roles/<id>/permissions` - Update role permissions
+- `DELETE /api/roles/<id>` - Delete role
 
-## 🤝 Contributing
+### System Management
+- `GET /system-management` - System configuration
+- `POST /api/system/backup` - Create system backup
+- `GET /api/system/logs` - View system logs
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## 🚨 Troubleshooting
 
-## 📄 License
+### Common Issues
+1. **Database Connection**: Check DATABASE_URL environment variable
+2. **Permission Errors**: Verify user role and permissions
+3. **Face Recognition**: Ensure camera permissions enabled
+4. **Login Issues**: Check username/password and session settings
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Support
+- Check system logs for detailed error messages
+- Verify all environment variables are set correctly
+- Ensure database migrations are complete
+- Contact system administrator for role-specific issues
 
-## 🆘 Support
+## 📋 License
 
-For support and questions:
-- Create an issue in this repository
-- Check the documentation in `replit.md`
-- Review the code comments for implementation details
+This software is designed for commercial spa and salon operations. Please ensure compliance with local business regulations and data protection laws.
 
-## 🎯 Future Enhancements
+## 🔄 Updates & Maintenance
 
-- Integration with payment gateways
-- Advanced face recognition features
-- WhatsApp API integration
-- Mobile app development
-- Advanced analytics and AI insights
+- Regular database backups recommended
+- Monitor system performance and logs
+- Update user permissions as business needs change
+- Review and update business settings periodically
 
 ---
 
-**Built with ❤️ for the spa and salon industry**
+*For technical support or customization requests, please contact your system administrator.*
