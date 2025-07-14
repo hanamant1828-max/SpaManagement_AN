@@ -231,7 +231,7 @@ def role_management():
     # Get role permissions for each role
     role_permissions = {}
     for role in roles:
-        role_permissions[role.id] = [rp.permission_id for rp in role.role_permissions]
+        role_permissions[role.id] = [rp.permission_id for rp in RolePermission.query.filter_by(role_id=role.id).all()]
     
     return render_template('role_management.html',
                          roles=roles,

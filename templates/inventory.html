@@ -379,7 +379,7 @@
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="category" class="form-label">Category *</label>
-                                {{ form.category(class="form-select") }}
+                                {{ form.category_id(class="form-select") }}
                             </div>
                         </div>
                     </div>
@@ -405,22 +405,22 @@
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="unit_price" class="form-label">Unit Price</label>
-                                {{ form.unit_price(class="form-control", step="0.01") }}
+                                {{ form.cost_price(class="form-control", step="0.01") }}
                             </div>
                         </div>
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="supplier_name" class="form-label">Supplier Name</label>
-                                {{ form.supplier_name(class="form-control") }}
+                                <label for="selling_price" class="form-label">Selling Price</label>
+                                {{ form.selling_price(class="form-control", step="0.01") }}
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-8">
                             <div class="mb-3">
-                                <label for="supplier_contact" class="form-label">Supplier Contact</label>
-                                {{ form.supplier_contact(class="form-control") }}
+                                <label for="supplier_name" class="form-label">Supplier Name</label>
+                                {{ form.supplier(class="form-control") }}
                             </div>
                         </div>
                     </div>

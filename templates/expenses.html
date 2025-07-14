@@ -277,7 +277,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('add_expense') }}">
+            <form method="POST" action="{{ url_for('create_expense_route') }}">
                 <div class="modal-body">
                     {{ form.hidden_tag() }}
                     
@@ -299,8 +299,8 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="category" class="form-label">Category *</label>
-                                {{ form.category(class="form-select") }}
+                                <label for="category_id" class="form-label">Category *</label>
+                                {{ form.category_id(class="form-select") }}
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -312,8 +312,8 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="receipt_number" class="form-label">Receipt Number</label>
-                        {{ form.receipt_number(class="form-control", placeholder="Receipt or invoice number") }}
+                        <label for="receipt_path" class="form-label">Receipt Path</label>
+                        {{ form.receipt_path(class="form-control", placeholder="Path to receipt file") }}
                     </div>
                     
                     <div class="mb-3">
