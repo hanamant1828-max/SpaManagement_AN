@@ -3,7 +3,7 @@ Bookings views and routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from app import app
 from forms import AppointmentForm, QuickBookingForm
 from .bookings_queries import (
@@ -45,7 +45,9 @@ def bookings():
                          filter_date=filter_date,
                          clients=clients,
                          services=services,
-                         staff=staff)
+                         staff=staff,
+                         timedelta=timedelta,
+                         date=date)
 
 @app.route('/bookings/create', methods=['POST'])
 @login_required

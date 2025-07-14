@@ -34,6 +34,8 @@ def clients():
                          search_query=search_query)
 
 @app.route('/clients/create', methods=['POST'])
+@app.route('/clients/add', methods=['POST'])
+@app.route('/add_client', methods=['POST'])
 @login_required
 def create_client_route():
     if not current_user.can_access('clients'):
