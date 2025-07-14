@@ -27,7 +27,7 @@
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                 This Month
                             </div>
-                            <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(total_expenses) }}</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ utils.format_currency(stats.monthly_expenses) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-calendar-month fa-2x text-primary"></i>
@@ -64,7 +64,7 @@
                                 Average Daily
                             </div>
                             <div class="h5 mb-0 font-weight-bold">
-                                {{ utils.format_currency((total_expenses / 30) if total_expenses > 0 else 0) }}
+                                {{ utils.format_currency(stats.avg_expense) }}
                             </div>
                         </div>
                         <div class="col-auto">

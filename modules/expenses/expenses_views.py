@@ -42,11 +42,17 @@ def expenses():
     form = ExpenseForm()
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
     
+    # Add current month and year for template filters
+    from datetime import datetime
+    current_date = datetime.now()
+    
     return render_template('expenses.html', 
                          expenses=expenses_list,
                          categories=categories,
                          stats=stats,
-                         form=form)
+                         form=form,
+                         current_month=current_date.month,
+                         current_year=current_date.year)
 
 @app.route('/expenses/create', methods=['POST'])
 @login_required
