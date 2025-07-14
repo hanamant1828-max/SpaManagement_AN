@@ -182,7 +182,32 @@ def system_management():
     if not current_user.can_access('system_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('system_management.html')
+    
+    # Get all required data for system management
+    roles = Role.query.all()
+    permissions = Permission.query.all()
+    categories = Category.query.all()
+    departments = Department.query.all()
+    settings = SystemSetting.query.all()
+    
+    # Initialize forms
+    role_form = RoleForm()
+    permission_form = PermissionForm()
+    category_form = CategoryForm()
+    department_form = DepartmentForm()
+    setting_form = SystemSettingForm()
+    
+    return render_template('system_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         categories=categories,
+                         departments=departments,
+                         settings=settings,
+                         role_form=role_form,
+                         permission_form=permission_form,
+                         category_form=category_form,
+                         department_form=department_form,
+                         setting_form=setting_form)
 
 @app.route('/role_management')
 @login_required
@@ -191,6 +216,65 @@ def role_management():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     return render_template('role_management.html')
+
+# System Management Data Providers
+@app.route('/add_role', methods=['POST'])
+@login_required
+def add_role():
+    if not current_user.can_access('role_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = RoleForm()
+    if form.validate_on_submit():
+        role = Role(
+            name=form.name.data,
+            display_name=form.display_name.data,
+            description=form.description.data,
+            is_active=form.is_active.data
+        )
+        db.session.add(role)
+        db.session.commit()
+        flash('Role added successfully!', 'success')
+    else:
+        flash('Error adding role', 'error')
+    
+    return redirect(url_for('system_management'))
+
+@app.route('/edit_role/<int:role_id>', methods=['POST'])
+@login_required
+def edit_role(role_id):
+    if not current_user.can_access('role_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    role = Role.query.get_or_404(role_id)
+    form = RoleForm(obj=role)
+    
+    if form.validate_on_submit():
+        role.name = form.name.data
+        role.display_name = form.display_name.data
+        role.description = form.description.data
+        role.is_active = form.is_active.data
+        db.session.commit()
+        flash('Role updated successfully!', 'success')
+    else:
+        flash('Error updating role', 'error')
+    
+    return redirect(url_for('system_management'))
+
+@app.route('/delete_role/<int:role_id>', methods=['POST'])
+@login_required
+def delete_role(role_id):
+    if not current_user.can_access('role_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    role = Role.query.get_or_404(role_id)
+    db.session.delete(role)
+    db.session.commit()
+    flash('Role deleted successfully!', 'success')
+    return redirect(url_for('system_management'))
 
 # Error handlers
 @app.errorhandler(404)
