@@ -1,0 +1,86 @@
+ 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+ [LaunchDarkly] LaunchDarkly client initialized
+/~:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+ WARN: A component changed from uncontrolled to controlled.
+(anonymous) @ _app-7ba85678f8f4b618.js:38
+ WARN: A component changed from uncontrolled to controlled.
+(anonymous) @ _app-7ba85678f8f4b618.js:38
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+ Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'battery'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'layout-animations'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'navigation-override'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'oversized-images'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'publickey-credentials'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'speaker-selection'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'unoptimized-images'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'unsized-media'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'pointer-lock'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-b257afd8a9a4fc10.js:1
+SpaManagement:1 Uncaught (in promise) 
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'battery'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'layout-animations'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'legacy-image-formats'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'navigation-override'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'oversized-images'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'publickey-credentials'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'speaker-selection'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'unoptimized-images'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Unrecognized feature: 'unsized-media'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arl2%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+clients:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/staff:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/staff:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+clients:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/staff:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+clients:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
