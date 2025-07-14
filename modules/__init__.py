@@ -13,8 +13,8 @@ from .inventory import inventory_views
 # Import remaining modules
 from .billing import billing_views
 from .expenses import expenses_views
+from .settings import settings_views
 # from .reports import reports_views
-# from .settings import settings_views
 # from .notifications import notifications_views
 # from .packages import packages_views
 # from .reviews import reviews_views
