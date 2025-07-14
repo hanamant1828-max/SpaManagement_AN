@@ -209,6 +209,41 @@ def system_management():
                          department_form=department_form,
                          setting_form=setting_form)
 
+@app.route('/add_category', methods=['POST'])
+@login_required
+def add_category():
+    """Add new category"""
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = CategoryForm()
+    
+    if form.validate_on_submit():
+        try:
+            category = Category(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                category_type=form.category_type.data,
+                color=form.color.data or '#007bff',
+                icon=form.icon.data or 'fas fa-tag',
+                is_active=form.is_active.data,
+                sort_order=form.sort_order.data or 0
+            )
+            db.session.add(category)
+            db.session.commit()
+            flash('Category added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding category: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+    
+    return redirect(url_for('system_management'))
+
 @app.route('/role_management')
 @login_required
 def role_management():
