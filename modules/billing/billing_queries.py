@@ -12,11 +12,11 @@ def get_all_invoices():
 
 def get_pending_invoices():
     """Get pending invoices"""
-    return Invoice.query.filter_by(status='pending').order_by(Invoice.created_at.desc()).all()
+    return Invoice.query.filter_by(payment_status='pending').order_by(Invoice.created_at.desc()).all()
 
 def get_paid_invoices():
     """Get paid invoices"""
-    return Invoice.query.filter_by(status='paid').order_by(Invoice.created_at.desc()).all()
+    return Invoice.query.filter_by(payment_status='paid').order_by(Invoice.created_at.desc()).all()
 
 def get_invoice_by_id(invoice_id):
     """Get invoice by ID"""
@@ -42,8 +42,7 @@ def mark_invoice_paid(invoice_id):
     """Mark an invoice as paid"""
     invoice = Invoice.query.get(invoice_id)
     if invoice:
-        invoice.status = 'paid'
-        invoice.paid_at = datetime.utcnow()
+        invoice.payment_status = 'paid'
         db.session.commit()
     return invoice
 
@@ -52,16 +51,16 @@ def get_revenue_stats():
     today = date.today()
     
     stats = {
-        'total_revenue': db.session.query(func.sum(Invoice.amount)).filter(
-            Invoice.status == 'paid'
+        'total_revenue': db.session.query(func.sum(Invoice.total_amount)).filter(
+            Invoice.payment_status == 'paid'
         ).scalar() or 0,
-        'monthly_revenue': db.session.query(func.sum(Invoice.amount)).filter(
-            Invoice.status == 'paid',
+        'monthly_revenue': db.session.query(func.sum(Invoice.total_amount)).filter(
+            Invoice.payment_status == 'paid',
             func.extract('month', Invoice.created_at) == today.month,
             func.extract('year', Invoice.created_at) == today.year
         ).scalar() or 0,
-        'pending_amount': db.session.query(func.sum(Invoice.amount)).filter(
-            Invoice.status == 'pending'
+        'pending_amount': db.session.query(func.sum(Invoice.total_amount)).filter(
+            Invoice.payment_status == 'pending'
         ).scalar() or 0,
         'invoice_count': Invoice.query.count()
     }

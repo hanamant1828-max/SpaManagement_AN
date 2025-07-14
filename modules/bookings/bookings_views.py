@@ -50,6 +50,7 @@ def bookings():
                          date=date)
 
 @app.route('/bookings/create', methods=['POST'])
+@app.route('/add_appointment', methods=['POST'])
 @login_required
 def create_booking():
     if not current_user.can_access('bookings'):
