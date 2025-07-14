@@ -103,6 +103,95 @@ def create_default_data():
     
     print("Comprehensive default data created successfully")
 
+# Additional routes that don't fit in modules yet
+@app.route('/alerts')
+@login_required
+def alerts():
+    if not current_user.can_access('alerts'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('alerts.html')
+
+@app.route('/communications')
+@login_required
+def communications():
+    if not current_user.can_access('communications'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('communications.html')
+
+@app.route('/promotions')
+@login_required
+def promotions():
+    if not current_user.can_access('promotions'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('promotions.html')
+
+@app.route('/waitlist')
+@login_required
+def waitlist():
+    if not current_user.can_access('waitlist'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('waitlist.html')
+
+@app.route('/product_sales')
+@login_required
+def product_sales():
+    if not current_user.can_access('product_sales'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('product_sales.html')
+
+@app.route('/recurring_appointments')
+@login_required
+def recurring_appointments():
+    if not current_user.can_access('recurring_appointments'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('recurring_appointments.html')
+
+@app.route('/reviews')
+@login_required
+def reviews():
+    if not current_user.can_access('reviews'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('reviews.html')
+
+@app.route('/business_settings')
+@login_required
+def business_settings():
+    if not current_user.can_access('business_settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('business_settings.html')
+
+@app.route('/face_management')
+@login_required
+def face_management():
+    if not current_user.can_access('face_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('face_management.html')
+
+@app.route('/system_management')
+@login_required
+def system_management():
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('system_management.html')
+
+@app.route('/role_management')
+@login_required
+def role_management():
+    if not current_user.can_access('role_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('role_management.html')
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
