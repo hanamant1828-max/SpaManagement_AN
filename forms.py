@@ -68,34 +68,20 @@ class AppointmentForm(FlaskForm):
 class InventoryForm(FlaskForm):
     name = StringField('Item Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
-    category = SelectField('Category', choices=[
-        ('consumables', 'Consumables'),
-        ('equipment', 'Equipment'),
-        ('retail', 'Retail Products'),
-        ('cleaning', 'Cleaning Supplies'),
-        ('other', 'Other')
-    ], validators=[DataRequired()])
+    category_id = SelectField('Category', coerce=int, validators=[DataRequired()])
     current_stock = IntegerField('Current Stock', validators=[DataRequired(), NumberRange(min=0)])
     min_stock_level = IntegerField('Minimum Stock Level', validators=[DataRequired(), NumberRange(min=0)])
-    unit_price = FloatField('Unit Price', validators=[Optional(), NumberRange(min=0)])
-    supplier_name = StringField('Supplier Name', validators=[Optional(), Length(max=100)])
-    supplier_contact = StringField('Supplier Contact', validators=[Optional(), Length(max=100)])
+    cost_price = FloatField('Cost Price', validators=[Optional(), NumberRange(min=0)])
+    selling_price = FloatField('Selling Price', validators=[Optional(), NumberRange(min=0)])
+    supplier = StringField('Supplier Name', validators=[Optional(), Length(max=100)])
     expiry_date = DateField('Expiry Date', validators=[Optional()])
 
 class ExpenseForm(FlaskForm):
     description = StringField('Description', validators=[DataRequired(), Length(max=200)])
     amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0)])
-    category = SelectField('Category', choices=[
-        ('utilities', 'Utilities'),
-        ('supplies', 'Supplies'),
-        ('maintenance', 'Maintenance'),
-        ('marketing', 'Marketing'),
-        ('rent', 'Rent'),
-        ('salaries', 'Salaries'),
-        ('other', 'Other')
-    ], validators=[DataRequired()])
+    category_id = SelectField('Category', coerce=int, validators=[DataRequired()])
     expense_date = DateField('Expense Date', validators=[DataRequired()])
-    receipt_number = StringField('Receipt Number', validators=[Optional(), Length(max=50)])
+    receipt_path = StringField('Receipt Path', validators=[Optional(), Length(max=200)])
     notes = TextAreaField('Notes', validators=[Optional()])
 
 class PackageForm(FlaskForm):

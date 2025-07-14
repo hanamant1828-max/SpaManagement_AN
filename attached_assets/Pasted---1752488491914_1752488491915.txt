@@ -1,0 +1,84 @@
+ 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+ [LaunchDarkly] LaunchDarkly client initialized
+/~:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+ WARN: A component changed from uncontrolled to controlled.
+(anonymous) @ _app-7ba85678f8f4b618.js:38
+ WARN: A component changed from uncontrolled to controlled.
+(anonymous) @ _app-7ba85678f8f4b618.js:38
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+ Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'battery'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'layout-animations'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'navigation-override'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'oversized-images'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'publickey-credentials'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'speaker-selection'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'unoptimized-images'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'unsized-media'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Unrecognized feature: 'pointer-lock'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-b257afd8a9a4fc10.js:1
+ Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-b257afd8a9a4fc10.js:1
+SpaManagement:1 Uncaught (in promise) 
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html:32 Unrecognized feature: 'battery'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+Console.js:61 Face recognition check-in module loaded
+8aef05b0-998f-45ff-8cb4-febd82a03dd8-00-1njlqoj992op9.picard.replit.dev/inventory:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+expenses:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+expenses:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
