@@ -42,6 +42,8 @@ def staff():
                          departments=departments)
 
 @app.route('/staff/create', methods=['POST'])
+@app.route('/staff/add', methods=['POST'])
+@app.route('/add_staff', methods=['POST'])
 @login_required
 def create_staff_route():
     if not current_user.can_access('staff'):

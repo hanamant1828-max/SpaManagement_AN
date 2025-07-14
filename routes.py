@@ -215,7 +215,29 @@ def role_management():
     if not current_user.can_access('role_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('role_management.html')
+    
+    # Get all required data for role management
+    roles = Role.query.all()
+    permissions = Permission.query.all()
+    
+    # Group permissions by module
+    permissions_by_module = {}
+    for permission in permissions:
+        module = permission.module
+        if module not in permissions_by_module:
+            permissions_by_module[module] = []
+        permissions_by_module[module].append(permission)
+    
+    # Get role permissions for each role
+    role_permissions = {}
+    for role in roles:
+        role_permissions[role.id] = [rp.permission_id for rp in role.role_permissions]
+    
+    return render_template('role_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         permissions_by_module=permissions_by_module,
+                         role_permissions=role_permissions)
 
 # System Management Data Providers
 @app.route('/add_role', methods=['POST'])

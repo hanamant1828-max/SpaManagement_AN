@@ -42,6 +42,8 @@ def inventory():
                          filter_type=filter_type)
 
 @app.route('/inventory/create', methods=['POST'])
+@app.route('/inventory/add', methods=['POST'])
+@app.route('/add_inventory', methods=['POST'])
 @login_required
 def create_inventory_route():
     if not current_user.can_access('inventory'):
