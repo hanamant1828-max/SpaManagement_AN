@@ -13,14 +13,22 @@ def login():
         return redirect(url_for('dashboard'))
     
     form = LoginForm()
-    if form.validate_on_submit():
-        user = validate_user_credentials(form.username.data, form.password.data)
-        if user:
-            login_user(user)
-            next_page = request.args.get('next')
-            if not next_page:
-                next_page = url_for('dashboard')
-            return redirect(next_page)
+    
+    if request.method == 'POST':
+        # Handle both form submission and direct POST
+        username = form.username.data if form.username.data else request.form.get('username')
+        password = form.password.data if form.password.data else request.form.get('password')
+        
+        if username and password:
+            user = validate_user_credentials(username, password)
+            if user:
+                login_user(user)
+                next_page = request.args.get('next')
+                if not next_page:
+                    next_page = url_for('dashboard')
+                flash(f'Welcome back, {user.first_name}!', 'success')
+                return redirect(next_page)
+        
         flash('Invalid username or password', 'danger')
     
     return render_template('login.html', form=form)

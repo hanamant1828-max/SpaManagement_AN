@@ -276,6 +276,8 @@ class AdvancedClientForm(ClientForm):
 class AdvancedUserForm(UserForm):
     """Enhanced staff form with advanced fields"""
     employee_id = StringField('Employee ID', validators=[Optional(), Length(max=20)])
+    role_id = SelectField('Role', coerce=int, validators=[Optional()])
+    department_id = SelectField('Department', coerce=int, validators=[Optional()])
     department = SelectField('Department', choices=[
         ('', 'Select Department'),
         ('hair', 'Hair Department'),

@@ -28,8 +28,11 @@ def staff():
     
     # Set up form choices
     form.role.choices = [(r.name, r.display_name) for r in roles]
-    advanced_form.role_id.choices = [(r.id, r.display_name) for r in roles]
-    advanced_form.department_id.choices = [(d.id, d.display_name) for d in departments]
+    # Set form choices if fields exist
+    if hasattr(advanced_form, 'role_id'):
+        advanced_form.role_id.choices = [(r.id, r.display_name) for r in roles]
+    if hasattr(advanced_form, 'department_id'):
+        advanced_form.department_id.choices = [(d.id, d.display_name) for d in departments]
     
     return render_template('staff.html', 
                          staff=staff_list,
