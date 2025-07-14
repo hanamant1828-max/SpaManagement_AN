@@ -9,7 +9,8 @@ from forms import AppointmentForm, QuickBookingForm
 from .bookings_queries import (
     get_appointments_by_date, get_active_clients, get_active_services, 
     get_staff_members, create_appointment, update_appointment, 
-    delete_appointment, get_appointment_by_id
+    delete_appointment, get_appointment_by_id, get_time_slots,
+    get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
 
 @app.route('/bookings')
@@ -19,8 +20,11 @@ def bookings():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
-    # Get date filter from query params
+    # Get filters from query params
     filter_date = request.args.get('date')
+    view_type = request.args.get('view', 'calendar')  # calendar, table, timeline
+    staff_filter = request.args.get('staff_id', type=int)
+    
     if filter_date:
         try:
             filter_date = datetime.strptime(filter_date, '%Y-%m-%d').date()
@@ -29,20 +33,35 @@ def bookings():
     else:
         filter_date = date.today()
     
+    # Get data based on view type
     appointments = get_appointments_by_date(filter_date)
+    if staff_filter:
+        appointments = [a for a in appointments if a.staff_id == staff_filter]
+    
     clients = get_active_clients()
     services = get_active_services()
     staff = get_staff_members()
     
+    # Get time slots for the selected date
+    time_slots = get_time_slots(filter_date, staff_filter)
+    
+    # Get appointment statistics
+    stats = get_appointment_stats(filter_date)
+    
+    # Create appointment form
     form = AppointmentForm()
     form.client_id.choices = [(c.id, c.full_name) for c in clients]
-    form.service_id.choices = [(s.id, f"{s.name} - ${s.price}") for s in services]
+    form.service_id.choices = [(s.id, f"{s.name} - ${s.price:.2f}") for s in services]
     form.staff_id.choices = [(s.id, s.full_name) for s in staff]
     
     return render_template('bookings.html', 
                          appointments=appointments,
                          form=form,
                          filter_date=filter_date,
+                         view_type=view_type,
+                         staff_filter=staff_filter,
+                         time_slots=time_slots,
+                         stats=stats,
                          clients=clients,
                          services=services,
                          staff=staff,
@@ -167,5 +186,92 @@ def add_appointment():
             flash('Appointment created successfully', 'success')
         else:
             flash('Failed to create appointment', 'danger')
+    
+    return redirect(url_for('bookings'))
+
+# API Endpoints for Dynamic Booking Features
+@app.route('/api/time-slots')
+@login_required
+def api_time_slots():
+    """API endpoint to get available time slots"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    date_str = request.args.get('date')
+    staff_id = request.args.get('staff_id', type=int)
+    service_id = request.args.get('service_id', type=int)
+    
+    if not date_str:
+        return jsonify({'error': 'Date is required'}), 400
+    
+    try:
+        filter_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Invalid date format'}), 400
+    
+    time_slots = get_time_slots(filter_date, staff_id, service_id)
+    
+    return jsonify({
+        'slots': time_slots,
+        'date': date_str,
+        'staff_id': staff_id,
+        'service_id': service_id
+    })
+
+@app.route('/api/appointment/<int:appointment_id>')
+@login_required
+def api_appointment_details(appointment_id):
+    """API endpoint to get appointment details"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    appointment = get_appointment_by_id(appointment_id)
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    
+    return jsonify({
+        'id': appointment.id,
+        'client': {
+            'id': appointment.client.id,
+            'name': appointment.client.full_name,
+            'phone': appointment.client.phone,
+            'email': appointment.client.email
+        },
+        'service': {
+            'id': appointment.service.id,
+            'name': appointment.service.name,
+            'duration': appointment.service.duration,
+            'price': float(appointment.service.price)
+        },
+        'staff': {
+            'id': appointment.staff.id,
+            'name': appointment.staff.full_name
+        },
+        'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d %H:%M'),
+        'status': appointment.status,
+        'notes': appointment.notes,
+        'amount': float(appointment.amount) if appointment.amount else 0
+    })
+
+@app.route('/bookings/update-status/<int:appointment_id>', methods=['POST'])
+@login_required
+def update_appointment_status(appointment_id):
+    """Update appointment status"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    new_status = request.form.get('status')
+    if new_status not in ['pending', 'confirmed', 'completed', 'cancelled']:
+        flash('Invalid status', 'danger')
+        return redirect(url_for('bookings'))
+    
+    appointment = get_appointment_by_id(appointment_id)
+    if not appointment:
+        flash('Appointment not found', 'danger')
+        return redirect(url_for('bookings'))
+    
+    update_appointment(appointment_id, {'status': new_status})
+    flash(f'Appointment status updated to {new_status}', 'success')
     
     return redirect(url_for('bookings'))
