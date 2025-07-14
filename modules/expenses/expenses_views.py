@@ -121,3 +121,29 @@ def delete_expense_route(id):
         flash('Error deleting expense', 'danger')
     
     return redirect(url_for('expenses'))
+
+@app.route('/add_expense', methods=['POST'])
+@login_required
+def add_expense():
+    if not current_user.can_access('expenses'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = ExpenseForm()
+    if form.validate_on_submit():
+        expense_data = {
+            'description': form.description.data,
+            'amount': form.amount.data,
+            'category': form.category.data,
+            'expense_date': form.expense_date.data,
+            'receipt_number': form.receipt_number.data,
+            'notes': form.notes.data
+        }
+        
+        expense = create_expense(expense_data)
+        if expense:
+            flash('Expense added successfully', 'success')
+        else:
+            flash('Failed to add expense', 'danger')
+    
+    return redirect(url_for('expenses'))

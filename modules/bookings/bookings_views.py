@@ -134,3 +134,38 @@ def delete_booking(id):
         flash('Error deleting appointment', 'danger')
     
     return redirect(url_for('bookings'))
+
+@app.route('/add_appointment', methods=['POST'])
+@login_required
+def add_appointment():
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = AppointmentForm()
+    clients = get_active_clients()
+    services = get_active_services()
+    staff = get_staff_members()
+    
+    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.service_id.choices = [(s.id, f"{s.name} - ${s.price}") for s in services]
+    form.staff_id.choices = [(s.id, s.full_name) for s in staff]
+    
+    if form.validate_on_submit():
+        appointment_data = {
+            'client_id': form.client_id.data,
+            'service_id': form.service_id.data,
+            'staff_id': form.staff_id.data,
+            'appointment_date': form.appointment_date.data,
+            'notes': form.notes.data,
+            'amount': form.amount.data,
+            'discount': form.discount.data or 0
+        }
+        
+        appointment = create_appointment(appointment_data)
+        if appointment:
+            flash('Appointment created successfully', 'success')
+        else:
+            flash('Failed to create appointment', 'danger')
+    
+    return redirect(url_for('bookings'))

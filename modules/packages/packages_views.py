@@ -96,6 +96,32 @@ def delete_package_route(id):
     
     return redirect(url_for('packages'))
 
+@app.route('/add_package', methods=['POST'])
+@login_required
+def add_package():
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    form = PackageForm()
+    if form.validate_on_submit():
+        package_data = {
+            'name': form.name.data,
+            'description': form.description.data,
+            'duration_months': form.duration_months.data,
+            'total_price': form.total_price.data,
+            'discount_percentage': form.discount_percentage.data or 0,
+            'is_active': True
+        }
+        
+        package = create_package(package_data)
+        if package:
+            flash('Package created successfully', 'success')
+        else:
+            flash('Failed to create package', 'danger')
+    
+    return redirect(url_for('packages'))
+
 @app.route('/packages/assign/<int:package_id>/<int:client_id>', methods=['POST'])
 @login_required
 def assign_package_route(package_id, client_id):
