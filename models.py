@@ -140,6 +140,10 @@ class User(UserMixin, db.Model):
         return self.role == role
 
     def can_access(self, resource):
+        # Admin users have full access - shortcut for efficiency
+        if self.role == 'admin' or (self.user_role and self.user_role.name == 'admin'):
+            return True
+            
         # Dynamic permissions from role-permission system
         if self.user_role:
             user_permissions = [rp.permission.name for rp in self.user_role.permissions if rp.permission.is_active]
