@@ -40,7 +40,7 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 
 # Initialize CSRF protection
-# csrf = CSRFProtect(app)  # Temporarily disabled for testing
+csrf = CSRFProtect(app)
 
 @login_manager.user_loader
 def load_user(user_id):

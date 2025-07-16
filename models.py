@@ -143,7 +143,12 @@ class User(UserMixin, db.Model):
         # Dynamic permissions from role-permission system
         if self.user_role:
             user_permissions = [rp.permission.name for rp in self.user_role.permissions if rp.permission.is_active]
-            return 'all' in user_permissions or resource in user_permissions
+            # Check for 'all' permission or specific resource permissions
+            if 'all' in user_permissions:
+                return True
+            # Check for specific resource permissions (e.g., 'clients_view', 'clients_create')
+            resource_permissions = [p for p in user_permissions if p.startswith(resource + '_')]
+            return len(resource_permissions) > 0 or resource in user_permissions
         
         # Fallback to legacy permissions
         permissions = {
@@ -152,7 +157,8 @@ class User(UserMixin, db.Model):
             'staff': ['dashboard', 'bookings', 'clients'],
             'cashier': ['dashboard', 'bookings', 'billing']
         }
-        return 'all' in permissions.get(self.role, []) or resource in permissions.get(self.role, [])
+        user_role_permissions = permissions.get(self.role, [])
+        return 'all' in user_role_permissions or resource in user_role_permissions
     
     def get_role_name(self):
         """Get the role name from dynamic system or fallback"""
