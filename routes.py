@@ -278,30 +278,36 @@ def role_management():
 @app.route('/add_role', methods=['POST'])
 @login_required
 def add_role():
-    if not current_user.can_access('role_management'):
+    if not current_user.can_access('system_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
     form = RoleForm()
     if form.validate_on_submit():
-        role = Role(
-            name=form.name.data,
-            display_name=form.display_name.data,
-            description=form.description.data,
-            is_active=form.is_active.data
-        )
-        db.session.add(role)
-        db.session.commit()
-        flash('Role added successfully!', 'success')
+        try:
+            role = Role(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                description=form.description.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(role)
+            db.session.commit()
+            flash('Role added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding role: {str(e)}', 'danger')
     else:
-        flash('Error adding role', 'error')
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
     
     return redirect(url_for('system_management'))
 
 @app.route('/edit_role/<int:role_id>', methods=['POST'])
 @login_required
 def edit_role(role_id):
-    if not current_user.can_access('role_management'):
+    if not current_user.can_access('system_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
@@ -309,28 +315,39 @@ def edit_role(role_id):
     form = RoleForm(obj=role)
     
     if form.validate_on_submit():
-        role.name = form.name.data
-        role.display_name = form.display_name.data
-        role.description = form.description.data
-        role.is_active = form.is_active.data
-        db.session.commit()
-        flash('Role updated successfully!', 'success')
+        try:
+            role.name = form.name.data
+            role.display_name = form.display_name.data
+            role.description = form.description.data
+            role.is_active = form.is_active.data
+            db.session.commit()
+            flash('Role updated successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating role: {str(e)}', 'danger')
     else:
-        flash('Error updating role', 'error')
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
     
     return redirect(url_for('system_management'))
 
 @app.route('/delete_role/<int:role_id>', methods=['POST'])
 @login_required
 def delete_role(role_id):
-    if not current_user.can_access('role_management'):
+    if not current_user.can_access('system_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
-    role = Role.query.get_or_404(role_id)
-    db.session.delete(role)
-    db.session.commit()
-    flash('Role deleted successfully!', 'success')
+    try:
+        role = Role.query.get_or_404(role_id)
+        db.session.delete(role)
+        db.session.commit()
+        flash('Role deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting role: {str(e)}', 'danger')
+    
     return redirect(url_for('system_management'))
 
 # Error handlers
