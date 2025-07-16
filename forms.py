@@ -232,6 +232,34 @@ class BusinessSettingsForm(FlaskForm):
     business_address = TextAreaField('Business Address', validators=[DataRequired()])
     tax_rate = FloatField('Tax Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)])
     currency_symbol = StringField('Currency Symbol', validators=[DataRequired(), Length(max=5)])
+    currency = SelectField('Currency', choices=[
+        ('USD', 'US Dollar ($)'),
+        ('EUR', 'Euro (€)'),
+        ('GBP', 'British Pound (£)'),
+        ('CAD', 'Canadian Dollar (C$)'),
+        ('AUD', 'Australian Dollar (A$)'),
+        ('JPY', 'Japanese Yen (¥)'),
+        ('INR', 'Indian Rupee (₹)'),
+        ('CHF', 'Swiss Franc (CHF)'),
+        ('CNY', 'Chinese Yuan (¥)'),
+        ('SEK', 'Swedish Krona (kr)')
+    ], validators=[DataRequired()])
+    timezone = SelectField('Timezone', choices=[
+        ('UTC', 'UTC'),
+        ('US/Eastern', 'US Eastern'),
+        ('US/Central', 'US Central'),
+        ('US/Mountain', 'US Mountain'),
+        ('US/Pacific', 'US Pacific'),
+        ('Europe/London', 'London'),
+        ('Europe/Paris', 'Paris'),
+        ('Europe/Berlin', 'Berlin'),
+        ('Asia/Tokyo', 'Tokyo'),
+        ('Asia/Shanghai', 'Shanghai'),
+        ('Asia/Kolkata', 'Mumbai'),
+        ('Australia/Sydney', 'Sydney'),
+        ('America/Toronto', 'Toronto'),
+        ('America/Vancouver', 'Vancouver')
+    ], validators=[DataRequired()])
     appointment_buffer = IntegerField('Appointment Buffer (minutes)', validators=[Optional(), NumberRange(min=0, max=60)])
     booking_advance_days = IntegerField('Max Booking Advance (days)', validators=[Optional(), NumberRange(min=1, max=365)])
     cancellation_hours = IntegerField('Cancellation Notice Required (hours)', validators=[Optional(), NumberRange(min=1, max=72)])
