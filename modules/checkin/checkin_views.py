@@ -12,7 +12,7 @@ from .checkin_queries import (
 @app.route('/checkin')
 @login_required
 def checkin():
-    if not current_user.can_access('checkin'):
+    if not current_user.can_access('face_checkin_view'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
@@ -23,7 +23,7 @@ def checkin():
 @app.route('/checkin/appointment/<int:id>', methods=['POST'])
 @login_required
 def checkin_appointment(id):
-    if not current_user.can_access('checkin'):
+    if not current_user.can_access('face_checkin_view'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
@@ -38,7 +38,7 @@ def checkin_appointment(id):
 @app.route('/checkin/search', methods=['POST'])
 @login_required
 def checkin_search():
-    if not current_user.can_access('checkin'):
+    if not current_user.can_access('face_checkin_view'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     

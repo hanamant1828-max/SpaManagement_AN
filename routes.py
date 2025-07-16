@@ -171,7 +171,7 @@ def business_settings():
 @app.route('/face_management')
 @login_required
 def face_management():
-    if not current_user.can_access('face_management'):
+    if not current_user.can_access('face_checkin_view'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     return render_template('face_management.html')
