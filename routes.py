@@ -350,6 +350,101 @@ def delete_role(role_id):
     
     return redirect(url_for('system_management'))
 
+# API endpoints for Role Management
+@app.route('/api/roles', methods=['POST'])
+@login_required
+def api_create_role():
+    """API endpoint to create a new role"""
+    if not current_user.can_access('system_management'):
+        return {'error': 'Access denied'}, 403
+    
+    data = request.get_json()
+    if not data:
+        return {'error': 'No data provided'}, 400
+    
+    try:
+        role = Role(
+            name=data.get('name'),
+            display_name=data.get('display_name'),
+            description=data.get('description', ''),
+            is_active=True
+        )
+        db.session.add(role)
+        db.session.commit()
+        return {'message': 'Role created successfully', 'role_id': role.id}, 201
+    except Exception as e:
+        db.session.rollback()
+        return {'error': str(e)}, 500
+
+@app.route('/api/roles/<int:role_id>', methods=['DELETE'])
+@login_required
+def api_delete_role(role_id):
+    """API endpoint to delete a role"""
+    if not current_user.can_access('system_management'):
+        return {'error': 'Access denied'}, 403
+    
+    try:
+        role = Role.query.get_or_404(role_id)
+        if role.name == 'admin':
+            return {'error': 'Cannot delete admin role'}, 400
+        
+        db.session.delete(role)
+        db.session.commit()
+        return {'message': 'Role deleted successfully'}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {'error': str(e)}, 500
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['GET'])
+@login_required
+def api_get_role_permissions(role_id):
+    """API endpoint to get role permissions"""
+    if not current_user.can_access('system_management'):
+        return {'error': 'Access denied'}, 403
+    
+    try:
+        role = Role.query.get_or_404(role_id)
+        role_permissions = [rp.permission.name for rp in role.permissions]
+        return {
+            'role_name': role.display_name,
+            'permissions': role_permissions
+        }, 200
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+@app.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
+@login_required
+def api_update_role_permissions(role_id):
+    """API endpoint to update role permissions"""
+    if not current_user.can_access('system_management'):
+        return {'error': 'Access denied'}, 403
+    
+    data = request.get_json()
+    if not data:
+        return {'error': 'No data provided'}, 400
+    
+    try:
+        role = Role.query.get_or_404(role_id)
+        if role.name == 'admin':
+            return {'error': 'Cannot modify admin role permissions'}, 400
+        
+        # Clear existing permissions
+        RolePermission.query.filter_by(role_id=role_id).delete()
+        
+        # Add new permissions
+        permission_names = data.get('permissions', [])
+        for perm_name in permission_names:
+            permission = Permission.query.filter_by(name=perm_name).first()
+            if permission:
+                role_perm = RolePermission(role_id=role_id, permission_id=permission.id)
+                db.session.add(role_perm)
+        
+        db.session.commit()
+        return {'message': 'Permissions updated successfully'}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {'error': str(e)}, 500
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
