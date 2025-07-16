@@ -20,6 +20,10 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET") or "dev-secret-key-for-spa-management-system" or secrets.token_hex(32)
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure the database
