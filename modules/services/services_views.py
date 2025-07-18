@@ -35,29 +35,38 @@ def create_service_category():
     """Create new service category"""
     if not current_user.can_access('services'):
         flash('Access denied', 'danger')
-        return redirect(url_for('service_categories'))
+        return redirect(url_for('services'))
     
-    form = CategoryForm()
-    if form.validate_on_submit():
-        try:
-            category = create_category({
-                'name': form.name.data.lower().replace(' ', '_'),
-                'display_name': form.display_name.data,
-                'description': form.description.data,
-                'category_type': 'service',
-                'color': form.color.data,
-                'is_active': form.is_active.data,
-                'sort_order': form.sort_order.data or 0
-            })
-            flash(f'Service category "{category.display_name}" created successfully', 'success')
-        except Exception as e:
-            flash(f'Error creating category: {str(e)}', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'danger')
+    try:
+        # Get form data directly from request
+        name = request.form.get('name', '').strip()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        color = request.form.get('color', '#007bff')
+        sort_order = int(request.form.get('sort_order', 0))
+        is_active = 'is_active' in request.form
+        
+        # Basic validation
+        if not name or not display_name:
+            flash('Category name and display name are required', 'danger')
+            return redirect(url_for('services'))
+        
+        # Create category
+        category = create_category({
+            'name': name.lower().replace(' ', '_'),
+            'display_name': display_name,
+            'description': description,
+            'category_type': 'service',
+            'color': color,
+            'is_active': is_active,
+            'sort_order': sort_order
+        })
+        flash(f'Service category "{category.display_name}" created successfully', 'success')
+        
+    except Exception as e:
+        flash(f'Error creating category: {str(e)}', 'danger')
     
-    return redirect(url_for('service_categories'))
+    return redirect(url_for('services'))
 
 @app.route('/service-categories/<int:category_id>/edit', methods=['POST'])
 @login_required
@@ -191,24 +200,39 @@ def create_service_route():
         flash('Access denied', 'danger')
         return redirect(url_for('services'))
     
-    form = ServiceForm()
-    if form.validate_on_submit():
-        try:
-            service = create_service({
-                'name': form.name.data,
-                'description': form.description.data,
-                'duration': form.duration.data,
-                'price': form.price.data,
-                'category_id': form.category_id.data,
-                'is_active': form.is_active.data
-            })
-            flash(f'Service "{service.name}" created successfully', 'success')
-        except Exception as e:
-            flash(f'Error creating service: {str(e)}', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'danger')
+    try:
+        # Get form data directly from request
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        duration = int(request.form.get('duration', 60))
+        price = float(request.form.get('price', 0))
+        category_id = request.form.get('category_id')
+        commission_rate = float(request.form.get('commission_rate', 10))
+        is_active = 'is_active' in request.form
+        
+        # Basic validation
+        if not name:
+            flash('Service name is required', 'danger')
+            return redirect(url_for('services'))
+        
+        if price <= 0:
+            flash('Price must be greater than 0', 'danger')
+            return redirect(url_for('services'))
+        
+        # Create service
+        service = create_service({
+            'name': name,
+            'description': description,
+            'duration': duration,
+            'price': price,
+            'category_id': int(category_id) if category_id else None,
+            'commission_rate': commission_rate,
+            'is_active': is_active
+        })
+        flash(f'Service "{service.name}" created successfully', 'success')
+        
+    except Exception as e:
+        flash(f'Error creating service: {str(e)}', 'danger')
     
     return redirect(url_for('services'))
 
