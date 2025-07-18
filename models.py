@@ -286,6 +286,9 @@ class PackageService(db.Model):
     package_id = db.Column(db.Integer, db.ForeignKey('package.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     sessions_included = db.Column(db.Integer, nullable=False)
+    service_discount = db.Column(db.Float, default=0.0)  # Individual service discount percentage
+    original_price = db.Column(db.Float, nullable=False)  # Original service price
+    discounted_price = db.Column(db.Float, nullable=False)  # Final discounted price
 
 class ClientPackage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -297,6 +300,26 @@ class ClientPackage(db.Model):
     total_sessions = db.Column(db.Integer, nullable=False)
     amount_paid = db.Column(db.Float, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    auto_renewed = db.Column(db.Boolean, default=False)
+    renewal_count = db.Column(db.Integer, default=0)
+    
+    # Service-wise session tracking
+    sessions_remaining = db.relationship('ClientPackageSession', backref='client_package', lazy=True)
+
+class ClientPackageSession(db.Model):
+    """Track remaining sessions for each service in a client's package"""
+    id = db.Column(db.Integer, primary_key=True)
+    client_package_id = db.Column(db.Integer, db.ForeignKey('client_package.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    sessions_total = db.Column(db.Integer, nullable=False)
+    sessions_used = db.Column(db.Integer, default=0)
+    
+    @property
+    def sessions_remaining(self):
+        return max(0, self.sessions_total - self.sessions_used)
+    
+    # Relationships
+    service = db.relationship('Service', backref='client_sessions')
 
 class Inventory(db.Model):
     id = db.Column(db.Integer, primary_key=True)

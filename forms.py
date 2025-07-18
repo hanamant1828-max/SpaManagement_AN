@@ -114,6 +114,36 @@ class PackageForm(FlaskForm):
             Service.query.filter_by(is_active=True).order_by(Service.name).all()
         ]
 
+class EnhancedPackageForm(FlaskForm):
+    """Professional package creation form with individual service discounts and complete management"""
+    name = StringField('Package Name', validators=[DataRequired(), Length(max=100)], 
+                      description='e.g., "Bridal Glow Package", "Monthly Wellness Package"')
+    description = TextAreaField('Package Description', validators=[Optional()], 
+                               description='Short summary for clients and admin reference')
+    validity_days = IntegerField('Validity Period (Days)', validators=[DataRequired(), NumberRange(min=1, max=365)], 
+                                default=90, description='Package activation time - how long package remains valid')
+    total_price = FloatField('Total Package Price (₹)', validators=[DataRequired(), NumberRange(min=0.01)])
+    discount_percentage = FloatField('Overall Package Discount (%)', validators=[Optional(), NumberRange(min=0, max=100)], 
+                                   default=0.0, description='Additional discount applied to entire package')
+    is_active = BooleanField('Package Status', default=True, description='Active packages can be assigned to clients')
+    
+    # Service selection data (handled via JavaScript)
+    selected_services = HiddenField('Selected Services JSON')  # JSON: [{"service_id": 1, "sessions": 3, "discount": 10}]
+
+class AssignPackageForm(FlaskForm):
+    """Assign package to client form"""
+    client_id = SelectField('Select Client', coerce=int, validators=[DataRequired()])
+    package_id = HiddenField('Package ID', validators=[DataRequired()])
+    custom_price = FloatField('Custom Price (Optional)', validators=[Optional(), NumberRange(min=0)])
+    notes = TextAreaField('Assignment Notes', validators=[Optional()])
+
+class ClientPackageTrackingForm(FlaskForm):
+    """Track package usage for clients"""
+    client_package_id = HiddenField('Client Package ID', validators=[DataRequired()])
+    service_id = SelectField('Service Used', coerce=int, validators=[DataRequired()])
+    sessions_used = IntegerField('Sessions Used', validators=[DataRequired(), NumberRange(min=1)], default=1)
+    appointment_id = HiddenField('Appointment ID', validators=[Optional()])
+
 class StaffScheduleForm(FlaskForm):
     staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
     day_of_week = SelectField('Day of Week', choices=[

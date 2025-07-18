@@ -118,7 +118,321 @@ def communications():
     if not current_user.can_access('communications'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('communications.html')
+    
+    from models import Communication, Client
+    from forms import CommunicationForm
+    
+    communications = Communication.query.order_by(Communication.created_at.desc()).all()
+    clients = Client.query.filter_by(is_active=True).all()
+    form = CommunicationForm()
+    
+    return render_template('communications.html', 
+                         communications=communications, 
+                         clients=clients, 
+                         form=form)
+
+@app.route('/add_communication', methods=['POST'])
+@login_required
+def add_communication():
+    if not current_user.can_access('communications'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from models import Communication
+    from forms import CommunicationForm
+    
+    form = CommunicationForm()
+    if form.validate_on_submit():
+        try:
+            communication = Communication(
+                client_id=form.client_id.data,
+                type=form.type.data,
+                subject=form.subject.data,
+                message=form.message.data,
+                created_by=current_user.id
+            )
+            db.session.add(communication)
+            db.session.commit()
+            flash('Communication logged successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error logging communication: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+    
+    return redirect(url_for('communications'))
+
+# Enhanced Package Management Routes (Override existing packages route)
+@app.route('/packages')
+@login_required 
+def packages_enhanced():
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from models import Package, Service, Client, ClientPackage, PackageService
+    from forms import EnhancedPackageForm, AssignPackageForm
+    
+    # Auto-expire packages based on validity
+    from datetime import datetime
+    expired_packages = ClientPackage.query.filter(
+        ClientPackage.expiry_date < datetime.utcnow(),
+        ClientPackage.is_active == True
+    ).all()
+    
+    for cp in expired_packages:
+        cp.is_active = False
+    if expired_packages:
+        db.session.commit()
+    
+    packages = Package.query.order_by(Package.sort_order, Package.name).all()
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    clients = Client.query.filter_by(is_active=True).order_by(Client.first_name).all()
+    client_packages = ClientPackage.query.filter_by(is_active=True).order_by(ClientPackage.purchase_date.desc()).all()
+    
+    package_form = EnhancedPackageForm()
+    assign_form = AssignPackageForm()
+    assign_form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    
+    return render_template('enhanced_packages.html', 
+                         packages=packages,
+                         services=services,
+                         clients=clients,
+                         client_packages=client_packages,
+                         package_form=package_form,
+                         assign_form=assign_form)
+
+@app.route('/packages/create', methods=['POST'])
+@login_required
+def create_package_route():
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('packages'))
+    
+    from models import Package, PackageService, Service, ClientPackageSession
+    from forms import EnhancedPackageForm
+    import json
+    
+    form = EnhancedPackageForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Parse selected services JSON
+            selected_services_data = json.loads(form.selected_services.data or '[]')
+            
+            if not selected_services_data:
+                flash('Please select at least one service for the package', 'warning')
+                return redirect(url_for('packages_enhanced'))
+            
+            # Create package
+            package = Package(
+                name=form.name.data,
+                description=form.description.data,
+                validity_days=form.validity_days.data,
+                total_price=form.total_price.data,
+                discount_percentage=form.discount_percentage.data,
+                is_active=form.is_active.data
+            )
+            
+            db.session.add(package)
+            db.session.flush()  # Get package ID
+            
+            # Add services to package
+            total_original_price = 0
+            for service_data in selected_services_data:
+                service = Service.query.get(service_data['service_id'])
+                if service:
+                    original_price = service.price * service_data['sessions']
+                    service_discount = service_data.get('discount', 0)
+                    discounted_price = original_price * (1 - service_discount / 100)
+                    
+                    package_service = PackageService(
+                        package_id=package.id,
+                        service_id=service.id,
+                        sessions_included=service_data['sessions'],
+                        service_discount=service_discount,
+                        original_price=original_price,
+                        discounted_price=discounted_price
+                    )
+                    db.session.add(package_service)
+                    total_original_price += original_price
+            
+            db.session.commit()
+            flash(f'Package "{package.name}" created successfully with {len(selected_services_data)} services!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating package: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+    
+    return redirect(url_for('packages'))
+
+@app.route('/packages/<int:package_id>/assign', methods=['POST'])
+@login_required
+def assign_package_route(package_id):
+    if not current_user.can_access('packages'):
+        return jsonify({'success': False, 'message': 'Access denied'})
+    
+    from models import Package, ClientPackage, ClientPackageSession, PackageService
+    from datetime import datetime, timedelta
+    
+    try:
+        client_id = request.json.get('client_id')
+        custom_price = request.json.get('custom_price')
+        notes = request.json.get('notes', '')
+        
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Client ID required'})
+        
+        package = Package.query.get_or_404(package_id)
+        
+        # Calculate expiry date
+        expiry_date = datetime.utcnow() + timedelta(days=package.validity_days)
+        
+        # Create client package
+        client_package = ClientPackage(
+            client_id=client_id,
+            package_id=package_id,
+            purchase_date=datetime.utcnow(),
+            expiry_date=expiry_date,
+            total_sessions=sum(ps.sessions_included for ps in package.services),
+            amount_paid=custom_price or package.total_price,
+            is_active=True
+        )
+        
+        db.session.add(client_package)
+        db.session.flush()
+        
+        # Create session tracking for each service
+        for package_service in package.services:
+            session_track = ClientPackageSession(
+                client_package_id=client_package.id,
+                service_id=package_service.service_id,
+                sessions_total=package_service.sessions_included,
+                sessions_used=0
+            )
+            db.session.add(session_track)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Package "{package.name}" assigned successfully!',
+            'client_package_id': client_package.id,
+            'expiry_date': expiry_date.strftime('%Y-%m-%d')
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/packages/<int:package_id>/edit', methods=['POST'])
+@login_required
+def edit_package_route(package_id):
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('packages'))
+    
+    from models import Package
+    
+    try:
+        package = Package.query.get_or_404(package_id)
+        
+        package.name = request.form.get('name', package.name)
+        package.description = request.form.get('description', package.description)
+        package.validity_days = int(request.form.get('validity_days', package.validity_days))
+        package.total_price = float(request.form.get('total_price', package.total_price))
+        package.discount_percentage = float(request.form.get('discount_percentage', package.discount_percentage))
+        package.is_active = bool(request.form.get('is_active'))
+        
+        db.session.commit()
+        flash(f'Package "{package.name}" updated successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating package: {str(e)}', 'danger')
+    
+    return redirect(url_for('packages_enhanced'))
+
+@app.route('/packages/<int:package_id>/delete', methods=['POST'])
+@login_required
+def delete_package_route(package_id):
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('packages_enhanced'))
+    
+    from models import Package, ClientPackage
+    
+    try:
+        package = Package.query.get_or_404(package_id)
+        
+        # Check if package is assigned to any clients
+        active_assignments = ClientPackage.query.filter_by(package_id=package_id, is_active=True).count()
+        
+        if active_assignments > 0:
+            flash(f'Cannot delete package "{package.name}" - it is assigned to {active_assignments} active client(s)', 'warning')
+        else:
+            package.is_active = False  # Soft delete
+            db.session.commit()
+            flash(f'Package "{package.name}" deactivated successfully', 'success')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting package: {str(e)}', 'danger')
+    
+    return redirect(url_for('packages_enhanced'))
+
+@app.route('/packages/export')
+@login_required
+def export_packages():
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('packages_enhanced'))
+    
+    from models import Package, PackageService, ClientPackage
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    try:
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow([
+            'Package Name', 'Description', 'Validity (Days)', 'Total Price', 
+            'Discount %', 'Services Included', 'Active Clients', 'Status'
+        ])
+        
+        packages = Package.query.all()
+        for package in packages:
+            services_list = ', '.join([ps.service.name for ps in package.services if ps.service])
+            active_clients = ClientPackage.query.filter_by(package_id=package.id, is_active=True).count()
+            
+            writer.writerow([
+                package.name,
+                package.description or '',
+                package.validity_days,
+                package.total_price,
+                package.discount_percentage,
+                services_list,
+                active_clients,
+                'Active' if package.is_active else 'Inactive'
+            ])
+        
+        response = make_response(output.getvalue())
+        response.headers['Content-Disposition'] = 'attachment; filename=packages_export.csv'
+        response.headers['Content-Type'] = 'text/csv'
+        return response
+        
+    except Exception as e:
+        flash(f'Error exporting packages: {str(e)}', 'danger')
+        return redirect(url_for('packages_enhanced'))
 
 @app.route('/promotions')
 @login_required
