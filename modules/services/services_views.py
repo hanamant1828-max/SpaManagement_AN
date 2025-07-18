@@ -181,7 +181,7 @@ def services():
                          services=services_list,
                          categories=categories,
                          form=form,
-                         selected_category=category_filter)
+                         category_filter=category_filter)
 
 @app.route('/services/create', methods=['POST'])
 @login_required
