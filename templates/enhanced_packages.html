@@ -233,26 +233,30 @@
             <form method="POST" action="{{ url_for('create_package_route') }}" id="packageForm">
                 {{ package_form.hidden_tag() }}
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ package_form.name.label(class="form-label") }}
-                                {{ package_form.name(class="form-control", placeholder="e.g., Bridal Glow Package") }}
-                                <small class="form-text text-muted">{{ package_form.name.description }}</small>
+                    <!-- Package Basic Information -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">📋 Package Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ package_form.name.label(class="form-label") }}
+                                    {{ package_form.name(class="form-control", placeholder="e.g., Bridal Glow Package") }}
+                                    <small class="form-text text-muted">{{ package_form.name.description }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ package_form.validity_days.label(class="form-label") }}
+                                    {{ package_form.validity_days(class="form-control") }}
+                                    <small class="form-text text-muted">{{ package_form.validity_days.description }}</small>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ package_form.validity_days.label(class="form-label") }}
-                                {{ package_form.validity_days(class="form-control") }}
-                                <small class="form-text text-muted">{{ package_form.validity_days.description }}</small>
-                            </div>
+                        
+                        <div class="mb-3">
+                            {{ package_form.description.label(class="form-label") }}
+                            {{ package_form.description(class="form-control", rows="2", placeholder="Short summary for clients and admin reference") }}
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ package_form.description.label(class="form-label") }}
-                        {{ package_form.description(class="form-control", rows="2", placeholder="Short summary for clients and admin reference") }}
                     </div>
 
                     <!-- Service Selection Section -->
@@ -306,26 +310,42 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ package_form.total_price.label(class="form-label") }}
-                                {{ package_form.total_price(class="form-control", step="0.01") }}
+                    <!-- Package Pricing and Final Settings -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">💰 Package Pricing & Settings</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ package_form.total_price.label(class="form-label") }}
+                                    {{ package_form.total_price(class="form-control", step="0.01", readonly=true) }}
+                                    <small class="form-text text-muted">Auto-calculated from selected services</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ package_form.discount_percentage.label(class="form-label") }}
+                                    {{ package_form.discount_percentage(class="form-control", step="0.01", onchange="updateOverallDiscount()") }}
+                                    <small class="form-text text-muted">{{ package_form.discount_percentage.description }}</small>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ package_form.discount_percentage.label(class="form-label") }}
-                                {{ package_form.discount_percentage(class="form-control", step="0.01") }}
-                                <small class="form-text text-muted">{{ package_form.discount_percentage.description }}</small>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Final Package Price</label>
+                                    <input type="text" class="form-control" id="finalPackagePrice" readonly>
+                                    <small class="form-text text-muted">Price after overall discount</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    {{ package_form.is_active(class="form-check-input") }}
+                                    {{ package_form.is_active.label(class="form-check-label") }}
+                                    <small class="form-text text-muted">{{ package_form.is_active.description }}</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="form-check">
-                        {{ package_form.is_active(class="form-check-input") }}
-                        {{ package_form.is_active.label(class="form-check-label") }}
-                        <small class="form-text text-muted">{{ package_form.is_active.description }}</small>
                     </div>
 
                     {{ package_form.selected_services }}
@@ -378,49 +398,182 @@
 </div>
 
 <script>
+let selectedServices = [];
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Service selection handling
-    const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
     const selectedServicesInput = document.getElementById('id_selected_services');
     
-    serviceCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const serviceCard = this.closest('.service-card');
-            const serviceOptions = serviceCard.querySelector('.service-options');
-            
-            if (this.checked) {
-                serviceOptions.style.display = 'block';
-            } else {
-                serviceOptions.style.display = 'none';
-            }
-            
-            updateSelectedServices();
-        });
+    // Initialize the form
+    updateSelectedServicesJson();
+});
+
+function addServiceToPackage() {
+    const dropdown = document.getElementById('serviceDropdown');
+    const selectedOption = dropdown.options[dropdown.selectedIndex];
+    
+    if (!selectedOption.value) {
+        alert('Please select a service first');
+        return;
+    }
+    
+    const serviceId = parseInt(selectedOption.value);
+    const serviceName = selectedOption.dataset.name;
+    const servicePrice = parseFloat(selectedOption.dataset.price);
+    
+    // Check if service already added
+    if (selectedServices.find(s => s.service_id === serviceId)) {
+        alert('This service is already added to the package');
+        return;
+    }
+    
+    // Add service to selected services
+    const serviceData = {
+        service_id: serviceId,
+        name: serviceName,
+        price: servicePrice,
+        sessions: 1,
+        discount: 0
+    };
+    
+    selectedServices.push(serviceData);
+    updateServicesTable();
+    updateSelectedServicesJson();
+    
+    // Reset dropdown
+    dropdown.selectedIndex = 0;
+}
+
+function updateServicesTable() {
+    const tableBody = document.getElementById('selectedServicesTableBody');
+    const servicesSection = document.getElementById('selectedServicesSection');
+    
+    if (selectedServices.length === 0) {
+        servicesSection.style.display = 'none';
+        updateOverallDiscount();
+        return;
+    }
+    
+    servicesSection.style.display = 'block';
+    
+    let tableHTML = '';
+    let totalPackageValue = 0;
+    
+    selectedServices.forEach((service, index) => {
+        const totalPrice = service.price * service.sessions;
+        const finalPrice = totalPrice * (1 - service.discount / 100);
+        totalPackageValue += finalPrice;
+        
+        tableHTML += `
+            <tr>
+                <td>${service.name}</td>
+                <td>₹${service.price.toFixed(2)}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm" 
+                           min="1" value="${service.sessions}" 
+                           onchange="updateServiceSessions(${index}, this.value)">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm" 
+                           min="0" max="100" value="${service.discount}" 
+                           onchange="updateServiceDiscount(${index}, this.value)">
+                </td>
+                <td>₹${totalPrice.toFixed(2)}</td>
+                <td>₹${finalPrice.toFixed(2)}</td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" 
+                            onclick="removeService(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
     });
     
-    // Update sessions and discount inputs
-    document.querySelectorAll('.service-sessions, .service-discount').forEach(input => {
-        input.addEventListener('change', updateSelectedServices);
-    });
+    tableBody.innerHTML = tableHTML;
+    document.getElementById('totalPackageValue').textContent = `₹${totalPackageValue.toFixed(2)}`;
     
-    function updateSelectedServices() {
-        const selectedServices = [];
-        
-        serviceCheckboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                const serviceCard = checkbox.closest('.service-card');
-                const sessions = serviceCard.querySelector('.service-sessions').value;
-                const discount = serviceCard.querySelector('.service-discount').value;
-                
-                selectedServices.push({
-                    service_id: parseInt(checkbox.value),
-                    sessions: parseInt(sessions),
-                    discount: parseFloat(discount) || 0
-                });
-            }
-        });
-        
+    // Auto-update package price field
+    const packagePriceInput = document.getElementById('id_total_price');
+    if (packagePriceInput) {
+        packagePriceInput.value = totalPackageValue.toFixed(2);
+    }
+    
+    // Update overall discount calculation
+    updateOverallDiscount();
+}
+
+function updateServiceSessions(index, sessions) {
+    selectedServices[index].sessions = parseInt(sessions);
+    updateServicesTable();
+    updateSelectedServicesJson();
+}
+
+function updateServiceDiscount(index, discount) {
+    selectedServices[index].discount = parseFloat(discount) || 0;
+    updateServicesTable();
+    updateSelectedServicesJson();
+}
+
+function removeService(index) {
+    selectedServices.splice(index, 1);
+    updateServicesTable();
+    updateSelectedServicesJson();
+}
+
+function updateSelectedServicesJson() {
+    const selectedServicesInput = document.getElementById('id_selected_services');
+    if (selectedServicesInput) {
         selectedServicesInput.value = JSON.stringify(selectedServices);
+    }
+}
+
+function updateOverallDiscount() {
+    const packagePriceInput = document.getElementById('id_total_price');
+    const overallDiscountInput = document.getElementById('id_discount_percentage');
+    const finalPriceInput = document.getElementById('finalPackagePrice');
+    
+    if (!packagePriceInput || !overallDiscountInput || !finalPriceInput) return;
+    
+    const basePrice = parseFloat(packagePriceInput.value) || 0;
+    const discountPercentage = parseFloat(overallDiscountInput.value) || 0;
+    const finalPrice = basePrice * (1 - discountPercentage / 100);
+    
+    finalPriceInput.value = `₹${finalPrice.toFixed(2)}`;
+}
+
+// Form validation before submission
+function validatePackageForm() {
+    if (selectedServices.length === 0) {
+        alert('Please select at least one service for the package');
+        return false;
+    }
+    
+    const packageName = document.getElementById('id_name').value.trim();
+    if (!packageName) {
+        alert('Please enter a package name');
+        return false;
+    }
+    
+    const validityDays = parseInt(document.getElementById('id_validity_days').value);
+    if (!validityDays || validityDays <= 0) {
+        alert('Please enter a valid validity period');
+        return false;
+    }
+    
+    return true;
+}
+
+// Add form submission handler
+document.addEventListener('DOMContentLoaded', function() {
+    const packageForm = document.getElementById('packageForm');
+    if (packageForm) {
+        packageForm.addEventListener('submit', function(e) {
+            if (!validatePackageForm()) {
+                e.preventDefault();
+                return false;
+            }
+            updateSelectedServicesJson();
+        });
     }
 });
 
