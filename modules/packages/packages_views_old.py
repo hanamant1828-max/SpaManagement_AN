@@ -194,3 +194,24 @@ def export_package_usage():
     except Exception as e:
         flash(f'Error exporting package usage: {str(e)}', 'danger')
         return redirect(url_for('packages'))
+        if package:
+            flash('Package created successfully', 'success')
+        else:
+            flash('Failed to create package', 'danger')
+    
+    return redirect(url_for('packages'))
+
+@app.route('/packages/assign/<int:package_id>/<int:client_id>', methods=['POST'])
+@login_required
+def assign_package_route(package_id, client_id):
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    client_package = assign_package_to_client(client_id, package_id)
+    if client_package:
+        flash('Package assigned to client successfully!', 'success')
+    else:
+        flash('Error assigning package', 'danger')
+    
+    return redirect(url_for('packages'))

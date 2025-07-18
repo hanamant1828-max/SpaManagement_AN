@@ -44,17 +44,20 @@ class ClientForm(FlaskForm):
 class ServiceForm(FlaskForm):
     name = StringField('Service Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
-    duration = IntegerField('Duration (minutes)', validators=[DataRequired(), NumberRange(min=1)])
-    price = FloatField('Price', validators=[DataRequired(), NumberRange(min=0)])
-    category = SelectField('Category', choices=[
-        ('hair', 'Hair'),
-        ('facial', 'Facial'),
-        ('massage', 'Massage'),
-        ('nails', 'Nails'),
-        ('body', 'Body Treatments'),
-        ('other', 'Other')
-    ], validators=[DataRequired()])
+    duration = IntegerField('Approx. Time (minutes)', validators=[DataRequired(), NumberRange(min=1)])
+    price = FloatField('Price (₹)', validators=[DataRequired(), NumberRange(min=0)])
+    category_id = SelectField('Category', coerce=int, validators=[DataRequired()])
     is_active = BooleanField('Active', default=True)
+
+    def __init__(self, *args, **kwargs):
+        super(ServiceForm, self).__init__(*args, **kwargs)
+        # Dynamically populate categories from database
+        from models import Category
+        self.category_id.choices = [(0, 'Select Category')] + [
+            (c.id, c.display_name) for c in 
+            Category.query.filter_by(category_type='service', is_active=True)
+            .order_by(Category.sort_order, Category.display_name).all()
+        ]
 
 class AppointmentForm(FlaskForm):
     client_id = SelectField('Client', coerce=int, validators=[DataRequired()])
@@ -87,13 +90,21 @@ class ExpenseForm(FlaskForm):
 class PackageForm(FlaskForm):
     name = StringField('Package Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
-    duration_months = SelectField('Duration', choices=[
-        (3, '3 Months'),
-        (6, '6 Months'),
-        (12, '12 Months')
-    ], coerce=int, validators=[DataRequired()])
-    total_price = FloatField('Total Price', validators=[DataRequired(), NumberRange(min=0)])
+    included_services = SelectMultipleField('Included Services', coerce=int, validators=[DataRequired()])
+    total_sessions = IntegerField('No. of Sessions', validators=[DataRequired(), NumberRange(min=1)])
+    validity_days = IntegerField('Validity Period (days)', validators=[DataRequired(), NumberRange(min=1)])
+    total_price = FloatField('Package Price (₹)', validators=[DataRequired(), NumberRange(min=0)])
     discount_percentage = FloatField('Discount %', validators=[Optional(), NumberRange(min=0, max=100)])
+    is_active = BooleanField('Active', default=True)
+
+    def __init__(self, *args, **kwargs):
+        super(PackageForm, self).__init__(*args, **kwargs)
+        # Dynamically populate services from database
+        from models import Service
+        self.included_services.choices = [
+            (s.id, f"{s.name} (₹{s.price})") for s in 
+            Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        ]
 
 class StaffScheduleForm(FlaskForm):
     staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])

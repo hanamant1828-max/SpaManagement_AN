@@ -9,6 +9,7 @@ from .bookings import bookings_views
 from .clients import clients_views
 from .staff import staff_views
 from .inventory import inventory_views
+from .services import services_views
 
 # Import remaining modules
 from .billing import billing_views

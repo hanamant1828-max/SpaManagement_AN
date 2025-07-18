@@ -264,14 +264,22 @@ class Package(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     duration_months = db.Column(db.Integer, nullable=False)  # 3, 6, 12 months
+    validity_days = db.Column(db.Integer, nullable=False, default=90)  # Validity in days
+    total_sessions = db.Column(db.Integer, nullable=False, default=1)  # Total sessions in package
     total_price = db.Column(db.Float, nullable=False)
     discount_percentage = db.Column(db.Float, default=0.0)
     is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     services = db.relationship('PackageService', backref='package', lazy=True)
     client_packages = db.relationship('ClientPackage', backref='package', lazy=True)
+
+    @property
+    def services_included(self):
+        """Get formatted list of services included"""
+        return [ps.service.name for ps in self.services if ps.service]
 
 class PackageService(db.Model):
     id = db.Column(db.Integer, primary_key=True)
