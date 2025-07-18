@@ -128,13 +128,11 @@
                         </a>
                     </li>
                     
-                    {% if current_user.can_access('packages') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('packages') }}">
                             <i class="fas fa-gift me-2"></i>Subscription Packages
                         </a>
                     </li>
-                    {% endif %}
                     
                     {% if current_user.can_access('inventory') %}
                     <li class="nav-item">
