@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Service Management - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-spa me-2"></i>Service Management</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal">
+                        <i class="fas fa-plus me-2"></i>Add New Service
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select class="form-select" id="categoryFilter" onchange="filterServices()">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                <option value="{{ category.name }}" {{ 'selected' if category_filter == category.name else '' }}>
+                    {{ category.display_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if services %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Service Name</th>
+                                    <th>Category</th>
+                                    <th>Duration</th>
+                                    <th>Price</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in services %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ service.name }}</strong>
+                                        {% if service.category %}
+                                        <br><span class="badge" style="background-color: {{ service.category.color }}; font-size: 0.7rem;">
+                                            {{ service.category.display_name }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if service.category %}
+                                        <span class="badge" style="background-color: {{ service.category.color }}">
+                                            {{ service.category.display_name }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">No Category</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ service.duration }} min</td>
+                                    <td>${{ "%.2f"|format(service.price) }}</td>
+                                    <td>{{ (service.description[:50] + '...') if service.description and service.description|length > 50 else (service.description or '-') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if service.is_active else 'secondary' }}">
+                                            {{ 'Active' if service.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleService({{ service.id }})">
+                                            <i class="fas fa-{{ 'eye-slash' if service.is_active else 'eye' }}"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-spa fa-3x text-muted mb-3"></i>
+                        <h5>No services found</h5>
+                        <p class="text-muted">Create your first service to get started.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Service Modal -->
+<div class="modal fade" id="addServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_service_route') }}">
+                {{ csrf_token() }}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Service Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" name="category_id">
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="duration" min="15" step="15" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Price <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Commission Rate (%)</label>
+                                <input type="number" class="form-control" name="commission_rate" step="0.01" min="0" max="100" value="10">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                Active Service
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Services</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="GET" action="{{ url_for('export_services') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Category Filter</label>
+                        <select class="form-select" name="category">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.name }}">{{ category.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Export CSV</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterServices() {
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const url = new URL(window.location);
+    if (categoryFilter) {
+        url.searchParams.set('category', categoryFilter);
+    } else {
+        url.searchParams.delete('category');
+    }
+    window.location.href = url;
+}
+
+function editService(serviceId) {
+    // Implementation for editing service
+    alert('Edit functionality will be implemented');
+}
+
+function toggleService(serviceId) {
+    fetch(`/services/${serviceId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+function deleteService(serviceId) {
+    if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+        fetch(`/services/${serviceId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+}
+</script>
+
+{% endblock %}
