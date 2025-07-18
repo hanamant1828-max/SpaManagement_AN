@@ -87,6 +87,14 @@ class ExpenseForm(FlaskForm):
     receipt_path = StringField('Receipt Path', validators=[Optional(), Length(max=200)])
     notes = TextAreaField('Notes', validators=[Optional()])
 
+class CategoryForm(FlaskForm):
+    name = StringField('Category Name', validators=[DataRequired(), Length(max=50)])
+    display_name = StringField('Display Name', validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Description', validators=[Optional()])
+    color = StringField('Color', validators=[Optional()], default='#007bff')
+    sort_order = IntegerField('Sort Order', validators=[Optional(), NumberRange(min=0)], default=0)
+    is_active = BooleanField('Active', default=True)
+
 class PackageForm(FlaskForm):
     name = StringField('Package Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
