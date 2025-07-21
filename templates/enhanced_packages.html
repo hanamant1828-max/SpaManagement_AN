@@ -304,8 +304,8 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     {{ package_form.total_price.label(class="form-label") }}
-                                    {{ package_form.total_price(class="form-control", step="0.01", readonly=true) }}
-                                    <small class="form-text text-muted">Auto-calculated from selected services</small>
+                                    {{ package_form.total_price(class="form-control", step="0.01") }}
+                                    <small class="form-text text-muted">Enter package price manually</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -512,6 +512,31 @@ function updateSelectedServicesJson() {
     if (selectedServicesInput) {
         selectedServicesInput.value = JSON.stringify(selectedServices);
     }
+}
+
+// Add missing validateNumericInput function
+function validateNumericInput(input) {
+    const value = parseFloat(input.value);
+    const min = parseFloat(input.min);
+    const max = parseFloat(input.max);
+    
+    if (isNaN(value)) {
+        input.setCustomValidity('Please enter a valid number');
+        return false;
+    }
+    
+    if (!isNaN(min) && value < min) {
+        input.setCustomValidity(`Value must be at least ${min}`);
+        return false;
+    }
+    
+    if (!isNaN(max) && value > max) {
+        input.setCustomValidity(`Value must be no more than ${max}`);
+        return false;
+    }
+    
+    input.setCustomValidity('');
+    return true;
 }
 
 function updateOverallDiscount() {

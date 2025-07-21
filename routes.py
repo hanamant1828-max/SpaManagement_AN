@@ -194,7 +194,7 @@ def packages_enhanced():
     
     package_form = PackageForm()
     
-    return render_template('packages.html', 
+    return render_template('enhanced_packages.html', 
                          packages=packages,
                          services=services,
                          clients=clients,
