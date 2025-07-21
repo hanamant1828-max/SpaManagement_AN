@@ -361,6 +361,31 @@ function isValidDate(dateString) {
     return date instanceof Date && !isNaN(date);
 }
 
+// Numeric input validation for forms
+function validateNumericInput(input) {
+    const value = parseFloat(input.value);
+    const min = parseFloat(input.min);
+    const max = parseFloat(input.max);
+    
+    if (isNaN(value)) {
+        showFieldError(input, 'Please enter a valid number');
+        return false;
+    }
+    
+    if (!isNaN(min) && value < min) {
+        showFieldError(input, `Value must be at least ${min}`);
+        return false;
+    }
+    
+    if (!isNaN(max) && value > max) {
+        showFieldError(input, `Value must be no more than ${max}`);
+        return false;
+    }
+    
+    clearFieldError(input);
+    return true;
+}
+
 // Notification system
 function setupNotifications() {
     createNotificationContainer();
