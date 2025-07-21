@@ -173,7 +173,7 @@ def packages_enhanced():
         return redirect(url_for('dashboard'))
     
     from models import Package, Service, Client, ClientPackage, PackageService
-    from forms import EnhancedPackageForm, AssignPackageForm
+    from forms import PackageForm
     
     # Auto-expire packages based on validity
     from datetime import datetime
@@ -192,17 +192,14 @@ def packages_enhanced():
     clients = Client.query.filter_by(is_active=True).order_by(Client.first_name).all()
     client_packages = ClientPackage.query.filter_by(is_active=True).order_by(ClientPackage.purchase_date.desc()).all()
     
-    package_form = EnhancedPackageForm()
-    assign_form = AssignPackageForm()
-    assign_form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    package_form = PackageForm()
     
-    return render_template('enhanced_packages.html', 
+    return render_template('packages.html', 
                          packages=packages,
                          services=services,
                          clients=clients,
                          client_packages=client_packages,
-                         package_form=package_form,
-                         assign_form=assign_form)
+                         package_form=package_form)
 
 @app.route('/packages/create', methods=['POST'])
 @login_required
