@@ -335,7 +335,7 @@
                         </div>
                     </div>
 
-                    {{ package_form.selected_services }}
+                    {{ package_form.selected_services(style="display: none;") }}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -388,7 +388,7 @@
 let selectedServices = [];
 
 document.addEventListener('DOMContentLoaded', function() {
-    const selectedServicesInput = document.getElementById('id_selected_services');
+    const selectedServicesInput = document.querySelector('input[name="selected_services"]');
     
     // Initialize the form
     updateSelectedServicesJson();
@@ -480,7 +480,7 @@ function updateServicesTable() {
     document.getElementById('totalPackageValue').textContent = `₹${totalPackageValue.toFixed(2)}`;
     
     // Auto-update package price field
-    const packagePriceInput = document.getElementById('id_total_price');
+    const packagePriceInput = document.querySelector('input[name="total_price"]');
     if (packagePriceInput) {
         packagePriceInput.value = totalPackageValue.toFixed(2);
     }
@@ -508,7 +508,7 @@ function removeService(index) {
 }
 
 function updateSelectedServicesJson() {
-    const selectedServicesInput = document.getElementById('id_selected_services');
+    const selectedServicesInput = document.querySelector('input[name="selected_services"]');
     if (selectedServicesInput) {
         selectedServicesInput.value = JSON.stringify(selectedServices);
     }
@@ -540,8 +540,8 @@ function validateNumericInput(input) {
 }
 
 function updateOverallDiscount() {
-    const packagePriceInput = document.getElementById('id_total_price');
-    const overallDiscountInput = document.getElementById('id_discount_percentage');
+    const packagePriceInput = document.querySelector('input[name="total_price"]');
+    const overallDiscountInput = document.querySelector('input[name="discount_percentage"]');
     const finalPriceInput = document.getElementById('finalPackagePrice');
     
     if (!packagePriceInput || !overallDiscountInput || !finalPriceInput) return;
@@ -560,13 +560,13 @@ function validatePackageForm() {
         return false;
     }
     
-    const packageName = document.getElementById('id_name').value.trim();
+    const packageName = document.querySelector('input[name="name"]').value.trim();
     if (!packageName) {
         alert('Please enter a package name');
         return false;
     }
     
-    const validityDays = parseInt(document.getElementById('id_validity_days').value);
+    const validityDays = parseInt(document.querySelector('input[name="validity_days"]').value);
     if (!validityDays || validityDays <= 0) {
         alert('Please enter a valid validity period');
         return false;
