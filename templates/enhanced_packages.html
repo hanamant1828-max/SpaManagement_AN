@@ -119,14 +119,14 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-success btn-sm" onclick="assignPackage({{ package.id }}, '{{ package.name|replace("'", "\\'") }}')">
+                                                <button class="btn btn-outline-success btn-sm" onclick="assignPackage({{ package.id }}, &quot;{{ package.name }}&quot;)">
                                                     <i class="fas fa-user-plus"></i> Assign
                                                 </button>
                                                 <button class="btn btn-outline-primary btn-sm" onclick="editPackage({{ package.id }})">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 {% if active_count == 0 %}
-                                                    <button class="btn btn-outline-danger btn-sm" onclick="deletePackage({{ package.id }}, '{{ package.name|replace("'", "\\'") }}')">
+                                                    <button class="btn btn-outline-danger btn-sm" onclick="deletePackage({{ package.id }}, &quot;{{ package.name }}&quot;)">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 {% endif %}

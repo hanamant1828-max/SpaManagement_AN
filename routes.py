@@ -206,7 +206,7 @@ def packages_enhanced():
 def create_package_route():
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
-        return redirect(url_for('packages'))
+        return redirect(url_for('packages_enhanced'))
     
     from models import Package, PackageService, Service, ClientPackageSession
     from forms import EnhancedPackageForm
@@ -223,11 +223,17 @@ def create_package_route():
                 flash('Please select at least one service for the package', 'warning')
                 return redirect(url_for('packages_enhanced'))
             
+            # Calculate totals
+            total_sessions = sum(service_data['sessions'] for service_data in selected_services_data)
+            duration_months = max(1, form.validity_days.data // 30)  # At least 1 month
+            
             # Create package
             package = Package(
                 name=form.name.data,
                 description=form.description.data,
+                duration_months=duration_months,
                 validity_days=form.validity_days.data,
+                total_sessions=total_sessions,
                 total_price=form.total_price.data,
                 discount_percentage=form.discount_percentage.data,
                 is_active=form.is_active.data
@@ -267,7 +273,7 @@ def create_package_route():
             for error in errors:
                 flash(f'{getattr(form, field).label.text}: {error}', 'danger')
     
-    return redirect(url_for('packages'))
+    return redirect(url_for('packages_enhanced'))
 
 @app.route('/packages/<int:package_id>/assign', methods=['POST'])
 @login_required
@@ -333,7 +339,7 @@ def assign_package_route(package_id):
 def edit_package_route(package_id):
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
-        return redirect(url_for('packages'))
+        return redirect(url_for('packages_enhanced'))
     
     from models import Package
     
