@@ -471,7 +471,7 @@
 </div>
 
 <!-- Assign Package Modal -->
-<div class="modal fade" id="assignPackageModal" tabindex="-1"></div>
+<div class="modal fade" id="assignPackageModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -679,11 +679,6 @@ function updateOverallDiscount() {
 
 // Form validation before submission
 function validatePackageForm() {
-    if (selectedServices.length === 0) {
-        alert('Please select at least one service for the package');
-        return false;
-    }
-    
     const packageName = document.querySelector('input[name="name"]').value.trim();
     if (!packageName) {
         alert('Please enter a package name');
@@ -694,6 +689,17 @@ function validatePackageForm() {
     if (!validityDays || validityDays <= 0) {
         alert('Please enter a valid validity period');
         return false;
+    }
+    
+    const totalPrice = parseFloat(document.querySelector('input[name="total_price"]').value);
+    if (!totalPrice || totalPrice <= 0) {
+        alert('Please enter a valid package price');
+        return false;
+    }
+    
+    // Services are optional - packages can be created without predefined services
+    if (selectedServices.length === 0) {
+        console.log('Package created without predefined services - clients can select services later');
     }
     
     return true;
@@ -807,56 +813,100 @@ function submitAssignPackage() {
 }
 
 function editPackage(packageId) {
-    // Find the package data from the table
-    const packageRow = document.querySelector(`tr:has(button[onclick="editPackage(${packageId})"])`);
+    // Find the package data from the table - use a more reliable selector
+    const editButton = document.querySelector(`button[onclick="editPackage(${packageId})"]`);
+    if (!editButton) {
+        alert('Package edit button not found');
+        return;
+    }
+    
+    const packageRow = editButton.closest('tr');
     if (!packageRow) {
-        alert('Package data not found');
+        alert('Package row not found');
         return;
     }
 
-    // Extract package data from the row
-    const cells = packageRow.querySelectorAll('td');
-    const packageName = cells[1].querySelector('strong').textContent;
-    const description = cells[1].querySelector('small') ? 
-                       cells[1].querySelector('small').textContent.replace('...', '') : '';
-    const validityDays = cells[3].textContent.split(' ')[0];
-    const totalSessions = cells[3].querySelector('small').textContent.split(' ')[0];
-    const totalPrice = cells[4].querySelector('strong').textContent.replace('₹', '').replace(',', '');
-    const discountPercentage = cells[5].querySelector('.badge') ? 
-                              cells[5].querySelector('.badge').textContent.replace('% OFF', '') : '0';
-    const isActive = cells[7].querySelector('.badge').textContent === 'Active';
+    try {
+        // Extract package data from the row - be more careful with selectors
+        const cells = packageRow.querySelectorAll('td');
+        
+        // Package name (column 1)
+        const packageNameElement = cells[1].querySelector('strong');
+        const packageName = packageNameElement ? packageNameElement.textContent.trim() : '';
+        
+        // Description (column 1, small element)
+        const descriptionElement = cells[1].querySelector('small');
+        const description = descriptionElement ? descriptionElement.textContent.replace('...', '').trim() : '';
+        
+        // Validity days (column 3)
+        const validityText = cells[3].textContent.trim();
+        const validityDays = validityText.split(' ')[0];
+        
+        // Total sessions (column 3, small element)
+        const sessionsElement = cells[3].querySelector('small');
+        const totalSessions = sessionsElement ? sessionsElement.textContent.split(' ')[0] : '1';
+        
+        // Total price (column 4)
+        const priceElement = cells[4].querySelector('strong');
+        const totalPrice = priceElement ? 
+            priceElement.textContent.replace('₹', '').replace(/,/g, '').trim() : '0';
+        
+        // Discount percentage (column 5)
+        const discountElement = cells[5].querySelector('.badge');
+        let discountPercentage = '0';
+        if (discountElement && discountElement.textContent.includes('% OFF')) {
+            discountPercentage = discountElement.textContent.replace('% OFF', '').trim();
+        }
+        
+        // Status (column 7)
+        const statusElement = cells[7].querySelector('.badge');
+        const isActive = statusElement ? statusElement.textContent.trim() === 'Active' : true;
 
-    // Populate edit modal
-    document.getElementById('edit_package_id').value = packageId;
-    document.getElementById('edit_package_name').value = packageName;
-    document.getElementById('edit_package_description').value = description;
-    document.getElementById('edit_validity_days').value = validityDays;
-    document.getElementById('edit_total_sessions').value = totalSessions;
-    document.getElementById('edit_total_price').value = totalPrice;
-    document.getElementById('edit_discount_percentage').value = discountPercentage;
-    document.getElementById('edit_is_active').checked = isActive;
+        // Populate edit modal
+        document.getElementById('edit_package_id').value = packageId;
+        document.getElementById('edit_package_name').value = packageName;
+        document.getElementById('edit_package_description').value = description;
+        document.getElementById('edit_validity_days').value = validityDays;
+        document.getElementById('edit_total_sessions').value = totalSessions;
+        document.getElementById('edit_total_price').value = totalPrice;
+        document.getElementById('edit_discount_percentage').value = discountPercentage;
+        document.getElementById('edit_is_active').checked = isActive;
 
-    // Update modal title
-    document.querySelector('#editPackageModal .modal-title').textContent = `Edit "${packageName}"`;
+        // Update modal title
+        document.querySelector('#editPackageModal .modal-title').textContent = `✏️ Edit "${packageName}"`;
 
-    // Show edit modal
-    new bootstrap.Modal(document.getElementById('editPackageModal')).show();
+        // Show edit modal
+        new bootstrap.Modal(document.getElementById('editPackageModal')).show();
+        
+    } catch (error) {
+        console.error('Error extracting package data:', error);
+        alert('Error loading package data for editing. Please try again.');
+    }
 }
 
 function deletePackage(packageId, packageName) {
     if (confirm(`Are you sure you want to delete package "${packageName}"?`)) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/packages/${packageId}/delete`;
-        
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = 'csrf_token';
-        csrfToken.value = '{{ csrf_token() }}';
-        form.appendChild(csrfToken);
-        
-        document.body.appendChild(form);
-        form.submit();
+        // Use fetch instead of form submission for better error handling
+        fetch(`/packages/${packageId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'csrf_token': document.querySelector('input[name="csrf_token"]').value
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Package deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error deleting package');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting package: ' + error);
+        });
     }
 }
 

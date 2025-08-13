@@ -247,17 +247,18 @@ def create_package_route():
 
     form = EnhancedPackageForm()
 
+    print(f"Form validation result: {form.validate_on_submit()}")
+    print(f"Form errors: {form.errors}")
+    print(f"Form data: {request.form}")
+
     if form.validate_on_submit():
         try:
             # Parse selected services JSON
             selected_services_data = json.loads(form.selected_services.data or '[]')
+            print(f"Selected services data: {selected_services_data}")
 
-            if not selected_services_data:
-                flash('Please select at least one service for the package', 'warning')
-                return redirect(url_for('packages_enhanced'))
-
-            # Calculate totals
-            total_sessions = sum(service_data['sessions'] for service_data in selected_services_data)
+            # Calculate totals - allow packages without predefined services
+            total_sessions = sum(service_data['sessions'] for service_data in selected_services_data) if selected_services_data else 1
             duration_months = max(1, form.validity_days.data // 30)  # At least 1 month
 
             # Create package
@@ -274,34 +275,44 @@ def create_package_route():
 
             db.session.add(package)
             db.session.flush()  # Get package ID
+            print(f"Package created with ID: {package.id}")
 
-            # Add services to package
-            total_original_price = 0
-            for service_data in selected_services_data:
-                service = Service.query.get(service_data['service_id'])
-                if service:
-                    original_price = service.price * service_data['sessions']
-                    service_discount = service_data.get('discount', 0)
-                    discounted_price = original_price * (1 - service_discount / 100)
+            # Add services to package (if any)
+            service_count = 0
+            if selected_services_data:
+                total_original_price = 0
+                for service_data in selected_services_data:
+                    service = Service.query.get(service_data['service_id'])
+                    if service:
+                        original_price = service.price * service_data['sessions']
+                        service_discount = service_data.get('discount', 0)
+                        discounted_price = original_price * (1 - service_discount / 100)
 
-                    package_service = PackageService(
-                        package_id=package.id,
-                        service_id=service.id,
-                        sessions_included=service_data['sessions'],
-                        service_discount=service_discount,
-                        original_price=original_price,
-                        discounted_price=discounted_price
-                    )
-                    db.session.add(package_service)
-                    total_original_price += original_price
+                        package_service = PackageService(
+                            package_id=package.id,
+                            service_id=service.id,
+                            sessions_included=service_data['sessions'],
+                            service_discount=service_discount,
+                            original_price=original_price,
+                            discounted_price=discounted_price
+                        )
+                        db.session.add(package_service)
+                        total_original_price += original_price
+                        service_count += 1
 
             db.session.commit()
-            flash(f'Package "{package.name}" created successfully with {len(selected_services_data)} services!', 'success')
+            
+            if service_count > 0:
+                flash(f'Package "{package.name}" created successfully with {service_count} services!', 'success')
+            else:
+                flash(f'Package "{package.name}" created successfully! Services can be assigned later.', 'success')
 
         except Exception as e:
             db.session.rollback()
+            print(f"Error creating package: {str(e)}")
             flash(f'Error creating package: {str(e)}', 'danger')
     else:
+        print("Form validation failed")
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f'{getattr(form, field).label.text}: {error}', 'danger')
