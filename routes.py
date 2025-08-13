@@ -20,8 +20,14 @@ def utility_processor():
 
 def create_default_data():
     """Create default data for the application"""
-    # Create default admin user if not exists
-    admin_user = User.query.filter_by(username='admin').first()
+    try:
+        # Create default admin user if not exists
+        admin_user = User.query.filter_by(username='admin').first()
+    except Exception as e:
+        print(f"Database schema issue detected: {e}")
+        print("Please run: python migrate_database.py")
+        return
+    
     if not admin_user:
         admin_user = User(
             username='admin',

@@ -54,9 +54,24 @@ def load_user(user_id):
 with app.app_context():
     # Import models here so their tables will be created
     import models  # noqa: F401
-    db.create_all()
-    logging.info("Database tables created")
     
-    # Initialize default data
-    from routes import create_default_data
-    create_default_data()
+    try:
+        db.create_all()
+        logging.info("Database tables created")
+        
+        # Initialize default data
+        from routes import create_default_data
+        create_default_data()
+    except Exception as e:
+        logging.error(f"Database initialization failed: {e}")
+        logging.info("Attempting database migration...")
+        try:
+            import subprocess
+            subprocess.run(['python', 'migrate_database.py'], check=True)
+            logging.info("Migration completed, retrying initialization...")
+            db.create_all()
+            from routes import create_default_data
+            create_default_data()
+        except Exception as migration_error:
+            logging.error(f"Migration failed: {migration_error}")
+            logging.warning("Application starting with limited functionality")
