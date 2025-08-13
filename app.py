@@ -32,6 +32,8 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:/
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
+    "pool_timeout": 20,  # Connection timeout
+    "max_overflow": 0,  # Don't allow connections beyond pool_size
 }
 
 # Initialize the app with the extension
@@ -54,11 +56,11 @@ def load_user(user_id):
 with app.app_context():
     # Import models here so their tables will be created
     import models  # noqa: F401
-    
+
     try:
         db.create_all()
         logging.info("Database tables created")
-        
+
         # Initialize default data
         from routes import create_default_data
         create_default_data()
