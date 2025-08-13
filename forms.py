@@ -450,14 +450,14 @@ class SystemSettingForm(FlaskForm):
 
 class ComprehensiveStaffForm(FlaskForm):
     """Comprehensive Staff Management Form - All 11 Requirements"""
-    
+
     # Basic Information
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=25)])
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[Optional(), Length(min=6)])
-    
+
     # Staff Profile Details
     profile_photo_url = StringField('Profile Photo URL', validators=[Optional()])
     gender = SelectField('Gender', choices=[
@@ -471,19 +471,19 @@ class ComprehensiveStaffForm(FlaskForm):
     staff_code = StringField('Staff Code', validators=[DataRequired(), Length(max=20)])
     notes_bio = TextAreaField('Notes/Bio', validators=[Optional()])
     designation = StringField('Designation', validators=[DataRequired(), Length(max=100)])
-    
+
     # ID Proofs & Verification
     aadhaar_number = StringField('Aadhaar Number', validators=[Optional(), Length(min=12, max=12)])
     aadhaar_card_url = StringField('Aadhaar Card URL', validators=[Optional()])
     pan_number = StringField('PAN Number', validators=[Optional(), Length(min=10, max=10)])
     pan_card_url = StringField('PAN Card URL', validators=[Optional()])
     verification_status = BooleanField('Verification Status', default=False)
-    
+
     # Facial Recognition
     face_image_url = StringField('Face Image URL', validators=[Optional()])
     facial_encoding = StringField('Facial Encoding', validators=[Optional()])
     enable_face_checkin = BooleanField('Enable Face Check-in', default=True)
-    
+
     # Work Schedule
     monday = BooleanField('Monday', default=True)
     tuesday = BooleanField('Tuesday', default=True)
@@ -492,30 +492,30 @@ class ComprehensiveStaffForm(FlaskForm):
     friday = BooleanField('Friday', default=True)
     saturday = BooleanField('Saturday', default=False)
     sunday = BooleanField('Sunday', default=False)
-    
+
     shift_start_time = TimeField('Shift Start Time', validators=[Optional()])
     shift_end_time = TimeField('Shift End Time', validators=[Optional()])
     break_time = StringField('Break Time', validators=[Optional(), Length(max=50)])
     weekly_off_days = StringField('Weekly Off Days', validators=[Optional(), Length(max=20)])
-    
+
     # Performance & Commission
     commission_percentage = FloatField('Commission Percentage', validators=[Optional(), NumberRange(min=0, max=100)])
     fixed_commission = FloatField('Fixed Commission', validators=[Optional(), NumberRange(min=0)])
     hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
-    
+
     # Role & Department
     role_id = SelectField('Role', coerce=int, validators=[Optional()])
     department_id = SelectField('Department', coerce=int, validators=[Optional()])
-    
+
     # Service Assignment
     assigned_services = SelectMultipleField('Assigned Services', coerce=int, validators=[Optional()])
-    
+
     # Status
     is_active = BooleanField('Active Status', default=True)
-    
+
     # Submit button
     submit = SubmitField('Save Staff Member')
-    
+
     def __init__(self, *args, **kwargs):
         super(ComprehensiveStaffForm, self).__init__(*args, **kwargs)
         # Dynamically populate choices from database
@@ -670,7 +670,7 @@ class ComprehensiveStaffForm(FlaskForm):
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     email = EmailField('Email', validators=[Optional(), Email()])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
-    
+
     # Profile Details
     gender = SelectField('Gender', choices=[
         ('male', 'Male'),
@@ -682,21 +682,21 @@ class ComprehensiveStaffForm(FlaskForm):
     staff_code = StringField('Staff Code', validators=[Optional(), Length(max=20)])
     designation = StringField('Designation', validators=[Optional(), Length(max=100)])
     notes_bio = TextAreaField('Notes/Bio', validators=[Optional()])
-    
+
     # ID Verification
     aadhaar_number = StringField('Aadhaar Number', validators=[Optional(), Length(max=12)])
     pan_number = StringField('PAN Number', validators=[Optional(), Length(max=10)])
     verification_status = BooleanField('Verified')
-    
+
     # Facial Recognition
     enable_face_checkin = BooleanField('Enable Face Check-in', default=True)
-    
+
     # Work Schedule
     shift_start_time = TimeField('Shift Start Time', validators=[Optional()])
     shift_end_time = TimeField('Shift End Time', validators=[Optional()])
     break_time = StringField('Break Time', validators=[Optional()])
     weekly_off_days = StringField('Weekly Off Days', validators=[Optional()])
-    
+
     # Working Days (checkboxes)
     monday = BooleanField('Monday', default=True)
     tuesday = BooleanField('Tuesday', default=True)
@@ -705,19 +705,19 @@ class ComprehensiveStaffForm(FlaskForm):
     friday = BooleanField('Friday', default=True)
     saturday = BooleanField('Saturday', default=False)
     sunday = BooleanField('Sunday', default=False)
-    
+
     # Performance & Commission
     commission_percentage = FloatField('Commission Percentage', validators=[Optional()])
     fixed_commission = FloatField('Fixed Commission', validators=[Optional()])
     hourly_rate = FloatField('Hourly Rate', validators=[Optional()])
-    
+
     # Role & Department
     role_id = SelectField('Role', coerce=int, validators=[Optional()])
     department_id = SelectField('Department', coerce=int, validators=[Optional()])
-    
+
     # Service Assignment
     assigned_services = SelectMultipleField('Assigned Services', coerce=int, validators=[Optional()])
-    
+
     # System Settings
     password = PasswordField('Password', validators=[Optional()])
     is_active = BooleanField('Active', default=True)
