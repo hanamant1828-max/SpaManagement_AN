@@ -52,6 +52,8 @@ def staff():
 
 @app.route('/staff/comprehensive')
 @login_required
+@app.route('/comprehensive_staff')
+@login_required
 def comprehensive_staff():
     """Main comprehensive staff management page with all 11 features"""
     if not current_user.can_access('staff'):
@@ -87,6 +89,34 @@ def comprehensive_staff():
                              roles=roles,
                              departments=departments,
                              services=services)
+    except Exception as e:
+        flash(f'Error loading comprehensive staff data: {str(e)}', 'danger')
+        return redirect(url_for('staff'))
+
+@app.route('/comprehensive_staff/create', methods=['GET', 'POST'])
+@login_required
+def create_comprehensive_staff():
+    """Create new staff member with comprehensive form"""
+    if not current_user.can_access('staff'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from forms import ComprehensiveStaffForm
+    form = ComprehensiveStaffForm()
+    
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            # Create comprehensive staff member
+            success = create_comprehensive_staff_member(form)
+            if success:
+                flash('Staff member created successfully with all comprehensive features!', 'success')
+                return redirect(url_for('comprehensive_staff'))
+            else:
+                flash('Error creating staff member', 'danger')
+        except Exception as e:
+            flash(f'Error creating staff member: {str(e)}', 'danger')
+    
+    return render_template('comprehensive_staff_form.html', form=form, mode='create')
     except Exception as e:
         flash(f'Error loading comprehensive staff data: {str(e)}', 'danger')
         return redirect(url_for('staff'))
