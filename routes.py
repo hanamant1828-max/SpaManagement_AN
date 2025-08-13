@@ -211,7 +211,7 @@ def packages_enhanced():
         if expired_packages:
             db.session.commit()
 
-        packages = Package.query.order_by(Package.sort_order, Package.name).all()
+        packages = Package.query.order_by(Package.created_at.desc()).all()
         
         # Safety check: ensure all packages have a total_price
         for package in packages:
@@ -222,6 +222,8 @@ def packages_enhanced():
             db.session.commit()
         except:
             db.session.rollback()
+            
+        print(f"Loaded {len(packages)} packages for display")
             
         services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
         clients = Client.query.filter_by(is_active=True).order_by(Client.first_name).all()
@@ -332,8 +334,8 @@ def create_package_route():
             else:
                 flash(f'Package "{package.name}" created successfully! Services can be assigned later.', 'success')
 
-            # Use a simple redirect without trying to access the packages page immediately
-            return redirect(url_for('dashboard'))
+            # Redirect back to packages page to show the created package
+            return redirect(url_for('packages_enhanced'))
 
         except Exception as e:
             db.session.rollback()
@@ -346,11 +348,7 @@ def create_package_route():
             for error in errors:
                 flash(f'{getattr(form, field).label.text}: {error}', 'danger')
 
-    try:
-        return redirect(url_for('packages_enhanced'))
-    except:
-        # If packages page fails to load, redirect to dashboard
-        return redirect(url_for('dashboard'))
+    return redirect(url_for('packages_enhanced'))
 
 @app.route('/packages/<int:package_id>/assign', methods=['POST'])
 @login_required
