@@ -513,6 +513,9 @@ class ComprehensiveStaffForm(FlaskForm):
     # Status
     is_active = BooleanField('Active Status', default=True)
     
+    # Submit button
+    submit = SubmitField('Save Staff Member')
+    
     def __init__(self, *args, **kwargs):
         super(ComprehensiveStaffForm, self).__init__(*args, **kwargs)
         # Dynamically populate choices from database

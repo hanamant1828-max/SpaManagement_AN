@@ -617,6 +617,27 @@ def delete_staff_route(id):
     
     return redirect(url_for('staff'))
 
+@app.route('/staff/deactivate/<int:staff_id>', methods=['POST'])
+@login_required
+def deactivate_staff(staff_id):
+    """Deactivate a staff member"""
+    if not current_user.has_role('admin'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        staff_member = User.query.get(staff_id)
+        if not staff_member:
+            return jsonify({'error': 'Staff member not found'}), 404
+        
+        staff_member.is_active = False
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Staff member deactivated successfully'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/staff/<int:id>')
 @login_required
 def staff_detail(id):
