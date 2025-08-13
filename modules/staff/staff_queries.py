@@ -275,15 +275,17 @@ def create_comprehensive_staff(form_data):
         staff_code = form_data.get('staff_code')
         if not staff_code:
             # Get next available staff code
-            last_staff = User.query.filter(User.staff_code.isnot(None)).order_by(User.id.desc()).first()
-            if last_staff and last_staff.staff_code and last_staff.staff_code.startswith('STF'):
-                try:
+            try:
+                last_staff = User.query.filter(User.staff_code.isnot(None)).order_by(User.id.desc()).first()
+                if last_staff and last_staff.staff_code and last_staff.staff_code.startswith('STF'):
                     last_num = int(last_staff.staff_code[3:])
                     staff_code = f"STF{str(last_num + 1).zfill(3)}"
-                except:
+                else:
                     staff_code = f"STF001"
-            else:
-                staff_code = f"STF001"
+            except Exception:
+                # Fallback to counting all staff
+                staff_count = User.query.filter(User.role.in_(['staff', 'manager', 'admin'])).count()
+                staff_code = f"STF{str(staff_count + 1).zfill(3)}"
 
         staff_member = User(
             username=form_data['username'],

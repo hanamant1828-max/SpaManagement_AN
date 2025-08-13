@@ -166,12 +166,12 @@
                                             {% if member.profile_photo_url %}
                                                 <img src="{{ member.profile_photo_url }}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
                                             {% else %}
-                                                <div class="avatar-circle me-3">
-                                                    {{ member.first_name[0] }}{{ member.last_name[0] }}
+                                                <div class="avatar-circle me-3" style="width: 40px; height: 40px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                                    {{ (member.first_name[0] if member.first_name else 'S') + (member.last_name[0] if member.last_name else 'M') }}
                                                 </div>
                                             {% endif %}
                                             <div>
-                                                <strong>{{ member.full_name }}</strong>
+                                                <strong>{{ member.full_name or 'Unknown Staff' }}</strong>
                                                 <br><small class="text-muted">{{ member.staff_code or ('STF' + member.id|string|rjust(3, '0')) }}</small>
                                                 {% if member.email %}
                                                 <br><small class="text-muted">{{ member.email }}</small>

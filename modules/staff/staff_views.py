@@ -163,9 +163,19 @@ def create_comprehensive_staff():
                 staff_data['password_hash'] = generate_password_hash(form.password.data)
             
             # Create comprehensive staff member
-            new_staff = create_comprehensive_staff(staff_data)
-            if not new_staff:
-                raise Exception("Failed to create staff member")
+            try:
+                new_staff = create_comprehensive_staff(staff_data)
+                if not new_staff:
+                    raise Exception("Failed to create staff member")
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error creating staff member: {str(e)}', 'danger')
+                return render_template('comprehensive_staff_form.html', 
+                                     form=form, 
+                                     action='Create',
+                                     roles=roles,
+                                     departments=departments,
+                                     services=services)
             
             # Assign services
             for service_id in form.assigned_services.data:

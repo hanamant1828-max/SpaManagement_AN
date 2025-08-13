@@ -1118,36 +1118,83 @@ function navigateToStaffManagement() {
 
 // Update service price function
 function updateServicePrice(serviceId, price) {
-    // Update price displays
-    const priceDisplays = document.querySelectorAll('[data-service-id="' + serviceId + '"] .price-display');
-    priceDisplays.forEach(display => {
-        display.textContent = '₹' + parseFloat(price).toFixed(2);
-    });
-    
-    // Update amount input if exists
-    const amountField = document.getElementById('amount');
-    if (amountField) {
-        amountField.value = price;
-    }
-    
-    // Update total calculations if exists
-    if (typeof calculateTotal === 'function') {
-        calculateTotal();
+    try {
+        // Update price displays
+        const priceDisplays = document.querySelectorAll('[data-service-id="' + serviceId + '"] .price-display');
+        priceDisplays.forEach(display => {
+            display.textContent = '₹' + parseFloat(price).toFixed(2);
+        });
+        
+        // Update amount input if exists
+        const amountField = document.getElementById('amount');
+        if (amountField) {
+            amountField.value = price;
+        }
+        
+        // Update total calculations if exists
+        if (typeof calculateTotal === 'function') {
+            calculateTotal();
+        }
+        
+        // Trigger custom event for other components
+        const event = new CustomEvent('servicePriceUpdated', {
+            detail: { serviceId: serviceId, price: price }
+        });
+        document.dispatchEvent(event);
+        
+    } catch (error) {
+        console.error('Error updating service price:', error);
     }
 }
 
 // Service selection handler for forms
 function handleServiceSelection(selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (selectedOption && selectedOption.dataset.price) {
-        const price = selectedOption.dataset.price;
-        updateServicePrice(selectElement.value, price);
+    try {
+        if (!selectElement) return;
         
-        // Update amount field if exists
-        const amountField = document.getElementById('amount');
-        if (amountField) {
-            amountField.value = price;
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        if (selectedOption && selectedOption.dataset.price) {
+            const price = selectedOption.dataset.price;
+            updateServicePrice(selectElement.value, price);
+            
+            // Update amount field if exists
+            const amountField = document.getElementById('amount');
+            if (amountField) {
+                amountField.value = price;
+            }
         }
+    } catch (error) {
+        console.error('Error handling service selection:', error);
+    }
+}
+
+// Calculate total function for billing forms
+function calculateTotal() {
+    try {
+        let total = 0;
+        const serviceSelects = document.querySelectorAll('select[data-price]');
+        
+        serviceSelects.forEach(select => {
+            if (select.value && select.selectedOptions[0]) {
+                const price = parseFloat(select.selectedOptions[0].dataset.price || 0);
+                total += price;
+            }
+        });
+        
+        // Update total display
+        const totalDisplay = document.getElementById('total-amount');
+        if (totalDisplay) {
+            totalDisplay.textContent = '₹' + total.toFixed(2);
+        }
+        
+        // Update hidden total field
+        const totalField = document.getElementById('total_amount');
+        if (totalField) {
+            totalField.value = total.toFixed(2);
+        }
+        
+    } catch (error) {
+        console.error('Error calculating total:', error);
     }
 }
 
