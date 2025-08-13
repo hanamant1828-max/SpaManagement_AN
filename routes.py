@@ -292,6 +292,7 @@ def create_package_route():
             package = Package(
                 name=form.name.data,
                 description=form.description.data,
+                package_type=form.package_type.data,
                 duration_months=duration_months,
                 validity_days=form.validity_days.data,
                 total_sessions=total_sessions,

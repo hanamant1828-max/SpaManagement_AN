@@ -120,6 +120,15 @@ class EnhancedPackageForm(FlaskForm):
                       description='e.g., "Bridal Glow Package", "Monthly Wellness Package"')
     description = TextAreaField('Package Description', validators=[Optional()], 
                                description='Short summary for clients and admin reference')
+    package_type = SelectField('Package Type', choices=[
+        ('regular', 'Regular Package'),
+        ('prepaid', 'Prepaid Package'),
+        ('service_package', 'Service Package'),
+        ('membership', 'Membership'),
+        ('student_offer', 'Student Offer'),
+        ('kitty_party', 'Kitty Party'),
+        ('yearly_membership', 'Yearly Membership')
+    ], validators=[DataRequired()], default='regular')
     validity_days = IntegerField('Validity Period (Days)', validators=[DataRequired(), NumberRange(min=1, max=365)], 
                                 default=90, description='Package activation time - how long package remains valid')
     total_price = FloatField('Total Package Price (₹)', validators=[DataRequired(), NumberRange(min=0.01)])
