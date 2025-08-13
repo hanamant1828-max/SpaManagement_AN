@@ -14,7 +14,7 @@ from .staff_queries import (
     get_all_staff, get_staff_by_id, get_staff_by_role, get_active_roles, 
     get_active_departments, get_active_services, create_staff, update_staff, delete_staff, 
     get_staff_appointments, get_staff_commissions, get_staff_stats, 
-    get_comprehensive_staff, create_comprehensive_staff_member
+    get_comprehensive_staff, create_comprehensive_staff
 )
 import os
 import csv
@@ -162,10 +162,10 @@ def create_comprehensive_staff():
             if form.password.data:
                 staff_data['password_hash'] = generate_password_hash(form.password.data)
             
-            # Create staff member
-            new_staff = User(**staff_data)
-            db.session.add(new_staff)
-            db.session.flush()  # Get the ID
+            # Create comprehensive staff member
+            new_staff = create_comprehensive_staff(staff_data)
+            if not new_staff:
+                raise Exception("Failed to create staff member")
             
             # Assign services
             for service_id in form.assigned_services.data:

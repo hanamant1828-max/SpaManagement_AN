@@ -1116,6 +1116,26 @@ function navigateToStaffManagement() {
     window.location.href = '/comprehensive_staff';
 }
 
+// Update service price function
+function updateServicePrice(serviceId, price) {
+    // Update price displays
+    const priceDisplays = document.querySelectorAll('[data-service-id="' + serviceId + '"] .price-display');
+    priceDisplays.forEach(display => {
+        display.textContent = '₹' + parseFloat(price).toFixed(2);
+    });
+    
+    // Update amount input if exists
+    const amountField = document.getElementById('amount');
+    if (amountField) {
+        amountField.value = price;
+    }
+    
+    // Update total calculations if exists
+    if (typeof calculateTotal === 'function') {
+        calculateTotal();
+    }
+}
+
 // Service selection handler for forms
 function handleServiceSelection(selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
