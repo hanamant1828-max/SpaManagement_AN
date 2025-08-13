@@ -14,22 +14,49 @@ function setupDashboardButtonHandlers() {
     // Handle quick action buttons
     const quickActionButtons = document.querySelectorAll('.btn-group .btn');
     quickActionButtons.forEach(button => {
+        // Add click handler as backup
         button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const buttonText = this.textContent.trim();
+            const action = this.getAttribute('data-action');
             
-            // Add loading state
-            const originalContent = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-            this.disabled = true;
-            
-            // Reset button after 3 seconds if navigation doesn't complete
-            setTimeout(() => {
-                if (this.innerHTML.includes('Loading...')) {
-                    this.innerHTML = originalContent;
-                    this.disabled = false;
-                }
-            }, 3000);
+            if (action && !this.onclick) {
+                e.preventDefault();
+                console.log('Using backup navigation for:', action);
+                
+                // Add loading state
+                const originalContent = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+                this.disabled = true;
+                
+                // Navigate based on action
+                setTimeout(() => {
+                    switch(action) {
+                        case 'bookings':
+                            window.location.href = '/bookings';
+                            break;
+                        case 'clients':
+                            window.location.href = '/clients';
+                            break;
+                        case 'staff':
+                            window.location.href = '/comprehensive_staff';
+                            break;
+                        case 'checkin':
+                            window.location.href = '/checkin';
+                            break;
+                        default:
+                            console.warn('Unknown action:', action);
+                            this.innerHTML = originalContent;
+                            this.disabled = false;
+                    }
+                }, 100);
+                
+                // Reset button after 3 seconds if navigation doesn't complete
+                setTimeout(() => {
+                    if (this.innerHTML.includes('Loading...')) {
+                        this.innerHTML = originalContent;
+                        this.disabled = false;
+                    }
+                }, 3000);
+            }
         });
     });
     
@@ -368,6 +395,13 @@ function navigateToStaffManagement() {
         handleNavigationError(error);
     }
 }
+
+// Make all navigation functions globally available
+window.navigateToStaffManagement = navigateToStaffManagement;
+window.quickAddAppointment = quickAddAppointment;
+window.quickAddClient = quickAddClient;
+window.quickViewReports = quickViewReports;
+window.quickCheckInventory = quickCheckInventory;
 
 // Error handler for navigation issues
 function handleNavigationError(error) {

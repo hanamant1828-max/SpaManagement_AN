@@ -201,16 +201,16 @@
                 <div class="card-body">
                     <h5 class="card-title">Quick Actions</h5>
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-primary" onclick="navigateToBookings()">
+                        <button type="button" class="btn btn-primary" onclick="handleQuickAction('bookings')" data-action="bookings">
                             <i class="fas fa-plus me-2"></i>New Appointment
                         </button>
-                        <button type="button" class="btn btn-success" onclick="navigateToClients()">
+                        <button type="button" class="btn btn-success" onclick="handleQuickAction('clients')" data-action="clients">
                             <i class="fas fa-user-plus me-2"></i>Add Client
                         </button>
-                        <button type="button" class="btn btn-info" onclick="navigateToStaffManagement()">
+                        <button type="button" class="btn btn-info" onclick="handleQuickAction('staff')" data-action="staff">
                             <i class="fas fa-users-cog me-2"></i>Manage Staff
                         </button>
-                        <button type="button" class="btn btn-warning" onclick="navigateToCheckin()">
+                        <button type="button" class="btn btn-warning" onclick="handleQuickAction('checkin')" data-action="checkin">
                             <i class="fas fa-camera me-2"></i>Face Check-in
                         </button>
                     </div>
@@ -224,47 +224,81 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
-// Dashboard navigation functions
-function navigateToBookings() {
+// Ensure functions are available immediately
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard JavaScript loaded and ready');
+});
+
+// Dashboard navigation functions - make them globally available
+window.navigateToBookings = function() {
     try {
+        console.log('Navigating to bookings...');
         window.location.href = '/bookings';
     } catch (error) {
         console.error('Navigation error:', error);
         alert('Navigation failed. Please try again.');
     }
-}
+};
 
-function navigateToClients() {
+window.navigateToClients = function() {
     try {
+        console.log('Navigating to clients...');
         window.location.href = '/clients';
     } catch (error) {
         console.error('Navigation error:', error);
         alert('Navigation failed. Please try again.');
     }
-}
+};
 
-function navigateToStaffManagement() {
+window.navigateToStaffManagement = function() {
     try {
+        console.log('Navigating to staff management...');
         window.location.href = '/comprehensive_staff';
     } catch (error) {
         console.error('Navigation error:', error);
         alert('Navigation failed. Please try again.');
     }
-}
+};
 
-function navigateToCheckin() {
+window.navigateToCheckin = function() {
     try {
+        console.log('Navigating to checkin...');
         window.location.href = '/checkin';
     } catch (error) {
         console.error('Navigation error:', error);
         alert('Navigation failed. Please try again.');
     }
-}
+};
 
 // Fix updateServicePrice function for dashboard
 window.updateServicePrice = function(serviceId, price) {
     console.log('Service price updated:', serviceId, price);
     // This function is available globally to prevent errors
+    return true;
 };
+
+// Alternative navigation method if buttons don't work
+function handleQuickAction(action) {
+    console.log('Quick action triggered:', action);
+    switch(action) {
+        case 'bookings':
+            window.navigateToBookings();
+            break;
+        case 'clients':
+            window.navigateToClients();
+            break;
+        case 'staff':
+            window.navigateToStaffManagement();
+            break;
+        case 'checkin':
+            window.navigateToCheckin();
+            break;
+        default:
+            console.warn('Unknown action:', action);
+    }
+}
+
+// Make handleQuickAction globally available
+window.handleQuickAction = handleQuickAction;
 </script>
 {% endblock %}
