@@ -110,6 +110,43 @@ class User(UserMixin, db.Model):
     department = db.Column(db.String(50))  # Fallback for compatibility
     hire_date = db.Column(db.Date)
     
+    # 1. Enhanced Staff Profile Details
+    profile_photo_url = db.Column(db.String(255))
+    gender = db.Column(db.String(10), default='other')
+    date_of_birth = db.Column(db.Date)
+    date_of_joining = db.Column(db.Date, default=date.today)
+    staff_code = db.Column(db.String(20), unique=True)
+    notes_bio = db.Column(db.Text)
+    designation = db.Column(db.String(100))
+    
+    # 2. ID Proofs & Verification
+    aadhaar_number = db.Column(db.String(12))
+    aadhaar_card_url = db.Column(db.String(255))
+    pan_number = db.Column(db.String(10))
+    pan_card_url = db.Column(db.String(255))
+    verification_status = db.Column(db.Boolean, default=False)
+    
+    # 3. Facial Recognition Login
+    face_image_url = db.Column(db.String(255))
+    facial_encoding = db.Column(db.Text)
+    enable_face_checkin = db.Column(db.Boolean, default=True)
+    
+    # 4. Work Schedule
+    working_days = db.Column(db.String(7), default='1111100')
+    shift_start_time = db.Column(db.Time)
+    shift_end_time = db.Column(db.Time)
+    break_time = db.Column(db.String(50))
+    weekly_off_days = db.Column(db.String(20))
+    
+    # 5. Performance & Commission
+    commission_percentage = db.Column(db.Float, default=0.0)
+    fixed_commission = db.Column(db.Float, default=0.0)
+    total_revenue_generated = db.Column(db.Float, default=0.0)
+    
+    # 6. Activity & Status
+    last_login = db.Column(db.DateTime)
+    last_service_performed = db.Column(db.DateTime)
+    
     # Performance tracking
     total_sales = db.Column(db.Float, default=0.0)
     total_clients_served = db.Column(db.Integer, default=0)
@@ -541,3 +578,66 @@ class BusinessSettings(db.Model):
     
     # Relationships
     updater = db.relationship('User', backref='setting_updates')
+
+
+
+class Attendance(db.Model):
+    """Staff attendance tracking"""
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    check_in_time = db.Column(db.DateTime, nullable=False)
+    check_out_time = db.Column(db.DateTime)
+    check_in_method = db.Column(db.String(20), default='manual')  # manual, facial, biometric
+    total_hours = db.Column(db.Float)
+    date = db.Column(db.Date, nullable=False, default=date.today)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    staff = db.relationship('User', backref='attendance_records')
+
+class Leave(db.Model):
+    """Staff leave management"""
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    leave_type = db.Column(db.String(50), nullable=False)  # sick, casual, emergency
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    reason = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    applied_date = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Relationships
+    staff = db.relationship('User', backref='leave_requests', foreign_keys=[staff_id])
+    approver = db.relationship('User', foreign_keys=[approved_by])
+
+class StaffService(db.Model):
+    """Staff-Service assignment with skill levels"""
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    skill_level = db.Column(db.String(20), default='beginner')  # beginner, intermediate, expert
+    assigned_date = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    staff = db.relationship('User', backref='staff_services')
+    service = db.relationship('Service', backref='service_staff')
+
+class StaffPerformance(db.Model):
+    """Monthly performance tracking"""
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    services_completed = db.Column(db.Integer, default=0)
+    revenue_generated = db.Column(db.Float, default=0.0)
+    client_ratings_avg = db.Column(db.Float, default=0.0)
+    attendance_percentage = db.Column(db.Float, default=0.0)
+    commission_earned = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    staff = db.relationship('User', backref='performance_records')
+

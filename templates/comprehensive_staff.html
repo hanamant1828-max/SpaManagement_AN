@@ -1,0 +1,439 @@
+
+{% extends "base.html" %}
+
+{% block title %}Comprehensive Staff Management - Spa & Salon Management Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-users-cog me-2"></i>Comprehensive Staff Management
+                </h1>
+                <div class="btn-group">
+                    <a href="{{ url_for('create_comprehensive_staff') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add New Staff
+                    </a>
+                    <a href="{{ url_for('export_staff') }}" class="btn btn-success">
+                        <i class="fas fa-download me-2"></i>Export Data
+                    </a>
+                    <a href="{{ url_for('staff') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Basic View
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Staff</h6>
+                            <h3 class="mb-0">{{ staff|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Present Today</h6>
+                            <h3 class="mb-0">{{ staff|selectattr('last_login')|list|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Face Recognition</h6>
+                            <h3 class="mb-0">{{ staff|selectattr('enable_face_checkin')|list|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-camera fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Verified Documents</h6>
+                            <h3 class="mb-0">{{ staff|selectattr('verification_status')|list|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-id-card fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Panel -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Quick Attendance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Select Staff for Punch In/Out</label>
+                                <select class="form-select" id="attendanceStaff">
+                                    <option value="">Choose staff member...</option>
+                                    {% for member in staff %}
+                                    <option value="{{ member.id }}">{{ member.full_name }} - {{ member.staff_code or 'No Code' }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success" onclick="punchIn()">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Punch In
+                                    </button>
+                                    <button type="button" class="btn btn-danger" onclick="punchOut()">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Punch Out
+                                    </button>
+                                    <button type="button" class="btn btn-info" onclick="setupFacialRecognition()">
+                                        <i class="fas fa-camera me-2"></i>Setup Face Recognition
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Staff Members</h6>
+                        <div class="input-group" style="width: 300px;">
+                            <input type="text" class="form-control" id="searchStaff" placeholder="Search staff...">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if staff %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="staffTable">
+                            <thead>
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Staff Details</th>
+                                    <th>Contact</th>
+                                    <th>Role & Department</th>
+                                    <th>Schedule</th>
+                                    <th>Performance</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in staff %}
+                                <tr>
+                                    <td>
+                                        {% if member.profile_photo_url %}
+                                        <img src="{{ member.profile_photo_url }}" class="rounded-circle" width="50" height="50" alt="Profile">
+                                        {% else %}
+                                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ member.full_name }}</strong><br>
+                                        <small class="text-muted">
+                                            {{ member.staff_code or 'No Code' }} | {{ member.designation or 'No Designation' }}
+                                        </small><br>
+                                        {% if member.date_of_joining %}
+                                        <small class="text-info">Joined: {{ member.date_of_joining.strftime('%b %d, %Y') }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if member.phone %}
+                                        <i class="fas fa-phone text-success"></i> {{ member.phone }}<br>
+                                        {% endif %}
+                                        {% if member.email %}
+                                        <i class="fas fa-envelope text-primary"></i> {{ member.email }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ member.user_role.display_name if member.user_role else member.role }}</span><br>
+                                        {% if member.staff_department %}
+                                        <small class="text-muted">{{ member.staff_department.display_name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if member.shift_start_time and member.shift_end_time %}
+                                        <small>
+                                            <i class="fas fa-clock"></i> 
+                                            {{ member.shift_start_time.strftime('%H:%M') }} - {{ member.shift_end_time.strftime('%H:%M') }}
+                                        </small><br>
+                                        {% endif %}
+                                        {% if member.working_days %}
+                                        <div class="working-days-display">
+                                            {% set days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] %}
+                                            {% for i in range(7) %}
+                                            <span class="badge {{ 'bg-success' if member.working_days[i] == '1' else 'bg-light text-dark' }}">{{ days[i] }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <i class="fas fa-dollar-sign text-success"></i> ₹{{ "%.0f"|format(member.total_revenue_generated or 0) }}<br>
+                                            <i class="fas fa-users text-info"></i> {{ member.total_clients_served or 0 }} clients<br>
+                                            <i class="fas fa-star text-warning"></i> {{ "%.1f"|format(member.average_rating or 0) }}/5
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if member.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                        <br>
+                                        {% if member.verification_status %}
+                                        <span class="badge bg-info">Verified</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                        <br>
+                                        {% if member.enable_face_checkin %}
+                                        <span class="badge bg-primary">Face ID</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical" role="group">
+                                            <a href="{{ url_for('edit_comprehensive_staff', staff_id=member.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{{ url_for('staff_performance', staff_id=member.id) }}" 
+                                               class="btn btn-sm btn-outline-info" title="Performance">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
+                                            {% if current_user.has_role('admin') %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deactivateStaff({{ member.id }})" title="Deactivate">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No staff members found</h5>
+                        <p class="text-muted">Add your first staff member to get started.</p>
+                        <a href="{{ url_for('create_comprehensive_staff') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add Staff Member
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Face Recognition Modal -->
+<div class="modal fade" id="faceRecognitionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Setup Facial Recognition</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <video id="faceVideo" autoplay style="width: 100%; max-width: 400px; height: 300px;"></video>
+                <canvas id="faceCanvas" style="display: none;"></canvas>
+                <div class="mt-3">
+                    <button type="button" class="btn btn-primary" id="captureFaceBtn">
+                        <i class="fas fa-camera me-2"></i>Capture Face
+                    </button>
+                </div>
+                <div id="faceStatus" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Search functionality
+document.getElementById('searchStaff').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#staffTable tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+// Attendance functions
+function punchIn() {
+    const staffId = document.getElementById('attendanceStaff').value;
+    if (!staffId) {
+        alert('Please select a staff member');
+        return;
+    }
+    
+    fetch('/staff/attendance/punch-in', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            staff_id: staffId,
+            method: 'manual'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Punched in successfully at ' + data.check_in_time);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while punching in');
+    });
+}
+
+function punchOut() {
+    const staffId = document.getElementById('attendanceStaff').value;
+    if (!staffId) {
+        alert('Please select a staff member');
+        return;
+    }
+    
+    fetch('/staff/attendance/punch-out', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            staff_id: staffId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Punched out successfully at ' + data.check_out_time + '. Total hours: ' + data.total_hours);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while punching out');
+    });
+}
+
+// Facial recognition setup
+function setupFacialRecognition() {
+    const staffId = document.getElementById('attendanceStaff').value;
+    if (!staffId) {
+        alert('Please select a staff member');
+        return;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('faceRecognitionModal'));
+    modal.show();
+    
+    // Start camera when modal is shown
+    startFaceCamera();
+}
+
+function startFaceCamera() {
+    const video = document.getElementById('faceVideo');
+    
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error('Error accessing camera:', err);
+            document.getElementById('faceStatus').innerHTML = '<div class="alert alert-danger">Camera access denied</div>';
+        });
+}
+
+document.getElementById('captureFaceBtn').addEventListener('click', function() {
+    const video = document.getElementById('faceVideo');
+    const canvas = document.getElementById('faceCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    // Convert to base64 and send to server
+    const imageData = canvas.toDataURL('image/jpeg');
+    
+    // For demonstration, just show success message
+    // In a real implementation, you would send this to a face recognition service
+    document.getElementById('faceStatus').innerHTML = '<div class="alert alert-success">Face captured successfully!</div>';
+    
+    setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('faceRecognitionModal'));
+        modal.hide();
+    }, 2000);
+});
+
+function deactivateStaff(staffId) {
+    if (confirm('Are you sure you want to deactivate this staff member?')) {
+        // Implementation for staff deactivation
+        window.location.href = '/staff/delete/' + staffId;
+    }
+}
+</script>
+
+{% endblock %}
+

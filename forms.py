@@ -126,7 +126,7 @@ class EnhancedPackageForm(FlaskForm):
     discount_percentage = FloatField('Overall Package Discount (%)', validators=[Optional(), NumberRange(min=0, max=100)], 
                                    default=0.0, description='Additional discount applied to entire package')
     is_active = BooleanField('Package Status', default=True, description='Active packages can be assigned to clients')
-    
+
     # Service selection data (handled via JavaScript)
     selected_services = HiddenField('Selected Services JSON')  # JSON: [{"service_id": 1, "sessions": 3, "discount": 10}]
 
@@ -189,7 +189,7 @@ class CommunicationForm(FlaskForm):
     ], validators=[DataRequired()])
     subject = StringField('Subject', validators=[Optional(), Length(max=200)])
     message = TextAreaField('Message', validators=[DataRequired()])
-    
+
     def validate_subject(self, field):
         if self.type.data in ['email', 'sms', 'whatsapp'] and not field.data:
             raise ValidationError('Subject is required for this communication type.')
@@ -208,7 +208,7 @@ class PromotionForm(FlaskForm):
     usage_limit = IntegerField('Usage Limit', validators=[Optional(), NumberRange(min=1)])
     applicable_services = SelectField('Applicable Services', validators=[Optional()])
     is_active = BooleanField('Active', default=True)
-    
+
     def validate_end_date(self, field):
         if field.data and self.start_date.data and field.data <= self.start_date.data:
             raise ValidationError('End date must be after start date.')
@@ -222,7 +222,7 @@ class WaitlistForm(FlaskForm):
     preferred_time = TimeField('Preferred Time', validators=[Optional()])
     is_flexible = BooleanField('Flexible with time/date', default=False)
     expires_at = DateTimeField('Expires At', validators=[Optional()])
-    
+
     def validate_preferred_date(self, field):
         if field.data and field.data < date.today():
             raise ValidationError('Preferred date cannot be in the past.')
@@ -264,11 +264,11 @@ class RecurringAppointmentForm(FlaskForm):
     start_date = DateField('Start Date', validators=[DataRequired()])
     end_date = DateField('End Date (Optional)', validators=[Optional()])
     is_active = BooleanField('Active', default=True)
-    
+
     def validate_start_date(self, field):
         if field.data and field.data < date.today():
             raise ValidationError('Start date cannot be in the past.')
-    
+
     def validate_end_date(self, field):
         if field.data and self.start_date.data and field.data <= self.start_date.data:
             raise ValidationError('End date must be after start date.')
@@ -313,7 +313,7 @@ class BusinessSettingsForm(FlaskForm):
     booking_advance_days = IntegerField('Max Booking Advance (days)', validators=[Optional(), NumberRange(min=1, max=365)])
     cancellation_hours = IntegerField('Cancellation Notice Required (hours)', validators=[Optional(), NumberRange(min=1, max=72)])
     no_show_fee = FloatField('No-Show Fee', validators=[Optional(), NumberRange(min=0)])
-    
+
 class AdvancedClientForm(ClientForm):
     """Enhanced client form with advanced fields"""
     preferred_communication = SelectField('Preferred Communication', choices=[
@@ -353,7 +353,7 @@ class AdvancedUserForm(UserForm):
     hire_date = DateField('Hire Date', validators=[Optional()])
     specialties = TextAreaField('Specialties', validators=[Optional()], 
                                description='List staff specialties and certifications')
-    
+
 class QuickBookingForm(FlaskForm):
     """Quick walk-in booking form"""
     client_name = StringField('Client Name', validators=[DataRequired(), Length(max=100)])
@@ -389,7 +389,7 @@ class RoleForm(FlaskForm):
     description = TextAreaField('Description', validators=[Optional()])
     is_active = BooleanField('Active', default=True)
     permissions = SelectMultipleField('Permissions', coerce=int, validators=[Optional()])
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Will be populated dynamically from database
@@ -426,7 +426,7 @@ class DepartmentForm(FlaskForm):
     description = TextAreaField('Description', validators=[Optional()])
     manager_id = SelectField('Manager', coerce=int, validators=[Optional()])
     is_active = BooleanField('Active', default=True)
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Will be populated dynamically from database
@@ -452,3 +452,138 @@ class MultiCheckboxField(SelectMultipleField):
     """Custom field for multiple checkboxes"""
     widget = ListWidget(prefix_label=False)
     option_widget = CheckboxInput()
+
+# Comprehensive Staff Management Module Forms
+
+class StaffProfileForm(FlaskForm):
+    """Form for staff to manage their own profile details"""
+    username = StringField('Username', validators=[DataRequired(), Length(min=4, max=25)])
+    email = StringField('Email Address', validators=[DataRequired(), Email()])
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
+    phone = StringField('Phone Number', validators=[Optional(), Length(max=20)])
+    bio = TextAreaField('Biography', validators=[Optional()])
+    profile_picture = StringField('Profile Picture URL', validators=[Optional()]) # URL to profile pic
+
+class StaffEmploymentForm(FlaskForm):
+    """Form to manage staff employment details"""
+    employee_id = StringField('Employee ID', validators=[Optional(), Length(max=20)])
+    hire_date = DateField('Hire Date', validators=[Optional()])
+    job_title = StringField('Job Title', validators=[DataRequired(), Length(max=100)])
+    department_id = SelectField('Department', coerce=int, validators=[Optional()])
+    manager_id = SelectField('Manager', coerce=int, validators=[Optional()])
+    employment_status = SelectField('Employment Status', choices=[
+        ('full-time', 'Full-Time'),
+        ('part-time', 'Part-Time'),
+        ('contract', 'Contract'),
+        ('intern', 'Intern'),
+        ('terminated', 'Terminated')
+    ], validators=[DataRequired()])
+    termination_date = DateField('Termination Date', validators=[Optional()])
+    salary = FloatField('Salary', validators=[Optional(), NumberRange(min=0)])
+    commission_rate = FloatField('Commission Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)])
+    hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
+
+class StaffAvailabilityForm(FlaskForm):
+    """Form to manage staff availability schedule"""
+    staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    availability_slots = TextAreaField('Availability Slots (JSON format)', validators=[DataRequired()],
+                                        description='e.g., [{"day": "Monday", "start_time": "09:00", "end_time": "17:00"}, ...]')
+    is_default = BooleanField('Set as Default Schedule', default=False)
+
+class StaffPermissionsForm(FlaskForm):
+    """Form to assign roles and permissions to staff"""
+    staff_id = HiddenField('Staff ID', validators=[DataRequired()])
+    role_id = SelectField('Assigned Role', coerce=int, validators=[DataRequired()])
+    permissions = SelectMultipleField('Additional Permissions', coerce=int, validators=[Optional()])
+
+class StaffLeaveRequestForm(FlaskForm):
+    """Form for staff to request leave"""
+    staff_id = HiddenField('Staff ID', validators=[DataRequired()])
+    leave_type = SelectField('Leave Type', choices=[
+        ('vacation', 'Vacation'),
+        ('sick', 'Sick Leave'),
+        ('personal', 'Personal Leave'),
+        ('maternity', 'Maternity Leave'),
+        ('paternity', 'Paternity Leave'),
+        ('unpaid', 'Unpaid Leave')
+    ], validators=[DataRequired()])
+    start_date = DateField('Start Date', validators=[DataRequired()])
+    end_date = DateField('End Date', validators=[DataRequired()])
+    reason = TextAreaField('Reason for Leave', validators=[Optional()])
+    status = SelectField('Status', choices=[
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+
+    def validate_dates(self, field):
+        if self.end_date.data and self.start_date.data and self.end_date.data < self.start_date.data:
+            raise ValidationError('End date must be after start date.')
+
+class StaffPerformanceReviewForm(FlaskForm):
+    """Form for conducting staff performance reviews"""
+    staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    reviewer_id = SelectField('Reviewer', coerce=int, validators=[DataRequired()])
+    review_date = DateField('Review Date', validators=[DataRequired()])
+    rating = SelectField('Rating', choices=[
+        (5, '⭐⭐⭐⭐⭐ Outstanding'),
+        (4, '⭐⭐⭐⭐ Exceeds Expectations'),
+        (3, '⭐⭐⭐ Meets Expectations'),
+        (2, '⭐⭐ Needs Improvement'),
+        (1, '⭐ Unsatisfactory')
+    ], coerce=int, validators=[DataRequired()])
+    strengths = TextAreaField('Strengths', validators=[Optional()])
+    areas_for_improvement = TextAreaField('Areas for Improvement', validators=[Optional()])
+    goals = TextAreaField('Goals for Next Period', validators=[Optional()])
+    comments = TextAreaField('Additional Comments', validators=[Optional()])
+
+class StaffTrainingForm(FlaskForm):
+    """Form to track staff training and certifications"""
+    staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    training_name = StringField('Training/Certification Name', validators=[DataRequired(), Length(max=100)])
+    provider = StringField('Provider', validators=[Optional(), Length(max=100)])
+    completion_date = DateField('Completion Date', validators=[Optional()])
+    expiry_date = DateField('Expiry Date', validators=[Optional()])
+    certificate_url = StringField('Certificate URL', validators=[Optional()])
+
+class StaffOnboardingForm(FlaskForm):
+    """Form to manage the staff onboarding process"""
+    staff_id = HiddenField('Staff ID', validators=[DataRequired()])
+    onboarding_checklist = TextAreaField('Onboarding Checklist (JSON format)', validators=[Optional()],
+                                        description='e.g., [{"task": "Complete HR Forms", "completed": true}, ...]')
+    onboarding_status = SelectField('Onboarding Status', choices=[
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed')
+    ], default='not_started', validators=[DataRequired()])
+    onboarding_complete_date = DateField('Onboarding Completion Date', validators=[Optional()])
+
+class StaffOffboardingForm(FlaskForm):
+    """Form to manage the staff offboarding process"""
+    staff_id = HiddenField('Staff ID', validators=[DataRequired()])
+    offboarding_date = DateField('Offboarding Date', validators=[DataRequired()])
+    reason_for_leaving = TextAreaField('Reason for Leaving', validators=[Optional()])
+    offboarding_checklist = TextAreaField('Offboarding Checklist (JSON format)', validators=[Optional()],
+                                         description='e.g., [{"task": "Return Company Laptop", "completed": true}, ...]')
+    offboarding_status = SelectField('Offboarding Status', choices=[
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed')
+    ], default='in_progress', validators=[DataRequired()])
+
+class StaffExitInterviewForm(FlaskForm):
+    """Form to capture feedback during staff exit"""
+    staff_id = HiddenField('Staff ID', validators=[DataRequired()])
+    interview_date = DateField('Interview Date', validators=[DataRequired()])
+    interviewer_name = StringField('Interviewer Name', validators=[DataRequired(), Length(max=100)])
+    reason_for_leaving = TextAreaField('Reason for Leaving', validators=[Optional()])
+    job_satisfaction = SelectField('Job Satisfaction', choices=[
+        ('very_satisfied', 'Very Satisfied'),
+        ('satisfied', 'Satisfied'),
+        ('neutral', 'Neutral'),
+        ('dissatisfied', 'Dissatisfied'),
+        ('very_dissatisfied', 'Very Dissatisfied')
+    ], validators=[Optional()])
+    recommend_company = BooleanField('Would you recommend this company to a friend?', default=False)
+    suggestions = TextAreaField('Suggestions for Improvement', validators=[Optional()])
+    final_comments = TextAreaField('Final Comments', validators=[Optional()])

@@ -1,0 +1,211 @@
+
+{% extends "base.html" %}
+
+{% block title %}{{ staff_member.full_name }} - Performance Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-chart-line me-2"></i>{{ staff_member.full_name }} - Performance Dashboard
+                </h1>
+                <a href="{{ url_for('comprehensive_staff') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Staff List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    {% if staff_member.profile_photo_url %}
+                    <img src="{{ staff_member.profile_photo_url }}" class="rounded-circle mb-3" width="100" height="100" alt="Profile">
+                    {% else %}
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 100px; height: 100px;">
+                        <i class="fas fa-user text-white fa-2x"></i>
+                    </div>
+                    {% endif %}
+                    <h5>{{ staff_member.full_name }}</h5>
+                    <p class="text-muted">{{ staff_member.designation or 'Staff Member' }}</p>
+                    <span class="badge bg-primary">{{ staff_member.staff_code or 'No Code' }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6>Total Revenue</h6>
+                            <h3>₹{{ "%.0f"|format(staff_member.total_revenue_generated or 0) }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h6>Clients Served</h6>
+                            <h3>{{ staff_member.total_clients_served or 0 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h6>Average Rating</h6>
+                            <h3>{{ "%.1f"|format(staff_member.average_rating or 0) }}/5</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h6>This Month</h6>
+                            <h3>{{ performance.services_completed if performance else 0 }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance and Performance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Attendance This Month
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if attendance_records %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Check In</th>
+                                    <th>Check Out</th>
+                                    <th>Hours</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in attendance_records %}
+                                <tr>
+                                    <td>{{ record.date.strftime('%d %b') }}</td>
+                                    <td>{{ record.check_in_time.strftime('%H:%M') }}</td>
+                                    <td>{{ record.check_out_time.strftime('%H:%M') if record.check_out_time else 'Not out' }}</td>
+                                    <td>{{ "%.1f"|format(record.total_hours or 0) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No attendance records for this month.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-dollar-sign me-2"></i>Commission Earnings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if commissions %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Service Amount</th>
+                                    <th>Commission</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for commission in commissions[:10] %}
+                                <tr>
+                                    <td>{{ commission.pay_period_start.strftime('%d %b') }} - {{ commission.pay_period_end.strftime('%d %b') }}</td>
+                                    <td>₹{{ "%.0f"|format(commission.service_amount) }}</td>
+                                    <td>₹{{ "%.0f"|format(commission.commission_amount) }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if commission.is_paid else 'bg-warning' }}">
+                                            {{ 'Paid' if commission.is_paid else 'Pending' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No commission records found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Appointments -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>Recent Appointments
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_appointments %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Client</th>
+                                    <th>Service</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in recent_appointments %}
+                                <tr>
+                                    <td>{{ appointment.appointment_date.strftime('%d %b %Y, %H:%M') }}</td>
+                                    <td>{{ appointment.client.full_name }}</td>
+                                    <td>{{ appointment.service.name }}</td>
+                                    <td>₹{{ "%.0f"|format(appointment.amount or 0) }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if appointment.status == 'completed' %}bg-success
+                                            {% elif appointment.status == 'confirmed' %}bg-info
+                                            {% elif appointment.status == 'cancelled' %}bg-danger
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ appointment.status.title() }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent appointments found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

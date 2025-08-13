@@ -1,0 +1,466 @@
+
+{% extends "base.html" %}
+
+{% block title %}{{ action }} Staff Member - Comprehensive Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-user-{{ 'edit' if action == 'Edit' else 'plus' }} me-2"></i>{{ action }} Staff Member
+                </h1>
+                <a href="{{ url_for('comprehensive_staff') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Staff List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="comprehensiveStaffForm">
+        {{ form.hidden_tag() }}
+        
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-8">
+                <!-- Basic Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user me-2"></i>Basic Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.username.label(class="form-label") }}
+                                    {{ form.username(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.staff_code.label(class="form-label") }}
+                                    {{ form.staff_code(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.first_name.label(class="form-label") }}
+                                    {{ form.first_name(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.last_name.label(class="form-label") }}
+                                    {{ form.last_name(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.email.label(class="form-label") }}
+                                    {{ form.email(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.phone.label(class="form-label") }}
+                                    {{ form.phone(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.gender.label(class="form-label") }}
+                                    {{ form.gender(class="form-select") }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.date_of_birth.label(class="form-label") }}
+                                    {{ form.date_of_birth(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.date_of_joining.label(class="form-label") }}
+                                    {{ form.date_of_joining(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.designation.label(class="form-label") }}
+                                    {{ form.designation(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.notes_bio.label(class="form-label") }}
+                                    {{ form.notes_bio(class="form-control", rows="3") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role & Department -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-briefcase me-2"></i>Role & Department
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.role_id.label(class="form-label") }}
+                                    {{ form.role_id(class="form-select") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.department_id.label(class="form-label") }}
+                                    {{ form.department_id(class="form-select") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Work Schedule -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>Work Schedule
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.shift_start_time.label(class="form-label") }}
+                                    {{ form.shift_start_time(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.shift_end_time.label(class="form-label") }}
+                                    {{ form.shift_end_time(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.break_time.label(class="form-label") }}
+                                    {{ form.break_time(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Working Days</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    {{ form.monday(class="form-check-input") }}
+                                    {{ form.monday.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-check">
+                                    {{ form.tuesday(class="form-check-input") }}
+                                    {{ form.tuesday.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-check">
+                                    {{ form.wednesday(class="form-check-input") }}
+                                    {{ form.wednesday.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-check">
+                                    {{ form.thursday(class="form-check-input") }}
+                                    {{ form.thursday.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-check">
+                                    {{ form.friday(class="form-check-input") }}
+                                    {{ form.friday.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-check">
+                                    {{ form.saturday(class="form-check-input") }}
+                                    {{ form.saturday.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-check">
+                                    {{ form.sunday(class="form-check-input") }}
+                                    {{ form.sunday.label(class="form-check-label") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.weekly_off_days.label(class="form-label") }}
+                                    {{ form.weekly_off_days(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance & Commission -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>Performance & Commission
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.commission_percentage.label(class="form-label") }}
+                                    <div class="input-group">
+                                        {{ form.commission_percentage(class="form-control") }}
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.fixed_commission.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        {{ form.fixed_commission(class="form-control") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.hourly_rate.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        {{ form.hourly_rate(class="form-control") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Assignment -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tools me-2"></i>Service Assignment
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.assigned_services.label(class="form-label") }}
+                            {{ form.assigned_services(class="form-select", multiple="true", size="5") }}
+                            <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-lg-4">
+                <!-- Photo Capture -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-camera me-2"></i>Profile Photo
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if staff_member and staff_member.profile_photo_url %}
+                        <img src="{{ staff_member.profile_photo_url }}" class="img-fluid rounded mb-3" style="max-height: 200px;" alt="Current Photo">
+                        {% endif %}
+                        <video id="video" autoplay style="width: 100%; max-height: 200px; display: none;"></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <div>
+                            <button type="button" class="btn btn-primary mb-2" onclick="startCamera()">
+                                <i class="fas fa-camera me-2"></i>Take Photo
+                            </button>
+                            <button type="button" class="btn btn-success mb-2" id="captureBtn" style="display: none;" onclick="capturePhoto()">
+                                <i class="fas fa-check me-2"></i>Capture
+                            </button>
+                            <button type="button" class="btn btn-secondary mb-2" id="stopBtn" style="display: none;" onclick="stopCamera()">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </button>
+                        </div>
+                        <input type="file" class="form-control mt-2" accept="image/*" name="profile_photo">
+                        <small class="text-muted">Or upload from device</small>
+                    </div>
+                </div>
+
+                <!-- ID Verification -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-id-card me-2"></i>ID Verification
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.aadhaar_number.label(class="form-label") }}
+                            {{ form.aadhaar_number(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Aadhaar Card Upload</label>
+                            <input type="file" class="form-control" accept="image/*,.pdf" name="aadhaar_card">
+                        </div>
+                        <div class="mb-3">
+                            {{ form.pan_number.label(class="form-label") }}
+                            {{ form.pan_number(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">PAN Card Upload</label>
+                            <input type="file" class="form-control" accept="image/*,.pdf" name="pan_card">
+                        </div>
+                        <div class="form-check">
+                            {{ form.verification_status(class="form-check-input") }}
+                            {{ form.verification_status.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Facial Recognition -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-lock me-2"></i>Facial Recognition
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            {{ form.enable_face_checkin(class="form-check-input") }}
+                            {{ form.enable_face_checkin.label(class="form-check-label") }}
+                        </div>
+                        <button type="button" class="btn btn-info btn-sm" onclick="setupFaceRecognition()">
+                            <i class="fas fa-camera me-2"></i>Setup Face Recognition
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cog me-2"></i>System Settings
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control") }}
+                            <div class="form-text">{{ 'Leave blank to keep current password' if action == 'Edit' else 'Auto-generated if left blank' }}</div>
+                        </div>
+                        <div class="form-check">
+                            {{ form.is_active(class="form-check-input") }}
+                            {{ form.is_active.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-grid">
+                    {{ form.submit(class="btn btn-primary btn-lg") }}
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Camera functionality
+let stream;
+
+function startCamera() {
+    const video = document.getElementById('video');
+    const captureBtn = document.getElementById('captureBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(mediaStream) {
+            stream = mediaStream;
+            video.srcObject = stream;
+            video.style.display = 'block';
+            captureBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'inline-block';
+        })
+        .catch(function(err) {
+            console.error('Error accessing camera:', err);
+            alert('Camera access denied or not available');
+        });
+}
+
+function capturePhoto() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    // Convert to blob and create file input
+    canvas.toBlob(function(blob) {
+        const file = new File([blob], 'profile_photo.jpg', { type: 'image/jpeg' });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        document.querySelector('input[name="profile_photo"]').files = dataTransfer.files;
+        
+        stopCamera();
+        alert('Photo captured successfully!');
+    }, 'image/jpeg', 0.8);
+}
+
+function stopCamera() {
+    const video = document.getElementById('video');
+    const captureBtn = document.getElementById('captureBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    
+    video.style.display = 'none';
+    captureBtn.style.display = 'none';
+    stopBtn.style.display = 'none';
+}
+
+function setupFaceRecognition() {
+    // Placeholder for face recognition setup
+    alert('Face recognition setup will be implemented here');
+}
+
+// Form validation
+document.getElementById('comprehensiveStaffForm').addEventListener('submit', function(e) {
+    const requiredFields = ['username', 'first_name', 'last_name'];
+    let hasErrors = false;
+    
+    requiredFields.forEach(field => {
+        const input = document.querySelector(`input[name="${field}"]`);
+        if (!input.value.trim()) {
+            input.classList.add('is-invalid');
+            hasErrors = true;
+        } else {
+            input.classList.remove('is-invalid');
+        }
+    });
+    
+    if (hasErrors) {
+        e.preventDefault();
+        alert('Please fill in all required fields');
+    }
+});
+</script>
+
+{% endblock %}
+
