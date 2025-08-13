@@ -70,16 +70,16 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#viewStaffModal" 
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#viewStaffModal"
                                                         onclick="viewStaff({{ member.id }})">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 {% if current_user.has_role('admin') %}
-                                                <button class="btn btn-sm btn-outline-secondary" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#editStaffModal" 
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editStaffModal"
                                                         onclick="editStaff({{ member.id }})">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
@@ -118,7 +118,7 @@
             <form method="POST" action="{{ url_for('create_staff_route') }}">
                 <div class="modal-body">
                     {{ form.hidden_tag() }}
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -133,7 +133,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -148,7 +148,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -163,7 +163,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -178,7 +178,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <div class="form-check">
                             {{ form.is_active(class="form-check-input", checked=True) }}
@@ -187,7 +187,7 @@
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         Default password will be: <strong>password123</strong>
