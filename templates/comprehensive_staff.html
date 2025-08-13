@@ -172,7 +172,7 @@
                                             {% endif %}
                                             <div>
                                                 <strong>{{ member.full_name or ('Staff Member #' + member.id|string) }}</strong>
-                                                <br><small class="text-muted">{{ member.staff_code or ('STF' + member.id|string|rjust(3, '0')) }}</small>
+                                                <br><small class="text-muted">{{ member.staff_code or ('STF' + (member.id|string).zfill(3)) }}</small>
                                                 {% if member.email %}
                                                 <br><small class="text-muted">{{ member.email }}</small>
                                                 {% endif %}
@@ -180,24 +180,44 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <div>{{ member.designation or member.role.title() }}</div>
-                                        {% if member.department %}
-                                        <small class="text-muted">{{ member.department }}</small>
-                                        {% endif %}
+                                        <div>
+                                            <strong>{{ member.user_role.display_name if member.user_role else member.role.title() }}</strong>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted">{{ member.staff_department.display_name if member.staff_department else 'No Department' }}</small>
+                                        </div>
+                                        <div>
+                                            <small class="badge bg-secondary">{{ member.designation or 'No Designation' }}</small>
+                                        </div>
                                     </td>
                                     <td>
                                         <div>{{ member.phone or 'Not provided' }}</div>
                                         {% if member.gender %}
                                         <small class="text-muted">{{ member.gender.title() }}</small>
                                         {% endif %}
+                                        <br>
+                                        {% if member.email %}
+                                        <small class="text-muted">{{ member.email }}</small>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        {% if member.date_of_joining %}
-                                            {{ member.date_of_joining.strftime('%d/%m/%Y') }}
-                                        {% elif member.created_at %}
-                                            {{ member.created_at.strftime('%d/%m/%Y') }}
-                                        {% else %}
-                                            Not set
+                                        <div>
+                                            <strong>Join Date:</strong>
+                                            {% if member.date_of_joining %}
+                                                {{ member.date_of_joining.strftime('%d/%m/%Y') }}
+                                            {% elif member.created_at %}
+                                                {{ member.created_at.strftime('%d/%m/%Y') }}
+                                            {% else %}
+                                                Not set
+                                            {% endif %}
+                                        </div>
+                                        {% if member.shift_start_time and member.shift_end_time %}
+                                        <small class="text-muted">
+                                            Shift: {{ member.shift_start_time.strftime('%H:%M') }} - {{ member.shift_end_time.strftime('%H:%M') }}
+                                        </small>
+                                        {% endif %}
+                                        {% if member.working_days %}
+                                        <br><small class="badge bg-info">Working Days: {{ member.working_days }}</small>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -209,10 +229,16 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div>${{ "%.2f"|format(member.total_revenue_generated or 0) }}</div>
-                                        {% if member.commission_percentage %}
-                                        <small class="text-muted">{{ member.commission_percentage }}% commission</small>
-                                        {% endif %}
+                                        <div class="performance-metrics">
+                                            <div><strong>Revenue:</strong> ₹{{ "%.2f"|format(member.total_revenue_generated or 0) }}</div>
+                                            <div><small>Clients: {{ member.total_clients_served or 0 }}</small></div>
+                                            {% if member.average_rating %}
+                                            <div><small>Rating: ⭐{{ "%.1f"|format(member.average_rating) }}</small></div>
+                                            {% endif %}
+                                            {% if member.commission_percentage %}
+                                            <div><small class="badge bg-success">{{ member.commission_percentage }}% commission</small></div>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ 'success' if member.is_active else 'danger' }}">
@@ -225,13 +251,21 @@
                                     <td>
                                         <div class="btn-group-vertical" role="group">
                                             <a href="{{ url_for('edit_comprehensive_staff', staff_id=member.id) }}" 
-                                               class="btn btn-sm btn-outline-primary" title="Edit">
+                                               class="btn btn-sm btn-outline-primary" title="Edit Profile">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <a href="{{ url_for('staff_performance', staff_id=member.id) }}" 
                                                class="btn btn-sm btn-outline-info" title="Performance">
                                                 <i class="fas fa-chart-line"></i>
                                             </a>
+                                            <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                    onclick="setupFacialRecognition({{ member.id }})" title="Facial Setup">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-success" 
+                                                    onclick="manageAttendance({{ member.id }})" title="Attendance">
+                                                <i class="fas fa-clock"></i>
+                                            </button>
                                             {% if current_user.has_role('admin') %}
                                             <button type="button" class="btn btn-sm btn-outline-danger" 
                                                     onclick="deactivateStaff({{ member.id }})" title="Deactivate">
@@ -266,10 +300,16 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Staff Attendance</h5>
+                <h5 class="modal-title">Staff Attendance Management</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <input type="hidden" id="attendanceStaffId">
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <h6 id="attendanceStaffName">Staff Member</h6>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-6">
                         <button class="btn btn-success w-100" onclick="punchIn()">
@@ -280,6 +320,14 @@
                         <button class="btn btn-danger w-100" onclick="punchOut()">
                             <i class="fas fa-sign-out-alt me-2"></i>Punch Out
                         </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Today's Attendance</h6>
+                        <div id="todayAttendance">
+                            <small class="text-muted">Loading attendance data...</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -370,17 +418,148 @@ function refreshStaffData() {
     }, 500);
 }
 
+function manageAttendance(staffId) {
+    const staffRow = document.querySelector(`[data-staff-id="${staffId}"]`);
+    const staffName = staffRow.querySelector('strong').textContent;
+    
+    document.getElementById('attendanceStaffId').value = staffId;
+    document.getElementById('attendanceStaffName').textContent = staffName;
+    
+    // Load today's attendance
+    loadTodayAttendance(staffId);
+    
+    const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+    modal.show();
+}
+
+function loadTodayAttendance(staffId) {
+    const attendanceDiv = document.getElementById('todayAttendance');
+    attendanceDiv.innerHTML = '<small class="text-muted">Loading...</small>';
+    
+    // This would typically fetch from the server
+    setTimeout(() => {
+        attendanceDiv.innerHTML = `
+            <div class="card">
+                <div class="card-body p-2">
+                    <small>
+                        <strong>Status:</strong> <span class="badge bg-success">Present</span><br>
+                        <strong>Check-in:</strong> 09:30 AM<br>
+                        <strong>Hours:</strong> 7.5 hours
+                    </small>
+                </div>
+            </div>
+        `;
+    }, 500);
+}
+
 function punchIn() {
-    console.log('Punch in functionality');
+    const staffId = document.getElementById('attendanceStaffId').value;
+    
+    fetch('/staff/attendance/punch-in', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            staff_id: staffId,
+            method: 'manual'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Punched in successfully at ' + data.check_in_time);
+            loadTodayAttendance(staffId);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error punching in');
+    });
 }
 
 function punchOut() {
-    console.log('Punch out functionality');
+    const staffId = document.getElementById('attendanceStaffId').value;
+    
+    fetch('/staff/attendance/punch-out', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            staff_id: staffId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Punched out successfully at ' + data.check_out_time + '. Total hours: ' + data.total_hours);
+            loadTodayAttendance(staffId);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error punching out');
+    });
 }
 
-function setupFaceRecognition() {
-    const modal = new bootstrap.Modal(document.getElementById('faceRecognitionModal'));
-    modal.show();
+function setupFacialRecognition(staffId) {
+    const staffRow = document.querySelector(`[data-staff-id="${staffId}"]`);
+    const staffName = staffRow.querySelector('strong').textContent;
+    
+    if (confirm(`Setup facial recognition for ${staffName}?`)) {
+        const modal = new bootstrap.Modal(document.getElementById('faceRecognitionModal'));
+        modal.show();
+        startFaceCapture(staffId);
+    }
+}
+
+function startFaceCapture(staffId) {
+    const video = document.getElementById('faceVideo');
+    const canvas = document.getElementById('faceCanvas');
+    
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+            
+            document.getElementById('captureFaceBtn').onclick = function() {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                
+                // Convert to base64 and send to server
+                const imageData = canvas.toDataURL('image/jpeg');
+                
+                fetch('/staff/facial-recognition/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        staff_id: staffId,
+                        face_encoding: imageData
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Facial recognition setup completed!');
+                        stream.getTracks().forEach(track => track.stop());
+                        bootstrap.Modal.getInstance(document.getElementById('faceRecognitionModal')).hide();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+            };
+        })
+        .catch(error => {
+            console.error('Camera access error:', error);
+            alert('Camera access denied or not available');
+        });
 }
 
 // Add keyboard shortcut for refresh (F5 or Ctrl+R)

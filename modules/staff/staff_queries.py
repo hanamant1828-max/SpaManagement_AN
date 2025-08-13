@@ -274,17 +274,8 @@ def get_active_services():
 def create_comprehensive_staff(form_data):
     """Create new staff member with comprehensive details"""
     try:
-        # Convert working days to string format
-        working_days = ''.join([
-            '1' if form_data.get('monday') else '0',
-            '1' if form_data.get('tuesday') else '0',
-            '1' if form_data.get('wednesday') else '0',
-            '1' if form_data.get('thursday') else '0',
-            '1' if form_data.get('friday') else '0',
-            '1' if form_data.get('saturday') else '0',
-            '1' if form_data.get('sunday') else '0'
-        ])
-
+        from werkzeug.security import generate_password_hash
+        
         # Generate staff code if not provided
         staff_code = form_data.get('staff_code')
         if not staff_code:
@@ -303,10 +294,10 @@ def create_comprehensive_staff(form_data):
 
         staff_member = User(
             username=form_data['username'],
-            email=form_data['email'],
+            email=form_data.get('email'),
             first_name=form_data['first_name'],
             last_name=form_data['last_name'],
-            phone=form_data['phone'],
+            phone=form_data.get('phone'),
             role=form_data.get('role', 'staff'),
 
             # Enhanced Profile Details
@@ -331,7 +322,7 @@ def create_comprehensive_staff(form_data):
             enable_face_checkin=form_data.get('enable_face_checkin', True),
 
             # Work Schedule
-            working_days=working_days,
+            working_days=form_data.get('working_days', '1111100'),
             shift_start_time=form_data.get('shift_start_time'),
             shift_end_time=form_data.get('shift_end_time'),
             break_time=form_data.get('break_time'),
@@ -340,21 +331,28 @@ def create_comprehensive_staff(form_data):
             # Commission
             commission_percentage=float(form_data.get('commission_percentage') or 0.0),
             fixed_commission=float(form_data.get('fixed_commission') or 0.0),
+            hourly_rate=float(form_data.get('hourly_rate') or 0.0),
             total_revenue_generated=0.0,
+            total_clients_served=0,
+            average_rating=0.0,
 
-            is_active=True,
+            # Role and Department
+            role_id=form_data.get('role_id') if form_data.get('role_id') and form_data.get('role_id') != 0 else None,
+            department_id=form_data.get('department_id') if form_data.get('department_id') and form_data.get('department_id') != 0 else None,
+
+            is_active=form_data.get('is_active', True),
             created_at=datetime.utcnow()
         )
 
         # Set password if provided
         if form_data.get('password'):
-            staff_member.set_password(form_data['password'])
+            staff_member.password_hash = generate_password_hash(form_data['password'])
         else:
             # Set default password
-            staff_member.set_password('password123')
+            staff_member.password_hash = generate_password_hash('password123')
 
         db.session.add(staff_member)
-        db.session.commit()
+        db.session.flush()  # Get the ID for service assignments
 
         print(f"Successfully created staff member: {staff_member.full_name} with code: {staff_code}")
         return staff_member

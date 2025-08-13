@@ -466,3 +466,367 @@ document.getElementById('comprehensiveStaffForm').addEventListener('submit', fun
 
 {% endblock %}
 
+{% extends "base.html" %}
+
+{% block title %}{{ action }} Staff Member - Comprehensive Staff Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-user-plus me-2"></i>{{ action }} Staff Member
+                </h1>
+                <a href="{{ url_for('comprehensive_staff') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Staff List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="comprehensive-staff-form">
+        {{ form.hidden_tag() }}
+        
+        <!-- Personal Information Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.first_name.label(class="form-label") }}
+                            {{ form.first_name(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.last_name.label(class="form-label") }}
+                            {{ form.last_name(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.phone.label(class="form-label") }}
+                            {{ form.phone(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.gender.label(class="form-label") }}
+                            {{ form.gender(class="form-select") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.date_of_birth.label(class="form-label") }}
+                            {{ form.date_of_birth(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Professional Information Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.staff_code.label(class="form-label") }}
+                            {{ form.staff_code(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.designation.label(class="form-label") }}
+                            {{ form.designation(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.date_of_joining.label(class="form-label") }}
+                            {{ form.date_of_joining(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.role_id.label(class="form-label") }}
+                            {{ form.role_id(class="form-select") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.department_id.label(class="form-label") }}
+                            {{ form.department_id(class="form-select") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    {{ form.notes_bio.label(class="form-label") }}
+                    {{ form.notes_bio(class="form-control", rows="3") }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Work Schedule Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Work Schedule</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.shift_start_time.label(class="form-label") }}
+                            {{ form.shift_start_time(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.shift_end_time.label(class="form-label") }}
+                            {{ form.shift_end_time(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Working Days</label>
+                    <div class="row">
+                        <div class="col-md-1">
+                            <div class="form-check">
+                                {{ form.monday(class="form-check-input") }}
+                                {{ form.monday.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-check">
+                                {{ form.tuesday(class="form-check-input") }}
+                                {{ form.tuesday.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-check">
+                                {{ form.wednesday(class="form-check-input") }}
+                                {{ form.wednesday.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-check">
+                                {{ form.thursday(class="form-check-input") }}
+                                {{ form.thursday.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-check">
+                                {{ form.friday(class="form-check-input") }}
+                                {{ form.friday.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-check">
+                                {{ form.saturday(class="form-check-input") }}
+                                {{ form.saturday.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-check">
+                                {{ form.sunday(class="form-check-input") }}
+                                {{ form.sunday.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.break_time.label(class="form-label") }}
+                            {{ form.break_time(class="form-control", placeholder="e.g., 12:00-13:00") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.weekly_off_days.label(class="form-label") }}
+                            {{ form.weekly_off_days(class="form-control", placeholder="e.g., Sunday") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commission & Performance Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Commission & Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.commission_percentage.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.commission_percentage(class="form-control") }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.fixed_commission.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                {{ form.fixed_commission(class="form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.hourly_rate.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                {{ form.hourly_rate(class="form-control") }}
+                                <span class="input-group-text">/hr</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Assignment Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Service Assignment</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    {{ form.assigned_services.label(class="form-label") }}
+                    {{ form.assigned_services(class="form-select", multiple=True, size="8") }}
+                    <div class="form-text">Hold Ctrl (Cmd on Mac) to select multiple services</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ID Verification Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-id-card me-2"></i>ID Verification</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.aadhaar_number.label(class="form-label") }}
+                            {{ form.aadhaar_number(class="form-control", placeholder="XXXX-XXXX-XXXX") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.pan_number.label(class="form-label") }}
+                            {{ form.pan_number(class="form-control", placeholder="ABCDE1234F") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            {{ form.verification_status(class="form-check-input") }}
+                            {{ form.verification_status.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            {{ form.enable_face_checkin(class="form-check-input") }}
+                            {{ form.enable_face_checkin.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Settings Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>System Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control") }}
+                            {% if action == 'Edit' %}
+                            <div class="form-text">Leave blank to keep current password</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-4">
+                            {{ form.is_active(class="form-check-input") }}
+                            {{ form.is_active.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('comprehensive_staff') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>{{ action }} Staff Member
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+.comprehensive-staff-form .card {
+    border: 1px solid #e3e6f0;
+}
+
+.comprehensive-staff-form .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.form-check-input:checked {
+    background-color: #5a5c69;
+    border-color: #5a5c69;
+}
+
+.working-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+</style>
+{% endblock %}
