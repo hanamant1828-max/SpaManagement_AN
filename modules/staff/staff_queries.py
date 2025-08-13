@@ -232,68 +232,68 @@ def get_active_services():
         return []
 
 def create_comprehensive_staff_member(form):
-    """Create staff member with comprehensive information"""
+    """Create a comprehensive staff member from form data"""
     try:
-        # Create working days JSON
-        working_days = {
-            'monday': form.monday.data,
-            'tuesday': form.tuesday.data,
-            'wednesday': form.wednesday.data,
-            'thursday': form.thursday.data,
-            'friday': form.friday.data,
-            'saturday': form.saturday.data,
-            'sunday': form.sunday.data
+        from werkzeug.security import generate_password_hash
+
+        # Generate working days string
+        working_days = ''
+        working_days += '1' if form.monday.data else '0'
+        working_days += '1' if form.tuesday.data else '0'
+        working_days += '1' if form.wednesday.data else '0'
+        working_days += '1' if form.thursday.data else '0'
+        working_days += '1' if form.friday.data else '0'
+        working_days += '1' if form.saturday.data else '0'
+        working_days += '1' if form.sunday.data else '0'
+
+        # Create new staff member
+        staff_data = {
+            'username': form.username.data,
+            'first_name': form.first_name.data,
+            'last_name': form.last_name.data,
+            'email': form.email.data,
+            'phone': form.phone.data,
+            'gender': form.gender.data,
+            'date_of_birth': form.date_of_birth.data,
+            'date_of_joining': form.date_of_joining.data or datetime.now().date(),
+            'designation': form.designation.data,
+            'staff_code': form.staff_code.data,
+            'notes_bio': form.notes_bio.data,
+            'aadhaar_number': form.aadhaar_number.data,
+            'pan_number': form.pan_number.data,
+            'verification_status': form.verification_status.data,
+            'shift_start_time': form.shift_start_time.data,
+            'shift_end_time': form.shift_end_time.data,
+            'break_time': form.break_time.data,
+            'weekly_off_days': form.weekly_off_days.data,
+            'working_days': working_days,
+            'commission_percentage': form.commission_percentage.data or 0.0,
+            'fixed_commission': form.fixed_commission.data or 0.0,
+            'hourly_rate': form.hourly_rate.data or 0.0,
+            'enable_face_checkin': form.enable_face_checkin.data,
+            'role_id': form.role_id.data if form.role_id.data != 0 else None,
+            'department_id': form.department_id.data if form.department_id.data != 0 else None,
+            'is_active': form.is_active.data,
+            'role': 'staff'
         }
 
-        # Create new user with comprehensive data
-        staff_member = User(
-            username=form.username.data,
-            email=form.email.data,
-            password_hash=generate_password_hash(form.password.data) if form.password.data else generate_password_hash('temp123'),
-            first_name=form.first_name.data,
-            last_name=form.last_name.data,
-            phone=form.phone.data,
-            role='staff',
-            is_active=form.is_active.data,
+        if form.password.data:
+            staff_data['password_hash'] = generate_password_hash(form.password.data)
 
-            # Extended fields
-            profile_photo_url=form.profile_photo_url.data,
-            gender=form.gender.data,
-            date_of_birth=form.date_of_birth.data,
-            date_of_joining=form.date_of_joining.data,
-            staff_code=form.staff_code.data,
-            notes_bio=form.notes_bio.data,
-            designation=form.designation.data,
+        # Create staff member
+        new_staff = User(**staff_data)
+        db.session.add(new_staff)
+        db.session.flush()  # Get the ID
 
-            # ID Verification
-            aadhaar_number=form.aadhaar_number.data,
-            aadhaar_card_url=form.aadhaar_card_url.data,
-            pan_number=form.pan_number.data,
-            pan_card_url=form.pan_card_url.data,
-            verification_status=form.verification_status.data,
+        # Assign services
+        for service_id in form.assigned_services.data:
+            staff_service = StaffService(
+                staff_id=new_staff.id,
+                service_id=service_id,
+                skill_level='beginner'
+            )
+            db.session.add(staff_service)
 
-            # Face Recognition
-            face_image_url=form.face_image_url.data,
-            enable_face_checkin=form.enable_face_checkin.data,
-
-            # Work Schedule
-            working_days=str(working_days),
-            shift_start_time=form.shift_start_time.data,
-            shift_end_time=form.shift_end_time.data,
-            break_time=form.break_time.data,
-            weekly_off_days=form.weekly_off_days.data,
-
-            # Commission
-            commission_percentage=form.commission_percentage.data,
-            fixed_commission=form.fixed_commission.data,
-            hourly_rate=form.hourly_rate.data,
-
-            # Relations
-            role_id=form.role_id.data if form.role_id.data != 0 else None,
-            department_id=form.department_id.data if form.department_id.data != 0 else None
-        )
-
-        db.session.add(staff_member)
         db.session.commit()
         return True
 

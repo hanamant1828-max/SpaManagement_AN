@@ -12,8 +12,9 @@ from forms import UserForm, AdvancedUserForm, ComprehensiveStaffForm
 from models import db, User, Service, Role, Department, Attendance, Leave, StaffService, StaffPerformance
 from .staff_queries import (
     get_all_staff, get_staff_by_id, get_staff_by_role, get_active_roles, 
-    get_active_departments, create_staff, update_staff, delete_staff, 
-    get_staff_appointments, get_staff_commissions, get_staff_stats
+    get_active_departments, get_active_services, create_staff, update_staff, delete_staff, 
+    get_staff_appointments, get_staff_commissions, get_staff_stats, 
+    get_comprehensive_staff, create_comprehensive_staff_member
 )
 import os
 import csv
@@ -117,9 +118,6 @@ def create_comprehensive_staff():
             flash(f'Error creating staff member: {str(e)}', 'danger')
     
     return render_template('comprehensive_staff_form.html', form=form, mode='create')
-    except Exception as e:
-        flash(f'Error loading comprehensive staff data: {str(e)}', 'danger')
-        return redirect(url_for('staff'))
 
 @app.route('/staff/comprehensive/test')
 @login_required
