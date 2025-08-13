@@ -1168,6 +1168,16 @@ function handleServiceSelection(selectElement) {
     }
 }
 
+// Update service price function
+function updateServicePrice(serviceId, price) {
+    try {
+        console.log(`Service ${serviceId} selected with price: ${price}`);
+        // Additional price update logic can be added here
+    } catch (error) {
+        console.error('Error updating service price:', error);
+    }
+}
+
 // Calculate total function for billing forms
 function calculateTotal() {
     try {
