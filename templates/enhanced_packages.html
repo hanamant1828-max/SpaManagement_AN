@@ -403,8 +403,75 @@
     </div>
 </div>
 
+<!-- Edit Package Modal -->
+<div class="modal fade" id="editPackageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">✏️ Edit Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editPackageForm">
+                <input type="hidden" id="edit_package_id">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Package Name</label>
+                                <input type="text" class="form-control" id="edit_package_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Validity (Days)</label>
+                                <input type="number" class="form-control" id="edit_validity_days" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_package_description" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Total Sessions</label>
+                                <input type="number" class="form-control" id="edit_total_sessions" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Total Price (₹)</label>
+                                <input type="number" class="form-control" id="edit_total_price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Discount Percentage</label>
+                                <input type="number" class="form-control" id="edit_discount_percentage" min="0" max="100" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input type="checkbox" class="form-check-input" id="edit_is_active">
+                                <label class="form-check-label" for="edit_is_active">Active Package</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Package</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Assign Package Modal -->
-<div class="modal fade" id="assignPackageModal" tabindex="-1">
+<div class="modal fade" id="assignPackageModal" tabindex="-1"></div>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -644,12 +711,63 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSelectedServicesJson();
         });
     }
+
+    // Add edit package form submission handler
+    const editPackageForm = document.getElementById('editPackageForm');
+    if (editPackageForm) {
+        editPackageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitEditPackage();
+        });
+    }
 });
 
 function assignPackage(packageId, packageName) {
     document.getElementById('assign_package_id').value = packageId;
     document.querySelector('#assignPackageModal .modal-title').textContent = `📈 Assign "${packageName}" to Client`;
     new bootstrap.Modal(document.getElementById('assignPackageModal')).show();
+}
+
+function submitEditPackage() {
+    const packageId = document.getElementById('edit_package_id').value;
+    const packageName = document.getElementById('edit_package_name').value;
+    const description = document.getElementById('edit_package_description').value;
+    const validityDays = document.getElementById('edit_validity_days').value;
+    const totalSessions = document.getElementById('edit_total_sessions').value;
+    const totalPrice = document.getElementById('edit_total_price').value;
+    const discountPercentage = document.getElementById('edit_discount_percentage').value;
+    const isActive = document.getElementById('edit_is_active').checked;
+
+    if (!packageName || !validityDays || !totalSessions || !totalPrice) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    // Create form data to submit
+    const formData = new FormData();
+    formData.append('name', packageName);
+    formData.append('description', description);
+    formData.append('validity_days', validityDays);
+    formData.append('total_sessions', totalSessions);
+    formData.append('total_price', totalPrice);
+    formData.append('discount_percentage', discountPercentage || '0');
+    formData.append('is_active', isActive ? 'true' : 'false');
+
+    fetch(`/packages/${packageId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('Package updated successfully!');
+            location.reload();
+        } else {
+            alert('Error updating package');
+        }
+    })
+    .catch(error => {
+        alert('Error updating package: ' + error);
+    });
 }
 
 function submitAssignPackage() {
@@ -689,8 +807,40 @@ function submitAssignPackage() {
 }
 
 function editPackage(packageId) {
-    // Implement edit functionality
-    alert('Edit functionality will be implemented based on requirements');
+    // Find the package data from the table
+    const packageRow = document.querySelector(`tr:has(button[onclick="editPackage(${packageId})"])`);
+    if (!packageRow) {
+        alert('Package data not found');
+        return;
+    }
+
+    // Extract package data from the row
+    const cells = packageRow.querySelectorAll('td');
+    const packageName = cells[1].querySelector('strong').textContent;
+    const description = cells[1].querySelector('small') ? 
+                       cells[1].querySelector('small').textContent.replace('...', '') : '';
+    const validityDays = cells[3].textContent.split(' ')[0];
+    const totalSessions = cells[3].querySelector('small').textContent.split(' ')[0];
+    const totalPrice = cells[4].querySelector('strong').textContent.replace('₹', '').replace(',', '');
+    const discountPercentage = cells[5].querySelector('.badge') ? 
+                              cells[5].querySelector('.badge').textContent.replace('% OFF', '') : '0';
+    const isActive = cells[7].querySelector('.badge').textContent === 'Active';
+
+    // Populate edit modal
+    document.getElementById('edit_package_id').value = packageId;
+    document.getElementById('edit_package_name').value = packageName;
+    document.getElementById('edit_package_description').value = description;
+    document.getElementById('edit_validity_days').value = validityDays;
+    document.getElementById('edit_total_sessions').value = totalSessions;
+    document.getElementById('edit_total_price').value = totalPrice;
+    document.getElementById('edit_discount_percentage').value = discountPercentage;
+    document.getElementById('edit_is_active').checked = isActive;
+
+    // Update modal title
+    document.querySelector('#editPackageModal .modal-title').textContent = `Edit "${packageName}"`;
+
+    // Show edit modal
+    new bootstrap.Modal(document.getElementById('editPackageModal')).show();
 }
 
 function deletePackage(packageId, packageName) {

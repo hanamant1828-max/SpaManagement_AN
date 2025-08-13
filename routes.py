@@ -379,12 +379,17 @@ def edit_package_route(package_id):
     try:
         package = Package.query.get_or_404(package_id)
 
+        # Update package fields
         package.name = request.form.get('name', package.name)
         package.description = request.form.get('description', package.description)
         package.validity_days = int(request.form.get('validity_days', package.validity_days))
+        package.total_sessions = int(request.form.get('total_sessions', package.total_sessions))
         package.total_price = float(request.form.get('total_price', package.total_price))
-        package.discount_percentage = float(request.form.get('discount_percentage', package.discount_percentage))
-        package.is_active = bool(request.form.get('is_active'))
+        package.discount_percentage = float(request.form.get('discount_percentage', package.discount_percentage or 0))
+        package.is_active = request.form.get('is_active') == 'true'
+
+        # Update duration_months for compatibility
+        package.duration_months = max(1, package.validity_days // 30)
 
         db.session.commit()
         flash(f'Package "{package.name}" updated successfully!', 'success')
