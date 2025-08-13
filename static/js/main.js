@@ -1172,10 +1172,29 @@ function handleServiceSelection(selectElement) {
 function updateServicePrice(serviceId, price) {
     try {
         console.log(`Service ${serviceId} selected with price: ${price}`);
-        // Additional price update logic can be added here
+        
+        // Update any price display elements
+        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
+        priceDisplays.forEach(display => {
+            display.textContent = formatCurrency(price);
+        });
+        
+        // Trigger total calculation if on billing page
+        if (typeof calculateTotal === 'function') {
+            calculateTotal();
+        }
+        
     } catch (error) {
         console.error('Error updating service price:', error);
     }
+}
+
+// Format currency helper function
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+    }).format(amount);
 }
 
 // Calculate total function for billing forms

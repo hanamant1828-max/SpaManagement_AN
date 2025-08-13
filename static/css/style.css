@@ -498,12 +498,12 @@ body {
         margin: 0.5rem;
         max-height: 95vh;
     }
-    
+
     #staffFaceSetupModal .button-group .btn {
         font-size: 0.875rem;
         padding: 0.5rem 1rem;
     }
-    
+
     #staffFaceSetupModal .camera-container video,
     #staffFaceSetupModal .camera-container canvas {
         max-width: 100%;
