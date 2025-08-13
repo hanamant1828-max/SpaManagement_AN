@@ -448,6 +448,94 @@ class SystemSettingForm(FlaskForm):
     description = TextAreaField('Description', validators=[Optional()])
     is_public = BooleanField('Public Setting', default=False)
 
+class ComprehensiveStaffForm(FlaskForm):
+    """Comprehensive Staff Management Form - All 11 Requirements"""
+    
+    # Basic Information
+    username = StringField('Username', validators=[DataRequired(), Length(min=4, max=25)])
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[Optional(), Length(min=6)])
+    
+    # Staff Profile Details
+    profile_photo_url = StringField('Profile Photo URL', validators=[Optional()])
+    gender = SelectField('Gender', choices=[
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other')
+    ], validators=[DataRequired()])
+    phone = StringField('Phone Number', validators=[DataRequired(), Length(max=20)])
+    date_of_birth = DateField('Date of Birth', validators=[Optional()])
+    date_of_joining = DateField('Date of Joining', validators=[Optional()])
+    staff_code = StringField('Staff Code', validators=[DataRequired(), Length(max=20)])
+    notes_bio = TextAreaField('Notes/Bio', validators=[Optional()])
+    designation = StringField('Designation', validators=[DataRequired(), Length(max=100)])
+    
+    # ID Proofs & Verification
+    aadhaar_number = StringField('Aadhaar Number', validators=[Optional(), Length(min=12, max=12)])
+    aadhaar_card_url = StringField('Aadhaar Card URL', validators=[Optional()])
+    pan_number = StringField('PAN Number', validators=[Optional(), Length(min=10, max=10)])
+    pan_card_url = StringField('PAN Card URL', validators=[Optional()])
+    verification_status = BooleanField('Verification Status', default=False)
+    
+    # Facial Recognition
+    face_image_url = StringField('Face Image URL', validators=[Optional()])
+    facial_encoding = StringField('Facial Encoding', validators=[Optional()])
+    enable_face_checkin = BooleanField('Enable Face Check-in', default=True)
+    
+    # Work Schedule
+    monday = BooleanField('Monday', default=True)
+    tuesday = BooleanField('Tuesday', default=True)
+    wednesday = BooleanField('Wednesday', default=True)
+    thursday = BooleanField('Thursday', default=True)
+    friday = BooleanField('Friday', default=True)
+    saturday = BooleanField('Saturday', default=False)
+    sunday = BooleanField('Sunday', default=False)
+    
+    shift_start_time = TimeField('Shift Start Time', validators=[Optional()])
+    shift_end_time = TimeField('Shift End Time', validators=[Optional()])
+    break_time = StringField('Break Time', validators=[Optional(), Length(max=50)])
+    weekly_off_days = StringField('Weekly Off Days', validators=[Optional(), Length(max=20)])
+    
+    # Performance & Commission
+    commission_percentage = FloatField('Commission Percentage', validators=[Optional(), NumberRange(min=0, max=100)])
+    fixed_commission = FloatField('Fixed Commission', validators=[Optional(), NumberRange(min=0)])
+    hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
+    
+    # Role & Department
+    role_id = SelectField('Role', coerce=int, validators=[Optional()])
+    department_id = SelectField('Department', coerce=int, validators=[Optional()])
+    
+    # Service Assignment
+    assigned_services = SelectMultipleField('Assigned Services', coerce=int, validators=[Optional()])
+    
+    # Status
+    is_active = BooleanField('Active Status', default=True)
+    
+    def __init__(self, *args, **kwargs):
+        super(ComprehensiveStaffForm, self).__init__(*args, **kwargs)
+        # Dynamically populate choices from database
+        try:
+            from models import Role, Department, Service
+            self.role_id.choices = [(0, 'Select Role')] + [
+                (r.id, r.display_name) for r in 
+                Role.query.filter_by(is_active=True).order_by(Role.display_name).all()
+            ]
+            self.department_id.choices = [(0, 'Select Department')] + [
+                (d.id, d.display_name) for d in 
+                Department.query.filter_by(is_active=True).order_by(Department.display_name).all()
+            ]
+            self.assigned_services.choices = [
+                (s.id, s.name) for s in 
+                Service.query.filter_by(is_active=True).order_by(Service.name).all()
+            ]
+        except:
+            # Fallback if database is not available
+            self.role_id.choices = [(0, 'Select Role')]
+            self.department_id.choices = [(0, 'Select Department')]
+            self.assigned_services.choices = []
+
 class MultiCheckboxField(SelectMultipleField):
     """Custom field for multiple checkboxes"""
     widget = ListWidget(prefix_label=False)
