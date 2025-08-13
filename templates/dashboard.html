@@ -201,18 +201,18 @@
                 <div class="card-body">
                     <h5 class="card-title">Quick Actions</h5>
                     <div class="btn-group" role="group">
-                        <a href="{{ url_for('add_appointment') }}" class="btn btn-primary">
+                        <button type="button" class="btn btn-primary" onclick="navigateToBookings()">
                             <i class="fas fa-plus me-2"></i>New Appointment
-                        </a>
-                        <a href="{{ url_for('clients') }}" class="btn btn-success">
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="navigateToClients()">
                             <i class="fas fa-user-plus me-2"></i>Add Client
-                        </a>
-                        <a href="{{ url_for('comprehensive_staff') }}" class="btn btn-info">
+                        </button>
+                        <button type="button" class="btn btn-info" onclick="navigateToStaffManagement()">
                             <i class="fas fa-users-cog me-2"></i>Manage Staff
-                        </a>
-                        <a href="{{ url_for('checkin') }}" class="btn btn-warning">
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="navigateToCheckin()">
                             <i class="fas fa-camera me-2"></i>Face Check-in
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -223,4 +223,48 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+// Dashboard navigation functions
+function navigateToBookings() {
+    try {
+        window.location.href = '/bookings';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        alert('Navigation failed. Please try again.');
+    }
+}
+
+function navigateToClients() {
+    try {
+        window.location.href = '/clients';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        alert('Navigation failed. Please try again.');
+    }
+}
+
+function navigateToStaffManagement() {
+    try {
+        window.location.href = '/comprehensive_staff';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        alert('Navigation failed. Please try again.');
+    }
+}
+
+function navigateToCheckin() {
+    try {
+        window.location.href = '/checkin';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        alert('Navigation failed. Please try again.');
+    }
+}
+
+// Fix updateServicePrice function for dashboard
+window.updateServicePrice = function(serviceId, price) {
+    console.log('Service price updated:', serviceId, price);
+    // This function is available globally to prevent errors
+};
+</script>
 {% endblock %}

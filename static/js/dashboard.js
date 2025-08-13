@@ -5,7 +5,54 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-refresh dashboard data every 5 minutes
     setInterval(refreshDashboardData, 300000);
+    
+    // Setup button click handlers
+    setupDashboardButtonHandlers();
 });
+
+function setupDashboardButtonHandlers() {
+    // Handle quick action buttons
+    const quickActionButtons = document.querySelectorAll('.btn-group .btn');
+    quickActionButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const buttonText = this.textContent.trim();
+            
+            // Add loading state
+            const originalContent = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+            this.disabled = true;
+            
+            // Reset button after 3 seconds if navigation doesn't complete
+            setTimeout(() => {
+                if (this.innerHTML.includes('Loading...')) {
+                    this.innerHTML = originalContent;
+                    this.disabled = false;
+                }
+            }, 3000);
+        });
+    });
+    
+    // Handle navigation links in the dashboard
+    const dashboardLinks = document.querySelectorAll('a[href]');
+    dashboardLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href && href.startsWith('/')) {
+                // Add loading indicator for internal navigation
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+                
+                // Reset after delay if navigation doesn't complete
+                setTimeout(() => {
+                    if (this.innerHTML.includes('Loading...')) {
+                        this.innerHTML = originalText;
+                    }
+                }, 3000);
+            }
+        });
+    });
+}
 
 function initializeDashboard() {
     // Initialize charts and widgets
@@ -270,24 +317,66 @@ function generateSampleRevenueData(days) {
 
 // Quick action handlers
 function quickAddAppointment() {
-    window.location.href = '/bookings';
+    try {
+        window.location.href = '/bookings';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
 }
 
 function quickAddClient() {
-    const modal = new bootstrap.Modal(document.getElementById('addClientModal'));
-    if (modal) {
-        modal.show();
-    } else {
+    try {
+        const modal = document.getElementById('addClientModal');
+        if (modal) {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } else {
+            window.location.href = '/clients';
+        }
+    } catch (error) {
+        console.error('Navigation error:', error);
         window.location.href = '/clients';
     }
 }
 
 function quickViewReports() {
-    window.location.href = '/reports';
+    try {
+        window.location.href = '/reports';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
 }
 
 function quickCheckInventory() {
-    window.location.href = '/inventory';
+    try {
+        window.location.href = '/inventory';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
+// Enhanced navigation function for staff management
+function navigateToStaffManagement() {
+    try {
+        console.log('Navigating to staff management...');
+        window.location.href = '/comprehensive_staff';
+    } catch (error) {
+        console.error('Staff management navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
+// Error handler for navigation issues
+function handleNavigationError(error) {
+    console.error('Navigation failed:', error);
+    if (typeof showNotification === 'function') {
+        showNotification('Navigation error occurred. Please try again.', 'error');
+    } else {
+        alert('Navigation error occurred. Please try again.');
+    }
 }
 
 // Export functions
