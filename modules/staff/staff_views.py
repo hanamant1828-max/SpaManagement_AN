@@ -65,11 +65,20 @@ def comprehensive_staff():
         return redirect(url_for('dashboard'))
     
     try:
+        print("Loading comprehensive staff management page...")
+        
+        # Force fresh data retrieval
+        db.session.expire_all()
+        
         # Get comprehensive staff data
         staff_list = get_comprehensive_staff()
         roles = get_active_roles()
         departments = get_active_departments()
         services = get_active_services()
+        
+        print(f"Loaded {len(staff_list)} staff members")
+        print(f"Available roles: {[r.display_name for r in roles]}")
+        print(f"Available departments: {[d.display_name for d in departments]}")
         
         # Apply filters if provided
         role_filter = request.args.get('role')
@@ -78,22 +87,32 @@ def comprehensive_staff():
         
         if role_filter:
             staff_list = [s for s in staff_list if s.role_id == int(role_filter)]
+            print(f"Filtered by role: {len(staff_list)} remaining")
         if department_filter:
             staff_list = [s for s in staff_list if s.department_id == int(department_filter)]
+            print(f"Filtered by department: {len(staff_list)} remaining")
         if status_filter:
             if status_filter == 'active':
                 staff_list = [s for s in staff_list if s.is_active]
             elif status_filter == 'inactive':
                 staff_list = [s for s in staff_list if not s.is_active]
+            print(f"Filtered by status: {len(staff_list)} remaining")
         
-        flash(f'Comprehensive Staff Management System Active - {len(staff_list)} staff members found', 'info')
+        # Force template cache refresh
+        from flask import current_app
+        if current_app.debug:
+            current_app.jinja_env.cache = {}
+        
+        flash(f'Staff Management Updated - {len(staff_list)} staff members loaded', 'success')
         
         return render_template('comprehensive_staff.html', 
                              staff=staff_list,
                              roles=roles,
                              departments=departments,
-                             services=services)
+                             services=services,
+                             cache_buster=datetime.utcnow().timestamp())
     except Exception as e:
+        print(f"Error in comprehensive_staff route: {str(e)}")
         flash(f'Error loading comprehensive staff data: {str(e)}', 'danger')
         return redirect(url_for('staff'))
 

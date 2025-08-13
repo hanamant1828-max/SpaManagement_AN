@@ -160,18 +160,18 @@
                             </thead>
                             <tbody>
                                 {% for member in staff %}
-                                <tr>
+                                <tr data-staff-id="{{ member.id }}" data-updated="{{ cache_buster or '' }}">
                                     <td>
                                         <div class="d-flex align-items-center">
                                             {% if member.profile_photo_url %}
-                                                <img src="{{ member.profile_photo_url }}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                                <img src="{{ member.profile_photo_url }}?v={{ cache_buster or '' }}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
                                             {% else %}
                                                 <div class="avatar-circle me-3" style="width: 40px; height: 40px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
                                                     {{ (member.first_name[0] if member.first_name else 'S') + (member.last_name[0] if member.last_name else 'M') }}
                                                 </div>
                                             {% endif %}
                                             <div>
-                                                <strong>{{ member.full_name or 'Unknown Staff' }}</strong>
+                                                <strong>{{ member.full_name or ('Staff Member #' + member.id|string) }}</strong>
                                                 <br><small class="text-muted">{{ member.staff_code or ('STF' + member.id|string|rjust(3, '0')) }}</small>
                                                 {% if member.email %}
                                                 <br><small class="text-muted">{{ member.email }}</small>
@@ -309,40 +309,87 @@
 </div>
 
 <script>
+// Force page refresh on load to ensure fresh data
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Comprehensive Staff Management page loaded');
+    console.log('Staff count:', document.querySelectorAll('[data-staff-id]').length);
+    
+    // Add refresh button functionality
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = 'btn btn-outline-primary btn-sm';
+    refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh Data';
+    refreshBtn.onclick = function() {
+        window.location.reload(true); // Force reload from server
+    };
+    
+    const headerActions = document.querySelector('.btn-group');
+    if (headerActions) {
+        headerActions.appendChild(refreshBtn);
+    }
+});
+
 function deactivateStaff(staffId) {
     if (confirm('Are you sure you want to deactivate this staff member?')) {
         fetch(`/staff/deactivate/${staffId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                location.reload();
+                // Force hard reload to show updated data
+                window.location.reload(true);
             } else {
                 alert('Error: ' + data.error);
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deactivating staff member');
         });
     }
 }
 
+function refreshStaffData() {
+    console.log('Refreshing staff data...');
+    
+    // Show loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'position-fixed top-50 start-50 translate-middle bg-white border rounded p-3';
+    loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing data...';
+    loadingDiv.style.zIndex = '9999';
+    document.body.appendChild(loadingDiv);
+    
+    // Force page reload
+    setTimeout(() => {
+        window.location.reload(true);
+    }, 500);
+}
+
 function punchIn() {
-    // Implementation for punch in
     console.log('Punch in functionality');
 }
 
 function punchOut() {
-    // Implementation for punch out
     console.log('Punch out functionality');
 }
 
-// Face recognition setup
 function setupFaceRecognition() {
     const modal = new bootstrap.Modal(document.getElementById('faceRecognitionModal'));
     modal.show();
 }
+
+// Add keyboard shortcut for refresh (F5 or Ctrl+R)
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+        e.preventDefault();
+        refreshStaffData();
+    }
+});
 </script>
 
 <style>

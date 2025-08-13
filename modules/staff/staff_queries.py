@@ -212,21 +212,35 @@ def get_staff_performance_data(staff_id):
 def get_comprehensive_staff():
     """Get all staff with comprehensive details"""
     try:
-        staff_members = User.query.filter(
+        # Force fresh query from database
+        db.session.expire_all()
+        
+        staff_members = User.query.options(
+            db.joinedload(User.user_role),
+            db.joinedload(User.staff_department),
+            db.joinedload(User.staff_services)
+        ).filter(
             User.role.in_(['staff', 'manager', 'admin']),
             User.is_active == True
         ).order_by(User.first_name).all()
 
         # Ensure each staff member has all required fields populated
+        updated = False
         for member in staff_members:
             if not member.staff_code:
                 member.staff_code = f"STF{str(member.id).zfill(3)}"
+                updated = True
             if not member.designation:
                 member.designation = member.role.title()
+                updated = True
             if not member.date_of_joining:
                 member.date_of_joining = member.created_at.date() if member.created_at else date.today()
+                updated = True
 
-        db.session.commit()
+        if updated:
+            db.session.commit()
+            
+        print(f"Retrieved {len(staff_members)} staff members from database")
         return staff_members
     except Exception as e:
         print(f"Error getting comprehensive staff: {e}")
