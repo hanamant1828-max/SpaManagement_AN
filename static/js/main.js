@@ -1131,6 +1131,116 @@ function handleServiceSelection(selectElement) {
     }
 }
 
+// Update service price function
+function updateServicePrice(serviceId, price) {
+    console.log(`Service ${serviceId} price updated to ${price}`);
+    
+    // Update any price display elements
+    const priceElements = document.querySelectorAll('.service-price');
+    priceElements.forEach(element => {
+        if (element.dataset.serviceId === serviceId) {
+            element.textContent = `₹${price}`;
+        }
+    });
+    
+    // Trigger any price change events
+    document.dispatchEvent(new CustomEvent('servicePriceChanged', {
+        detail: { serviceId, price }
+    }));
+}
+
+// Face Recognition Functions
+function initializeFaceRecognition() {
+    console.log('Face recognition system initialized');
+    
+    // Check if browser supports getUserMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('Camera access not supported in this browser');
+        return false;
+    }
+    
+    return true;
+}
+
+// Start camera for face recognition
+async function startFaceRecognitionCamera(videoElementId) {
+    try {
+        const video = document.getElementById(videoElementId);
+        if (!video) {
+            throw new Error(`Video element ${videoElementId} not found`);
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: 640, 
+                height: 480,
+                facingMode: 'user'
+            } 
+        });
+        
+        video.srcObject = stream;
+        video.play();
+        
+        console.log('Face recognition camera started successfully');
+        return stream;
+        
+    } catch (error) {
+        console.error('Error starting face recognition camera:', error);
+        alert('Could not access camera. Please check permissions.');
+        return null;
+    }
+}
+
+// Capture face for recognition
+function captureFrameForRecognition(videoElement, canvasElement) {
+    if (!videoElement || !canvasElement) {
+        console.error('Video or canvas element not found');
+        return null;
+    }
+    
+    const ctx = canvasElement.getContext('2d');
+    canvasElement.width = videoElement.videoWidth;
+    canvasElement.height = videoElement.videoHeight;
+    
+    ctx.drawImage(videoElement, 0, 0);
+    
+    // Get image data as base64
+    const imageData = canvasElement.toDataURL('image/jpeg', 0.8);
+    return imageData;
+}
+
+// Send face data for recognition
+async function performFaceRecognition(imageData) {
+    try {
+        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
+                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+        
+        const response = await fetch('/api/recognize_face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(csrfToken && {'X-CSRFToken': csrfToken})
+            },
+            body: JSON.stringify({
+                face_image: imageData
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            return result;
+        } else {
+            console.error('Face recognition failed:', result.error);
+            return { success: false, error: result.error };
+        }
+        
+    } catch (error) {
+        console.error('Network error during face recognition:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Function to handle navigation errors
 function handleNavigationError(error) {
     console.error('Navigation error:', error);

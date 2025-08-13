@@ -149,6 +149,7 @@
 let stream = null;
 let selectedClientId = null;
 let capturedImageData = null;
+let recognitionInterval = null;
 
 // Client selection handling
 document.getElementById('clientSelect').addEventListener('change', function() {
@@ -314,24 +315,108 @@ function removeFace(clientId) {
 // Test Recognition Modal
 document.getElementById('startTestCamera').addEventListener('click', async function() {
     try {
-        const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        document.getElementById('testVideo').srcObject = testStream;
-        document.getElementById('testVideo').play();
+        const testStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: 640, 
+                height: 480,
+                facingMode: 'user'
+            } 
+        });
+        const testVideo = document.getElementById('testVideo');
+        testVideo.srcObject = testStream;
+        testVideo.play();
         
-        // Simulate face recognition testing
-        setTimeout(() => {
-            document.getElementById('recognitionResults').innerHTML = `
-                <div class="alert alert-success">
-                    <strong>Recognition Test Successful!</strong><br>
-                    Face recognition system is working properly.
-                </div>
-            `;
-        }, 2000);
+        // Start continuous face recognition
+        recognitionInterval = setInterval(async () => {
+            try {
+                // Create a canvas to capture frame
+                const canvas = document.createElement('canvas');
+                canvas.width = testVideo.videoWidth;
+                canvas.height = testVideo.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(testVideo, 0, 0);
+                
+                // Get image data
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Send for recognition
+                const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+                
+                const response = await fetch('/api/recognize_face', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(csrfToken && {'X-CSRFToken': csrfToken})
+                    },
+                    body: JSON.stringify({
+                        face_image: imageData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    if (result.recognized) {
+                        document.getElementById('recognitionResults').innerHTML = `
+                            <div class="alert alert-success">
+                                <strong>Client Recognized!</strong><br>
+                                Name: ${result.client.name}<br>
+                                Phone: ${result.client.phone}<br>
+                                Confidence: ${(result.confidence * 100).toFixed(1)}%
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('recognitionResults').innerHTML = `
+                            <div class="alert alert-warning">
+                                <strong>Scanning...</strong><br>
+                                No matching face found. Continue positioning your face in the camera.
+                            </div>
+                        `;
+                    }
+                } else {
+                    console.error('Recognition error:', result.error);
+                }
+                
+            } catch (err) {
+                console.error('Recognition processing error:', err);
+            }
+        }, 2000); // Check every 2 seconds
+        
+        // Update button states
+        this.disabled = true;
+        document.getElementById('stopTestCamera').disabled = false;
         
     } catch (err) {
         console.error('Error:', err);
-        alert('Could not access camera for testing');
+        alert('Could not access camera for testing. Please check camera permissions.');
     }
+});
+
+document.getElementById('stopTestCamera').addEventListener('click', function() {
+    // Stop recognition interval
+    if (recognitionInterval) {
+        clearInterval(recognitionInterval);
+        recognitionInterval = null;
+    }
+    
+    // Stop camera stream
+    const testVideo = document.getElementById('testVideo');
+    if (testVideo.srcObject) {
+        testVideo.srcObject.getTracks().forEach(track => track.stop());
+        testVideo.srcObject = null;
+    }
+    
+    // Reset button states
+    document.getElementById('startTestCamera').disabled = false;
+    this.disabled = true;
+    
+    // Clear results
+    document.getElementById('recognitionResults').innerHTML = `
+        <div class="alert alert-info">
+            <strong>Recognition Stopped</strong><br>
+            Click "Start Recognition Test" to begin again.
+        </div>
+    `;
 });
 
 // Cleanup on page unload

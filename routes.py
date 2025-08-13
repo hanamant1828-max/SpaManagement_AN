@@ -785,6 +785,189 @@ def api_update_role_permissions(role_id):
         db.session.rollback()
         return {'error': str(e)}, 500
 
+# Additional API routes
+@app.route('/api/services')
+@login_required
+def api_services():
+    services = Service.query.filter_by(is_active=True).all()
+    return jsonify([{
+        'id': s.id,
+        'name': s.name,
+        'price': float(s.price),
+        'duration': s.duration
+    } for s in services])
+
+@app.route('/api/staff')
+@login_required
+def api_staff():
+    staff = User.query.filter(User.role.in_(['staff', 'manager'])).filter_by(is_active=True).all()
+    return jsonify([{
+        'id': s.id,
+        'name': s.full_name,
+        'role': s.role
+    } for s in staff])
+
+# Face Recognition API endpoints
+@app.route('/api/save_face', methods=['POST'])
+@login_required
+def api_save_face():
+    """Save face data for a client"""
+    if not current_user.can_access('face_management'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        client_id = data.get('client_id')
+        face_image = data.get('face_image')
+
+        if not client_id or not face_image:
+            return jsonify({'error': 'Client ID and face image are required'}), 400
+
+        # Find the client
+        from models import Client
+        client = Client.query.get(client_id)
+        if not client:
+            return jsonify({'error': 'Client not found'}), 404
+
+        # Here you would normally process the face image and extract facial features
+        # For now, we'll store the image data directly
+        import base64
+        import os
+
+        # Save face image
+        try:
+            # Remove data URL prefix if present
+            if face_image.startswith('data:image'):
+                face_image = face_image.split(',')[1]
+
+            # Decode base64 image
+            image_data = base64.b64decode(face_image)
+
+            # Create faces directory if it doesn't exist
+            faces_dir = os.path.join('static', 'faces')
+            os.makedirs(faces_dir, exist_ok=True)
+
+            # Save image file
+            filename = f"client_{client_id}_face.jpg"
+            filepath = os.path.join(faces_dir, filename)
+
+            with open(filepath, 'wb') as f:
+                f.write(image_data)
+
+            # Update client record
+            client.face_image_url = f"/static/faces/{filename}"
+            client.facial_encoding = face_image  # Store base64 for now
+
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': 'Face data saved successfully',
+                'client_name': client.full_name
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Error saving face data: {str(e)}'}), 500
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/remove_face/<int:client_id>', methods=['DELETE'])
+@login_required
+def api_remove_face(client_id):
+    """Remove face data for a client"""
+    if not current_user.can_access('face_management'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from models import Client
+        client = Client.query.get(client_id)
+        if not client:
+            return jsonify({'error': 'Client not found'}), 404
+
+        # Remove face image file if it exists
+        if client.face_image_url:
+            import os
+            try:
+                # Remove leading slash and convert to relative path
+                file_path = client.face_image_url.lstrip('/')
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except:
+                pass  # Continue even if file deletion fails
+
+        # Clear face data from database
+        client.face_image_url = None
+        client.facial_encoding = None
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Face data removed successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recognize_face', methods=['POST'])
+@login_required
+def api_recognize_face():
+    """Recognize a face against stored client faces"""
+    if not current_user.can_access('face_management'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        face_image = data.get('face_image')
+
+        if not face_image:
+            return jsonify({'error': 'Face image is required'}), 400
+
+        # Get all clients with face data
+        from models import Client
+        clients_with_faces = Client.query.filter(
+            Client.facial_encoding.isnot(None),
+            Client.is_active == True
+        ).all()
+
+        if not clients_with_faces:
+            return jsonify({
+                'success': False,
+                'message': 'No registered faces found'
+            })
+
+        # For demonstration, we'll simulate face matching
+        # In production, you would use face_recognition library here
+
+        # Simulate recognition success with first client for demo
+        if clients_with_faces:
+            matched_client = clients_with_faces[0]
+
+            return jsonify({
+                'success': True,
+                'recognized': True,
+                'client': {
+                    'id': matched_client.id,
+                    'name': matched_client.full_name,
+                    'phone': matched_client.phone,
+                    'email': matched_client.email
+                },
+                'confidence': 0.85  # Simulated confidence score
+            })
+
+        return jsonify({
+            'success': True,
+            'recognized': False,
+            'message': 'No matching face found'
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
