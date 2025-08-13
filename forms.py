@@ -720,8 +720,7 @@ class ComprehensiveStaffForm(FlaskForm):
     
     # System Settings
     password = PasswordField('Password', validators=[Optional()])
-    is_active = BooleanField('Active', default=True)d', 'Completed')
-    ], default='in_progress', validators=[DataRequired()])
+    is_active = BooleanField('Active', default=True)
 
 class StaffExitInterviewForm(FlaskForm):
     """Form to capture feedback during staff exit"""
