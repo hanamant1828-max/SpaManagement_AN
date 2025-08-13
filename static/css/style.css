@@ -64,13 +64,30 @@
     margin-left: 280px;
     padding-top: 80px;
     min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 @media (max-width: 991.98px) {
     .main-content {
         margin-left: 0;
         padding-top: 80px;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
+}
+
+/* Fix body scrolling */
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Ensure container scrolling works */
+.container-fluid {
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 /* Base styling */
@@ -559,6 +576,8 @@ body {
 /* Layout adjustments for sidebar */
 body {
     padding-top: 56px; /* Height of fixed navbar */
+    height: 100vh;
+    overflow: hidden;
 }
 
 @media (min-width: 992px) {
@@ -574,17 +593,28 @@ body {
         bottom: 0;
         z-index: 1000;
         border-right: 1px solid #dee2e6;
+        overflow-y: auto;
     }
 
     .main-content {
         margin-left: 0;
         padding: 20px;
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 }
 
 @media (max-width: 991px) {
+    body {
+        overflow: auto;
+        height: auto;
+    }
+    
     .main-content {
         padding: 20px 15px;
+        height: auto;
+        overflow: visible;
     }
 }
 

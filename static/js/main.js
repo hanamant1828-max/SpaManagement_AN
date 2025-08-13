@@ -562,8 +562,8 @@ function handleToggleStatus(button, id) {
         // Update button state
         setTimeout(() => {
             button.dataset.status = newStatus.toString();
-            button.innerHTML = newStatus ? 
-                '<i class="fas fa-eye-slash"></i>' : 
+            button.innerHTML = newStatus ?
+                '<i class="fas fa-eye-slash"></i>' :
                 '<i class="fas fa-eye"></i>';
             button.disabled = false;
 
@@ -1103,46 +1103,106 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Function to update service price (fixes the JavaScript error)
+// Define updateServicePrice function globally first
 function updateServicePrice(serviceId, price) {
-    // Update service price display
-    const priceElement = document.getElementById(`service-price-${serviceId}`);
-    if (priceElement) {
-        priceElement.textContent = `₹${parseFloat(price).toFixed(2)}`;
+    try {
+        console.log(`Service ${serviceId} selected with price: ${price}`);
+
+        // Update any price display elements
+        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
+        priceDisplays.forEach(display => {
+            display.textContent = formatCurrency(price);
+        });
+
+        // Update service-specific price elements
+        const priceElements = document.querySelectorAll('.service-price');
+        priceElements.forEach(element => {
+            if (element.dataset.serviceId === serviceId) {
+                element.textContent = `₹${price}`;
+            }
+        });
+
+        // Update amount input if exists
+        const amountField = document.getElementById('amount');
+        if (amountField) {
+            amountField.value = price;
+        }
+
+        const serviceAmountField = document.getElementById('service_amount');
+        if (serviceAmountField) {
+            serviceAmountField.value = price;
+        }
+
+        // Trigger total calculation if on billing page
+        if (typeof calculateTotal === 'function') {
+            calculateTotal();
+        }
+
+        // Trigger custom price update events
+        document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
+            detail: { serviceId: serviceId, price: price }
+        }));
+
+        return true;
+
+    } catch (error) {
+        console.error('Error updating service price:', error);
+        return false;
     }
 }
+
+// Make it globally available immediately
+window.updateServicePrice = updateServicePrice;
 
 // Staff management navigation function
 function navigateToStaffManagement() {
     window.location.href = '/comprehensive_staff';
 }
 
-// Update service price function
+// Update service price function - consolidated and fixed
 function updateServicePrice(serviceId, price) {
     try {
-        // Update price displays
-        const priceDisplays = document.querySelectorAll('[data-service-id="' + serviceId + '"] .price-display');
+        console.log(`Service ${serviceId} selected with price: ${price}`);
+
+        // Update any price display elements
+        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
         priceDisplays.forEach(display => {
-            display.textContent = '₹' + parseFloat(price).toFixed(2);
+            display.textContent = formatCurrency(price);
         });
-        
+
+        // Update service-specific price elements
+        const priceElements = document.querySelectorAll('.service-price');
+        priceElements.forEach(element => {
+            if (element.dataset.serviceId === serviceId) {
+                element.textContent = `₹${price}`;
+            }
+        });
+
         // Update amount input if exists
         const amountField = document.getElementById('amount');
         if (amountField) {
             amountField.value = price;
         }
-        
-        // Update total calculations if exists
+
+        const serviceAmountField = document.getElementById('service_amount');
+        if (serviceAmountField) {
+            serviceAmountField.value = price;
+        }
+
+        // Trigger total calculation if on billing page
         if (typeof calculateTotal === 'function') {
             calculateTotal();
         }
-        
-        // Trigger custom event for other components
-        const event = new CustomEvent('servicePriceUpdated', {
+
+        // Trigger custom price update events
+        document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
             detail: { serviceId: serviceId, price: price }
-        });
-        document.dispatchEvent(event);
-        
+        }));
+
+        document.dispatchEvent(new CustomEvent('servicePriceChanged', {
+            detail: { serviceId, price }
+        }));
+
     } catch (error) {
         console.error('Error updating service price:', error);
     }
@@ -1152,12 +1212,12 @@ function updateServicePrice(serviceId, price) {
 function handleServiceSelection(selectElement) {
     try {
         if (!selectElement) return;
-        
+
         const selectedOption = selectElement.options[selectElement.selectedIndex];
         if (selectedOption && selectedOption.dataset.price) {
             const price = selectedOption.dataset.price;
             updateServicePrice(selectElement.value, price);
-            
+
             // Update amount field if exists
             const amountField = document.getElementById('amount');
             if (amountField) {
@@ -1182,26 +1242,26 @@ function calculateTotal() {
     try {
         let total = 0;
         const serviceSelects = document.querySelectorAll('select[data-price]');
-        
+
         serviceSelects.forEach(select => {
             if (select.value && select.selectedOptions[0]) {
                 const price = parseFloat(select.selectedOptions[0].dataset.price || 0);
                 total += price;
             }
         });
-        
+
         // Update total display
         const totalDisplay = document.getElementById('total-amount');
         if (totalDisplay) {
             totalDisplay.textContent = '₹' + total.toFixed(2);
         }
-        
+
         // Update hidden total field
         const totalField = document.getElementById('total_amount');
         if (totalField) {
             totalField.value = total.toFixed(2);
         }
-        
+
     } catch (error) {
         console.error('Error calculating total:', error);
     }
@@ -1213,13 +1273,13 @@ function calculateTotal() {
 function updateServicePrice(serviceId, price) {
     try {
         console.log(`Service ${serviceId} selected with price: ${price}`);
-        
+
         // Update any price display elements
         const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
         priceDisplays.forEach(display => {
             display.textContent = formatCurrency(price);
         });
-        
+
         // Update service-specific price elements
         const priceElements = document.querySelectorAll('.service-price');
         priceElements.forEach(element => {
@@ -1227,32 +1287,32 @@ function updateServicePrice(serviceId, price) {
                 element.textContent = `₹${price}`;
             }
         });
-        
+
         // Update amount input if exists
         const amountField = document.getElementById('amount');
         if (amountField) {
             amountField.value = price;
         }
-        
+
         const serviceAmountField = document.getElementById('service_amount');
         if (serviceAmountField) {
             serviceAmountField.value = price;
         }
-        
+
         // Trigger total calculation if on billing page
         if (typeof calculateTotal === 'function') {
             calculateTotal();
         }
-        
+
         // Trigger custom price update events
         document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
             detail: { serviceId: serviceId, price: price }
         }));
-        
+
         document.dispatchEvent(new CustomEvent('servicePriceChanged', {
             detail: { serviceId, price }
         }));
-        
+
     } catch (error) {
         console.error('Error updating service price:', error);
     }
@@ -1261,13 +1321,13 @@ function updateServicePrice(serviceId, price) {
 // Face Recognition Functions
 function initializeFaceRecognition() {
     console.log('Face recognition system initialized');
-    
+
     // Check if browser supports getUserMedia
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error('Camera access not supported in this browser');
         return false;
     }
-    
+
     return true;
 }
 
@@ -1278,21 +1338,21 @@ async function startFaceRecognitionCamera(videoElementId) {
         if (!video) {
             throw new Error(`Video element ${videoElementId} not found`);
         }
-        
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                width: 640, 
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: 640,
                 height: 480,
                 facingMode: 'user'
-            } 
+            }
         });
-        
+
         video.srcObject = stream;
         video.play();
-        
+
         console.log('Face recognition camera started successfully');
         return stream;
-        
+
     } catch (error) {
         console.error('Error starting face recognition camera:', error);
         alert('Could not access camera. Please check permissions.');
@@ -1306,13 +1366,13 @@ function captureFrameForRecognition(videoElement, canvasElement) {
         console.error('Video or canvas element not found');
         return null;
     }
-    
+
     const ctx = canvasElement.getContext('2d');
     canvasElement.width = videoElement.videoWidth;
     canvasElement.height = videoElement.videoHeight;
-    
+
     ctx.drawImage(videoElement, 0, 0);
-    
+
     // Get image data as base64
     const imageData = canvasElement.toDataURL('image/jpeg', 0.8);
     return imageData;
@@ -1321,9 +1381,9 @@ function captureFrameForRecognition(videoElement, canvasElement) {
 // Send face data for recognition
 async function performFaceRecognition(imageData) {
     try {
-        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
+        const csrfToken = document.querySelector('[name=csrf_token]')?.value ||
                          document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
-        
+
         const response = await fetch('/api/recognize_face', {
             method: 'POST',
             headers: {
@@ -1334,16 +1394,16 @@ async function performFaceRecognition(imageData) {
                 face_image: imageData
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             return result;
         } else {
             console.error('Face recognition failed:', result.error);
             return { success: false, error: result.error };
         }
-        
+
     } catch (error) {
         console.error('Network error during face recognition:', error);
         return { success: false, error: error.message };
