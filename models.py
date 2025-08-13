@@ -300,11 +300,16 @@ class Package(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
+    package_type = db.Column(db.String(50), default='regular')  # regular, prepaid, membership, student_offer, kitty_party
     duration_months = db.Column(db.Integer, nullable=False)  # 3, 6, 12 months
     validity_days = db.Column(db.Integer, nullable=False, default=90)  # Validity in days
     total_sessions = db.Column(db.Integer, nullable=False, default=1)  # Total sessions in package
     total_price = db.Column(db.Float, nullable=False)
+    credit_amount = db.Column(db.Float, default=0.0)  # For prepaid packages - amount credited
     discount_percentage = db.Column(db.Float, default=0.0)
+    student_discount = db.Column(db.Float, default=0.0)  # Additional student discount
+    min_guests = db.Column(db.Integer, default=1)  # For kitty party packages
+    membership_benefits = db.Column(db.Text)  # JSON string for membership benefits
     is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

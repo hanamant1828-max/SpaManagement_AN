@@ -57,10 +57,30 @@
                 </div>
             </div>
 
+            <!-- Package Categories -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Filter by Package Type</h6>
+                            <div class="btn-group" role="group" aria-label="Package filters">
+                                <button type="button" class="btn btn-outline-primary active" onclick="filterPackages('all')">All Packages</button>
+                                <button type="button" class="btn btn-outline-success" onclick="filterPackages('prepaid')">Prepaid</button>
+                                <button type="button" class="btn btn-outline-info" onclick="filterPackages('service_package')">Service Packages</button>
+                                <button type="button" class="btn btn-outline-warning" onclick="filterPackages('membership')">Memberships</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterPackages('student_offer')">Student Offers</button>
+                                <button type="button" class="btn btn-outline-danger" onclick="filterPackages('kitty_party')">Kitty Party</button>
+                                <button type="button" class="btn btn-outline-dark" onclick="filterPackages('yearly_membership')">Yearly Membership</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Packages Table -->
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">📦 Package Management</h5>
+                    <h5 class="card-title mb-0">📦 Comprehensive Spa Package Management</h5>
                 </div>
                 <div class="card-body">
                     {% if packages %}
@@ -68,11 +88,12 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
+                                        <th>Package Type</th>
                                         <th>Package Name</th>
-                                        <th>Services Included</th>
+                                        <th>Services/Benefits</th>
                                         <th>Validity</th>
                                         <th>Price</th>
-                                        <th>Discount</th>
+                                        <th>Benefits</th>
                                         <th>Active Clients</th>
                                         <th>Status</th>
                                         <th>Actions</th>
@@ -80,30 +101,66 @@
                                 </thead>
                                 <tbody>
                                     {% for package in packages %}
-                                    <tr>
+                                    <tr data-package-type="{{ package.package_type or 'regular' }}">
                                         <td>
-                                            <strong>{{ package.name }}</strong>
-                                            {% if package.description %}
-                                                <br><small class="text-muted">{{ package.description[:50] }}...</small>
+                                            {% set package_type = package.package_type or 'regular' %}
+                                            {% if package_type == 'prepaid' %}
+                                                <span class="badge bg-success">💳 Prepaid</span>
+                                            {% elif package_type == 'service_package' %}
+                                                <span class="badge bg-info">🎁 Service Package</span>
+                                            {% elif package_type == 'membership' %}
+                                                <span class="badge bg-warning">👑 Membership</span>
+                                            {% elif package_type == 'student_offer' %}
+                                                <span class="badge bg-secondary">🎓 Student Offer</span>
+                                            {% elif package_type == 'kitty_party' %}
+                                                <span class="badge bg-danger">🎉 Kitty Party</span>
+                                            {% elif package_type == 'yearly_membership' %}
+                                                <span class="badge bg-dark">📅 Yearly Membership</span>
+                                            {% else %}
+                                                <span class="badge bg-primary">📦 Regular</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% for ps in package.services %}
-                                                <span class="badge bg-info me-1 mb-1">
-                                                    {{ ps.service.name }} ({{ ps.sessions_included }}x)
-                                                    {% if ps.service_discount > 0 %}
-                                                        <small>-{{ ps.service_discount }}%</small>
-                                                    {% endif %}
-                                                </span>
-                                            {% endfor %}
+                                            <strong>{{ package.name }}</strong>
+                                            {% if package.description %}
+                                                <br><small class="text-muted">{{ package.description[:80] }}...</small>
+                                            {% endif %}
                                         </td>
-                                        <td>{{ package.validity_days }} days</td>
-                                        <td>₹{{ "%.2f"|format(package.total_price) }}</td>
+                                        <td>
+                                            {% if package.services %}
+                                                {% for ps in package.services %}
+                                                    <span class="badge bg-info me-1 mb-1">
+                                                        {{ ps.service.name }} ({{ ps.sessions_included }}x)
+                                                        {% if ps.service_discount > 0 %}
+                                                            <small>-{{ ps.service_discount }}%</small>
+                                                        {% endif %}
+                                                    </span>
+                                                {% endfor %}
+                                            {% elif package.membership_benefits %}
+                                                <small class="text-muted">Membership benefits included</small>
+                                            {% else %}
+                                                <small class="text-muted">Flexible service selection</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ package.validity_days }} days
+                                            <br><small class="text-muted">{{ package.total_sessions }} sessions</small>
+                                        </td>
+                                        <td>
+                                            <strong>₹{{ "{:,.0f}"|format(package.total_price) }}</strong>
+                                            {% if package.credit_amount and package.credit_amount > 0 %}
+                                                <br><small class="text-success">Credit: ₹{{ "{:,.0f}"|format(package.credit_amount) }}</small>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             {% if package.discount_percentage > 0 %}
-                                                <span class="badge bg-warning">{{ package.discount_percentage }}%</span>
-                                            {% else %}
-                                                <span class="text-muted">No discount</span>
+                                                <span class="badge bg-warning">{{ package.discount_percentage }}% OFF</span>
+                                            {% endif %}
+                                            {% if package.student_discount > 0 %}
+                                                <span class="badge bg-secondary">Student: {{ package.student_discount }}%</span>
+                                            {% endif %}
+                                            {% if package.min_guests and package.min_guests > 1 %}
+                                                <span class="badge bg-info">Min {{ package.min_guests }} guests</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -656,6 +713,29 @@ function deletePackage(packageId, packageName) {
 function viewUsageDetails(clientPackageId) {
     // Implement usage details view
     alert('Usage details view will be implemented');
+}
+
+// Package filtering functionality
+function filterPackages(packageType) {
+    const rows = document.querySelectorAll('[data-package-type]');
+    const buttons = document.querySelectorAll('.btn-group [onclick^="filterPackages"]');
+    
+    // Update active button
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter rows
+    rows.forEach(row => {
+        if (packageType === 'all' || row.dataset.packageType === packageType) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update count
+    const visibleRows = document.querySelectorAll('[data-package-type]:not([style*="display: none"])');
+    console.log(`Showing ${visibleRows.length} packages for type: ${packageType}`);
 }
 </script>
 
