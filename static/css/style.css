@@ -462,6 +462,55 @@ body {
     background: var(--bs-primary);
 }
 
+/* Face Recognition Modal Styles */
+#staffFaceSetupModal .modal-dialog {
+    max-height: 90vh;
+}
+
+#staffFaceSetupModal .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#staffFaceSetupModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+#staffFaceSetupModal .camera-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+}
+
+#staffFaceSetupModal .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    #staffFaceSetupModal .modal-dialog {
+        margin: 0.5rem;
+        max-height: 95vh;
+    }
+    
+    #staffFaceSetupModal .button-group .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    #staffFaceSetupModal .camera-container video,
+    #staffFaceSetupModal .camera-container canvas {
+        max-width: 100%;
+        height: auto;
+    }
+}
+
 /* Utility classes */
 .text-xs {
     font-size: 0.75rem;
