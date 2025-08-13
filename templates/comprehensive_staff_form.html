@@ -436,9 +436,207 @@ function stopCamera() {
     stopBtn.style.display = 'none';
 }
 
+// Face Recognition Setup Function
 function setupFaceRecognition() {
-    // Placeholder for face recognition setup
-    alert('Face recognition setup will be implemented here');
+    // Check if we're editing an existing staff member
+    const staffIdInput = document.querySelector('[name="staff_id"]');
+    let staffId = staffIdInput ? staffIdInput.value : null;
+
+    if (!staffId && window.location.pathname.includes('/edit/')) {
+        // Extract staff ID from URL if not found in hidden input
+        const pathParts = window.location.pathname.split('/');
+        const editIndex = pathParts.indexOf('edit');
+        if (editIndex !== -1 && pathParts[editIndex + 1]) {
+            staffId = pathParts[editIndex + 1];
+        }
+    }
+
+    if (!staffId) {
+        alert('Please save the staff member first before setting up face recognition.');
+        return;
+    }
+
+    // Create and show face recognition modal
+    const modalHtml = `
+        <div class="modal fade" id="staffFaceSetupModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-camera me-2"></i>Setup Face Recognition
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center">
+                            <div class="camera-container mb-3">
+                                <video id="staffFaceVideo" width="400" height="300" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></video>
+                                <canvas id="staffFaceCanvas" width="400" height="300" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></canvas>
+                                <div id="staffCameraPlaceholder" class="bg-light d-flex align-items-center justify-content-center" style="height: 300px; border: 2px dashed #dee2e6; border-radius: 8px;">
+                                    <div>
+                                        <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">Face Recognition Setup</h5>
+                                        <p class="text-muted">Position your face in the camera and capture</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="button-group">
+                                <button id="startStaffCamera" class="btn btn-success me-2">
+                                    <i class="fas fa-video me-1"></i>Start Camera
+                                </button>
+                                <button id="captureStaffFace" class="btn btn-primary me-2" disabled>
+                                    <i class="fas fa-camera me-1"></i>Capture Face
+                                </button>
+                                <button id="saveStaffFace" class="btn btn-warning" disabled>
+                                    <i class="fas fa-save me-1"></i>Save Face Data
+                                </button>
+                            </div>
+                            <div id="faceSetupStatus" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if present
+    const existingModal = document.getElementById('staffFaceSetupModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('staffFaceSetupModal'));
+    modal.show();
+
+    // Setup camera functionality
+    let faceStream = null;
+    let capturedFaceData = null;
+
+    document.getElementById('startStaffCamera').addEventListener('click', async function() {
+        try {
+            faceStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 400, height: 300, facingMode: 'user' }
+            });
+
+            const video = document.getElementById('staffFaceVideo');
+            video.srcObject = faceStream;
+            video.play();
+
+            document.getElementById('staffCameraPlaceholder').style.display = 'none';
+            video.style.display = 'block';
+            document.getElementById('captureStaffFace').disabled = false;
+            this.disabled = true;
+
+        } catch (err) {
+            console.error('Camera access error:', err);
+            document.getElementById('faceSetupStatus').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Camera access denied. Please check your browser permissions.
+                </div>
+            `;
+        }
+    });
+
+    document.getElementById('captureStaffFace').addEventListener('click', function() {
+        const video = document.getElementById('staffFaceVideo');
+        const canvas = document.getElementById('staffFaceCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Draw video frame to canvas
+        ctx.drawImage(video, 0, 0, 400, 300);
+
+        // Show captured image
+        canvas.style.display = 'block';
+        video.style.display = 'none';
+
+        // Get image data
+        capturedFaceData = canvas.toDataURL('image/jpeg', 0.8);
+
+        document.getElementById('saveStaffFace').disabled = false;
+        this.disabled = true;
+
+        document.getElementById('faceSetupStatus').innerHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-check me-2"></i>
+                Face captured successfully! Click "Save Face Data" to complete setup.
+            </div>
+        `;
+    });
+
+    document.getElementById('saveStaffFace').addEventListener('click', async function() {
+        if (!capturedFaceData) {
+            alert('Please capture a face first');
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+        try {
+            const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+
+            const response = await fetch('/staff/facial-recognition/setup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(csrfToken && {'X-CSRFToken': csrfToken})
+                },
+                body: JSON.stringify({
+                    staff_id: parseInt(staffId),
+                    face_encoding: capturedFaceData
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                document.getElementById('faceSetupStatus').innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Face recognition setup completed successfully!
+                    </div>
+                `;
+
+                // Enable face check-in checkbox
+                const faceCheckbox = document.getElementById('enable_face_checkin');
+                if (faceCheckbox) {
+                    faceCheckbox.checked = true;
+                }
+
+                setTimeout(() => {
+                    modal.hide();
+                }, 2000);
+
+            } else {
+                throw new Error(result.error || 'Failed to save face data');
+            }
+
+        } catch (error) {
+            console.error('Face setup error:', error);
+            document.getElementById('faceSetupStatus').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error: ${error.message}
+                </div>
+            `;
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-save me-1"></i>Save Face Data';
+        }
+    });
+
+    // Cleanup on modal close
+    document.getElementById('staffFaceSetupModal').addEventListener('hidden.bs.modal', function() {
+        if (faceStream) {
+            faceStream.getTracks().forEach(track => track.stop());
+        }
+        this.remove();
+    });
 }
 
 // Form validation
