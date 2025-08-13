@@ -967,6 +967,7 @@ window.exportTableData = exportTableData;
 window.printElement = printElement;
 window.validateForm = validateForm;
 window.saveUserPreferences = saveUserPreferences;
+window.updateServicePrice = updateServicePrice;
 
 // CSS for dynamic features
 const additionalStyles = `
@@ -1168,27 +1169,6 @@ function handleServiceSelection(selectElement) {
     }
 }
 
-// Update service price function
-function updateServicePrice(serviceId, price) {
-    try {
-        console.log(`Service ${serviceId} selected with price: ${price}`);
-        
-        // Update any price display elements
-        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
-        priceDisplays.forEach(display => {
-            display.textContent = formatCurrency(price);
-        });
-        
-        // Trigger total calculation if on billing page
-        if (typeof calculateTotal === 'function') {
-            calculateTotal();
-        }
-        
-    } catch (error) {
-        console.error('Error updating service price:', error);
-    }
-}
-
 // Format currency helper function
 function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
@@ -1227,49 +1207,55 @@ function calculateTotal() {
     }
 }
 
-// Missing updateServicePrice function
-function updateServicePrice(serviceId, price) {
-    // Update price display elements
-    const priceDisplays = document.querySelectorAll('.service-price-display');
-    priceDisplays.forEach(display => {
-        if (display.dataset.serviceId === serviceId) {
-            display.textContent = price;
-        }
-    });
-    
-    // Update form amount fields
-    const amountField = document.getElementById('amount');
-    if (amountField) {
-        amountField.value = price;
-    }
-    
-    const serviceAmountField = document.getElementById('service_amount');
-    if (serviceAmountField) {
-        serviceAmountField.value = price;
-    }
-    
-    // Trigger any custom price update events
-    document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
-        detail: { serviceId: serviceId, price: price }
-    }));
-}
+// Function removed - consolidated into main updateServicePrice function above
 
-// Update service price function
+// Update service price function - consolidated and fixed
 function updateServicePrice(serviceId, price) {
-    console.log(`Service ${serviceId} price updated to ${price}`);
-    
-    // Update any price display elements
-    const priceElements = document.querySelectorAll('.service-price');
-    priceElements.forEach(element => {
-        if (element.dataset.serviceId === serviceId) {
-            element.textContent = `₹${price}`;
+    try {
+        console.log(`Service ${serviceId} selected with price: ${price}`);
+        
+        // Update any price display elements
+        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
+        priceDisplays.forEach(display => {
+            display.textContent = formatCurrency(price);
+        });
+        
+        // Update service-specific price elements
+        const priceElements = document.querySelectorAll('.service-price');
+        priceElements.forEach(element => {
+            if (element.dataset.serviceId === serviceId) {
+                element.textContent = `₹${price}`;
+            }
+        });
+        
+        // Update amount input if exists
+        const amountField = document.getElementById('amount');
+        if (amountField) {
+            amountField.value = price;
         }
-    });
-    
-    // Trigger any price change events
-    document.dispatchEvent(new CustomEvent('servicePriceChanged', {
-        detail: { serviceId, price }
-    }));
+        
+        const serviceAmountField = document.getElementById('service_amount');
+        if (serviceAmountField) {
+            serviceAmountField.value = price;
+        }
+        
+        // Trigger total calculation if on billing page
+        if (typeof calculateTotal === 'function') {
+            calculateTotal();
+        }
+        
+        // Trigger custom price update events
+        document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
+            detail: { serviceId: serviceId, price: price }
+        }));
+        
+        document.dispatchEvent(new CustomEvent('servicePriceChanged', {
+            detail: { serviceId, price }
+        }));
+        
+    } catch (error) {
+        console.error('Error updating service price:', error);
+    }
 }
 
 // Face Recognition Functions
