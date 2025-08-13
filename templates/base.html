@@ -84,18 +84,18 @@
 
                     {% if current_user.can_access('staff') %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" id="staffDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" id="staffDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-users me-2"></i>Staff Management
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item text-white" href="{{ url_for('staff') }}">
+                        <ul class="dropdown-menu" aria-labelledby="staffDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('staff') }}">
                                 <i class="fas fa-list me-2"></i>Basic Staff View
                             </a></li>
-                            <li><a class="dropdown-item text-white" href="{{ url_for('comprehensive_staff') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('comprehensive_staff') }}">
                                 <i class="fas fa-users-cog me-2"></i>Comprehensive Management
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-white" href="{{ url_for('create_comprehensive_staff') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('create_comprehensive_staff') }}">
                                 <i class="fas fa-user-plus me-2"></i>Add New Staff
                             </a></li>
                         </ul>

@@ -22,6 +22,11 @@ import io
 from datetime import datetime, date, timedelta
 import json
 
+# Debug: Print route registration
+print("Registering Staff Management routes...")
+print(f"App name: {app.name}")
+print(f"Current module: {__name__}")
+
 @app.route('/staff')
 @login_required
 def staff():
