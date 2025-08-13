@@ -147,9 +147,9 @@
                                             <br><small class="text-muted">{{ package.total_sessions }} sessions</small>
                                         </td>
                                         <td>
-                                            <strong>₹{{ "{:,.0f}"|format(package.total_price) }}</strong>
+                                            <strong>₹{{ "{:,.0f}"|format(package.total_price or 0) }}</strong>
                                             {% if package.credit_amount and package.credit_amount > 0 %}
-                                                <br><small class="text-success">Credit: ₹{{ "{:,.0f}"|format(package.credit_amount) }}</small>
+                                                <br><small class="text-success">Credit: ₹{{ "{:,.0f}"|format(package.credit_amount or 0) }}</small>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -241,7 +241,7 @@
                                     <td>
                                         {{ cp.expiry_date.strftime('%Y-%m-%d') }}
                                     </td>
-                                    <td>₹{{ "%.2f"|format(cp.amount_paid) }}</td>
+                                    <td>₹{{ "%.2f"|format(cp.amount_paid or 0) }}</td>
                                     <td>
                                         {% if cp.is_active %}
                                             <span class="badge bg-success">Active</span>

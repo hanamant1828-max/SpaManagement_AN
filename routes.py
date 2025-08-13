@@ -211,6 +211,16 @@ def packages_enhanced():
         db.session.commit()
 
     packages = Package.query.order_by(Package.sort_order, Package.name).all()
+    
+    # Safety check: ensure all packages have a total_price
+    for package in packages:
+        if package.total_price is None:
+            package.total_price = 0.0
+    
+    try:
+        db.session.commit()
+    except:
+        db.session.rollback()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
     clients = Client.query.filter_by(is_active=True).order_by(Client.first_name).all()
     client_packages = ClientPackage.query.filter_by(is_active=True).order_by(ClientPackage.purchase_date.desc()).all()
@@ -257,8 +267,8 @@ def create_package_route():
                 duration_months=duration_months,
                 validity_days=form.validity_days.data,
                 total_sessions=total_sessions,
-                total_price=form.total_price.data,
-                discount_percentage=form.discount_percentage.data,
+                total_price=float(form.total_price.data or 0),
+                discount_percentage=float(form.discount_percentage.data or 0),
                 is_active=form.is_active.data
             )
 
