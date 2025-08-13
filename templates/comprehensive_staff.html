@@ -89,18 +89,39 @@
         </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Search and Filters -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
+                    <!-- Search Bar -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="staffSearch" 
+                                       placeholder="Search staff by name, email, employee ID, or staff code..."
+                                       value="{{ request.args.get('search', '') }}">
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filters -->
                     <form method="GET" class="row g-3">
+                        <input type="hidden" name="search" id="searchInput" value="{{ request.args.get('search', '') }}">
                         <div class="col-md-3">
                             <label class="form-label">Filter by Role</label>
                             <select name="role" class="form-select">
                                 <option value="">All Roles</option>
                                 {% for role in roles %}
-                                <option value="{{ role.id }}">{{ role.display_name }}</option>
+                                <option value="{{ role.id }}" {{ 'selected' if request.args.get('role') == role.id|string }}>{{ role.display_name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -109,7 +130,7 @@
                             <select name="department" class="form-select">
                                 <option value="">All Departments</option>
                                 {% for dept in departments %}
-                                <option value="{{ dept.id }}">{{ dept.display_name }}</option>
+                                <option value="{{ dept.id }}" {{ 'selected' if request.args.get('department') == dept.id|string }}>{{ dept.display_name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -117,8 +138,8 @@
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select">
                                 <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
+                                <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
+                                <option value="inactive" {{ 'selected' if request.args.get('status') == 'inactive' }}>Inactive</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -569,6 +590,91 @@ document.addEventListener('keydown', function(e) {
         refreshStaffData();
     }
 });
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('staffSearch');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const hiddenSearchInput = document.getElementById('searchInput');
+    const filterForm = document.querySelector('form');
+    
+    if (searchInput && filterForm) {
+        // Real-time search as user types
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            hiddenSearchInput.value = this.value;
+            
+            // Get all staff rows
+            const staffRows = document.querySelectorAll('[data-staff-id]');
+            
+            staffRows.forEach(function(row) {
+                const staffName = row.querySelector('strong').textContent.toLowerCase();
+                const staffCode = row.querySelector('small').textContent.toLowerCase();
+                const emailCell = row.querySelector('td:nth-child(4)');
+                const email = emailCell ? emailCell.textContent.toLowerCase() : '';
+                
+                // Check if search term matches name, code, or email
+                const isVisible = searchTerm === '' || 
+                    staffName.includes(searchTerm) || 
+                    staffCode.includes(searchTerm) || 
+                    email.includes(searchTerm);
+                
+                row.style.display = isVisible ? '' : 'none';
+            });
+            
+            // Update visible count
+            const visibleRows = document.querySelectorAll('[data-staff-id]:not([style*="display: none"])');
+            updateSearchResults(visibleRows.length);
+        });
+        
+        // Clear search functionality
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            hiddenSearchInput.value = '';
+            
+            // Show all rows
+            const staffRows = document.querySelectorAll('[data-staff-id]');
+            staffRows.forEach(function(row) {
+                row.style.display = '';
+            });
+            
+            updateSearchResults(staffRows.length);
+            searchInput.focus();
+        });
+        
+        // Handle Enter key for search
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Update hidden input and submit form for server-side search
+                hiddenSearchInput.value = this.value;
+                filterForm.submit();
+            }
+        });
+    }
+});
+
+// Update search results count
+function updateSearchResults(count) {
+    let resultDiv = document.getElementById('searchResults');
+    if (!resultDiv) {
+        resultDiv = document.createElement('div');
+        resultDiv.id = 'searchResults';
+        resultDiv.className = 'mb-2 text-muted small';
+        
+        const cardBody = document.querySelector('.card-body .table-responsive');
+        if (cardBody && cardBody.parentNode) {
+            cardBody.parentNode.insertBefore(resultDiv, cardBody);
+        }
+    }
+    
+    const totalRows = document.querySelectorAll('[data-staff-id]').length;
+    if (count === totalRows) {
+        resultDiv.textContent = `Showing all ${totalRows} staff members`;
+    } else {
+        resultDiv.textContent = `Showing ${count} of ${totalRows} staff members`;
+    }
+}
 </script>
 
 <style>
