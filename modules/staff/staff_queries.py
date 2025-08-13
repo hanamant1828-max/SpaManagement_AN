@@ -22,11 +22,22 @@ def get_comprehensive_staff():
 
 def get_staff_by_id(staff_id):
     """Get staff member by ID with full details"""
-    return User.query.options(
-        db.joinedload(User.user_role),
-        db.joinedload(User.staff_department),
-        db.joinedload(User.staff_services)
-    ).get(staff_id)
+    try:
+        staff_member = User.query.get(staff_id)
+        if staff_member:
+            # Ensure profile completeness
+            if not staff_member.staff_code:
+                staff_member.staff_code = f"STF{str(staff_member.id).zfill(3)}"
+            if not staff_member.designation:
+                staff_member.designation = staff_member.role.title()
+            if not staff_member.date_of_joining:
+                staff_member.date_of_joining = staff_member.created_at.date() if staff_member.created_at else date.today()
+            db.session.commit()
+        return staff_member
+    except Exception as e:
+        print(f"Error getting staff by ID: {e}")
+        db.session.rollback()
+        return None
 
 def get_staff_by_role(role_name):
     """Get staff members by role"""
@@ -199,12 +210,27 @@ def get_staff_performance_data(staff_id):
         }
 
 def get_comprehensive_staff():
-    """Get all staff with comprehensive information"""
+    """Get all staff with comprehensive details"""
     try:
-        staff = User.query.filter(User.role.in_(['staff', 'manager', 'admin'])).all()
-        return staff
+        staff_members = User.query.filter(
+            User.role.in_(['staff', 'manager', 'admin']),
+            User.is_active == True
+        ).order_by(User.first_name).all()
+
+        # Ensure each staff member has all required fields populated
+        for member in staff_members:
+            if not member.staff_code:
+                member.staff_code = f"STF{str(member.id).zfill(3)}"
+            if not member.designation:
+                member.designation = member.role.title()
+            if not member.date_of_joining:
+                member.date_of_joining = member.created_at.date() if member.created_at else date.today()
+
+        db.session.commit()
+        return staff_members
     except Exception as e:
         print(f"Error getting comprehensive staff: {e}")
+        db.session.rollback()
         return []
 
 def get_active_roles():
@@ -231,73 +257,93 @@ def get_active_services():
         print(f"Error getting active services: {e}")
         return []
 
-def create_comprehensive_staff_member(form):
-    """Create a comprehensive staff member from form data"""
+def create_comprehensive_staff(form_data):
+    """Create new staff member with comprehensive details"""
     try:
-        from werkzeug.security import generate_password_hash
+        # Convert working days to string format
+        working_days = ''.join([
+            '1' if form_data.get('monday') else '0',
+            '1' if form_data.get('tuesday') else '0',
+            '1' if form_data.get('wednesday') else '0',
+            '1' if form_data.get('thursday') else '0',
+            '1' if form_data.get('friday') else '0',
+            '1' if form_data.get('saturday') else '0',
+            '1' if form_data.get('sunday') else '0'
+        ])
 
-        # Generate working days string
-        working_days = ''
-        working_days += '1' if form.monday.data else '0'
-        working_days += '1' if form.tuesday.data else '0'
-        working_days += '1' if form.wednesday.data else '0'
-        working_days += '1' if form.thursday.data else '0'
-        working_days += '1' if form.friday.data else '0'
-        working_days += '1' if form.saturday.data else '0'
-        working_days += '1' if form.sunday.data else '0'
+        # Generate staff code if not provided
+        staff_code = form_data.get('staff_code')
+        if not staff_code:
+            # Get next available staff code
+            last_staff = User.query.filter(User.staff_code.isnot(None)).order_by(User.id.desc()).first()
+            if last_staff and last_staff.staff_code and last_staff.staff_code.startswith('STF'):
+                try:
+                    last_num = int(last_staff.staff_code[3:])
+                    staff_code = f"STF{str(last_num + 1).zfill(3)}"
+                except:
+                    staff_code = f"STF001"
+            else:
+                staff_code = f"STF001"
 
-        # Create new staff member
-        staff_data = {
-            'username': form.username.data,
-            'first_name': form.first_name.data,
-            'last_name': form.last_name.data,
-            'email': form.email.data,
-            'phone': form.phone.data,
-            'gender': form.gender.data,
-            'date_of_birth': form.date_of_birth.data,
-            'date_of_joining': form.date_of_joining.data or datetime.now().date(),
-            'designation': form.designation.data,
-            'staff_code': form.staff_code.data,
-            'notes_bio': form.notes_bio.data,
-            'aadhaar_number': form.aadhaar_number.data,
-            'pan_number': form.pan_number.data,
-            'verification_status': form.verification_status.data,
-            'shift_start_time': form.shift_start_time.data,
-            'shift_end_time': form.shift_end_time.data,
-            'break_time': form.break_time.data,
-            'weekly_off_days': form.weekly_off_days.data,
-            'working_days': working_days,
-            'commission_percentage': form.commission_percentage.data or 0.0,
-            'fixed_commission': form.fixed_commission.data or 0.0,
-            'hourly_rate': form.hourly_rate.data or 0.0,
-            'enable_face_checkin': form.enable_face_checkin.data,
-            'role_id': form.role_id.data if form.role_id.data != 0 else None,
-            'department_id': form.department_id.data if form.department_id.data != 0 else None,
-            'is_active': form.is_active.data,
-            'role': 'staff'
-        }
+        staff_member = User(
+            username=form_data['username'],
+            email=form_data['email'],
+            first_name=form_data['first_name'],
+            last_name=form_data['last_name'],
+            phone=form_data['phone'],
+            role=form_data.get('role', 'staff'),
 
-        if form.password.data:
-            staff_data['password_hash'] = generate_password_hash(form.password.data)
+            # Enhanced Profile Details
+            profile_photo_url=form_data.get('profile_photo_url'),
+            gender=form_data.get('gender', 'other'),
+            date_of_birth=form_data.get('date_of_birth'),
+            date_of_joining=form_data.get('date_of_joining') or date.today(),
+            staff_code=staff_code,
+            notes_bio=form_data.get('notes_bio'),
+            designation=form_data.get('designation') or form_data.get('role', 'staff').title(),
 
-        # Create staff member
-        new_staff = User(**staff_data)
-        db.session.add(new_staff)
-        db.session.flush()  # Get the ID
+            # ID Proofs
+            aadhaar_number=form_data.get('aadhaar_number'),
+            aadhaar_card_url=form_data.get('aadhaar_card_url'),
+            pan_number=form_data.get('pan_number'),
+            pan_card_url=form_data.get('pan_card_url'),
+            verification_status=form_data.get('verification_status', False),
 
-        # Assign services
-        for service_id in form.assigned_services.data:
-            staff_service = StaffService(
-                staff_id=new_staff.id,
-                service_id=service_id,
-                skill_level='beginner'
-            )
-            db.session.add(staff_service)
+            # Facial Recognition
+            face_image_url=form_data.get('face_image_url'),
+            facial_encoding=form_data.get('facial_encoding'),
+            enable_face_checkin=form_data.get('enable_face_checkin', True),
 
+            # Work Schedule
+            working_days=working_days,
+            shift_start_time=form_data.get('shift_start_time'),
+            shift_end_time=form_data.get('shift_end_time'),
+            break_time=form_data.get('break_time'),
+            weekly_off_days=form_data.get('weekly_off_days'),
+
+            # Commission
+            commission_percentage=float(form_data.get('commission_percentage') or 0.0),
+            fixed_commission=float(form_data.get('fixed_commission') or 0.0),
+            total_revenue_generated=0.0,
+
+            is_active=True,
+            created_at=datetime.utcnow()
+        )
+
+        # Set password if provided
+        if form_data.get('password'):
+            staff_member.set_password(form_data['password'])
+        else:
+            # Set default password
+            staff_member.set_password('password123')
+
+        db.session.add(staff_member)
         db.session.commit()
-        return True
+
+        print(f"Successfully created staff member: {staff_member.full_name} with code: {staff_code}")
+        return staff_member
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating comprehensive staff member: {e}")
-        return False
+        print(f"Error creating comprehensive staff: {e}")
+        return None

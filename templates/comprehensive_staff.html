@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Comprehensive Staff Management - Spa & Salon Management Suite{% endblock %}
@@ -163,68 +162,65 @@
                                 {% for member in staff %}
                                 <tr>
                                     <td>
-                                        {% if member.profile_photo_url %}
-                                        <img src="{{ member.profile_photo_url }}" class="rounded-circle" width="50" height="50" alt="Profile">
-                                        {% else %}
-                                        <div class="avatar-circle">
-                                            {{ member.first_name[0] }}{{ member.last_name[0] }}
+                                        <div class="d-flex align-items-center">
+                                            {% if member.profile_photo_url %}
+                                                <img src="{{ member.profile_photo_url }}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="avatar-circle me-3">
+                                                    {{ member.first_name[0] }}{{ member.last_name[0] }}
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ member.full_name }}</strong>
+                                                <br><small class="text-muted">{{ member.staff_code or ('STF' + member.id|string|rjust(3, '0')) }}</small>
+                                                {% if member.email %}
+                                                <br><small class="text-muted">{{ member.email }}</small>
+                                                {% endif %}
+                                            </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <div>{{ member.designation or member.role.title() }}</div>
+                                        {% if member.department %}
+                                        <small class="text-muted">{{ member.department }}</small>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div>
-                                            <strong>{{ member.full_name }}</strong><br>
-                                            <small class="text-muted">{{ member.staff_code or 'No Code' }}</small><br>
-                                            <small class="text-primary">{{ member.designation or 'No Designation' }}</small>
-                                        </div>
+                                        <div>{{ member.phone or 'Not provided' }}</div>
+                                        {% if member.gender %}
+                                        <small class="text-muted">{{ member.gender.title() }}</small>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <div>
-                                            {% if member.user_role %}
-                                            <span class="badge bg-primary">{{ member.user_role.display_name }}</span><br>
-                                            {% endif %}
-                                            {% if member.staff_department %}
-                                            <small class="text-muted">{{ member.staff_department.display_name }}</small>
-                                            {% endif %}
-                                        </div>
+                                        {% if member.date_of_joining %}
+                                            {{ member.date_of_joining.strftime('%d/%m/%Y') }}
+                                        {% elif member.created_at %}
+                                            {{ member.created_at.strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                            Not set
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <div>
-                                            <small><i class="fas fa-envelope me-1"></i>{{ member.email or 'No email' }}</small><br>
-                                            <small><i class="fas fa-phone me-1"></i>{{ member.phone or 'No phone' }}</small>
-                                        </div>
+                                        <span class="badge bg-{{ 'success' if member.verification_status else 'warning' }}">
+                                            {{ 'Verified' if member.verification_status else 'Pending' }}
+                                        </span>
+                                        {% if member.enable_face_checkin %}
+                                        <br><small class="badge bg-info mt-1">Face ID</small>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <div>
-                                            {% if member.shift_start_time and member.shift_end_time %}
-                                            <small><i class="fas fa-clock me-1"></i>{{ member.shift_start_time.strftime('%H:%M') }} - {{ member.shift_end_time.strftime('%H:%M') }}</small><br>
-                                            {% endif %}
-                                            {% if member.working_days %}
-                                            <small class="text-muted">Working Days: {{ member.working_days }}</small>
-                                            {% endif %}
-                                        </div>
+                                        <div>${{ "%.2f"|format(member.total_revenue_generated or 0) }}</div>
+                                        {% if member.commission_percentage %}
+                                        <small class="text-muted">{{ member.commission_percentage }}% commission</small>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <div>
-                                            <small>Commission: {{ member.commission_percentage or 0 }}%</small><br>
-                                            <small>Revenue: ₹{{ member.total_revenue_generated or 0 }}</small><br>
-                                            <small>Rating: {{ member.average_rating or 'N/A' }}</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <span class="badge bg-{{ 'success' if member.is_active else 'danger' }}">
-                                                {{ 'Active' if member.is_active else 'Inactive' }}
-                                            </span><br>
-                                            {% if member.verification_status %}
-                                            <span class="badge bg-success mt-1">Verified</span>
-                                            {% else %}
-                                            <span class="badge bg-warning mt-1">Pending</span>
-                                            {% endif %}
-                                            {% if member.enable_face_checkin %}
-                                            <br><span class="badge bg-info mt-1">Face Recognition</span>
-                                            {% endif %}
-                                        </div>
+                                        <span class="badge bg-{{ 'success' if member.is_active else 'danger' }}">
+                                            {{ 'Active' if member.is_active else 'Inactive' }}
+                                        </span>
+                                        {% if member.last_login %}
+                                        <br><small class="text-muted">Last: {{ member.last_login.strftime('%d/%m/%Y') }}</small>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <div class="btn-group-vertical" role="group">

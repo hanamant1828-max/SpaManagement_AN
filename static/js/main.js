@@ -1131,6 +1131,33 @@ function handleServiceSelection(selectElement) {
     }
 }
 
+// Missing updateServicePrice function
+function updateServicePrice(serviceId, price) {
+    // Update price display elements
+    const priceDisplays = document.querySelectorAll('.service-price-display');
+    priceDisplays.forEach(display => {
+        if (display.dataset.serviceId === serviceId) {
+            display.textContent = price;
+        }
+    });
+    
+    // Update form amount fields
+    const amountField = document.getElementById('amount');
+    if (amountField) {
+        amountField.value = price;
+    }
+    
+    const serviceAmountField = document.getElementById('service_amount');
+    if (serviceAmountField) {
+        serviceAmountField.value = price;
+    }
+    
+    // Trigger any custom price update events
+    document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
+        detail: { serviceId: serviceId, price: price }
+    }));
+}
+
 // Update service price function
 function updateServicePrice(serviceId, price) {
     console.log(`Service ${serviceId} price updated to ${price}`);
