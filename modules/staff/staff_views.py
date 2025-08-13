@@ -51,8 +51,6 @@ def staff():
                          roles=roles,
                          departments=departments)
 
-@app.route('/staff/comprehensive')
-@login_required
 @app.route('/comprehensive_staff')
 @login_required
 def comprehensive_staff():
@@ -95,60 +93,6 @@ def comprehensive_staff():
         return redirect(url_for('staff'))
 
 @app.route('/comprehensive_staff/create', methods=['GET', 'POST'])
-@login_required
-def create_comprehensive_staff():
-    """Create new staff member with comprehensive form"""
-    if not current_user.can_access('staff'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    from forms import ComprehensiveStaffForm
-    form = ComprehensiveStaffForm()
-    
-    if request.method == 'POST' and form.validate_on_submit():
-        try:
-            # Create comprehensive staff member
-            success = create_comprehensive_staff_member(form)
-            if success:
-                flash('Staff member created successfully with all comprehensive features!', 'success')
-                return redirect(url_for('comprehensive_staff'))
-            else:
-                flash('Error creating staff member', 'danger')
-        except Exception as e:
-            flash(f'Error creating staff member: {str(e)}', 'danger')
-    
-    return render_template('comprehensive_staff_form.html', form=form, mode='create')
-
-@app.route('/staff/comprehensive/test')
-@login_required
-def test_comprehensive_staff():
-    """Test route to verify comprehensive staff management is working"""
-    return jsonify({
-        'status': 'success',
-        'message': 'Comprehensive Staff Management System is Active',
-        'features': [
-            '1. Staff Profile Management',
-            '2. Photo Capture & Storage',
-            '3. ID Verification (Aadhaar/PAN)',
-            '4. Facial Recognition Setup',
-            '5. Work Schedule Management',
-            '6. Attendance Tracking',
-            '7. Performance Metrics',
-            '8. Commission Management',
-            '9. Role & Department Assignment',
-            '10. Service Assignment',
-            '11. Comprehensive Reporting'
-        ],
-        'routes': [
-            '/staff/comprehensive',
-            '/staff/comprehensive/create',
-            '/staff/comprehensive/edit/<id>',
-            '/staff/performance/<id>',
-            '/staff/export'
-        ]
-    })
-
-@app.route('/staff/comprehensive/create', methods=['GET', 'POST'])
 @login_required
 def create_comprehensive_staff():
     """Create new staff with all 11 requirements"""
@@ -242,7 +186,7 @@ def create_comprehensive_staff():
                          departments=departments,
                          services=services)
 
-@app.route('/staff/comprehensive/edit/<int:staff_id>', methods=['GET', 'POST'])
+@app.route('/comprehensive_staff/edit/<int:staff_id>', methods=['GET', 'POST'])
 @login_required
 def edit_comprehensive_staff(staff_id):
     """Edit existing staff with full feature access"""
@@ -740,3 +684,31 @@ def staff_detail(id):
                          commissions=commissions,
                          stats=stats)
 
+@app.route('/staff/comprehensive/test')
+@login_required
+def test_comprehensive_staff():
+    """Test route to verify comprehensive staff management is working"""
+    return jsonify({
+        'status': 'success',
+        'message': 'Comprehensive Staff Management System is Active',
+        'features': [
+            '1. Staff Profile Management',
+            '2. Photo Capture & Storage',
+            '3. ID Verification (Aadhaar/PAN)',
+            '4. Facial Recognition Setup',
+            '5. Work Schedule Management',
+            '6. Attendance Tracking',
+            '7. Performance Metrics',
+            '8. Commission Management',
+            '9. Role & Department Assignment',
+            '10. Service Assignment',
+            '11. Comprehensive Reporting'
+        ],
+        'routes': [
+            '/staff/comprehensive',
+            '/staff/comprehensive/create',
+            '/staff/comprehensive/edit/<id>',
+            '/staff/performance/<id>',
+            '/staff/export'
+        ]
+    })
