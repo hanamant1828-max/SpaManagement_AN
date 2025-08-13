@@ -1111,6 +1111,26 @@ function updateServicePrice(serviceId, price) {
     }
 }
 
+// Staff management navigation function
+function navigateToStaffManagement() {
+    window.location.href = '/comprehensive_staff';
+}
+
+// Service selection handler for forms
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (selectedOption && selectedOption.dataset.price) {
+        const price = selectedOption.dataset.price;
+        updateServicePrice(selectElement.value, price);
+        
+        // Update amount field if exists
+        const amountField = document.getElementById('amount');
+        if (amountField) {
+            amountField.value = price;
+        }
+    }
+}
+
 // Function to handle navigation errors
 function handleNavigationError(error) {
     console.error('Navigation error:', error);
