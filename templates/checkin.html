@@ -57,7 +57,77 @@
                         <p class="text-muted mb-1">No recent activity</p>
                         <small class="text-muted">System will automatically identify clients and load their appointments</small>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Today's Appointments -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-calendar-day me-2"></i>Today's Appointments</h5>
+                </div>
+                <div class="card-body">
+                    {% if appointments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Client</th>
+                                    <th>Service</th>
+                                    <th>Staff</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in appointments %}
+                                <tr>
+                                    <td>{{ appointment.appointment_date.strftime('%I:%M %p') }}</td>
+                                    <td>
+                                        <strong>{{ appointment.client.full_name }}</strong>
+                                        <br><small class="text-muted">{{ appointment.client.phone }}</small>
+                                    </td>
+                                    <td>{{ appointment.service.name }}</td>
+                                    <td>{{ appointment.assigned_staff.full_name }}</td>
+                                    <td>
+                                        {% if appointment.status == 'scheduled' %}
+                                        <span class="badge bg-warning">Scheduled</span>
+                                        {% elif appointment.status == 'confirmed' %}
+                                        <span class="badge bg-info">Confirmed</span>
+                                        {% elif appointment.status == 'in_progress' %}
+                                        <span class="badge bg-success">In Progress</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if appointment.status in ['scheduled', 'confirmed'] %}
+                                        <a href="{{ url_for('process_checkin', appointment_id=appointment.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check me-1"></i>Check In
+                                        </a>
+                                        {% else %}
+                                        <span class="badge bg-success">Checked In</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>No appointments today</h5>
+                        <p class="text-muted">No scheduled appointments for today.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 
@@ -217,84 +287,3 @@ async function performCheckinRecognition(video) {
 }
 </script>
 
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Today's Appointments -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-calendar-day me-2"></i>Today's Appointments</h5>
-                </div>
-                <div class="card-body">
-                    {% if appointments %}
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Client</th>
-                                    <th>Service</th>
-                                    <th>Staff</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for appointment in appointments %}
-                                <tr>
-                                    <td>{{ appointment.appointment_date.strftime('%I:%M %p') }}</td>
-                                    <td>
-                                        <strong>{{ appointment.client.full_name }}</strong>
-                                        <br><small class="text-muted">{{ appointment.client.phone }}</small>
-                                    </td>
-                                    <td>{{ appointment.service.name }}</td>
-                                    <td>{{ appointment.assigned_staff.full_name }}</td>
-                                    <td>
-                                        {% if appointment.status == 'scheduled' %}
-                                        <span class="badge bg-warning">Scheduled</span>
-                                        {% elif appointment.status == 'confirmed' %}
-                                        <span class="badge bg-info">Confirmed</span>
-                                        {% elif appointment.status == 'in_progress' %}
-                                        <span class="badge bg-success">In Progress</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if appointment.status in ['scheduled', 'confirmed'] %}
-                                        <a href="{{ url_for('process_checkin', appointment_id=appointment.id) }}" class="btn btn-sm btn-success">
-                                            <i class="fas fa-check me-1"></i>Check In
-                                        </a>
-                                        {% else %}
-                                        <span class="badge bg-success">Checked In</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                        <h5>No appointments today</h5>
-                        <p class="text-muted">No scheduled appointments for today.</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-// Face recognition functionality would be implemented here
-// This would integrate with camera APIs and face recognition services
-console.log('Face recognition check-in module loaded');
-</script>
-{% endblock %}
