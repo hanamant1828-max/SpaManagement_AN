@@ -12,6 +12,7 @@ from .bookings_queries import (
     delete_appointment, get_appointment_by_id, get_time_slots,
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
+from models import Service, Client, User
 
 @app.route('/bookings')
 @login_required
@@ -217,6 +218,135 @@ def api_time_slots():
         'staff_id': staff_id,
         'service_id': service_id
     })
+
+@app.route('/calendar-booking')
+@login_required
+def calendar_booking():
+    """Calendar timetable view for booking appointments"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get selected date from query params
+    selected_date_str = request.args.get('date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = date.today()
+    else:
+        selected_date = date.today()
+    
+    # Get staff members
+    staff_members = get_staff_members()
+    
+    # Generate time slots for the day (9 AM to 6 PM, 30-minute intervals)
+    time_slots = []
+    start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
+    end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
+    
+    current_time = start_time
+    while current_time < end_time:
+        time_slots.append({
+            'start_time': current_time,
+            'duration': 30
+        })
+        current_time += timedelta(minutes=30)
+    
+    # Get staff availability for each time slot
+    staff_availability = {}
+    existing_appointments = get_appointments_by_date(selected_date)
+    
+    for staff in staff_members:
+        for time_slot in time_slots:
+            slot_key = (staff.id, time_slot['start_time'])
+            
+            # Check if this time slot is booked
+            booked_appointment = None
+            for appointment in existing_appointments:
+                if (appointment.staff_id == staff.id and 
+                    appointment.appointment_date.time() == time_slot['start_time'].time()):
+                    booked_appointment = appointment
+                    break
+            
+            if booked_appointment:
+                staff_availability[slot_key] = {
+                    'status': 'booked',
+                    'client_name': booked_appointment.client.full_name if booked_appointment.client else 'Unknown',
+                    'service_name': booked_appointment.service.name if booked_appointment.service else 'Service'
+                }
+            else:
+                staff_availability[slot_key] = {
+                    'status': 'available'
+                }
+    
+    # Get clients and services
+    clients = get_active_clients()
+    services = get_active_services()
+    
+    # Get today's stats
+    today_appointments = get_appointments_by_date(date.today()) if selected_date == date.today() else []
+    today_revenue = sum(apt.amount for apt in today_appointments if apt.amount and apt.payment_status == 'paid')
+    
+    return render_template('calendar_booking.html',
+                         selected_date=selected_date,
+                         staff_members=staff_members,
+                         time_slots=time_slots,
+                         staff_availability=staff_availability,
+                         clients=clients,
+                         services=services,
+                         today_appointments=today_appointments,
+                         today_revenue=today_revenue)
+
+@app.route('/appointments/book', methods=['POST'])
+@login_required
+def book_appointment_api():
+    """API endpoint to book an appointment from the calendar view"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['client_id', 'staff_id', 'service_id', 'appointment_date', 'appointment_time']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Parse date and time
+        appointment_date = datetime.strptime(data['appointment_date'], '%Y-%m-%d').date()
+        appointment_time = datetime.strptime(data['appointment_time'], '%H:%M').time()
+        appointment_datetime = datetime.combine(appointment_date, appointment_time)
+        
+        # Get service details for pricing
+        service = Service.query.get(data['service_id'])
+        if not service:
+            return jsonify({'error': 'Service not found'}), 404
+        
+        # Create appointment data
+        appointment_data = {
+            'client_id': data['client_id'],
+            'service_id': data['service_id'],
+            'staff_id': data['staff_id'],
+            'appointment_date': appointment_datetime,
+            'notes': data.get('notes', ''),
+            'status': 'scheduled',
+            'amount': service.price,
+            'payment_status': 'pending'
+        }
+        
+        # Create the appointment
+        appointment = create_appointment(appointment_data)
+        
+        return jsonify({
+            'success': True,
+            'appointment_id': appointment.id,
+            'message': 'Appointment booked successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required

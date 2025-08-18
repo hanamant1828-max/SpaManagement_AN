@@ -11,9 +11,10 @@ Preferred communication style: Simple, everyday language.
 - **Migration**: Successfully migrated from Replit Agent to standard Replit environment
 - **Template Issues Fixed**: Resolved duplicate extra_scripts block in checkin.html template
 - **Professional Billing**: Enhanced billing interface with professional styling, comprehensive invoice management, and improved payment processing
+- **Calendar Timetable Booking**: Implemented school timetable-style booking view with staff columns and time slots
 - **Security**: Ensured proper client/server separation and robust security practices
 - **Database**: All 132 permissions and role-based access control working correctly
-- **Status**: Production-ready application running successfully on Replit
+- **Status**: Production-ready application running successfully on Replit with enhanced booking capabilities
 
 ## System Architecture
 
@@ -44,7 +45,7 @@ The system is designed with a modular approach, separating concerns into distinc
 ### Key Features
 - **Authentication System**: Role-based access control (132 granular permissions), user session management, password hashing, resource-level permissions.
 - **Dashboard**: Real-time business metrics, KPIs, appointment tracking, revenue trends, role-specific widgets.
-- **Booking & Calendar**: Unified calendar, color-coded appointments, drag-and-drop rescheduling (frontend), walk-in/online booking.
+- **Booking & Calendar**: Unified calendar, color-coded appointments, drag-and-drop rescheduling (frontend), walk-in/online booking, timetable view with staff columns and time slots.
 - **Client Management**: Comprehensive profiles, history, search, preferences, allergies, loyalty tracking, communication tracking (email, SMS, WhatsApp, calls).
 - **Staff Management**: Profiles, role assignments, commission/hourly rates, schedule, availability, performance metrics.
 - **Inventory Management**: Product tracking, low stock alerts, expiration dates, category-based organization, stock level management.
