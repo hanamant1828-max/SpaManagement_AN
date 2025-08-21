@@ -168,9 +168,7 @@ def create_comprehensive_staff():
                 'break_time': form.break_time.data,
                 'weekly_off_days': form.weekly_off_days.data,
                 'working_days': working_days,
-                'commission_percentage': form.commission_percentage.data or 0.0,
-                'fixed_commission': form.fixed_commission.data or 0.0,
-                'hourly_rate': form.hourly_rate.data or 0.0,
+
                 'enable_face_checkin': form.enable_face_checkin.data,
                 'role_id': form.role_id.data if form.role_id.data != 0 else None,
                 'department_id': form.department_id.data if form.department_id.data != 0 else None,
@@ -286,9 +284,7 @@ def edit_comprehensive_staff(staff_id):
             staff_member.break_time = form.break_time.data
             staff_member.weekly_off_days = form.weekly_off_days.data
             staff_member.working_days = working_days
-            staff_member.commission_percentage = form.commission_percentage.data or 0.0
-            staff_member.fixed_commission = form.fixed_commission.data or 0.0
-            staff_member.hourly_rate = form.hourly_rate.data or 0.0
+
             staff_member.enable_face_checkin = form.enable_face_checkin.data
             staff_member.role_id = form.role_id.data if form.role_id.data != 0 else None
             staff_member.department_id = form.department_id.data if form.department_id.data != 0 else None

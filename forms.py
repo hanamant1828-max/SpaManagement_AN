@@ -507,10 +507,7 @@ class ComprehensiveStaffForm(FlaskForm):
     break_time = StringField('Break Time', validators=[Optional(), Length(max=50)])
     weekly_off_days = StringField('Weekly Off Days', validators=[Optional(), Length(max=20)])
 
-    # Performance & Commission
-    commission_percentage = FloatField('Commission Percentage', validators=[Optional(), NumberRange(min=0, max=100)])
-    fixed_commission = FloatField('Fixed Commission', validators=[Optional(), NumberRange(min=0)])
-    hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
+
 
     # Role & Department
     role_id = SelectField('Role', coerce=int, validators=[Optional()])
@@ -715,10 +712,7 @@ class ComprehensiveStaffForm(FlaskForm):
     saturday = BooleanField('Saturday', default=False)
     sunday = BooleanField('Sunday', default=False)
 
-    # Performance & Commission
-    commission_percentage = FloatField('Commission Percentage', validators=[Optional()])
-    fixed_commission = FloatField('Fixed Commission', validators=[Optional()])
-    hourly_rate = FloatField('Hourly Rate', validators=[Optional()])
+
 
     # Role & Department
     role_id = SelectField('Role', coerce=int, validators=[Optional()])
