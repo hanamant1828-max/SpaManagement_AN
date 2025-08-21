@@ -2,6 +2,99 @@
 
 {% block title %}{{ action }} Staff Member - Comprehensive Management{% endblock %}
 
+{% block extra_css %}
+<style>
+.required-field {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.form-label.required::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.card-header h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.section-divider {
+    border-top: 2px solid #f8f9fa;
+    margin: 2rem 0;
+}
+
+.help-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.required-info {
+    background: #f8f9ff;
+    border: 1px solid #e3e8ff;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.field-group {
+    background: #fafbfc;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.photo-preview {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #e9ecef;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -17,7 +110,15 @@
         </div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" id="comprehensiveStaffForm">
+    <!-- Required Fields Information -->
+    <div class="required-info">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle me-2 text-primary"></i>
+            <span><strong>Required Information:</strong> Fields marked with <span class="required-field">*</span> are mandatory and must be completed.</span>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="comprehensiveStaffForm" novalidate>
         {{ form.hidden_tag() }}
 
         <div class="row">
@@ -34,78 +135,108 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.username.label(class="form-label") }}
-                                    {{ form.username(class="form-control") }}
+                                    {{ form.username.label(class="form-label required") }}
+                                    {{ form.username(class="form-control", required=true, placeholder="Enter username (min 4 characters)") }}
+                                    <div class="help-text">This will be used for login access</div>
+                                    {% if form.username.errors %}
+                                        <div class="text-danger small">{{ form.username.errors[0] }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.staff_code.label(class="form-label") }}
-                                    {{ form.staff_code(class="form-control") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form.first_name.label(class="form-label") }}
-                                    {{ form.first_name(class="form-control") }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form.last_name.label(class="form-label") }}
-                                    {{ form.last_name(class="form-control") }}
+                                    {{ form.staff_code.label(class="form-label required") }}
+                                    {{ form.staff_code(class="form-control", required=true, placeholder="Enter staff code (e.g., ST001)") }}
+                                    <div class="help-text">Unique identifier for staff member</div>
+                                    {% if form.staff_code.errors %}
+                                        <div class="text-danger small">{{ form.staff_code.errors[0] }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.email.label(class="form-label") }}
-                                    {{ form.email(class="form-control") }}
+                                    {{ form.first_name.label(class="form-label required") }}
+                                    {{ form.first_name(class="form-control", required=true, placeholder="Enter first name") }}
+                                    {% if form.first_name.errors %}
+                                        <div class="text-danger small">{{ form.first_name.errors[0] }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.phone.label(class="form-label") }}
-                                    {{ form.phone(class="form-control") }}
+                                    {{ form.last_name.label(class="form-label required") }}
+                                    {{ form.last_name(class="form-control", required=true, placeholder="Enter last name") }}
+                                    {% if form.last_name.errors %}
+                                        <div class="text-danger small">{{ form.last_name.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.email.label(class="form-label required") }}
+                                    {{ form.email(class="form-control", required=true, placeholder="Enter email address", type="email") }}
+                                    <div class="help-text">Used for login and notifications</div>
+                                    {% if form.email.errors %}
+                                        <div class="text-danger small">{{ form.email.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.phone.label(class="form-label required") }}
+                                    {{ form.phone(class="form-control", required=true, placeholder="Enter phone number", type="tel") }}
+                                    <div class="help-text">Primary contact number</div>
+                                    {% if form.phone.errors %}
+                                        <div class="text-danger small">{{ form.phone.errors[0] }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    {{ form.gender.label(class="form-label") }}
-                                    {{ form.gender(class="form-select") }}
+                                    {{ form.gender.label(class="form-label required") }}
+                                    {{ form.gender(class="form-select", required=true) }}
+                                    {% if form.gender.errors %}
+                                        <div class="text-danger small">{{ form.gender.errors[0] }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     {{ form.date_of_birth.label(class="form-label") }}
                                     {{ form.date_of_birth(class="form-control") }}
+                                    <div class="help-text">Optional - for age verification</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     {{ form.date_of_joining.label(class="form-label") }}
                                     {{ form.date_of_joining(class="form-control") }}
+                                    <div class="help-text">Leave blank for today's date</div>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.designation.label(class="form-label") }}
-                                    {{ form.designation(class="form-control") }}
+                                    {{ form.designation.label(class="form-label required") }}
+                                    {{ form.designation(class="form-control", required=true, placeholder="e.g., Senior Therapist, Hair Stylist") }}
+                                    <div class="help-text">Job title or position</div>
+                                    {% if form.designation.errors %}
+                                        <div class="text-danger small">{{ form.designation.errors[0] }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <div class="mb-3">
                                     {{ form.notes_bio.label(class="form-label") }}
-                                    {{ form.notes_bio(class="form-control", rows="3") }}
+                                    {{ form.notes_bio(class="form-control", rows="3", placeholder="Additional notes or bio information") }}
+                                    <div class="help-text">Optional - any additional information</div>
                                 </div>
                             </div>
                         </div>
@@ -125,12 +256,14 @@
                                 <div class="mb-3">
                                     {{ form.role_id.label(class="form-label") }}
                                     {{ form.role_id(class="form-select") }}
+                                    <div class="help-text">Determines access permissions</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     {{ form.department_id.label(class="form-label") }}
                                     {{ form.department_id(class="form-select") }}
+                                    <div class="help-text">Business unit or department</div>
                                 </div>
                             </div>
                         </div>
@@ -329,10 +462,20 @@
                 </div>
 
                 <!-- Submit Button -->
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg me-3" id="submitBtn">
                         <i class="fas fa-save me-2"></i>{{ action }} Staff Member
                     </button>
+                    <a href="{{ url_for('comprehensive_staff') }}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        All information is securely stored and encrypted
+                    </small>
                 </div>
             </div>
         </div>
@@ -645,26 +788,160 @@ function setupFaceRecognition() {
     });
 }
 
-// Form validation
-document.getElementById('comprehensiveStaffForm').addEventListener('submit', function(e) {
-    const requiredFields = ['username', 'first_name', 'last_name'];
-    let hasErrors = false;
-
+// Enhanced Form validation and user experience
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('comprehensiveStaffForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const requiredFields = form.querySelectorAll('input[required], select[required]');
+    
+    // Real-time validation for required fields
     requiredFields.forEach(field => {
-        const input = document.querySelector(`input[name="${field}"]`);
-        if (!input.value.trim()) {
-            input.classList.add('is-invalid');
-            hasErrors = true;
-        } else {
-            input.classList.remove('is-invalid');
+        field.addEventListener('blur', validateField);
+        field.addEventListener('input', clearError);
+    });
+    
+    // Enhanced form submission validation
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Validate all required fields
+        requiredFields.forEach(field => {
+            if (!validateField({ target: field })) {
+                isValid = false;
+            }
+        });
+        
+        // Email validation
+        const emailField = document.querySelector('input[type="email"]');
+        if (emailField && emailField.value) {
+            if (!validateEmail(emailField.value)) {
+                showFieldError(emailField, 'Please enter a valid email address');
+                isValid = false;
+            }
+        }
+        
+        // Phone validation
+        const phoneField = document.querySelector('input[type="tel"]');
+        if (phoneField && phoneField.value) {
+            const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+            if (!phoneRegex.test(phoneField.value)) {
+                showFieldError(phoneField, 'Please enter a valid phone number (minimum 10 digits)');
+                isValid = false;
+            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            showNotification('Please correct the highlighted errors before submitting.', 'error');
+            return false;
+        }
+        
+        // Show loading state
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
         }
     });
-
-    if (hasErrors) {
-        e.preventDefault();
-        alert('Please fill in all required fields');
+    
+    function validateField(event) {
+        const field = event.target;
+        const value = field.value.trim();
+        
+        clearFieldError(field);
+        
+        if (field.hasAttribute('required') && !value) {
+            showFieldError(field, 'This field is required');
+            return false;
+        }
+        
+        // Username validation
+        if (field.name === 'username' && value) {
+            if (value.length < 4) {
+                showFieldError(field, 'Username must be at least 4 characters long');
+                return false;
+            }
+            if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                showFieldError(field, 'Username can only contain letters, numbers, and underscores');
+                return false;
+            }
+        }
+        
+        // Staff code validation
+        if (field.name === 'staff_code' && value) {
+            if (!/^[A-Z0-9]{3,}$/i.test(value)) {
+                showFieldError(field, 'Staff code should be at least 3 characters (letters and numbers only)');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    function clearError(event) {
+        clearFieldError(event.target);
+    }
+    
+    function showFieldError(field, message) {
+        clearFieldError(field);
+        field.classList.add('is-invalid');
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'text-danger small mt-1 field-error';
+        errorDiv.textContent = message;
+        field.parentNode.appendChild(errorDiv);
+    }
+    
+    function clearFieldError(field) {
+        field.classList.remove('is-invalid');
+        const existingError = field.parentNode.querySelector('.field-error');
+        if (existingError) {
+            existingError.remove();
+        }
+    }
+    
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Auto-generate staff code based on name
+    const firstNameField = document.querySelector('input[name="first_name"]');
+    const lastNameField = document.querySelector('input[name="last_name"]');
+    const staffCodeField = document.querySelector('input[name="staff_code"]');
+    
+    if (firstNameField && lastNameField && staffCodeField) {
+        function generateStaffCode() {
+            const firstName = firstNameField.value.trim();
+            const lastName = lastNameField.value.trim();
+            
+            if (firstName && lastName && !staffCodeField.value) {
+                const code = `${firstName.substring(0, 2)}${lastName.substring(0, 2)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`.toUpperCase();
+                staffCodeField.value = code;
+                staffCodeField.dispatchEvent(new Event('input'));
+            }
+        }
+        
+        firstNameField.addEventListener('blur', generateStaffCode);
+        lastNameField.addEventListener('blur', generateStaffCode);
     }
 });
+
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
 </script>
 
 {% endblock %}
