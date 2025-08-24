@@ -7,6 +7,18 @@ from app import app
 from forms import LoginForm
 from .auth_queries import validate_user_credentials
 
+@app.route('/test')
+def test_route():
+    """Simple test route to check connectivity"""
+    return '''<!DOCTYPE html>
+<html><head><title>Test Page</title></head>
+<body style="font-family: Arial; padding: 50px; text-align: center;">
+<h1 style="color: green;">✅ SUCCESS!</h1>
+<h2>Spa Management System is Working</h2>
+<p>If you can see this page, the server is working correctly.</p>
+<p><a href="/login" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Login Page</a></p>
+</body></html>'''
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
