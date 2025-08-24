@@ -197,8 +197,9 @@ def packages_enhanced():
         return redirect(url_for('dashboard'))
 
     try:
-        packages = get_all_packages()
-        client_packages = get_client_packages()
+        # Query packages directly from database instead of using get_all_packages()
+        packages = Package.query.order_by(Package.created_at.desc()).all()
+        client_packages = ClientPackage.query.order_by(ClientPackage.purchase_date.desc()).all()
         clients = Client.query.filter_by(is_active=True).order_by(Client.first_name, Client.last_name).all()
 
         # Get services with their categories for enhanced display
@@ -228,6 +229,9 @@ def packages_enhanced():
             from wtforms import Form
             package_form = Form()
 
+        # Add debug logging
+        app.logger.info(f"Found {len(packages)} packages to display")
+        
         return render_template('enhanced_packages.html', 
                              packages=packages,
                              client_packages=client_packages,
@@ -318,7 +322,10 @@ def create_package_route():
                     service_count += 1
 
         db.session.commit()
-
+        
+        # Add debugging
+        app.logger.info(f"Package created: {package.name} with ID: {package.id}")
+        
         if service_count > 0:
             flash(f'Package "{package.name}" created successfully with {service_count} services!', 'success')
         else:
