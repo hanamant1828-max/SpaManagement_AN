@@ -187,7 +187,8 @@ def create_comprehensive_staff():
             
             # Create comprehensive staff member
             try:
-                new_staff = create_comprehensive_staff(staff_data)
+                from .staff_queries import create_comprehensive_staff as create_staff_helper
+                new_staff = create_staff_helper(staff_data)
                 if not new_staff:
                     raise Exception("Failed to create staff member")
             except Exception as e:
