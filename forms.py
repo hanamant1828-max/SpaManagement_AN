@@ -98,7 +98,16 @@ class CategoryForm(FlaskForm):
 class PackageForm(FlaskForm):
     name = StringField('Package Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
-    included_services = SelectMultipleField('Included Services', coerce=int, validators=[DataRequired()])
+    package_type = SelectField('Package Type', choices=[
+        ('regular', 'Regular Package'),
+        ('prepaid', 'Prepaid Package'),
+        ('service_package', 'Service Package'),
+        ('membership', 'Membership'),
+        ('student_offer', 'Student Offer'),
+        ('kitty_party', 'Kitty Party'),
+        ('yearly_membership', 'Yearly Membership')
+    ], validators=[DataRequired()], default='regular')
+    included_services = SelectMultipleField('Included Services', coerce=int, validators=[Optional()])
     total_sessions = IntegerField('No. of Sessions', validators=[DataRequired(), NumberRange(min=1)])
     validity_days = IntegerField('Validity Period (days)', validators=[DataRequired(), NumberRange(min=1)])
     total_price = FloatField('Package Price (₹)', validators=[DataRequired(), NumberRange(min=0)])
@@ -109,10 +118,14 @@ class PackageForm(FlaskForm):
         super(PackageForm, self).__init__(*args, **kwargs)
         # Dynamically populate services from database
         from models import Service
-        self.included_services.choices = [
-            (s.id, f"{s.name} (₹{s.price})") for s in 
-            Service.query.filter_by(is_active=True).order_by(Service.name).all()
-        ]
+        try:
+            self.included_services.choices = [
+                (s.id, f"{s.name} (₹{s.price})") for s in 
+                Service.query.filter_by(is_active=True).order_by(Service.name).all()
+            ]
+        except:
+            # Fallback if database is not available
+            self.included_services.choices = []
 
 class EnhancedPackageForm(FlaskForm):
     """Professional package creation form with individual service discounts and complete management"""

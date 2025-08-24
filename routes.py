@@ -206,7 +206,14 @@ def packages_enhanced():
             Category, Service.category_id == Category.id, isouter=True
         ).order_by(Category.sort_order, Service.name).all()
 
-        package_form = PackageForm()
+        # Initialize package form with error handling
+        try:
+            package_form = PackageForm()
+        except Exception as form_error:
+            app.logger.error(f"Error initializing PackageForm: {str(form_error)}")
+            # Create a minimal form for basic functionality
+            from wtforms import Form
+            package_form = Form()
 
         return render_template('enhanced_packages.html', 
                              packages=packages,
