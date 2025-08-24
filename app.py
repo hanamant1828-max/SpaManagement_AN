@@ -1,7 +1,7 @@
 import os
 import logging
 import secrets
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
@@ -22,8 +22,8 @@ app.secret_key = os.environ.get("SESSION_SECRET") or "dev-secret-key-for-spa-man
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure the database
@@ -47,6 +47,15 @@ login_manager.login_message = 'Please log in to access this page.'
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
+
+# Add CORS headers for webview compatibility
+@app.after_request
+def after_request(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['X-Frame-Options'] = 'ALLOWALL'
+    return response
 
 @login_manager.user_loader
 def load_user(user_id):
