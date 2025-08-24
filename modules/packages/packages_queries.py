@@ -7,13 +7,8 @@ from app import db
 from models import Package, ClientPackage, PackageService, Service
 
 def get_all_packages():
-    """Get all packages with their services"""
-    try:
-        packages = Package.query.order_by(Package.created_at.desc()).all()
-        return packages
-    except Exception as e:
-        print(f"Error getting packages: {e}")
-        return []
+    """Get all active packages"""
+    return Package.query.filter_by(is_active=True).order_by(Package.name).all()
 
 def get_package_by_id(package_id):
     """Get package by ID"""
@@ -31,10 +26,10 @@ def create_package(package_data, service_ids=None):
         is_active=package_data.get('is_active', True),
         duration_months=package_data.get('validity_days', 90) // 30  # Convert days to months for compatibility
     )
-
+    
     db.session.add(package)
     db.session.flush()  # Get package ID
-
+    
     # Add services to package if provided
     if service_ids:
         for service_id in service_ids:
@@ -44,7 +39,7 @@ def create_package(package_data, service_ids=None):
                 sessions_included=1  # Default to 1 session per service
             )
             db.session.add(package_service)
-
+    
     db.session.commit()
     return package
 
@@ -53,21 +48,21 @@ def update_package(package_id, package_data, service_ids=None):
     package = Package.query.get(package_id)
     if not package:
         raise ValueError("Package not found")
-
+    
     # Update package data
     for key, value in package_data.items():
         if hasattr(package, key):
             setattr(package, key, value)
-
+    
     # Update duration_months for compatibility
     if 'validity_days' in package_data:
         package.duration_months = package_data['validity_days'] // 30
-
+    
     # Update services if provided
     if service_ids is not None:
         # Remove existing services and add new ones
         PackageService.query.filter_by(package_id=package_id).delete()
-
+        
         for service_id in service_ids:
             package_service = PackageService(
                 package_id=package_id,
@@ -75,7 +70,7 @@ def update_package(package_id, package_data, service_ids=None):
                 sessions_included=1
             )
             db.session.add(package_service)
-
+    
     db.session.commit()
     return package
 
@@ -84,7 +79,7 @@ def delete_package(package_id):
     package = Package.query.get(package_id)
     if not package:
         return {'success': False, 'message': 'Package not found'}
-
+    
     # Check if package is assigned to any clients
     client_count = ClientPackage.query.filter_by(package_id=package_id).count()
     if client_count > 0:
@@ -92,10 +87,10 @@ def delete_package(package_id):
             'success': False,
             'message': f'Cannot delete package. It is assigned to {client_count} client(s).'
         }
-
+    
     # Delete package services first
     PackageService.query.filter_by(package_id=package_id).delete()
-
+    
     db.session.delete(package)
     db.session.commit()
     return {'success': True, 'message': f'Package "{package.name}" deleted successfully'}
@@ -110,14 +105,14 @@ def get_client_packages(client_id=None):
 def assign_package_to_client(client_id, package_id):
     """Assign a package to a client with validity tracking"""
     from datetime import datetime, timedelta
-
+    
     package = Package.query.get(package_id)
     if not package:
         raise ValueError("Package not found")
-
+    
     # Calculate expiry date based on validity days
     expiry_date = datetime.utcnow() + timedelta(days=package.validity_days)
-
+    
     client_package = ClientPackage(
         client_id=client_id,
         package_id=package_id,
@@ -126,7 +121,7 @@ def assign_package_to_client(client_id, package_id):
         sessions_remaining=package.total_sessions,
         is_active=True
     )
-
+    
     db.session.add(client_package)
     db.session.commit()
     return client_package
@@ -162,10 +157,10 @@ def create_package(package_data, service_ids):
         is_active=package_data.get('is_active', True),
         duration_months=package_data.get('validity_days', 90) // 30  # Convert days to months for compatibility
     )
-
+    
     db.session.add(package)
     db.session.flush()  # Get package ID
-
+    
     # Add services to package
     for service_id in service_ids:
         package_service = PackageService(
@@ -174,7 +169,7 @@ def create_package(package_data, service_ids):
             sessions_included=1  # Default to 1 session per service
         )
         db.session.add(package_service)
-
+    
     db.session.commit()
     return package
 
@@ -183,19 +178,19 @@ def update_package(package_id, package_data, service_ids):
     package = Package.query.get(package_id)
     if not package:
         raise ValueError("Package not found")
-
+    
     # Update package data
     for key, value in package_data.items():
         if hasattr(package, key):
             setattr(package, key, value)
-
+    
     # Update duration_months for compatibility
     if 'validity_days' in package_data:
         package.duration_months = package_data['validity_days'] // 30
-
+    
     # Remove existing services and add new ones
     PackageService.query.filter_by(package_id=package_id).delete()
-
+    
     for service_id in service_ids:
         package_service = PackageService(
             package_id=package_id,
@@ -203,7 +198,7 @@ def update_package(package_id, package_data, service_ids):
             sessions_included=1
         )
         db.session.add(package_service)
-
+    
     db.session.commit()
     return package
 
@@ -212,7 +207,7 @@ def delete_package(package_id):
     package = Package.query.get(package_id)
     if not package:
         return {'success': False, 'message': 'Package not found'}
-
+    
     # Check if package is assigned to any clients
     client_count = ClientPackage.query.filter_by(package_id=package_id).count()
     if client_count > 0:
@@ -220,10 +215,10 @@ def delete_package(package_id):
             'success': False,
             'message': f'Cannot delete package. It is assigned to {client_count} client(s).'
         }
-
+    
     # Delete package services first
     PackageService.query.filter_by(package_id=package_id).delete()
-
+    
     db.session.delete(package)
     db.session.commit()
     return {'success': True, 'message': f'Package "{package.name}" deleted successfully'}
@@ -231,26 +226,26 @@ def delete_package(package_id):
 def track_package_usage(client_package_id):
     """Track detailed package usage for a client"""
     from models import Appointment
-
+    
     client_package = ClientPackage.query.get(client_package_id)
     if not client_package:
         raise ValueError("Client package not found")
-
+    
     # Get appointments booked using this package
     appointments = Appointment.query.filter_by(
         client_id=client_package.client_id,
         package_id=client_package.package_id
     ).order_by(Appointment.appointment_date.desc()).all()
-
+    
     # Calculate usage statistics
     total_sessions = client_package.package.total_sessions
     used_sessions = len([a for a in appointments if a.status == 'completed'])
     remaining_sessions = total_sessions - used_sessions
-
+    
     # Check if expired
     from datetime import datetime
     is_expired = client_package.expiry_date < datetime.utcnow() if client_package.expiry_date else False
-
+    
     return {
         'client_package': client_package,
         'total_sessions': total_sessions,
@@ -264,41 +259,41 @@ def track_package_usage(client_package_id):
 def auto_expire_packages():
     """Auto-expire packages based on validity period"""
     from datetime import datetime
-
+    
     expired_packages = ClientPackage.query.filter(
         ClientPackage.expiry_date < datetime.utcnow(),
         ClientPackage.is_active == True
     ).all()
-
+    
     for client_package in expired_packages:
         client_package.is_active = False
-
+    
     if expired_packages:
         db.session.commit()
-
+    
     return len(expired_packages)
 
 def export_packages_csv():
     """Export all packages to CSV"""
     packages = get_all_packages()
-
+    
     import io
     import csv
-
+    
     output = io.StringIO()
     writer = csv.writer(output)
-
+    
     # CSV Headers
     writer.writerow([
         'ID', 'Package Name', 'Description', 'Total Sessions',
         'Validity (Days)', 'Price (₹)', 'Discount (%)', 'Services Included',
         'Status', 'Created Date'
     ])
-
+    
     # Data rows
     for package in packages:
         services_list = ', '.join([ps.service.name for ps in package.services if ps.service])
-
+        
         writer.writerow([
             package.id,
             package.name,
@@ -311,7 +306,7 @@ def export_packages_csv():
             'Active' if package.is_active else 'Inactive',
             package.created_at.strftime('%Y-%m-%d %H:%M')
         ])
-
+    
     output.seek(0)
     return output.getvalue()
 
@@ -319,26 +314,26 @@ def export_package_usage_csv():
     """Export package usage data to CSV"""
     from datetime import datetime
     client_packages = get_client_packages()
-
+    
     import io
     import csv
-
+    
     output = io.StringIO()
     writer = csv.writer(output)
-
+    
     # CSV Headers
     writer.writerow([
         'Client Name', 'Package Name', 'Purchase Date', 'Expiry Date',
         'Total Sessions', 'Used Sessions', 'Remaining Sessions',
         'Status', 'Total Paid (₹)'
     ])
-
+    
     # Data rows
     for cp in client_packages:
         if cp.client and cp.package:
             # Calculate used sessions (simplified - would need appointment tracking)
             used_sessions = cp.package.total_sessions - (cp.sessions_remaining or 0)
-
+            
             status = 'Active'
             if not cp.is_active:
                 status = 'Expired'
@@ -346,7 +341,7 @@ def export_package_usage_csv():
                 status = 'Expired'
             elif cp.sessions_remaining <= 0:
                 status = 'Completed'
-
+            
             writer.writerow([
                 cp.client.full_name,
                 cp.package.name,
@@ -358,6 +353,6 @@ def export_package_usage_csv():
                 status,
                 cp.package.total_price
             ])
-
+    
     output.seek(0)
     return output.getvalue()
