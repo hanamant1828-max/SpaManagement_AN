@@ -113,6 +113,7 @@ class PackageForm(FlaskForm):
     total_price = FloatField('Package Price (₹)', validators=[DataRequired(), NumberRange(min=0)])
     discount_percentage = FloatField('Discount %', validators=[Optional(), NumberRange(min=0, max=100)])
     is_active = BooleanField('Active', default=True)
+    selected_services = HiddenField('Selected Services JSON')
 
     def __init__(self, *args, **kwargs):
         super(PackageForm, self).__init__(*args, **kwargs)
