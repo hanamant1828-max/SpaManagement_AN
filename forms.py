@@ -96,37 +96,15 @@ class CategoryForm(FlaskForm):
     is_active = BooleanField('Active', default=True)
 
 class PackageForm(FlaskForm):
-    name = StringField('Package Name', validators=[DataRequired(), Length(max=100)])
-    description = TextAreaField('Description', validators=[Optional()])
-    package_type = SelectField('Package Type', choices=[
-        ('regular', 'Regular Package'),
-        ('prepaid', 'Prepaid Package'),
-        ('service_package', 'Service Package'),
-        ('membership', 'Membership'),
-        ('student_offer', 'Student Offer'),
-        ('kitty_party', 'Kitty Party'),
-        ('yearly_membership', 'Yearly Membership')
-    ], validators=[DataRequired()], default='regular')
-    included_services = SelectMultipleField('Included Services', coerce=int, validators=[Optional()])
-    total_sessions = IntegerField('No. of Sessions', validators=[DataRequired(), NumberRange(min=1)])
-    validity_days = IntegerField('Validity Period (days)', validators=[DataRequired(), NumberRange(min=1)])
+    name = StringField('Package Name', validators=[DataRequired(), Length(min=2, max=100)])
+    description = TextAreaField('Description')
+    duration_months = IntegerField('Duration (Months)', validators=[DataRequired(), NumberRange(min=1, max=60)])
     total_price = FloatField('Package Price (₹)', validators=[DataRequired(), NumberRange(min=0)])
     discount_percentage = FloatField('Discount %', validators=[Optional(), NumberRange(min=0, max=100)])
     is_active = BooleanField('Active', default=True)
-    selected_services = HiddenField('Selected Services JSON')
 
     def __init__(self, *args, **kwargs):
         super(PackageForm, self).__init__(*args, **kwargs)
-        # Dynamically populate services from database
-        from models import Service
-        try:
-            self.included_services.choices = [
-                (s.id, f"{s.name} (₹{s.price})") for s in 
-                Service.query.filter_by(is_active=True).order_by(Service.name).all()
-            ]
-        except:
-            # Fallback if database is not available
-            self.included_services.choices = []
 
 class EnhancedPackageForm(FlaskForm):
     """Professional package creation form with individual service discounts and complete management"""
