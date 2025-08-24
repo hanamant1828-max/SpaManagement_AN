@@ -248,88 +248,89 @@ def create_package_route():
         flash('Access denied', 'danger')
         return redirect(url_for('packages_enhanced'))
 
-    from models import Package, PackageService, Service, ClientPackageSession
-    from forms import EnhancedPackageForm
+    from models import Package, PackageService, Service
     import json
 
-    form = EnhancedPackageForm()
+    try:
+        # Get form data directly from request
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        package_type = request.form.get('package_type', 'regular')
+        validity_days = int(request.form.get('validity_days', 90))
+        total_price = float(request.form.get('total_price', 0))
+        discount_percentage = float(request.form.get('discount_percentage', 0))
+        is_active = request.form.get('is_active') == 'on'
+        selected_services_json = request.form.get('selected_services', '[]')
 
-    print(f"Form validation result: {form.validate_on_submit()}")
-    print(f"Form errors: {form.errors}")
-    print(f"Form data: {request.form}")
-
-    if form.validate_on_submit():
-        try:
-            # Parse selected services JSON
-            selected_services_data = json.loads(form.selected_services.data or '[]')
-            print(f"Selected services data: {selected_services_data}")
-
-            # Calculate totals - allow packages without predefined services
-            total_sessions = sum(service_data['sessions'] for service_data in selected_services_data) if selected_services_data else 1
-            duration_months = max(1, form.validity_days.data // 30)  # At least 1 month
-
-            # Create package
-            package = Package(
-                name=form.name.data,
-                description=form.description.data,
-                package_type=form.package_type.data,
-                duration_months=duration_months,
-                validity_days=form.validity_days.data,
-                total_sessions=total_sessions,
-                total_price=float(form.total_price.data or 0),
-                discount_percentage=float(form.discount_percentage.data or 0),
-                is_active=form.is_active.data
-            )
-
-            db.session.add(package)
-            db.session.flush()  # Get package ID
-            print(f"Package created with ID: {package.id}")
-
-            # Add services to package (if any)
-            service_count = 0
-            if selected_services_data:
-                total_original_price = 0
-                for service_data in selected_services_data:
-                    service = Service.query.get(service_data['service_id'])
-                    if service:
-                        original_price = service.price * service_data['sessions']
-                        service_discount = service_data.get('discount', 0)
-                        discounted_price = original_price * (1 - service_discount / 100)
-
-                        package_service = PackageService(
-                            package_id=package.id,
-                            service_id=service.id,
-                            sessions_included=service_data['sessions'],
-                            service_discount=service_discount,
-                            original_price=original_price,
-                            discounted_price=discounted_price
-                        )
-                        db.session.add(package_service)
-                        total_original_price += original_price
-                        service_count += 1
-
-            db.session.commit()
-
-            if service_count > 0:
-                flash(f'Package "{package.name}" created successfully with {service_count} services!', 'success')
-            else:
-                flash(f'Package "{package.name}" created successfully! Services can be assigned later.', 'success')
-
-            # Redirect back to packages page to show the created package
+        if not name:
+            flash('Package name is required', 'danger')
             return redirect(url_for('packages_enhanced'))
 
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error creating package: {str(e)}")
-            flash(f'Error creating package: {str(e)}', 'danger')
-            return redirect(url_for('dashboard'))
-    else:
-        print("Form validation failed")
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+        if not total_price or total_price <= 0:
+            flash('Package price must be greater than 0', 'danger')
+            return redirect(url_for('packages_enhanced'))
 
-    return redirect(url_for('packages_enhanced'))
+        # Parse selected services
+        try:
+            selected_services_data = json.loads(selected_services_json)
+        except:
+            selected_services_data = []
+
+        # Calculate totals
+        total_sessions = sum(service_data['sessions'] for service_data in selected_services_data) if selected_services_data else 1
+        duration_months = max(1, validity_days // 30)
+
+        # Create package
+        package = Package(
+            name=name,
+            description=description,
+            package_type=package_type,
+            duration_months=duration_months,
+            validity_days=validity_days,
+            total_sessions=total_sessions,
+            total_price=total_price,
+            discount_percentage=discount_percentage,
+            is_active=is_active
+        )
+
+        db.session.add(package)
+        db.session.flush()  # Get package ID
+
+        # Add services to package
+        service_count = 0
+        if selected_services_data:
+            for service_data in selected_services_data:
+                service = Service.query.get(service_data['service_id'])
+                if service:
+                    original_price = service.price * service_data['sessions']
+                    service_discount = service_data.get('discount', 0)
+                    discounted_price = original_price * (1 - service_discount / 100)
+
+                    package_service = PackageService(
+                        package_id=package.id,
+                        service_id=service.id,
+                        sessions_included=service_data['sessions'],
+                        service_discount=service_discount,
+                        original_price=original_price,
+                        discounted_price=discounted_price
+                    )
+                    db.session.add(package_service)
+                    service_count += 1
+
+        db.session.commit()
+
+        if service_count > 0:
+            flash(f'Package "{package.name}" created successfully with {service_count} services!', 'success')
+        else:
+            flash(f'Package "{package.name}" created successfully!', 'success')
+
+        return redirect(url_for('packages_enhanced'))
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating package: {str(e)}")
+        flash(f'Error creating package: {str(e)}', 'danger')
+        return redirect(url_for('packages_enhanced'))
 
 @app.route('/packages/<int:package_id>/assign', methods=['POST'])
 @login_required
