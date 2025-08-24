@@ -6,6 +6,10 @@ from flask_login import login_user, logout_user, current_user
 from app import app
 from forms import LoginForm
 from .auth_queries import validate_user_credentials
+# Assuming User model is available, e.g., from app.models import User
+# If not, this import needs to be adjusted or the logic in the login route needs to be adapted.
+# For the purpose of this change, we will assume 'User' is correctly imported or available.
+from models import User # This is a placeholder, adjust as per your project structure
 
 @app.route('/test')
 def test_route():
@@ -21,29 +25,22 @@ def test_route():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """User login route"""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    
+
     form = LoginForm()
-    
     if form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
-        
-        user = validate_user_credentials(username, password)
-        if user:
-            login_user(user)
+        user = User.query.filter_by(username=form.username.data).first()
+
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember.data)
+            flash('Login successful!', 'success')
             next_page = request.args.get('next')
-            if not next_page:
-                next_page = url_for('dashboard')
-            flash(f'Welcome back, {user.first_name}!', 'success')
-            return redirect(next_page)
+            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password', 'danger')
-    elif request.method == 'POST':
-        # Handle form validation errors
-        flash('Please check your input and try again', 'danger')
-    
+
     return render_template('login.html', form=form)
 
 @app.route('/logout')

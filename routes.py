@@ -130,9 +130,13 @@ def create_default_data():
 @app.route('/')
 def index():
     """Root route - redirect to dashboard if logged in, login if not"""
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    try:
+        if current_user.is_authenticated:
+            return redirect(url_for('dashboard'))
+        return redirect(url_for('login'))
+    except Exception as e:
+        print(f"Error in index route: {e}")
+        return render_template('login.html')
 
 # Additional routes that don't fit in modules yet
 @app.route('/alerts')
