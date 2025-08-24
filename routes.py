@@ -205,6 +205,19 @@ def packages_enhanced():
         services = Service.query.filter_by(is_active=True).join(
             Category, Service.category_id == Category.id, isouter=True
         ).order_by(Category.sort_order, Service.name).all()
+        
+        # Convert services to a JSON-serializable format
+        services_data = []
+        for service in services:
+            service_data = {
+                'id': service.id,
+                'name': service.name,
+                'price': float(service.price),
+                'duration': service.duration,
+                'category': service.service_category.display_name if service.service_category else 'Other',
+                'category_color': service.service_category.color if service.service_category else '#6c757d'
+            }
+            services_data.append(service_data)
 
         # Initialize package form with error handling
         try:
@@ -220,6 +233,7 @@ def packages_enhanced():
                              client_packages=client_packages,
                              clients=clients,
                              services=services,
+                             services_data=services_data,
                              package_form=package_form)
 
     except Exception as e:

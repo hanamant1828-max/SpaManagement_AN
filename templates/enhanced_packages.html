@@ -296,7 +296,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -306,7 +306,7 @@
                                 </div>
                             </div>
                         </div></div>
-                        
+
                         <div class="mb-3">
                             {{ package_form.description.label(class="form-label") }}
                             {{ package_form.description(class="form-control", rows="2", placeholder="Short summary for clients and admin reference") }}
@@ -367,7 +367,7 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                
+
                                 <!-- Filtered Services Display -->
                                 <div id="filteredServices" class="mt-2" style="display: none;">
                                     <div class="border rounded p-2 bg-light max-height-200 overflow-auto">
@@ -426,7 +426,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -562,11 +562,14 @@
 </div>
 
 <script>
+// Global variables for package creation
 let selectedServices = [];
+let allServices = {{ services_data|tojson|safe }};
 
+// Initialize the form
 document.addEventListener('DOMContentLoaded', function() {
     const selectedServicesInput = document.querySelector('input[name="selected_services"]');
-    
+
     // Initialize the form
     updateSelectedServicesJson();
 });
@@ -578,7 +581,7 @@ function addSpecificService(serviceId, serviceName, servicePrice) {
         alert('This service is already added to the package');
         return;
     }
-    
+
     // Add service to selected services
     const serviceData = {
         service_id: serviceId,
@@ -587,17 +590,17 @@ function addSpecificService(serviceId, serviceName, servicePrice) {
         sessions: 1,
         discount: 0
     };
-    
+
     selectedServices.push(serviceData);
     updateServicesTable();
     updateSelectedServicesJson();
-    
+
     // Visual feedback
     const button = event.target.closest('button');
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="fas fa-check text-success"></i>';
     button.disabled = true;
-    
+
     setTimeout(() => {
         button.innerHTML = originalText;
         button.disabled = false;
@@ -605,26 +608,24 @@ function addSpecificService(serviceId, serviceName, servicePrice) {
 }
 
 // Service filtering functionality
-let allServices = {{ services|tojson }};
-
 function filterServices() {
     const searchTerm = document.getElementById('serviceSearch').value.toLowerCase();
     const categoryFilter = document.getElementById('categoryFilter').value;
     const filteredServicesDiv = document.getElementById('filteredServices');
     const filteredServicesList = document.getElementById('filteredServicesList');
-    
+
     if (!searchTerm && !categoryFilter) {
         filteredServicesDiv.style.display = 'none';
         return;
     }
-    
+
     let filtered = allServices.filter(service => {
         const matchesSearch = !searchTerm || service.name.toLowerCase().includes(searchTerm);
         const matchesCategory = !categoryFilter || 
             (service.service_category && service.service_category.display_name === categoryFilter);
         return matchesSearch && matchesCategory;
     });
-    
+
     if (filtered.length === 0) {
         filteredServicesList.innerHTML = '<p class="text-muted text-center m-2">No services found</p>';
     } else {
@@ -632,7 +633,7 @@ function filterServices() {
         filtered.forEach(service => {
             const categoryColor = service.service_category ? service.service_category.color : '#6c757d';
             const categoryName = service.service_category ? service.service_category.display_name : 'Other';
-            
+
             html += `
                 <div class="d-flex justify-content-between align-items-center p-2 border-bottom service-search-item">
                     <div class="service-info">
@@ -649,7 +650,7 @@ function filterServices() {
         });
         filteredServicesList.innerHTML = html;
     }
-    
+
     filteredServicesDiv.style.display = 'block';
 }
 
@@ -661,23 +662,23 @@ function addServiceToPackage() {
 function updateServicesTable() {
     const tableBody = document.getElementById('selectedServicesTableBody');
     const servicesSection = document.getElementById('selectedServicesSection');
-    
+
     if (selectedServices.length === 0) {
         servicesSection.style.display = 'none';
         updateOverallDiscount();
         return;
     }
-    
+
     servicesSection.style.display = 'block';
-    
+
     let tableHTML = '';
     let totalPackageValue = 0;
-    
+
     selectedServices.forEach((service, index) => {
         const totalPrice = service.price * service.sessions;
         const finalPrice = totalPrice * (1 - service.discount / 100);
         totalPackageValue += finalPrice;
-        
+
         tableHTML += `
             <tr>
                 <td>${service.name}</td>
@@ -703,16 +704,16 @@ function updateServicesTable() {
             </tr>
         `;
     });
-    
+
     tableBody.innerHTML = tableHTML;
     document.getElementById('totalPackageValue').textContent = `₹${totalPackageValue.toFixed(2)}`;
-    
+
     // Auto-update package price field
     const packagePriceInput = document.querySelector('input[name="total_price"]');
     if (packagePriceInput) {
         packagePriceInput.value = totalPackageValue.toFixed(2);
     }
-    
+
     // Update overall discount calculation
     updateOverallDiscount();
 }
@@ -747,22 +748,22 @@ function validateNumericInput(input) {
     const value = parseFloat(input.value);
     const min = parseFloat(input.min);
     const max = parseFloat(input.max);
-    
+
     if (isNaN(value)) {
         input.setCustomValidity('Please enter a valid number');
         return false;
     }
-    
+
     if (!isNaN(min) && value < min) {
         input.setCustomValidity(`Value must be at least ${min}`);
         return false;
     }
-    
+
     if (!isNaN(max) && value > max) {
         input.setCustomValidity(`Value must be no more than ${max}`);
         return false;
     }
-    
+
     input.setCustomValidity('');
     return true;
 }
@@ -771,13 +772,13 @@ function updateOverallDiscount() {
     const packagePriceInput = document.querySelector('input[name="total_price"]');
     const overallDiscountInput = document.querySelector('input[name="discount_percentage"]');
     const finalPriceInput = document.getElementById('finalPackagePrice');
-    
+
     if (!packagePriceInput || !overallDiscountInput || !finalPriceInput) return;
-    
+
     const basePrice = parseFloat(packagePriceInput.value) || 0;
     const discountPercentage = parseFloat(overallDiscountInput.value) || 0;
     const finalPrice = basePrice * (1 - discountPercentage / 100);
-    
+
     finalPriceInput.value = `₹${finalPrice.toFixed(2)}`;
 }
 
@@ -788,24 +789,24 @@ function validatePackageForm() {
         alert('Please enter a package name');
         return false;
     }
-    
+
     const validityDays = parseInt(document.querySelector('input[name="validity_days"]').value);
     if (!validityDays || validityDays <= 0) {
         alert('Please enter a valid validity period');
         return false;
     }
-    
+
     const totalPrice = parseFloat(document.querySelector('input[name="total_price"]').value);
     if (!totalPrice || totalPrice <= 0) {
         alert('Please enter a valid package price');
         return false;
     }
-    
+
     // Services are optional - packages can be created without predefined services
     if (selectedServices.length === 0) {
         console.log('Package will be created without predefined services - services can be added later');
     }
-    
+
     return true;
 }
 
@@ -885,12 +886,12 @@ function submitAssignPackage() {
     const clientId = document.getElementById('assign_client_id').value;
     const customPrice = document.getElementById('assign_custom_price').value;
     const notes = document.getElementById('assign_notes').value;
-    
+
     if (!clientId) {
         alert('Please select a client');
         return;
     }
-    
+
     fetch(`/packages/${packageId}/assign`, {
         method: 'POST',
         headers: {
@@ -923,7 +924,7 @@ function editPackage(packageId) {
         alert('Package edit button not found');
         return;
     }
-    
+
     const packageRow = editButton.closest('tr');
     if (!packageRow) {
         alert('Package row not found');
@@ -933,35 +934,35 @@ function editPackage(packageId) {
     try {
         // Extract package data from the row - be more careful with selectors
         const cells = packageRow.querySelectorAll('td');
-        
+
         // Package name (column 1)
         const packageNameElement = cells[1].querySelector('strong');
         const packageName = packageNameElement ? packageNameElement.textContent.trim() : '';
-        
+
         // Description (column 1, small element)
         const descriptionElement = cells[1].querySelector('small');
         const description = descriptionElement ? descriptionElement.textContent.replace('...', '').trim() : '';
-        
+
         // Validity days (column 3)
         const validityText = cells[3].textContent.trim();
         const validityDays = validityText.split(' ')[0];
-        
+
         // Total sessions (column 3, small element)
         const sessionsElement = cells[3].querySelector('small');
         const totalSessions = sessionsElement ? sessionsElement.textContent.split(' ')[0] : '1';
-        
+
         // Total price (column 4)
         const priceElement = cells[4].querySelector('strong');
         const totalPrice = priceElement ? 
             priceElement.textContent.replace('₹', '').replace(/,/g, '').trim() : '0';
-        
+
         // Discount percentage (column 5)
         const discountElement = cells[5].querySelector('.badge');
         let discountPercentage = '0';
         if (discountElement && discountElement.textContent.includes('% OFF')) {
             discountPercentage = discountElement.textContent.replace('% OFF', '').trim();
         }
-        
+
         // Status (column 7)
         const statusElement = cells[7].querySelector('.badge');
         const isActive = statusElement ? statusElement.textContent.trim() === 'Active' : true;
@@ -981,7 +982,7 @@ function editPackage(packageId) {
 
         // Show edit modal
         new bootstrap.Modal(document.getElementById('editPackageModal')).show();
-        
+
     } catch (error) {
         console.error('Error extracting package data:', error);
         alert('Error loading package data for editing. Please try again.');
@@ -1023,11 +1024,11 @@ function viewUsageDetails(clientPackageId) {
 function filterPackages(packageType) {
     const rows = document.querySelectorAll('[data-package-type]');
     const buttons = document.querySelectorAll('.btn-group [onclick^="filterPackages"]');
-    
+
     // Update active button
     buttons.forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
-    
+
     // Filter rows
     rows.forEach(row => {
         if (packageType === 'all' || row.dataset.packageType === packageType) {
@@ -1036,7 +1037,7 @@ function filterPackages(packageType) {
             row.style.display = 'none';
         }
     });
-    
+
     // Update count
     const visibleRows = document.querySelectorAll('[data-package-type]:not([style*="display: none"])');
     console.log(`Showing ${visibleRows.length} packages for type: ${packageType}`);
