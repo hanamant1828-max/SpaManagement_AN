@@ -19,4 +19,5 @@ dependencies = [
     "sqlalchemy>=2.0.41",
     "requests>=2.32.4",
     "beautifulsoup4>=4.13.4",
+    "openai>=1.101.0",
 ]

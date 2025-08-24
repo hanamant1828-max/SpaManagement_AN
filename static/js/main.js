@@ -34,6 +34,9 @@ function setupGlobalEventListeners() {
     // Handle all modal events
     document.addEventListener('show.bs.modal', handleModalShow);
     document.addEventListener('hidden.bs.modal', handleModalHidden);
+    
+    // Initialize face capture functionality
+    initializeFaceCapture();
 
     // Handle form submissions
     document.addEventListener('submit', handleFormSubmit);
@@ -53,6 +56,113 @@ function setupGlobalEventListeners() {
     // Handle connection status
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOfflineStatus);
+}
+
+// Face Capture Functionality
+function initializeFaceCapture() {
+    console.log('Initializing face capture functionality...');
+}
+
+let currentStream = null;
+let currentStaffId = null;
+
+async function setupFacialRecognition(staffId) {
+    currentStaffId = staffId;
+    const modal = new bootstrap.Modal(document.getElementById('faceRecognitionModal'));
+    modal.show();
+    
+    try {
+        await startCamera();
+    } catch (error) {
+        console.error('Camera access failed:', error);
+        alert('Camera access failed. Please ensure you have granted camera permissions.');
+    }
+}
+
+async function startCamera() {
+    const video = document.getElementById('faceVideo');
+    const captureBtn = document.getElementById('captureFaceBtn');
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: 400, 
+                height: 300,
+                facingMode: 'user' 
+            } 
+        });
+        
+        currentStream = stream;
+        video.srcObject = stream;
+        captureBtn.disabled = false;
+        captureBtn.onclick = captureFace;
+        
+        // Add close event to stop camera
+        const modal = document.getElementById('faceRecognitionModal');
+        modal.addEventListener('hidden.bs.modal', stopCamera);
+        
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        throw error;
+    }
+}
+
+function captureFace() {
+    const video = document.getElementById('faceVideo');
+    const canvas = document.getElementById('faceCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Capture current video frame
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert to base64
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // Send to server
+    saveFaceImage(currentStaffId, imageData);
+}
+
+function stopCamera() {
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+    }
+    const video = document.getElementById('faceVideo');
+    video.srcObject = null;
+}
+
+async function saveFaceImage(staffId, imageData) {
+    try {
+        const response = await fetch('/staff/save-face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                staff_id: staffId,
+                face_image: imageData
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Face capture successful! Facial recognition is now enabled for this staff member.');
+            stopCamera();
+            bootstrap.Modal.getInstance(document.getElementById('faceRecognitionModal')).hide();
+            // Refresh the staff data to show updated face status
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            alert('Error saving face image: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error saving face image:', error);
+        alert('Error saving face image. Please try again.');
+    }
 }
 
 // Modal event handlers

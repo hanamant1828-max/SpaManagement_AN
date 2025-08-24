@@ -583,6 +583,40 @@ def verify_facial_recognition():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/staff/save-face', methods=['POST'])
+@login_required
+def save_face_image():
+    """Save captured face image for staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        face_image = data.get('face_image')
+        
+        if not staff_id or not face_image:
+            return jsonify({'error': 'Missing staff ID or face image'}), 400
+        
+        staff_member = User.query.get(staff_id)
+        if not staff_member:
+            return jsonify({'error': 'Staff member not found'}), 404
+        
+        # Save base64 image data (you could also save to file system)
+        staff_member.face_image_url = face_image
+        staff_member.enable_face_checkin = True
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Face image saved successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Legacy routes for compatibility
 @app.route('/staff/create', methods=['POST'])
 @app.route('/staff/add', methods=['POST'])
