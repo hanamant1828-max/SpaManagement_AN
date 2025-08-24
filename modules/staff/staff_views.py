@@ -179,6 +179,12 @@ def create_comprehensive_staff():
             if form.password.data:
                 staff_data['password_hash'] = generate_password_hash(form.password.data)
             
+            # Handle face recognition data if provided
+            face_image_data = request.form.get('face_image_data')
+            if face_image_data and form.enable_face_checkin.data:
+                staff_data['face_image_url'] = face_image_data
+                staff_data['enable_face_checkin'] = True
+            
             # Create comprehensive staff member
             try:
                 new_staff = create_comprehensive_staff(staff_data)
@@ -204,7 +210,13 @@ def create_comprehensive_staff():
                 db.session.add(staff_service)
             
             db.session.commit()
-            flash(f'Staff member {new_staff.full_name} created successfully!', 'success')
+            
+            # Success message with face recognition status
+            success_msg = f'Staff member {new_staff.full_name} created successfully!'
+            if face_image_data and form.enable_face_checkin.data:
+                success_msg += ' Face recognition has been enabled.'
+                
+            flash(success_msg, 'success')
             return redirect(url_for('comprehensive_staff'))
             
         except Exception as e:
