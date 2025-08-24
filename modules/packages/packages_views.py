@@ -13,21 +13,26 @@ from datetime import datetime, timedelta
 @login_required
 def packages():
     """Display packages page"""
-    if not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+    try:
+        if not current_user.can_access('packages'):
+            flash('Access denied', 'danger')
+            return redirect(url_for('dashboard'))
 
-    packages = Package.query.filter_by(is_active=True).all()
-    clients = Client.query.filter_by(is_active=True).all()
-    services = Service.query.filter_by(is_active=True).all()
-    
-    package_form = PackageForm()
-    
-    return render_template('packages.html', 
-                         packages=packages,
-                         clients=clients,
-                         services=services,
-                         package_form=package_form)
+        packages = Package.query.filter_by(is_active=True).all()
+        clients = Client.query.filter_by(is_active=True).all()
+        services = Service.query.filter_by(is_active=True).all()
+        
+        package_form = PackageForm()
+        
+        return render_template('packages.html', 
+                             packages=packages,
+                             clients=clients,
+                             services=services,
+                             package_form=package_form)
+    except Exception as e:
+        print(f"Error in packages route: {e}")
+        flash('Error loading packages page', 'danger')
+        return redirect(url_for('dashboard'))
 
 @app.route('/add_package', methods=['POST'])
 @login_required

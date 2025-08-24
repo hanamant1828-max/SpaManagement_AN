@@ -126,6 +126,14 @@ def create_default_data():
 
     print("Comprehensive default data created successfully")
 
+# Root route
+@app.route('/')
+def index():
+    """Root route - redirect to dashboard if logged in, login if not"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
 # Additional routes that don't fit in modules yet
 @app.route('/alerts')
 @login_required

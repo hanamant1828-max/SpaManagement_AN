@@ -8,7 +8,7 @@ from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get
 
 @app.route('/')
 @app.route('/dashboard')
-@login_required
+@login_required  
 def dashboard():
     try:
         # Check if user has dashboard access (with fallback for missing method)
