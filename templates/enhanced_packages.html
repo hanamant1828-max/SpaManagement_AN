@@ -317,19 +317,62 @@
                     <div class="mb-4">
                         <h6 class="mb-3">🛍️ Included Services</h6>
                         <div class="border rounded p-3 bg-light">
-                            <!-- Service Selection Dropdown -->
+                            <!-- Service Selection by Category -->
                             <div class="mb-3">
-                                <label class="form-label">Select Service to Add:</label>
+                                <label class="form-label">Browse Services by Category:</label>
+                                <div class="row">
+                                    {% set service_categories = services|groupby('service_category.display_name')|list if services else [] %}
+                                    {% for category_name, category_services in service_categories %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card service-category-card">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0">
+                                                    {% if category_services[0].service_category %}
+                                                        <span class="badge" style="background-color: {{ category_services[0].service_category.color }}; margin-right: 8px;">●</span>
+                                                        {{ category_services[0].service_category.display_name }}
+                                                    {% else %}
+                                                        Other Services
+                                                    {% endif %}
+                                                </h6>
+                                            </div>
+                                            <div class="card-body p-2">
+                                                {% for service in category_services %}
+                                                <div class="service-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                                                    <div class="service-info">
+                                                        <strong>{{ service.name }}</strong>
+                                                        <br><small class="text-muted">{{ service.duration }} min - ₹{{ service.price }}</small>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                            onclick="addSpecificService({{ service.id }}, '{{ service.name }}', {{ service.price }})">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Quick Service Search -->
+                            <div class="mb-3">
+                                <label class="form-label">Or Search Services:</label>
                                 <div class="d-flex gap-2">
-                                    <select id="serviceDropdown" class="form-select">
-                                        <option value="">Choose a service...</option>
-                                        {% for service in services %}
-                                        <option value="{{ service.id }}" data-name="{{ service.name }}" data-price="{{ service.price }}">
-                                            {{ service.name }} - ₹{{ service.price }}
-                                        </option>
+                                    <input type="text" class="form-control" id="serviceSearch" placeholder="Type service name..." onkeyup="filterServices()">
+                                    <select id="categoryFilter" class="form-select" style="max-width: 200px;" onchange="filterServices()">
+                                        <option value="">All Categories</option>
+                                        {% for category_name, category_services in service_categories %}
+                                        <option value="{{ category_name }}">{{ category_name }}</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="button" class="btn btn-primary" onclick="addServiceToPackage()">Add Service</button>
+                                </div>
+                                
+                                <!-- Filtered Services Display -->
+                                <div id="filteredServices" class="mt-2" style="display: none;">
+                                    <div class="border rounded p-2 bg-light max-height-200 overflow-auto">
+                                        <div id="filteredServicesList"></div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -528,19 +571,8 @@ document.addEventListener('DOMContentLoaded', function() {
     updateSelectedServicesJson();
 });
 
-function addServiceToPackage() {
-    const dropdown = document.getElementById('serviceDropdown');
-    const selectedOption = dropdown.options[dropdown.selectedIndex];
-    
-    if (!selectedOption.value) {
-        alert('Please select a service first');
-        return;
-    }
-    
-    const serviceId = parseInt(selectedOption.value);
-    const serviceName = selectedOption.dataset.name;
-    const servicePrice = parseFloat(selectedOption.dataset.price);
-    
+// Enhanced service selection functions
+function addSpecificService(serviceId, serviceName, servicePrice) {
     // Check if service already added
     if (selectedServices.find(s => s.service_id === serviceId)) {
         alert('This service is already added to the package');
@@ -560,8 +592,70 @@ function addServiceToPackage() {
     updateServicesTable();
     updateSelectedServicesJson();
     
-    // Reset dropdown
-    dropdown.selectedIndex = 0;
+    // Visual feedback
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check text-success"></i>';
+    button.disabled = true;
+    
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }, 1500);
+}
+
+// Service filtering functionality
+let allServices = {{ services|tojson }};
+
+function filterServices() {
+    const searchTerm = document.getElementById('serviceSearch').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const filteredServicesDiv = document.getElementById('filteredServices');
+    const filteredServicesList = document.getElementById('filteredServicesList');
+    
+    if (!searchTerm && !categoryFilter) {
+        filteredServicesDiv.style.display = 'none';
+        return;
+    }
+    
+    let filtered = allServices.filter(service => {
+        const matchesSearch = !searchTerm || service.name.toLowerCase().includes(searchTerm);
+        const matchesCategory = !categoryFilter || 
+            (service.service_category && service.service_category.display_name === categoryFilter);
+        return matchesSearch && matchesCategory;
+    });
+    
+    if (filtered.length === 0) {
+        filteredServicesList.innerHTML = '<p class="text-muted text-center m-2">No services found</p>';
+    } else {
+        let html = '';
+        filtered.forEach(service => {
+            const categoryColor = service.service_category ? service.service_category.color : '#6c757d';
+            const categoryName = service.service_category ? service.service_category.display_name : 'Other';
+            
+            html += `
+                <div class="d-flex justify-content-between align-items-center p-2 border-bottom service-search-item">
+                    <div class="service-info">
+                        <strong>${service.name}</strong>
+                        <span class="badge" style="background-color: ${categoryColor}; margin-left: 8px;">${categoryName}</span>
+                        <br><small class="text-muted">${service.duration} min - ₹${service.price}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                            onclick="addSpecificService(${service.id}, '${service.name}', ${service.price})">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            `;
+        });
+        filteredServicesList.innerHTML = html;
+    }
+    
+    filteredServicesDiv.style.display = 'block';
+}
+
+// Legacy function for backward compatibility
+function addServiceToPackage() {
+    alert('Please use the service categories above to select services');
 }
 
 function updateServicesTable() {
@@ -966,6 +1060,60 @@ function filterPackages(packageType) {
 
 .progress {
     background-color: #e9ecef;
+}
+
+.service-category-card {
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+    height: fit-content;
+}
+
+.service-category-card:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.service-item {
+    transition: background-color 0.2s ease;
+}
+
+.service-item:hover {
+    background-color: #f8f9fa;
+}
+
+.service-item:last-child {
+    border-bottom: none !important;
+}
+
+.max-height-200 {
+    max-height: 200px;
+}
+
+.overflow-auto {
+    overflow: auto;
+}
+
+.service-search-item:hover {
+    background-color: #f8f9fa;
+}
+
+#filteredServices {
+    z-index: 1000;
+    position: relative;
+}
+
+.service-info strong {
+    font-size: 0.9rem;
+}
+
+.service-info small {
+    font-size: 0.8rem;
+}
+
+.badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
 }
 </style>
 {% endblock %}

@@ -13,6 +13,7 @@ from .packages_queries import (
     track_package_usage, auto_expire_packages, export_packages_csv,
     export_package_usage_csv
 )
+from models import Service, Category
 
 # Packages route is now defined in routes.py as packages_enhanced
 

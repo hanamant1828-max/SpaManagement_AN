@@ -189,77 +189,36 @@ def add_communication():
 
 # Enhanced Package Management Routes (Override existing packages route)
 @app.route('/packages')
-@login_required 
+@login_required
 def packages_enhanced():
+    """Enhanced Package Management with comprehensive features"""
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    from models import Package, Service, Client, ClientPackage, PackageService
-    from forms import PackageForm, EnhancedPackageForm
-
     try:
-        # Auto-expire packages based on validity
-        from datetime import datetime
-        expired_packages = ClientPackage.query.filter(
-            ClientPackage.expiry_date < datetime.utcnow(),
-            ClientPackage.is_active == True
-        ).all()
+        packages = get_all_packages()
+        client_packages = get_client_packages()
+        clients = Client.query.filter_by(is_active=True).order_by(Client.first_name, Client.last_name).all()
 
-        for cp in expired_packages:
-            cp.is_active = False
-        if expired_packages:
-            db.session.commit()
+        # Get services with their categories for enhanced display
+        services = Service.query.filter_by(is_active=True).join(
+            Category, Service.category_id == Category.id, isouter=True
+        ).order_by(Category.sort_order, Service.name).all()
 
-        packages = Package.query.order_by(Package.created_at.desc()).all()
-        
-        # Safety check: ensure all packages have a total_price
-        for package in packages:
-            if package.total_price is None:
-                package.total_price = 0.0
-        
-        try:
-            db.session.commit()
-        except:
-            db.session.rollback()
-            
-        print(f"Loaded {len(packages)} packages for display")
-            
-        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-        clients = Client.query.filter_by(is_active=True).order_by(Client.first_name).all()
-        client_packages = ClientPackage.query.filter_by(is_active=True).order_by(ClientPackage.purchase_date.desc()).all()
-
-        package_form = EnhancedPackageForm()
+        package_form = PackageForm()
 
         return render_template('enhanced_packages.html', 
                              packages=packages,
-                             services=services,
-                             clients=clients,
                              client_packages=client_packages,
+                             clients=clients,
+                             services=services,
                              package_form=package_form)
-                             
+
     except Exception as e:
-        print(f"Database error in packages route: {str(e)}")
-        db.session.rollback()
-        
-        # Try to get minimal data for the page
-        try:
-            packages = Package.query.order_by(Package.name).all()
-            services = Service.query.filter_by(is_active=True).all()
-            clients = Client.query.filter_by(is_active=True).all()
-            client_packages = []
-            package_form = EnhancedPackageForm()
-            
-            flash('Packages loaded successfully', 'success')
-            return render_template('enhanced_packages.html', 
-                                 packages=packages,
-                                 services=services,
-                                 clients=clients,
-                                 client_packages=client_packages,
-                                 package_form=package_form)
-        except:
-            flash('Database connection issue. Please try again.', 'danger')
-            return redirect(url_for('dashboard'))
+        app.logger.error(f"Error loading packages page: {str(e)}")
+        flash('Error loading packages page', 'danger')
+        return redirect(url_for('dashboard'))
 
 @app.route('/packages/create', methods=['POST'])
 @login_required
@@ -329,7 +288,7 @@ def create_package_route():
                         service_count += 1
 
             db.session.commit()
-            
+
             if service_count > 0:
                 flash(f'Package "{package.name}" created successfully with {service_count} services!', 'success')
             else:
