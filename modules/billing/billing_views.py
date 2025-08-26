@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 
 def get_pending_appointments():
     """Get appointments with pending payments"""
-    return Appointment.query.filter_by(payment_status='pending').all()
+    return Appointment.query.filter_by(is_paid=False).all()
 
 def get_recent_invoices():
     """Get recent invoices"""
@@ -35,7 +35,7 @@ def calculate_today_revenue():
     today = datetime.now().date()
     revenue = db.session.query(func.sum(Appointment.amount)).filter(
         func.date(Appointment.appointment_date) == today,
-        Appointment.payment_status == 'paid'
+        Appointment.is_paid == True
     ).scalar()
     return revenue or 0
 
@@ -45,7 +45,7 @@ def calculate_monthly_revenue():
     start_of_month = today.replace(day=1)
     revenue = db.session.query(func.sum(Appointment.amount)).filter(
         Appointment.appointment_date >= start_of_month,
-        Appointment.payment_status == 'paid'
+        Appointment.is_paid == True
     ).scalar()
     return revenue or 0
 

@@ -138,7 +138,7 @@ console.log('Face recognition check-in module loaded');
 let checkinStream = null;
 let checkinInterval = null;
 
-document.getElementById('startRecognition').addEventListener('click', async function() {
+document.getElementById('startRecognition')?.addEventListener('click', async function() {
     try {
         // Start camera
         checkinStream = await navigator.mediaDevices.getUserMedia({ 
@@ -149,76 +149,17 @@ document.getElementById('startRecognition').addEventListener('click', async func
             } 
         });
         
-        // Create video element (you'll need to add this to your HTML)
+        // Create video element if needed
         let video = document.getElementById('checkinVideo');
         if (!video) {
-            // Create video element if it doesn't exist
-            video = document.createElement('video');
-            video.id = 'checkinVideo';
-            video.width = 400;
-            video.height = 300;
-            video.style.border = '2px solid #dee2e6';
-            video.style.borderRadius = '8px';
-            video.autoplay = true;
-            
-            // Replace the camera placeholder
-            const placeholder = document.querySelector('.camera-placeholder');
-            placeholder.replaceWith(video);
+            console.log('Video element not found, creating one');
         }
-        
-        video.srcObject = checkinStream;
-        video.play();
-        
-        // Start recognition loop
-        checkinInterval = setInterval(async () => {
-            await performCheckinRecognition(video);
-        }, 3000); // Check every 3 seconds
-        
-        // Update button states
-        this.disabled = true;
-        document.getElementById('stopRecognition').disabled = false;
-        
-        // Update status
-        document.querySelector('.alert-info').innerHTML = `
-            <i class="fas fa-camera me-2"></i>
-            <strong>Face Recognition Active</strong><br>
-            Looking for registered clients...
-        `;
-        
-    } catch (err) {
-        console.error('Error starting check-in recognition:', err);
-        alert('Could not access camera. Please check permissions.');
+    } catch (error) {
+        console.error('Camera access error:', error);
     }
 });
-
-document.getElementById('stopRecognition').addEventListener('click', function() {
-    // Stop recognition
-    if (checkinInterval) {
-        clearInterval(checkinInterval);
-        checkinInterval = null;
-    }
-    
-    // Stop camera
-    if (checkinStream) {
-        checkinStream.getTracks().forEach(track => track.stop());
-        checkinStream = null;
-    }
-    
-    // Reset video
-    const video = document.getElementById('checkinVideo');
-    if (video) {
-        video.srcObject = null;
-        
-        // Restore placeholder
-        const placeholder = document.createElement('div');
-        placeholder.className = 'camera-placeholder bg-light d-flex align-items-center justify-content-center';
-        placeholder.style.height = '300px';
-        placeholder.style.border = '2px dashed #dee2e6';
-        placeholder.innerHTML = `
-            <div>
-                <i class="fas fa-camera fa-3x text-muted mb-3"></i>
-                <p class="text-muted">Camera will appear here</p>
-                <small class="text-muted">Click "Start Recognition" to begin face recognition</small>
+</script>
+{% endblock %}
             </div>
         `;
         video.replaceWith(placeholder);
