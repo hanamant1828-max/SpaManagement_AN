@@ -274,63 +274,75 @@
                     <div class="mb-3">
                         <label class="form-label">Package Services Selection</label>
                         <div class="card">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <small class="text-muted">Select services to include in this package with individual pricing and discounts</small>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="addServiceBtn">
+                                    <i class="fas fa-plus"></i> Add Service
+                                </button>
                             </div>
-                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                                <div id="service-selection">
-                                    {% for service in services %}
-                                    <div class="service-item mb-3 p-3 border rounded" data-service-id="{{ service.id }}">
-                                        <div class="form-check mb-2">
-                                            <input class="form-check-input service-checkbox" type="checkbox" 
-                                                   value="{{ service.id }}" id="service_{{ service.id }}"
-                                                   data-original-price="{{ service.price }}">
-                                            <label class="form-check-label fw-bold" for="service_{{ service.id }}">
-                                                {{ service.name }}
-                                                <span class="badge bg-info ms-2">{{ service.duration }} mins</span>
-                                            </label>
+                            <div class="card-body">
+                                <!-- Service Dropdown Selection -->
+                                <div id="service-dropdown-section" style="display: none;" class="mb-3">
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Select Service</label>
+                                            <select class="form-select" id="serviceDropdown">
+                                                <option value="">Choose a service...</option>
+                                                {% for service in services %}
+                                                <option value="{{ service.id }}" 
+                                                        data-name="{{ service.name }}" 
+                                                        data-price="{{ service.price }}" 
+                                                        data-duration="{{ service.duration }}">
+                                                    {{ service.name }} - ₹{{ service.price }} ({{ service.duration }} mins)
+                                                </option>
+                                                {% endfor %}
+                                            </select>
                                         </div>
-                                        
-                                        <div class="service-options" style="display: none;">
-                                            <div class="row g-2">
-                                                <div class="col-md-3">
-                                                    <label class="form-label small">Sessions Included</label>
-                                                    <input type="number" class="form-control sessions-input" min="1" value="1" placeholder="1">
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <label class="form-label small">Original Price (₹)</label>
-                                                    <input type="number" class="form-control original-price-input" 
-                                                           value="{{ service.price }}" step="0.01" readonly>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <label class="form-label small">Service Discount (%)</label>
-                                                    <input type="number" class="form-control service-discount-input" 
-                                                           min="0" max="100" value="0" step="0.01" placeholder="0">
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <label class="form-label small">Final Price (₹)</label>
-                                                    <input type="number" class="form-control final-price-input" 
-                                                           value="{{ service.price }}" step="0.01" readonly>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="row g-2 mt-2">
-                                                <div class="col-md-6">
-                                                    <small class="text-muted">
-                                                        <strong>Total Sessions Value:</strong> 
-                                                        <span class="total-sessions-value">₹{{ service.price }}</span>
-                                                    </small>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <small class="text-success">
-                                                        <strong>Total Savings:</strong> 
-                                                        <span class="total-savings">₹0.00</span>
-                                                    </small>
-                                                </div>
-                                            </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Sessions</label>
+                                            <input type="number" class="form-control" id="sessionsInput" min="1" value="1">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Discount (%)</label>
+                                            <input type="number" class="form-control" id="discountInput" min="0" max="100" value="0" step="0.01">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small">Final Price</label>
+                                            <input type="number" class="form-control" id="finalPriceInput" readonly>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-success w-100" id="confirmAddService">
+                                                <i class="fas fa-check"></i> Add
+                                            </button>
                                         </div>
                                     </div>
-                                    {% endfor %}
+                                </div>
+
+                                <!-- Selected Services Display -->
+                                <div id="selected-services-display">
+                                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                        <table class="table table-sm" id="selectedServicesTable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Service</th>
+                                                    <th>Sessions</th>
+                                                    <th>Original Price</th>
+                                                    <th>Discount</th>
+                                                    <th>Final Price</th>
+                                                    <th>Total Value</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="selectedServicesBody">
+                                                <!-- Selected services will be populated here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div id="no-services-message" class="text-center py-3 text-muted">
+                                        <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                        <p>No services selected. Click "Add Service" to start building your package.</p>
+                                    </div>
                                 </div>
                                 
                                 <!-- Package Summary -->
@@ -411,100 +423,148 @@
 </div>
 
 <script>
-// Enhanced service selection functionality with pricing calculations
+// Enhanced service selection functionality with dropdown interface
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle service checkbox changes
-    document.querySelectorAll('.service-checkbox').forEach(function(checkbox) {
-        checkbox.addEventListener('change', function() {
-            const serviceOptions = this.closest('.service-item').querySelector('.service-options');
-            if (this.checked) {
-                serviceOptions.style.display = 'block';
-                calculateServicePricing(this.closest('.service-item'));
-            } else {
-                serviceOptions.style.display = 'none';
-            }
-            updateSelectedServices();
-            updatePackageSummary();
-        });
+    let selectedServices = [];
+    
+    // Show/hide service dropdown section
+    document.getElementById('addServiceBtn').addEventListener('click', function() {
+        const dropdownSection = document.getElementById('service-dropdown-section');
+        dropdownSection.style.display = dropdownSection.style.display === 'none' ? 'block' : 'none';
+        
+        // Reset form
+        document.getElementById('serviceDropdown').value = '';
+        document.getElementById('sessionsInput').value = '1';
+        document.getElementById('discountInput').value = '0';
+        document.getElementById('finalPriceInput').value = '';
     });
 
-    // Update calculations when inputs change
-    document.querySelectorAll('.sessions-input, .service-discount-input').forEach(function(input) {
-        input.addEventListener('input', function() {
-            const serviceItem = this.closest('.service-item');
-            calculateServicePricing(serviceItem);
-            updateSelectedServices();
-            updatePackageSummary();
-        });
-    });
-
-    function calculateServicePricing(serviceItem) {
-        const originalPrice = parseFloat(serviceItem.querySelector('.original-price-input').value) || 0;
-        const sessions = parseInt(serviceItem.querySelector('.sessions-input').value) || 1;
-        const discountPercent = parseFloat(serviceItem.querySelector('.service-discount-input').value) || 0;
+    // Update final price when service, sessions, or discount changes
+    function updateFinalPrice() {
+        const serviceDropdown = document.getElementById('serviceDropdown');
+        const sessions = parseInt(document.getElementById('sessionsInput').value) || 1;
+        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
         
-        // Calculate final price per session after discount
-        const finalPricePerSession = originalPrice * (1 - (discountPercent / 100));
-        
-        // Calculate totals
-        const totalOriginalValue = originalPrice * sessions;
-        const totalFinalValue = finalPricePerSession * sessions;
-        const totalSavings = totalOriginalValue - totalFinalValue;
-        
-        // Update the display
-        serviceItem.querySelector('.final-price-input').value = finalPricePerSession.toFixed(2);
-        serviceItem.querySelector('.total-sessions-value').textContent = '₹' + totalFinalValue.toFixed(2);
-        serviceItem.querySelector('.total-savings').textContent = '₹' + totalSavings.toFixed(2);
+        if (serviceDropdown.value) {
+            const originalPrice = parseFloat(serviceDropdown.selectedOptions[0].getAttribute('data-price')) || 0;
+            const finalPricePerSession = originalPrice * (1 - (discount / 100));
+            document.getElementById('finalPriceInput').value = finalPricePerSession.toFixed(2);
+        }
     }
 
-    function updateSelectedServices() {
-        const selectedServices = [];
-        document.querySelectorAll('.service-checkbox:checked').forEach(function(checkbox) {
-            const serviceItem = checkbox.closest('.service-item');
-            const sessions = parseInt(serviceItem.querySelector('.sessions-input').value) || 1;
-            const serviceDiscount = parseFloat(serviceItem.querySelector('.service-discount-input').value) || 0;
-            const originalPrice = parseFloat(serviceItem.querySelector('.original-price-input').value) || 0;
-            const finalPrice = parseFloat(serviceItem.querySelector('.final-price-input').value) || 0;
-            
-            selectedServices.push({
-                service_id: parseInt(checkbox.value),
-                sessions: sessions,
-                service_discount: serviceDiscount,
-                original_price: originalPrice,
-                final_price: finalPrice
-            });
-        });
+    document.getElementById('serviceDropdown').addEventListener('change', updateFinalPrice);
+    document.getElementById('sessionsInput').addEventListener('input', updateFinalPrice);
+    document.getElementById('discountInput').addEventListener('input', updateFinalPrice);
+
+    // Add selected service to the table
+    document.getElementById('confirmAddService').addEventListener('click', function() {
+        const serviceDropdown = document.getElementById('serviceDropdown');
+        const sessions = parseInt(document.getElementById('sessionsInput').value) || 1;
+        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
         
+        if (!serviceDropdown.value) {
+            alert('Please select a service');
+            return;
+        }
+
+        const serviceId = parseInt(serviceDropdown.value);
+        const serviceName = serviceDropdown.selectedOptions[0].getAttribute('data-name');
+        const originalPrice = parseFloat(serviceDropdown.selectedOptions[0].getAttribute('data-price'));
+        const finalPrice = parseFloat(document.getElementById('finalPriceInput').value);
+        const totalValue = finalPrice * sessions;
+
+        // Check if service already exists
+        const existingIndex = selectedServices.findIndex(s => s.service_id === serviceId);
+        if (existingIndex !== -1) {
+            // Update existing service
+            selectedServices[existingIndex] = {
+                service_id: serviceId,
+                service_name: serviceName,
+                sessions: sessions,
+                service_discount: discount,
+                original_price: originalPrice,
+                final_price: finalPrice,
+                total_value: totalValue
+            };
+        } else {
+            // Add new service
+            selectedServices.push({
+                service_id: serviceId,
+                service_name: serviceName,
+                sessions: sessions,
+                service_discount: discount,
+                original_price: originalPrice,
+                final_price: finalPrice,
+                total_value: totalValue
+            });
+        }
+
+        updateSelectedServicesDisplay();
+        document.getElementById('service-dropdown-section').style.display = 'none';
+    });
+
+    function updateSelectedServicesDisplay() {
+        const tbody = document.getElementById('selectedServicesBody');
+        const noServicesMessage = document.getElementById('no-services-message');
+        const summaryDiv = document.getElementById('package-summary');
+
+        tbody.innerHTML = '';
+
+        if (selectedServices.length === 0) {
+            noServicesMessage.style.display = 'block';
+            summaryDiv.style.display = 'none';
+            document.querySelector('#selectedServicesTable').style.display = 'none';
+        } else {
+            noServicesMessage.style.display = 'none';
+            summaryDiv.style.display = 'block';
+            document.querySelector('#selectedServicesTable').style.display = 'table';
+
+            selectedServices.forEach(function(service, index) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${service.service_name}</strong></td>
+                    <td>${service.sessions}</td>
+                    <td>₹${service.original_price.toFixed(2)}</td>
+                    <td>${service.service_discount}%</td>
+                    <td>₹${service.final_price.toFixed(2)}</td>
+                    <td><strong>₹${service.total_value.toFixed(2)}</strong></td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeService(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            updatePackageSummary();
+        }
+
+        // Update hidden field
         document.getElementById('selected_services_json').value = JSON.stringify(selectedServices);
     }
 
+    window.removeService = function(index) {
+        selectedServices.splice(index, 1);
+        updateSelectedServicesDisplay();
+    };
+
     function updatePackageSummary() {
-        const selectedCheckboxes = document.querySelectorAll('.service-checkbox:checked');
-        const summaryDiv = document.getElementById('package-summary');
-        
-        if (selectedCheckboxes.length > 0) {
-            summaryDiv.style.display = 'block';
-            
-            let totalOriginal = 0;
-            let totalDiscounted = 0;
-            
-            selectedCheckboxes.forEach(function(checkbox) {
-                const serviceItem = checkbox.closest('.service-item');
-                const sessions = parseInt(serviceItem.querySelector('.sessions-input').value) || 1;
-                const originalPrice = parseFloat(serviceItem.querySelector('.original-price-input').value) || 0;
-                const finalPrice = parseFloat(serviceItem.querySelector('.final-price-input').value) || 0;
-                
-                totalOriginal += originalPrice * sessions;
-                totalDiscounted += finalPrice * sessions;
-            });
-            
-            document.getElementById('selected-count').textContent = selectedCheckboxes.length;
-            document.getElementById('total-original').textContent = totalOriginal.toFixed(2);
-            document.getElementById('total-discounted').textContent = totalDiscounted.toFixed(2);
-        } else {
-            summaryDiv.style.display = 'none';
-        }
+        let totalOriginal = 0;
+        let totalDiscounted = 0;
+
+        selectedServices.forEach(function(service) {
+            totalOriginal += service.original_price * service.sessions;
+            totalDiscounted += service.total_value;
+        });
+
+        document.getElementById('selected-count').textContent = selectedServices.length;
+        document.getElementById('total-original').textContent = totalOriginal.toFixed(2);
+        document.getElementById('total-discounted').textContent = totalDiscounted.toFixed(2);
     }
+
+    // Initialize display
+    updateSelectedServicesDisplay();
 });
 
 // Package filtering
