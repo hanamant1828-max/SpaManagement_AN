@@ -1,248 +1,298 @@
+
 """
-Enhanced Packages views and routes with session tracking and validity management
+Enhanced Package Management Views with proper service selection
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from forms import PackageForm
-from models import Package, PackageService, ClientPackage, Service, Client
-from .packages_queries import (
-    get_all_packages, get_package_by_id, create_package, update_package,
-    delete_package, get_client_packages, assign_package_to_client,
-    get_package_services, add_service_to_package, get_available_services,
-    track_package_usage, auto_expire_packages, export_packages_csv,
-    export_package_usage_csv
-)
+from models import Package, PackageService, Service, Category, Client, ClientPackage
+from .packages_queries import *
+import json
+from datetime import datetime, timedelta
 
 @app.route('/packages')
 @login_required
 def packages():
+    """Enhanced Package Management with service selection"""
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
-    # Auto-expire packages based on validity
-    auto_expire_packages()
-    
     packages_list = get_all_packages()
-    services = get_available_services()
-    client_packages = get_client_packages()
-    clients = Client.query.filter_by(is_active=True).all()
+    services = Service.query.filter_by(is_active=True).all()
+    categories = Category.query.filter_by(category_type='service', is_active=True).all()
     
-    form = PackageForm()
-    
-    return render_template('enhanced_packages.html',
+    return render_template('enhanced_packages.html', 
                          packages=packages_list,
                          services=services,
-                         client_packages=client_packages,
-                         clients=clients,
-                         form=form)
+                         categories=categories)
 
 @app.route('/packages/create', methods=['POST'])
 @login_required
-def create_package_route():
-    """Create new package with multiple services and individual pricing"""
+def create_package():
+    """Create package with selected services"""
     if not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('packages'))
+        return jsonify({'success': False, 'message': 'Access denied'})
     
     try:
         # Get form data
-        package_data = {
-            'name': request.form.get('name'),
-            'description': request.form.get('description'),
-            'package_type': request.form.get('package_type', 'regular'),
-            'total_sessions': int(request.form.get('total_sessions', 1)),
-            'validity_days': int(request.form.get('validity_days', 30)),
-            'total_price': float(request.form.get('total_price', 0)),
-            'discount_percentage': float(request.form.get('discount_percentage', 0)),
-            'is_active': bool(request.form.get('is_active'))
-        }
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        package_type = request.form.get('package_type', 'regular')
+        validity_days = int(request.form.get('validity_days', 90))
+        discount_percentage = float(request.form.get('discount_percentage', 0))
         
-        # Parse selected services with pricing data
-        selected_services_json = request.form.get('selected_services', '[]')
-        included_services = []
+        # Get selected services
+        selected_services = request.form.getlist('services[]')
+        service_sessions = {}
+        service_discounts = {}
         
-        if selected_services_json and selected_services_json != '[]':
-            import json
-            services_data = json.loads(selected_services_json)
+        # Parse service-specific data
+        for service_id in selected_services:
+            sessions_key = f'service_sessions_{service_id}'
+            discount_key = f'service_discount_{service_id}'
             
-            for service_data in services_data:
-                included_services.append({
-                    'service_id': service_data['service_id'],
-                    'sessions': service_data.get('sessions', 1),
-                    'service_discount': service_data.get('service_discount', 0.0),
-                    'original_price': service_data.get('original_price', 0.0),
-                    'final_price': service_data.get('final_price', 0.0)
-                })
+            service_sessions[service_id] = int(request.form.get(sessions_key, 1))
+            service_discounts[service_id] = float(request.form.get(discount_key, 0))
         
-        # Validate required fields
-        if not package_data['name']:
-            flash('Package name is required', 'danger')
-            return redirect(url_for('packages'))
+        # Validation
+        if not name:
+            return jsonify({'success': False, 'message': 'Package name is required'})
         
-        if package_data['total_price'] <= 0:
-            flash('Package price must be greater than 0', 'danger')
-            return redirect(url_for('packages'))
+        if not selected_services:
+            return jsonify({'success': False, 'message': 'Please select at least one service'})
+        
+        # Calculate pricing
+        total_original_price = 0
+        total_sessions = 0
+        
+        for service_id in selected_services:
+            service = Service.query.get(service_id)
+            if service:
+                sessions = service_sessions[service_id]
+                original_price = service.price * sessions
+                total_original_price += original_price
+                total_sessions += sessions
+        
+        # Apply package discount
+        total_discount_amount = (total_original_price * discount_percentage) / 100
+        final_price = total_original_price - total_discount_amount
         
         # Create package
-        package = create_package(package_data, included_services)
-        flash(f'Package "{package.name}" created successfully with {len(included_services)} services', 'success')
+        package = Package(
+            name=name,
+            description=description,
+            package_type=package_type,
+            validity_days=validity_days,
+            duration_months=validity_days // 30,
+            total_sessions=total_sessions,
+            total_price=final_price,
+            discount_percentage=discount_percentage,
+            is_active=True
+        )
+        
+        db.session.add(package)
+        db.session.flush()  # Get package ID
+        
+        # Add services to package
+        for service_id in selected_services:
+            service = Service.query.get(service_id)
+            if service:
+                sessions = service_sessions[service_id]
+                service_discount = service_discounts[service_id]
+                original_price = service.price * sessions
+                service_discount_amount = (original_price * service_discount) / 100
+                discounted_price = original_price - service_discount_amount
+                
+                package_service = PackageService(
+                    package_id=package.id,
+                    service_id=int(service_id),
+                    sessions_included=sessions,
+                    service_discount=service_discount,
+                    original_price=original_price,
+                    discounted_price=discounted_price
+                )
+                db.session.add(package_service)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Package "{name}" created successfully',
+            'package_id': package.id
+        })
         
     except Exception as e:
-        flash(f'Error creating package: {str(e)}', 'danger')
-    
-    return redirect(url_for('packages'))
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error creating package: {str(e)}'})
 
-@app.route('/packages/<int:package_id>/edit', methods=['POST'])
+@app.route('/packages/<int:package_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_package(package_id):
-    """Edit package"""
+    """Edit existing package"""
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('packages'))
     
-    package = get_package_by_id(package_id)
-    if not package:
-        flash('Package not found', 'danger')
-        return redirect(url_for('packages'))
+    package = Package.query.get_or_404(package_id)
     
-    form = PackageForm()
-    if form.validate_on_submit():
+    if request.method == 'POST':
         try:
-            package_data = {
-                'name': form.name.data,
-                'description': form.description.data,
-                'total_sessions': getattr(form, 'total_sessions', None) and form.total_sessions.data or package.total_sessions,
-                'validity_days': getattr(form, 'validity_days', None) and form.validity_days.data or package.validity_days,
-                'total_price': form.total_price.data,
-                'discount_percentage': form.discount_percentage.data or 0.0,
-                'is_active': form.is_active.data
-            }
+            # Update package details
+            package.name = request.form.get('name', '').strip()
+            package.description = request.form.get('description', '').strip()
+            package.package_type = request.form.get('package_type', 'regular')
+            package.validity_days = int(request.form.get('validity_days', 90))
+            package.duration_months = package.validity_days // 30
+            package.discount_percentage = float(request.form.get('discount_percentage', 0))
             
-            included_services = getattr(form, 'included_services', None) and form.included_services.data or []
-            update_package(package_id, package_data, included_services)
+            # Update services
+            selected_services = request.form.getlist('services[]')
+            
+            # Remove existing services
+            PackageService.query.filter_by(package_id=package_id).delete()
+            
+            # Add new services
+            total_original_price = 0
+            total_sessions = 0
+            
+            for service_id in selected_services:
+                service = Service.query.get(service_id)
+                if service:
+                    sessions = int(request.form.get(f'service_sessions_{service_id}', 1))
+                    service_discount = float(request.form.get(f'service_discount_{service_id}', 0))
+                    
+                    original_price = service.price * sessions
+                    service_discount_amount = (original_price * service_discount) / 100
+                    discounted_price = original_price - service_discount_amount
+                    
+                    package_service = PackageService(
+                        package_id=package_id,
+                        service_id=int(service_id),
+                        sessions_included=sessions,
+                        service_discount=service_discount,
+                        original_price=original_price,
+                        discounted_price=discounted_price
+                    )
+                    db.session.add(package_service)
+                    
+                    total_original_price += original_price
+                    total_sessions += sessions
+            
+            # Recalculate package price
+            total_discount_amount = (total_original_price * package.discount_percentage) / 100
+            package.total_price = total_original_price - total_discount_amount
+            package.total_sessions = total_sessions
+            
+            db.session.commit()
             flash(f'Package "{package.name}" updated successfully', 'success')
             
         except Exception as e:
+            db.session.rollback()
             flash(f'Error updating package: {str(e)}', 'danger')
     
-    return redirect(url_for('packages'))
+    services = Service.query.filter_by(is_active=True).all()
+    categories = Category.query.filter_by(category_type='service', is_active=True).all()
+    
+    return render_template('enhanced_packages.html', 
+                         package=package,
+                         services=services,
+                         categories=categories,
+                         edit_mode=True)
 
 @app.route('/packages/<int:package_id>/delete', methods=['POST'])
 @login_required
-def delete_package_route(package_id):
+def delete_package(package_id):
     """Delete package"""
     if not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('packages'))
-    
-    try:
-        result = delete_package(package_id)
-        if result['success']:
-            flash(result['message'], 'success')
-        else:
-            flash(result['message'], 'warning')
-    except Exception as e:
-        flash(f'Error deleting package: {str(e)}', 'danger')
-    
-    return redirect(url_for('packages'))
-
-@app.route('/packages/<int:package_id>/assign', methods=['POST'])
-@login_required
-def assign_package_route(package_id):
-    """Assign package to client"""
-    if not current_user.can_access('packages'):
         return jsonify({'success': False, 'message': 'Access denied'})
     
     try:
-        client_id = request.json.get('client_id') if request.is_json else request.form.get('client_id')
-        if not client_id:
-            return jsonify({'success': False, 'message': 'Client ID required'})
+        package = Package.query.get_or_404(package_id)
         
-        client_package = assign_package_to_client(client_id, package_id)
+        # Check if package is being used by clients
+        client_packages = ClientPackage.query.filter_by(package_id=package_id, is_active=True).count()
+        if client_packages > 0:
+            return jsonify({
+                'success': False, 
+                'message': f'Cannot delete package. {client_packages} client(s) have active subscriptions.'
+            })
+        
+        # Delete package services first
+        PackageService.query.filter_by(package_id=package_id).delete()
+        
+        # Delete package
+        db.session.delete(package)
+        db.session.commit()
+        
         return jsonify({
             'success': True, 
-            'message': 'Package assigned successfully',
-            'client_package_id': client_package.id
+            'message': f'Package "{package.name}" deleted successfully'
         })
+        
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error deleting package: {str(e)}'})
 
-@app.route('/packages/usage/<int:client_package_id>')
+@app.route('/api/services/<int:service_id>/details')
 @login_required
-def package_usage_details(client_package_id):
-    """View detailed package usage for a client"""
-    if not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('packages'))
+def get_service_details(service_id):
+    """Get service details for AJAX calls"""
+    service = Service.query.get_or_404(service_id)
+    return jsonify({
+        'id': service.id,
+        'name': service.name,
+        'price': service.price,
+        'duration': service.duration,
+        'description': service.description
+    })
+
+@app.route('/api/packages/<int:package_id>/details')
+@login_required
+def get_package_details(package_id):
+    """Get package details with services for editing"""
+    package = Package.query.get_or_404(package_id)
     
-    try:
-        usage_data = track_package_usage(client_package_id)
-        return render_template('package_usage.html', usage_data=usage_data)
-    except Exception as e:
-        flash(f'Error retrieving package usage: {str(e)}', 'danger')
-        return redirect(url_for('packages'))
-
-@app.route('/packages/export')
-@login_required
-def export_packages():
-    """Export packages to CSV"""
-    if not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('packages'))
+    services = []
+    for ps in package.services:
+        services.append({
+            'service_id': ps.service_id,
+            'service_name': ps.service.name,
+            'sessions_included': ps.sessions_included,
+            'service_discount': ps.service_discount,
+            'original_price': ps.original_price,
+            'discounted_price': ps.discounted_price
+        })
     
-    try:
-        csv_data = export_packages_csv()
-        response = make_response(csv_data)
-        response.headers['Content-Disposition'] = 'attachment; filename=packages.csv'
-        response.headers['Content-Type'] = 'text/csv'
-        return response
-    except Exception as e:
-        flash(f'Error exporting packages: {str(e)}', 'danger')
-        return redirect(url_for('packages'))
+    return jsonify({
+        'id': package.id,
+        'name': package.name,
+        'description': package.description,
+        'package_type': package.package_type,
+        'validity_days': package.validity_days,
+        'total_price': package.total_price,
+        'discount_percentage': package.discount_percentage,
+        'services': services
+    })
 
-@app.route('/packages/usage/export')
+@app.route('/packages/<int:package_id>/toggle', methods=['POST'])
 @login_required
-def export_package_usage():
-    """Export package usage data to CSV"""
-    if not current_user.can_access('packages'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('packages'))
-    
-    try:
-        csv_data = export_package_usage_csv()
-        response = make_response(csv_data)
-        response.headers['Content-Disposition'] = 'attachment; filename=package_usage.csv'
-        response.headers['Content-Type'] = 'text/csv'
-        return response
-    except Exception as e:
-        flash(f'Error exporting package usage: {str(e)}', 'danger')
-        return redirect(url_for('packages'))
-
-# Additional legacy routes for compatibility
-@app.route('/add_package', methods=['POST'])
-@login_required
-def add_package():
-    """Legacy add package route - redirects to new create route"""
-    return create_package_route()
-
-@app.route('/assign_package', methods=['POST'])
-@login_required
-def assign_package():
-    """Legacy assign package route"""
+def toggle_package(package_id):
+    """Toggle package active status"""
     if not current_user.can_access('packages'):
         return jsonify({'success': False, 'message': 'Access denied'})
-
+    
     try:
-        client_id = request.form.get('client_id')
-        package_id = request.form.get('package_id')
+        package = Package.query.get_or_404(package_id)
+        package.is_active = not package.is_active
+        db.session.commit()
         
-        if not client_id or not package_id:
-            return jsonify({'success': False, 'message': 'Client and package required'})
-
-        client_package = assign_package_to_client(client_id, package_id)
-        return jsonify({'success': True, 'message': 'Package assigned successfully!'})
-
+        status = 'activated' if package.is_active else 'deactivated'
+        return jsonify({
+            'success': True, 
+            'message': f'Package {status} successfully',
+            'is_active': package.is_active
+        })
+        
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})

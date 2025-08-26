@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}✅ Package Subscription Management{% endblock %}
@@ -228,7 +227,7 @@
                 <h5 class="modal-title">Create New Package</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('add_package') }}">
+            <form method="POST" action="{{ url_for('add_package') }}" id="packageForm">
                 <div class="modal-body">
                     <!-- Package Basic Info -->
                     <div class="row mb-3">
@@ -266,108 +265,116 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Discount (%)</label>
-                            <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="0">
+                            <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="0" id="discount_percentage">
                         </div>
                     </div>
 
                     <!-- Service Selection -->
-                    <div class="mb-3">
-                        <label class="form-label">Package Services Selection</label>
+                    <div class="form-group">
+                        <label for="services">Select Services</label>
+                        <div class="service-selection">
+                            {% for category in categories %}
+                            <div class="category-section">
+                                <h6 class="category-title" style="color: {{ category.color }}">
+                                    <i class="{{ category.icon or 'fas fa-tag' }}"></i>
+                                    {{ category.display_name }}
+                                </h6>
+                                {% for service in services %}
+                                    {% if service.category_id == category.id %}
+                                    <div class="service-item">
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input service-checkbox" 
+                                                   id="service_{{ service.id }}" 
+                                                   name="services[]" 
+                                                   value="{{ service.id }}"
+                                                   data-price="{{ service.price }}"
+                                                   data-name="{{ service.name }}">
+                                            <label class="custom-control-label" for="service_{{ service.id }}">
+                                                {{ service.name }} 
+                                                <span class="text-muted">({{ service.duration }} min)</span>
+                                                - <strong>₹{{ service.price }}</strong>
+                                            </label>
+                                        </div>
+                                        <div class="service-details" id="details_{{ service.id }}" style="display: none;">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <label>Sessions</label>
+                                                    <input type="number" 
+                                                           class="form-control form-control-sm sessions-input" 
+                                                           name="service_sessions_{{ service.id }}" 
+                                                           value="1" 
+                                                           min="1"
+                                                           data-service-id="{{ service.id }}"
+                                                           data-base-price="{{ service.price }}">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label>Service Discount %</label>
+                                                    <input type="number" 
+                                                           class="form-control form-control-sm discount-input" 
+                                                           name="service_discount_{{ service.id }}" 
+                                                           value="0" 
+                                                           min="0" 
+                                                           max="100" 
+                                                           step="0.1"
+                                                           data-service-id="{{ service.id }}"
+                                                           data-base-price="{{ service.price }}">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label>Subtotal</label>
+                                                    <input type="text" 
+                                                           class="form-control form-control-sm" 
+                                                           id="subtotal_{{ service.id }}" 
+                                                           value="₹{{ service.price }}"
+                                                           readonly>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label>Final Price</label>
+                                                    <input type="text" 
+                                                           class="form-control form-control-sm" 
+                                                           id="final_price_{{ service.id }}" 
+                                                           value="₹{{ service.price }}"
+                                                           readonly>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Package Summary -->
+                    <div class="form-group">
                         <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <small class="text-muted">Select services to include in this package with individual pricing and discounts</small>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="addServiceBtn">
-                                    <i class="fas fa-plus"></i> Add Service
-                                </button>
+                            <div class="card-header">
+                                <h6 class="mb-0">Package Summary</h6>
                             </div>
                             <div class="card-body">
-                                <!-- Service Dropdown Selection -->
-                                <div id="service-dropdown-section" style="display: none;" class="mb-3">
-                                    <div class="row g-2">
-                                        <div class="col-md-4">
-                                            <label class="form-label small">Select Service</label>
-                                            <select class="form-select" id="serviceDropdown">
-                                                <option value="">Choose a service...</option>
-                                                {% for service in services %}
-                                                <option value="{{ service.id }}" 
-                                                        data-name="{{ service.name }}" 
-                                                        data-price="{{ service.price }}" 
-                                                        data-duration="{{ service.duration }}">
-                                                    {{ service.name }} - ₹{{ service.price }} ({{ service.duration }} mins)
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label small">Sessions</label>
-                                            <input type="number" class="form-control" id="sessionsInput" min="1" value="1">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label small">Discount (%)</label>
-                                            <input type="number" class="form-control" id="discountInput" min="0" max="100" value="0" step="0.01">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label small">Final Price</label>
-                                            <input type="number" class="form-control" id="finalPriceInput" readonly>
-                                        </div>
-                                        <div class="col-md-2 d-flex align-items-end">
-                                            <button type="button" class="btn btn-success w-100" id="confirmAddService">
-                                                <i class="fas fa-check"></i> Add
-                                            </button>
-                                        </div>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>Total Sessions:</strong>
+                                        <span id="total-sessions">0</span>
                                     </div>
-                                </div>
-
-                                <!-- Selected Services Display -->
-                                <div id="selected-services-display">
-                                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                                        <table class="table table-sm" id="selectedServicesTable">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Service</th>
-                                                    <th>Sessions</th>
-                                                    <th>Original Price</th>
-                                                    <th>Discount</th>
-                                                    <th>Final Price</th>
-                                                    <th>Total Value</th>
-                                                    <th>Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="selectedServicesBody">
-                                                <!-- Selected services will be populated here -->
-                                            </tbody>
-                                        </table>
+                                    <div class="col-md-3">
+                                        <strong>Original Price:</strong>
+                                        ₹<span id="original-price">0.00</span>
                                     </div>
-                                    
-                                    <div id="no-services-message" class="text-center py-3 text-muted">
-                                        <i class="fas fa-plus-circle fa-2x mb-2"></i>
-                                        <p>No services selected. Click "Add Service" to start building your package.</p>
+                                    <div class="col-md-3">
+                                        <strong>Total Discount:</strong>
+                                        ₹<span id="total-discount">0.00</span>
                                     </div>
-                                </div>
-                                
-                                <!-- Package Summary -->
-                                <div id="package-summary" class="mt-3 p-3 bg-light rounded" style="display: none;">
-                                    <h6 class="mb-2">Package Summary</h6>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <small><strong>Selected Services:</strong> <span id="selected-count">0</span></small>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <small><strong>Total Original Value:</strong> ₹<span id="total-original">0.00</span></small>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <small><strong>Total After Discounts:</strong> ₹<span id="total-discounted">0.00</span></small>
-                                        </div>
+                                    <div class="col-md-3">
+                                        <strong>Final Price:</strong>
+                                        ₹<span id="final-total-price">0.00</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Hidden field for selected services -->
-                    <input type="hidden" name="selected_services" id="selected_services_json">
-
-                    <div class="form-check">
+                    <div class="form-check mt-3">
                         <input class="form-check-input" type="checkbox" name="is_active" checked id="is_active">
                         <label class="form-check-label" for="is_active">
                             Package is active and can be assigned to clients
@@ -422,211 +429,152 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// Enhanced service selection functionality with dropdown interface
-document.addEventListener('DOMContentLoaded', function() {
-    let selectedServices = [];
-    
-    // Show/hide service dropdown section
-    document.getElementById('addServiceBtn').addEventListener('click', function() {
-        const dropdownSection = document.getElementById('service-dropdown-section');
-        dropdownSection.style.display = dropdownSection.style.display === 'none' ? 'block' : 'none';
-        
-        // Reset form
-        document.getElementById('serviceDropdown').value = '';
-        document.getElementById('sessionsInput').value = '1';
-        document.getElementById('discountInput').value = '0';
-        document.getElementById('finalPriceInput').value = '';
+$(document).ready(function() {
+    // Service selection toggle
+    $('.service-checkbox').change(function() {
+        const serviceId = $(this).val();
+        const detailsDiv = $('#details_' + serviceId);
+
+        if ($(this).is(':checked')) {
+            detailsDiv.show();
+            calculateServicePrice(serviceId);
+        } else {
+            detailsDiv.hide();
+        }
+        calculatePackageTotal();
     });
 
-    // Update final price when service, sessions, or discount changes
-    function updateFinalPrice() {
-        const serviceDropdown = document.getElementById('serviceDropdown');
-        const sessions = parseInt(document.getElementById('sessionsInput').value) || 1;
-        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-        
-        if (serviceDropdown.value) {
-            const originalPrice = parseFloat(serviceDropdown.selectedOptions[0].getAttribute('data-price')) || 0;
-            const finalPricePerSession = originalPrice * (1 - (discount / 100));
-            document.getElementById('finalPriceInput').value = finalPricePerSession.toFixed(2);
-        }
+    // Sessions and discount input changes
+    $('.sessions-input, .discount-input').on('input', function() {
+        const serviceId = $(this).data('service-id');
+        calculateServicePrice(serviceId);
+        calculatePackageTotal();
+    });
+
+    // Package discount change
+    $('#discount_percentage').on('input', function() {
+        calculatePackageTotal();
+    });
+
+    function calculateServicePrice(serviceId) {
+        const basePrice = parseFloat($(`input[name="service_sessions_${serviceId}"]`).data('base-price'));
+        const sessions = parseInt($(`input[name="service_sessions_${serviceId}"]`).val()) || 1;
+        const serviceDiscount = parseFloat($(`input[name="service_discount_${serviceId}"]`).val()) || 0;
+
+        const subtotal = basePrice * sessions;
+        const discountAmount = (subtotal * serviceDiscount) / 100;
+        const finalPrice = subtotal - discountAmount;
+
+        $(`#subtotal_${serviceId}`).val(`₹${subtotal.toFixed(2)}`);
+        $(`#final_price_${serviceId}`).val(`₹${finalPrice.toFixed(2)}`);
     }
 
-    document.getElementById('serviceDropdown').addEventListener('change', updateFinalPrice);
-    document.getElementById('sessionsInput').addEventListener('input', updateFinalPrice);
-    document.getElementById('discountInput').addEventListener('input', updateFinalPrice);
+    function calculatePackageTotal() {
+        let totalSessions = 0;
+        let originalPrice = 0;
+        let serviceDiscountTotal = 0;
 
-    // Add selected service to the table
-    document.getElementById('confirmAddService').addEventListener('click', function() {
-        const serviceDropdown = document.getElementById('serviceDropdown');
-        const sessions = parseInt(document.getElementById('sessionsInput').value) || 1;
-        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-        
-        if (!serviceDropdown.value) {
-            alert('Please select a service');
+        $('.service-checkbox:checked').each(function() {
+            const serviceId = $(this).val();
+            const basePrice = parseFloat($(this).data('price'));
+            const sessions = parseInt($(`input[name="service_sessions_${serviceId}"]`).val()) || 1;
+            const serviceDiscount = parseFloat($(`input[name="service_discount_${serviceId}"]`).val()) || 0;
+
+            const subtotal = basePrice * sessions;
+            const serviceDiscountAmount = (subtotal * serviceDiscount) / 100;
+
+            totalSessions += sessions;
+            originalPrice += subtotal;
+            serviceDiscountTotal += serviceDiscountAmount;
+        });
+
+        // Apply package-level discount
+        const packageDiscount = parseFloat($('#discount_percentage').val()) || 0;
+        const packageDiscountAmount = ((originalPrice - serviceDiscountTotal) * packageDiscount) / 100;
+        const totalDiscount = serviceDiscountTotal + packageDiscountAmount;
+        const finalPrice = originalPrice - totalDiscount;
+
+        $('#total-sessions').text(totalSessions);
+        $('#original-price').text(originalPrice.toFixed(2));
+        $('#total-discount').text(totalDiscount.toFixed(2));
+        $('#final-total-price').text(finalPrice.toFixed(2));
+    }
+
+    // Package form submission
+    $('#packageForm').on('submit', function(e) {
+        e.preventDefault();
+
+        const selectedServices = $('.service-checkbox:checked').length;
+        if (selectedServices === 0) {
+            alert('Please select at least one service for this package.');
             return;
         }
 
-        const serviceId = parseInt(serviceDropdown.value);
-        const serviceName = serviceDropdown.selectedOptions[0].getAttribute('data-name');
-        const originalPrice = parseFloat(serviceDropdown.selectedOptions[0].getAttribute('data-price'));
-        const finalPrice = parseFloat(document.getElementById('finalPriceInput').value);
-        const totalValue = finalPrice * sessions;
+        const formData = new FormData(this);
 
-        // Check if service already exists
-        const existingIndex = selectedServices.findIndex(s => s.service_id === serviceId);
-        if (existingIndex !== -1) {
-            // Update existing service
-            selectedServices[existingIndex] = {
-                service_id: serviceId,
-                service_name: serviceName,
-                sessions: sessions,
-                service_discount: discount,
-                original_price: originalPrice,
-                final_price: finalPrice,
-                total_value: totalValue
-            };
-        } else {
-            // Add new service
-            selectedServices.push({
-                service_id: serviceId,
-                service_name: serviceName,
-                sessions: sessions,
-                service_discount: discount,
-                original_price: originalPrice,
-                final_price: finalPrice,
-                total_value: totalValue
-            });
-        }
-
-        updateSelectedServicesDisplay();
-        document.getElementById('service-dropdown-section').style.display = 'none';
-    });
-
-    function updateSelectedServicesDisplay() {
-        const tbody = document.getElementById('selectedServicesBody');
-        const noServicesMessage = document.getElementById('no-services-message');
-        const summaryDiv = document.getElementById('package-summary');
-
-        tbody.innerHTML = '';
-
-        if (selectedServices.length === 0) {
-            noServicesMessage.style.display = 'block';
-            summaryDiv.style.display = 'none';
-            document.querySelector('#selectedServicesTable').style.display = 'none';
-        } else {
-            noServicesMessage.style.display = 'none';
-            summaryDiv.style.display = 'block';
-            document.querySelector('#selectedServicesTable').style.display = 'table';
-
-            selectedServices.forEach(function(service, index) {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${service.service_name}</strong></td>
-                    <td>${service.sessions}</td>
-                    <td>₹${service.original_price.toFixed(2)}</td>
-                    <td>${service.service_discount}%</td>
-                    <td>₹${service.final_price.toFixed(2)}</td>
-                    <td><strong>₹${service.total_value.toFixed(2)}</strong></td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeService(${index})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            updatePackageSummary();
-        }
-
-        // Update hidden field
-        document.getElementById('selected_services_json').value = JSON.stringify(selectedServices);
-    }
-
-    window.removeService = function(index) {
-        selectedServices.splice(index, 1);
-        updateSelectedServicesDisplay();
-    };
-
-    function updatePackageSummary() {
-        let totalOriginal = 0;
-        let totalDiscounted = 0;
-
-        selectedServices.forEach(function(service) {
-            totalOriginal += service.original_price * service.sessions;
-            totalDiscounted += service.total_value;
+        $.ajax({
+            url: '/packages/create',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    alert(response.message);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('Error creating package. Please try again.');
+            }
         });
+    });
 
-        document.getElementById('selected-count').textContent = selectedServices.length;
-        document.getElementById('total-original').textContent = totalOriginal.toFixed(2);
-        document.getElementById('total-discounted').textContent = totalDiscounted.toFixed(2);
-    }
+    // Package status toggle
+    $('.toggle-package').click(function() {
+        const packageId = $(this).data('package-id');
+        const button = $(this);
 
-    // Initialize display
-    updateSelectedServicesDisplay();
-});
+        $.ajax({
+            url: `/packages/${packageId}/toggle`,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    button.text(response.is_active ? 'Deactivate' : 'Activate');
+                    button.toggleClass('btn-warning btn-success');
+                    alert(response.message);
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }
+        });
+    });
 
-// Package filtering
-function filterPackages(type) {
-    const rows = document.querySelectorAll('[data-package-type]');
-    const buttons = document.querySelectorAll('.btn-group .btn');
-    
-    // Update active button
-    buttons.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    // Filter rows
-    rows.forEach(row => {
-        if (type === 'all' || row.dataset.packageType === type) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
+    // Package deletion
+    $('.delete-package').click(function() {
+        if (!confirm('Are you sure you want to delete this package?')) {
+            return;
         }
-    });
-}
 
-// Package assignment
-document.getElementById('assignPackageModal').addEventListener('show.bs.modal', function(event) {
-    const button = event.relatedTarget;
-    const packageId = button.getAttribute('data-package-id');
-    const packageName = button.getAttribute('data-package-name');
-    
-    document.getElementById('assign_package_id').value = packageId;
-    this.querySelector('.modal-title').textContent = 'Assign ' + packageName + ' to Client';
+        const packageId = $(this).data('package-id');
+
+        $.ajax({
+            url: `/packages/${packageId}/delete`,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    alert(response.message);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }
+        });
+    });
 });
-
-function assignPackage() {
-    const form = document.getElementById('assignPackageForm');
-    const formData = new FormData(form);
-    
-    const data = {};
-    formData.forEach((value, key) => {
-        if (value) data[key] = value;
-    });
-    
-    const packageId = document.getElementById('assign_package_id').value;
-    
-    fetch(`/packages/${packageId}/assign`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Package assigned successfully!');
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while assigning the package.');
-    });
-}
 </script>
 {% endblock %}
