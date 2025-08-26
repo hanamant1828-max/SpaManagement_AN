@@ -31,9 +31,21 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
+        from werkzeug.security import check_password_hash
         user = User.query.filter_by(username=form.username.data).first()
 
-        if user and user.check_password(form.password.data):
+        # Check password using either user method or werkzeug function
+        password_valid = False
+        if user:
+            if hasattr(user, 'check_password'):
+                password_valid = user.check_password(form.password.data)
+            elif user.password_hash:
+                password_valid = check_password_hash(user.password_hash, form.password.data)
+            else:
+                # Fallback for plain text password (not recommended for production)
+                password_valid = user.password == form.password.data
+
+        if user and password_valid:
             login_user(user, remember=form.remember.data)
             flash('Login successful!', 'success')
             next_page = request.args.get('next')

@@ -7,6 +7,7 @@ from datetime import datetime, date
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=25)])
     password = PasswordField('Password', validators=[DataRequired()])
+    remember = BooleanField('Remember Me', default=False)
 
 class UserForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=25)])
