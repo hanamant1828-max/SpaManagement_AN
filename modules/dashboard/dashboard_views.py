@@ -6,7 +6,6 @@ from flask_login import login_required, current_user
 from app import app
 from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get_low_stock_items, get_expiring_items
 
-@app.route('/')
 @app.route('/dashboard')
 @login_required  
 def dashboard():
