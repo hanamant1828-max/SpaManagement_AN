@@ -41,35 +41,56 @@ def packages():
 @app.route('/packages/create', methods=['POST'])
 @login_required
 def create_package_route():
-    """Create new package with multiple services and session tracking"""
+    """Create new package with multiple services and individual pricing"""
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('packages'))
     
-    form = PackageForm()
-    if form.validate_on_submit():
-        try:
-            # Create package
-            package_data = {
-                'name': form.name.data,
-                'description': form.description.data,
-                'total_sessions': getattr(form, 'total_sessions', None) and form.total_sessions.data or 1,
-                'validity_days': getattr(form, 'validity_days', None) and form.validity_days.data or 30,
-                'total_price': form.total_price.data,
-                'discount_percentage': form.discount_percentage.data or 0.0,
-                'is_active': form.is_active.data
-            }
+    try:
+        # Get form data
+        package_data = {
+            'name': request.form.get('name'),
+            'description': request.form.get('description'),
+            'package_type': request.form.get('package_type', 'regular'),
+            'total_sessions': int(request.form.get('total_sessions', 1)),
+            'validity_days': int(request.form.get('validity_days', 30)),
+            'total_price': float(request.form.get('total_price', 0)),
+            'discount_percentage': float(request.form.get('discount_percentage', 0)),
+            'is_active': bool(request.form.get('is_active'))
+        }
+        
+        # Parse selected services with pricing data
+        selected_services_json = request.form.get('selected_services', '[]')
+        included_services = []
+        
+        if selected_services_json and selected_services_json != '[]':
+            import json
+            services_data = json.loads(selected_services_json)
             
-            included_services = getattr(form, 'included_services', None) and form.included_services.data or []
-            package = create_package(package_data, included_services)
-            flash(f'Package "{package.name}" created successfully with {len(included_services)} services', 'success')
-            
-        except Exception as e:
-            flash(f'Error creating package: {str(e)}', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'danger')
+            for service_data in services_data:
+                included_services.append({
+                    'service_id': service_data['service_id'],
+                    'sessions': service_data.get('sessions', 1),
+                    'service_discount': service_data.get('service_discount', 0.0),
+                    'original_price': service_data.get('original_price', 0.0),
+                    'final_price': service_data.get('final_price', 0.0)
+                })
+        
+        # Validate required fields
+        if not package_data['name']:
+            flash('Package name is required', 'danger')
+            return redirect(url_for('packages'))
+        
+        if package_data['total_price'] <= 0:
+            flash('Package price must be greater than 0', 'danger')
+            return redirect(url_for('packages'))
+        
+        # Create package
+        package = create_package(package_data, included_services)
+        flash(f'Package "{package.name}" created successfully with {len(included_services)} services', 'success')
+        
+    except Exception as e:
+        flash(f'Error creating package: {str(e)}', 'danger')
     
     return redirect(url_for('packages'))
 

@@ -17,10 +17,11 @@ def get_package_by_id(package_id):
     return Package.query.get(package_id)
 
 def create_package(package_data, included_services=None):
-    """Create new package with multiple services"""
+    """Create new package with multiple services and individual pricing"""
     package = Package(
         name=package_data['name'],
         description=package_data.get('description'),
+        package_type=package_data.get('package_type', 'regular'),
         duration_months=package_data.get('duration_months', 1),
         total_sessions=package_data.get('total_sessions', 1),
         validity_days=package_data.get('validity_days', 30),
@@ -32,18 +33,24 @@ def create_package(package_data, included_services=None):
     db.session.add(package)
     db.session.flush()  # Get the package ID
 
-    # Add included services
+    # Add included services with individual pricing
     if included_services:
-        for service_id in included_services:
-            service = Service.query.get(service_id)
+        for service_data in included_services:
+            service = Service.query.get(service_data['service_id'])
             if service:
+                # Use service-specific pricing if provided, otherwise fall back to service defaults
+                original_price = service_data.get('original_price', service.price)
+                service_discount = service_data.get('service_discount', 0.0)
+                final_price = service_data.get('final_price', original_price * (1 - (service_discount / 100)))
+                sessions = service_data.get('sessions', 1)
+                
                 package_service = PackageService(
                     package_id=package.id,
-                    service_id=service_id,
-                    sessions_included=1,
-                    service_discount=package_data.get('discount_percentage', 0.0),
-                    original_price=service.price,
-                    discounted_price=service.price * (1 - (package_data.get('discount_percentage', 0.0) / 100))
+                    service_id=service_data['service_id'],
+                    sessions_included=sessions,
+                    service_discount=service_discount,
+                    original_price=original_price,
+                    discounted_price=final_price
                 )
                 db.session.add(package_service)
 

@@ -272,34 +272,81 @@
 
                     <!-- Service Selection -->
                     <div class="mb-3">
-                        <label class="form-label">Package Services</label>
+                        <label class="form-label">Package Services Selection</label>
                         <div class="card">
-                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                            <div class="card-header">
+                                <small class="text-muted">Select services to include in this package with individual pricing and discounts</small>
+                            </div>
+                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                                 <div id="service-selection">
                                     {% for service in services %}
-                                    <div class="service-item mb-2 p-2 border rounded">
-                                        <div class="form-check">
+                                    <div class="service-item mb-3 p-3 border rounded" data-service-id="{{ service.id }}">
+                                        <div class="form-check mb-2">
                                             <input class="form-check-input service-checkbox" type="checkbox" 
-                                                   value="{{ service.id }}" id="service_{{ service.id }}">
-                                            <label class="form-check-label" for="service_{{ service.id }}">
-                                                <strong>{{ service.name }}</strong> - ₹{{ service.price }}
-                                                <small class="text-muted d-block">{{ service.duration }} minutes</small>
+                                                   value="{{ service.id }}" id="service_{{ service.id }}"
+                                                   data-original-price="{{ service.price }}">
+                                            <label class="form-check-label fw-bold" for="service_{{ service.id }}">
+                                                {{ service.name }}
+                                                <span class="badge bg-info ms-2">{{ service.duration }} mins</span>
                                             </label>
                                         </div>
-                                        <div class="service-options mt-2" style="display: none;">
-                                            <div class="row">
-                                                <div class="col-6">
-                                                    <label class="form-label">Sessions</label>
-                                                    <input type="number" class="form-control sessions-input" min="1" value="1">
+                                        
+                                        <div class="service-options" style="display: none;">
+                                            <div class="row g-2">
+                                                <div class="col-md-3">
+                                                    <label class="form-label small">Sessions Included</label>
+                                                    <input type="number" class="form-control sessions-input" min="1" value="1" placeholder="1">
                                                 </div>
-                                                <div class="col-6">
-                                                    <label class="form-label">Service Discount (%)</label>
-                                                    <input type="number" class="form-control discount-input" min="0" max="100" value="0">
+                                                <div class="col-md-3">
+                                                    <label class="form-label small">Original Price (₹)</label>
+                                                    <input type="number" class="form-control original-price-input" 
+                                                           value="{{ service.price }}" step="0.01" readonly>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small">Service Discount (%)</label>
+                                                    <input type="number" class="form-control service-discount-input" 
+                                                           min="0" max="100" value="0" step="0.01" placeholder="0">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small">Final Price (₹)</label>
+                                                    <input type="number" class="form-control final-price-input" 
+                                                           value="{{ service.price }}" step="0.01" readonly>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row g-2 mt-2">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">
+                                                        <strong>Total Sessions Value:</strong> 
+                                                        <span class="total-sessions-value">₹{{ service.price }}</span>
+                                                    </small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-success">
+                                                        <strong>Total Savings:</strong> 
+                                                        <span class="total-savings">₹0.00</span>
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     {% endfor %}
+                                </div>
+                                
+                                <!-- Package Summary -->
+                                <div id="package-summary" class="mt-3 p-3 bg-light rounded" style="display: none;">
+                                    <h6 class="mb-2">Package Summary</h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small><strong>Selected Services:</strong> <span id="selected-count">0</span></small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small><strong>Total Original Value:</strong> ₹<span id="total-original">0.00</span></small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small><strong>Total After Discounts:</strong> ₹<span id="total-discounted">0.00</span></small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -364,7 +411,7 @@
 </div>
 
 <script>
-// Service selection functionality
+// Enhanced service selection functionality with pricing calculations
 document.addEventListener('DOMContentLoaded', function() {
     // Handle service checkbox changes
     document.querySelectorAll('.service-checkbox').forEach(function(checkbox) {
@@ -372,33 +419,91 @@ document.addEventListener('DOMContentLoaded', function() {
             const serviceOptions = this.closest('.service-item').querySelector('.service-options');
             if (this.checked) {
                 serviceOptions.style.display = 'block';
+                calculateServicePricing(this.closest('.service-item'));
             } else {
                 serviceOptions.style.display = 'none';
             }
             updateSelectedServices();
+            updatePackageSummary();
         });
     });
 
-    // Update selected services when inputs change
-    document.querySelectorAll('.sessions-input, .discount-input').forEach(function(input) {
-        input.addEventListener('input', updateSelectedServices);
+    // Update calculations when inputs change
+    document.querySelectorAll('.sessions-input, .service-discount-input').forEach(function(input) {
+        input.addEventListener('input', function() {
+            const serviceItem = this.closest('.service-item');
+            calculateServicePricing(serviceItem);
+            updateSelectedServices();
+            updatePackageSummary();
+        });
     });
+
+    function calculateServicePricing(serviceItem) {
+        const originalPrice = parseFloat(serviceItem.querySelector('.original-price-input').value) || 0;
+        const sessions = parseInt(serviceItem.querySelector('.sessions-input').value) || 1;
+        const discountPercent = parseFloat(serviceItem.querySelector('.service-discount-input').value) || 0;
+        
+        // Calculate final price per session after discount
+        const finalPricePerSession = originalPrice * (1 - (discountPercent / 100));
+        
+        // Calculate totals
+        const totalOriginalValue = originalPrice * sessions;
+        const totalFinalValue = finalPricePerSession * sessions;
+        const totalSavings = totalOriginalValue - totalFinalValue;
+        
+        // Update the display
+        serviceItem.querySelector('.final-price-input').value = finalPricePerSession.toFixed(2);
+        serviceItem.querySelector('.total-sessions-value').textContent = '₹' + totalFinalValue.toFixed(2);
+        serviceItem.querySelector('.total-savings').textContent = '₹' + totalSavings.toFixed(2);
+    }
 
     function updateSelectedServices() {
         const selectedServices = [];
         document.querySelectorAll('.service-checkbox:checked').forEach(function(checkbox) {
             const serviceItem = checkbox.closest('.service-item');
-            const sessions = serviceItem.querySelector('.sessions-input').value || 1;
-            const discount = serviceItem.querySelector('.discount-input').value || 0;
+            const sessions = parseInt(serviceItem.querySelector('.sessions-input').value) || 1;
+            const serviceDiscount = parseFloat(serviceItem.querySelector('.service-discount-input').value) || 0;
+            const originalPrice = parseFloat(serviceItem.querySelector('.original-price-input').value) || 0;
+            const finalPrice = parseFloat(serviceItem.querySelector('.final-price-input').value) || 0;
             
             selectedServices.push({
                 service_id: parseInt(checkbox.value),
-                sessions: parseInt(sessions),
-                discount: parseFloat(discount)
+                sessions: sessions,
+                service_discount: serviceDiscount,
+                original_price: originalPrice,
+                final_price: finalPrice
             });
         });
         
         document.getElementById('selected_services_json').value = JSON.stringify(selectedServices);
+    }
+
+    function updatePackageSummary() {
+        const selectedCheckboxes = document.querySelectorAll('.service-checkbox:checked');
+        const summaryDiv = document.getElementById('package-summary');
+        
+        if (selectedCheckboxes.length > 0) {
+            summaryDiv.style.display = 'block';
+            
+            let totalOriginal = 0;
+            let totalDiscounted = 0;
+            
+            selectedCheckboxes.forEach(function(checkbox) {
+                const serviceItem = checkbox.closest('.service-item');
+                const sessions = parseInt(serviceItem.querySelector('.sessions-input').value) || 1;
+                const originalPrice = parseFloat(serviceItem.querySelector('.original-price-input').value) || 0;
+                const finalPrice = parseFloat(serviceItem.querySelector('.final-price-input').value) || 0;
+                
+                totalOriginal += originalPrice * sessions;
+                totalDiscounted += finalPrice * sessions;
+            });
+            
+            document.getElementById('selected-count').textContent = selectedCheckboxes.length;
+            document.getElementById('total-original').textContent = totalOriginal.toFixed(2);
+            document.getElementById('total-discounted').textContent = totalDiscounted.toFixed(2);
+        } else {
+            summaryDiv.style.display = 'none';
+        }
     }
 });
 
