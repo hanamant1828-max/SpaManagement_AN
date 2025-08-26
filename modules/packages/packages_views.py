@@ -21,11 +21,15 @@ def packages():
     packages_list = get_all_packages()
     services = Service.query.filter_by(is_active=True).all()
     categories = Category.query.filter_by(category_type='service', is_active=True).all()
+    client_packages = ClientPackage.query.filter_by(is_active=True).limit(10).all()
+    clients = Client.query.filter_by(is_active=True).all()
     
     return render_template('enhanced_packages.html', 
                          packages=packages_list,
                          services=services,
-                         categories=categories)
+                         categories=categories,
+                         client_packages=client_packages,
+                         clients=clients)
 
 @app.route('/packages/create', methods=['POST'])
 @login_required
@@ -296,3 +300,61 @@ def toggle_package(package_id):
         
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/packages/export')
+@login_required
+def export_packages():
+    """Export packages to CSV"""
+    from flask import make_response
+    import csv
+    from io import StringIO
+    
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('packages'))
+    
+    try:
+        packages = get_all_packages()
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'Package Name', 'Description', 'Package Type', 'Total Sessions', 
+            'Validity Days', 'Total Price', 'Discount %', 'Status'
+        ])
+        
+        # Write package data
+        for package in packages:
+            writer.writerow([
+                package.name,
+                package.description or '',
+                package.package_type,
+                package.total_sessions,
+                package.validity_days,
+                package.total_price,
+                package.discount_percentage,
+                'Active' if package.is_active else 'Inactive'
+            ])
+        
+        response = make_response(output.getvalue())
+        response.headers['Content-Disposition'] = 'attachment; filename=packages.csv'
+        response.headers['Content-Type'] = 'text/csv'
+        return response
+        
+    except Exception as e:
+        flash(f'Error exporting packages: {str(e)}', 'danger')
+        return redirect(url_for('packages'))
+
+@app.route('/packages/add', methods=['POST'])
+@login_required
+def add_package():
+    """Alternative route name for package creation"""
+    return create_package()
+
+@app.route('/packages/<int:package_id>/delete', methods=['POST'])
+@login_required
+def delete_package_route(package_id):
+    """Delete package route"""
+    return delete_package(package_id)
