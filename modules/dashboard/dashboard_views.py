@@ -10,11 +10,6 @@ from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get
 @login_required  
 def dashboard():
     try:
-        # Check if user has dashboard access (with fallback for missing method)
-        if hasattr(current_user, 'can_access') and not current_user.can_access('dashboard'):
-            flash('Access denied', 'danger')
-            return redirect(url_for('login'))
-        
         stats = get_dashboard_stats()
         recent_appointments = get_recent_appointments()
         low_stock_items = get_low_stock_items()
@@ -27,4 +22,8 @@ def dashboard():
                              expiring_items=expiring_items)
     except Exception as e:
         flash('Error loading dashboard', 'danger')
-        return redirect(url_for('login'))
+        return render_template('dashboard.html', 
+                             stats={}, 
+                             recent_appointments=[],
+                             low_stock_items=[],
+                             expiring_items=[])
