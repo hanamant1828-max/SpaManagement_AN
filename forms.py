@@ -99,13 +99,22 @@ class CategoryForm(FlaskForm):
 class PackageForm(FlaskForm):
     name = StringField('Package Name', validators=[DataRequired(), Length(min=2, max=100)])
     description = TextAreaField('Description')
-    duration_months = IntegerField('Duration (Months)', validators=[DataRequired(), NumberRange(min=1, max=60)])
+    duration_months = IntegerField('Duration (Months)', validators=[Optional(), NumberRange(min=1, max=60)])
+    total_sessions = IntegerField('Total Sessions', validators=[Optional(), NumberRange(min=1, max=100)], default=1)
+    validity_days = IntegerField('Validity Period (Days)', validators=[Optional(), NumberRange(min=1, max=365)], default=30)
     total_price = FloatField('Package Price (₹)', validators=[DataRequired(), NumberRange(min=0)])
     discount_percentage = FloatField('Discount %', validators=[Optional(), NumberRange(min=0, max=100)])
     is_active = BooleanField('Active', default=True)
+    included_services = SelectMultipleField('Included Services', coerce=int, validators=[Optional()])
 
     def __init__(self, *args, **kwargs):
         super(PackageForm, self).__init__(*args, **kwargs)
+        # Dynamically populate services from database
+        from models import Service
+        self.included_services.choices = [
+            (s.id, f"{s.name} (₹{s.price})") for s in 
+            Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        ]
 
 class EnhancedPackageForm(FlaskForm):
     """Professional package creation form with individual service discounts and complete management"""

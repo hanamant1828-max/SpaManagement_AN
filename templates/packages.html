@@ -1,166 +1,467 @@
+
 {% extends "base.html" %}
 
-{% block title %}Subscription Packages{% endblock %}
+{% block title %}✅ Package Subscription Management{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1><i class="fas fa-gift me-2"></i>Subscription Packages</h1>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPackageModal">
-                    <i class="fas fa-plus me-2"></i>Add Package
-                </button>
+                <div>
+                    <h1 class="h3 mb-0">✅ Package Subscription Management</h1>
+                    <p class="text-muted">Professional package creation with service discounts and session tracking</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addPackageModal">
+                        <i class="fas fa-plus"></i> Add New Package
+                    </button>
+                    <a href="{{ url_for('export_packages') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download"></i> Export Packages
+                    </a>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Package Statistics -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4>{{ packages|length }}</h4>
-                            <p>Total Packages</p>
+            <!-- Package Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">{{ packages|length }}</h5>
+                            <p class="card-text">Total Packages</p>
                         </div>
-                        <i class="fas fa-gift fa-2x"></i>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">{{ packages|selectattr('is_active')|list|length }}</h5>
+                            <p class="card-text">Active Packages</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-info">{{ client_packages|length }}</h5>
+                            <p class="card-text">Client Assignments</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning">{{ services|length }}</h5>
+                            <p class="card-text">Available Services</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4>{{ client_packages|length }}</h4>
-                            <p>Active Subscriptions</p>
+
+            <!-- Package Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="btn-group" role="group" aria-label="Package filters">
+                                <button type="button" class="btn btn-outline-primary active" onclick="filterPackages('all')">All Packages</button>
+                                <button type="button" class="btn btn-outline-success" onclick="filterPackages('prepaid')">Prepaid</button>
+                                <button type="button" class="btn btn-outline-info" onclick="filterPackages('service_package')">Service Packages</button>
+                                <button type="button" class="btn btn-outline-warning" onclick="filterPackages('membership')">Memberships</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterPackages('student_offer')">Student Offers</button>
+                                <button type="button" class="btn btn-outline-danger" onclick="filterPackages('kitty_party')">Kitty Party</button>
+                                <button type="button" class="btn btn-outline-dark" onclick="filterPackages('yearly_membership')">Yearly Membership</button>
+                            </div>
                         </div>
-                        <i class="fas fa-users fa-2x"></i>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Available Packages -->
-    <div class="row">
-        <div class="col-12">
+            <!-- Packages Table -->
             <div class="card">
                 <div class="card-header">
-                    <h5><i class="fas fa-list me-2"></i>Available Packages</h5>
+                    <h5 class="card-title mb-0">📦 Comprehensive Spa Package Management</h5>
                 </div>
                 <div class="card-body">
                     {% if packages %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Package Name</th>
+                                        <th>Type</th>
+                                        <th>Services</th>
+                                        <th>Validity</th>
+                                        <th>Price</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for package in packages %}
+                                    <tr data-package-type="{{ package.package_type }}">
+                                        <td>
+                                            <strong>{{ package.name }}</strong>
+                                            {% if package.description %}
+                                                <br><small class="text-muted">{{ package.description[:50] }}...</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if package.package_type == 'prepaid' %}bg-success
+                                                {% elif package.package_type == 'membership' %}bg-warning
+                                                {% elif package.package_type == 'student_offer' %}bg-info
+                                                {% elif package.package_type == 'kitty_party' %}bg-danger
+                                                {% elif package.package_type == 'yearly_membership' %}bg-dark
+                                                {% else %}bg-primary
+                                                {% endif %}">
+                                                {{ package.package_type.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if package.services %}
+                                                <small>
+                                                    {% for ps in package.services[:2] %}
+                                                        {{ ps.service.name }} ({{ ps.sessions_included }})<br>
+                                                    {% endfor %}
+                                                    {% if package.services|length > 2 %}
+                                                        <span class="text-muted">+{{ package.services|length - 2 }} more</span>
+                                                    {% endif %}
+                                                </small>
+                                            {% else %}
+                                                <small class="text-muted">No services assigned</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ package.validity_days }} days</td>
+                                        <td>
+                                            <strong>₹{{ "%.2f"|format(package.total_price) }}</strong>
+                                            {% if package.discount_percentage %}
+                                                <br><small class="text-success">{{ package.discount_percentage }}% off</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if package.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editPackageModal{{ package.id }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignPackageModal" data-package-id="{{ package.id }}" data-package-name="{{ package.name }}">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </button>
+                                                <form method="POST" action="{{ url_for('delete_package_route', package_id=package.id) }}" style="display: inline;">
+                                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this package?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-gift fa-3x text-muted mb-3"></i>
+                            <h5>No packages found</h5>
+                            <p class="text-muted">Create your first subscription package to get started.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Client Package Usage Tracking -->
+            {% if client_packages %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">🧾 Client Package Usage Tracking</h5>
+                </div>
+                <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>Package Name</th>
-                                    <th>Duration</th>
-                                    <th>Price</th>
-                                    <th>Discount</th>
+                                    <th>Client</th>
+                                    <th>Package</th>
+                                    <th>Sessions</th>
+                                    <th>Expiry</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for package in packages %}
+                                {% for cp in client_packages %}
                                 <tr>
+                                    <td>{{ cp.client.full_name }}</td>
+                                    <td>{{ cp.package.name }}</td>
+                                    <td>{{ cp.sessions_used }}/{{ cp.total_sessions }}</td>
+                                    <td>{{ cp.expiry_date.strftime('%Y-%m-%d') }}</td>
                                     <td>
-                                        <strong>{{ package.name }}</strong>
-                                        {% if package.description %}
-                                        <br><small class="text-muted">{{ package.description }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ package.duration_months }} months</td>
-                                    <td>${{ "%.2f"|format(package.total_price) }}</td>
-                                    <td>{{ package.discount_percentage }}%</td>
-                                    <td>
-                                        {% if package.is_active %}
-                                        <span class="badge bg-success">Active</span>
+                                        {% if cp.is_active %}
+                                            <span class="badge bg-success">Active</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
+                                            <span class="badge bg-secondary">Expired</span>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-gift fa-3x text-muted mb-3"></i>
-                        <h5>No packages found</h5>
-                        <p class="text-muted">Create your first subscription package to get started.</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Add Package Modal -->
 <div class="modal fade" id="addPackageModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add New Package</h5>
+                <h5 class="modal-title">Create New Package</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('add_package') }}">
-                {{ package_form.hidden_tag() }}
                 <div class="modal-body">
-                    <div class="mb-3">
-                        {{ package_form.name.label(class="form-label") }}
-                        {{ package_form.name(class="form-control") }}
+                    <!-- Package Basic Info -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Package Name</label>
+                            <input type="text" name="name" class="form-control" required placeholder="e.g., Bridal Glow Package">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Package Type</label>
+                            <select name="package_type" class="form-select" required>
+                                <option value="regular">Regular Package</option>
+                                <option value="prepaid">Prepaid Package</option>
+                                <option value="service_package">Service Package</option>
+                                <option value="membership">Membership</option>
+                                <option value="student_offer">Student Offer</option>
+                                <option value="kitty_party">Kitty Party</option>
+                                <option value="yearly_membership">Yearly Membership</option>
+                            </select>
+                        </div>
                     </div>
+
                     <div class="mb-3">
-                        {{ package_form.description.label(class="form-label") }}
-                        {{ package_form.description(class="form-control", rows="3") }}
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Package description for clients"></textarea>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ package_form.duration_months.label(class="form-label") }}
-                                {{ package_form.duration_months(class="form-control") }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Validity (Days)</label>
+                            <input type="number" name="validity_days" class="form-control" required value="90" min="1" max="365">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Package Price (₹)</label>
+                            <input type="number" name="total_price" class="form-control" required step="0.01" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Discount (%)</label>
+                            <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <!-- Service Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Package Services</label>
+                        <div class="card">
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <div id="service-selection">
+                                    {% for service in services %}
+                                    <div class="service-item mb-2 p-2 border rounded">
+                                        <div class="form-check">
+                                            <input class="form-check-input service-checkbox" type="checkbox" 
+                                                   value="{{ service.id }}" id="service_{{ service.id }}">
+                                            <label class="form-check-label" for="service_{{ service.id }}">
+                                                <strong>{{ service.name }}</strong> - ₹{{ service.price }}
+                                                <small class="text-muted d-block">{{ service.duration }} minutes</small>
+                                            </label>
+                                        </div>
+                                        <div class="service-options mt-2" style="display: none;">
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <label class="form-label">Sessions</label>
+                                                    <input type="number" class="form-control sessions-input" min="1" value="1">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label">Service Discount (%)</label>
+                                                    <input type="number" class="form-control discount-input" min="0" max="100" value="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ package_form.total_price.label(class="form-label") }}
-                                {{ package_form.total_price(class="form-control") }}
-                            </div>
-                        </div>
                     </div>
-                    <div class="mb-3">
-                        {{ package_form.discount_percentage.label(class="form-label") }}
-                        {{ package_form.discount_percentage(class="form-control", step="0.01") }}
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            {{ package_form.is_active(class="form-check-input") }}
-                            {{ package_form.is_active.label(class="form-check-label") }}
-                        </div>
+
+                    <!-- Hidden field for selected services -->
+                    <input type="hidden" name="selected_services" id="selected_services_json">
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_active" checked id="is_active">
+                        <label class="form-check-label" for="is_active">
+                            Package is active and can be assigned to clients
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Package</button>
+                    <button type="submit" class="btn btn-primary">Create Package</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Assign Package Modal -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Package to Client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPackageForm">
+                    <input type="hidden" id="assign_package_id" name="package_id">
+                    <div class="mb-3">
+                        <label class="form-label">Select Client</label>
+                        <select name="client_id" class="form-select" required>
+                            <option value="">Choose client...</option>
+                            {% for client in clients %}
+                                <option value="{{ client.id }}">{{ client.full_name }} - {{ client.phone }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Custom Price (Optional)</label>
+                        <input type="number" name="custom_price" class="form-control" step="0.01" min="0">
+                        <small class="text-muted">Leave empty to use package price</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="assignPackage()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Service selection functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle service checkbox changes
+    document.querySelectorAll('.service-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const serviceOptions = this.closest('.service-item').querySelector('.service-options');
+            if (this.checked) {
+                serviceOptions.style.display = 'block';
+            } else {
+                serviceOptions.style.display = 'none';
+            }
+            updateSelectedServices();
+        });
+    });
+
+    // Update selected services when inputs change
+    document.querySelectorAll('.sessions-input, .discount-input').forEach(function(input) {
+        input.addEventListener('input', updateSelectedServices);
+    });
+
+    function updateSelectedServices() {
+        const selectedServices = [];
+        document.querySelectorAll('.service-checkbox:checked').forEach(function(checkbox) {
+            const serviceItem = checkbox.closest('.service-item');
+            const sessions = serviceItem.querySelector('.sessions-input').value || 1;
+            const discount = serviceItem.querySelector('.discount-input').value || 0;
+            
+            selectedServices.push({
+                service_id: parseInt(checkbox.value),
+                sessions: parseInt(sessions),
+                discount: parseFloat(discount)
+            });
+        });
+        
+        document.getElementById('selected_services_json').value = JSON.stringify(selectedServices);
+    }
+});
+
+// Package filtering
+function filterPackages(type) {
+    const rows = document.querySelectorAll('[data-package-type]');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    
+    // Update active button
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter rows
+    rows.forEach(row => {
+        if (type === 'all' || row.dataset.packageType === type) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Package assignment
+document.getElementById('assignPackageModal').addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    const packageId = button.getAttribute('data-package-id');
+    const packageName = button.getAttribute('data-package-name');
+    
+    document.getElementById('assign_package_id').value = packageId;
+    this.querySelector('.modal-title').textContent = 'Assign ' + packageName + ' to Client';
+});
+
+function assignPackage() {
+    const form = document.getElementById('assignPackageForm');
+    const formData = new FormData(form);
+    
+    const data = {};
+    formData.forEach((value, key) => {
+        if (value) data[key] = value;
+    });
+    
+    const packageId = document.getElementById('assign_package_id').value;
+    
+    fetch(`/packages/${packageId}/assign`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Package assigned successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while assigning the package.');
+    });
+}
+</script>
 {% endblock %}
