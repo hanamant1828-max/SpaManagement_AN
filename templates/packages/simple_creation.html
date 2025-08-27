@@ -67,64 +67,93 @@
                     <!-- Service Selection -->
                     <div class="col-lg-4">
                         <div class="card mb-4">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">2. Select Services</h5>
+                                <small class="text-muted">Selected: <span id="selected-count">0</span></small>
                             </div>
                             <div class="card-body">
-                                <!-- Service Filter -->
+                                <!-- Quick Search -->
                                 <div class="mb-3">
-                                    <div class="btn-group flex-wrap" role="group">
-                                        <button type="button" class="btn btn-outline-primary btn-sm active" onclick="filterServices('all')">All</button>
+                                    <input type="text" class="form-control form-control-sm" id="service-search" 
+                                           placeholder="Search services..." onkeyup="searchServices()">
+                                </div>
+
+                                <!-- Service Filter Tabs -->
+                                <div class="mb-3">
+                                    <div class="btn-group w-100" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm active" onclick="filterServices('all')">
+                                            All ({{ services|length }})
+                                        </button>
                                         {% for category in categories %}
-                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterServices('{{ category.id }}')">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="filterServices('{{ category.id }}')">
                                             {{ category.display_name }}
                                         </button>
                                         {% endfor %}
                                     </div>
                                 </div>
 
-                                <!-- Services List -->
-                                <div id="services-list" style="max-height: 400px; overflow-y: auto;">
+                                <!-- Services Grid -->
+                                <div id="services-list" style="max-height: 350px; overflow-y: auto;">
                                     {% for service in services %}
-                                    <div class="service-item mb-2" data-category="{{ service.category_id or 'none' }}">
-                                        <div class="card card-sm">
-                                            <div class="card-body p-2">
-                                                <div class="form-check">
-                                                    <input class="form-check-input service-checkbox" type="checkbox" 
-                                                           name="selected_services" value="{{ service.id }}" 
-                                                           id="service_{{ service.id }}"
-                                                           data-price="{{ service.price }}" data-name="{{ service.name }}">
-                                                    <label class="form-check-label w-100" for="service_{{ service.id }}">
-                                                        <div class="d-flex justify-content-between">
-                                                            <div>
-                                                                <strong>{{ service.name }}</strong>
-                                                                <br><small class="text-muted">₹{{ service.price }}</small>
-                                                            </div>
-                                                        </div>
-                                                    </label>
-                                                </div>
-
-                                                <!-- Sessions and Discount (hidden by default) -->
-                                                <div class="service-options mt-2" id="options_{{ service.id }}" style="display: none;">
-                                                    <div class="row">
-                                                        <div class="col-6">
-                                                            <label class="form-label small">Sessions</label>
-                                                            <input type="number" class="form-control form-control-sm sessions-input" 
-                                                                   name="sessions_{{ service.id }}" value="1" min="1" max="20"
-                                                                   onchange="updatePricing()">
-                                                        </div>
-                                                        <div class="col-6">
-                                                            <label class="form-label small">Discount %</label>
-                                                            <input type="number" class="form-control form-control-sm discount-input" 
-                                                                   name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="0.1"
-                                                                   onchange="updatePricing()">
+                                    <div class="service-card mb-2" data-category="{{ service.category_id or 'none' }}" data-name="{{ service.name|lower }}">
+                                        <div class="service-item border rounded p-2">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input service-checkbox" type="checkbox" 
+                                                               name="selected_services" value="{{ service.id }}" 
+                                                               id="service_{{ service.id }}"
+                                                               data-price="{{ service.price }}" data-name="{{ service.name }}">
+                                                        <label class="form-check-label" for="service_{{ service.id }}">
+                                                            <strong>{{ service.name }}</strong>
+                                                        </label>
+                                                    </div>
+                                                    <div class="service-info mt-1">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="badge bg-primary">₹{{ service.price }}</span>
+                                                            {% if service.service_category %}
+                                                            <small class="text-muted">{{ service.service_category.display_name }}</small>
+                                                            {% endif %}
                                                         </div>
                                                     </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Sessions and Discount Controls -->
+                                            <div class="service-controls mt-2" id="controls_{{ service.id }}" style="display: none;">
+                                                <div class="row g-2">
+                                                    <div class="col-6">
+                                                        <label class="form-label small mb-1">Sessions</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button type="button" class="btn btn-outline-secondary" onclick="adjustSessions({{ service.id }}, -1)">-</button>
+                                                            <input type="number" class="form-control text-center sessions-input" 
+                                                                   name="sessions_{{ service.id }}" value="1" min="1" max="20"
+                                                                   onchange="updatePricing()">
+                                                            <button type="button" class="btn btn-outline-secondary" onclick="adjustSessions({{ service.id }}, 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label small mb-1">Discount %</label>
+                                                        <input type="number" class="form-control form-control-sm discount-input" 
+                                                               name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="5"
+                                                               onchange="updatePricing()" placeholder="0">
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1">
+                                                    <small class="text-muted">
+                                                        Subtotal: ₹<span id="subtotal_{{ service.id }}">{{ service.price }}</span>
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     {% endfor %}
+                                </div>
+
+                                <!-- No Services Found -->
+                                <div id="no-services-found" class="text-center py-3" style="display: none;">
+                                    <i class="fas fa-search text-muted"></i>
+                                    <p class="text-muted mb-0">No services found</p>
                                 </div>
                             </div>
                         </div>
@@ -212,13 +241,34 @@
     padding: 0.75rem;
 }
 
-.service-item {
+.service-card {
     transition: all 0.3s ease;
 }
 
+.service-item {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.service-item:hover {
+    background-color: #f8f9fa;
+}
+
 .service-item.selected {
-    background-color: #f0f8ff;
-    border-left: 4px solid #0d6efd;
+    background-color: #e7f3ff;
+    border: 2px solid #0d6efd !important;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+}
+
+.service-controls {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.input-group-sm .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
 }
 
 .pricing-summary {
@@ -236,41 +286,114 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.service-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const serviceId = this.value;
-            const optionsDiv = document.getElementById(`options_${serviceId}`);
+            const controlsDiv = document.getElementById(`controls_${serviceId}`);
             const serviceItem = this.closest('.service-item');
             
             if (this.checked) {
                 selectedServices.add(serviceId);
-                optionsDiv.style.display = 'block';
+                controlsDiv.style.display = 'block';
                 serviceItem.classList.add('selected');
             } else {
                 selectedServices.delete(serviceId);
-                optionsDiv.style.display = 'none';
+                controlsDiv.style.display = 'none';
                 serviceItem.classList.remove('selected');
             }
             
+            updateSelectedCount();
             updatePricing();
             updateSubmitButton();
         });
     });
+    
+    // Make service items clickable
+    document.querySelectorAll('.service-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (e.target.type !== 'checkbox' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                const checkbox = this.querySelector('.service-checkbox');
+                checkbox.click();
+            }
+        });
+    });
 });
+
+// Update selected count
+function updateSelectedCount() {
+    document.getElementById('selected-count').textContent = selectedServices.size;
+}
+
+// Search services
+function searchServices() {
+    const searchTerm = document.getElementById('service-search').value.toLowerCase();
+    const serviceCards = document.querySelectorAll('.service-card');
+    let visibleCount = 0;
+    
+    serviceCards.forEach(card => {
+        const serviceName = card.dataset.name;
+        const isVisible = serviceName.includes(searchTerm);
+        
+        if (isVisible) {
+            card.style.display = 'block';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Show/hide no results message
+    document.getElementById('no-services-found').style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+// Adjust sessions with buttons
+function adjustSessions(serviceId, change) {
+    const input = document.querySelector(`input[name="sessions_${serviceId}"]`);
+    const currentValue = parseInt(input.value) || 1;
+    const newValue = Math.max(1, Math.min(20, currentValue + change));
+    input.value = newValue;
+    updateServiceSubtotal(serviceId);
+    updatePricing();
+}
+
+// Update individual service subtotal
+function updateServiceSubtotal(serviceId) {
+    const checkbox = document.querySelector(`input[value="${serviceId}"]`);
+    const sessionsInput = document.querySelector(`input[name="sessions_${serviceId}"]`);
+    const discountInput = document.querySelector(`input[name="service_discount_${serviceId}"]`);
+    const subtotalSpan = document.getElementById(`subtotal_${serviceId}`);
+    
+    if (checkbox && checkbox.checked) {
+        const price = parseFloat(checkbox.dataset.price);
+        const sessions = parseInt(sessionsInput.value) || 1;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const subtotal = price * sessions * (1 - discount / 100);
+        subtotalSpan.textContent = subtotal.toFixed(2);
+    }
+}
 
 // Filter services by category
 function filterServices(categoryId) {
-    const serviceItems = document.querySelectorAll('.service-item');
+    const serviceCards = document.querySelectorAll('.service-card');
     const buttons = document.querySelectorAll('.btn-group .btn');
     
     // Update active button
     buttons.forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
     
-    serviceItems.forEach(item => {
-        if (categoryId === 'all' || item.dataset.category === categoryId) {
-            item.style.display = 'block';
+    // Clear search
+    document.getElementById('service-search').value = '';
+    
+    let visibleCount = 0;
+    serviceCards.forEach(card => {
+        if (categoryId === 'all' || card.dataset.category === categoryId) {
+            card.style.display = 'block';
+            visibleCount++;
         } else {
-            item.style.display = 'none';
+            card.style.display = 'none';
         }
     });
+    
+    // Show/hide no results message
+    document.getElementById('no-services-found').style.display = visibleCount === 0 ? 'block' : 'none';
 }
 
 // Update pricing calculations
@@ -296,6 +419,9 @@ function updatePricing() {
         servicesTotal += originalAmount;
         serviceDiscounts += discountAmount;
         totalSessions += sessions;
+        
+        // Update individual service subtotal
+        updateServiceSubtotal(serviceId);
         
         selectedServicesList.push(`${serviceName} (${sessions} sessions)`);
     });
