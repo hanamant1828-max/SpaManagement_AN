@@ -4,7 +4,7 @@ Notifications related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import db
-from models import Communication, Client, Appointment
+from models import Communication, Customer, Appointment
 
 def get_recent_communications():
     """Get recent communications/notifications"""

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from io import StringIO
 from sqlalchemy import func, and_
 from app import db
-from models import Package, ClientPackage, Service, PackageService, Client, ClientPackageSession
+from models import Package, CustomerPackage, Service, PackageService, Customer, CustomerPackageSession
 
 def get_all_packages():
     """Get all active packages with enhanced features"""
@@ -97,7 +97,7 @@ def delete_package(package_id):
         return {'success': False, 'message': 'Package not found'}
 
     # Check if package is assigned to any clients
-    client_count = ClientPackage.query.filter_by(package_id=package_id, is_active=True).count()
+    client_count = CustomerPackage.query.filter_by(package_id=package_id, is_active=True).count()
     if client_count > 0:
         return {
             'success': False,
@@ -111,7 +111,7 @@ def delete_package(package_id):
 
 def get_client_packages(client_id=None):
     """Get client's active packages"""
-    query = ClientPackage.query.filter_by(is_active=True)
+    query = CustomerPackage.query.filter_by(is_active=True)
     if client_id:
         query = query.filter_by(client_id=client_id)
     return query.all()
@@ -125,7 +125,7 @@ def assign_package_to_client(client_id, package_id):
     # Calculate expiry date based on validity_days
     expiry_date = datetime.utcnow() + timedelta(days=package.validity_days)
 
-    client_package = ClientPackage(
+    client_package = CustomerPackage(
         client_id=client_id,
         package_id=package_id,
         purchase_date=datetime.utcnow(),
@@ -141,7 +141,7 @@ def assign_package_to_client(client_id, package_id):
     
     # Create session tracking for each service in the package with unlimited support
     for package_service in package.services:
-        client_session = ClientPackageSession(
+        client_session = CustomerPackageSession(
             client_package_id=client_package.id,
             service_id=package_service.service_id,
             sessions_total=package_service.sessions_included,
@@ -182,7 +182,7 @@ def get_available_services():
 
 def track_package_usage(client_package_id):
     """Track package usage for a specific client package"""
-    client_package = ClientPackage.query.get(client_package_id)
+    client_package = CustomerPackage.query.get(client_package_id)
     if not client_package:
         raise ValueError("Client package not found")
 
@@ -204,10 +204,10 @@ def track_package_usage(client_package_id):
 
 def auto_expire_packages():
     """Automatically expire packages based on validity period"""
-    expired_packages = ClientPackage.query.filter(
+    expired_packages = CustomerPackage.query.filter(
         and_(
-            ClientPackage.expiry_date < datetime.utcnow(),
-            ClientPackage.is_active == True
+            CustomerPackage.expiry_date < datetime.utcnow(),
+            CustomerPackage.is_active == True
         )
     ).all()
 
@@ -234,7 +234,7 @@ def export_packages_csv():
 
     # Write package data
     for package in packages:
-        active_clients = ClientPackage.query.filter_by(package_id=package.id, is_active=True).count()
+        active_clients = CustomerPackage.query.filter_by(package_id=package.id, is_active=True).count()
         writer.writerow([
             package.name,
             package.description or '',
@@ -264,7 +264,7 @@ def export_package_usage_csv():
 
     # Write usage data
     for client_package in client_packages:
-        client = Client.query.get(client_package.client_id)
+        client = Customer.query.get(client_package.client_id)
         package = client_package.package
 
         sessions_used = getattr(client_package, 'sessions_used', 0)
@@ -293,14 +293,14 @@ def export_package_usage_csv():
 def get_package_statistics():
     """Get comprehensive package statistics"""
     total_packages = Package.query.filter_by(is_active=True).count()
-    active_assignments = ClientPackage.query.filter_by(is_active=True).count()
-    total_revenue = db.session.query(func.sum(ClientPackage.amount_paid)).filter_by(is_active=True).scalar() or 0
+    active_assignments = CustomerPackage.query.filter_by(is_active=True).count()
+    total_revenue = db.session.query(func.sum(CustomerPackage.amount_paid)).filter_by(is_active=True).scalar() or 0
 
     # Monthly package sales
     current_month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    monthly_sales = ClientPackage.query.filter(
-        ClientPackage.purchase_date >= current_month_start,
-        ClientPackage.is_active == True
+    monthly_sales = CustomerPackage.query.filter(
+        CustomerPackage.purchase_date >= current_month_start,
+        CustomerPackage.is_active == True
     ).count()
 
     return {

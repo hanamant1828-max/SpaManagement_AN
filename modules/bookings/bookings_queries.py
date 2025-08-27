@@ -4,7 +4,7 @@ Bookings-related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import db
-from models import Appointment, Client, Service, User
+from models import Appointment, Customer, Service, User
 
 def get_appointments_by_date(filter_date):
     """Get appointments for a specific date with full details"""
@@ -78,7 +78,7 @@ def get_time_slots(filter_date, staff_id=None, service_id=None):
 
 def get_active_clients():
     """Get all active clients"""
-    return Client.query.filter_by(is_active=True).order_by(Client.first_name).all()
+    return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
 
 def get_active_services():
     """Get all active services"""

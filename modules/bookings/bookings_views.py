@@ -12,7 +12,7 @@ from .bookings_queries import (
     delete_appointment, get_appointment_by_id, get_time_slots,
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
-from models import Service, Client, User
+from models import Service, Customer, User
 
 @app.route('/bookings')
 @login_required

@@ -10,7 +10,7 @@ from .billing_queries import (
     get_invoice_by_id, create_invoice, update_invoice, 
     mark_invoice_paid, get_revenue_stats
 )
-from models import db, Appointment, Invoice, Client, Service
+from models import db, Appointment, Invoice, Customer, Service
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
@@ -24,7 +24,7 @@ def get_recent_invoices():
 
 def get_all_clients():
     """Get all clients"""
-    return Client.query.all()
+    return Customer.query.all()
 
 def get_all_services():
     """Get all services"""

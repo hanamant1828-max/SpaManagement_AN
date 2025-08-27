@@ -4,7 +4,7 @@ Reports related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, extract
 from app import db
-from models import Appointment, Invoice, Expense, Client, User, Inventory
+from models import Appointment, Invoice, Expense, Customer, User, Inventory
 
 def get_revenue_report(start_date, end_date):
     """Get revenue report for date range"""
@@ -52,16 +52,16 @@ def get_staff_performance_report(start_date, end_date):
 def get_client_report(start_date, end_date):
     """Get client report"""
     client_data = db.session.query(
-        Client.id,
-        Client.first_name,
-        Client.last_name,
+        Customer.id,
+        Customer.first_name,
+        Customer.last_name,
         func.count(Appointment.id).label('appointment_count'),
         func.sum(Appointment.amount).label('total_spent')
-    ).join(Appointment, Client.id == Appointment.client_id).filter(
+    ).join(Appointment, Customer.id == Appointment.client_id).filter(
         Appointment.appointment_date >= start_date,
         Appointment.appointment_date <= end_date,
         Appointment.is_paid == True
-    ).group_by(Client.id).all()
+    ).group_by(Customer.id).all()
     
     return client_data
 

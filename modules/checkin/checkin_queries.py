@@ -4,7 +4,7 @@ Check-in related database queries
 from datetime import datetime, date
 from sqlalchemy import func, and_
 from app import db
-from models import Appointment, Client, User
+from models import Appointment, Customer, User
 
 def get_todays_appointments():
     """Get today's appointments for check-in"""
@@ -29,7 +29,7 @@ def check_in_appointment(appointment_id):
 
 def get_client_by_phone(phone):
     """Get client by phone number"""
-    return Client.query.filter_by(phone=phone, is_active=True).first()
+    return Customer.query.filter_by(phone=phone, is_active=True).first()
 
 def get_client_appointments_today(client_id):
     """Get client's appointments for today"""

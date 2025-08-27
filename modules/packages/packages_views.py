@@ -4,7 +4,7 @@ Enhanced Package Management Views with proper service selection
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from models import Package, PackageService, Service, Category, Client, ClientPackage, ClientPackageSession
+from models import Package, PackageService, Service, Category, Customer, CustomerPackage, CustomerPackageSession
 from .packages_queries import *
 import json
 from datetime import datetime, timedelta
@@ -20,8 +20,8 @@ def packages():
     packages_list = get_all_packages()
     services = Service.query.filter_by(is_active=True).all()
     categories = Category.query.filter_by(category_type='service', is_active=True).all()
-    client_packages = ClientPackage.query.filter_by(is_active=True).limit(10).all()
-    clients = Client.query.filter_by(is_active=True).all()
+    client_packages = CustomerPackage.query.filter_by(is_active=True).limit(10).all()
+    clients = Customer.query.filter_by(is_active=True).all()
 
     return render_template('enhanced_packages.html', 
                          packages=packages_list,
@@ -238,7 +238,7 @@ def edit_package(package_id):
     services = Service.query.filter_by(is_active=True).all()
     categories = Category.query.filter_by(category_type='service', is_active=True).all()
     packages_list = get_all_packages()
-    clients = Client.query.filter_by(is_active=True).all()
+    clients = Customer.query.filter_by(is_active=True).all()
 
     return render_template('enhanced_packages.html', 
                          packages=packages_list,
@@ -259,7 +259,7 @@ def delete_package(package_id):
         package = Package.query.get_or_404(package_id)
 
         # Check if package is being used by clients
-        client_packages = ClientPackage.query.filter_by(package_id=package_id, is_active=True).count()
+        client_packages = CustomerPackage.query.filter_by(package_id=package_id, is_active=True).count()
         if client_packages > 0:
             return jsonify({
                 'success': False, 
@@ -495,23 +495,23 @@ def assign_package_to_client_route():
         notes = request.form.get('notes', '')
 
         if not package_id or not client_id:
-            return jsonify({'success': False, 'message': 'Package ID and Client ID are required'})
+            return jsonify({'success': False, 'message': 'Package ID and Customer ID are required'})
 
         package = Package.query.get(package_id)
-        client = Client.query.get(client_id)
+        client = Customer.query.get(client_id)
 
         if not package or not client:
-            return jsonify({'success': False, 'message': 'Package or Client not found'})
+            return jsonify({'success': False, 'message': 'Package or Customer not found'})
 
         # Check if client already has this package active
-        existing = ClientPackage.query.filter_by(
+        existing = CustomerPackage.query.filter_by(
             client_id=client_id, 
             package_id=package_id, 
             is_active=True
         ).first()
 
         if existing:
-            return jsonify({'success': False, 'message': 'Client already has this package active'})
+            return jsonify({'success': False, 'message': 'Customer already has this package active'})
 
         # Calculate expiry date
         from datetime import datetime, timedelta
@@ -521,7 +521,7 @@ def assign_package_to_client_route():
         final_price = float(custom_price) if custom_price else package.total_price
 
         # Create client package
-        client_package = ClientPackage(
+        client_package = CustomerPackage(
             client_id=client_id,
             package_id=package_id,
             purchase_date=datetime.utcnow(),
@@ -537,7 +537,7 @@ def assign_package_to_client_route():
         
         # Create session tracking for each service in the package
         for package_service in package.services:
-            client_session = ClientPackageSession(
+            client_session = CustomerPackageSession(
                 client_package_id=client_package.id,
                 service_id=package_service.service_id,
                 sessions_total=package_service.sessions_included,

@@ -4,7 +4,7 @@ Billing-related database queries
 from datetime import datetime, date
 from sqlalchemy import func, and_
 from app import db
-from models import Invoice, Appointment, Client, Service
+from models import Invoice, Appointment, Customer, Service
 
 def get_all_invoices():
     """Get all invoices"""
