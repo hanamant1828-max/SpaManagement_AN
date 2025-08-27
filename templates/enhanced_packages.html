@@ -280,35 +280,36 @@
                                     {{ category.display_name }}
                                 </h6>
                                 {% for service in services %}
-                                    {% if service.category_id == category.id %}
-                                    <div class="service-item">
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input service-checkbox" 
+                                        {% if service.category_id == category.id %}
+                                    <div class="service-item mb-3">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input service-checkbox" 
                                                    id="service_{{ service.id }}" 
                                                    name="services[]" 
                                                    value="{{ service.id }}"
                                                    data-price="{{ service.price }}"
                                                    data-name="{{ service.name }}">
-                                            <label class="custom-control-label" for="service_{{ service.id }}">
-                                                {{ service.name }} 
+                                            <label class="form-check-label" for="service_{{ service.id }}">
+                                                <strong>{{ service.name }}</strong>
                                                 <span class="text-muted">({{ service.duration }} min)</span>
-                                                - <strong>₹{{ service.price }}</strong>
+                                                - <span class="badge bg-primary">₹{{ "%.2f"|format(service.price) }}</span>
                                             </label>
                                         </div>
-                                        <div class="service-details" id="details_{{ service.id }}" style="display: none;">
-                                            <div class="row">
+                                        <div class="service-details mt-2" id="details_{{ service.id }}" style="display: none;">
+                                            <div class="row g-2">
                                                 <div class="col-md-3">
-                                                    <label>Sessions</label>
+                                                    <label class="form-label">Sessions</label>
                                                     <input type="number" 
                                                            class="form-control form-control-sm sessions-input" 
                                                            name="service_sessions_{{ service.id }}" 
                                                            value="1" 
                                                            min="1"
+                                                           max="50"
                                                            data-service-id="{{ service.id }}"
                                                            data-base-price="{{ service.price }}">
                                                 </div>
                                                 <div class="col-md-3">
-                                                    <label>Service Discount %</label>
+                                                    <label class="form-label">Service Discount %</label>
                                                     <input type="number" 
                                                            class="form-control form-control-sm discount-input" 
                                                            name="service_discount_{{ service.id }}" 
@@ -320,20 +321,26 @@
                                                            data-base-price="{{ service.price }}">
                                                 </div>
                                                 <div class="col-md-3">
-                                                    <label>Subtotal</label>
-                                                    <input type="text" 
-                                                           class="form-control form-control-sm" 
-                                                           id="subtotal_{{ service.id }}" 
-                                                           value="₹{{ service.price }}"
-                                                           readonly>
+                                                    <label class="form-label">Subtotal</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">₹</span>
+                                                        <input type="text" 
+                                                               class="form-control form-control-sm" 
+                                                               id="subtotal_{{ service.id }}" 
+                                                               value="{{ "%.2f"|format(service.price) }}"
+                                                               readonly>
+                                                    </div>
                                                 </div>
                                                 <div class="col-md-3">
-                                                    <label>Final Price</label>
-                                                    <input type="text" 
-                                                           class="form-control form-control-sm" 
-                                                           id="final_price_{{ service.id }}" 
-                                                           value="₹{{ service.price }}"
-                                                           readonly>
+                                                    <label class="form-label">Final Price</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">₹</span>
+                                                        <input type="text" 
+                                                               class="form-control form-control-sm" 
+                                                               id="final_price_{{ service.id }}" 
+                                                               value="{{ "%.2f"|format(service.price) }}"
+                                                               readonly>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -467,8 +474,8 @@ $(document).ready(function() {
         const discountAmount = (subtotal * serviceDiscount) / 100;
         const finalPrice = subtotal - discountAmount;
 
-        $(`#subtotal_${serviceId}`).val(`₹${subtotal.toFixed(2)}`);
-        $(`#final_price_${serviceId}`).val(`₹${finalPrice.toFixed(2)}`);
+        $(`#subtotal_${serviceId}`).val(`${subtotal.toFixed(2)}`);
+        $(`#final_price_${serviceId}`).val(`${finalPrice.toFixed(2)}`);
     }
 
     function calculatePackageTotal() {
@@ -512,14 +519,32 @@ $(document).ready(function() {
             return;
         }
 
-        const formData = new FormData(this);
+        // Construct the data to be sent
+        const formData = {
+            name: $('input[name="name"]').val(),
+            package_type: $('select[name="package_type"]').val(),
+            description: $('textarea[name="description"]').val(),
+            validity_days: parseInt($('input[name="validity_days"]').val()),
+            total_price: parseFloat($('input[name="total_price"]').val()),
+            discount_percentage: parseFloat($('input[name="discount_percentage"]').val()),
+            is_active: $('input[name="is_active"]').is(':checked'),
+            services: []
+        };
+
+        $('.service-checkbox:checked').each(function() {
+            const serviceId = $(this).val();
+            formData.services.push({
+                id: serviceId,
+                sessions: parseInt($(`input[name="service_sessions_${serviceId}"]`).val()),
+                service_discount: parseFloat($(`input[name="service_discount_${serviceId}"]`).val())
+            });
+        });
 
         $.ajax({
-            url: '/packages/create',
+            url: '/packages/create', // Ensure this URL is correct for your backend
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
             success: function(response) {
                 if (response.success) {
                     alert(response.message);
