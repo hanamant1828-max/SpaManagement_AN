@@ -4,7 +4,7 @@ Enhanced Package Management Views with proper service selection
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from models import Package, PackageService, Service, Category, Client, ClientPackage
+from models import Package, PackageService, Service, Category, Client, ClientPackage, ClientPackageSession
 from .packages_queries import *
 import json
 from datetime import datetime, timedelta
@@ -494,7 +494,6 @@ def assign_package_to_client_route():
             package_id=package_id,
             purchase_date=datetime.utcnow(),
             expiry_date=expiry_date,
-            sessions_remaining=package.total_sessions,
             sessions_used=0,
             total_sessions=package.total_sessions,
             amount_paid=final_price,
@@ -502,6 +501,18 @@ def assign_package_to_client_route():
         )
 
         db.session.add(client_package)
+        db.session.flush()  # Flush to get the client_package.id
+        
+        # Create session tracking for each service in the package
+        for package_service in package.services:
+            client_session = ClientPackageSession(
+                client_package_id=client_package.id,
+                service_id=package_service.service_id,
+                sessions_total=package_service.sessions_included,
+                sessions_used=0
+            )
+            db.session.add(client_session)
+        
         db.session.commit()
 
         return jsonify({

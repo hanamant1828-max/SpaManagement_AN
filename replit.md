@@ -13,6 +13,7 @@ Preferred communication style: Simple, everyday language.
   - Added complete edit modals for all packages with service selection
   - Fixed package assignment to clients with custom pricing
   - Implemented automatic price recalculation when editing packages
+  - Fixed "Incompatible collection type" error in package assignment
   - Verified functionality through comprehensive testing (add/remove services)
 - **Template Issues Fixed**: Resolved duplicate extra_scripts block in checkin.html template
 - **Professional Billing**: Enhanced billing interface with professional styling, comprehensive invoice management, and improved payment processing

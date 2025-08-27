@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from io import StringIO
 from sqlalchemy import func, and_
 from app import db
-from models import Package, ClientPackage, Service, PackageService, Client
+from models import Package, ClientPackage, Service, PackageService, Client, ClientPackageSession
 
 def get_all_packages():
     """Get all active packages with enhanced features"""
@@ -130,13 +130,25 @@ def assign_package_to_client(client_id, package_id):
         package_id=package_id,
         purchase_date=datetime.utcnow(),
         expiry_date=expiry_date,
-        sessions_remaining=package.total_sessions,
         sessions_used=0,
+        total_sessions=package.total_sessions,
         amount_paid=package.total_price,
         is_active=True
     )
 
     db.session.add(client_package)
+    db.session.flush()  # Flush to get the client_package.id
+    
+    # Create session tracking for each service in the package
+    for package_service in package.services:
+        client_session = ClientPackageSession(
+            client_package_id=client_package.id,
+            service_id=package_service.service_id,
+            sessions_total=package_service.sessions_included,
+            sessions_used=0
+        )
+        db.session.add(client_session)
+    
     db.session.commit()
     return client_package
 
