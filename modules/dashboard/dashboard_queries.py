@@ -4,7 +4,7 @@ Dashboard-related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
 from app import db
-from models import Appointment, Client, Inventory
+from models import Appointment, Customer, Inventory
 
 def get_dashboard_stats():
     """Get dashboard statistics"""
@@ -14,7 +14,7 @@ def get_dashboard_stats():
         'todays_appointments': Appointment.query.filter(
             func.date(Appointment.appointment_date) == today
         ).count(),
-        'total_clients': Client.query.filter_by(is_active=True).count(),
+        'total_clients': Customer.query.filter_by(is_active=True).count(),
         'total_revenue_today': db.session.query(func.sum(Appointment.amount)).filter(
             func.date(Appointment.appointment_date) == today,
             Appointment.is_paid == True

@@ -190,7 +190,7 @@ def track_package_usage(client_package_id):
     usage_data = {
         'client_package': client_package,
         'package': client_package.package,
-        'client': Client.query.get(client_package.client_id),
+        'client': Customer.query.get(client_package.client_id),
         'sessions_total': client_package.package.total_sessions,
         'sessions_used': getattr(client_package, 'sessions_used', 0),
         'sessions_remaining': getattr(client_package, 'sessions_remaining', client_package.package.total_sessions),

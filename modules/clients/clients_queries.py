@@ -49,6 +49,10 @@ def delete_customer(customer_id):
         db.session.commit()
         return True
     return False
+        customer.is_active = False
+        db.session.commit()
+        return True
+    return False
 
 def get_customer_appointments(customer_id):
     """Get appointments for a customer"""

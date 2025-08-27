@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Add sample clients to the spa/salon management system
@@ -8,12 +7,12 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
-from models import Client
+from models import Customer # Corrected import statement
 from datetime import datetime, date
 
 def add_sample_clients():
     """Add diverse sample clients to the database"""
-    
+
     sample_clients = [
         {
             'first_name': 'Sarah',
@@ -209,33 +208,33 @@ def add_sample_clients():
 
     with app.app_context():
         added_count = 0
-        
+
         for client_data in sample_clients:
             # Check if client already exists (by phone number)
-            existing_client = Client.query.filter_by(phone=client_data['phone']).first()
-            
+            existing_client = Customer.query.filter_by(phone=client_data['phone']).first() # Corrected to Customer
+
             if not existing_client:
                 try:
-                    client = Client(**client_data)
+                    client = Customer(**client_data) # Corrected to Customer
                     client.created_at = datetime.utcnow()
                     client.is_active = True
-                    
+
                     db.session.add(client)
                     db.session.commit()
-                    
+
                     print(f"✓ Added client: {client.full_name} ({client.phone})")
                     added_count += 1
-                    
+
                 except Exception as e:
                     print(f"✗ Error adding {client_data['first_name']} {client_data['last_name']}: {e}")
                     db.session.rollback()
             else:
                 print(f"- Client {client_data['first_name']} {client_data['last_name']} already exists")
-        
+
         print(f"\n📊 Summary: Added {added_count} new clients to the database")
-        
+
         # Show total client count
-        total_clients = Client.query.filter_by(is_active=True).count()
+        total_clients = Customer.query.filter_by(is_active=True).count() # Corrected to Customer
         print(f"📈 Total active clients in database: {total_clients}")
 
 if __name__ == "__main__":

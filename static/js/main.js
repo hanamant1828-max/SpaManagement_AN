@@ -34,7 +34,7 @@ function setupGlobalEventListeners() {
     // Handle all modal events
     document.addEventListener('show.bs.modal', handleModalShow);
     document.addEventListener('hidden.bs.modal', handleModalHidden);
-    
+
     // Initialize face capture functionality
     initializeFaceCapture();
 
@@ -70,7 +70,7 @@ async function setupFacialRecognition(staffId) {
     currentStaffId = staffId;
     const modal = new bootstrap.Modal(document.getElementById('faceRecognitionModal'));
     modal.show();
-    
+
     try {
         await startCamera();
     } catch (error) {
@@ -82,7 +82,7 @@ async function setupFacialRecognition(staffId) {
 async function startCamera() {
     const video = document.getElementById('faceVideo');
     const captureBtn = document.getElementById('captureFaceBtn');
-    
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
@@ -91,16 +91,16 @@ async function startCamera() {
                 facingMode: 'user' 
             } 
         });
-        
+
         currentStream = stream;
         video.srcObject = stream;
         captureBtn.disabled = false;
         captureBtn.onclick = captureFace;
-        
+
         // Add close event to stop camera
         const modal = document.getElementById('faceRecognitionModal');
         modal.addEventListener('hidden.bs.modal', stopCamera);
-        
+
     } catch (error) {
         console.error('Error accessing camera:', error);
         throw error;
@@ -111,17 +111,17 @@ function captureFace() {
     const video = document.getElementById('faceVideo');
     const canvas = document.getElementById('faceCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     // Set canvas size to match video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     // Capture current video frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     // Convert to base64
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    
+
     // Send to server
     saveFaceImage(currentStaffId, imageData);
 }
@@ -147,9 +147,9 @@ async function saveFaceImage(staffId, imageData) {
                 face_image: imageData
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             alert('Face capture successful! Facial recognition is now enabled for this staff member.');
             stopCamera();
@@ -1545,3 +1545,24 @@ document.addEventListener('click', function(e) {
         }, 3000);
     }
 });
+
+// Package filtering functionality
+function filterPackages() {
+    const searchTerm = document.getElementById('packageSearch')?.value.toLowerCase() || '';
+    const packageRows = document.querySelectorAll('.package-row');
+
+    packageRows.forEach(row => {
+        const packageName = row.getAttribute('data-package-name')?.toLowerCase() || '';
+        const packageType = row.getAttribute('data-package-type')?.toLowerCase() || '';
+
+        if (packageName.includes(searchTerm) || packageType.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Face recognition functionality
+let video, canvas, context;
+let isRecognizing = false;
