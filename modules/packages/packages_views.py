@@ -1,4 +1,3 @@
-
 """
 Enhanced Package Management Views with proper service selection
 """
@@ -17,13 +16,13 @@ def packages():
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     packages_list = get_all_packages()
     services = Service.query.filter_by(is_active=True).all()
     categories = Category.query.filter_by(category_type='service', is_active=True).all()
     client_packages = ClientPackage.query.filter_by(is_active=True).limit(10).all()
     clients = Client.query.filter_by(is_active=True).all()
-    
+
     return render_template('enhanced_packages.html', 
                          packages=packages_list,
                          services=services,
@@ -34,101 +33,70 @@ def packages():
 @app.route('/packages/create', methods=['POST'])
 @login_required
 def create_package():
-    """Create package with selected services"""
+    """Create a new package with selected services and configurations"""
     if not current_user.can_access('packages'):
-        return jsonify({'success': False, 'message': 'Access denied'})
-    
+        flash('Access denied', 'danger')
+        return redirect(url_for('packages'))
+
     try:
-        # Get form data
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        package_type = request.form.get('package_type', 'regular')
-        validity_days = int(request.form.get('validity_days', 90))
+        # Handle form data
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        package_type = request.form.get('package_type')
+        validity_days = int(request.form.get('validity_days'))
+        total_price = float(request.form.get('total_price'))
         discount_percentage = float(request.form.get('discount_percentage', 0))
-        
-        # Get selected services
-        selected_services = request.form.getlist('services[]')
-        service_sessions = {}
-        service_discounts = {}
-        
-        # Parse service-specific data
-        for service_id in selected_services:
-            sessions_key = f'service_sessions_{service_id}'
-            discount_key = f'service_discount_{service_id}'
-            
-            service_sessions[service_id] = int(request.form.get(sessions_key, 1))
-            service_discounts[service_id] = float(request.form.get(discount_key, 0))
-        
-        # Validation
-        if not name:
-            return jsonify({'success': False, 'message': 'Package name is required'})
-        
-        if not selected_services:
-            return jsonify({'success': False, 'message': 'Please select at least one service'})
-        
-        # Calculate pricing
-        total_original_price = 0
-        total_sessions = 0
-        
-        for service_id in selected_services:
-            service = Service.query.get(service_id)
-            if service:
-                sessions = service_sessions[service_id]
-                original_price = service.price * sessions
-                total_original_price += original_price
-                total_sessions += sessions
-        
-        # Apply package discount
-        total_discount_amount = (total_original_price * discount_percentage) / 100
-        final_price = total_original_price - total_discount_amount
-        
-        # Create package
-        package = Package(
+        is_active = request.form.get('is_active') == 'on'
+
+        # Extract services data from form
+        services_data = []
+        services_dict = {}
+
+        # Group services data by index
+        for key in request.form.keys():
+            if key.startswith('services['):
+                # Extract index and field name
+                import re
+                match = re.match(r'services\[(\d+)\]\[(\w+)\]', key)
+                if match:
+                    index = int(match.group(1))
+                    field = match.group(2)
+                    value = request.form[key]
+
+                    if index not in services_dict:
+                        services_dict[index] = {}
+                    services_dict[index][field] = value
+
+        # Convert to list format
+        for index in sorted(services_dict.keys()):
+            service_data = services_dict[index]
+            services_data.append({
+                'service_id': int(service_data['service_id']),
+                'sessions': int(service_data['sessions']),
+                'service_discount': float(service_data.get('service_discount', 0))
+            })
+
+        # Create the package
+        package = create_package_with_services(
             name=name,
             description=description,
             package_type=package_type,
             validity_days=validity_days,
-            duration_months=validity_days // 30,
-            total_sessions=total_sessions,
-            total_price=final_price,
+            total_price=total_price,
             discount_percentage=discount_percentage,
-            is_active=True
+            is_active=is_active,
+            services_data=services_data
         )
-        
-        db.session.add(package)
-        db.session.flush()  # Get package ID
-        
-        # Add services to package
-        for service_id in selected_services:
-            service = Service.query.get(service_id)
-            if service:
-                sessions = service_sessions[service_id]
-                service_discount = service_discounts[service_id]
-                original_price = service.price * sessions
-                service_discount_amount = (original_price * service_discount) / 100
-                discounted_price = original_price - service_discount_amount
-                
-                package_service = PackageService(
-                    package_id=package.id,
-                    service_id=int(service_id),
-                    sessions_included=sessions,
-                    service_discount=service_discount,
-                    original_price=original_price,
-                    discounted_price=discounted_price
-                )
-                db.session.add(package_service)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True, 
-            'message': f'Package "{name}" created successfully',
-            'package_id': package.id
-        })
-        
+
+        if package:
+            flash('Package created successfully!', 'success')
+        else:
+            flash('Failed to create package', 'danger')
+
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error creating package: {str(e)}'})
+        flash(f'Error creating package: {str(e)}', 'danger')
+
+    return redirect(url_for('packages'))
 
 @app.route('/packages/<int:package_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -137,9 +105,9 @@ def edit_package(package_id):
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('packages'))
-    
+
     package = Package.query.get_or_404(package_id)
-    
+
     if request.method == 'POST':
         try:
             # Update package details
@@ -149,27 +117,27 @@ def edit_package(package_id):
             package.validity_days = int(request.form.get('validity_days', 90))
             package.duration_months = package.validity_days // 30
             package.discount_percentage = float(request.form.get('discount_percentage', 0))
-            
+
             # Update services
             selected_services = request.form.getlist('services[]')
-            
+
             # Remove existing services
             PackageService.query.filter_by(package_id=package_id).delete()
-            
+
             # Add new services
             total_original_price = 0
             total_sessions = 0
-            
+
             for service_id in selected_services:
                 service = Service.query.get(service_id)
                 if service:
                     sessions = int(request.form.get(f'service_sessions_{service_id}', 1))
                     service_discount = float(request.form.get(f'service_discount_{service_id}', 0))
-                    
+
                     original_price = service.price * sessions
                     service_discount_amount = (original_price * service_discount) / 100
                     discounted_price = original_price - service_discount_amount
-                    
+
                     package_service = PackageService(
                         package_id=package_id,
                         service_id=int(service_id),
@@ -179,25 +147,25 @@ def edit_package(package_id):
                         discounted_price=discounted_price
                     )
                     db.session.add(package_service)
-                    
+
                     total_original_price += original_price
                     total_sessions += sessions
-            
+
             # Recalculate package price
             total_discount_amount = (total_original_price * package.discount_percentage) / 100
             package.total_price = total_original_price - total_discount_amount
             package.total_sessions = total_sessions
-            
+
             db.session.commit()
             flash(f'Package "{package.name}" updated successfully', 'success')
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating package: {str(e)}', 'danger')
-    
+
     services = Service.query.filter_by(is_active=True).all()
     categories = Category.query.filter_by(category_type='service', is_active=True).all()
-    
+
     return render_template('enhanced_packages.html', 
                          package=package,
                          services=services,
@@ -210,10 +178,10 @@ def delete_package(package_id):
     """Delete package"""
     if not current_user.can_access('packages'):
         return jsonify({'success': False, 'message': 'Access denied'})
-    
+
     try:
         package = Package.query.get_or_404(package_id)
-        
+
         # Check if package is being used by clients
         client_packages = ClientPackage.query.filter_by(package_id=package_id, is_active=True).count()
         if client_packages > 0:
@@ -221,19 +189,19 @@ def delete_package(package_id):
                 'success': False, 
                 'message': f'Cannot delete package. {client_packages} client(s) have active subscriptions.'
             })
-        
+
         # Delete package services first
         PackageService.query.filter_by(package_id=package_id).delete()
-        
+
         # Delete package
         db.session.delete(package)
         db.session.commit()
-        
+
         return jsonify({
             'success': True, 
             'message': f'Package "{package.name}" deleted successfully'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error deleting package: {str(e)}'})
@@ -256,7 +224,7 @@ def get_service_details(service_id):
 def get_package_details(package_id):
     """Get package details with services for editing"""
     package = Package.query.get_or_404(package_id)
-    
+
     services = []
     for ps in package.services:
         services.append({
@@ -267,7 +235,7 @@ def get_package_details(package_id):
             'original_price': ps.original_price,
             'discounted_price': ps.discounted_price
         })
-    
+
     return jsonify({
         'id': package.id,
         'name': package.name,
@@ -285,19 +253,19 @@ def toggle_package(package_id):
     """Toggle package active status"""
     if not current_user.can_access('packages'):
         return jsonify({'success': False, 'message': 'Access denied'})
-    
+
     try:
         package = Package.query.get_or_404(package_id)
         package.is_active = not package.is_active
         db.session.commit()
-        
+
         status = 'activated' if package.is_active else 'deactivated'
         return jsonify({
             'success': True, 
             'message': f'Package {status} successfully',
             'is_active': package.is_active
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
@@ -308,23 +276,23 @@ def export_packages():
     from flask import make_response
     import csv
     from io import StringIO
-    
+
     if not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('packages'))
-    
+
     try:
         packages = get_all_packages()
-        
+
         output = StringIO()
         writer = csv.writer(output)
-        
+
         # Write header
         writer.writerow([
             'Package Name', 'Description', 'Package Type', 'Total Sessions', 
             'Validity Days', 'Total Price', 'Discount %', 'Status'
         ])
-        
+
         # Write package data
         for package in packages:
             writer.writerow([
@@ -337,12 +305,12 @@ def export_packages():
                 package.discount_percentage,
                 'Active' if package.is_active else 'Inactive'
             ])
-        
+
         response = make_response(output.getvalue())
         response.headers['Content-Disposition'] = 'attachment; filename=packages.csv'
         response.headers['Content-Type'] = 'text/csv'
         return response
-        
+
     except Exception as e:
         flash(f'Error exporting packages: {str(e)}', 'danger')
         return redirect(url_for('packages'))
