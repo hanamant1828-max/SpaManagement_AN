@@ -207,7 +207,9 @@ class User(UserMixin, db.Model):
             return self.user_role.name
         return self.role
 
-class Client(db.Model):
+class Customer(db.Model):
+    __tablename__ = 'client'  # Keep table name for backward compatibility
+    
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
@@ -222,7 +224,7 @@ class Client(db.Model):
     total_spent = db.Column(db.Float, default=0.0)
     is_active = db.Column(db.Boolean, default=True)
     
-    # Client preferences and notes
+    # Customer preferences and notes
     preferences = db.Column(db.Text)
     allergies = db.Column(db.Text)
     notes = db.Column(db.Text)
@@ -238,15 +240,15 @@ class Client(db.Model):
     marketing_consent = db.Column(db.Boolean, default=True)
     reminder_preferences = db.Column(db.Text)  # JSON for reminder settings
     
-    # Advanced client tracking
+    # Advanced customer tracking
     referral_source = db.Column(db.String(100))
     lifetime_value = db.Column(db.Float, default=0.0)
     last_no_show = db.Column(db.DateTime)
     no_show_count = db.Column(db.Integer, default=0)
     
     # Relationships
-    appointments = db.relationship('Appointment', backref='client', lazy=True)
-    packages = db.relationship('ClientPackage', backref='client', lazy=True)
+    appointments = db.relationship('Appointment', backref='customer', lazy=True)
+    packages = db.relationship('CustomerPackage', backref='customer', lazy=True)
 
     @property
     def full_name(self):
@@ -257,11 +259,11 @@ class Client(db.Model):
         if not self.is_active:
             return 'Inactive'
         elif self.last_visit and (datetime.utcnow() - self.last_visit).days > 90:
-            return 'Inactive Client'
+            return 'Inactive Customer'
         elif self.total_visits >= 10:
-            return 'Loyal Client'
+            return 'Loyal Customer'
         else:
-            return 'Regular Client'
+            return 'Regular Customer'
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -280,7 +282,7 @@ class Service(db.Model):
 
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # Keep FK reference to table name
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     appointment_date = db.Column(db.DateTime, nullable=False)
@@ -321,7 +323,7 @@ class Package(db.Model):
     
     # Relationships
     services = db.relationship('PackageService', backref='package', lazy=True)
-    client_packages = db.relationship('ClientPackage', backref='package', lazy=True)
+    customer_packages = db.relationship('CustomerPackage', backref='package', lazy=True)
 
     @property
     def services_included(self):
@@ -340,9 +342,11 @@ class PackageService(db.Model):
     # New field for unlimited sessions per service
     is_unlimited = db.Column(db.Boolean, default=False)  # True for unlimited sessions
 
-class ClientPackage(db.Model):
+class CustomerPackage(db.Model):
+    __tablename__ = 'client_package'  # Keep table name for backward compatibility
+    
     id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # Keep FK reference to table name
     package_id = db.Column(db.Integer, db.ForeignKey('package.id'), nullable=False)
     purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
     expiry_date = db.Column(db.DateTime, nullable=False)
@@ -354,12 +358,14 @@ class ClientPackage(db.Model):
     renewal_count = db.Column(db.Integer, default=0)
     
     # Service-wise session tracking
-    sessions_remaining = db.relationship('ClientPackageSession', backref='client_package', lazy=True)
+    sessions_remaining = db.relationship('CustomerPackageSession', backref='customer_package', lazy=True)
 
-class ClientPackageSession(db.Model):
-    """Track remaining sessions for each service in a client's package"""
+class CustomerPackageSession(db.Model):
+    """Track remaining sessions for each service in a customer's package"""
+    __tablename__ = 'client_package_session'  # Keep table name for backward compatibility
+    
     id = db.Column(db.Integer, primary_key=True)
-    client_package_id = db.Column(db.Integer, db.ForeignKey('client_package.id'), nullable=False)
+    client_package_id = db.Column(db.Integer, db.ForeignKey('client_package.id'), nullable=False)  # Keep FK reference to table name
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     sessions_total = db.Column(db.Integer, nullable=False)
     sessions_used = db.Column(db.Integer, default=0)
@@ -372,7 +378,7 @@ class ClientPackageSession(db.Model):
         return max(0, self.sessions_total - self.sessions_used)
     
     # Relationships
-    service = db.relationship('Service', backref='client_sessions')
+    service = db.relationship('Service', backref='customer_sessions')
 
 class Inventory(db.Model):
     id = db.Column(db.Integer, primary_key=True)

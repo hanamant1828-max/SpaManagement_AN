@@ -1,50 +1,53 @@
 """
-Clients views and routes
+Customer views and routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app
-from forms import ClientForm, AdvancedClientForm
+from forms import CustomerForm, AdvancedCustomerForm
 from .clients_queries import (
-    get_all_clients, get_client_by_id, search_clients, create_client, 
-    update_client, delete_client, get_client_appointments, 
-    get_client_communications, get_client_stats
+    get_all_customers, get_customer_by_id, search_customers, create_customer, 
+    update_customer, delete_customer, get_customer_appointments, 
+    get_customer_communications, get_customer_stats
 )
 
-@app.route('/clients')
+@app.route('/customers')
+@app.route('/clients')  # Keep for backward compatibility
 @login_required
-def clients():
+def customers():
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
     search_query = request.args.get('search', '')
     if search_query:
-        clients_list = search_clients(search_query)
+        customers_list = search_customers(search_query)
     else:
-        clients_list = get_all_clients()
+        customers_list = get_all_customers()
     
-    form = ClientForm()
-    advanced_form = AdvancedClientForm()
+    form = CustomerForm()
+    advanced_form = AdvancedCustomerForm()
     
-    return render_template('clients.html', 
-                         clients=clients_list,
+    return render_template('customers.html', 
+                         customers=customers_list,
                          form=form,
                          advanced_form=advanced_form,
                          search_query=search_query)
 
-@app.route('/clients/create', methods=['POST'])
-@app.route('/clients/add', methods=['POST'])
-@app.route('/add_client', methods=['POST'])
+@app.route('/customers/create', methods=['POST'])
+@app.route('/customers/add', methods=['POST'])
+@app.route('/clients/create', methods=['POST'])  # Keep for backward compatibility
+@app.route('/clients/add', methods=['POST'])  # Keep for backward compatibility
+@app.route('/add_client', methods=['POST'])  # Keep for backward compatibility
 @login_required
-def create_client_route():
+def create_customer_route():
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
-    form = ClientForm()
+    form = CustomerForm()
     if form.validate_on_submit():
-        client_data = {
+        customer_data = {
             'first_name': form.first_name.data,
             'last_name': form.last_name.data,
             'phone': form.phone.data,
@@ -57,12 +60,12 @@ def create_client_route():
             'notes': form.notes.data or ''
         }
         
-        create_client(client_data)
-        flash('Client created successfully!', 'success')
+        create_customer(customer_data)
+        flash('Customer created successfully!', 'success')
     else:
-        flash('Error creating client. Please check your input.', 'danger')
+        flash('Error creating customer. Please check your input.', 'danger')
     
-    return redirect(url_for('clients'))
+    return redirect(url_for('customers'))
 
 @app.route('/clients/update/<int:id>', methods=['POST'])
 @login_required
