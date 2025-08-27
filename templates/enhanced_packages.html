@@ -273,6 +273,28 @@
                     <div class="form-group mb-4">
                         <label class="form-label">Select Services for Package</label>
                         
+                        <!-- Popular Package Templates -->
+                        <div class="mb-3">
+                            <label class="form-label">Quick Package Templates</label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="applyTemplate('bridal')">
+                                        💍 Bridal Package
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-success btn-sm w-100 mb-2" onclick="applyTemplate('wellness')">
+                                        🧘 Wellness Package
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-info btn-sm w-100 mb-2" onclick="applyTemplate('grooming')">
+                                        ✂️ Grooming Package
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Service Selection Multiple Select -->
                         <div class="mb-3">
                             <label class="form-label">Available Services</label>
@@ -319,27 +341,35 @@
 
                     <!-- Package Summary -->
                     <div class="form-group">
-                        <div class="card">
+                        <div class="card package-summary-card">
                             <div class="card-header">
-                                <h6 class="mb-0">Package Summary</h6>
+                                <h6 class="mb-0 text-white">📊 Package Summary</h6>
                             </div>
                             <div class="card-body">
-                                <div class="row">
+                                <div class="row text-center">
                                     <div class="col-md-3">
-                                        <strong>Total Sessions:</strong>
-                                        <span id="total-sessions">0</span>
+                                        <div class="summary-item">
+                                            <h4 class="mb-1"><span id="total-sessions">0</span></h4>
+                                            <small>Total Sessions</small>
+                                        </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>Original Price:</strong>
-                                        ₹<span id="original-price">0.00</span>
+                                        <div class="summary-item">
+                                            <h4 class="mb-1">₹<span id="original-price">0.00</span></h4>
+                                            <small>Original Price</small>
+                                        </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>Total Discount:</strong>
-                                        ₹<span id="total-discount">0.00</span>
+                                        <div class="summary-item">
+                                            <h4 class="mb-1 text-warning">₹<span id="total-discount">0.00</span></h4>
+                                            <small>Total Savings</small>
+                                        </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>Final Price:</strong>
-                                        ₹<span id="final-total-price">0.00</span>
+                                        <div class="summary-item">
+                                            <h4 class="mb-1 text-success">₹<span id="final-total-price">0.00</span></h4>
+                                            <small>Final Price</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -401,6 +431,49 @@
     </div>
 </div>
 
+<style>
+.selected-service {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+}
+
+.service-option {
+    transition: all 0.3s ease;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.service-option:hover {
+    background-color: #f5f5f5;
+}
+
+.service-card {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.service-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.category-section {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 15px;
+}
+
+.package-summary-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.package-summary-card .card-body {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+}
+</style>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
@@ -423,9 +496,15 @@ $(document).ready(function() {
                 sessions: 1,
                 discount: 0
             };
+            
+            // Visual feedback
+            $(this).closest('.service-option').addClass('selected-service');
         } else {
             // Remove service from selected list
             delete selectedServices[serviceId];
+            
+            // Remove visual feedback
+            $(this).closest('.service-option').removeClass('selected-service');
         }
 
         renderSelectedServices();
@@ -602,6 +681,80 @@ $(document).ready(function() {
         // Submit the form normally
         form.submit();
     });
+
+    // Package templates
+    window.applyTemplate = function(templateType) {
+        // Clear current selections
+        $('.service-checkbox').prop('checked', false);
+        $('.service-option').removeClass('selected-service');
+        selectedServices = {};
+
+        let templateServices = [];
+        
+        switch(templateType) {
+            case 'bridal':
+                templateServices = [
+                    { name: 'Bridal Makeup', sessions: 1, discount: 0 },
+                    { name: 'Bridal Hair Styling', sessions: 1, discount: 0 },
+                    { name: 'Pre-Wedding Facial', sessions: 2, discount: 10 },
+                    { name: 'Bridal Mehendi', sessions: 1, discount: 5 }
+                ];
+                $('input[name="package_type"]').val('membership');
+                $('input[name="validity_days"]').val('30');
+                $('input[name="discount_percentage"]').val('15');
+                break;
+                
+            case 'wellness':
+                templateServices = [
+                    { name: 'Swedish Massage', sessions: 4, discount: 5 },
+                    { name: 'Steam Bath', sessions: 4, discount: 0 },
+                    { name: 'Reflexology', sessions: 2, discount: 10 },
+                    { name: 'Meditation Session', sessions: 6, discount: 0 }
+                ];
+                $('input[name="package_type"]').val('service_package');
+                $('input[name="validity_days"]').val('60');
+                $('input[name="discount_percentage"]').val('20');
+                break;
+                
+            case 'grooming':
+                templateServices = [
+                    { name: 'Hair Cut', sessions: 3, discount: 0 },
+                    { name: 'Classic Shave', sessions: 3, discount: 0 },
+                    { name: 'Hair Wash', sessions: 6, discount: 5 },
+                    { name: 'Eyebrow Threading', sessions: 3, discount: 0 }
+                ];
+                $('input[name="package_type"]').val('service_package');
+                $('input[name="validity_days"]').val('90');
+                $('input[name="discount_percentage"]').val('25');
+                break;
+        }
+
+        // Apply template services if they exist
+        templateServices.forEach(template => {
+            $('.service-checkbox').each(function() {
+                const serviceName = $(this).data('service-name');
+                if (serviceName && serviceName.includes(template.name.split(' ')[0])) {
+                    $(this).prop('checked', true);
+                    $(this).closest('.service-option').addClass('selected-service');
+                    
+                    const serviceId = $(this).data('service-id');
+                    selectedServices[serviceId] = {
+                        id: serviceId,
+                        name: $(this).data('service-name'),
+                        price: parseFloat($(this).data('service-price')),
+                        duration: $(this).data('service-duration'),
+                        sessions: template.sessions,
+                        discount: template.discount
+                    };
+                }
+            });
+        });
+
+        renderSelectedServices();
+        calculatePackageTotal();
+        
+        alert(`${templateType.charAt(0).toUpperCase() + templateType.slice(1)} package template applied! You can modify the services and pricing as needed.`);
+    };
 
     // Package status toggle
     $('.toggle-package').click(function() {
