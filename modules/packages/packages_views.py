@@ -76,6 +76,9 @@ def create_package():
                 'service_discount': float(service_data.get('service_discount', 0))
             })
 
+        # Calculate duration_months from validity_days
+        duration_months = max(1, validity_days // 30)
+        
         # Create the package
         package = create_package_with_services(
             name=name,

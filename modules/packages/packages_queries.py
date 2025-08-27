@@ -297,13 +297,15 @@ def get_package_statistics():
         'monthly_sales': monthly_sales
     }
 
-def create_package_with_services(name, description, package_type, validity_days, total_price, discount_percentage, is_active, services_data):
-    """Create a new package with associated services"""
+def create_package_with_services(name, description, package_type, validity_days, 
+                                   total_price, discount_percentage, is_active, services_data):
+    """Create a package with associated services"""
     try:
-        from models import db, Package, PackageService, Service
-
-        # Calculate total sessions
+        # Calculate total sessions from services
         total_sessions = sum(service['sessions'] for service in services_data)
+
+        # Calculate duration_months from validity_days
+        duration_months = max(1, validity_days // 30)
 
         # Create the package
         package = Package(
@@ -311,9 +313,10 @@ def create_package_with_services(name, description, package_type, validity_days,
             description=description,
             package_type=package_type,
             validity_days=validity_days,
+            duration_months=duration_months,
+            total_sessions=total_sessions,
             total_price=total_price,
             discount_percentage=discount_percentage,
-            total_sessions=total_sessions,
             is_active=is_active
         )
 

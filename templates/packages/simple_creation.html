@@ -724,15 +724,19 @@ function autoCalculatePackagePrice() {
         const sessionsInput = document.querySelector(`input[name="sessions_${serviceId}"]`);
         const discountInput = document.querySelector(`input[name="service_discount_${serviceId}"]`);
         
-        const sessions = parseInt(sessionsInput.value) || 1;
-        const discount = parseFloat(discountInput.value) || 0;
+        const sessions = parseInt(sessionsInput?.value) || 1;
+        const discount = parseFloat(discountInput?.value) || 0;
         
         const amount = servicePrice * sessions * (1 - discount / 100);
         total += amount;
     });
     
-    document.getElementById('total_price').value = total.toFixed(2);
-    updatePricing();
+    // Set the calculated price
+    const priceInput = document.getElementById('total_price');
+    if (priceInput) {
+        priceInput.value = total.toFixed(2);
+        updatePricing();
+    }
 }
 
 function updateSubmitButton() {
