@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Create Package - Simple{% endblock %}
@@ -9,7 +10,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 class="h3 mb-0">Create New Package</h1>
-                    <p class="text-muted">Simple form to create packages with services and pricing</p>
+                    <p class="text-muted">Create packages with services and pricing - User Friendly Interface</p>
                 </div>
                 <a href="{{ url_for('packages') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Packages
@@ -20,129 +21,159 @@
                 <div class="row">
                     <!-- Basic Package Info -->
                     <div class="col-lg-4">
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">1. Package Details</h5>
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="card-title mb-0"><i class="fas fa-info-circle"></i> 1. Package Details</h5>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label for="name" class="form-label">Package Name *</label>
-                                    <input type="text" class="form-control" id="name" name="name" required>
+                                    <label for="name" class="form-label fw-bold">Package Name *</label>
+                                    <input type="text" class="form-control form-control-lg" id="name" name="name" 
+                                           placeholder="e.g., Premium Spa Package" required>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="package_type" class="form-label">Package Type *</label>
-                                    <select class="form-select" id="package_type" name="package_type" required>
-                                        <option value="regular">Regular Package</option>
-                                        <option value="prepaid">Prepaid Package</option>
-                                        <option value="service_package">Service Package</option>
-                                        <option value="membership">Membership</option>
-                                        <option value="student_offer">Student Offer</option>
-                                        <option value="kitty_party">Kitty Party</option>
+                                    <label for="package_type" class="form-label fw-bold">Package Type *</label>
+                                    <select class="form-select form-select-lg" id="package_type" name="package_type" required>
+                                        <option value="">Choose Package Type</option>
+                                        <option value="regular">🎯 Regular Package</option>
+                                        <option value="prepaid">💳 Prepaid Package</option>
+                                        <option value="service_package">🌟 Service Package</option>
+                                        <option value="membership">👑 Membership</option>
+                                        <option value="student_offer">🎓 Student Offer</option>
+                                        <option value="kitty_party">🎉 Kitty Party</option>
                                     </select>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="validity_days" class="form-label">Validity (Days) *</label>
-                                    <input type="number" class="form-control" id="validity_days" name="validity_days" 
-                                           value="90" min="1" max="730" required>
+                                    <label for="validity_days" class="form-label fw-bold">Validity (Days) *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control form-control-lg" id="validity_days" name="validity_days" 
+                                               value="90" min="1" max="730" required>
+                                        <span class="input-group-text">days</span>
+                                    </div>
+                                    <div class="form-text text-success">Recommended: 90 days (3 months)</div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="description" class="form-label">Description</label>
+                                    <label for="description" class="form-label fw-bold">Description</label>
                                     <textarea class="form-control" id="description" name="description" rows="3" 
-                                              placeholder="Package description and benefits"></textarea>
+                                              placeholder="Describe what's included in this package..."></textarea>
                                 </div>
 
-                                <div class="form-check">
+                                <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
-                                    <label class="form-check-label" for="is_active">
-                                        Active Package
+                                    <label class="form-check-label fw-bold" for="is_active">
+                                        <i class="fas fa-toggle-on text-success"></i> Make Package Active
                                     </label>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Service Selection -->
-                    <div class="col-lg-4">
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">2. Select Services</h5>
-                                <small class="text-muted">Selected: <span id="selected-count">0</span></small>
-                            </div>
-                            <div class="card-body">
-                                <!-- Quick Search -->
-                                <div class="mb-3">
-                                    <input type="text" class="form-control form-control-sm" id="service-search" 
-                                           placeholder="Search services..." onkeyup="searchServices()">
+                    <!-- Enhanced Service Selection -->
+                    <div class="col-lg-5">
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-header bg-success text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0"><i class="fas fa-list-check"></i> 2. Select Services</h5>
+                                    <div class="badge bg-light text-dark fs-6">
+                                        Selected: <span id="selected-count">0</span>
+                                    </div>
                                 </div>
-
-                                <!-- Service Filter Tabs -->
-                                <div class="mb-3">
-                                    <div class="btn-group w-100" role="group">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm active" onclick="filterServices('all')">
-                                            All ({{ services|length }})
+                            </div>
+                            <div class="card-body p-0">
+                                <!-- Enhanced Search -->
+                                <div class="p-3 bg-light">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="service-search" 
+                                               placeholder="Search services by name...">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                            <i class="fas fa-times"></i>
                                         </button>
-                                        {% for category in categories %}
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="filterServices('{{ category.id }}')">
-                                            {{ category.display_name }}
-                                        </button>
-                                        {% endfor %}
                                     </div>
                                 </div>
 
-                                <!-- Services Grid -->
-                                <div id="services-list" style="max-height: 350px; overflow-y: auto;">
+                                <!-- Enhanced Category Tabs -->
+                                <div class="border-bottom">
+                                    <nav class="nav nav-tabs nav-fill" id="service-tabs">
+                                        <button class="nav-link active" type="button" onclick="filterServices('all')">
+                                            <i class="fas fa-th-large"></i> All ({{ services|length }})
+                                        </button>
+                                        {% for category in categories %}
+                                        <button class="nav-link" type="button" onclick="filterServices('{{ category.id }}')">
+                                            <i class="{{ category.icon or 'fas fa-spa' }}"></i> {{ category.display_name }}
+                                        </button>
+                                        {% endfor %}
+                                    </nav>
+                                </div>
+
+                                <!-- Enhanced Services List -->
+                                <div id="services-container" style="max-height: 450px; overflow-y: auto;">
                                     {% for service in services %}
-                                    <div class="service-card mb-2" data-category="{{ service.category_id or 'none' }}" data-name="{{ service.name|lower }}">
-                                        <div class="service-item border rounded p-2">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div class="flex-grow-1">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input service-checkbox" type="checkbox" 
-                                                               name="selected_services" value="{{ service.id }}" 
-                                                               id="service_{{ service.id }}"
-                                                               data-price="{{ service.price }}" data-name="{{ service.name }}">
-                                                        <label class="form-check-label" for="service_{{ service.id }}">
-                                                            <strong>{{ service.name }}</strong>
-                                                        </label>
+                                    <div class="service-card border-bottom" data-category="{{ service.category_id or 'none' }}" 
+                                         data-name="{{ service.name|lower }}" data-price="{{ service.price }}">
+                                        <div class="service-item p-3 position-relative">
+                                            <div class="row align-items-center">
+                                                <div class="col-1">
+                                                    <input class="form-check-input service-checkbox" type="checkbox" 
+                                                           name="selected_services" value="{{ service.id }}" 
+                                                           id="service_{{ service.id }}"
+                                                           data-price="{{ service.price }}" data-name="{{ service.name }}">
+                                                </div>
+                                                <div class="col-8">
+                                                    <h6 class="mb-1 fw-bold">{{ service.name }}</h6>
+                                                    <p class="text-muted small mb-1">{{ service.description[:60] }}...</p>
+                                                    <div class="d-flex gap-2">
+                                                        <span class="badge bg-primary fs-6">₹{{ service.price }}</span>
+                                                        {% if service.service_category %}
+                                                        <span class="badge bg-secondary">{{ service.service_category.display_name }}</span>
+                                                        {% endif %}
+                                                        {% if service.duration %}
+                                                        <span class="badge bg-info">{{ service.duration }} min</span>
+                                                        {% endif %}
                                                     </div>
-                                                    <div class="service-info mt-1">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span class="badge bg-primary">₹{{ service.price }}</span>
-                                                            {% if service.service_category %}
-                                                            <small class="text-muted">{{ service.service_category.display_name }}</small>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
+                                                </div>
+                                                <div class="col-3 text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary service-select-btn" 
+                                                            onclick="toggleService({{ service.id }})">
+                                                        <i class="fas fa-plus"></i> Add
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            <!-- Sessions and Discount Controls -->
-                                            <div class="service-controls mt-2" id="controls_{{ service.id }}" style="display: none;">
-                                                <div class="row g-2">
+                                            <!-- Enhanced Sessions and Discount Controls -->
+                                            <div class="service-controls mt-3 p-3 bg-light rounded" id="controls_{{ service.id }}" style="display: none;">
+                                                <div class="row g-3">
                                                     <div class="col-6">
-                                                        <label class="form-label small mb-1">Sessions</label>
-                                                        <div class="input-group input-group-sm">
-                                                            <button type="button" class="btn btn-outline-secondary" onclick="adjustSessions({{ service.id }}, -1)">-</button>
-                                                            <input type="number" class="form-control text-center sessions-input" 
+                                                        <label class="form-label small fw-bold">Sessions</label>
+                                                        <div class="input-group">
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustSessions({{ service.id }}, -1)">
+                                                                <i class="fas fa-minus"></i>
+                                                            </button>
+                                                            <input type="number" class="form-control form-control-sm text-center sessions-input fw-bold" 
                                                                    name="sessions_{{ service.id }}" value="1" min="1" max="20"
                                                                    onchange="updatePricing()">
-                                                            <button type="button" class="btn btn-outline-secondary" onclick="adjustSessions({{ service.id }}, 1)">+</button>
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustSessions({{ service.id }}, 1)">
+                                                                <i class="fas fa-plus"></i>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                     <div class="col-6">
-                                                        <label class="form-label small mb-1">Discount %</label>
-                                                        <input type="number" class="form-control form-control-sm discount-input" 
-                                                               name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="5"
-                                                               onchange="updatePricing()" placeholder="0">
+                                                        <label class="form-label small fw-bold">Discount %</label>
+                                                        <div class="input-group">
+                                                            <input type="number" class="form-control form-control-sm discount-input text-center" 
+                                                                   name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="5"
+                                                                   onchange="updatePricing()">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div class="mt-1">
-                                                    <small class="text-muted">
+                                                <div class="mt-2 text-center">
+                                                    <div class="badge bg-success fs-6">
                                                         Subtotal: ₹<span id="subtotal_{{ service.id }}">{{ service.price }}</span>
-                                                    </small>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -151,83 +182,105 @@
                                 </div>
 
                                 <!-- No Services Found -->
-                                <div id="no-services-found" class="text-center py-3" style="display: none;">
-                                    <i class="fas fa-search text-muted"></i>
-                                    <p class="text-muted mb-0">No services found</p>
+                                <div id="no-services-found" class="text-center py-5" style="display: none;">
+                                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No services found</h5>
+                                    <p class="text-muted">Try a different search term or category</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Pricing -->
-                    <div class="col-lg-4">
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">3. Pricing & Summary</h5>
+                    <!-- Enhanced Pricing -->
+                    <div class="col-lg-3">
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="card-title mb-0"><i class="fas fa-calculator"></i> 3. Pricing Summary</h5>
                             </div>
                             <div class="card-body">
-                                <!-- Pricing Summary -->
-                                <div class="pricing-summary mb-3">
+                                <!-- Live Pricing Summary -->
+                                <div class="pricing-summary p-3 bg-light rounded mb-3">
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span>Services Total:</span>
-                                        <span id="services-total">₹0.00</span>
+                                        <span><i class="fas fa-list"></i> Services Total:</span>
+                                        <span class="fw-bold" id="services-total">₹0.00</span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span>Service Discounts:</span>
-                                        <span class="text-success" id="service-discounts">-₹0.00</span>
+                                        <span><i class="fas fa-percent text-success"></i> Service Discounts:</span>
+                                        <span class="text-success fw-bold" id="service-discounts">-₹0.00</span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span>Total Sessions:</span>
-                                        <span id="total-sessions">0</span>
+                                        <span><i class="fas fa-clock"></i> Total Sessions:</span>
+                                        <span class="fw-bold" id="total-sessions">0</span>
                                     </div>
                                     <hr>
                                 </div>
 
-                                <!-- Final Pricing -->
+                                <!-- Package Price Input -->
                                 <div class="mb-3">
-                                    <label for="total_price" class="form-label">Package Price *</label>
-                                    <div class="input-group">
+                                    <label for="total_price" class="form-label fw-bold">Package Price *</label>
+                                    <div class="input-group input-group-lg">
                                         <span class="input-group-text">₹</span>
-                                        <input type="number" class="form-control" id="total_price" name="total_price" 
-                                               min="0" step="0.01" required onchange="updatePricing()">
+                                        <input type="number" class="form-control fw-bold" id="total_price" name="total_price" 
+                                               min="0" step="0.01" required onchange="updatePricing()"
+                                               placeholder="0.00">
                                     </div>
-                                    <button type="button" class="btn btn-link btn-sm p-0" onclick="autoCalculatePrice()">
-                                        Auto-calculate price
-                                    </button>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-outline-success btn-sm w-100" onclick="autoCalculatePrice()">
+                                            <i class="fas fa-magic"></i> Auto-Calculate Price
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="discount_percentage" class="form-label">Package Discount %</label>
-                                    <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" 
-                                           value="0" min="0" max="100" step="0.1" onchange="updatePricing()">
+                                    <label for="discount_percentage" class="form-label fw-bold">Package Discount %</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" 
+                                               value="0" min="0" max="100" step="0.1" onchange="updatePricing()">
+                                        <span class="input-group-text">%</span>
+                                    </div>
                                 </div>
 
                                 <!-- Final Summary -->
                                 <div class="alert alert-info">
-                                    <strong>Final Price: ₹<span id="final-price">0.00</span></strong>
-                                    <br><small>You save: ₹<span id="total-savings">0.00</span></small>
+                                    <div class="text-center">
+                                        <h5 class="mb-2">Final Price</h5>
+                                        <h3 class="text-primary mb-2">₹<span id="final-price">0.00</span></h3>
+                                        <small class="text-success">You save: ₹<span id="total-savings">0.00</span></small>
+                                    </div>
                                 </div>
 
                                 <!-- Selected Services Preview -->
-                                <div id="selected-services-preview" style="display: none;">
-                                    <h6>Selected Services:</h6>
-                                    <ul id="selected-services-list" class="list-unstyled small"></ul>
+                                <div id="selected-services-preview" class="mt-3" style="display: none;">
+                                    <h6 class="fw-bold"><i class="fas fa-check-circle text-success"></i> Selected Services:</h6>
+                                    <ul id="selected-services-list" class="list-unstyled small bg-light p-2 rounded"></ul>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Submit Button -->
+                <!-- Enhanced Submit Section -->
                 <div class="row">
                     <div class="col-12">
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('packages') }}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-success btn-lg" id="submit-btn" disabled>
-                                <i class="fas fa-save"></i> Create Package
-                            </button>
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <a href="{{ url_for('packages') }}" class="btn btn-secondary btn-lg me-3">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </a>
+                                        <small class="text-muted">All changes will be lost</small>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-success btn-lg" id="submit-btn" disabled>
+                                            <i class="fas fa-save"></i> Create Package
+                                        </button>
+                                        <div class="mt-1">
+                                            <small class="text-muted" id="submit-status">Please select services and set price</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -237,8 +290,13 @@
 </div>
 
 <style>
-.card-sm .card-body {
-    padding: 0.75rem;
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
 }
 
 .service-card {
@@ -248,33 +306,74 @@
 .service-item {
     transition: all 0.3s ease;
     cursor: pointer;
+    border-radius: 8px;
 }
 
 .service-item:hover {
     background-color: #f8f9fa;
+    transform: translateX(2px);
 }
 
 .service-item.selected {
     background-color: #e7f3ff;
-    border: 2px solid #0d6efd !important;
-    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+    border-left: 4px solid #0d6efd;
+    transform: translateX(4px);
 }
 
 .service-controls {
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    padding: 8px;
+    animation: slideDown 0.3s ease;
 }
 
-.input-group-sm .btn {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .pricing-summary {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 6px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-radius: 0;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #198754;
+    color: white;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.btn-lg {
+    font-size: 1.1rem;
+}
+
+#services-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#services-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#services-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+#services-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 </style>
 
@@ -282,26 +381,24 @@
 let selectedServices = new Set();
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize event listeners
+    initializeServiceSelection();
+    initializeSearch();
+    
+    // Form validation listeners
+    document.getElementById('name').addEventListener('input', updateSubmitButton);
+    document.getElementById('total_price').addEventListener('input', updateSubmitButton);
+    
+    // Auto-focus on name field
+    document.getElementById('name').focus();
+});
+
+function initializeServiceSelection() {
     // Handle service selection
     document.querySelectorAll('.service-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const serviceId = this.value;
-            const controlsDiv = document.getElementById(`controls_${serviceId}`);
-            const serviceItem = this.closest('.service-item');
-            
-            if (this.checked) {
-                selectedServices.add(serviceId);
-                controlsDiv.style.display = 'block';
-                serviceItem.classList.add('selected');
-            } else {
-                selectedServices.delete(serviceId);
-                controlsDiv.style.display = 'none';
-                serviceItem.classList.remove('selected');
-            }
-            
-            updateSelectedCount();
-            updatePricing();
-            updateSubmitButton();
+            toggleServiceSelection(serviceId, this.checked);
         });
     });
     
@@ -314,14 +411,62 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-});
+}
 
-// Update selected count
+function initializeSearch() {
+    const searchInput = document.getElementById('service-search');
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchServices();
+        }, 300);
+    });
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchServices();
+        }
+    });
+}
+
+function toggleService(serviceId) {
+    const checkbox = document.getElementById(`service_${serviceId}`);
+    checkbox.click();
+}
+
+function toggleServiceSelection(serviceId, isSelected) {
+    const controlsDiv = document.getElementById(`controls_${serviceId}`);
+    const serviceItem = document.querySelector(`#service_${serviceId}`).closest('.service-item');
+    const selectBtn = serviceItem.querySelector('.service-select-btn');
+    
+    if (isSelected) {
+        selectedServices.add(serviceId);
+        controlsDiv.style.display = 'block';
+        serviceItem.classList.add('selected');
+        selectBtn.innerHTML = '<i class="fas fa-check"></i> Added';
+        selectBtn.classList.remove('btn-outline-primary');
+        selectBtn.classList.add('btn-success');
+    } else {
+        selectedServices.delete(serviceId);
+        controlsDiv.style.display = 'none';
+        serviceItem.classList.remove('selected');
+        selectBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
+        selectBtn.classList.remove('btn-success');
+        selectBtn.classList.add('btn-outline-primary');
+    }
+    
+    updateSelectedCount();
+    updatePricing();
+    updateSubmitButton();
+}
+
 function updateSelectedCount() {
     document.getElementById('selected-count').textContent = selectedServices.size;
 }
 
-// Search services
 function searchServices() {
     const searchTerm = document.getElementById('service-search').value.toLowerCase();
     const serviceCards = document.querySelectorAll('.service-card');
@@ -339,11 +484,15 @@ function searchServices() {
         }
     });
     
-    // Show/hide no results message
     document.getElementById('no-services-found').style.display = visibleCount === 0 ? 'block' : 'none';
 }
 
-// Adjust sessions with buttons
+function clearSearch() {
+    document.getElementById('service-search').value = '';
+    searchServices();
+    document.getElementById('service-search').focus();
+}
+
 function adjustSessions(serviceId, change) {
     const input = document.querySelector(`input[name="sessions_${serviceId}"]`);
     const currentValue = parseInt(input.value) || 1;
@@ -353,7 +502,6 @@ function adjustSessions(serviceId, change) {
     updatePricing();
 }
 
-// Update individual service subtotal
 function updateServiceSubtotal(serviceId) {
     const checkbox = document.querySelector(`input[value="${serviceId}"]`);
     const sessionsInput = document.querySelector(`input[name="sessions_${serviceId}"]`);
@@ -370,10 +518,9 @@ function updateServiceSubtotal(serviceId) {
     }
 }
 
-// Filter services by category
 function filterServices(categoryId) {
     const serviceCards = document.querySelectorAll('.service-card');
-    const buttons = document.querySelectorAll('.btn-group .btn');
+    const buttons = document.querySelectorAll('.nav-link');
     
     // Update active button
     buttons.forEach(btn => btn.classList.remove('active'));
@@ -392,11 +539,9 @@ function filterServices(categoryId) {
         }
     });
     
-    // Show/hide no results message
     document.getElementById('no-services-found').style.display = visibleCount === 0 ? 'block' : 'none';
 }
 
-// Update pricing calculations
 function updatePricing() {
     let servicesTotal = 0;
     let serviceDiscounts = 0;
@@ -420,10 +565,8 @@ function updatePricing() {
         serviceDiscounts += discountAmount;
         totalSessions += sessions;
         
-        // Update individual service subtotal
         updateServiceSubtotal(serviceId);
-        
-        selectedServicesList.push(`${serviceName} (${sessions} sessions)`);
+        selectedServicesList.push(`${serviceName} (${sessions}x)`);
     });
     
     // Update display
@@ -446,14 +589,15 @@ function updatePricing() {
     const list = document.getElementById('selected-services-list');
     
     if (selectedServicesList.length > 0) {
-        list.innerHTML = selectedServicesList.map(service => `<li>• ${service}</li>`).join('');
+        list.innerHTML = selectedServicesList.map(service => 
+            `<li class="mb-1"><i class="fas fa-check-circle text-success"></i> ${service}</li>`
+        ).join('');
         preview.style.display = 'block';
     } else {
         preview.style.display = 'none';
     }
 }
 
-// Auto-calculate price based on services
 function autoCalculatePrice() {
     let total = 0;
     
@@ -472,20 +616,42 @@ function autoCalculatePrice() {
     
     document.getElementById('total_price').value = total.toFixed(2);
     updatePricing();
+    
+    // Show success message
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Price Calculated!';
+    btn.classList.add('btn-success');
+    btn.classList.remove('btn-outline-success');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-success');
+    }, 2000);
 }
 
-// Update submit button state
 function updateSubmitButton() {
     const submitBtn = document.getElementById('submit-btn');
+    const submitStatus = document.getElementById('submit-status');
     const hasServices = selectedServices.size > 0;
     const hasName = document.getElementById('name').value.trim().length > 0;
     const hasPrice = parseFloat(document.getElementById('total_price').value) > 0;
     
-    submitBtn.disabled = !(hasServices && hasName && hasPrice);
+    if (!hasName) {
+        submitStatus.textContent = 'Please enter package name';
+        submitBtn.disabled = true;
+    } else if (!hasServices) {
+        submitStatus.textContent = 'Please select at least one service';
+        submitBtn.disabled = true;
+    } else if (!hasPrice) {
+        submitStatus.textContent = 'Please set package price';
+        submitBtn.disabled = true;
+    } else {
+        submitStatus.textContent = 'Ready to create package!';
+        submitStatus.className = 'text-success';
+        submitBtn.disabled = false;
+    }
 }
-
-// Add event listeners for form validation
-document.getElementById('name').addEventListener('input', updateSubmitButton);
-document.getElementById('total_price').addEventListener('input', updateSubmitButton);
 </script>
 {% endblock %}
