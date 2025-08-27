@@ -109,70 +109,93 @@
                                     </nav>
                                 </div>
 
-                                <!-- Enhanced Services List -->
+                                <!-- Enhanced Services List with Better Layout -->
                                 <div id="services-container" style="max-height: 450px; overflow-y: auto;">
                                     {% for service in services %}
-                                    <div class="service-card border-bottom" data-category="{{ service.category_id or 'none' }}" 
+                                    <div class="service-card mb-3" data-category="{{ service.category_id or 'none' }}" 
                                          data-name="{{ service.name|lower }}" data-price="{{ service.price }}">
-                                        <div class="service-item p-3 position-relative">
-                                            <div class="row align-items-center">
-                                                <div class="col-1">
-                                                    <input class="form-check-input service-checkbox" type="checkbox" 
-                                                           name="selected_services" value="{{ service.id }}" 
-                                                           id="service_{{ service.id }}"
-                                                           data-price="{{ service.price }}" data-name="{{ service.name }}">
-                                                </div>
-                                                <div class="col-8">
-                                                    <h6 class="mb-1 fw-bold">{{ service.name }}</h6>
-                                                    <p class="text-muted small mb-1">{{ service.description[:60] }}...</p>
-                                                    <div class="d-flex gap-2">
-                                                        <span class="badge bg-primary fs-6">₹{{ service.price }}</span>
-                                                        {% if service.service_category %}
-                                                        <span class="badge bg-secondary">{{ service.service_category.display_name }}</span>
-                                                        {% endif %}
-                                                        {% if service.duration %}
-                                                        <span class="badge bg-info">{{ service.duration }} min</span>
-                                                        {% endif %}
+                                        <div class="card border-0 shadow-sm">
+                                            <div class="service-item p-4 position-relative">
+                                                <div class="row align-items-start">
+                                                    <div class="col-1 text-center">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input service-checkbox fs-5" type="checkbox" 
+                                                                   name="selected_services" value="{{ service.id }}" 
+                                                                   id="service_{{ service.id }}"
+                                                                   data-price="{{ service.price }}" data-name="{{ service.name }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-8">
+                                                        <div class="service-details">
+                                                            <h5 class="mb-2 fw-bold text-dark">{{ service.name }}</h5>
+                                                            {% if service.description %}
+                                                            <p class="text-muted mb-3 small">{{ service.description[:80] }}{% if service.description|length > 80 %}...{% endif %}</p>
+                                                            {% endif %}
+                                                            <div class="service-badges d-flex flex-wrap gap-2 mb-2">
+                                                                <span class="badge bg-primary fs-6 px-3 py-2">
+                                                                    <i class="fas fa-rupee-sign"></i> {{ service.price }}
+                                                                </span>
+                                                                {% if service.service_category %}
+                                                                <span class="badge bg-secondary fs-6 px-3 py-2">
+                                                                    <i class="fas fa-tags"></i> {{ service.service_category.display_name }}
+                                                                </span>
+                                                                {% endif %}
+                                                                {% if service.duration %}
+                                                                <span class="badge bg-info fs-6 px-3 py-2">
+                                                                    <i class="fas fa-clock"></i> {{ service.duration }} min
+                                                                </span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-3 text-end">
+                                                        <button type="button" class="btn btn-outline-primary service-select-btn btn-lg" 
+                                                                onclick="toggleService({{ service.id }})">
+                                                            <i class="fas fa-plus me-2"></i>Add Service
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div class="col-3 text-end">
-                                                    <button type="button" class="btn btn-sm btn-outline-primary service-select-btn" 
-                                                            onclick="toggleService({{ service.id }})">
-                                                        <i class="fas fa-plus"></i> Add
-                                                    </button>
-                                                </div>
-                                            </div>
 
-                                            <!-- Enhanced Sessions and Discount Controls -->
-                                            <div class="service-controls mt-3 p-3 bg-light rounded" id="controls_{{ service.id }}" style="display: none;">
-                                                <div class="row g-3">
-                                                    <div class="col-6">
-                                                        <label class="form-label small fw-bold">Sessions</label>
-                                                        <div class="input-group">
-                                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustSessions({{ service.id }}, -1)">
-                                                                <i class="fas fa-minus"></i>
-                                                            </button>
-                                                            <input type="number" class="form-control form-control-sm text-center sessions-input fw-bold" 
-                                                                   name="sessions_{{ service.id }}" value="1" min="1" max="20"
-                                                                   onchange="updatePricing()">
-                                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustSessions({{ service.id }}, 1)">
-                                                                <i class="fas fa-plus"></i>
-                                                            </button>
+                                                <!-- Enhanced Sessions and Discount Controls -->
+                                                <div class="service-controls mt-4 p-4 bg-light rounded-3 border" id="controls_{{ service.id }}" style="display: none;">
+                                                    <div class="row g-4">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold text-dark mb-2">
+                                                                <i class="fas fa-repeat me-2"></i>Number of Sessions
+                                                            </label>
+                                                            <div class="input-group input-group-lg">
+                                                                <button type="button" class="btn btn-outline-secondary" onclick="adjustSessions({{ service.id }}, -1)">
+                                                                    <i class="fas fa-minus"></i>
+                                                                </button>
+                                                                <input type="number" class="form-control text-center sessions-input fw-bold fs-5" 
+                                                                       name="sessions_{{ service.id }}" value="1" min="1" max="20"
+                                                                       onchange="updatePricing()">
+                                                                <button type="button" class="btn btn-outline-secondary" onclick="adjustSessions({{ service.id }}, 1)">
+                                                                    <i class="fas fa-plus"></i>
+                                                                </button>
+                                                            </div>
+                                                            <small class="text-muted">How many times this service can be used</small>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold text-dark mb-2">
+                                                                <i class="fas fa-percent me-2"></i>Service Discount
+                                                            </label>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" class="form-control discount-input text-center fw-bold fs-5" 
+                                                                       name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="5"
+                                                                       onchange="updatePricing()">
+                                                                <span class="input-group-text fw-bold">%</span>
+                                                            </div>
+                                                            <small class="text-muted">Discount for this specific service</small>
                                                         </div>
                                                     </div>
-                                                    <div class="col-6">
-                                                        <label class="form-label small fw-bold">Discount %</label>
-                                                        <div class="input-group">
-                                                            <input type="number" class="form-control form-control-sm discount-input text-center" 
-                                                                   name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="5"
-                                                                   onchange="updatePricing()">
-                                                            <span class="input-group-text">%</span>
+                                                    <div class="mt-3 text-center">
+                                                        <div class="alert alert-success mb-0 py-2">
+                                                            <h6 class="mb-0">
+                                                                <i class="fas fa-calculator me-2"></i>Service Subtotal: 
+                                                                <span class="fw-bold">₹<span id="subtotal_{{ service.id }}">{{ service.price }}</span></span>
+                                                            </h6>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                                <div class="mt-2 text-center">
-                                                    <div class="badge bg-success fs-6">
-                                                        Subtotal: ₹<span id="subtotal_{{ service.id }}">{{ service.price }}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -301,23 +324,76 @@
 
 .service-card {
     transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.service-card .card {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.service-card .card:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+    transform: translateY(-2px);
 }
 
 .service-item {
     transition: all 0.3s ease;
     cursor: pointer;
-    border-radius: 8px;
-}
-
-.service-item:hover {
-    background-color: #f8f9fa;
-    transform: translateX(2px);
+    border-radius: 12px;
 }
 
 .service-item.selected {
-    background-color: #e7f3ff;
-    border-left: 4px solid #0d6efd;
-    transform: translateX(4px);
+    background: linear-gradient(135deg, #e7f3ff 0%, #f0f8ff 100%);
+}
+
+.service-card.selected .card {
+    border-color: #0d6efd;
+    background: linear-gradient(135deg, #e7f3ff 0%, #f0f8ff 100%);
+    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.25);
+}
+
+.service-details h5 {
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.service-badges .badge {
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 8px;
+}
+
+.service-select-btn {
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.service-select-btn:hover {
+    transform: scale(1.05);
+}
+
+.form-check-input.fs-5 {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.service-controls {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 1px solid #dee2e6;
+}
+
+.input-group-lg .form-control {
+    font-size: 1.1rem;
+    height: calc(3rem + 2px);
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-color: #b8dacc;
 }
 
 .service-controls {
@@ -440,20 +516,31 @@ function toggleService(serviceId) {
 function toggleServiceSelection(serviceId, isSelected) {
     const controlsDiv = document.getElementById(`controls_${serviceId}`);
     const serviceItem = document.querySelector(`#service_${serviceId}`).closest('.service-item');
+    const serviceCard = document.querySelector(`#service_${serviceId}`).closest('.service-card');
     const selectBtn = serviceItem.querySelector('.service-select-btn');
     
     if (isSelected) {
         selectedServices.add(serviceId);
         controlsDiv.style.display = 'block';
         serviceItem.classList.add('selected');
-        selectBtn.innerHTML = '<i class="fas fa-check"></i> Added';
+        serviceCard.classList.add('selected');
+        selectBtn.innerHTML = '<i class="fas fa-check me-2"></i>Added to Package';
         selectBtn.classList.remove('btn-outline-primary');
         selectBtn.classList.add('btn-success');
+        
+        // Smooth animation for controls
+        controlsDiv.style.opacity = '0';
+        controlsDiv.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+            controlsDiv.style.opacity = '1';
+            controlsDiv.style.transform = 'translateY(0)';
+        }, 100);
     } else {
         selectedServices.delete(serviceId);
         controlsDiv.style.display = 'none';
         serviceItem.classList.remove('selected');
-        selectBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
+        serviceCard.classList.remove('selected');
+        selectBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Service';
         selectBtn.classList.remove('btn-success');
         selectBtn.classList.add('btn-outline-primary');
     }
