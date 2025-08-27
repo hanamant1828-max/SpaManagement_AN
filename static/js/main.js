@@ -1547,19 +1547,39 @@ document.addEventListener('click', function(e) {
 });
 
 // Package filtering functionality
-function filterPackages() {
+function filterPackages(filterType = null) {
     const searchTerm = document.getElementById('packageSearch')?.value.toLowerCase() || '';
-    const packageRows = document.querySelectorAll('.package-row');
+    const packageRows = document.querySelectorAll('tr[data-package-type]');
+
+    // Update active button state
+    if (filterType !== null) {
+        const filterButtons = document.querySelectorAll('.btn-group button');
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
 
     packageRows.forEach(row => {
-        const packageName = row.getAttribute('data-package-name')?.toLowerCase() || '';
+        const packageName = row.querySelector('td strong')?.textContent.toLowerCase() || '';
         const packageType = row.getAttribute('data-package-type')?.toLowerCase() || '';
+        
+        let showRow = true;
 
-        if (packageName.includes(searchTerm) || packageType.includes(searchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
+        // Apply type filter
+        if (filterType && filterType !== 'all') {
+            if (filterType === 'service_package') {
+                // Show regular packages for "Service Packages"
+                showRow = packageType === 'regular';
+            } else {
+                showRow = packageType === filterType;
+            }
         }
+
+        // Apply search filter
+        if (showRow && searchTerm) {
+            showRow = packageName.includes(searchTerm) || packageType.includes(searchTerm);
+        }
+
+        row.style.display = showRow ? '' : 'none';
     });
 }
 
