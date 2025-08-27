@@ -437,7 +437,7 @@ class Invoice(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationship
-    client = db.relationship('Client', backref='invoices')
+    customer = db.relationship('Customer', backref='invoices')
     appointment = db.relationship('Appointment', backref='invoice', uselist=False)
 
 class StaffSchedule(db.Model):
@@ -518,7 +518,7 @@ class ProductSale(db.Model):
     
     # Relationships
     product = db.relationship('Inventory', backref='sales')
-    client = db.relationship('Client', backref='product_purchases')
+    customer = db.relationship('Customer', backref='product_purchases')
     staff = db.relationship('User', backref='product_sales')
 
 class Promotion(db.Model):
@@ -550,7 +550,7 @@ class Waitlist(db.Model):
     expires_at = db.Column(db.DateTime)
     
     # Relationships
-    client = db.relationship('Client', backref='waitlist_entries')
+    customer = db.relationship('Customer', backref='waitlist_entries')
     service = db.relationship('Service', backref='waitlist_entries')
     staff = db.relationship('User', backref='waitlist_requests')
 
@@ -569,7 +569,7 @@ class RecurringAppointment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    client = db.relationship('Client', backref='recurring_appointments')
+    customer = db.relationship('Customer', backref='recurring_appointments')
     service = db.relationship('Service', backref='recurring_bookings')
     staff = db.relationship('User', backref='recurring_schedule')
 

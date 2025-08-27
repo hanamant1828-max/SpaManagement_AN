@@ -7,8 +7,8 @@ from werkzeug.security import generate_password_hash
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import app, db
-from models import User, Client, Service, Appointment, Inventory, Expense, Invoice, Package, StaffSchedule, ClientPackage, PackageService, Review, Communication, Commission, ProductSale, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings, Role, Permission, RolePermission, Category, Department, SystemSetting
-from forms import LoginForm, UserForm, ClientForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedClientForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
+from models import User, Customer, Service, Appointment, Inventory, Expense, Invoice, Package, StaffSchedule, CustomerPackage, PackageService, Review, Communication, Commission, ProductSale, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings, Role, Permission, RolePermission, Category, Department, SystemSetting
+from forms import LoginForm, UserForm, CustomerForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedCustomerForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
 import utils
 
 # Import all module views to register routes
@@ -138,6 +138,12 @@ def index():
         print(f"Error in index route: {e}")
         return render_template('login.html')
 
+# Backward compatibility route
+@app.route('/clients')
+@login_required
+def clients_redirect():
+    return redirect(url_for('customers'))
+
 # Additional routes that don't fit in modules yet
 @app.route('/alerts')
 @login_required
@@ -154,16 +160,16 @@ def communications():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    from models import Communication, Client
+    from models import Communication, Customer
     from forms import CommunicationForm
 
     communications = Communication.query.order_by(Communication.created_at.desc()).all()
-    clients = Client.query.filter_by(is_active=True).all()
+    customers = Customer.query.filter_by(is_active=True).all()
     form = CommunicationForm()
 
     return render_template('communications.html', 
                          communications=communications, 
-                         clients=clients, 
+                         customers=customers, 
                          form=form)
 
 @app.route('/add_communication', methods=['POST'])
@@ -562,11 +568,11 @@ def api_save_face():
         if not client_id or not face_image:
             return jsonify({'error': 'Client ID and face image are required'}), 400
 
-        # Find the client
-        from models import Client
-        client = Client.query.get(client_id)
-        if not client:
-            return jsonify({'error': 'Client not found'}), 404
+        # Find the customer
+        from models import Customer
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
 
         # Here you would normally process the face image and extract facial features
         # For now, we'll store the image data directly
@@ -593,16 +599,16 @@ def api_save_face():
             with open(filepath, 'wb') as f:
                 f.write(image_data)
 
-            # Update client record
-            client.face_image_url = f"/static/faces/{filename}"
-            client.facial_encoding = face_image  # Store base64 for now
+            # Update customer record
+            customer.face_image_url = f"/static/faces/{filename}"
+            customer.facial_encoding = face_image  # Store base64 for now
 
             db.session.commit()
 
             return jsonify({
                 'success': True,
                 'message': 'Face data saved successfully',
-                'client_name': client.full_name
+                'customer_name': customer.full_name
             })
 
         except Exception as e:
@@ -620,25 +626,25 @@ def api_remove_face(client_id):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        from models import Client
-        client = Client.query.get(client_id)
-        if not client:
-            return jsonify({'error': 'Client not found'}), 404
+        from models import Customer
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
 
         # Remove face image file if it exists
-        if client.face_image_url:
+        if customer.face_image_url:
             import os
             try:
                 # Remove leading slash and convert to relative path
-                file_path = client.face_image_url.lstrip('/')
+                file_path = customer.face_image_url.lstrip('/')
                 if os.path.exists(file_path):
                     os.remove(file_path)
             except:
                 pass  # Continue even if file deletion fails
 
         # Clear face data from database
-        client.face_image_url = None
-        client.facial_encoding = None
+        customer.face_image_url = None
+        customer.facial_encoding = None
 
         db.session.commit()
 
@@ -665,14 +671,14 @@ def api_recognize_face():
         if not face_image:
             return jsonify({'error': 'Face image is required'}), 400
 
-        # Get all clients with face data
-        from models import Client
-        clients_with_faces = Client.query.filter(
-            Client.facial_encoding.isnot(None),
-            Client.is_active == True
+        # Get all customers with face data
+        from models import Customer
+        customers_with_faces = Customer.query.filter(
+            Customer.facial_encoding.isnot(None),
+            Customer.is_active == True
         ).all()
 
-        if not clients_with_faces:
+        if not customers_with_faces:
             return jsonify({
                 'success': False,
                 'message': 'No registered faces found'
@@ -681,18 +687,18 @@ def api_recognize_face():
         # For demonstration, we'll simulate face matching
         # In production, you would use face_recognition library here
 
-        # Simulate recognition success with first client for demo
-        if clients_with_faces:
-            matched_client = clients_with_faces[0]
+        # Simulate recognition success with first customer for demo
+        if customers_with_faces:
+            matched_customer = customers_with_faces[0]
 
             return jsonify({
                 'success': True,
                 'recognized': True,
-                'client': {
-                    'id': matched_client.id,
-                    'name': matched_client.full_name,
-                    'phone': matched_client.phone,
-                    'email': matched_client.email
+                'customer': {
+                    'id': matched_customer.id,
+                    'name': matched_customer.full_name,
+                    'phone': matched_customer.phone,
+                    'email': matched_customer.email
                 },
                 'confidence': 0.85  # Simulated confidence score
             })

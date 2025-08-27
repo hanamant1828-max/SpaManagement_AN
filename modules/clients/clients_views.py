@@ -6,8 +6,8 @@ from flask_login import login_required, current_user
 from app import app
 from forms import CustomerForm, AdvancedCustomerForm
 from .clients_queries import (
-    get_all_customers, get_customer_by_id, search_customers, create_customer, 
-    update_customer, delete_customer, get_customer_appointments, 
+    get_all_customers, get_customer_by_id, search_customers, create_customer,
+    update_customer, delete_customer, get_customer_appointments,
     get_customer_communications, get_customer_stats
 )
 
@@ -18,17 +18,17 @@ def customers():
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     search_query = request.args.get('search', '')
     if search_query:
         customers_list = search_customers(search_query)
     else:
         customers_list = get_all_customers()
-    
+
     form = CustomerForm()
     advanced_form = AdvancedCustomerForm()
-    
-    return render_template('customers.html', 
+
+    return render_template('customers.html',
                          customers=customers_list,
                          form=form,
                          advanced_form=advanced_form,
@@ -44,7 +44,7 @@ def create_customer_route():
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     form = CustomerForm()
     if form.validate_on_submit():
         customer_data = {
@@ -59,12 +59,12 @@ def create_customer_route():
             'allergies': form.allergies.data or '',
             'notes': form.notes.data or ''
         }
-        
+
         create_customer(customer_data)
         flash('Customer created successfully!', 'success')
     else:
         flash('Error creating customer. Please check your input.', 'danger')
-    
+
     return redirect(url_for('customers'))
 
 @app.route('/clients/update/<int:id>', methods=['POST'])
@@ -73,15 +73,15 @@ def update_client_route(id):
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
-    client = get_client_by_id(id)
+
+    client = get_customer_by_id(id)
     if not client:
         flash('Client not found', 'danger')
-        return redirect(url_for('clients'))
-    
-    form = ClientForm()
+        return redirect(url_for('customers'))
+
+    form = CustomerForm()
     if form.validate_on_submit():
-        client_data = {
+        customer_data = {
             'first_name': form.first_name.data,
             'last_name': form.last_name.data,
             'phone': form.phone.data,
@@ -93,13 +93,13 @@ def update_client_route(id):
             'allergies': form.allergies.data or '',
             'notes': form.notes.data or ''
         }
-        
-        update_client(id, client_data)
-        flash('Client updated successfully!', 'success')
+
+        update_customer(id, customer_data)
+        flash('Customer updated successfully!', 'success')
     else:
-        flash('Error updating client. Please check your input.', 'danger')
-    
-    return redirect(url_for('clients'))
+        flash('Error updating customer. Please check your input.', 'danger')
+
+    return redirect(url_for('customers'))
 
 @app.route('/clients/delete/<int:id>', methods=['POST'])
 @login_required
@@ -107,13 +107,13 @@ def delete_client_route(id):
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
-    if delete_client(id):
-        flash('Client deleted successfully!', 'success')
+
+    if delete_customer(id):
+        flash('Customer deleted successfully!', 'success')
     else:
-        flash('Error deleting client', 'danger')
-    
-    return redirect(url_for('clients'))
+        flash('Error deleting customer', 'danger')
+
+    return redirect(url_for('customers'))
 
 @app.route('/clients/<int:id>')
 @login_required
@@ -121,16 +121,16 @@ def client_detail(id):
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
-    client = get_client_by_id(id)
+
+    client = get_customer_by_id(id)
     if not client:
         flash('Client not found', 'danger')
-        return redirect(url_for('clients'))
-    
-    appointments = get_client_appointments(id)
-    communications = get_client_communications(id)
-    stats = get_client_stats(id)
-    
+        return redirect(url_for('customers'))
+
+    appointments = get_customer_appointments(id)
+    communications = get_customer_communications(id)
+    stats = get_customer_stats(id)
+
     return render_template('client_detail.html',
                          client=client,
                          appointments=appointments,

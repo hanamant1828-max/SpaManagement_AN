@@ -25,7 +25,7 @@ class UserForm(FlaskForm):
     hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
     is_active = BooleanField('Active')
 
-class ClientForm(FlaskForm):
+class CustomerForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     email = StringField('Email', validators=[Optional(), Email()])
@@ -325,7 +325,7 @@ class BusinessSettingsForm(FlaskForm):
     cancellation_hours = IntegerField('Cancellation Notice Required (hours)', validators=[Optional(), NumberRange(min=1, max=72)])
     no_show_fee = FloatField('No-Show Fee', validators=[Optional(), NumberRange(min=0)])
 
-class AdvancedClientForm(ClientForm):
+class AdvancedCustomerForm(CustomerForm):
     """Enhanced client form with advanced fields"""
     preferred_communication = SelectField('Preferred Communication', choices=[
         ('email', 'Email'),
