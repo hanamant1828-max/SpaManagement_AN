@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Create Package - Step 2: Select Services{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Progress Steps -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="step-progress">
+                                <div class="step-progress-item completed">
+                                    <div class="step-progress-icon">✓</div>
+                                    <div class="step-progress-text">Basic Info</div>
+                                </div>
+                                <div class="step-progress-item active">
+                                    <div class="step-progress-icon">2</div>
+                                    <div class="step-progress-text">Select Services</div>
+                                </div>
+                                <div class="step-progress-item">
+                                    <div class="step-progress-icon">3</div>
+                                    <div class="step-progress-text">Pricing</div>
+                                </div>
+                                <div class="step-progress-item">
+                                    <div class="step-progress-icon">4</div>
+                                    <div class="step-progress-text">Review & Save</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 Form -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-list-check text-primary"></i>
+                                Step 2: Select Services for "{{ creation_data.get('name', 'Package') }}"
+                            </h4>
+                            <p class="card-subtitle text-muted mt-2">Choose services and specify the number of sessions for each</p>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('package_creation_step_submit', step=2) }}" id="serviceSelectionForm">
+                                
+                                <!-- Service Categories Filter -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <div class="btn-group flex-wrap" role="group">
+                                            <button type="button" class="btn btn-outline-primary active" onclick="filterByCategory('all')">
+                                                All Services
+                                            </button>
+                                            {% for category in categories %}
+                                            <button type="button" class="btn btn-outline-primary" onclick="filterByCategory('{{ category.id }}')">
+                                                <i class="{{ category.icon }}"></i> {{ category.display_name }}
+                                            </button>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Selected Services Summary -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <div class="alert alert-info" id="selection-summary" style="display: none;">
+                                            <h6 class="alert-heading">Selected Services Summary</h6>
+                                            <div id="summary-content">No services selected yet</div>
+                                            <div class="mt-2">
+                                                <strong>Total Sessions: <span id="total-sessions">0</span></strong> |
+                                                <strong>Estimated Price: ₹<span id="estimated-price">0</span></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Services Grid -->
+                                <div class="row" id="services-grid">
+                                    {% for service in services %}
+                                    <div class="col-lg-4 col-md-6 mb-3 service-card" data-category="{{ service.category_id or 'none' }}">
+                                        <div class="card h-100 service-item">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input service-checkbox" type="checkbox" 
+                                                           name="service_ids" value="{{ service.id }}" id="service_{{ service.id }}"
+                                                           data-price="{{ service.price }}" data-name="{{ service.name }}">
+                                                    <label class="form-check-label w-100" for="service_{{ service.id }}">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div>
+                                                                <h6 class="card-title mb-1">{{ service.name }}</h6>
+                                                                <p class="card-text small text-muted mb-2">{{ service.description[:80] }}...</p>
+                                                                <div class="badge bg-primary">₹{{ service.price }}</div>
+                                                                {% if service.service_category %}
+                                                                <div class="badge bg-secondary ms-1">{{ service.service_category.display_name }}</div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                                
+                                                <!-- Sessions Input (hidden by default) -->
+                                                <div class="sessions-input mt-3" id="sessions_container_{{ service.id }}" style="display: none;">
+                                                    <label for="sessions_{{ service.id }}" class="form-label small">Number of Sessions</label>
+                                                    <div class="input-group">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustSessions({{ service.id }}, -1)">-</button>
+                                                        <input type="number" class="form-control form-control-sm sessions-input-field" 
+                                                               name="sessions_{{ service.id }}" id="sessions_{{ service.id }}" 
+                                                               value="1" min="1" max="20" 
+                                                               onchange="updateSummary()">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustSessions({{ service.id }}, 1)">+</button>
+                                                    </div>
+                                                    <div class="form-text">Sessions for this service in the package</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- No Services Message -->
+                                <div class="text-center py-5" id="no-services-message" style="display: none;">
+                                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No services found for this category</h5>
+                                    <p class="text-muted">Try selecting a different category or "All Services"</p>
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-4">
+                                    <a href="{{ url_for('package_creation_step_back', step=2) }}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left"></i> Back: Basic Info
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" id="next-button" disabled>
+                                        Next: Set Pricing <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.step-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.step-progress::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e9ecef;
+    z-index: 1;
+}
+
+.step-progress-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-progress-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.step-progress-item.active .step-progress-icon {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.step-progress-item.completed .step-progress-icon {
+    background-color: #198754;
+    color: white;
+}
+
+.step-progress-text {
+    font-size: 0.875rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.step-progress-item.active .step-progress-text,
+.step-progress-item.completed .step-progress-text {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.service-item {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.service-item:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.service-item.selected {
+    border-color: #0d6efd;
+    background-color: #f8f9ff;
+}
+
+.sessions-input {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+</style>
+
+<script>
+let selectedServices = new Set();
+
+// Filter services by category
+function filterByCategory(categoryId) {
+    const serviceCards = document.querySelectorAll('.service-card');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    const noServicesMessage = document.getElementById('no-services-message');
+    
+    // Update active button
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    let visibleCount = 0;
+    
+    serviceCards.forEach(card => {
+        if (categoryId === 'all' || card.dataset.category === categoryId) {
+            card.style.display = 'block';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Show/hide no services message
+    noServicesMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+// Handle service selection
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.service-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const serviceId = this.value;
+            const sessionsContainer = document.getElementById(`sessions_container_${serviceId}`);
+            const serviceItem = this.closest('.service-item');
+            
+            if (this.checked) {
+                selectedServices.add(serviceId);
+                sessionsContainer.style.display = 'block';
+                serviceItem.classList.add('selected');
+            } else {
+                selectedServices.delete(serviceId);
+                sessionsContainer.style.display = 'none';
+                serviceItem.classList.remove('selected');
+            }
+            
+            updateSummary();
+        });
+    });
+    
+    // Load previously selected services if any
+    {% if creation_data.get('services') %}
+        {% for service in creation_data.get('services', []) %}
+            const checkbox{{ service.service_id }} = document.getElementById('service_{{ service.service_id }}');
+            if (checkbox{{ service.service_id }}) {
+                checkbox{{ service.service_id }}.checked = true;
+                checkbox{{ service.service_id }}.dispatchEvent(new Event('change'));
+                document.getElementById('sessions_{{ service.service_id }}').value = {{ service.sessions }};
+            }
+        {% endfor %}
+        updateSummary();
+    {% endif %}
+});
+
+// Adjust session count
+function adjustSessions(serviceId, change) {
+    const input = document.getElementById(`sessions_${serviceId}`);
+    const currentValue = parseInt(input.value) || 1;
+    const newValue = Math.max(1, Math.min(20, currentValue + change));
+    input.value = newValue;
+    updateSummary();
+}
+
+// Update summary and enable/disable next button
+function updateSummary() {
+    const selectedCheckboxes = document.querySelectorAll('.service-checkbox:checked');
+    const summaryDiv = document.getElementById('selection-summary');
+    const summaryContent = document.getElementById('summary-content');
+    const totalSessionsSpan = document.getElementById('total-sessions');
+    const estimatedPriceSpan = document.getElementById('estimated-price');
+    const nextButton = document.getElementById('next-button');
+    
+    if (selectedCheckboxes.length === 0) {
+        summaryDiv.style.display = 'none';
+        nextButton.disabled = true;
+        return;
+    }
+    
+    let summaryHtml = '<ul class="mb-0">';
+    let totalSessions = 0;
+    let estimatedPrice = 0;
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const serviceId = checkbox.value;
+        const serviceName = checkbox.dataset.name;
+        const servicePrice = parseFloat(checkbox.dataset.price);
+        const sessionsInput = document.getElementById(`sessions_${serviceId}`);
+        const sessions = parseInt(sessionsInput.value) || 1;
+        
+        totalSessions += sessions;
+        estimatedPrice += servicePrice * sessions;
+        
+        summaryHtml += `<li>${serviceName} - ${sessions} session${sessions > 1 ? 's' : ''} (₹${(servicePrice * sessions).toFixed(2)})</li>`;
+    });
+    
+    summaryHtml += '</ul>';
+    
+    summaryContent.innerHTML = summaryHtml;
+    totalSessionsSpan.textContent = totalSessions;
+    estimatedPriceSpan.textContent = estimatedPrice.toFixed(2);
+    
+    summaryDiv.style.display = 'block';
+    nextButton.disabled = false;
+}
+</script>
+{% endblock %}

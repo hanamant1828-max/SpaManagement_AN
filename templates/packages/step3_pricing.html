@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Create Package - Step 3: Pricing{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Progress Steps -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="step-progress">
+                                <div class="step-progress-item completed">
+                                    <div class="step-progress-icon">✓</div>
+                                    <div class="step-progress-text">Basic Info</div>
+                                </div>
+                                <div class="step-progress-item completed">
+                                    <div class="step-progress-icon">✓</div>
+                                    <div class="step-progress-text">Select Services</div>
+                                </div>
+                                <div class="step-progress-item active">
+                                    <div class="step-progress-icon">3</div>
+                                    <div class="step-progress-text">Pricing</div>
+                                </div>
+                                <div class="step-progress-item">
+                                    <div class="step-progress-icon">4</div>
+                                    <div class="step-progress-text">Review & Save</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 Form -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-calculator text-primary"></i>
+                                Step 3: Set Pricing & Discounts for "{{ creation_data.get('name', 'Package') }}"
+                            </h4>
+                            <p class="card-subtitle text-muted mt-2">Configure pricing and discount structure for your package</p>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('package_creation_step_submit', step=3) }}" id="pricingForm">
+
+                                <!-- Selected Services Summary -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <div class="card bg-light">
+                                            <div class="card-header">
+                                                <h6 class="card-title mb-0">Selected Services</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if creation_data.get('services') %}
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Service</th>
+                                                                <th>Sessions</th>
+                                                                <th>Price per Session</th>
+                                                                <th>Individual Discount (%)</th>
+                                                                <th>Subtotal</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="services-pricing-table">
+                                                            {% for service_data in creation_data.get('services', []) %}
+                                                            {% set service = services|selectattr('id', 'equalto', service_data.service_id)|first %}
+                                                            {% if service %}
+                                                            <tr data-service-id="{{ service.id }}">
+                                                                <td>{{ service.name }}</td>
+                                                                <td>{{ service_data.sessions }}</td>
+                                                                <td>₹{{ service.price }}</td>
+                                                                <td>
+                                                                    <input type="number" class="form-control form-control-sm service-discount" 
+                                                                           name="service_discount_{{ service.id }}" 
+                                                                           value="{{ service_data.get('service_discount', 0) }}" 
+                                                                           min="0" max="100" step="0.1"
+                                                                           data-service-id="{{ service.id }}"
+                                                                           data-sessions="{{ service_data.sessions }}"
+                                                                           data-price="{{ service.price }}">
+                                                                </td>
+                                                                <td class="service-subtotal">
+                                                                    ₹<span>{{ (service.price * service_data.sessions)|round(2) }}</span>
+                                                                </td>
+                                                            </tr>
+                                                            {% endif %}
+                                                            {% endfor %}
+                                                        </tbody>
+                                                        <tfoot>
+                                                            <tr class="table-primary">
+                                                                <th colspan="4">Services Total:</th>
+                                                                <th id="services-total">₹0.00</th>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                </div>
+                                                {% else %}
+                                                <p class="text-muted mb-0">No services selected yet.</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Package-Level Pricing -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="card-title mb-0">Package Pricing</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="total_price" class="form-label">Total Package Price *</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">₹</span>
+                                                        <input type="number" class="form-control" id="total_price" name="total_price" 
+                                                               value="{{ creation_data.get('total_price', 0) }}" 
+                                                               min="0" step="0.01" required>
+                                                    </div>
+                                                    <div class="form-text">Final price customers will pay for this package</div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="discount_percentage" class="form-label">Package Discount (%)</label>
+                                                    <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" 
+                                                           value="{{ creation_data.get('discount_percentage', 0) }}" 
+                                                           min="0" max="100" step="0.1">
+                                                    <div class="form-text">Overall discount on the entire package</div>
+                                                </div>
+
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                                           {% if creation_data.get('is_active', True) %}checked{% endif %}>
+                                                    <label class="form-check-label" for="is_active">
+                                                        Make package active immediately
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="card-title mb-0">Pricing Summary</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="pricing-breakdown">
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>Services Subtotal:</span>
+                                                        <span id="breakdown-services-subtotal">₹0.00</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>Service Discounts:</span>
+                                                        <span class="text-success" id="breakdown-service-discounts">-₹0.00</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>After Service Discounts:</span>
+                                                        <span id="breakdown-after-service-discounts">₹0.00</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>Package Discount:</span>
+                                                        <span class="text-success" id="breakdown-package-discount">-₹0.00</span>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="d-flex justify-content-between">
+                                                        <strong>Final Package Price:</strong>
+                                                        <strong class="text-primary" id="breakdown-final-price">₹0.00</strong>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mt-2">
+                                                        <small class="text-muted">Total Savings:</small>
+                                                        <small class="text-success" id="breakdown-total-savings">₹0.00</small>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Auto-calculate button -->
+                                                <button type="button" class="btn btn-outline-primary btn-sm mt-3" onclick="autoCalculatePrice()">
+                                                    <i class="fas fa-magic"></i> Auto-Calculate Price
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-4">
+                                    <a href="{{ url_for('package_creation_step_back', step=3) }}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left"></i> Back: Select Services
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        Next: Review & Save <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.step-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.step-progress::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e9ecef;
+    z-index: 1;
+}
+
+.step-progress-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-progress-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.step-progress-item.active .step-progress-icon {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.step-progress-item.completed .step-progress-icon {
+    background-color: #198754;
+    color: white;
+}
+
+.step-progress-text {
+    font-size: 0.875rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.step-progress-item.active .step-progress-text,
+.step-progress-item.completed .step-progress-text {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.pricing-breakdown {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+</style>
+
+<script>
+// Service data for calculations
+const serviceData = {{ creation_data.get('services', [])|tojson }};
+const servicePrices = {
+    {% for service_data in creation_data.get('services', []) %}
+    {% set service = services|selectattr('id', 'equalto', service_data.service_id)|first %}
+    {% if service %}
+    {{ service.id }}: {{ service.price }},
+    {% endif %}
+    {% endfor %}
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for discount inputs
+    document.querySelectorAll('.service-discount').forEach(input => {
+        input.addEventListener('input', updatePricingBreakdown);
+    });
+
+    document.getElementById('total_price').addEventListener('input', updatePricingBreakdown);
+    document.getElementById('discount_percentage').addEventListener('input', updatePricingBreakdown);
+
+    // Initial calculation
+    updatePricingBreakdown();
+});
+
+function updatePricingBreakdown() {
+    let servicesSubtotal = 0;
+    let serviceDiscounts = 0;
+
+    // Calculate services subtotal and individual discounts
+    document.querySelectorAll('tr[data-service-id]').forEach(row => {
+        const serviceId = row.dataset.serviceId;
+        const discountInput = row.querySelector('.service-discount');
+        const subtotalSpan = row.querySelector('.service-subtotal span');
+        
+        const servicePrice = servicePrices[serviceId] || 0;
+        const sessions = parseInt(discountInput.dataset.sessions) || 1;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const originalAmount = servicePrice * sessions;
+        const discountAmount = originalAmount * (discount / 100);
+        const finalAmount = originalAmount - discountAmount;
+        
+        servicesSubtotal += originalAmount;
+        serviceDiscounts += discountAmount;
+        
+        subtotalSpan.textContent = finalAmount.toFixed(2);
+    });
+
+    const afterServiceDiscounts = servicesSubtotal - serviceDiscounts;
+    
+    // Package-level discount
+    const packageDiscountPercent = parseFloat(document.getElementById('discount_percentage').value) || 0;
+    const packageDiscountAmount = afterServiceDiscounts * (packageDiscountPercent / 100);
+    
+    const finalPrice = afterServiceDiscounts - packageDiscountAmount;
+    const totalSavings = servicesSubtotal - finalPrice;
+
+    // Update breakdown display
+    document.getElementById('services-total').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+    document.getElementById('breakdown-services-subtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+    document.getElementById('breakdown-service-discounts').textContent = `-₹${serviceDiscounts.toFixed(2)}`;
+    document.getElementById('breakdown-after-service-discounts').textContent = `₹${afterServiceDiscounts.toFixed(2)}`;
+    document.getElementById('breakdown-package-discount').textContent = `-₹${packageDiscountAmount.toFixed(2)}`;
+    document.getElementById('breakdown-final-price').textContent = `₹${finalPrice.toFixed(2)}`;
+    document.getElementById('breakdown-total-savings').textContent = `₹${totalSavings.toFixed(2)}`;
+}
+
+function autoCalculatePrice() {
+    // Auto-calculate the total price based on current discounts
+    let total = 0;
+    
+    document.querySelectorAll('tr[data-service-id]').forEach(row => {
+        const serviceId = row.dataset.serviceId;
+        const discountInput = row.querySelector('.service-discount');
+        
+        const servicePrice = servicePrices[serviceId] || 0;
+        const sessions = parseInt(discountInput.dataset.sessions) || 1;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const amount = servicePrice * sessions * (1 - discount / 100);
+        total += amount;
+    });
+    
+    // Apply package discount
+    const packageDiscountPercent = parseFloat(document.getElementById('discount_percentage').value) || 0;
+    const finalPrice = total * (1 - packageDiscountPercent / 100);
+    
+    document.getElementById('total_price').value = finalPrice.toFixed(2);
+    updatePricingBreakdown();
+}
+</script>
+{% endblock %}

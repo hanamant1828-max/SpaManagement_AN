@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Create Package - Step 1: Basic Information{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Progress Steps -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="step-progress">
+                                <div class="step-progress-item active">
+                                    <div class="step-progress-icon">1</div>
+                                    <div class="step-progress-text">Basic Info</div>
+                                </div>
+                                <div class="step-progress-item">
+                                    <div class="step-progress-icon">2</div>
+                                    <div class="step-progress-text">Select Services</div>
+                                </div>
+                                <div class="step-progress-item">
+                                    <div class="step-progress-icon">3</div>
+                                    <div class="step-progress-text">Pricing</div>
+                                </div>
+                                <div class="step-progress-item">
+                                    <div class="step-progress-icon">4</div>
+                                    <div class="step-progress-text">Review & Save</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1 Form -->
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-info-circle text-primary"></i>
+                                Step 1: Package Basic Information
+                            </h4>
+                            <p class="card-subtitle text-muted mt-2">Enter the basic details for your new package</p>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('package_creation_step_submit', step=1) }}">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="name" class="form-label">Package Name *</label>
+                                            <input type="text" class="form-control" id="name" name="name" 
+                                                   value="{{ creation_data.get('name', '') }}" required>
+                                            <div class="form-text">Enter a clear, descriptive name for the package</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="package_type" class="form-label">Package Type *</label>
+                                            <select class="form-select" id="package_type" name="package_type" required>
+                                                <option value="">Select Package Type</option>
+                                                <option value="regular" {% if creation_data.get('package_type') == 'regular' %}selected{% endif %}>Regular Package</option>
+                                                <option value="prepaid" {% if creation_data.get('package_type') == 'prepaid' %}selected{% endif %}>Prepaid Package</option>
+                                                <option value="service_package" {% if creation_data.get('package_type') == 'service_package' %}selected{% endif %}>Service Package</option>
+                                                <option value="membership" {% if creation_data.get('package_type') == 'membership' %}selected{% endif %}>Membership</option>
+                                                <option value="student_offer" {% if creation_data.get('package_type') == 'student_offer' %}selected{% endif %}>Student Offer</option>
+                                                <option value="kitty_party" {% if creation_data.get('package_type') == 'kitty_party' %}selected{% endif %}>Kitty Party</option>
+                                                <option value="yearly_membership" {% if creation_data.get('package_type') == 'yearly_membership' %}selected{% endif %}>Yearly Membership</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" 
+                                              placeholder="Enter package description, benefits, and terms">{{ creation_data.get('description', '') }}</textarea>
+                                    <div class="form-text">Describe what's included in this package</div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="validity_days" class="form-label">Validity (Days) *</label>
+                                            <input type="number" class="form-control" id="validity_days" name="validity_days" 
+                                                   value="{{ creation_data.get('validity_days', 90) }}" min="1" max="730" required>
+                                            <div class="form-text">How long the package remains valid after purchase</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Duration Display</label>
+                                            <div class="form-control-plaintext" id="duration-display">
+                                                90 days (3 months)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Package Type Info -->
+                                <div class="alert alert-info" id="package-type-info" style="display: none;">
+                                    <h6 class="alert-heading">Package Type Information</h6>
+                                    <p id="package-type-description" class="mb-0"></p>
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('packages') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        Next: Select Services <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.step-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.step-progress::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e9ecef;
+    z-index: 1;
+}
+
+.step-progress-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-progress-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.step-progress-item.active .step-progress-icon {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.step-progress-text {
+    font-size: 0.875rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.step-progress-item.active .step-progress-text {
+    color: #0d6efd;
+    font-weight: 600;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const validityInput = document.getElementById('validity_days');
+    const durationDisplay = document.getElementById('duration-display');
+    const packageTypeSelect = document.getElementById('package_type');
+    const packageTypeInfo = document.getElementById('package-type-info');
+    const packageTypeDescription = document.getElementById('package-type-description');
+
+    // Update duration display
+    function updateDurationDisplay() {
+        const days = parseInt(validityInput.value) || 0;
+        const months = Math.floor(days / 30);
+        const remainingDays = days % 30;
+        
+        let display = `${days} days`;
+        if (months > 0) {
+            display += ` (${months} month${months > 1 ? 's' : ''}`;
+            if (remainingDays > 0) {
+                display += ` ${remainingDays} days`;
+            }
+            display += ')';
+        }
+        
+        durationDisplay.textContent = display;
+    }
+
+    // Package type descriptions
+    const packageDescriptions = {
+        'regular': 'Standard package with fixed services and pricing.',
+        'prepaid': 'Prepaid package where clients pay in advance for credit amount.',
+        'service_package': 'Bundle of specific services with discounted pricing.',
+        'membership': 'Monthly/quarterly membership with recurring benefits.',
+        'student_offer': 'Special discounted package for students.',
+        'kitty_party': 'Group package for parties and events.',
+        'yearly_membership': 'Annual membership with maximum benefits and discounts.'
+    };
+
+    function showPackageTypeInfo() {
+        const selectedType = packageTypeSelect.value;
+        if (selectedType && packageDescriptions[selectedType]) {
+            packageTypeDescription.textContent = packageDescriptions[selectedType];
+            packageTypeInfo.style.display = 'block';
+        } else {
+            packageTypeInfo.style.display = 'none';
+        }
+    }
+
+    validityInput.addEventListener('input', updateDurationDisplay);
+    packageTypeSelect.addEventListener('change', showPackageTypeInfo);
+
+    // Initial updates
+    updateDurationDisplay();
+    showPackageTypeInfo();
+});
+</script>
+{% endblock %}
