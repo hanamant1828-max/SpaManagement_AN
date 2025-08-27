@@ -893,10 +893,12 @@ function assignPackage() {
                         <div class="col-md-4">
                             <label class="form-label">Package Price (₹)</label>
                             <input type="number" name="total_price" class="form-control" required step="0.01" min="0" value="{{ package.total_price }}">
+                            <div class="price-summary mt-1"></div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Discount (%)</label>
+                            <label class="form-label">Package Discount (%)</label>
                             <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ package.discount_percentage or 0 }}">
+                            <small class="text-muted">Applied after service discounts</small>
                         </div>
                     </div>
 
@@ -963,25 +965,98 @@ function assignPackage() {
 // Edit package functionality for each package
 {% for package in packages %}
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle service checkbox changes for edit modal {{ package.id }}
-    document.querySelectorAll('.service-checkbox-edit-{{ package.id }}').forEach(function(checkbox) {
-        checkbox.addEventListener('change', function() {
-            const serviceOptions = this.closest('.service-item').querySelector('.service-options');
-            if (this.checked) {
-                serviceOptions.style.display = 'block';
-                // Enable form fields when service is selected
-                serviceOptions.querySelectorAll('input').forEach(input => {
-                    input.removeAttribute('disabled');
-                });
-            } else {
-                serviceOptions.style.display = 'none';
-                // Disable form fields when service is not selected
-                serviceOptions.querySelectorAll('input').forEach(input => {
-                    input.setAttribute('disabled', 'disabled');
-                });
-            }
+    const editModal{{ package.id }} = document.getElementById('editPackageModal{{ package.id }}');
+    if (editModal{{ package.id }}) {
+        
+        // Handle service checkbox changes for edit modal {{ package.id }}
+        editModal{{ package.id }}.querySelectorAll('.service-checkbox-edit-{{ package.id }}').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const serviceOptions = this.closest('.service-item').querySelector('.service-options');
+                if (this.checked) {
+                    serviceOptions.style.display = 'block';
+                    // Enable form fields when service is selected
+                    serviceOptions.querySelectorAll('input').forEach(input => {
+                        input.removeAttribute('disabled');
+                    });
+                } else {
+                    serviceOptions.style.display = 'none';
+                    // Disable form fields when service is not selected
+                    serviceOptions.querySelectorAll('input').forEach(input => {
+                        input.setAttribute('disabled', 'disabled');
+                    });
+                }
+                // Recalculate price when service selection changes
+                calculateEditPackagePrice{{ package.id }}();
+            });
         });
-    });
+
+        // Handle sessions and discount input changes
+        editModal{{ package.id }}.querySelectorAll('.sessions-input-edit-{{ package.id }}, .discount-input-edit-{{ package.id }}').forEach(function(input) {
+            input.addEventListener('input', function() {
+                calculateEditPackagePrice{{ package.id }}();
+            });
+        });
+
+        // Handle package discount change
+        const packageDiscountInput = editModal{{ package.id }}.querySelector('input[name="discount_percentage"]');
+        if (packageDiscountInput) {
+            packageDiscountInput.addEventListener('input', function() {
+                calculateEditPackagePrice{{ package.id }}();
+            });
+        }
+
+        // Price calculation function for edit modal {{ package.id }}
+        function calculateEditPackagePrice{{ package.id }}() {
+            let totalOriginalPrice = 0;
+            let totalSessions = 0;
+            let totalServiceDiscount = 0;
+
+            // Calculate from selected services
+            editModal{{ package.id }}.querySelectorAll('.service-checkbox-edit-{{ package.id }}:checked').forEach(function(checkbox) {
+                const serviceItem = checkbox.closest('.service-item');
+                const servicePrice = parseFloat(checkbox.closest('.form-check').querySelector('label').textContent.match(/₹([\d.]+)/)[1]);
+                const sessions = parseInt(serviceItem.querySelector('.sessions-input-edit-{{ package.id }}').value) || 1;
+                const serviceDiscount = parseFloat(serviceItem.querySelector('.discount-input-edit-{{ package.id }}').value) || 0;
+
+                const serviceTotal = servicePrice * sessions;
+                const serviceDiscountAmount = (serviceTotal * serviceDiscount) / 100;
+                
+                totalOriginalPrice += serviceTotal;
+                totalSessions += sessions;
+                totalServiceDiscount += serviceDiscountAmount;
+            });
+
+            // Apply package-level discount
+            const packageDiscount = parseFloat(packageDiscountInput ? packageDiscountInput.value : 0) || 0;
+            const packageDiscountAmount = ((totalOriginalPrice - totalServiceDiscount) * packageDiscount) / 100;
+            
+            const finalPrice = totalOriginalPrice - totalServiceDiscount - packageDiscountAmount;
+
+            // Update the total price field
+            const totalPriceInput = editModal{{ package.id }}.querySelector('input[name="total_price"]');
+            if (totalPriceInput) {
+                totalPriceInput.value = finalPrice.toFixed(2);
+            }
+
+            // Update visual summary if exists
+            const summaryElement = editModal{{ package.id }}.querySelector('.price-summary');
+            if (summaryElement) {
+                summaryElement.innerHTML = `
+                    <small class="text-muted">
+                        Original: ₹${totalOriginalPrice.toFixed(2)} | 
+                        Service Savings: ₹${totalServiceDiscount.toFixed(2)} | 
+                        Package Savings: ₹${packageDiscountAmount.toFixed(2)} | 
+                        <strong>Final: ₹${finalPrice.toFixed(2)}</strong>
+                    </small>
+                `;
+            }
+        }
+
+        // Initialize calculation when modal is shown
+        editModal{{ package.id }}.addEventListener('shown.bs.modal', function() {
+            calculateEditPackagePrice{{ package.id }}();
+        });
+    }
 });
 {% endfor %}
 </script>
