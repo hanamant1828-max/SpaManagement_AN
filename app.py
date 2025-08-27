@@ -64,18 +64,9 @@ with app.app_context():
     # Import models here for ORM mapping
     import models  # noqa: F401
     
-    # Check if database exists and has our new schema
-    import os
-    if not os.path.exists("spa_management.db"):
-        logging.info("Creating new database with updated schema...")
-        try:
-            import subprocess
-            subprocess.run(['python', 'create_new_db.py'], check=True)
-            logging.info("New database created successfully")
-        except Exception as e:
-            logging.error(f"Failed to create new database: {e}")
-            # Fallback to creating tables normally
-            db.create_all()
-            logging.info("Database tables created")
-    else:
-        logging.info("Using existing database")
+    # Create database tables normally - SQLAlchemy will handle schema
+    try:
+        db.create_all()
+        logging.info("Database tables created")
+    except Exception as e:
+        logging.error(f"Failed to create database tables: {e}")
