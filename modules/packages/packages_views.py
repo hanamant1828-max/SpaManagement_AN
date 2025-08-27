@@ -118,11 +118,38 @@ def edit_package(package_id):
             package.description = request.form.get('description', '').strip()
             package.package_type = request.form.get('package_type', 'regular')
             package.validity_days = int(request.form.get('validity_days', 90))
-            package.duration_months = package.validity_days // 30
+            package.duration_months = max(1, package.validity_days // 30)
             package.discount_percentage = float(request.form.get('discount_percentage', 0))
+            package.is_active = request.form.get('is_active') == 'on'
 
-            # Update services
-            selected_services = request.form.getlist('services[]')
+            # Handle services data from form - similar to create_package
+            services_data = []
+            services_dict = {}
+
+            # Group services data by index
+            for key in request.form.keys():
+                if key.startswith('services['):
+                    # Extract index and field name
+                    import re
+                    match = re.match(r'services\[(\d+)\]\[(\w+)\]', key)
+                    if match:
+                        index = int(match.group(1))
+                        field = match.group(2)
+                        value = request.form[key]
+
+                        if index not in services_dict:
+                            services_dict[index] = {}
+                        services_dict[index][field] = value
+
+            # Convert to list format
+            for index in sorted(services_dict.keys()):
+                service_data = services_dict[index]
+                if 'service_id' in service_data:
+                    services_data.append({
+                        'service_id': int(service_data['service_id']),
+                        'sessions': int(service_data.get('sessions', 1)),
+                        'service_discount': float(service_data.get('service_discount', 0))
+                    })
 
             # Remove existing services
             PackageService.query.filter_by(package_id=package_id).delete()
@@ -131,11 +158,11 @@ def edit_package(package_id):
             total_original_price = 0
             total_sessions = 0
 
-            for service_id in selected_services:
-                service = Service.query.get(service_id)
+            for service_data in services_data:
+                service = Service.query.get(service_data['service_id'])
                 if service:
-                    sessions = int(request.form.get(f'service_sessions_{service_id}', 1))
-                    service_discount = float(request.form.get(f'service_discount_{service_id}', 0))
+                    sessions = service_data['sessions']
+                    service_discount = service_data['service_discount']
 
                     original_price = service.price * sessions
                     service_discount_amount = (original_price * service_discount) / 100
@@ -143,7 +170,7 @@ def edit_package(package_id):
 
                     package_service = PackageService(
                         package_id=package_id,
-                        service_id=int(service_id),
+                        service_id=service.id,
                         sessions_included=sessions,
                         service_discount=service_discount,
                         original_price=original_price,
@@ -154,25 +181,36 @@ def edit_package(package_id):
                     total_original_price += original_price
                     total_sessions += sessions
 
-            # Recalculate package price
-            total_discount_amount = (total_original_price * package.discount_percentage) / 100
-            package.total_price = total_original_price - total_discount_amount
+            # Update total price if not provided
+            if not request.form.get('total_price'):
+                total_discount_amount = (total_original_price * package.discount_percentage) / 100
+                package.total_price = total_original_price - total_discount_amount
+            else:
+                package.total_price = float(request.form.get('total_price', total_original_price))
+
             package.total_sessions = total_sessions
 
             db.session.commit()
             flash(f'Package "{package.name}" updated successfully', 'success')
+            return redirect(url_for('packages'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating package: {str(e)}', 'danger')
+            print(f"Edit package error: {str(e)}")  # Debug logging
 
+    # For GET request, return to packages page with edit data
     services = Service.query.filter_by(is_active=True).all()
     categories = Category.query.filter_by(category_type='service', is_active=True).all()
+    packages_list = get_all_packages()
+    clients = Client.query.filter_by(is_active=True).all()
 
     return render_template('enhanced_packages.html', 
-                         package=package,
+                         packages=packages_list,
                          services=services,
                          categories=categories,
+                         clients=clients,
+                         edit_package=package,
                          edit_mode=True)
 
 @app.route('/packages/<int:package_id>/delete', methods=['POST'])
@@ -226,29 +264,119 @@ def get_service_details(service_id):
 @login_required
 def get_package_details(package_id):
     """Get package details with services for editing"""
-    package = Package.query.get_or_404(package_id)
+    try:
+        package = Package.query.get_or_404(package_id)
 
-    services = []
-    for ps in package.services:
-        services.append({
-            'service_id': ps.service_id,
-            'service_name': ps.service.name,
-            'sessions_included': ps.sessions_included,
-            'service_discount': ps.service_discount,
-            'original_price': ps.original_price,
-            'discounted_price': ps.discounted_price
+        services = []
+        for ps in package.services:
+            services.append({
+                'service_id': ps.service_id,
+                'service_name': ps.service.name,
+                'sessions_included': ps.sessions_included,
+                'service_discount': ps.service_discount,
+                'original_price': ps.original_price,
+                'discounted_price': ps.discounted_price
+            })
+
+        return jsonify({
+            'success': True,
+            'id': package.id,
+            'name': package.name,
+            'description': package.description,
+            'package_type': package.package_type,
+            'validity_days': package.validity_days,
+            'total_price': package.total_price,
+            'discount_percentage': package.discount_percentage,
+            'is_active': package.is_active,
+            'services': services
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error loading package details: {str(e)}'
+        }), 500
+
+@app.route('/packages/<int:package_id>/update', methods=['POST'])
+@login_required
+def update_package_ajax(package_id):
+    """AJAX route for updating package"""
+    if not current_user.can_access('packages'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        package = Package.query.get_or_404(package_id)
+        
+        # Get JSON data if available, otherwise use form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+
+        # Update package details
+        package.name = data.get('name', package.name).strip()
+        package.description = data.get('description', package.description or '').strip()
+        package.package_type = data.get('package_type', package.package_type)
+        package.validity_days = int(data.get('validity_days', package.validity_days))
+        package.duration_months = max(1, package.validity_days // 30)
+        package.discount_percentage = float(data.get('discount_percentage', package.discount_percentage))
+        package.is_active = data.get('is_active', package.is_active)
+
+        # Handle services update
+        if 'services' in data:
+            services_data = data['services'] if isinstance(data['services'], list) else []
+            
+            # Remove existing services
+            PackageService.query.filter_by(package_id=package_id).delete()
+
+            # Add new services
+            total_original_price = 0
+            total_sessions = 0
+
+            for service_data in services_data:
+                service = Service.query.get(service_data['service_id'])
+                if service:
+                    sessions = int(service_data.get('sessions', 1))
+                    service_discount = float(service_data.get('service_discount', 0))
+
+                    original_price = service.price * sessions
+                    service_discount_amount = (original_price * service_discount) / 100
+                    discounted_price = original_price - service_discount_amount
+
+                    package_service = PackageService(
+                        package_id=package_id,
+                        service_id=service.id,
+                        sessions_included=sessions,
+                        service_discount=service_discount,
+                        original_price=original_price,
+                        discounted_price=discounted_price
+                    )
+                    db.session.add(package_service)
+
+                    total_original_price += original_price
+                    total_sessions += sessions
+
+            # Update package totals
+            if 'total_price' in data:
+                package.total_price = float(data['total_price'])
+            else:
+                total_discount_amount = (total_original_price * package.discount_percentage) / 100
+                package.total_price = total_original_price - total_discount_amount
+            
+            package.total_sessions = total_sessions
+
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Package "{package.name}" updated successfully'
         })
 
-    return jsonify({
-        'id': package.id,
-        'name': package.name,
-        'description': package.description,
-        'package_type': package.package_type,
-        'validity_days': package.validity_days,
-        'total_price': package.total_price,
-        'discount_percentage': package.discount_percentage,
-        'services': services
-    })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error updating package: {str(e)}'
+        }), 500
 
 @app.route('/packages/<int:package_id>/toggle', methods=['POST'])
 @login_required
