@@ -1,0 +1,69 @@
+model Service {
+  id              String   @id @default(cuid())
+  name            String
+  basePrice       Decimal  @db.Decimal(10,2)
+  durationMinutes Int
+  active          Boolean  @default(true)
+  PackageService  PackageService[]
+}
+
+model Package {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  listPrice       Decimal  @db.Decimal(10,2)
+  discountType    String   // PERCENT|FIXED|NONE
+  discountValue   Decimal? @db.Decimal(10,2)
+  totalPrice      Decimal  @db.Decimal(10,2)
+  validityDays    Int?
+  maxRedemptions  Int?
+  targetAudience  String   // MEN|WOMEN|COUPLES|KIDS|ALL
+  category        String?
+  active          Boolean  @default(true)
+  services        PackageService[]
+  purchases       CustomerPackage[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PackageService {
+  packageId String
+  serviceId String
+  quantity  Int
+  Package   Package @relation(fields: [packageId], references: [id])
+  Service   Service @relation(fields: [serviceId], references: [id])
+  @@id([packageId, serviceId])
+}
+
+model Customer {
+  id        String            @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  packages  CustomerPackage[]
+}
+
+model CustomerPackage {
+  id                  String      @id @default(cuid())
+  customerId          String
+  packageId           String
+  purchaseDate        DateTime    @default(now())
+  expiryDate          DateTime?
+  remainingRedemptions Int?
+  status              String      // ACTIVE|EXPIRED|USED
+  customer            Customer    @relation(fields: [customerId], references: [id])
+  package             Package     @relation(fields: [packageId], references: [id])
+  redemptions         Redemption[]
+}
+
+model Redemption {
+  id                String         @id @default(cuid())
+  customerPackageId String
+  serviceId         String
+  quantity          Int            @default(1)
+  redeemedAt        DateTime       @default(now())
+  staffId           String?
+  note              String?
+  customerPackage   CustomerPackage @relation(fields: [customerPackageId], references: [id])
+  Service           Service         @relation(fields: [serviceId], references: [id])
+}
