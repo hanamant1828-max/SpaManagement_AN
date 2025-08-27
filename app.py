@@ -61,26 +61,21 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 with app.app_context():
-    # Import models here so their tables will be created
+    # Import models here for ORM mapping
     import models  # noqa: F401
-
-    try:
-        db.create_all()
-        logging.info("Database tables created")
-
-        # Initialize default data
-        from routes import create_default_data
-        create_default_data()
-    except Exception as e:
-        logging.error(f"Database initialization failed: {e}")
-        logging.info("Attempting database migration...")
+    
+    # Check if database exists and has our new schema
+    import os
+    if not os.path.exists("spa_management.db"):
+        logging.info("Creating new database with updated schema...")
         try:
             import subprocess
-            subprocess.run(['python', 'migrate_database.py'], check=True)
-            logging.info("Migration completed, retrying initialization...")
+            subprocess.run(['python', 'create_new_db.py'], check=True)
+            logging.info("New database created successfully")
+        except Exception as e:
+            logging.error(f"Failed to create new database: {e}")
+            # Fallback to creating tables normally
             db.create_all()
-            from routes import create_default_data
-            create_default_data()
-        except Exception as migration_error:
-            logging.error(f"Migration failed: {migration_error}")
-            logging.warning("Application starting with limited functionality")
+            logging.info("Database tables created")
+    else:
+        logging.info("Using existing database")
