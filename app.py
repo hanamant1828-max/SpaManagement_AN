@@ -189,9 +189,18 @@ with app.app_context():
     else:
         logging.info("Using existing database")
         
-    # Initialize other existing tables for legacy functionality
+    # Create only non-conflicting legacy tables (skip service and package)
     try:
-        db.create_all()
-        logging.info("Legacy tables ensured")
+        from sqlalchemy import text
+        # Create other tables that don't conflict with our new schema
+        engine = db.get_engine()
+        with engine.connect() as conn:
+            # Check if we need to create user management tables
+            result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='user'"))
+            if not result.fetchone():
+                logging.info("Creating non-conflicting legacy tables...")
+                # Let SQLAlchemy create only tables that don't exist
+                db.metadata.create_all(engine, checkfirst=True)
+                logging.info("Legacy tables created")
     except Exception as e:
         logging.error(f"Legacy table creation failed: {e}")
