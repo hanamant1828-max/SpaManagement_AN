@@ -848,4 +848,142 @@ function assignPackage() {
     });
 }
 </script>
+
+<!-- Edit Package Modals (Generated for each package) -->
+{% for package in packages %}
+<div class="modal fade" id="editPackageModal{{ package.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Package: {{ package.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('edit_package', package_id=package.id) }}">
+                <div class="modal-body">
+                    <!-- Package Basic Info -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Package Name</label>
+                            <input type="text" name="name" class="form-control" required value="{{ package.name }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Package Type</label>
+                            <select name="package_type" class="form-select" required>
+                                <option value="regular" {% if package.package_type == 'regular' %}selected{% endif %}>Regular Package</option>
+                                <option value="prepaid" {% if package.package_type == 'prepaid' %}selected{% endif %}>Prepaid Package</option>
+                                <option value="service_package" {% if package.package_type == 'service_package' %}selected{% endif %}>Service Package</option>
+                                <option value="membership" {% if package.package_type == 'membership' %}selected{% endif %}>Membership</option>
+                                <option value="student_offer" {% if package.package_type == 'student_offer' %}selected{% endif %}>Student Offer</option>
+                                <option value="kitty_party" {% if package.package_type == 'kitty_party' %}selected{% endif %}>Kitty Party</option>
+                                <option value="yearly_membership" {% if package.package_type == 'yearly_membership' %}selected{% endif %}>Yearly Membership</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2">{{ package.description or '' }}</textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Validity (Days)</label>
+                            <input type="number" name="validity_days" class="form-control" required value="{{ package.validity_days }}" min="1" max="365">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Package Price (₹)</label>
+                            <input type="number" name="total_price" class="form-control" required step="0.01" min="0" value="{{ package.total_price }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Discount (%)</label>
+                            <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ package.discount_percentage or 0 }}">
+                        </div>
+                    </div>
+
+                    <!-- Service Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Package Services</label>
+                        <div class="card">
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                {% for service in services %}
+                                {% set existing_service = package.services|selectattr('service_id', 'equalto', service.id)|first %}
+                                <div class="service-item mb-2 p-2 border rounded">
+                                    <div class="form-check">
+                                        <input class="form-check-input service-checkbox-edit-{{ package.id }}" type="checkbox" 
+                                               value="{{ service.id }}" 
+                                               name="services[{{ loop.index0 }}][service_id]"
+                                               id="edit_service_{{ package.id }}_{{ service.id }}"
+                                               {% if existing_service %}checked{% endif %}>
+                                        <label class="form-check-label" for="edit_service_{{ package.id }}_{{ service.id }}">
+                                            <strong>{{ service.name }}</strong> - ₹{{ service.price }}
+                                            <small class="text-muted d-block">{{ service.duration }} minutes</small>
+                                        </label>
+                                    </div>
+                                    <div class="service-options mt-2" {% if not existing_service %}style="display: none;"{% endif %}>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label">Sessions</label>
+                                                <input type="number" class="form-control sessions-input-edit-{{ package.id }}" 
+                                                       name="services[{{ loop.index0 }}][sessions]" min="1" 
+                                                       value="{{ existing_service.sessions_included if existing_service else 1 }}">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label">Service Discount (%)</label>
+                                                <input type="number" class="form-control discount-input-edit-{{ package.id }}" 
+                                                       name="services[{{ loop.index0 }}][service_discount]" min="0" max="100" 
+                                                       value="{{ existing_service.service_discount if existing_service else 0 }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_active" 
+                               {% if package.is_active %}checked{% endif %} id="edit_is_active_{{ package.id }}">
+                        <label class="form-check-label" for="edit_is_active_{{ package.id }}">
+                            Package is active and can be assigned to clients
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Package</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+// Edit package functionality for each package
+{% for package in packages %}
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle service checkbox changes for edit modal {{ package.id }}
+    document.querySelectorAll('.service-checkbox-edit-{{ package.id }}').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const serviceOptions = this.closest('.service-item').querySelector('.service-options');
+            if (this.checked) {
+                serviceOptions.style.display = 'block';
+                // Enable form fields when service is selected
+                serviceOptions.querySelectorAll('input').forEach(input => {
+                    input.removeAttribute('disabled');
+                });
+            } else {
+                serviceOptions.style.display = 'none';
+                // Disable form fields when service is not selected
+                serviceOptions.querySelectorAll('input').forEach(input => {
+                    input.setAttribute('disabled', 'disabled');
+                });
+            }
+        });
+    });
+});
+{% endfor %}
+</script>
+
 {% endblock %}
