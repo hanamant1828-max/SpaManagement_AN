@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Create Package - Simple{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Create New Package</h1>
+                    <p class="text-muted">Simple form to create packages with services and pricing</p>
+                </div>
+                <a href="{{ url_for('packages') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Packages
+                </a>
+            </div>
+
+            <form method="POST" action="{{ url_for('simple_package_creation_submit') }}" id="packageForm">
+                <div class="row">
+                    <!-- Basic Package Info -->
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">1. Package Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Package Name *</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="package_type" class="form-label">Package Type *</label>
+                                    <select class="form-select" id="package_type" name="package_type" required>
+                                        <option value="regular">Regular Package</option>
+                                        <option value="prepaid">Prepaid Package</option>
+                                        <option value="service_package">Service Package</option>
+                                        <option value="membership">Membership</option>
+                                        <option value="student_offer">Student Offer</option>
+                                        <option value="kitty_party">Kitty Party</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="validity_days" class="form-label">Validity (Days) *</label>
+                                    <input type="number" class="form-control" id="validity_days" name="validity_days" 
+                                           value="90" min="1" max="730" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" 
+                                              placeholder="Package description and benefits"></textarea>
+                                </div>
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                    <label class="form-check-label" for="is_active">
+                                        Active Package
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Selection -->
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">2. Select Services</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Service Filter -->
+                                <div class="mb-3">
+                                    <div class="btn-group flex-wrap" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm active" onclick="filterServices('all')">All</button>
+                                        {% for category in categories %}
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterServices('{{ category.id }}')">
+                                            {{ category.display_name }}
+                                        </button>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Services List -->
+                                <div id="services-list" style="max-height: 400px; overflow-y: auto;">
+                                    {% for service in services %}
+                                    <div class="service-item mb-2" data-category="{{ service.category_id or 'none' }}">
+                                        <div class="card card-sm">
+                                            <div class="card-body p-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input service-checkbox" type="checkbox" 
+                                                           name="selected_services" value="{{ service.id }}" 
+                                                           id="service_{{ service.id }}"
+                                                           data-price="{{ service.price }}" data-name="{{ service.name }}">
+                                                    <label class="form-check-label w-100" for="service_{{ service.id }}">
+                                                        <div class="d-flex justify-content-between">
+                                                            <div>
+                                                                <strong>{{ service.name }}</strong>
+                                                                <br><small class="text-muted">₹{{ service.price }}</small>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+
+                                                <!-- Sessions and Discount (hidden by default) -->
+                                                <div class="service-options mt-2" id="options_{{ service.id }}" style="display: none;">
+                                                    <div class="row">
+                                                        <div class="col-6">
+                                                            <label class="form-label small">Sessions</label>
+                                                            <input type="number" class="form-control form-control-sm sessions-input" 
+                                                                   name="sessions_{{ service.id }}" value="1" min="1" max="20"
+                                                                   onchange="updatePricing()">
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label class="form-label small">Discount %</label>
+                                                            <input type="number" class="form-control form-control-sm discount-input" 
+                                                                   name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="0.1"
+                                                                   onchange="updatePricing()">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pricing -->
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">3. Pricing & Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Pricing Summary -->
+                                <div class="pricing-summary mb-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Services Total:</span>
+                                        <span id="services-total">₹0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Service Discounts:</span>
+                                        <span class="text-success" id="service-discounts">-₹0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Total Sessions:</span>
+                                        <span id="total-sessions">0</span>
+                                    </div>
+                                    <hr>
+                                </div>
+
+                                <!-- Final Pricing -->
+                                <div class="mb-3">
+                                    <label for="total_price" class="form-label">Package Price *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" class="form-control" id="total_price" name="total_price" 
+                                               min="0" step="0.01" required onchange="updatePricing()">
+                                    </div>
+                                    <button type="button" class="btn btn-link btn-sm p-0" onclick="autoCalculatePrice()">
+                                        Auto-calculate price
+                                    </button>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="discount_percentage" class="form-label">Package Discount %</label>
+                                    <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" 
+                                           value="0" min="0" max="100" step="0.1" onchange="updatePricing()">
+                                </div>
+
+                                <!-- Final Summary -->
+                                <div class="alert alert-info">
+                                    <strong>Final Price: ₹<span id="final-price">0.00</span></strong>
+                                    <br><small>You save: ₹<span id="total-savings">0.00</span></small>
+                                </div>
+
+                                <!-- Selected Services Preview -->
+                                <div id="selected-services-preview" style="display: none;">
+                                    <h6>Selected Services:</h6>
+                                    <ul id="selected-services-list" class="list-unstyled small"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('packages') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg" id="submit-btn" disabled>
+                                <i class="fas fa-save"></i> Create Package
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-sm .card-body {
+    padding: 0.75rem;
+}
+
+.service-item {
+    transition: all 0.3s ease;
+}
+
+.service-item.selected {
+    background-color: #f0f8ff;
+    border-left: 4px solid #0d6efd;
+}
+
+.pricing-summary {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+</style>
+
+<script>
+let selectedServices = new Set();
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle service selection
+    document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const serviceId = this.value;
+            const optionsDiv = document.getElementById(`options_${serviceId}`);
+            const serviceItem = this.closest('.service-item');
+            
+            if (this.checked) {
+                selectedServices.add(serviceId);
+                optionsDiv.style.display = 'block';
+                serviceItem.classList.add('selected');
+            } else {
+                selectedServices.delete(serviceId);
+                optionsDiv.style.display = 'none';
+                serviceItem.classList.remove('selected');
+            }
+            
+            updatePricing();
+            updateSubmitButton();
+        });
+    });
+});
+
+// Filter services by category
+function filterServices(categoryId) {
+    const serviceItems = document.querySelectorAll('.service-item');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    
+    // Update active button
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    serviceItems.forEach(item => {
+        if (categoryId === 'all' || item.dataset.category === categoryId) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Update pricing calculations
+function updatePricing() {
+    let servicesTotal = 0;
+    let serviceDiscounts = 0;
+    let totalSessions = 0;
+    const selectedServicesList = [];
+    
+    document.querySelectorAll('.service-checkbox:checked').forEach(checkbox => {
+        const serviceId = checkbox.value;
+        const serviceName = checkbox.dataset.name;
+        const servicePrice = parseFloat(checkbox.dataset.price);
+        const sessionsInput = document.querySelector(`input[name="sessions_${serviceId}"]`);
+        const discountInput = document.querySelector(`input[name="service_discount_${serviceId}"]`);
+        
+        const sessions = parseInt(sessionsInput.value) || 1;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const originalAmount = servicePrice * sessions;
+        const discountAmount = originalAmount * (discount / 100);
+        
+        servicesTotal += originalAmount;
+        serviceDiscounts += discountAmount;
+        totalSessions += sessions;
+        
+        selectedServicesList.push(`${serviceName} (${sessions} sessions)`);
+    });
+    
+    // Update display
+    document.getElementById('services-total').textContent = `₹${servicesTotal.toFixed(2)}`;
+    document.getElementById('service-discounts').textContent = `-₹${serviceDiscounts.toFixed(2)}`;
+    document.getElementById('total-sessions').textContent = totalSessions;
+    
+    // Calculate final price
+    const packagePrice = parseFloat(document.getElementById('total_price').value) || 0;
+    const packageDiscount = parseFloat(document.getElementById('discount_percentage').value) || 0;
+    const packageDiscountAmount = packagePrice * (packageDiscount / 100);
+    const finalPrice = packagePrice - packageDiscountAmount;
+    const totalSavings = servicesTotal - finalPrice;
+    
+    document.getElementById('final-price').textContent = finalPrice.toFixed(2);
+    document.getElementById('total-savings').textContent = Math.max(0, totalSavings).toFixed(2);
+    
+    // Update selected services preview
+    const preview = document.getElementById('selected-services-preview');
+    const list = document.getElementById('selected-services-list');
+    
+    if (selectedServicesList.length > 0) {
+        list.innerHTML = selectedServicesList.map(service => `<li>• ${service}</li>`).join('');
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+// Auto-calculate price based on services
+function autoCalculatePrice() {
+    let total = 0;
+    
+    document.querySelectorAll('.service-checkbox:checked').forEach(checkbox => {
+        const serviceId = checkbox.value;
+        const servicePrice = parseFloat(checkbox.dataset.price);
+        const sessionsInput = document.querySelector(`input[name="sessions_${serviceId}"]`);
+        const discountInput = document.querySelector(`input[name="service_discount_${serviceId}"]`);
+        
+        const sessions = parseInt(sessionsInput.value) || 1;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const amount = servicePrice * sessions * (1 - discount / 100);
+        total += amount;
+    });
+    
+    document.getElementById('total_price').value = total.toFixed(2);
+    updatePricing();
+}
+
+// Update submit button state
+function updateSubmitButton() {
+    const submitBtn = document.getElementById('submit-btn');
+    const hasServices = selectedServices.size > 0;
+    const hasName = document.getElementById('name').value.trim().length > 0;
+    const hasPrice = parseFloat(document.getElementById('total_price').value) > 0;
+    
+    submitBtn.disabled = !(hasServices && hasName && hasPrice);
+}
+
+// Add event listeners for form validation
+document.getElementById('name').addEventListener('input', updateSubmitButton);
+document.getElementById('total_price').addEventListener('input', updateSubmitButton);
+</script>
+{% endblock %}
