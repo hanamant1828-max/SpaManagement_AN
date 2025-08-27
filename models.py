@@ -314,6 +314,11 @@ class Package(db.Model):
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # New fields for unlimited sessions and date ranges
+    has_unlimited_sessions = db.Column(db.Boolean, default=False)  # True for unlimited packages
+    start_date = db.Column(db.Date)  # Optional start date for package validity
+    end_date = db.Column(db.Date)  # Optional end date for package validity
+    
     # Relationships
     services = db.relationship('PackageService', backref='package', lazy=True)
     client_packages = db.relationship('ClientPackage', backref='package', lazy=True)
@@ -331,6 +336,9 @@ class PackageService(db.Model):
     service_discount = db.Column(db.Float, default=0.0)  # Individual service discount percentage
     original_price = db.Column(db.Float, nullable=False)  # Original service price
     discounted_price = db.Column(db.Float, nullable=False)  # Final discounted price
+    
+    # New field for unlimited sessions per service
+    is_unlimited = db.Column(db.Boolean, default=False)  # True for unlimited sessions
 
 class ClientPackage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -355,9 +363,12 @@ class ClientPackageSession(db.Model):
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     sessions_total = db.Column(db.Integer, nullable=False)
     sessions_used = db.Column(db.Integer, default=0)
+    is_unlimited = db.Column(db.Boolean, default=False)  # True for unlimited sessions
     
     @property
     def sessions_remaining(self):
+        if self.is_unlimited:
+            return float('inf')  # Unlimited sessions
         return max(0, self.sessions_total - self.sessions_used)
     
     # Relationships

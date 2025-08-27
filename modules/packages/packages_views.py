@@ -48,6 +48,30 @@ def create_package():
         discount_percentage = float(request.form.get('discount_percentage', 0))
         is_active = request.form.get('is_active') == 'on'
 
+        # Handle validity type and unlimited sessions
+        validity_type = request.form.get('validity_type', 'days')
+        session_type = request.form.get('session_type', 'limited')
+        has_unlimited_sessions = session_type == 'unlimited'
+        
+        start_date = None
+        end_date = None
+        
+        if validity_type == 'dates':
+            start_date_str = request.form.get('start_date')
+            end_date_str = request.form.get('end_date')
+            
+            if start_date_str:
+                from datetime import datetime
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            if end_date_str:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                
+            # Update validity_days and total_price for date range
+            if start_date and end_date:
+                validity_days = (end_date - start_date).days
+            total_price = float(request.form.get('total_price_dates', total_price))
+            discount_percentage = float(request.form.get('discount_percentage_dates', discount_percentage))
+
         # Extract services data from form
         services_data = []
         services_dict = {}
@@ -67,19 +91,24 @@ def create_package():
                         services_dict[index] = {}
                     services_dict[index][field] = value
 
-        # Convert to list format
+        # Convert to list format with unlimited support
         for index in sorted(services_dict.keys()):
             service_data = services_dict[index]
-            services_data.append({
-                'service_id': int(service_data['service_id']),
-                'sessions': int(service_data['sessions']),
-                'service_discount': float(service_data.get('service_discount', 0))
-            })
+            if 'service_id' in service_data:
+                is_unlimited = service_data.get('unlimited') == 'on'
+                sessions = 999 if is_unlimited else int(service_data.get('sessions', 1))
+                
+                services_data.append({
+                    'service_id': int(service_data['service_id']),
+                    'sessions': sessions,
+                    'service_discount': float(service_data.get('service_discount', 0)),
+                    'is_unlimited': is_unlimited
+                })
 
         # Calculate duration_months from validity_days
         duration_months = max(1, validity_days // 30)
         
-        # Create the package
+        # Create the package with unlimited and date range support
         package = create_package_with_services(
             name=name,
             description=description,
@@ -88,7 +117,10 @@ def create_package():
             total_price=total_price,
             discount_percentage=discount_percentage,
             is_active=is_active,
-            services_data=services_data
+            services_data=services_data,
+            start_date=start_date,
+            end_date=end_date,
+            has_unlimited_sessions=has_unlimited_sessions
         )
 
         if package:

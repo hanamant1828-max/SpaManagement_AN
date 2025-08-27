@@ -198,7 +198,13 @@
                                 <tr>
                                     <td>{{ cp.client.full_name }}</td>
                                     <td>{{ cp.package.name }}</td>
-                                    <td>{{ cp.sessions_used }}/{{ cp.total_sessions }}</td>
+                                    <td>
+                                        {% if cp.package.has_unlimited_sessions %}
+                                            {{ cp.sessions_used }}/∞
+                                        {% else %}
+                                            {{ cp.sessions_used }}/{{ cp.total_sessions }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ cp.expiry_date.strftime('%Y-%m-%d') }}</td>
                                     <td>
                                         {% if cp.is_active %}
@@ -254,18 +260,74 @@
                         <textarea name="description" class="form-control" rows="2" placeholder="Package description for clients"></textarea>
                     </div>
 
+                    <!-- Package Sessions Type -->
                     <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Session Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="session_type" id="limited_sessions" value="limited" checked>
+                                <label class="form-check-label" for="limited_sessions">
+                                    Limited Sessions
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="session_type" id="unlimited_sessions" value="unlimited">
+                                <label class="form-check-label" for="unlimited_sessions">
+                                    Unlimited Sessions
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Validity Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="validity_type" id="validity_days" value="days" checked>
+                                <label class="form-check-label" for="validity_days">
+                                    Number of Days
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="validity_type" id="validity_dates" value="dates">
+                                <label class="form-check-label" for="validity_dates">
+                                    Specific Date Range
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Validity Options -->
+                    <div class="row mb-3" id="validity_days_section">
                         <div class="col-md-4">
                             <label class="form-label">Validity (Days)</label>
-                            <input type="number" name="validity_days" class="form-control" required value="90" min="1" max="365">
+                            <input type="number" name="validity_days_input" class="form-control" value="90" min="1" max="1095">
+                            <small class="text-muted">1-1095 days (3 years max)</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Package Price (₹)</label>
                             <input type="number" name="total_price" class="form-control" required step="0.01" min="0">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Discount (%)</label>
+                            <label class="form-label">Package Discount (%)</label>
                             <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="0" id="discount_percentage">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3" id="validity_dates_section" style="display: none;">
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="start_date" class="form-control">
+                            <small class="text-muted">Leave empty for immediate</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Package Price (₹)</label>
+                            <input type="number" name="total_price_dates" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Package Discount (%)</label>
+                            <input type="number" name="discount_percentage_dates" class="form-control" step="0.01" min="0" max="100" value="0">
                         </div>
                     </div>
 
@@ -335,6 +397,33 @@
                             <h6>Selected Services:</h6>
                             <div id="selected-services-list" class="border rounded p-3 mb-3" style="min-height: 100px; background-color: #f8f9fa;">
                                 <p class="text-muted text-center m-0">No services selected yet. Use the dropdown above to add services.</p>
+                            </div>
+                        </div>
+
+                        <!-- Service Configuration Template (Hidden) -->
+                        <div id="service-config-template" style="display: none;">
+                            <div class="service-config-item border rounded p-3 mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong class="service-name"></strong>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-service">Remove</button>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Sessions</label>
+                                        <div class="input-group">
+                                            <input type="number" name="services[INDEX][sessions]" class="form-control sessions-input" min="1" value="1" disabled>
+                                            <div class="form-check form-check-inline ms-2 align-self-center">
+                                                <input class="form-check-input unlimited-checkbox" type="checkbox" name="services[INDEX][unlimited]" disabled>
+                                                <label class="form-check-label">Unlimited</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Service Discount (%)</label>
+                                        <input type="number" name="services[INDEX][service_discount]" class="form-control discount-input" min="0" max="100" step="0.01" value="0" disabled>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="services[INDEX][service_id]" class="service-id-input">
                             </div>
                         </div>
                     </div>

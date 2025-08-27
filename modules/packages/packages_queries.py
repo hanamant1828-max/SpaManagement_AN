@@ -139,13 +139,14 @@ def assign_package_to_client(client_id, package_id):
     db.session.add(client_package)
     db.session.flush()  # Flush to get the client_package.id
     
-    # Create session tracking for each service in the package
+    # Create session tracking for each service in the package with unlimited support
     for package_service in package.services:
         client_session = ClientPackageSession(
             client_package_id=client_package.id,
             service_id=package_service.service_id,
             sessions_total=package_service.sessions_included,
-            sessions_used=0
+            sessions_used=0,
+            is_unlimited=package_service.is_unlimited
         )
         db.session.add(client_session)
     
@@ -310,11 +311,15 @@ def get_package_statistics():
     }
 
 def create_package_with_services(name, description, package_type, validity_days, 
-                                   total_price, discount_percentage, is_active, services_data):
-    """Create a package with associated services"""
+                                   total_price, discount_percentage, is_active, services_data,
+                                   start_date=None, end_date=None, has_unlimited_sessions=False):
+    """Create a package with associated services including unlimited sessions support"""
     try:
-        # Calculate total sessions from services
-        total_sessions = sum(service['sessions'] for service in services_data)
+        # Calculate total sessions from services (handle unlimited)
+        if has_unlimited_sessions:
+            total_sessions = 999  # High number to represent unlimited
+        else:
+            total_sessions = sum(service['sessions'] for service in services_data)
 
         # Calculate duration_months from validity_days
         duration_months = max(1, validity_days // 30)
@@ -329,7 +334,10 @@ def create_package_with_services(name, description, package_type, validity_days,
             total_sessions=total_sessions,
             total_price=total_price,
             discount_percentage=discount_percentage,
-            is_active=is_active
+            is_active=is_active,
+            has_unlimited_sessions=has_unlimited_sessions,
+            start_date=start_date,
+            end_date=end_date
         )
 
         db.session.add(package)
