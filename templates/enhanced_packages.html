@@ -150,7 +150,7 @@
                                                 <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editPackageModal{{ package.id }}">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignPackageModal" data-package-id="{{ package.id }}" data-package-name="{{ package.name }}">
+                                                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#assignPackageModal" data-package-id="{{ package.id }}" data-package-name="{{ package.name }}" onclick="setAssignPackageData('{{ package.id }}', '{{ package.name }}')">
                                                     <i class="fas fa-user-plus"></i>
                                                 </button>
                                                 <form method="POST" action="{{ url_for('delete_package_route', package_id=package.id) }}" style="display: inline;">
@@ -272,7 +272,7 @@
                     <!-- Service Selection with Dropdown -->
                     <div class="form-group mb-4">
                         <label class="form-label">Select Services for Package</label>
-                        
+
                         <!-- Popular Package Templates -->
                         <div class="mb-3">
                             <label class="form-label">Quick Package Templates</label>
@@ -496,13 +496,13 @@ $(document).ready(function() {
                 sessions: 1,
                 discount: 0
             };
-            
+
             // Visual feedback
             $(this).closest('.service-option').addClass('selected-service');
         } else {
             // Remove service from selected list
             delete selectedServices[serviceId];
-            
+
             // Remove visual feedback
             $(this).closest('.service-option').removeClass('selected-service');
         }
@@ -514,7 +514,7 @@ $(document).ready(function() {
     // Render selected services
     function renderSelectedServices() {
         const container = $('#selected-services-list');
-        
+
         if (Object.keys(selectedServices).length === 0) {
             container.html('<p class="text-muted text-center m-0">No services selected yet. Use the dropdown above to add services.</p>');
             return;
@@ -562,7 +562,7 @@ $(document).ready(function() {
         });
 
         container.html(html);
-        
+
         // Bind events for new elements
         bindServiceEvents();
     }
@@ -653,10 +653,10 @@ $(document).ready(function() {
 
         // Create a regular form submission with hidden inputs for services
         const form = $(this)[0];
-        
+
         // Remove any existing service inputs
         $(form).find('input[name^="services"]').remove();
-        
+
         // Add service data as hidden inputs
         Object.values(selectedServices).forEach(function(service, index) {
             $('<input>').attr({
@@ -664,13 +664,13 @@ $(document).ready(function() {
                 name: `services[${index}][service_id]`,
                 value: service.id
             }).appendTo(form);
-            
+
             $('<input>').attr({
                 type: 'hidden',
                 name: `services[${index}][sessions]`,
                 value: service.sessions
             }).appendTo(form);
-            
+
             $('<input>').attr({
                 type: 'hidden',
                 name: `services[${index}][service_discount]`,
@@ -690,7 +690,7 @@ $(document).ready(function() {
         selectedServices = {};
 
         let templateServices = [];
-        
+
         switch(templateType) {
             case 'bridal':
                 templateServices = [
@@ -703,7 +703,7 @@ $(document).ready(function() {
                 $('input[name="validity_days"]').val('30');
                 $('input[name="discount_percentage"]').val('15');
                 break;
-                
+
             case 'wellness':
                 templateServices = [
                     { name: 'Swedish Massage', sessions: 4, discount: 5 },
@@ -715,7 +715,7 @@ $(document).ready(function() {
                 $('input[name="validity_days"]').val('60');
                 $('input[name="discount_percentage"]').val('20');
                 break;
-                
+
             case 'grooming':
                 templateServices = [
                     { name: 'Hair Cut', sessions: 3, discount: 0 },
@@ -736,7 +736,7 @@ $(document).ready(function() {
                 if (serviceName && serviceName.includes(template.name.split(' ')[0])) {
                     $(this).prop('checked', true);
                     $(this).closest('.service-option').addClass('selected-service');
-                    
+
                     const serviceId = $(this).data('service-id');
                     selectedServices[serviceId] = {
                         id: serviceId,
@@ -752,7 +752,7 @@ $(document).ready(function() {
 
         renderSelectedServices();
         calculatePackageTotal();
-        
+
         alert(`${templateType.charAt(0).toUpperCase() + templateType.slice(1)} package template applied! You can modify the services and pricing as needed.`);
     };
 
@@ -798,5 +798,54 @@ $(document).ready(function() {
         });
     });
 });
+
+// Function to set package data for the assign modal
+function setAssignPackageData(packageId, packageName) {
+    document.getElementById('assign_package_id').value = packageId;
+    document.querySelector('#assignPackageModal .modal-title').textContent = `Assign "${packageName}" to Client`;
+}
+
+// Function to handle package assignment
+function assignPackage() {
+    const form = document.getElementById('assignPackageForm');
+    const formData = new FormData(form);
+
+    // Validate required fields
+    const packageId = formData.get('package_id');
+    const clientId = formData.get('client_id');
+
+    if (!packageId || !clientId) {
+        alert('Please select a client and ensure a package is selected.');
+        return;
+    }
+
+    fetch('/packages/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            // Close modal
+            const modalElement = document.getElementById('assignPackageModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+            // Reload page to show updated data
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while assigning the package.');
+    });
+}
 </script>
 {% endblock %}

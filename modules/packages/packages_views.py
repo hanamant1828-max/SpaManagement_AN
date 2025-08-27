@@ -144,12 +144,15 @@ def edit_package(package_id):
             # Convert to list format
             for index in sorted(services_dict.keys()):
                 service_data = services_dict[index]
-                if 'service_id' in service_data:
-                    services_data.append({
-                        'service_id': int(service_data['service_id']),
-                        'sessions': int(service_data.get('sessions', 1)),
-                        'service_discount': float(service_data.get('service_discount', 0))
-                    })
+                if 'service_id' in service_data and service_data['service_id']:
+                    try:
+                        services_data.append({
+                            'service_id': int(service_data['service_id']),
+                            'sessions': int(service_data.get('sessions', 1)),
+                            'service_discount': float(service_data.get('service_discount', 0))
+                        })
+                    except (ValueError, TypeError):
+                        continue  # Skip invalid data
 
             # Remove existing services
             PackageService.query.filter_by(package_id=package_id).delete()
@@ -445,6 +448,70 @@ def export_packages():
     except Exception as e:
         flash(f'Error exporting packages: {str(e)}', 'danger')
         return redirect(url_for('packages'))
+
+@app.route('/packages/assign', methods=['POST'])
+@login_required
+def assign_package_to_client_route():
+    """Assign package to client via AJAX"""
+    if not current_user.can_access('packages'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        package_id = request.form.get('package_id')
+        client_id = request.form.get('client_id')
+        custom_price = request.form.get('custom_price')
+        notes = request.form.get('notes', '')
+
+        if not package_id or not client_id:
+            return jsonify({'success': False, 'message': 'Package ID and Client ID are required'})
+
+        package = Package.query.get(package_id)
+        client = Client.query.get(client_id)
+
+        if not package or not client:
+            return jsonify({'success': False, 'message': 'Package or Client not found'})
+
+        # Check if client already has this package active
+        existing = ClientPackage.query.filter_by(
+            client_id=client_id, 
+            package_id=package_id, 
+            is_active=True
+        ).first()
+
+        if existing:
+            return jsonify({'success': False, 'message': 'Client already has this package active'})
+
+        # Calculate expiry date
+        from datetime import datetime, timedelta
+        expiry_date = datetime.utcnow() + timedelta(days=package.validity_days)
+
+        # Determine price
+        final_price = float(custom_price) if custom_price else package.total_price
+
+        # Create client package
+        client_package = ClientPackage(
+            client_id=client_id,
+            package_id=package_id,
+            purchase_date=datetime.utcnow(),
+            expiry_date=expiry_date,
+            sessions_remaining=package.total_sessions,
+            sessions_used=0,
+            total_sessions=package.total_sessions,
+            amount_paid=final_price,
+            is_active=True
+        )
+
+        db.session.add(client_package)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Package "{package.name}" assigned to {client.full_name} successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error assigning package: {str(e)}'})
 
 @app.route('/packages/add', methods=['POST'])
 @login_required
