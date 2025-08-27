@@ -264,34 +264,19 @@ class Client(db.Model):
             return 'Regular Client'
 
 class Service(db.Model):
-    id = db.Column(db.String(50), primary_key=True, default=lambda: f"srv_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}")
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    basePrice = db.Column(db.Numeric(10, 2), nullable=False)  # Using Decimal for price precision
-    durationMinutes = db.Column(db.Integer, nullable=False)
-    active = db.Column(db.Boolean, default=True)
-    
-    # Legacy fields for compatibility
     description = db.Column(db.Text)
+    duration = db.Column(db.Integer, nullable=False)  # in minutes
+    price = db.Column(db.Float, nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-    category = db.Column(db.String(50))  # Fallback for compatibility
+    category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
+    is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     appointments = db.relationship('Appointment', backref='service', lazy=True)
     package_services = db.relationship('PackageService', backref='service', lazy=True)
-    
-    # Legacy property for compatibility
-    @property
-    def price(self):
-        return float(self.basePrice)
-    
-    @property 
-    def duration(self):
-        return self.durationMinutes
-        
-    @property
-    def is_active(self):
-        return self.active
 
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -312,76 +297,40 @@ class Appointment(db.Model):
     is_paid = db.Column(db.Boolean, default=False)
 
 class Package(db.Model):
-    id = db.Column(db.String(50), primary_key=True, default=lambda: f"pkg_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}")
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    listPrice = db.Column(db.Numeric(10, 2), nullable=False)
-    discountType = db.Column(db.String(20), nullable=False)  # PERCENT|FIXED|NONE
-    discountValue = db.Column(db.Numeric(10, 2))
-    totalPrice = db.Column(db.Numeric(10, 2), nullable=False)
-    validityDays = db.Column(db.Integer)
-    maxRedemptions = db.Column(db.Integer)
-    targetAudience = db.Column(db.String(20), nullable=False)  # MEN|WOMEN|COUPLES|KIDS|ALL
-    category = db.Column(db.String(50))
-    active = db.Column(db.Boolean, default=True)
-    createdAt = db.Column(db.DateTime, default=datetime.utcnow)
-    updatedAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Legacy fields for compatibility
-    package_type = db.Column(db.String(50), default='regular')
-    duration_months = db.Column(db.Integer)
-    validity_days = db.Column(db.Integer)  # Maps to validityDays
-    total_sessions = db.Column(db.Integer, default=1)
-    credit_amount = db.Column(db.Float, default=0.0)
+    package_type = db.Column(db.String(50), default='regular')  # regular, prepaid, membership, student_offer, kitty_party
+    duration_months = db.Column(db.Integer, nullable=False)  # 3, 6, 12 months
+    validity_days = db.Column(db.Integer, nullable=False, default=90)  # Validity in days
+    total_sessions = db.Column(db.Integer, nullable=False, default=1)  # Total sessions in package
+    total_price = db.Column(db.Float, nullable=False)
+    credit_amount = db.Column(db.Float, default=0.0)  # For prepaid packages - amount credited
     discount_percentage = db.Column(db.Float, default=0.0)
-    student_discount = db.Column(db.Float, default=0.0)
-    min_guests = db.Column(db.Integer, default=1)
-    membership_benefits = db.Column(db.Text)
+    student_discount = db.Column(db.Float, default=0.0)  # Additional student discount
+    min_guests = db.Column(db.Integer, default=1)  # For kitty party packages
+    membership_benefits = db.Column(db.Text)  # JSON string for membership benefits
+    is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     services = db.relationship('PackageService', backref='package', lazy=True)
-    purchases = db.relationship('CustomerPackage', backref='package', lazy=True)
-    client_packages = db.relationship('ClientPackage', backref='package_legacy', lazy=True)  # Legacy compatibility
+    client_packages = db.relationship('ClientPackage', backref='package', lazy=True)
 
     @property
     def services_included(self):
         """Get formatted list of services included"""
         return [ps.service.name for ps in self.services if ps.service]
-        
-    # Legacy properties for compatibility
-    @property
-    def total_price(self):
-        return float(self.totalPrice)
-        
-    @property
-    def is_active(self):
-        return self.active
 
 class PackageService(db.Model):
-    packageId = db.Column(db.String(50), db.ForeignKey('package.id'), primary_key=True)
-    serviceId = db.Column(db.String(50), db.ForeignKey('service.id'), primary_key=True)
-    quantity = db.Column(db.Integer, nullable=False)
-    
-    # Legacy fields for compatibility
-    id = db.Column(db.Integer, autoincrement=True, index=True)
-    package_id = db.Column(db.String(50))  # Maps to packageId
-    service_id = db.Column(db.String(50))  # Maps to serviceId
-    sessions_included = db.Column(db.Integer)  # Maps to quantity
-    service_discount = db.Column(db.Float, default=0.0)
-    original_price = db.Column(db.Float)
-    discounted_price = db.Column(db.Float)
-    
-    # Set legacy fields automatically
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.packageId:
-            self.package_id = self.packageId
-        if self.serviceId:
-            self.service_id = self.serviceId
-        if self.quantity:
-            self.sessions_included = self.quantity
+    id = db.Column(db.Integer, primary_key=True)
+    package_id = db.Column(db.Integer, db.ForeignKey('package.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    sessions_included = db.Column(db.Integer, nullable=False)
+    service_discount = db.Column(db.Float, default=0.0)  # Individual service discount percentage
+    original_price = db.Column(db.Float, nullable=False)  # Original service price
+    discounted_price = db.Column(db.Float, nullable=False)  # Final discounted price
 
 class ClientPackage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -696,43 +645,4 @@ class StaffPerformance(db.Model):
     
     # Relationships
     staff = db.relationship('User', backref='performance_records')
-
-# New models based on Prisma schema
-class Customer(db.Model):
-    """Customer model matching Prisma schema"""
-    id = db.Column(db.String(50), primary_key=True, default=lambda: f"cust_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}")
-    name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(20))
-    email = db.Column(db.String(120))
-    
-    # Relationships
-    packages = db.relationship('CustomerPackage', backref='customer', lazy=True)
-
-class CustomerPackage(db.Model):
-    """Customer package purchases matching Prisma schema"""
-    id = db.Column(db.String(50), primary_key=True, default=lambda: f"cp_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}")
-    customerId = db.Column(db.String(50), db.ForeignKey('customer.id'), nullable=False)
-    packageId = db.Column(db.String(50), db.ForeignKey('package.id'), nullable=False)
-    purchaseDate = db.Column(db.DateTime, default=datetime.utcnow)
-    expiryDate = db.Column(db.DateTime)
-    remainingRedemptions = db.Column(db.Integer)
-    status = db.Column(db.String(20), nullable=False)  # ACTIVE|EXPIRED|USED
-    
-    # Relationships
-    redemptions = db.relationship('Redemption', backref='customer_package', lazy=True)
-
-class Redemption(db.Model):
-    """Service redemption tracking matching Prisma schema"""
-    id = db.Column(db.String(50), primary_key=True, default=lambda: f"red_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}")
-    customerPackageId = db.Column(db.String(50), db.ForeignKey('customer_package.id'), nullable=False)
-    serviceId = db.Column(db.String(50), db.ForeignKey('service.id'), nullable=False)
-    quantity = db.Column(db.Integer, default=1)
-    redeemedAt = db.Column(db.DateTime, default=datetime.utcnow)
-    staffId = db.Column(db.String(50))
-    note = db.Column(db.Text)
-    
-    # Relationships
-    service = db.relationship('Service', backref='service_redemptions')
-
-
 

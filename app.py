@@ -61,146 +61,26 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 with app.app_context():
-    # Import models here for ORM mapping
+    # Import models here so their tables will be created
     import models  # noqa: F401
-    
-    # Check if we need to initialize database with new schema
-    import os
-    if not os.path.exists("spa_management.db"):
-        logging.info("Initializing fresh database with Prisma-style schema...")
-        try:
-            # Create the database with new schema directly
-            import sqlite3
-            conn = sqlite3.connect('spa_management.db')
-            cursor = conn.cursor()
-            
-            # Create Service table with new schema
-            cursor.execute('''
-                CREATE TABLE service (
-                    id VARCHAR(50) PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    "basePrice" DECIMAL(10,2) NOT NULL,
-                    "durationMinutes" INTEGER NOT NULL,
-                    active BOOLEAN DEFAULT 1,
-                    description TEXT,
-                    category_id INTEGER,
-                    category VARCHAR(50),
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # Create Package table with new schema
-            cursor.execute('''
-                CREATE TABLE package (
-                    id VARCHAR(50) PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    description TEXT,
-                    "listPrice" DECIMAL(10,2) NOT NULL,
-                    "discountType" VARCHAR(20) NOT NULL,
-                    "discountValue" DECIMAL(10,2),
-                    "totalPrice" DECIMAL(10,2) NOT NULL,
-                    "validityDays" INTEGER,
-                    "maxRedemptions" INTEGER,
-                    "targetAudience" VARCHAR(20) NOT NULL,
-                    category VARCHAR(50),
-                    active BOOLEAN DEFAULT 1,
-                    "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    "updatedAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    -- Legacy compatibility fields
-                    package_type VARCHAR(50) DEFAULT 'regular',
-                    duration_months INTEGER,
-                    validity_days INTEGER,
-                    total_sessions INTEGER DEFAULT 1,
-                    credit_amount REAL DEFAULT 0.0,
-                    discount_percentage REAL DEFAULT 0.0,
-                    student_discount REAL DEFAULT 0.0,
-                    min_guests INTEGER DEFAULT 1,
-                    membership_benefits TEXT,
-                    sort_order INTEGER DEFAULT 0,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # Create other new tables
-            cursor.execute('''
-                CREATE TABLE package_service (
-                    "packageId" VARCHAR(50),
-                    "serviceId" VARCHAR(50),
-                    quantity INTEGER NOT NULL,
-                    id INTEGER,
-                    package_id VARCHAR(50),
-                    service_id VARCHAR(50),
-                    sessions_included INTEGER,
-                    service_discount REAL DEFAULT 0.0,
-                    original_price REAL,
-                    discounted_price REAL,
-                    PRIMARY KEY ("packageId", "serviceId"),
-                    FOREIGN KEY ("packageId") REFERENCES package(id),
-                    FOREIGN KEY ("serviceId") REFERENCES service(id)
-                )
-            ''')
-            
-            cursor.execute('''
-                CREATE TABLE customer (
-                    id VARCHAR(50) PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    phone VARCHAR(20),
-                    email VARCHAR(120)
-                )
-            ''')
-            
-            cursor.execute('''
-                CREATE TABLE customer_package (
-                    id VARCHAR(50) PRIMARY KEY,
-                    "customerId" VARCHAR(50) NOT NULL,
-                    "packageId" VARCHAR(50) NOT NULL,
-                    "purchaseDate" DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    "expiryDate" DATETIME,
-                    "remainingRedemptions" INTEGER,
-                    status VARCHAR(20) NOT NULL,
-                    FOREIGN KEY ("customerId") REFERENCES customer(id),
-                    FOREIGN KEY ("packageId") REFERENCES package(id)
-                )
-            ''')
-            
-            cursor.execute('''
-                CREATE TABLE redemption (
-                    id VARCHAR(50) PRIMARY KEY,
-                    "customerPackageId" VARCHAR(50) NOT NULL,
-                    "serviceId" VARCHAR(50) NOT NULL,
-                    quantity INTEGER DEFAULT 1,
-                    "redeemedAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    "staffId" VARCHAR(50),
-                    note TEXT,
-                    FOREIGN KEY ("customerPackageId") REFERENCES customer_package(id),
-                    FOREIGN KEY ("serviceId") REFERENCES service(id)
-                )
-            ''')
-            
-            conn.commit()
-            conn.close()
-            logging.info("Prisma-style database schema created successfully")
-            
-        except Exception as e:
-            logging.error(f"Failed to create new database schema: {e}")
-            # Fallback to normal table creation
-            db.create_all()
-            logging.info("Fallback: Database tables created normally")
-    else:
-        logging.info("Using existing database")
-        
-    # Create only non-conflicting legacy tables (skip service and package)
+
     try:
-        from sqlalchemy import text
-        # Create other tables that don't conflict with our new schema
-        engine = db.get_engine()
-        with engine.connect() as conn:
-            # Check if we need to create user management tables
-            result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='user'"))
-            if not result.fetchone():
-                logging.info("Creating non-conflicting legacy tables...")
-                # Let SQLAlchemy create only tables that don't exist
-                db.metadata.create_all(engine, checkfirst=True)
-                logging.info("Legacy tables created")
+        db.create_all()
+        logging.info("Database tables created")
+
+        # Initialize default data
+        from routes import create_default_data
+        create_default_data()
     except Exception as e:
-        logging.error(f"Legacy table creation failed: {e}")
+        logging.error(f"Database initialization failed: {e}")
+        logging.info("Attempting database migration...")
+        try:
+            import subprocess
+            subprocess.run(['python', 'migrate_database.py'], check=True)
+            logging.info("Migration completed, retrying initialization...")
+            db.create_all()
+            from routes import create_default_data
+            create_default_data()
+        except Exception as migration_error:
+            logging.error(f"Migration failed: {migration_error}")
+            logging.warning("Application starting with limited functionality")
