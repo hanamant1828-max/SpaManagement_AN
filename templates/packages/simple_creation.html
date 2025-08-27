@@ -169,7 +169,7 @@
                                                                 </button>
                                                                 <input type="number" class="form-control text-center sessions-input fw-bold fs-5" 
                                                                        name="sessions_{{ service.id }}" value="1" min="1" max="20"
-                                                                       onchange="updatePricing()">
+                                                                       onchange="updatePricing(); autoCalculatePackagePrice();">
                                                                 <button type="button" class="btn btn-outline-secondary" onclick="adjustSessions({{ service.id }}, 1)">
                                                                     <i class="fas fa-plus"></i>
                                                                 </button>
@@ -183,7 +183,7 @@
                                                             <div class="input-group input-group-lg">
                                                                 <input type="number" class="form-control discount-input text-center fw-bold fs-5" 
                                                                        name="service_discount_{{ service.id }}" value="0" min="0" max="100" step="5"
-                                                                       onchange="updatePricing()">
+                                                                       onchange="updatePricing(); autoCalculatePackagePrice();">
                                                                 <span class="input-group-text fw-bold">%</span>
                                                             </div>
                                                             <small class="text-muted">Discount for this specific service</small>
@@ -547,6 +547,14 @@ function toggleServiceSelection(serviceId, isSelected) {
     
     updateSelectedCount();
     updatePricing();
+    
+    // Automatically calculate and set package price when services are selected/deselected
+    if (selectedServices.size > 0) {
+        autoCalculatePackagePrice();
+    } else {
+        document.getElementById('total_price').value = '';
+    }
+    
     updateSubmitButton();
 }
 
@@ -587,6 +595,9 @@ function adjustSessions(serviceId, change) {
     input.value = newValue;
     updateServiceSubtotal(serviceId);
     updatePricing();
+    
+    // Auto-calculate package price when sessions change
+    autoCalculatePackagePrice();
 }
 
 function updateServiceSubtotal(serviceId) {
@@ -686,6 +697,25 @@ function updatePricing() {
 }
 
 function autoCalculatePrice() {
+    autoCalculatePackagePrice();
+    
+    // Show success message if triggered by button click
+    if (event && event.target) {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Price Calculated!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-success');
+        }, 2000);
+    }
+}
+
+function autoCalculatePackagePrice() {
     let total = 0;
     
     document.querySelectorAll('.service-checkbox:checked').forEach(checkbox => {
@@ -703,19 +733,6 @@ function autoCalculatePrice() {
     
     document.getElementById('total_price').value = total.toFixed(2);
     updatePricing();
-    
-    // Show success message
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check"></i> Price Calculated!';
-    btn.classList.add('btn-success');
-    btn.classList.remove('btn-outline-success');
-    
-    setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.classList.remove('btn-success');
-        btn.classList.add('btn-outline-success');
-    }, 2000);
 }
 
 function updateSubmitButton() {
