@@ -35,7 +35,7 @@ def create_service_category():
     """Create new service category"""
     if not current_user.can_access('services'):
         flash('Access denied', 'danger')
-        return redirect(url_for('services'))
+        return redirect(url_for('service_categories'))
     
     try:
         # Get form data directly from request
@@ -49,7 +49,7 @@ def create_service_category():
         # Basic validation
         if not name or not display_name:
             flash('Category name and display name are required', 'danger')
-            return redirect(url_for('services'))
+            return redirect(url_for('service_categories'))
         
         # Create category
         category = create_category({
@@ -66,7 +66,7 @@ def create_service_category():
     except Exception as e:
         flash(f'Error creating category: {str(e)}', 'danger')
     
-    return redirect(url_for('services'))
+    return redirect(url_for('service_categories'))
 
 @app.route('/service-categories/<int:category_id>/edit', methods=['POST'])
 @login_required

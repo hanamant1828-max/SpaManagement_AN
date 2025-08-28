@@ -8,6 +8,67 @@ from datetime import datetime
 import csv
 import io
 
+# Service Queries
+def get_all_services(category_filter=''):
+    """Get all services with optional category filter"""
+    query = Service.query
+    if category_filter:
+        category = Category.query.filter_by(name=category_filter).first()
+        if category:
+            query = query.filter_by(category_id=category.id)
+    
+    return query.order_by(Service.name).all()
+
+def get_service_by_id(service_id):
+    """Get service by ID"""
+    return Service.query.get(service_id)
+
+def create_service(data):
+    """Create new service"""
+    service = Service(
+        name=data['name'],
+        description=data.get('description'),
+        duration=data['duration'],
+        price=data['price'],
+        category_id=data.get('category_id'),
+        is_active=data.get('is_active', True)
+    )
+    
+    # Add commission rate if it exists in the model
+    if hasattr(service, 'commission_rate'):
+        service.commission_rate = data.get('commission_rate', 10)
+    
+    db.session.add(service)
+    db.session.commit()
+    return service
+
+def update_service(service_id, data):
+    """Update service"""
+    service = Service.query.get(service_id)
+    if not service:
+        raise ValueError("Service not found")
+    
+    for key, value in data.items():
+        if hasattr(service, key):
+            setattr(service, key, value)
+    
+    db.session.commit()
+    return service
+
+def delete_service(service_id):
+    """Delete service if not used in any bookings"""
+    service = Service.query.get(service_id)
+    if not service:
+        return {'success': False, 'message': 'Service not found'}
+    
+    try:
+        db.session.delete(service)
+        db.session.commit()
+        return {'success': True, 'message': f'Service "{service.name}" deleted successfully'}
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'message': f'Error deleting service: {str(e)}'}
+
 # Service Category Queries
 def get_all_service_categories():
     """Get all service categories ordered by sort_order"""
@@ -47,6 +108,92 @@ def update_category(category_id, data):
     
     db.session.commit()
     return category
+
+def delete_category(category_id):
+    """Delete service category if no services are using it"""
+    category = Category.query.get(category_id)
+    if not category:
+        return {'success': False, 'message': 'Category not found'}
+    
+    # Check if any services are using this category
+    services_count = Service.query.filter_by(category_id=category_id).count()
+    if services_count > 0:
+        return {'success': False, 'message': f'Cannot delete category. {services_count} services are still using it.'}
+    
+    try:
+        db.session.delete(category)
+        db.session.commit()
+        return {'success': True, 'message': f'Category "{category.display_name}" deleted successfully'}
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'message': f'Error deleting category: {str(e)}'}
+
+def reorder_category(category_ids):
+    """Reorder categories based on provided IDs list"""
+    for index, category_id in enumerate(category_ids):
+        category = Category.query.get(category_id)
+        if category:
+            category.sort_order = index
+    
+    db.session.commit()
+    return True
+
+def export_categories_csv():
+    """Export service categories to CSV"""
+    categories = get_all_service_categories()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['ID', 'Name', 'Display Name', 'Description', 'Color', 'Sort Order', 'Active', 'Created At'])
+    
+    # Write data
+    for category in categories:
+        writer.writerow([
+            category.id,
+            category.name,
+            category.display_name,
+            category.description or '',
+            category.color,
+            category.sort_order,
+            'Yes' if category.is_active else 'No',
+            category.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(category, 'created_at') and category.created_at else ''
+        ])
+    
+    return output.getvalue()
+
+def export_services_csv(category_filter=''):
+    """Export services to CSV with optional category filter"""
+    query = Service.query
+    if category_filter:
+        category = Category.query.filter_by(name=category_filter).first()
+        if category:
+            query = query.filter_by(category_id=category.id)
+    
+    services = query.all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['ID', 'Name', 'Description', 'Duration (min)', 'Price', 'Category', 'Commission Rate', 'Active', 'Created At'])
+    
+    # Write data
+    for service in services:
+        writer.writerow([
+            service.id,
+            service.name,
+            service.description or '',
+            service.duration,
+            service.price,
+            service.category.display_name if service.category else 'No Category',
+            getattr(service, 'commission_rate', 10),
+            'Yes' if service.is_active else 'No',
+            service.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(service, 'created_at') and service.created_at else ''
+        ])
+    
+    return output.getvalue()
 
 def delete_category(category_id):
     """Delete category only if no services under it"""
