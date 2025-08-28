@@ -196,7 +196,7 @@
                             <tbody>
                                 {% for cp in client_packages %}
                                 <tr>
-                                    <td>{{ cp.client.full_name }}</td>
+                                    <td>{{ cp.customer.full_name }}</td>
                                     <td>{{ cp.package.name }}</td>
                                     <td>
                                         {% if cp.package.has_unlimited_sessions %}
