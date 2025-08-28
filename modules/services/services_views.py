@@ -81,19 +81,29 @@ def edit_service_category(category_id):
         flash('Category not found', 'danger')
         return redirect(url_for('service_categories'))
     
-    form = CategoryForm()
-    if form.validate_on_submit():
-        try:
-            update_category(category_id, {
-                'display_name': form.display_name.data,
-                'description': form.description.data,
-                'color': form.color.data,
-                'is_active': form.is_active.data,
-                'sort_order': form.sort_order.data or 0
-            })
-            flash(f'Category "{category.display_name}" updated successfully', 'success')
-        except Exception as e:
-            flash(f'Error updating category: {str(e)}', 'danger')
+    try:
+        # Get form data directly from request
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        color = request.form.get('color', '#007bff')
+        sort_order = int(request.form.get('sort_order', 0))
+        is_active = 'is_active' in request.form
+        
+        # Basic validation
+        if not display_name:
+            flash('Display name is required', 'danger')
+            return redirect(url_for('service_categories'))
+        
+        update_category(category_id, {
+            'display_name': display_name,
+            'description': description,
+            'color': color,
+            'is_active': is_active,
+            'sort_order': sort_order
+        })
+        flash(f'Category "{display_name}" updated successfully', 'success')
+    except Exception as e:
+        flash(f'Error updating category: {str(e)}', 'danger')
     
     return redirect(url_for('service_categories'))
 
@@ -376,6 +386,30 @@ def get_service_api(service_id):
             'category_id': service.category_id,
             'commission_rate': getattr(service, 'commission_rate', 10),
             'is_active': service.is_active
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/api/categories/<int:category_id>')
+@login_required
+def get_category_api(category_id):
+    """Get category data for AJAX calls"""
+    if not current_user.can_access('services'):
+        return jsonify({'error': 'Access denied'})
+    
+    try:
+        category = get_category_by_id(category_id)
+        if not category:
+            return jsonify({'error': 'Category not found'})
+            
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'display_name': category.display_name,
+            'description': category.description,
+            'color': category.color,
+            'sort_order': category.sort_order,
+            'is_active': category.is_active
         })
     except Exception as e:
         return jsonify({'error': str(e)})
