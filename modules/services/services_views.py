@@ -354,3 +354,28 @@ def get_services_by_category(category_id):
         })
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route('/api/services/<int:service_id>')
+@login_required
+def get_service_api(service_id):
+    """Get service data for AJAX calls"""
+    if not current_user.can_access('services'):
+        return jsonify({'error': 'Access denied'})
+    
+    try:
+        service = get_service_by_id(service_id)
+        if not service:
+            return jsonify({'error': 'Service not found'})
+            
+        return jsonify({
+            'id': service.id,
+            'name': service.name,
+            'description': service.description,
+            'duration': service.duration,
+            'price': service.price,
+            'category_id': service.category_id,
+            'commission_rate': getattr(service, 'commission_rate', 10),
+            'is_active': service.is_active
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
