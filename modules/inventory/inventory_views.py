@@ -8,7 +8,11 @@ from forms import InventoryForm
 from .inventory_queries import (
     get_all_inventory, get_inventory_by_id, get_low_stock_items, 
     get_expiring_items, get_inventory_categories, search_inventory, 
-    create_inventory, update_inventory, delete_inventory, update_stock
+    create_inventory, update_inventory, delete_inventory, update_stock,
+    get_items_by_status, get_stock_movements, get_consumption_by_service,
+    get_wastage_report, get_supplier_performance, get_inventory_valuation,
+    convert_units, auto_deduct_service_inventory, create_stock_adjustment,
+    generate_reorder_suggestions
 )
 
 @app.route('/inventory')
@@ -132,14 +136,127 @@ def update_stock_route(id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
-    quantity_change = request.form.get('quantity_change', type=int)
+    quantity_change = request.form.get('quantity_change', type=float)
+    movement_type = request.form.get('movement_type', 'adjustment')
+    reason = request.form.get('reason', 'Manual stock update')
+    
     if quantity_change is not None:
-        inventory_item = update_stock(id, quantity_change)
+        inventory_item = update_stock(
+            id, quantity_change, movement_type, 
+            reason=reason, created_by=current_user.id
+        )
         if inventory_item:
-            flash(f'Stock updated. New quantity: {inventory_item.current_stock}', 'success')
+            flash(f'Stock updated. New quantity: {inventory_item.current_stock:.2f} {inventory_item.base_unit}', 'success')
         else:
             flash('Error updating stock', 'danger')
     else:
         flash('Invalid quantity change', 'danger')
     
     return redirect(url_for('inventory'))
+
+# API Endpoints for Comprehensive Inventory Management
+
+@app.route('/api/inventory/status/<status>')
+@login_required
+def api_inventory_by_status(status):
+    """API: Get inventory items by status"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    items = get_items_by_status(status)
+    return jsonify({
+        'status': 'success',
+        'items': [{
+            'id': item.id,
+            'name': item.name,
+            'current_stock': item.current_stock,
+            'base_unit': item.base_unit,
+            'status': item.get_stock_status(),
+            'cost_value': item.stock_value,
+            'selling_value': item.potential_revenue
+        } for item in items]
+    })
+
+@app.route('/api/inventory/valuation')
+@login_required
+def api_inventory_valuation():
+    """API: Get total inventory valuation"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    valuation = get_inventory_valuation()
+    
+    return jsonify({
+        'status': 'success',
+        'total_cost_value': float(valuation.total_cost_value or 0),
+        'total_selling_value': float(valuation.total_selling_value or 0),
+        'potential_profit': float((valuation.total_selling_value or 0) - (valuation.total_cost_value or 0)),
+        'total_items': valuation.total_items
+    })
+
+@app.route('/api/inventory/reorder-suggestions')
+@login_required
+def api_reorder_suggestions():
+    """API: Get automatic reorder suggestions"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    suggestions = generate_reorder_suggestions()
+    
+    return jsonify({
+        'status': 'success',
+        'suggestions': suggestions,
+        'total_estimated_cost': sum(s['estimated_cost'] for s in suggestions)
+    })
+
+@app.route('/api/inventory/alerts')
+@login_required
+def api_inventory_alerts():
+    """API: Get real-time inventory alerts"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    alerts = []
+    
+    # Low stock alerts
+    low_stock_items = get_items_by_status('low_stock')
+    for item in low_stock_items:
+        alerts.append({
+            'type': 'low_stock',
+            'severity': 'warning',
+            'item_id': item.id,
+            'item_name': item.name,
+            'current_stock': item.current_stock,
+            'min_stock': item.min_stock_level,
+            'message': f'{item.name} is running low ({item.current_stock} {item.base_unit} remaining)'
+        })
+    
+    return jsonify({
+        'status': 'success',
+        'alerts': alerts,
+        'alert_counts': {
+            'low_stock': len(low_stock_items)
+        }
+    })
+
+@app.route('/api/appointment/<int:appointment_id>/auto-deduct', methods=['POST'])
+@login_required
+def api_auto_deduct_inventory(appointment_id):
+    """API: Auto-deduct inventory for completed appointment"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    success = auto_deduct_service_inventory(appointment_id)
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': 'Inventory deducted successfully',
+            'appointment_id': appointment_id
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to deduct inventory or already processed',
+            'appointment_id': appointment_id
+        })

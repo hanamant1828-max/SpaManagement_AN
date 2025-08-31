@@ -279,6 +279,28 @@ class Service(db.Model):
     # Relationships
     appointments = db.relationship('Appointment', backref='service', lazy=True)
     package_services = db.relationship('PackageService', backref='service', lazy=True)
+    
+    def deduct_inventory_for_service(self):
+        """Deduct inventory items when this service is performed"""
+        movements = []
+        for service_item in self.inventory_items:
+            if service_item.inventory_item.can_fulfill_quantity(service_item.quantity_per_service):
+                # Create stock movement record
+                movement = StockMovement(
+                    inventory_id=service_item.inventory_id,
+                    movement_type='service_use',
+                    quantity=-service_item.quantity_per_service,  # Negative for outflow
+                    unit=service_item.unit,
+                    reference_type='service',
+                    reference_id=self.id,
+                    created_by=1  # System user, should be current user in real implementation
+                )
+                movements.append(movement)
+                
+                # Update inventory stock
+                service_item.inventory_item.current_stock -= service_item.quantity_per_service
+        
+        return movements
 
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -297,6 +319,20 @@ class Appointment(db.Model):
     discount = db.Column(db.Float, default=0.0)
     tips = db.Column(db.Float, default=0.0)
     is_paid = db.Column(db.Boolean, default=False)
+    inventory_deducted = db.Column(db.Boolean, default=False)  # Track if inventory was deducted
+    
+    def process_inventory_deduction(self):
+        """Process inventory deduction when appointment is completed and billed"""
+        if not self.inventory_deducted and self.status == 'completed' and self.is_paid:
+            movements = self.service.deduct_inventory_for_service()
+            if movements:
+                from app import db
+                for movement in movements:
+                    db.session.add(movement)
+                self.inventory_deducted = True
+                db.session.commit()
+                return True
+        return False
 
 class Package(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -384,28 +420,265 @@ class Inventory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
+    sku = db.Column(db.String(50), unique=True, nullable=False)  # Stock Keeping Unit
+    barcode = db.Column(db.String(100), unique=True)  # Barcode for scanning
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
-    current_stock = db.Column(db.Integer, default=0)
-    min_stock_level = db.Column(db.Integer, default=5)
-    unit_price = db.Column(db.Float, default=0.0)
-    supplier_name = db.Column(db.String(100))
-    supplier_contact = db.Column(db.String(100))
+    
+    # Stock tracking with units of measurement
+    current_stock = db.Column(db.Float, default=0.0)  # Changed to Float for precise measurements
+    min_stock_level = db.Column(db.Float, default=5.0)
+    max_stock_level = db.Column(db.Float, default=100.0)
+    reorder_point = db.Column(db.Float, default=10.0)
+    reorder_quantity = db.Column(db.Float, default=50.0)
+    
+    # Units of measurement and conversions
+    base_unit = db.Column(db.String(20), nullable=False, default='pcs')  # pcs, ml, liter, gram, kg
+    selling_unit = db.Column(db.String(20), nullable=False, default='pcs')  # Unit for customer sales
+    conversion_factor = db.Column(db.Float, default=1.0)  # Conversion from base to selling unit
+    
+    # Pricing
+    cost_price = db.Column(db.Float, default=0.0)  # Cost per base unit
+    selling_price = db.Column(db.Float, default=0.0)  # Selling price per selling unit
+    markup_percentage = db.Column(db.Float, default=0.0)
+    
+    # Item classification
+    item_type = db.Column(db.String(20), default='consumable')  # consumable, sellable, both
+    is_service_item = db.Column(db.Boolean, default=False)  # Used in services
+    is_retail_item = db.Column(db.Boolean, default=False)  # Sold to customers
+    
+    # Supplier and purchasing
+    primary_supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
+    supplier_name = db.Column(db.String(100))  # Fallback for compatibility
+    supplier_contact = db.Column(db.String(100))  # Fallback for compatibility
+    supplier_sku = db.Column(db.String(50))  # Supplier's product code
+    
+    # Expiry and quality
+    has_expiry = db.Column(db.Boolean, default=False)
     expiry_date = db.Column(db.Date)
+    shelf_life_days = db.Column(db.Integer)  # Standard shelf life
+    batch_number = db.Column(db.String(50))
+    
+    # Location and storage
+    storage_location = db.Column(db.String(100))
+    storage_temperature = db.Column(db.String(50))  # room_temp, refrigerated, frozen
+    storage_notes = db.Column(db.Text)
+    
+    # Tracking and alerts
+    enable_low_stock_alert = db.Column(db.Boolean, default=True)
+    enable_expiry_alert = db.Column(db.Boolean, default=True)
+    expiry_alert_days = db.Column(db.Integer, default=30)  # Days before expiry to alert
+    
+    # Status and metadata
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_restocked_at = db.Column(db.DateTime)
+    last_counted_at = db.Column(db.DateTime)  # Last physical stock count
 
+    # Relationships
+    supplier = db.relationship('Supplier', backref='supplied_items', lazy=True)
+    stock_movements = db.relationship('StockMovement', backref='inventory_item', lazy=True)
+    service_items = db.relationship('ServiceInventoryItem', backref='inventory_item', lazy=True)
+    
     @property
     def is_low_stock(self):
         return self.current_stock <= self.min_stock_level
+    
+    @property
+    def is_reorder_needed(self):
+        return self.current_stock <= self.reorder_point
+    
+    @property
+    def is_out_of_stock(self):
+        return self.current_stock <= 0
+    
+    @property
+    def is_overstocked(self):
+        return self.current_stock > self.max_stock_level
 
     @property
     def is_expiring_soon(self):
-        if not self.expiry_date:
+        if not self.has_expiry or not self.expiry_date:
             return False
         days_until_expiry = (self.expiry_date - date.today()).days
-        return days_until_expiry <= 30
+        return days_until_expiry <= self.expiry_alert_days
+    
+    @property
+    def is_expired(self):
+        if not self.has_expiry or not self.expiry_date:
+            return False
+        return self.expiry_date < date.today()
+    
+    @property
+    def stock_value(self):
+        """Total value of current stock at cost price"""
+        return self.current_stock * self.cost_price
+    
+    @property
+    def potential_revenue(self):
+        """Potential revenue from current stock at selling price"""
+        return self.convert_to_selling_unit(self.current_stock) * self.selling_price
+    
+    @property
+    def profit_margin(self):
+        """Profit margin percentage"""
+        if self.selling_price == 0:
+            return 0
+        cost_per_selling_unit = self.cost_price / self.conversion_factor
+        return ((self.selling_price - cost_per_selling_unit) / self.selling_price) * 100
+    
+    def convert_to_selling_unit(self, quantity_in_base_unit):
+        """Convert quantity from base unit to selling unit"""
+        return quantity_in_base_unit / self.conversion_factor
+    
+    def convert_to_base_unit(self, quantity_in_selling_unit):
+        """Convert quantity from selling unit to base unit"""
+        return quantity_in_selling_unit * self.conversion_factor
+    
+    def can_fulfill_quantity(self, requested_quantity, unit='base'):
+        """Check if we have enough stock for requested quantity"""
+        if unit == 'selling':
+            requested_in_base = self.convert_to_base_unit(requested_quantity)
+        else:
+            requested_in_base = requested_quantity
+        return self.current_stock >= requested_in_base
+    
+    def get_stock_status(self):
+        """Get comprehensive stock status"""
+        if self.is_expired:
+            return 'expired'
+        elif self.is_out_of_stock:
+            return 'out_of_stock'
+        elif self.is_low_stock:
+            return 'low_stock'
+        elif self.is_expiring_soon:
+            return 'expiring_soon'
+        elif self.is_overstocked:
+            return 'overstocked'
+        elif self.is_reorder_needed:
+            return 'reorder_needed'
+        else:
+            return 'normal'
+
+# New models for comprehensive inventory management
+
+class Supplier(db.Model):
+    """Supplier management for inventory items"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    contact_person = db.Column(db.String(100))
+    email = db.Column(db.String(120))
+    phone = db.Column(db.String(20))
+    address = db.Column(db.Text)
+    tax_id = db.Column(db.String(50))
+    payment_terms = db.Column(db.String(100))  # e.g., "Net 30", "COD"
+    lead_time_days = db.Column(db.Integer, default=7)
+    minimum_order_amount = db.Column(db.Float, default=0.0)
+    rating = db.Column(db.Float, default=0.0)  # 1-5 star rating
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    purchase_orders = db.relationship('PurchaseOrder', backref='supplier', lazy=True)
+
+class StockMovement(db.Model):
+    """Track all stock movements (inflow/outflow)"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    movement_type = db.Column(db.String(20), nullable=False)  # purchase, sale, service_use, adjustment, wastage, return
+    quantity = db.Column(db.Float, nullable=False)  # Positive for inflow, negative for outflow
+    unit = db.Column(db.String(20), nullable=False)
+    unit_cost = db.Column(db.Float, default=0.0)
+    total_cost = db.Column(db.Float, default=0.0)
+    reference_id = db.Column(db.Integer)  # Reference to appointment, sale, purchase order etc.
+    reference_type = db.Column(db.String(50))  # appointment, sale, purchase_order, adjustment
+    batch_number = db.Column(db.String(50))
+    expiry_date = db.Column(db.Date)
+    reason = db.Column(db.String(200))  # Reason for adjustment, wastage etc.
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    created_by_user = db.relationship('User', backref='stock_movements')
+
+class ServiceInventoryItem(db.Model):
+    """Map services to inventory items consumed during service"""
+    id = db.Column(db.Integer, primary_key=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    quantity_per_service = db.Column(db.Float, nullable=False)  # Quantity consumed per service
+    unit = db.Column(db.String(20), nullable=False)  # Unit of consumption
+    is_optional = db.Column(db.Boolean, default=False)  # Optional vs required item
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    service = db.relationship('Service', backref='inventory_items')
+    
+    __table_args__ = (db.UniqueConstraint('service_id', 'inventory_id'),)
+
+class PurchaseOrder(db.Model):
+    """Purchase orders for inventory restocking"""
+    id = db.Column(db.Integer, primary_key=True)
+    po_number = db.Column(db.String(50), unique=True, nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
+    order_date = db.Column(db.DateTime, default=datetime.utcnow)
+    expected_delivery_date = db.Column(db.Date)
+    actual_delivery_date = db.Column(db.Date)
+    status = db.Column(db.String(20), default='pending')  # pending, ordered, partial_received, received, cancelled
+    subtotal = db.Column(db.Float, default=0.0)
+    tax_amount = db.Column(db.Float, default=0.0)
+    shipping_cost = db.Column(db.Float, default=0.0)
+    total_amount = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    items = db.relationship('PurchaseOrderItem', backref='purchase_order', lazy=True)
+    created_by_user = db.relationship('User', backref='purchase_orders')
+
+class PurchaseOrderItem(db.Model):
+    """Items in a purchase order"""
+    id = db.Column(db.Integer, primary_key=True)
+    purchase_order_id = db.Column(db.Integer, db.ForeignKey('purchase_order.id'), nullable=False)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    quantity_ordered = db.Column(db.Float, nullable=False)
+    quantity_received = db.Column(db.Float, default=0.0)
+    unit_cost = db.Column(db.Float, nullable=False)
+    total_cost = db.Column(db.Float, nullable=False)
+    batch_number = db.Column(db.String(50))
+    expiry_date = db.Column(db.Date)
+    
+    # Relationships
+    inventory_item = db.relationship('Inventory', backref='purchase_order_items')
+    
+    @property
+    def quantity_pending(self):
+        return self.quantity_ordered - self.quantity_received
+    
+    @property
+    def is_fully_received(self):
+        return self.quantity_received >= self.quantity_ordered
+
+class InventoryAdjustment(db.Model):
+    """Manual inventory adjustments for physical counts, wastage, etc."""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    adjustment_type = db.Column(db.String(20), nullable=False)  # physical_count, wastage, damage, theft, expiry
+    old_quantity = db.Column(db.Float, nullable=False)
+    new_quantity = db.Column(db.Float, nullable=False)
+    adjustment_quantity = db.Column(db.Float, nullable=False)  # new - old
+    reason = db.Column(db.String(200), nullable=False)
+    notes = db.Column(db.Text)
+    cost_impact = db.Column(db.Float, default=0.0)  # Financial impact of adjustment
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    inventory_item = db.relationship('Inventory', backref='adjustments')
+    created_by_user = db.relationship('User', backref='inventory_adjustments')
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
