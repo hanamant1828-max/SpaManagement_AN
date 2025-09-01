@@ -1319,6 +1319,7 @@ function loadInventoryItems() {
 
     // Get CSRF token for authenticated API calls
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    console.log('CSRF Token:', csrfToken ? 'Found' : 'Not found');
 
     fetch('/api/inventory/status/all', {
         method: 'GET',
@@ -1329,6 +1330,7 @@ function loadInventoryItems() {
     })
         .then(response => {
             console.log('API response status:', response.status);
+            console.log('API response headers:', response.headers);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -1336,11 +1338,14 @@ function loadInventoryItems() {
         })
         .then(data => {
             console.log('API Response received:', data);
-            if (data.status === 'success' && data.items) {
+            if (data.status === 'success' && data.items && Array.isArray(data.items)) {
                 console.log('Successfully loaded', data.items.length, 'inventory items');
+                console.log('First few items:', data.items.slice(0, 3));
                 populateInventoryDropdowns(data.items);
             } else {
                 console.error('Error in response or no items:', data);
+                console.log('Items array exists:', !!data.items);
+                console.log('Items is array:', Array.isArray(data.items));
                 populateInventoryDropdowns([]);
             }
         })
@@ -1352,6 +1357,7 @@ function loadInventoryItems() {
             try {
                 // Try to extract inventory data from the template
                 const inventoryRows = document.querySelectorAll('#all-items tbody tr');
+                console.log('Found table rows for fallback:', inventoryRows.length);
                 const fallbackItems = [];
 
                 inventoryRows.forEach((row, index) => {
@@ -1369,6 +1375,7 @@ function loadInventoryItems() {
                                     base_unit: 'units'
                                 };
                                 fallbackItems.push(itemData);
+                                console.log('Extracted fallback item:', itemData.name);
                             }
                         }
                     } catch (e) {
@@ -1380,6 +1387,7 @@ function loadInventoryItems() {
                     console.log('Using fallback data:', fallbackItems.length, 'items');
                     populateInventoryDropdowns(fallbackItems);
                 } else {
+                    console.log('No fallback items found, using empty array');
                     populateInventoryDropdowns([]);
                 }
             } catch (fallbackError) {
@@ -1402,10 +1410,17 @@ function updateStock(itemId, itemName, currentStock) {
 }
 
 function populateInventoryDropdowns(items) {
-    console.log('Populating dropdowns with', items.length, 'items');
+    console.log('populateInventoryDropdowns called with:', items);
+    console.log('Items array length:', items ? items.length : 'undefined');
+    
     const openSelect = document.getElementById('openInventoryId');
     const deductSelect = document.getElementById('deductInventoryId');
     const adjustSelect = document.getElementById('adjustInventoryId');
+
+    console.log('Dropdown elements found:');
+    console.log('- openSelect:', !!openSelect);
+    console.log('- deductSelect:', !!deductSelect);
+    console.log('- adjustSelect:', !!adjustSelect);
 
     // Clear existing options
     [openSelect, deductSelect, adjustSelect].forEach(select => {
@@ -1425,6 +1440,7 @@ function populateInventoryDropdowns(items) {
                 noItemsOption.textContent = 'No items available';
                 noItemsOption.disabled = true;
                 select.appendChild(noItemsOption);
+                console.log(`Added "No items available" to ${select.id}`);
             }
         });
         return;
@@ -1440,32 +1456,36 @@ function populateInventoryDropdowns(items) {
             const itemText = `${item.name} (${stockDisplay})`;
             const isOutOfStock = (item.current_stock || 0) <= 0;
 
-            console.log(`Processing item ${index + 1}: ${item.name}, Stock: ${item.current_stock}, Unit: ${item.base_unit}`);
+            console.log(`Processing item ${index + 1}: ${item.name}, Stock: ${item.current_stock}, Unit: ${item.base_unit}, OutOfStock: ${isOutOfStock}`);
 
-            // Create option for open inventory
-            if (openSelect) {
+            // Only show items that can be tracked (service items or consumables)
+            const canBeTracked = item.is_service_item || item.item_type === 'consumable' || item.tracking_type === 'container_lifecycle';
+
+            // Create option for open inventory (only for trackable items with stock)
+            if (openSelect && canBeTracked && !isOutOfStock) {
                 const openOption = document.createElement('option');
                 openOption.value = item.id;
-                openOption.textContent = isOutOfStock ? `${item.name} (Out of stock)` : itemText;
-                openOption.disabled = isOutOfStock;
+                openOption.textContent = itemText;
                 openSelect.appendChild(openOption);
+                console.log(`Added to openSelect: ${item.name}`);
             }
 
-            // Create option for deduct inventory
-            if (deductSelect) {
+            // Create option for deduct inventory (all items with stock)
+            if (deductSelect && !isOutOfStock) {
                 const deductOption = document.createElement('option');
                 deductOption.value = item.id;
-                deductOption.textContent = isOutOfStock ? `${item.name} (Out of stock)` : itemText;
-                deductOption.disabled = isOutOfStock;
+                deductOption.textContent = itemText;
                 deductSelect.appendChild(deductOption);
+                console.log(`Added to deductSelect: ${item.name}`);
             }
 
-            // Create option for adjust inventory (always enabled)
+            // Create option for adjust inventory (all items, regardless of stock)
             if (adjustSelect) {
                 const adjustOption = document.createElement('option');
                 adjustOption.value = item.id;
                 adjustOption.textContent = itemText;
                 adjustSelect.appendChild(adjustOption);
+                console.log(`Added to adjustSelect: ${item.name}`);
             }
 
             processedCount++;
@@ -1475,6 +1495,13 @@ function populateInventoryDropdowns(items) {
     });
 
     console.log(`Successfully processed ${processedCount} items for dropdowns`);
+    
+    // Log final dropdown states
+    [openSelect, deductSelect, adjustSelect].forEach(select => {
+        if (select) {
+            console.log(`${select.id} final option count: ${select.options.length}`);
+        }
+    });
 }
 
 function loadOpenItems() {

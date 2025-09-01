@@ -219,7 +219,9 @@ def api_inventory_by_status(status):
                     'tracking_type': getattr(item, 'tracking_type', 'piece_wise') or 'piece_wise',
                     'cost_price': float(getattr(item, 'cost_price', 0) or 0),
                     'selling_price': float(getattr(item, 'selling_price', 0) or 0),
-                    'min_stock_level': float(getattr(item, 'min_stock_level', 0) or 0)
+                    'min_stock_level': float(getattr(item, 'min_stock_level', 0) or 0),
+                    'requires_open_close': getattr(item, 'requires_open_close', False),
+                    'supports_batches': getattr(item, 'supports_batches', False)
                 }
                 
                 items_data.append(item_data)
