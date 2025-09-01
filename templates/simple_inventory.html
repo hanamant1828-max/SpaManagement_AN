@@ -326,11 +326,11 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="{% if transaction.quantity_changed > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        <span class="{% if transaction.quantity_change > 0 %}text-success{% else %}text-danger{% endif %}">
                                             {{ transaction.transaction_display }}
                                         </span>
                                     </td>
-                                    <td>{{ transaction.remaining_balance }}</td>
+                                    <td>{{ transaction.new_stock_level }}</td>
                                     <td>{{ transaction.user.first_name if transaction.user else 'System' }}</td>
                                     <td>{{ transaction.reference_number or '-' }}</td>
                                     <td>{{ transaction.reason or '-' }}</td>
