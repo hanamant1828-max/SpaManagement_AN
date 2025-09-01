@@ -128,7 +128,7 @@
                                             <div>
                                                 <strong>{{ item.name }}</strong>
                                                 {% if item.description %}
-                                                <br><small class="text-muted">{{ utils.truncate_text(item.description, 50) }}</small>
+                                                <br><small class="text-muted">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
                                                 {% endif %}
                                             </div>
                                         </td>
@@ -141,7 +141,7 @@
                                             </strong>
                                         </td>
                                         <td>{{ item.min_stock_level }}</td>
-                                        <td>{{ utils.format_currency(item.unit_price) }}</td>
+                                        <td>₹{{ "%.2f"|format(item.selling_price or 0) }}</td>
                                         <td>
                                             {% if item.supplier_name %}
                                                 <div>{{ item.supplier_name }}</div>
@@ -155,7 +155,7 @@
                                         <td>
                                             {% if item.expiry_date %}
                                                 <span class="{% if item.is_expiring_soon %}text-danger{% endif %}">
-                                                    {{ utils.format_date(item.expiry_date) }}
+                                                    {{ item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else '-' }}
                                                 </span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
@@ -286,7 +286,7 @@
                                     <tr class="table-danger">
                                         <td>{{ item.name }}</td>
                                         <td>{{ item.current_stock }}</td>
-                                        <td>{{ utils.format_date(item.expiry_date) }}</td>
+                                        <td>{{ item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else '-' }}</td>
                                         <td>
                                             {% set days_left = (item.expiry_date - date.today()).days %}
                                             <strong class="{% if days_left <= 7 %}text-danger{% elif days_left <= 14 %}text-warning{% else %}text-info{% endif %}">

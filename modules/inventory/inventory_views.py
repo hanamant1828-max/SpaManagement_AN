@@ -39,7 +39,7 @@ def inventory():
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
     
     return render_template('inventory.html', 
-                         inventory=inventory_list,
+                         items=inventory_list,  # Changed from inventory to items
                          form=form,
                          categories=categories,
                          search_query=search_query,
@@ -61,7 +61,7 @@ def create_inventory_route():
     if form.validate_on_submit():
         try:
             inventory_data = {
-                'name': form.name.data.strip(),
+                'name': form.name.data.strip() if form.name.data else '',
                 'description': form.description.data.strip() if form.description.data else '',
                 'category_id': form.category_id.data if form.category_id.data else None,
                 'category': 'general',  # Fallback category
