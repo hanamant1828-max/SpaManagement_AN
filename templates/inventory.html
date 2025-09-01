@@ -857,11 +857,27 @@ document.addEventListener('DOMContentLoaded', function() {
 // NEW: Consumption Tracking Functions
 
 function loadConsumptionData() {
+    console.log('Loading consumption tracking data...');
     // Load inventory items for dropdowns
     loadInventoryItems();
     loadOpenItems();
     loadConsumptionEntries();
 }
+
+// Add event listener for consumption tracking tab
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Setting up consumption tracking tab event listener...');
+    const consumptionTab = document.getElementById('consumption-tab');
+    if (consumptionTab) {
+        consumptionTab.addEventListener('shown.bs.tab', function (e) {
+            console.log('Consumption tracking tab activated!');
+            loadConsumptionData();
+        });
+        console.log('Event listener added to consumption tab');
+    } else {
+        console.error('Consumption tab not found!');
+    }
+});
 
 function loadInventoryItems() {
     // Get CSRF token for authenticated API calls
@@ -907,6 +923,7 @@ function populateInventoryDropdowns(items) {
     [openSelect, deductSelect, adjustSelect].forEach(select => {
         if (select) {
             select.innerHTML = '<option value="">Choose an item...</option>';
+            console.log('Reset dropdown for', select.id);
         }
     });
 
