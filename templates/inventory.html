@@ -881,7 +881,9 @@ function loadInventoryItems() {
             return response.json();
         })
         .then(data => {
+            console.log('API Response:', data);
             if (data.status === 'success') {
+                console.log('Loading', data.items.length, 'inventory items');
                 populateInventoryDropdowns(data.items);
             } else {
                 console.error('Error in response:', data);
@@ -890,11 +892,13 @@ function loadInventoryItems() {
         })
         .catch(error => {
             console.error('Error loading inventory items:', error);
+            console.error('Full error details:', error);
             populateInventoryDropdowns([]);
         });
 }
 
 function populateInventoryDropdowns(items) {
+    console.log('Populating dropdowns with', items.length, 'items');
     const openSelect = document.getElementById('openInventoryId');
     const deductSelect = document.getElementById('deductInventoryId');
     const adjustSelect = document.getElementById('adjustInventoryId');
@@ -902,11 +906,12 @@ function populateInventoryDropdowns(items) {
     // Clear existing options
     [openSelect, deductSelect, adjustSelect].forEach(select => {
         if (select) {
-            select.innerHTML = '<option value="">Select item...</option>';
+            select.innerHTML = '<option value="">Choose an item...</option>';
         }
     });
 
     if (!items || items.length === 0) {
+        console.warn('No inventory items to populate');
         // Add a message when no items are available
         [openSelect, deductSelect, adjustSelect].forEach(select => {
             if (select) {
