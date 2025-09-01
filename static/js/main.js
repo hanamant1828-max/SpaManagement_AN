@@ -316,41 +316,31 @@ function initializeComponents() {
 
 // Initialize Bootstrap components properly
 function initializeBootstrapComponents() {
-    // Ensure all close buttons work properly
-    document.addEventListener('click', function(event) {
-        if (event.target.matches('[data-bs-dismiss="alert"]') || 
-            event.target.matches('[data-bs-dismiss="toast"]') ||
-            event.target.matches('[data-bs-dismiss="modal"]') ||
-            event.target.matches('[data-bs-dismiss="offcanvas"]')) {
-            
-            const button = event.target;
-            const target = button.closest('.alert, .toast, .modal, .offcanvas');
-            
-            if (target) {
-                if (target.classList.contains('alert')) {
-                    const alert = new bootstrap.Alert(target);
-                    alert.close();
-                } else if (target.classList.contains('toast')) {
-                    const toast = bootstrap.Toast.getInstance(target) || new bootstrap.Toast(target);
-                    toast.hide();
-                } else if (target.classList.contains('modal')) {
-                    const modal = bootstrap.Modal.getInstance(target) || new bootstrap.Modal(target);
-                    modal.hide();
-                } else if (target.classList.contains('offcanvas')) {
-                    const offcanvas = bootstrap.Offcanvas.getInstance(target) || new bootstrap.Offcanvas(target);
-                    offcanvas.hide();
+    try {
+        // Wait for Bootstrap to be fully loaded
+        if (typeof bootstrap === 'undefined') {
+            console.warn('Bootstrap not yet loaded, retrying...');
+            setTimeout(initializeBootstrapComponents, 100);
+            return;
+        }
+        
+        // Initialize all existing alerts with proper error handling
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            try {
+                if (!bootstrap.Alert.getInstance(alert)) {
+                    new bootstrap.Alert(alert);
                 }
+            } catch (e) {
+                console.warn('Error initializing alert:', e);
             }
-        }
-    });
-    
-    // Initialize all existing alerts
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        if (!bootstrap.Alert.getInstance(alert)) {
-            new bootstrap.Alert(alert);
-        }
-    });
+        });
+        
+        console.log('Bootstrap components initialized successfully');
+        
+    } catch (error) {
+        console.error('Error in initializeBootstrapComponents:', error);
+    }
 }
 
 // Form validation
