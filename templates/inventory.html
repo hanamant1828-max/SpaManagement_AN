@@ -461,6 +461,8 @@
             <form method="POST" action="{{ url_for('create_inventory_route') }}">
                 <div class="modal-body">
                     {{ form.hidden_tag() }}
+                    <!-- Hidden CSRF token for JavaScript -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                     <div class="row">
                         <div class="col-md-8">
@@ -862,7 +864,16 @@ function loadConsumptionData() {
 }
 
 function loadInventoryItems() {
-    fetch('/api/inventory/status/all')
+    // Get CSRF token for authenticated API calls
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    
+    fetch('/api/inventory/status/all', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -953,8 +964,17 @@ function populateInventoryDropdowns(items) {
 }
 
 function loadOpenItems() {
+    // Get CSRF token for authenticated API calls
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    
     // Load currently open items for the consume modal
-    fetch('/api/inventory/open-items')
+    fetch('/api/inventory/open-items', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 // If endpoint doesn't exist, use placeholder
@@ -1010,7 +1030,16 @@ function populateOpenItemsDropdown(items) {
 }
 
 function loadConsumptionEntries() {
-    fetch('/api/inventory/consumption-entries')
+    // Get CSRF token for authenticated API calls
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    
+    fetch('/api/inventory/consumption-entries', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -1088,10 +1117,13 @@ function submitOpenItem() {
         batch_number: batchNumber
     };
 
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    
     fetch(`/api/inventory/${inventoryId}/open`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
         },
         body: JSON.stringify(data)
     })
@@ -1123,10 +1155,13 @@ function submitConsumeItem() {
 
     const data = { reason: reason };
 
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    
     fetch(`/api/inventory-item/${itemId}/consume`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
         },
         body: JSON.stringify(data)
     })
@@ -1168,10 +1203,13 @@ function submitDeductQuantity() {
         reference_type: 'manual'
     };
 
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    
     fetch(`/api/inventory/${inventoryId}/deduct`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
         },
         body: JSON.stringify(data)
     })
@@ -1209,10 +1247,13 @@ function submitAdjustStock() {
         reason: reason
     };
 
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+    
     fetch(`/api/inventory/${inventoryId}/adjust`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
         },
         body: JSON.stringify(data)
     })
