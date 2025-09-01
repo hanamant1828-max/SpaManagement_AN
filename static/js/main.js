@@ -14,6 +14,7 @@ window.SpaApp = {
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
+    initializeBootstrapComponents();
 });
 
 function initializeApp() {
@@ -311,6 +312,45 @@ function initializeComponents() {
 
     // Initialize charts
     initializeCharts();
+}
+
+// Initialize Bootstrap components properly
+function initializeBootstrapComponents() {
+    // Ensure all close buttons work properly
+    document.addEventListener('click', function(event) {
+        if (event.target.matches('[data-bs-dismiss="alert"]') || 
+            event.target.matches('[data-bs-dismiss="toast"]') ||
+            event.target.matches('[data-bs-dismiss="modal"]') ||
+            event.target.matches('[data-bs-dismiss="offcanvas"]')) {
+            
+            const button = event.target;
+            const target = button.closest('.alert, .toast, .modal, .offcanvas');
+            
+            if (target) {
+                if (target.classList.contains('alert')) {
+                    const alert = new bootstrap.Alert(target);
+                    alert.close();
+                } else if (target.classList.contains('toast')) {
+                    const toast = bootstrap.Toast.getInstance(target) || new bootstrap.Toast(target);
+                    toast.hide();
+                } else if (target.classList.contains('modal')) {
+                    const modal = bootstrap.Modal.getInstance(target) || new bootstrap.Modal(target);
+                    modal.hide();
+                } else if (target.classList.contains('offcanvas')) {
+                    const offcanvas = bootstrap.Offcanvas.getInstance(target) || new bootstrap.Offcanvas(target);
+                    offcanvas.hide();
+                }
+            }
+        }
+    });
+    
+    // Initialize all existing alerts
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        if (!bootstrap.Alert.getInstance(alert)) {
+            new bootstrap.Alert(alert);
+        }
+    });
 }
 
 // Form validation
