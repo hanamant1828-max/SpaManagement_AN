@@ -56,7 +56,7 @@ def simple_inventory():
     # Only allow treatment transaction type
     transaction_types = [{'name': 'treatment', 'display_name': 'Treatment (Facial/Service)'}]
 
-    # Calculate statistics for dashboard cards
+    # Calculate statistics for template (keep all old functionality)
     total_items = len(items)
     low_stock_count = sum(1 for item in items if item.current_stock <= item.minimum_stock)
     total_stock_value = sum(item.current_stock * item.unit_cost for item in items)
@@ -72,20 +72,18 @@ def simple_inventory():
         SimpleStockTransaction.date_time.desc()
     ).limit(50).all()
     
-    # Calculate additional stats
+    # Additional statistics needed by template
     total_transactions = SimpleStockTransaction.query.count()
     week_ago = datetime.now() - timedelta(days=7)
     weekly_transactions = SimpleStockTransaction.query.filter(
         SimpleStockTransaction.date_time >= week_ago
     ).count()
     
-    # Items consumed today (negative transactions)
     items_consumed_today = SimpleStockTransaction.query.filter(
         db.func.date(SimpleStockTransaction.date_time) == today,
         SimpleStockTransaction.quantity_change < 0
     ).count()
     
-    # Average daily usage (last 30 days)
     month_ago = datetime.now() - timedelta(days=30)
     monthly_consumption = SimpleStockTransaction.query.filter(
         SimpleStockTransaction.date_time >= month_ago,
