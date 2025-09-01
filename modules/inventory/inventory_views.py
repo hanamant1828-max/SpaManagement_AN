@@ -272,22 +272,35 @@ def api_open_inventory_item(inventory_id):
     
     from modules.inventory.inventory_queries import open_inventory_item
     
-    data = request.get_json()
-    quantity = float(data.get('quantity', 1.0))
-    reason = data.get('reason', 'Opened for use')
-    batch_number = data.get('batch_number', '')
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+            
+        quantity = float(data.get('quantity', 1.0))
+        reason = data.get('reason', 'Opened for use')
+        batch_number = data.get('batch_number', '')
+        
+        if quantity <= 0:
+            return jsonify({'status': 'error', 'message': 'Quantity must be greater than 0'}), 400
+        
+        result = open_inventory_item(inventory_id, quantity, reason, batch_number, current_user.id)
+        
+        if result:
+            return jsonify({
+                'status': 'success',
+                'message': 'Item opened successfully',
+                'item_code': result.item_code,
+                'quantity': result.quantity
+            })
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to open item. Check if sufficient stock is available.'}), 400
     
-    result = open_inventory_item(inventory_id, quantity, reason, batch_number, current_user.id)
-    
-    if result:
-        return jsonify({
-            'status': 'success',
-            'message': 'Item opened successfully',
-            'item_code': result.item_code,
-            'quantity': result.quantity
-        })
-    else:
-        return jsonify({'status': 'error', 'message': 'Failed to open item'}), 400
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': 'Invalid quantity value'}), 400
+    except Exception as e:
+        print(f"Error in open inventory API: {e}")
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 @app.route('/api/inventory-item/<int:item_id>/consume', methods=['POST'])
 @login_required
@@ -379,31 +392,49 @@ def api_consumption_entries():
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
     
-    from modules.inventory.inventory_queries import get_consumption_entries
+    try:
+        from modules.inventory.inventory_queries import get_consumption_entries
+        
+        # Get query parameters
+        inventory_id = request.args.get('inventory_id', type=int)
+        entry_type = request.args.get('entry_type')
+        staff_id = request.args.get('staff_id', type=int)
+        days = request.args.get('days', 30, type=int)
+        
+        entries = get_consumption_entries(inventory_id, entry_type, staff_id, days)
+        
+        entries_data = []
+        for entry in entries:
+            try:
+                entry_data = {
+                    'id': entry.id,
+                    'inventory_name': entry.inventory.name if entry.inventory else 'Unknown',
+                    'entry_type': entry.entry_type,
+                    'quantity': float(entry.quantity),
+                    'unit': entry.unit,
+                    'reason': entry.reason,
+                    'staff_name': f"{entry.created_by_user.first_name} {entry.created_by_user.last_name}" if entry.created_by_user else 'Unknown',
+                    'created_at': entry.created_at.isoformat() if entry.created_at else '',
+                    'cost_impact': float(entry.cost_impact or 0)
+                }
+                entries_data.append(entry_data)
+            except Exception as e:
+                print(f"Error processing entry {entry.id}: {e}")
+                continue
+        
+        return jsonify({
+            'status': 'success',
+            'entries': entries_data,
+            'total_entries': len(entries_data)
+        })
     
-    # Get query parameters
-    inventory_id = request.args.get('inventory_id', type=int)
-    entry_type = request.args.get('entry_type')
-    staff_id = request.args.get('staff_id', type=int)
-    days = request.args.get('days', 30, type=int)
-    
-    entries = get_consumption_entries(inventory_id, entry_type, staff_id, days)
-    
-    return jsonify({
-        'status': 'success',
-        'entries': [{
-            'id': entry.id,
-            'inventory_name': entry.inventory.name,
-            'entry_type': entry.entry_type,
-            'quantity': entry.quantity,
-            'unit': entry.unit,
-            'reason': entry.reason,
-            'staff_name': f"{entry.created_by_user.first_name} {entry.created_by_user.last_name}",
-            'created_at': entry.created_at.isoformat(),
-            'cost_impact': entry.cost_impact
-        } for entry in entries],
-        'total_entries': len(entries)
-    })
+    except Exception as e:
+        print(f"Error in consumption entries API: {e}")
+        return jsonify({
+            'status': 'success',
+            'entries': [],
+            'total_entries': 0
+        })
 
 @app.route('/api/inventory/usage-duration')
 @login_required

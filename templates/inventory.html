@@ -21,7 +21,7 @@
     <div class="row mb-4">
         {% set low_stock_count = items|selectattr('is_low_stock')|list|length %}
         {% set expiring_count = items|selectattr('is_expiring_soon')|list|length %}
-        
+
         <div class="col-md-6 mb-3">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
@@ -461,7 +461,7 @@
             <form method="POST" action="{{ url_for('create_inventory_route') }}">
                 <div class="modal-body">
                     {{ form.hidden_tag() }}
-                    
+
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
@@ -476,12 +476,12 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         {{ form.description(class="form-control", rows="2") }}
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
@@ -502,7 +502,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
@@ -517,7 +517,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="expiry_date" class="form-label">Expiry Date</label>
                         {{ form.expiry_date(class="form-control") }}
@@ -550,12 +550,12 @@
                         <label class="form-label">Item</label>
                         <input type="text" class="form-control" id="stockItemName" readonly>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Current Stock</label>
                         <input type="number" class="form-control" id="currentStock" readonly>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="stockAdjustment" class="form-label">Adjustment</label>
                         <div class="input-group">
@@ -565,12 +565,12 @@
                         </div>
                         <small class="form-text text-muted">Use negative numbers to reduce stock, positive to increase.</small>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">New Stock Level</label>
                         <input type="number" class="form-control" id="newStock" readonly>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="stockReason" class="form-label">Reason</label>
                         <select class="form-select" id="stockReason">
@@ -779,7 +779,7 @@ let originalStock = 0;
 function updateStock(itemId, itemName, currentStock) {
     currentItemId = itemId;
     originalStock = currentStock;
-    
+
     document.getElementById('stockItemName').value = itemName;
     document.getElementById('currentStock').value = currentStock;
     document.getElementById('stockAdjustment').value = 0;
@@ -802,15 +802,15 @@ function updateNewStock() {
 function saveStockUpdate() {
     const adjustment = parseInt(document.getElementById('stockAdjustment').value) || 0;
     const reason = document.getElementById('stockReason').value;
-    
+
     if (adjustment === 0) {
         alert('Please enter a stock adjustment amount.');
         return;
     }
-    
+
     // In a real implementation, this would make an AJAX call to update the stock
     console.log('Update stock for item:', currentItemId, 'adjustment:', adjustment, 'reason:', reason);
-    
+
     // Close modal and reload page
     bootstrap.Modal.getInstance(document.getElementById('updateStockModal')).hide();
     location.reload();
@@ -844,7 +844,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (adjustmentInput) {
         adjustmentInput.addEventListener('input', updateNewStock);
     }
-    
+
     // Load consumption tracking data when tab is clicked
     document.getElementById('consumption-tab').addEventListener('click', function() {
         loadConsumptionData();
@@ -872,18 +872,41 @@ function loadInventoryItems() {
 }
 
 function populateInventoryDropdowns(items) {
-    const selectors = ['openInventoryId', 'deductInventoryId', 'adjustInventoryId'];
-    
-    selectors.forEach(selectorId => {
-        const select = document.getElementById(selectorId);
+    const openSelect = document.getElementById('openInventoryId');
+    const deductSelect = document.getElementById('deductInventoryId');
+    const adjustSelect = document.getElementById('adjustInventoryId');
+
+    // Clear existing options
+    [openSelect, deductSelect, adjustSelect].forEach(select => {
         if (select) {
-            select.innerHTML = '<option value="">Choose an item...</option>';
-            items.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = `${item.name} (${item.current_stock} ${item.base_unit})`;
-                select.appendChild(option);
-            });
+            select.innerHTML = '<option value="">Select item...</option>';
+        }
+    });
+
+    // Populate dropdowns
+    items.forEach(item => {
+        // Create option for open inventory
+        if (openSelect) {
+            const openOption = document.createElement('option');
+            openOption.value = item.id;
+            openOption.textContent = `${item.name} (${item.current_stock} ${item.base_unit || 'units'})`;
+            openSelect.appendChild(openOption);
+        }
+
+        // Create option for deduct inventory
+        if (deductSelect) {
+            const deductOption = document.createElement('option');
+            deductOption.value = item.id;
+            deductOption.textContent = `${item.name} (${item.current_stock} ${item.base_unit || 'units'})`;
+            deductSelect.appendChild(deductOption);
+        }
+
+        // Create option for adjust inventory
+        if (adjustSelect) {
+            const adjustOption = document.createElement('option');
+            adjustOption.value = item.id;
+            adjustOption.textContent = `${item.name} (${item.current_stock} ${item.base_unit || 'units'})`;
+            adjustSelect.appendChild(adjustOption);
         }
     });
 }
@@ -899,27 +922,41 @@ function loadOpenItems() {
 }
 
 function loadConsumptionEntries() {
-    fetch('/api/inventory/consumption-entries?days=7')
-        .then(response => response.json())
+    fetch('/api/inventory/consumption-entries')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.status === 'success') {
                 populateConsumptionTable(data.entries);
+            } else {
+                console.error('Error in response:', data);
             }
         })
-        .catch(error => console.error('Error loading consumption entries:', error));
+        .catch(error => {
+            console.error('Error loading consumption entries:', error);
+            // Show fallback message in table
+            const tbody = document.querySelector('#consumptionTable tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Unable to load consumption entries</td></tr>';
+            }
+        });
 }
 
 function populateConsumptionTable(entries) {
     const tbody = document.getElementById('consumptionEntriesBody');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
+
     if (entries.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No recent consumption entries</td></tr>';
         return;
     }
-    
+
     entries.forEach(entry => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -951,18 +988,18 @@ function submitOpenItem() {
     const quantity = document.getElementById('openQuantity').value;
     const batchNumber = document.getElementById('openBatchNumber').value;
     const reason = document.getElementById('openReason').value;
-    
+
     if (!inventoryId || !quantity || !reason) {
         alert('Please fill in all required fields.');
         return;
     }
-    
+
     const data = {
         quantity: parseFloat(quantity),
         reason: reason,
         batch_number: batchNumber
     };
-    
+
     fetch(`/api/inventory/${inventoryId}/open`, {
         method: 'POST',
         headers: {
@@ -990,14 +1027,14 @@ function submitOpenItem() {
 function submitConsumeItem() {
     const itemId = document.getElementById('consumeItemId').value;
     const reason = document.getElementById('consumeReason').value;
-    
+
     if (!itemId || !reason) {
         alert('Please fill in all required fields.');
         return;
     }
-    
+
     const data = { reason: reason };
-    
+
     fetch(`/api/inventory-item/${itemId}/consume`, {
         method: 'POST',
         headers: {
@@ -1030,19 +1067,19 @@ function submitDeductQuantity() {
     const quantity = document.getElementById('deductQuantity').value;
     const unit = document.getElementById('deductUnit').value;
     const reason = document.getElementById('deductReason').value;
-    
+
     if (!inventoryId || !quantity || !unit || !reason) {
         alert('Please fill in all required fields.');
         return;
     }
-    
+
     const data = {
         quantity: parseFloat(quantity),
         unit: unit,
         reason: reason,
         reference_type: 'manual'
     };
-    
+
     fetch(`/api/inventory/${inventoryId}/deduct`, {
         method: 'POST',
         headers: {
@@ -1072,18 +1109,18 @@ function submitAdjustStock() {
     const newQuantity = document.getElementById('adjustNewQuantity').value;
     const adjustmentType = document.getElementById('adjustType').value;
     const reason = document.getElementById('adjustReason').value;
-    
+
     if (!inventoryId || !newQuantity || !adjustmentType || !reason) {
         alert('Please fill in all required fields.');
         return;
     }
-    
+
     const data = {
         new_quantity: parseFloat(newQuantity),
         adjustment_type: adjustmentType,
         reason: reason
     };
-    
+
     fetch(`/api/inventory/${inventoryId}/adjust`, {
         method: 'POST',
         headers: {

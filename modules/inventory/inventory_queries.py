@@ -312,75 +312,84 @@ def generate_reorder_suggestions():
 
 def open_inventory_item(inventory_id, quantity, reason, batch_number, created_by):
     """Open/Issue an inventory item for container/lifecycle tracking"""
-    from models import Inventory, InventoryItem, ConsumptionEntry, UsageDuration
+    from models import Inventory, InventoryItem, ConsumptionEntry, UsageDuration, StockMovement
     from datetime import datetime
     import uuid
     
     inventory = Inventory.query.get(inventory_id)
-    if not inventory or inventory.tracking_type != 'container_lifecycle':
+    if not inventory:
         return None
     
+    # Allow opening for any tracking type, not just container_lifecycle
     if not inventory.can_fulfill_quantity(quantity):
         return None
     
-    # Generate unique item code
-    item_code = f"{inventory.sku}-{uuid.uuid4().hex[:8].upper()}"
-    
-    # Create inventory item instance
-    inventory_item = InventoryItem(
-        inventory_id=inventory_id,
-        item_code=item_code,
-        batch_number=batch_number,
-        quantity=quantity,
-        remaining_quantity=quantity,
-        status='issued',
-        issued_at=datetime.utcnow(),
-        issued_by=created_by
-    )
-    
-    # Create consumption entry
-    consumption_entry = ConsumptionEntry(
-        inventory_id=inventory_id,
-        inventory_item_id=inventory_item.id,
-        entry_type='open',
-        quantity=quantity,
-        unit=inventory.base_unit,
-        reason=reason,
-        batch_number=batch_number,
-        cost_impact=quantity * inventory.cost_price,
-        created_by=created_by
-    )
-    
-    # Create usage duration tracking
-    usage_duration = UsageDuration(
-        inventory_id=inventory_id,
-        inventory_item_id=inventory_item.id,
-        opened_at=datetime.utcnow(),
-        opened_by=created_by
-    )
-    
-    # Update inventory stock
-    inventory.current_stock -= quantity
-    
-    # Create stock movement
-    movement = StockMovement(
-        inventory_id=inventory_id,
-        movement_type='service_use',
-        quantity=-quantity,
-        unit=inventory.base_unit,
-        reference_type='open',
-        reference_id=inventory_item.id,
-        reason=reason,
-        created_by=created_by
-    )
-    
-    db.session.add(inventory_item)
-    db.session.add(consumption_entry)
-    db.session.add(usage_duration)
-    db.session.add(movement)
-    db.session.commit()
-    
-    return inventory_item
+    try:
+        # Generate unique item code
+        item_code = f"{inventory.sku or 'ITEM'}-{uuid.uuid4().hex[:8].upper()}"
+        
+        # Create inventory item instance
+        inventory_item = InventoryItem(
+            inventory_id=inventory_id,
+            item_code=item_code,
+            batch_number=batch_number,
+            quantity=quantity,
+            remaining_quantity=quantity,
+            status='issued',
+            issued_at=datetime.utcnow(),
+            issued_by=created_by
+        )
+        
+        db.session.add(inventory_item)
+        db.session.flush()  # Flush to get the ID
+        
+        # Create consumption entry
+        consumption_entry = ConsumptionEntry(
+            inventory_id=inventory_id,
+            inventory_item_id=inventory_item.id,
+            entry_type='open',
+            quantity=quantity,
+            unit=inventory.base_unit,
+            reason=reason,
+            batch_number=batch_number,
+            cost_impact=quantity * inventory.cost_price,
+            created_by=created_by
+        )
+        
+        # Create usage duration tracking
+        usage_duration = UsageDuration(
+            inventory_id=inventory_id,
+            inventory_item_id=inventory_item.id,
+            opened_at=datetime.utcnow(),
+            opened_by=created_by
+        )
+        
+        # Update inventory stock
+        inventory.current_stock -= quantity
+        
+        # Create stock movement
+        movement = StockMovement(
+            inventory_id=inventory_id,
+            movement_type='service_use',
+            quantity=-quantity,
+            unit=inventory.base_unit,
+            reference_type='open',
+            reference_id=inventory_item.id,
+            reason=reason,
+            created_by=created_by
+        )
+        
+        db.session.add(consumption_entry)
+        db.session.add(usage_duration)
+        db.session.add(movement)
+        db.session.commit()
+        
+        return inventory_item
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error opening inventory item: {e}")
+        return None
 
 def consume_inventory_item(item_id, reason, created_by):
     """Mark inventory item as fully consumed"""
