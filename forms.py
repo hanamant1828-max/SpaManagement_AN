@@ -3,6 +3,7 @@ from wtforms import StringField, PasswordField, SelectField, TextAreaField, Floa
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
 from wtforms.widgets import TextArea, CheckboxInput, ListWidget
 from datetime import datetime, date
+from wtforms import DecimalField
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=25)])
@@ -70,15 +71,16 @@ class AppointmentForm(FlaskForm):
     discount = FloatField('Discount', validators=[Optional(), NumberRange(min=0)])
 
 class InventoryForm(FlaskForm):
-    name = StringField('Item Name', validators=[DataRequired(), Length(max=100)])
-    description = TextAreaField('Description', validators=[Optional()])
-    category_id = SelectField('Category', coerce=int, validators=[DataRequired()])
-    current_stock = IntegerField('Current Stock', validators=[DataRequired(), NumberRange(min=0)])
-    min_stock_level = IntegerField('Minimum Stock Level', validators=[DataRequired(), NumberRange(min=0)])
-    cost_price = FloatField('Cost Price', validators=[Optional(), NumberRange(min=0)])
-    selling_price = FloatField('Selling Price', validators=[Optional(), NumberRange(min=0)])
-    supplier = StringField('Supplier Name', validators=[Optional(), Length(max=100)])
+    name = StringField('Item Name', validators=[DataRequired(), Length(min=2, max=100)])
+    description = TextAreaField('Description', validators=[Length(max=500)])
+    category_id = SelectField('Category', coerce=int, validators=[Optional()])
+    current_stock = DecimalField('Current Stock', validators=[DataRequired(), NumberRange(min=0)], default=0)
+    min_stock_level = DecimalField('Minimum Stock Level', validators=[DataRequired(), NumberRange(min=0)], default=5)
+    cost_price = DecimalField('Cost Price', validators=[NumberRange(min=0)], places=2, default=0)
+    selling_price = DecimalField('Selling Price', validators=[NumberRange(min=0)], places=2, default=0)
     expiry_date = DateField('Expiry Date', validators=[Optional()])
+    supplier = StringField('Supplier', validators=[Length(max=100)])
+    submit = SubmitField('Save Item')
 
 class ExpenseForm(FlaskForm):
     description = StringField('Description', validators=[DataRequired(), Length(max=200)])

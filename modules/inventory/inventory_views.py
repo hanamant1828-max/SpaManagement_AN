@@ -59,23 +59,52 @@ def create_inventory_route():
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
     
     if form.validate_on_submit():
-        inventory_data = {
-            'name': form.name.data,
-            'description': form.description.data or '',
-            'category_id': form.category_id.data,
-            'current_stock': form.current_stock.data,
-            'min_stock_level': form.min_stock_level.data,
-            'cost_price': form.cost_price.data,
-            'selling_price': form.selling_price.data,
-            'expiry_date': form.expiry_date.data,
-            'supplier': form.supplier.data or '',
-            'is_active': True
-        }
-        
-        create_inventory(inventory_data)
-        flash('Inventory item created successfully!', 'success')
+        try:
+            inventory_data = {
+                'name': form.name.data.strip(),
+                'description': form.description.data.strip() if form.description.data else '',
+                'category_id': form.category_id.data if form.category_id.data else None,
+                'category': 'general',  # Fallback category
+                'current_stock': float(form.current_stock.data or 0),
+                'min_stock_level': float(form.min_stock_level.data or 5),
+                'cost_price': float(form.cost_price.data or 0),
+                'selling_price': float(form.selling_price.data or 0),
+                'expiry_date': form.expiry_date.data,
+                'supplier_name': form.supplier.data.strip() if form.supplier.data else '',
+                'is_active': True
+            }
+            
+            # Validate required fields
+            if not inventory_data['name']:
+                flash('Item name is required', 'danger')
+                return redirect(url_for('inventory'))
+            
+            if inventory_data['current_stock'] < 0:
+                flash('Current stock cannot be negative', 'danger')
+                return redirect(url_for('inventory'))
+            
+            inventory = create_inventory(inventory_data)
+            if inventory:
+                flash(f'Inventory item "{inventory.name}" created successfully!', 'success')
+            else:
+                flash('Error creating inventory item. Please try again.', 'danger')
+                
+        except ValueError as e:
+            flash(f'Invalid input: {str(e)}', 'danger')
+        except Exception as e:
+            flash(f'Error creating inventory item: {str(e)}', 'danger')
+            print(f"Inventory creation error: {e}")
     else:
-        flash('Error creating inventory item. Please check your input.', 'danger')
+        # Show specific validation errors
+        error_messages = []
+        for field, errors in form.errors.items():
+            for error in errors:
+                error_messages.append(f"{field}: {error}")
+        
+        if error_messages:
+            flash(f'Validation errors: {"; ".join(error_messages)}', 'danger')
+        else:
+            flash('Error creating inventory item. Please check your input.', 'danger')
     
     return redirect(url_for('inventory'))
 

@@ -53,10 +53,43 @@ def search_inventory(query):
 
 def create_inventory(inventory_data):
     """Create a new inventory item"""
-    inventory = Inventory(**inventory_data)
-    db.session.add(inventory)
-    db.session.commit()
-    return inventory
+    from app import db
+    from models import Inventory
+    import uuid
+    
+    try:
+        # Generate SKU if not provided
+        if not inventory_data.get('sku'):
+            # Generate a unique SKU
+            sku_prefix = inventory_data.get('name', 'ITEM')[:3].upper().replace(' ', '')
+            sku_suffix = str(uuid.uuid4())[:8].upper()
+            inventory_data['sku'] = f"{sku_prefix}-{sku_suffix}"
+        
+        # Set default values for required fields
+        inventory_data.setdefault('base_unit', 'pcs')
+        inventory_data.setdefault('selling_unit', 'pcs')
+        inventory_data.setdefault('conversion_factor', 1.0)
+        inventory_data.setdefault('item_type', 'consumable')
+        inventory_data.setdefault('is_service_item', True)
+        inventory_data.setdefault('is_retail_item', False)
+        inventory_data.setdefault('tracking_type', 'piece_wise')
+        
+        # Set default stock levels
+        current_stock = inventory_data.get('current_stock', 0)
+        min_stock = inventory_data.get('min_stock_level', 5)
+        inventory_data.setdefault('max_stock_level', max(100, current_stock * 2))
+        inventory_data.setdefault('reorder_point', max(10, min_stock))
+        inventory_data.setdefault('reorder_quantity', max(50, min_stock * 2))
+        
+        inventory = Inventory(**inventory_data)
+        db.session.add(inventory)
+        db.session.commit()
+        return inventory
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating inventory: {e}")
+        return None
 
 def update_inventory(inventory_id, inventory_data):
     """Update an existing inventory item"""
