@@ -76,7 +76,7 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="setTimeout(loadConsumptionData, 200);">
+                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="handleConsumptionTabClick();">
                                 <i class="fas fa-clipboard-list me-1"></i>Consumption Tracking
                             </button>
                         </li>
@@ -778,6 +778,40 @@
 <script>
 let currentItemId = null;
 let originalStock = 0;
+let activeTab = 'all-items';
+
+// Tab state management
+function setActiveTab(tabId) {
+    activeTab = tabId;
+    console.log('Active tab set to:', tabId);
+    
+    // Load data specific to the tab
+    switch(tabId) {
+        case 'consumption-tracking':
+            handleConsumptionTabActivation();
+            break;
+        default:
+            break;
+    }
+}
+
+function handleConsumptionTabActivation() {
+    console.log('Handling consumption tab activation...');
+    try {
+        if (typeof loadConsumptionData === 'function') {
+            loadConsumptionData();
+        } else {
+            console.warn('loadConsumptionData function not available, using fallback');
+            // Fallback: show basic message
+            const tbody = document.getElementById('consumptionEntriesBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Consumption tracking data loading...</td></tr>';
+            }
+        }
+    } catch (error) {
+        console.error('Error in handleConsumptionTabActivation:', error);
+    }
+}
 
 function updateStock(itemId, itemName, currentStock) {
     currentItemId = itemId;
@@ -858,26 +892,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function loadConsumptionData() {
     console.log('Loading consumption tracking data...');
-    // Load inventory items for dropdowns
-    loadInventoryItems();
-    loadOpenItems();
-    loadConsumptionEntries();
+    try {
+        // Load inventory items for dropdowns
+        loadInventoryItems();
+        loadOpenItems();
+        loadConsumptionEntries();
+    } catch (error) {
+        console.error('Error loading consumption data:', error);
+    }
+}
+
+// Fix missing updateStock function
+function updateStock(itemId, itemName, currentStock) {
+    console.log('updateStock called with:', itemId, itemName, currentStock);
+    currentItemId = itemId;
+    originalStock = currentStock;
+
+    const stockItemName = document.getElementById('stockItemName');
+    const currentStockInput = document.getElementById('currentStock');
+    const stockAdjustment = document.getElementById('stockAdjustment');
+    const newStock = document.getElementById('newStock');
+    
+    if (stockItemName) stockItemName.value = itemName;
+    if (currentStockInput) currentStockInput.value = currentStock;
+    if (stockAdjustment) stockAdjustment.value = 0;
+    if (newStock) newStock.value = currentStock;
 }
 
 // Add event listener for consumption tracking tab
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Setting up consumption tracking tab event listener...');
+    
+    // Initialize all tab event listeners
+    const tabButtons = document.querySelectorAll('#inventoryTabs button[data-bs-toggle="pill"]');
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(e) {
+            const targetId = e.target.getAttribute('data-bs-target');
+            console.log('Tab activated:', targetId);
+            
+            // Load specific data based on tab
+            if (targetId === '#consumption-tracking') {
+                console.log('Loading consumption tracking data...');
+                loadConsumptionData();
+            }
+        });
+    });
+    
     const consumptionTab = document.getElementById('consumption-tab');
     if (consumptionTab) {
-        consumptionTab.addEventListener('shown.bs.tab', function (e) {
-            console.log('Consumption tracking tab activated!');
-            loadConsumptionData();
-        });
-        
         // Also load data when tab is clicked for the first time
         consumptionTab.addEventListener('click', function(e) {
             console.log('Consumption tab clicked, loading data...');
-            setTimeout(loadConsumptionData, 100); // Small delay to ensure tab is active
+            setTimeout(loadConsumptionData, 200);
         });
         
         console.log('Event listener added to consumption tab');
@@ -1188,6 +1254,22 @@ function getEntryTypeBadge(entryType) {
         'adjust': 'secondary'
     };
     return badges[entryType] || 'light';
+}
+
+// Handle consumption tab click
+function handleConsumptionTabClick() {
+    console.log('Consumption tab clicked via onclick');
+    try {
+        setTimeout(function() {
+            if (typeof loadConsumptionData === 'function') {
+                loadConsumptionData();
+            } else {
+                console.error('loadConsumptionData function not found');
+            }
+        }, 200);
+    } catch (error) {
+        console.error('Error in handleConsumptionTabClick:', error);
+    }
 }
 
 // Submit functions for consumption tracking modals
