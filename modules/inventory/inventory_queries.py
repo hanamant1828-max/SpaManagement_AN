@@ -307,3 +307,317 @@ def generate_reorder_suggestions():
         })
     
     return suggestions
+
+# NEW: Advanced Consumption Tracking Functions
+
+def open_inventory_item(inventory_id, quantity, reason, batch_number, created_by):
+    """Open/Issue an inventory item for container/lifecycle tracking"""
+    from models import Inventory, InventoryItem, ConsumptionEntry, UsageDuration
+    from datetime import datetime
+    import uuid
+    
+    inventory = Inventory.query.get(inventory_id)
+    if not inventory or inventory.tracking_type != 'container_lifecycle':
+        return None
+    
+    if not inventory.can_fulfill_quantity(quantity):
+        return None
+    
+    # Generate unique item code
+    item_code = f"{inventory.sku}-{uuid.uuid4().hex[:8].upper()}"
+    
+    # Create inventory item instance
+    inventory_item = InventoryItem(
+        inventory_id=inventory_id,
+        item_code=item_code,
+        batch_number=batch_number,
+        quantity=quantity,
+        remaining_quantity=quantity,
+        status='issued',
+        issued_at=datetime.utcnow(),
+        issued_by=created_by
+    )
+    
+    # Create consumption entry
+    consumption_entry = ConsumptionEntry(
+        inventory_id=inventory_id,
+        inventory_item_id=inventory_item.id,
+        entry_type='open',
+        quantity=quantity,
+        unit=inventory.base_unit,
+        reason=reason,
+        batch_number=batch_number,
+        cost_impact=quantity * inventory.cost_price,
+        created_by=created_by
+    )
+    
+    # Create usage duration tracking
+    usage_duration = UsageDuration(
+        inventory_id=inventory_id,
+        inventory_item_id=inventory_item.id,
+        opened_at=datetime.utcnow(),
+        opened_by=created_by
+    )
+    
+    # Update inventory stock
+    inventory.current_stock -= quantity
+    
+    # Create stock movement
+    movement = StockMovement(
+        inventory_id=inventory_id,
+        movement_type='service_use',
+        quantity=-quantity,
+        unit=inventory.base_unit,
+        reference_type='open',
+        reference_id=inventory_item.id,
+        reason=reason,
+        created_by=created_by
+    )
+    
+    db.session.add(inventory_item)
+    db.session.add(consumption_entry)
+    db.session.add(usage_duration)
+    db.session.add(movement)
+    db.session.commit()
+    
+    return inventory_item
+
+def consume_inventory_item(item_id, reason, created_by):
+    """Mark inventory item as fully consumed"""
+    from models import InventoryItem, ConsumptionEntry, UsageDuration
+    from datetime import datetime
+    
+    inventory_item = InventoryItem.query.get(item_id)
+    if not inventory_item or inventory_item.status != 'issued':
+        return None
+    
+    # Update item status
+    inventory_item.status = 'consumed'
+    inventory_item.consumed_at = datetime.utcnow()
+    inventory_item.consumed_by = created_by
+    inventory_item.remaining_quantity = 0
+    
+    # Create consumption entry
+    consumption_entry = ConsumptionEntry(
+        inventory_id=inventory_item.inventory_id,
+        inventory_item_id=item_id,
+        entry_type='consume',
+        quantity=inventory_item.remaining_quantity,
+        unit=inventory_item.inventory.base_unit,
+        reason=reason,
+        batch_number=inventory_item.batch_number,
+        created_by=created_by
+    )
+    
+    # Update usage duration
+    usage_duration = UsageDuration.query.filter_by(
+        inventory_item_id=item_id, 
+        finished_at=None
+    ).first()
+    
+    if usage_duration:
+        usage_duration.finished_at = datetime.utcnow()
+        usage_duration.finished_by = created_by
+        duration = usage_duration.finished_at - usage_duration.opened_at
+        usage_duration.duration_hours = duration.total_seconds() / 3600
+    
+    db.session.add(consumption_entry)
+    db.session.commit()
+    
+    return usage_duration
+
+def deduct_inventory_quantity(inventory_id, quantity, unit, reason, reference_id, reference_type, created_by):
+    """Deduct specific quantity for piece-wise tracking"""
+    from models import Inventory, ConsumptionEntry
+    
+    inventory = Inventory.query.get(inventory_id)
+    if not inventory:
+        return None
+    
+    # Convert to base unit if needed
+    if unit != inventory.base_unit:
+        try:
+            quantity_in_base = convert_units(quantity, unit, inventory.base_unit)
+        except:
+            quantity_in_base = quantity
+    else:
+        quantity_in_base = quantity
+    
+    if not inventory.can_fulfill_quantity(quantity_in_base):
+        return None
+    
+    # Create consumption entry
+    consumption_entry = ConsumptionEntry(
+        inventory_id=inventory_id,
+        entry_type='deduct',
+        quantity=quantity,
+        unit=unit,
+        reason=reason,
+        reference_id=reference_id,
+        reference_type=reference_type,
+        cost_impact=quantity_in_base * inventory.cost_price,
+        created_by=created_by
+    )
+    
+    # Update inventory stock
+    inventory.current_stock -= quantity_in_base
+    
+    # Create stock movement
+    movement = StockMovement(
+        inventory_id=inventory_id,
+        movement_type='service_use',
+        quantity=-quantity_in_base,
+        unit=inventory.base_unit,
+        reference_type=reference_type,
+        reference_id=reference_id,
+        reason=reason,
+        created_by=created_by
+    )
+    
+    db.session.add(consumption_entry)
+    db.session.add(movement)
+    db.session.commit()
+    
+    return {
+        'remaining_stock': inventory.current_stock,
+        'deducted_quantity': quantity_in_base
+    }
+
+def create_manual_adjustment(inventory_id, new_quantity, adjustment_type, reason, created_by):
+    """Create manual stock adjustment"""
+    from models import Inventory, ConsumptionEntry
+    
+    inventory = Inventory.query.get(inventory_id)
+    if not inventory:
+        return None
+    
+    old_quantity = inventory.current_stock
+    adjustment_quantity = new_quantity - old_quantity
+    
+    # Create consumption entry
+    consumption_entry = ConsumptionEntry(
+        inventory_id=inventory_id,
+        entry_type='adjust',
+        quantity=abs(adjustment_quantity),
+        unit=inventory.base_unit,
+        reason=reason,
+        reference_type='manual_adjustment',
+        cost_impact=abs(adjustment_quantity) * inventory.cost_price,
+        created_by=created_by
+    )
+    
+    # Update inventory stock
+    inventory.current_stock = new_quantity
+    
+    # Create stock movement
+    movement = StockMovement(
+        inventory_id=inventory_id,
+        movement_type='adjustment',
+        quantity=adjustment_quantity,
+        unit=inventory.base_unit,
+        reference_type='manual_adjustment',
+        reason=reason,
+        created_by=created_by
+    )
+    
+    db.session.add(consumption_entry)
+    db.session.add(movement)
+    db.session.commit()
+    
+    return {
+        'old_quantity': old_quantity,
+        'new_quantity': new_quantity,
+        'adjustment': adjustment_quantity
+    }
+
+def get_consumption_entries(inventory_id=None, entry_type=None, staff_id=None, days=30):
+    """Get consumption entries with filtering"""
+    from models import ConsumptionEntry
+    from datetime import datetime, timedelta
+    
+    query = ConsumptionEntry.query
+    
+    if inventory_id:
+        query = query.filter(ConsumptionEntry.inventory_id == inventory_id)
+    
+    if entry_type:
+        query = query.filter(ConsumptionEntry.entry_type == entry_type)
+    
+    if staff_id:
+        query = query.filter(ConsumptionEntry.created_by == staff_id)
+    
+    # Filter by date range
+    start_date = datetime.utcnow() - timedelta(days=days)
+    query = query.filter(ConsumptionEntry.created_at >= start_date)
+    
+    return query.order_by(ConsumptionEntry.created_at.desc()).all()
+
+def get_usage_duration_report(inventory_id=None, days=30):
+    """Get usage duration report"""
+    from models import UsageDuration, Inventory
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    query = db.session.query(
+        Inventory.name,
+        func.count(UsageDuration.id).label('total_items'),
+        func.avg(UsageDuration.duration_hours).label('avg_duration_hours'),
+        func.min(UsageDuration.duration_hours).label('min_duration_hours'),
+        func.max(UsageDuration.duration_hours).label('max_duration_hours')
+    ).join(UsageDuration, Inventory.id == UsageDuration.inventory_id)
+    
+    if inventory_id:
+        query = query.filter(Inventory.id == inventory_id)
+    
+    # Filter by date range
+    start_date = datetime.utcnow() - timedelta(days=days)
+    query = query.filter(UsageDuration.opened_at >= start_date)
+    query = query.filter(UsageDuration.finished_at.isnot(None))
+    
+    results = query.group_by(Inventory.name).all()
+    
+    return [{
+        'item_name': result.name,
+        'total_items_consumed': result.total_items,
+        'average_duration_hours': round(float(result.avg_duration_hours or 0), 2),
+        'minimum_duration_hours': round(float(result.min_duration_hours or 0), 2),
+        'maximum_duration_hours': round(float(result.max_duration_hours or 0), 2)
+    } for result in results]
+
+def get_staff_usage_report(staff_id=None, days=30):
+    """Get staff usage report"""
+    from models import ConsumptionEntry, User, Inventory
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    query = db.session.query(
+        User.first_name,
+        User.last_name,
+        Inventory.name,
+        ConsumptionEntry.entry_type,
+        func.sum(ConsumptionEntry.quantity).label('total_quantity'),
+        func.sum(ConsumptionEntry.cost_impact).label('total_cost'),
+        func.count(ConsumptionEntry.id).label('total_entries')
+    ).join(ConsumptionEntry, User.id == ConsumptionEntry.created_by) \
+     .join(Inventory, ConsumptionEntry.inventory_id == Inventory.id)
+    
+    if staff_id:
+        query = query.filter(User.id == staff_id)
+    
+    # Filter by date range
+    start_date = datetime.utcnow() - timedelta(days=days)
+    query = query.filter(ConsumptionEntry.created_at >= start_date)
+    
+    results = query.group_by(
+        User.first_name, User.last_name, 
+        Inventory.name, ConsumptionEntry.entry_type
+    ).all()
+    
+    return [{
+        'staff_name': f"{result.first_name} {result.last_name}",
+        'item_name': result.name,
+        'entry_type': result.entry_type,
+        'total_quantity': float(result.total_quantity),
+        'total_cost_impact': float(result.total_cost or 0),
+        'total_entries': result.total_entries
+    } for result in results]

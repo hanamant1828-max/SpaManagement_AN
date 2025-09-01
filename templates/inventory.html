@@ -76,6 +76,11 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab">
+                                <i class="fas fa-clipboard-list me-1"></i>Consumption Tracking
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="expiring-tab" data-bs-toggle="pill" data-bs-target="#expiring-items" type="button" role="tab">
                                 <i class="fas fa-clock me-1"></i>Expiring Soon
                             </button>
@@ -316,6 +321,94 @@
             </div>
         </div>
 
+        <!-- NEW: Consumption Tracking Tab -->
+        <div class="tab-pane fade" id="consumption-tracking" role="tabpanel">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-clipboard-list me-2"></i>Consumption Tracking
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <!-- Quick Action Cards -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-primary h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-box-open fa-2x text-primary mb-2"></i>
+                                    <h6>Open Item</h6>
+                                    <p class="small text-muted">Start using a bottle/jar</p>
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#openItemModal">
+                                        Open Item
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-success h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                    <h6>Mark Consumed</h6>
+                                    <p class="small text-muted">Item fully used up</p>
+                                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#consumeItemModal">
+                                        Mark Consumed
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-warning h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-minus-circle fa-2x text-warning mb-2"></i>
+                                    <h6>Deduct Quantity</h6>
+                                    <p class="small text-muted">Use specific amount</p>
+                                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#deductQuantityModal">
+                                        Deduct Stock
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-secondary h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-edit fa-2x text-secondary mb-2"></i>
+                                    <h6>Manual Adjust</h6>
+                                    <p class="small text-muted">Custom stock change</p>
+                                    <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#adjustStockModal">
+                                        Adjust Stock
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Consumption Entries -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="mb-3">Recent Consumption Entries</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover" id="consumptionEntriesTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Item</th>
+                                            <th>Action</th>
+                                            <th>Quantity</th>
+                                            <th>Staff</th>
+                                            <th>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="consumptionEntriesBody">
+                                        <!-- Consumption entries will be loaded here via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Categories Tab -->
         <div class="tab-pane fade" id="categories-view" role="tabpanel">
             <div class="row">
@@ -499,6 +592,183 @@
         </div>
     </div>
 </div>
+
+<!-- NEW: Consumption Tracking Modals -->
+
+<!-- Open Item Modal -->
+<div class="modal fade" id="openItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-box-open me-2"></i>Open Inventory Item
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="openItemForm">
+                    <div class="mb-3">
+                        <label for="openInventoryId" class="form-label">Select Item</label>
+                        <select class="form-select" id="openInventoryId" required>
+                            <option value="">Choose an item...</option>
+                        </select>
+                        <small class="text-muted">Only items with container/lifecycle tracking are shown</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="openQuantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="openQuantity" step="0.01" min="0.01" value="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="openBatchNumber" class="form-label">Batch Number (Optional)</label>
+                        <input type="text" class="form-control" id="openBatchNumber">
+                    </div>
+                    <div class="mb-3">
+                        <label for="openReason" class="form-label">Reason</label>
+                        <input type="text" class="form-control" id="openReason" value="Opened for use" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitOpenItem()">
+                    <i class="fas fa-box-open me-2"></i>Open Item
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Consume Item Modal -->
+<div class="modal fade" id="consumeItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Mark Item as Consumed
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="consumeItemForm">
+                    <div class="mb-3">
+                        <label for="consumeItemId" class="form-label">Select Open Item</label>
+                        <select class="form-select" id="consumeItemId" required>
+                            <option value="">Choose an open item...</option>
+                        </select>
+                        <small class="text-muted">Only items currently in use are shown</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="consumeReason" class="form-label">Reason</label>
+                        <input type="text" class="form-control" id="consumeReason" value="Fully consumed" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitConsumeItem()">
+                    <i class="fas fa-check-circle me-2"></i>Mark Consumed
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deduct Quantity Modal -->
+<div class="modal fade" id="deductQuantityModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-minus-circle me-2"></i>Deduct Quantity
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deductQuantityForm">
+                    <div class="mb-3">
+                        <label for="deductInventoryId" class="form-label">Select Item</label>
+                        <select class="form-select" id="deductInventoryId" required>
+                            <option value="">Choose an item...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deductQuantity" class="form-label">Quantity to Deduct</label>
+                        <input type="number" class="form-control" id="deductQuantity" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deductUnit" class="form-label">Unit</label>
+                        <select class="form-select" id="deductUnit" required>
+                            <option value="">Select unit...</option>
+                            <option value="pcs">Pieces</option>
+                            <option value="ml">Milliliters</option>
+                            <option value="gram">Grams</option>
+                            <option value="liter">Liters</option>
+                            <option value="kg">Kilograms</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deductReason" class="form-label">Reason</label>
+                        <input type="text" class="form-control" id="deductReason" value="Service consumption" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="submitDeductQuantity()">
+                    <i class="fas fa-minus-circle me-2"></i>Deduct Stock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adjust Stock Modal -->
+<div class="modal fade" id="adjustStockModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Manual Stock Adjustment
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="adjustStockForm">
+                    <div class="mb-3">
+                        <label for="adjustInventoryId" class="form-label">Select Item</label>
+                        <select class="form-select" id="adjustInventoryId" required>
+                            <option value="">Choose an item...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adjustNewQuantity" class="form-label">New Stock Quantity</label>
+                        <input type="number" class="form-control" id="adjustNewQuantity" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adjustType" class="form-label">Adjustment Type</label>
+                        <select class="form-select" id="adjustType" required>
+                            <option value="manual_adjustment">Manual Adjustment</option>
+                            <option value="physical_count">Physical Count</option>
+                            <option value="wastage">Wastage</option>
+                            <option value="damage">Damage</option>
+                            <option value="theft">Theft</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adjustReason" class="form-label">Reason</label>
+                        <input type="text" class="form-control" id="adjustReason" placeholder="Explain the adjustment..." required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" onclick="submitAdjustStock()">
+                    <i class="fas fa-edit me-2"></i>Adjust Stock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -574,7 +844,269 @@ document.addEventListener('DOMContentLoaded', function() {
     if (adjustmentInput) {
         adjustmentInput.addEventListener('input', updateNewStock);
     }
+    
+    // Load consumption tracking data when tab is clicked
+    document.getElementById('consumption-tab').addEventListener('click', function() {
+        loadConsumptionData();
+    });
 });
+
+// NEW: Consumption Tracking Functions
+
+function loadConsumptionData() {
+    // Load inventory items for dropdowns
+    loadInventoryItems();
+    loadOpenItems();
+    loadConsumptionEntries();
+}
+
+function loadInventoryItems() {
+    fetch('/api/inventory/status/all')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                populateInventoryDropdowns(data.items);
+            }
+        })
+        .catch(error => console.error('Error loading inventory items:', error));
+}
+
+function populateInventoryDropdowns(items) {
+    const selectors = ['openInventoryId', 'deductInventoryId', 'adjustInventoryId'];
+    
+    selectors.forEach(selectorId => {
+        const select = document.getElementById(selectorId);
+        if (select) {
+            select.innerHTML = '<option value="">Choose an item...</option>';
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = `${item.name} (${item.current_stock} ${item.base_unit})`;
+                select.appendChild(option);
+            });
+        }
+    });
+}
+
+function loadOpenItems() {
+    // This would load currently open items for the consume modal
+    // For now, we'll implement a placeholder
+    const select = document.getElementById('consumeItemId');
+    if (select) {
+        select.innerHTML = '<option value="">Choose an open item...</option>';
+        // TODO: Load actual open items from API
+    }
+}
+
+function loadConsumptionEntries() {
+    fetch('/api/inventory/consumption-entries?days=7')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                populateConsumptionTable(data.entries);
+            }
+        })
+        .catch(error => console.error('Error loading consumption entries:', error));
+}
+
+function populateConsumptionTable(entries) {
+    const tbody = document.getElementById('consumptionEntriesBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No recent consumption entries</td></tr>';
+        return;
+    }
+    
+    entries.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${new Date(entry.created_at).toLocaleDateString()}</td>
+            <td>${entry.inventory_name}</td>
+            <td><span class="badge bg-${getEntryTypeBadge(entry.entry_type)}">${entry.entry_type}</span></td>
+            <td>${entry.quantity} ${entry.unit}</td>
+            <td>${entry.staff_name}</td>
+            <td>${entry.reason}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getEntryTypeBadge(entryType) {
+    const badges = {
+        'open': 'primary',
+        'consume': 'success',
+        'deduct': 'warning',
+        'adjust': 'secondary'
+    };
+    return badges[entryType] || 'light';
+}
+
+// Submit functions for consumption tracking modals
+
+function submitOpenItem() {
+    const inventoryId = document.getElementById('openInventoryId').value;
+    const quantity = document.getElementById('openQuantity').value;
+    const batchNumber = document.getElementById('openBatchNumber').value;
+    const reason = document.getElementById('openReason').value;
+    
+    if (!inventoryId || !quantity || !reason) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+    
+    const data = {
+        quantity: parseFloat(quantity),
+        reason: reason,
+        batch_number: batchNumber
+    };
+    
+    fetch(`/api/inventory/${inventoryId}/open`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(`Item opened successfully! Item code: ${data.item_code}`);
+            bootstrap.Modal.getInstance(document.getElementById('openItemModal')).hide();
+            loadConsumptionData();
+            location.reload(); // Refresh to update stock display
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while opening the item.');
+    });
+}
+
+function submitConsumeItem() {
+    const itemId = document.getElementById('consumeItemId').value;
+    const reason = document.getElementById('consumeReason').value;
+    
+    if (!itemId || !reason) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+    
+    const data = { reason: reason };
+    
+    fetch(`/api/inventory-item/${itemId}/consume`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            let message = 'Item marked as consumed successfully!';
+            if (data.duration_hours) {
+                message += ` Usage duration: ${data.duration_hours.toFixed(2)} hours.`;
+            }
+            alert(message);
+            bootstrap.Modal.getInstance(document.getElementById('consumeItemModal')).hide();
+            loadConsumptionData();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while consuming the item.');
+    });
+}
+
+function submitDeductQuantity() {
+    const inventoryId = document.getElementById('deductInventoryId').value;
+    const quantity = document.getElementById('deductQuantity').value;
+    const unit = document.getElementById('deductUnit').value;
+    const reason = document.getElementById('deductReason').value;
+    
+    if (!inventoryId || !quantity || !unit || !reason) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+    
+    const data = {
+        quantity: parseFloat(quantity),
+        unit: unit,
+        reason: reason,
+        reference_type: 'manual'
+    };
+    
+    fetch(`/api/inventory/${inventoryId}/deduct`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(`Quantity deducted successfully! Remaining stock: ${data.remaining_stock}`);
+            bootstrap.Modal.getInstance(document.getElementById('deductQuantityModal')).hide();
+            loadConsumptionData();
+            location.reload(); // Refresh to update stock display
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deducting quantity.');
+    });
+}
+
+function submitAdjustStock() {
+    const inventoryId = document.getElementById('adjustInventoryId').value;
+    const newQuantity = document.getElementById('adjustNewQuantity').value;
+    const adjustmentType = document.getElementById('adjustType').value;
+    const reason = document.getElementById('adjustReason').value;
+    
+    if (!inventoryId || !newQuantity || !adjustmentType || !reason) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+    
+    const data = {
+        new_quantity: parseFloat(newQuantity),
+        adjustment_type: adjustmentType,
+        reason: reason
+    };
+    
+    fetch(`/api/inventory/${inventoryId}/adjust`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(`Stock adjusted successfully! Old: ${data.old_quantity}, New: ${data.new_quantity}, Change: ${data.adjustment}`);
+            bootstrap.Modal.getInstance(document.getElementById('adjustStockModal')).hide();
+            loadConsumptionData();
+            location.reload(); // Refresh to update stock display
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while adjusting stock.');
+    });
+}
 </script>
 
 <style>

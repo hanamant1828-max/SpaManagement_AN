@@ -469,6 +469,11 @@ class Inventory(db.Model):
     enable_expiry_alert = db.Column(db.Boolean, default=True)
     expiry_alert_days = db.Column(db.Integer, default=30)  # Days before expiry to alert
     
+    # NEW: Advanced Tracking Types
+    tracking_type = db.Column(db.String(20), default='piece_wise', nullable=False)  # container_lifecycle, piece_wise, manual_entry
+    supports_batches = db.Column(db.Boolean, default=False)  # Enable batch/lot tracking
+    requires_open_close = db.Column(db.Boolean, default=False)  # For container/lifecycle tracking
+    
     # Status and metadata
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -679,6 +684,80 @@ class InventoryAdjustment(db.Model):
     # Relationships
     inventory_item = db.relationship('Inventory', backref='adjustments')
     created_by_user = db.relationship('User', backref='inventory_adjustments')
+
+# NEW: Advanced Inventory Tracking Models
+
+class InventoryItem(db.Model):
+    """Individual item instances for container/lifecycle tracking"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    item_code = db.Column(db.String(50), unique=True, nullable=False)  # Unique identifier for this instance
+    batch_number = db.Column(db.String(50))
+    expiry_date = db.Column(db.Date)
+    status = db.Column(db.String(20), default='in_stock')  # in_stock, issued, consumed, expired, damaged
+    quantity = db.Column(db.Float, nullable=False)  # Original quantity
+    remaining_quantity = db.Column(db.Float, nullable=False)  # Current remaining quantity
+    
+    # Lifecycle tracking
+    issued_at = db.Column(db.DateTime)  # When item was opened/issued
+    issued_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    consumed_at = db.Column(db.DateTime)  # When item was fully consumed
+    consumed_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    inventory = db.relationship('Inventory', backref='inventory_items')
+    issued_by_user = db.relationship('User', foreign_keys=[issued_by], backref='issued_items')
+    consumed_by_user = db.relationship('User', foreign_keys=[consumed_by], backref='consumed_items')
+    consumption_entries = db.relationship('ConsumptionEntry', backref='inventory_item', lazy=True)
+
+class ConsumptionEntry(db.Model):
+    """Track individual consumption entries for all tracking types"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'))  # For container tracking
+    
+    # Entry details
+    entry_type = db.Column(db.String(20), nullable=False)  # open, consume, deduct, adjust
+    quantity = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)
+    reason = db.Column(db.String(200), nullable=False)
+    notes = db.Column(db.Text)
+    
+    # Reference information
+    reference_id = db.Column(db.Integer)  # appointment_id, service_id, etc.
+    reference_type = db.Column(db.String(50))  # appointment, service, manual, adjustment
+    
+    # Staff tracking
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Batch/lot tracking
+    batch_number = db.Column(db.String(50))
+    cost_impact = db.Column(db.Float, default=0.0)
+    
+    # Relationships
+    inventory = db.relationship('Inventory', backref='consumption_entries')
+    created_by_user = db.relationship('User', backref='consumption_entries')
+
+class UsageDuration(db.Model):
+    """Track how long items last from open to finish"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'))
+    
+    opened_at = db.Column(db.DateTime, nullable=False)
+    finished_at = db.Column(db.DateTime)
+    duration_hours = db.Column(db.Float)  # Total hours from open to finish
+    
+    opened_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    finished_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Relationships
+    inventory = db.relationship('Inventory', backref='usage_durations')
+    opened_by_user = db.relationship('User', foreign_keys=[opened_by], backref='opened_items')
+    finished_by_user = db.relationship('User', foreign_keys=[finished_by], backref='finished_items')
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)

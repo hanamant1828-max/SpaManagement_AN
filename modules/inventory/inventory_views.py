@@ -260,3 +260,185 @@ def api_auto_deduct_inventory(appointment_id):
             'message': 'Failed to deduct inventory or already processed',
             'appointment_id': appointment_id
         })
+
+# NEW: Advanced Consumption Tracking API Endpoints
+
+@app.route('/api/inventory/<int:inventory_id>/open', methods=['POST'])
+@login_required
+def api_open_inventory_item(inventory_id):
+    """API: Open/Issue an inventory item (Container/Lifecycle tracking)"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from modules.inventory.inventory_queries import open_inventory_item
+    
+    data = request.get_json()
+    quantity = float(data.get('quantity', 1.0))
+    reason = data.get('reason', 'Opened for use')
+    batch_number = data.get('batch_number', '')
+    
+    result = open_inventory_item(inventory_id, quantity, reason, batch_number, current_user.id)
+    
+    if result:
+        return jsonify({
+            'status': 'success',
+            'message': 'Item opened successfully',
+            'item_code': result.item_code,
+            'quantity': result.quantity
+        })
+    else:
+        return jsonify({'status': 'error', 'message': 'Failed to open item'}), 400
+
+@app.route('/api/inventory-item/<int:item_id>/consume', methods=['POST'])
+@login_required
+def api_consume_inventory_item(item_id):
+    """API: Mark inventory item as fully consumed"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from modules.inventory.inventory_queries import consume_inventory_item
+    
+    data = request.get_json()
+    reason = data.get('reason', 'Fully consumed')
+    
+    result = consume_inventory_item(item_id, reason, current_user.id)
+    
+    if result:
+        return jsonify({
+            'status': 'success',
+            'message': 'Item marked as consumed',
+            'duration_hours': result.duration_hours if result else None
+        })
+    else:
+        return jsonify({'status': 'error', 'message': 'Failed to consume item'}), 400
+
+@app.route('/api/inventory/<int:inventory_id>/deduct', methods=['POST'])
+@login_required
+def api_deduct_inventory(inventory_id):
+    """API: Deduct specific quantity (Piece-wise tracking)"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from modules.inventory.inventory_queries import deduct_inventory_quantity
+    
+    data = request.get_json()
+    quantity = float(data.get('quantity'))
+    unit = data.get('unit', 'pcs')
+    reason = data.get('reason', 'Service consumption')
+    reference_id = data.get('reference_id')
+    reference_type = data.get('reference_type', 'manual')
+    
+    result = deduct_inventory_quantity(
+        inventory_id, quantity, unit, reason, 
+        reference_id, reference_type, current_user.id
+    )
+    
+    if result:
+        return jsonify({
+            'status': 'success',
+            'message': 'Quantity deducted successfully',
+            'remaining_stock': result['remaining_stock'],
+            'deducted_quantity': quantity
+        })
+    else:
+        return jsonify({'status': 'error', 'message': 'Failed to deduct quantity'}), 400
+
+@app.route('/api/inventory/<int:inventory_id>/adjust', methods=['POST'])
+@login_required
+def api_adjust_inventory(inventory_id):
+    """API: Manual stock adjustment"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from modules.inventory.inventory_queries import create_manual_adjustment
+    
+    data = request.get_json()
+    new_quantity = float(data.get('new_quantity'))
+    adjustment_type = data.get('adjustment_type', 'manual_adjustment')
+    reason = data.get('reason', 'Manual adjustment')
+    
+    result = create_manual_adjustment(
+        inventory_id, new_quantity, adjustment_type, reason, current_user.id
+    )
+    
+    if result:
+        return jsonify({
+            'status': 'success',
+            'message': 'Stock adjusted successfully',
+            'old_quantity': result['old_quantity'],
+            'new_quantity': result['new_quantity'],
+            'adjustment': result['adjustment']
+        })
+    else:
+        return jsonify({'status': 'error', 'message': 'Failed to adjust stock'}), 400
+
+@app.route('/api/inventory/consumption-entries')
+@login_required
+def api_consumption_entries():
+    """API: Get consumption entries with filtering"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from modules.inventory.inventory_queries import get_consumption_entries
+    
+    # Get query parameters
+    inventory_id = request.args.get('inventory_id', type=int)
+    entry_type = request.args.get('entry_type')
+    staff_id = request.args.get('staff_id', type=int)
+    days = request.args.get('days', 30, type=int)
+    
+    entries = get_consumption_entries(inventory_id, entry_type, staff_id, days)
+    
+    return jsonify({
+        'status': 'success',
+        'entries': [{
+            'id': entry.id,
+            'inventory_name': entry.inventory.name,
+            'entry_type': entry.entry_type,
+            'quantity': entry.quantity,
+            'unit': entry.unit,
+            'reason': entry.reason,
+            'staff_name': f"{entry.created_by_user.first_name} {entry.created_by_user.last_name}",
+            'created_at': entry.created_at.isoformat(),
+            'cost_impact': entry.cost_impact
+        } for entry in entries],
+        'total_entries': len(entries)
+    })
+
+@app.route('/api/inventory/usage-duration')
+@login_required
+def api_usage_duration():
+    """API: Get usage duration reports"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from modules.inventory.inventory_queries import get_usage_duration_report
+    
+    inventory_id = request.args.get('inventory_id', type=int)
+    days = request.args.get('days', 30, type=int)
+    
+    report = get_usage_duration_report(inventory_id, days)
+    
+    return jsonify({
+        'status': 'success',
+        'report': report
+    })
+
+@app.route('/api/inventory/staff-usage')
+@login_required
+def api_staff_usage():
+    """API: Get staff usage reports"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    from modules.inventory.inventory_queries import get_staff_usage_report
+    
+    staff_id = request.args.get('staff_id', type=int)
+    days = request.args.get('days', 30, type=int)
+    
+    report = get_staff_usage_report(staff_id, days)
+    
+    return jsonify({
+        'status': 'success',
+        'report': report
+    })
