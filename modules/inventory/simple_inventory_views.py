@@ -428,3 +428,134 @@ def api_usage_report():
         'total_items_tracked': len(usage_by_item)
     })
 
+@app.route('/record_bulk_transaction', methods=['POST'])
+@login_required
+def record_bulk_transaction():
+    """Record multiple inventory items consumed in one treatment/transaction"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('simple_inventory'))
+
+    try:
+        treatment_type = request.form.get('treatment_type')
+        client_name = request.form.get('client_name', '').strip()
+        reason = request.form.get('reason', '').strip()
+        
+        item_ids = request.form.getlist('item_ids[]')
+        quantities = request.form.getlist('quantities[]')
+        item_notes = request.form.getlist('item_notes[]')
+        
+        if not item_ids or not quantities:
+            flash('Please select at least one product with quantity', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        if len(item_ids) != len(quantities):
+            flash('Mismatch between products and quantities', 'danger')
+            return redirect(url_for('simple_inventory'))
+        
+        # Generate reference number for this bulk transaction
+        import random
+        reference_number = f'BULK-{datetime.now().strftime("%Y%m%d")}-{random.randint(1000, 9999)}'
+        
+        processed_items = []
+        insufficient_stock_items = []
+        
+        # Process each item in the bulk transaction
+        for i, (item_id, quantity_str) in enumerate(zip(item_ids, quantities)):
+            if not item_id or not quantity_str:
+                continue
+                
+            item_id = int(item_id)
+            quantity = float(quantity_str)
+            item_note = item_notes[i] if i < len(item_notes) else ''
+            
+            item = SimpleInventoryItem.query.get(item_id)
+            if not item:
+                flash(f'Invalid item selected', 'danger')
+                continue
+                
+            # Check if sufficient stock
+            if item.current_stock < quantity:
+                insufficient_stock_items.append({
+                    'name': item.name,
+                    'requested': quantity,
+                    'available': item.current_stock
+                })
+                continue
+            
+            # Update stock
+            old_stock = item.current_stock
+            item.current_stock -= quantity
+            item.last_updated = datetime.utcnow()
+            
+            # Build comprehensive reason
+            treatment_reason = f'{treatment_type} Treatment'
+            if client_name:
+                treatment_reason += f' for {client_name}'
+            if reason:
+                treatment_reason += f' - {reason}'
+            if item_note:
+                treatment_reason += f' ({item_note})'
+            
+            # Create transaction record
+            transaction = SimpleStockTransaction(
+                item_id=item_id,
+                transaction_type='Treatment',
+                quantity_changed=-quantity,
+                remaining_balance=item.current_stock,
+                user_id=current_user.id,
+                reason=treatment_reason,
+                reference_number=reference_number
+            )
+            
+            db.session.add(transaction)
+            processed_items.append({
+                'name': item.name,
+                'quantity': quantity,
+                'remaining': item.current_stock
+            })
+            
+            # Create low stock alert if needed
+            if item.is_low_stock:
+                existing_alert = SimpleLowStockAlert.query.filter_by(
+                    item_id=item_id, 
+                    is_acknowledged=False
+                ).first()
+                
+                if not existing_alert:
+                    alert = SimpleLowStockAlert(
+                        item_id=item_id,
+                        current_stock=item.current_stock,
+                        reorder_level=item.reorder_level
+                    )
+                    db.session.add(alert)
+        
+        if not processed_items:
+            flash('No items were processed. Please check your selections.', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        db.session.commit()
+        
+        # Build success message
+        success_msg = f'✅ {treatment_type} treatment recorded successfully!'
+        success_msg += f' Processed {len(processed_items)} products'
+        if client_name:
+            success_msg += f' for {client_name}'
+        
+        flash(success_msg, 'success')
+        
+        # Show warnings for insufficient stock items
+        if insufficient_stock_items:
+            warning_msg = '⚠️ Some items had insufficient stock: '
+            warning_items = [f'{item["name"]} (needed: {item["requested"]}, available: {item["available"]})' for item in insufficient_stock_items]
+            flash(warning_msg + ', '.join(warning_items), 'warning')
+        
+    except ValueError as e:
+        flash(f'Invalid input: {str(e)}', 'danger')
+        db.session.rollback()
+    except Exception as e:
+        flash(f'Error recording bulk transaction: {str(e)}', 'danger')
+        db.session.rollback()
+    
+    return redirect(url_for('simple_inventory'))
+
