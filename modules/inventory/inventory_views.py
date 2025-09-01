@@ -188,23 +188,37 @@ def update_stock_route(id):
 @app.route('/api/inventory/status/<status>')
 @login_required
 def api_inventory_by_status(status):
-    """API: Get inventory items by status"""
+    """API: Get inventory items by status for consumption tracking dropdowns"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
     
     try:
         items = get_items_by_status(status)
+        items_data = []
+        
+        for item in items:
+            try:
+                items_data.append({
+                    'id': item.id,
+                    'name': item.name,
+                    'current_stock': float(item.current_stock or 0),
+                    'base_unit': item.base_unit or 'pcs',
+                    'selling_unit': item.selling_unit or 'pcs',
+                    'category': item.category or 'general',
+                    'item_type': item.item_type or 'consumable',
+                    'is_service_item': getattr(item, 'is_service_item', True),
+                    'tracking_type': getattr(item, 'tracking_type', 'piece_wise'),
+                    'cost_value': float(getattr(item, 'stock_value', 0) or 0),
+                    'selling_value': float(getattr(item, 'potential_revenue', 0) or 0)
+                })
+            except Exception as e:
+                print(f"Error processing item {item.id}: {e}")
+                continue
+        
         return jsonify({
             'status': 'success',
-            'items': [{
-                'id': item.id,
-                'name': item.name,
-                'current_stock': float(item.current_stock),
-                'base_unit': item.base_unit or 'units',
-                'status': item.get_stock_status(),
-                'cost_value': float(item.stock_value or 0),
-                'selling_value': float(item.potential_revenue or 0)
-            } for item in items]
+            'items': items_data,
+            'total': len(items_data)
         })
     except Exception as e:
         print(f"Error in inventory status API: {e}")
