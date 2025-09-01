@@ -26,7 +26,7 @@ def simple_inventory():
     
     # Calculate key metrics
     total_items = len(items)
-    low_stock_count = len([item for item in items if item.current_stock <= item.minimum_stock])
+    low_stock_count = len([item for item in items if hasattr(item, 'minimum_stock') and item.current_stock <= item.minimum_stock])
     total_stock_value = sum(item.current_stock * item.unit_cost for item in items if item.unit_cost)
     
     # Today's metrics
