@@ -1113,3 +1113,17 @@ class SimpleLowStockAlert(db.Model):
     item = db.relationship('SimpleInventoryItem', backref='alerts')
     acknowledged_by_user = db.relationship('User', backref='acknowledged_simple_alerts')
 
+class TransactionType(db.Model):
+    """Dynamic transaction types for inventory transactions"""
+    __tablename__ = 'transaction_types'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<TransactionType {self.name}>'
+

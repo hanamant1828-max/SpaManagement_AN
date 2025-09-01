@@ -1,52 +1,56 @@
 """
-Simple Inventory Management Views
-Two main modules: CRUD Operations and Consumption Tracking
+Simple Inventory Management System Views
 """
+
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from app import app, db
-from models import SimpleInventoryItem, SimpleStockTransaction, SimpleLowStockAlert
+from models import SimpleInventoryItem, SimpleStockTransaction, SimpleLowStockAlert, TransactionType
 
 @app.route('/simple_inventory')
 @login_required
 def simple_inventory():
-    """Main inventory page with two tabs"""
+    """Display the simple inventory management system"""
     if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
+        flash('You do not have permission to access the inventory system.', 'danger')
         return redirect(url_for('dashboard'))
 
     # Get all inventory items
-    items = SimpleInventoryItem.query.filter_by(is_active=True).all()
+    items = SimpleInventoryItem.query.order_by(SimpleInventoryItem.name).all()
     
-    # Get recent transactions (last 50)
-    transactions = SimpleStockTransaction.query.order_by(SimpleStockTransaction.date_time.desc()).limit(50).all()
+    # Get recent transactions (last 100)
+    transactions = SimpleStockTransaction.query.order_by(
+        SimpleStockTransaction.date_time.desc()
+    ).limit(100).all()
     
-    # Calculate statistics
+    # Calculate key metrics
     total_items = len(items)
-    low_stock_count = len([item for item in items if item.is_low_stock])
-    total_stock_value = sum(item.stock_value for item in items)
+    low_stock_count = len([item for item in items if item.current_stock <= item.minimum_stock])
+    total_stock_value = sum(item.current_stock * item.unit_cost for item in items if item.unit_cost)
     
-    # Today's transactions
+    # Today's metrics
     today = date.today()
     todays_transactions = SimpleStockTransaction.query.filter(
         db.func.date(SimpleStockTransaction.date_time) == today
     ).count()
     
-    # Weekly transactions
+    # Weekly metrics
     week_ago = today - timedelta(days=7)
     weekly_transactions = SimpleStockTransaction.query.filter(
         SimpleStockTransaction.date_time >= week_ago
     ).count()
     
     # Items consumed today
-    items_consumed_today = SimpleStockTransaction.query.filter(
+    items_consumed_today = db.session.query(
+        db.func.sum(db.func.abs(SimpleStockTransaction.quantity_change))
+    ).filter(
         db.func.date(SimpleStockTransaction.date_time) == today,
-        SimpleStockTransaction.quantity_changed < 0
-    ).count()
+        SimpleStockTransaction.quantity_change < 0
+    ).scalar() or 0
     
-    # Average daily usage (last 30 days)
-    thirty_days_ago = today - timedelta(days=30)
+    # Calculate average daily usage
+    thirty_days_ago = datetime.now() - timedelta(days=30)
     total_monthly_transactions = SimpleStockTransaction.query.filter(
         SimpleStockTransaction.date_time >= thirty_days_ago
     ).count()
@@ -55,6 +59,9 @@ def simple_inventory():
     # Get unique categories
     categories = db.session.query(SimpleInventoryItem.category).distinct().all()
     categories = [cat[0] for cat in categories if cat[0]]
+    
+    # Get transaction types
+    transaction_types = TransactionType.query.filter_by(is_active=True).order_by(TransactionType.name).all()
     
     return render_template('simple_inventory.html',
                          items=items,
@@ -67,7 +74,8 @@ def simple_inventory():
                          items_consumed_today=items_consumed_today,
                          avg_daily_usage=round(avg_daily_usage, 1),
                          total_transactions=len(transactions),
-                         categories=categories)
+                         categories=categories,
+                         transaction_types=transaction_types)
 
 @app.route('/add_inventory_item', methods=['POST'])
 @login_required
@@ -80,61 +88,140 @@ def add_inventory_item():
     try:
         # Generate SKU if not provided
         sku = request.form.get('sku') or f"AUTO-{int(datetime.now().timestamp())}"
+        name = request.form.get('name').strip()
+        description = request.form.get('description', '').strip()
+        category = request.form.get('category', '').strip()
+        initial_stock = float(request.form.get('initial_stock', 0))
+        minimum_stock = float(request.form.get('minimum_stock', 0))
+        unit_cost = float(request.form.get('unit_cost', 0))
+        supplier = request.form.get('supplier', '').strip()
+        location = request.form.get('location', '').strip()
+        expiry_date = request.form.get('expiry_date')
+        
+        # Validate required fields
+        if not name:
+            flash('Item name is required', 'warning')
+            return redirect(url_for('simple_inventory'))
         
         # Check if SKU already exists
         existing_item = SimpleInventoryItem.query.filter_by(sku=sku).first()
         if existing_item:
-            flash(f'SKU "{sku}" already exists. Please use a different SKU.', 'danger')
+            flash('SKU already exists. Please use a different SKU.', 'warning')
             return redirect(url_for('simple_inventory'))
         
+        # Parse expiry date
+        expiry_date_obj = None
+        if expiry_date:
+            try:
+                expiry_date_obj = datetime.strptime(expiry_date, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Invalid expiry date format', 'warning')
+                return redirect(url_for('simple_inventory'))
+        
+        # Create new item
         new_item = SimpleInventoryItem(
-            name=request.form.get('name').strip(),
             sku=sku,
-            description=request.form.get('description', '').strip(),
-            category=request.form.get('category'),
-            brand=request.form.get('brand', '').strip(),
-            current_stock=float(request.form.get('current_stock', 0)),
-            reorder_level=float(request.form.get('reorder_level', 10)),
-            maximum_stock=float(request.form.get('maximum_stock', 100)),
-            unit_price=float(request.form.get('unit_price', 0)),
-            cost_price=float(request.form.get('cost_price', 0)),
-            supplier_name=request.form.get('supplier_name', '').strip(),
-            supplier_contact=request.form.get('supplier_contact', '').strip(),
-            location=request.form.get('location', '').strip(),
-            warehouse_section=request.form.get('warehouse_section', '').strip()
+            name=name,
+            description=description,
+            category=category,
+            current_stock=initial_stock,
+            minimum_stock=minimum_stock,
+            unit_cost=unit_cost,
+            supplier=supplier,
+            location=location,
+            expiry_date=expiry_date_obj
         )
         
         db.session.add(new_item)
-        db.session.commit()
+        db.session.flush()  # Get the item ID
         
-        # Create initial stock transaction
-        if new_item.current_stock > 0:
-            initial_transaction = SimpleStockTransaction(
+        # Create initial stock transaction if initial stock > 0
+        if initial_stock > 0:
+            transaction = SimpleStockTransaction(
                 item_id=new_item.id,
                 transaction_type='Purchase',
-                quantity_changed=new_item.current_stock,
-                remaining_balance=new_item.current_stock,
+                quantity_change=initial_stock,
+                new_stock_level=initial_stock,
                 user_id=current_user.id,
                 reason='Initial stock entry',
-                reference_number=f'INITIAL-{new_item.id}'
+                reference_number=f'INIT-{new_item.id}'
             )
-            db.session.add(initial_transaction)
-            db.session.commit()
+            db.session.add(transaction)
         
-        flash(f'Inventory item "{new_item.name}" added successfully!', 'success')
+        db.session.commit()
+        flash(f'Item "{name}" added successfully!', 'success')
         
     except ValueError as e:
         flash(f'Invalid input: {str(e)}', 'danger')
+        db.session.rollback()
     except Exception as e:
         flash(f'Error adding item: {str(e)}', 'danger')
         db.session.rollback()
     
     return redirect(url_for('simple_inventory'))
 
-@app.route('/update_item_stock', methods=['POST'])
+@app.route('/edit_inventory_item', methods=['POST'])
 @login_required
-def update_item_stock():
-    """Update item stock and record transaction"""
+def edit_inventory_item():
+    """Edit existing inventory item"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('simple_inventory'))
+
+    try:
+        item_id = int(request.form.get('item_id'))
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        category = request.form.get('category', '').strip()
+        minimum_stock = float(request.form.get('minimum_stock', 0))
+        unit_cost = float(request.form.get('unit_cost', 0))
+        supplier = request.form.get('supplier', '').strip()
+        location = request.form.get('location', '').strip()
+        expiry_date = request.form.get('expiry_date')
+        
+        item = SimpleInventoryItem.query.get(item_id)
+        if not item:
+            flash('Item not found', 'danger')
+            return redirect(url_for('simple_inventory'))
+        
+        if not name:
+            flash('Item name is required', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        # Parse expiry date
+        expiry_date_obj = None
+        if expiry_date:
+            try:
+                expiry_date_obj = datetime.strptime(expiry_date, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Invalid expiry date format', 'warning')
+                return redirect(url_for('simple_inventory'))
+        
+        # Update item
+        item.name = name
+        item.description = description
+        item.category = category
+        item.minimum_stock = minimum_stock
+        item.unit_cost = unit_cost
+        item.supplier = supplier
+        item.location = location
+        item.expiry_date = expiry_date_obj
+        
+        db.session.commit()
+        flash(f'Item "{name}" updated successfully!', 'success')
+        
+    except ValueError:
+        flash('Invalid item ID or input', 'danger')
+    except Exception as e:
+        flash(f'Error updating item: {str(e)}', 'danger')
+        db.session.rollback()
+    
+    return redirect(url_for('simple_inventory'))
+
+@app.route('/update_stock', methods=['POST'])
+@login_required
+def update_stock():
+    """Update stock levels for an item"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('simple_inventory'))
@@ -151,58 +238,62 @@ def update_item_stock():
             flash('Item not found', 'danger')
             return redirect(url_for('simple_inventory'))
         
-        # For certain transaction types, make quantity negative
-        if transaction_type in ['Sale', 'Transfer'] and quantity_change > 0:
-            quantity_change = -quantity_change
-        elif transaction_type in ['Purchase', 'Return'] and quantity_change < 0:
-            quantity_change = abs(quantity_change)
+        if quantity_change == 0:
+            flash('Quantity change cannot be zero', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        # Determine the actual quantity change based on transaction type
+        if transaction_type in ['Sale', 'Transfer', 'Adjustment']:
+            quantity_change = -abs(quantity_change)  # Ensure negative for removals
+        elif transaction_type in ['Purchase', 'Return']:
+            quantity_change = abs(quantity_change)  # Ensure positive for additions
         
         # Calculate new stock level
         new_stock = item.current_stock + quantity_change
         
+        # Check for negative stock
         if new_stock < 0:
-            flash(f'Cannot reduce stock below zero. Current stock: {item.current_stock}', 'danger')
+            flash(f'Insufficient stock. Current stock: {item.current_stock}', 'danger')
             return redirect(url_for('simple_inventory'))
         
         # Update item stock
         item.current_stock = new_stock
-        item.last_updated = datetime.utcnow()
         
         # Create transaction record
         transaction = SimpleStockTransaction(
             item_id=item_id,
             transaction_type=transaction_type,
-            quantity_changed=quantity_change,
-            remaining_balance=new_stock,
+            quantity_change=quantity_change,
+            new_stock_level=new_stock,
             user_id=current_user.id,
             reason=reason or f'{transaction_type} transaction',
             reference_number=reference_number
         )
-        
         db.session.add(transaction)
-        db.session.commit()
         
         # Check for low stock alert
-        if item.is_low_stock:
-            # Create low stock alert if not already exists
+        if new_stock <= item.minimum_stock:
+            # Check if there's already an active alert for this item
             existing_alert = SimpleLowStockAlert.query.filter_by(
-                item_id=item_id, 
+                item_id=item_id,
                 is_acknowledged=False
             ).first()
             
             if not existing_alert:
                 alert = SimpleLowStockAlert(
                     item_id=item_id,
-                    current_stock=item.current_stock,
-                    reorder_level=item.reorder_level
+                    current_stock=new_stock,
+                    minimum_stock=item.minimum_stock
                 )
                 db.session.add(alert)
-                db.session.commit()
         
-        flash(f'Stock updated successfully. New stock level: {new_stock}', 'success')
+        db.session.commit()
         
-    except ValueError as e:
-        flash(f'Invalid input: {str(e)}', 'danger')
+        status = 'added to' if quantity_change > 0 else 'removed from'
+        flash(f'{abs(quantity_change)} units {status} {item.name}. New stock: {new_stock}', 'success')
+        
+    except ValueError:
+        flash('Invalid input values', 'danger')
     except Exception as e:
         flash(f'Error updating stock: {str(e)}', 'danger')
         db.session.rollback()
@@ -212,7 +303,7 @@ def update_item_stock():
 @app.route('/record_transaction', methods=['POST'])
 @login_required
 def record_transaction():
-    """Record a consumption tracking transaction"""
+    """Record a transaction (consumption/usage)"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('simple_inventory'))
@@ -229,44 +320,45 @@ def record_transaction():
             flash('Item not found', 'danger')
             return redirect(url_for('simple_inventory'))
         
-        # Determine quantity change based on transaction type
-        if transaction_type in ['Sale', 'Transfer']:
-            quantity_change = -abs(quantity)  # Remove from stock
-        elif transaction_type in ['Purchase', 'Return']:
-            quantity_change = abs(quantity)   # Add to stock
-        else:  # Adjustment
-            # For adjustments, use the quantity as-is (can be positive or negative)
+        if quantity <= 0:
+            flash('Quantity must be greater than zero', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        # For consumption tracking, quantity is always negative
+        if transaction_type == 'Treatment':
+            quantity_change = -quantity
+        else:
+            # For other types, keep as is
             quantity_change = quantity
         
         # Calculate new stock level
         new_stock = item.current_stock + quantity_change
         
+        # Check for negative stock (but allow negative for tracking)
         if new_stock < 0:
-            flash(f'Insufficient stock. Current stock: {item.current_stock}, Requested: {abs(quantity_change)}', 'danger')
-            return redirect(url_for('simple_inventory'))
+            flash(f'⚠️ Warning: This will result in negative stock. Current: {item.current_stock}, Requested: {quantity}', 'warning')
         
         # Update item stock
         item.current_stock = new_stock
-        item.last_updated = datetime.utcnow()
         
         # Create transaction record
         transaction = SimpleStockTransaction(
             item_id=item_id,
             transaction_type=transaction_type,
-            quantity_changed=quantity_change,
-            remaining_balance=new_stock,
+            quantity_change=quantity_change,
+            new_stock_level=new_stock,
             user_id=current_user.id,
-            reason=reason or f'{transaction_type} transaction',
+            reason=reason or f'{transaction_type} - used {quantity} units',
             reference_number=reference_number
         )
-        
         db.session.add(transaction)
+        
         db.session.commit()
         
-        flash(f'Transaction recorded successfully. New stock level: {new_stock}', 'success')
+        flash(f'{quantity} units of {item.name} recorded for {transaction_type}. New stock: {new_stock}', 'success')
         
-    except ValueError as e:
-        flash(f'Invalid input: {str(e)}', 'danger')
+    except ValueError:
+        flash('Invalid input values', 'danger')
     except Exception as e:
         flash(f'Error recording transaction: {str(e)}', 'danger')
         db.session.rollback()
@@ -276,7 +368,7 @@ def record_transaction():
 @app.route('/delete_inventory_item/<int:item_id>', methods=['POST'])
 @login_required
 def delete_inventory_item(item_id):
-    """Delete inventory item (soft delete)"""
+    """Delete an inventory item"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
 
@@ -285,248 +377,127 @@ def delete_inventory_item(item_id):
         if not item:
             return jsonify({'error': 'Item not found'}), 404
         
-        # Soft delete - just mark as inactive
-        item.is_active = False
-        item.last_updated = datetime.utcnow()
+        # Check if item has transactions
+        transactions_count = SimpleStockTransaction.query.filter_by(item_id=item_id).count()
+        if transactions_count > 0:
+            return jsonify({
+                'error': f'Cannot delete item with transaction history ({transactions_count} transactions). Consider marking as inactive instead.'
+            }), 400
         
-        # Record transaction
-        transaction = SimpleStockTransaction(
-            item_id=item_id,
-            transaction_type='Adjustment',
-            quantity_changed=-item.current_stock,
-            remaining_balance=0,
-            user_id=current_user.id,
-            reason='Item deleted'
-        )
-        
-        item.current_stock = 0
-        db.session.add(transaction)
+        item_name = item.name
+        db.session.delete(item)
         db.session.commit()
         
-        return jsonify({'success': True})
+        return jsonify({
+            'success': True,
+            'message': f'Item "{item_name}" deleted successfully'
+        })
         
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# API Endpoints for AJAX functionality
-
-@app.route('/api/inventory/search')
-@login_required
-def api_inventory_search():
-    """Search inventory items via API"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-    
-    search_term = request.args.get('q', '').strip()
-    category = request.args.get('category', '')
-    status = request.args.get('status', '')
-    
-    query = SimpleInventoryItem.query.filter_by(is_active=True)
-    
-    if search_term:
-        query = query.filter(
-            db.or_(
-                SimpleInventoryItem.name.ilike(f'%{search_term}%'),
-                SimpleInventoryItem.sku.ilike(f'%{search_term}%'),
-                SimpleInventoryItem.description.ilike(f'%{search_term}%')
-            )
-        )
-    
-    if category:
-        query = query.filter(SimpleInventoryItem.category == category)
-    
-    items = query.all()
-    
-    # Filter by status
-    if status == 'low_stock':
-        items = [item for item in items if item.is_low_stock]
-    elif status == 'out_of_stock':
-        items = [item for item in items if item.is_out_of_stock]
-    elif status == 'normal':
-        items = [item for item in items if not item.is_low_stock and not item.is_out_of_stock]
-    
-    return jsonify({
-        'items': [{
-            'id': item.id,
-            'name': item.name,
-            'sku': item.sku,
-            'category': item.category,
-            'current_stock': item.current_stock,
-            'reorder_level': item.reorder_level,
-            'unit_price': item.unit_price,
-            'stock_value': item.stock_value,
-            'supplier_name': item.supplier_name,
-            'is_low_stock': item.is_low_stock,
-            'is_out_of_stock': item.is_out_of_stock
-        } for item in items]
-    })
-
-@app.route('/api/inventory/low_stock_alerts')
-@login_required
-def api_low_stock_alerts():
-    """Get current low stock alerts"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-    
-    alerts = db.session.query(SimpleLowStockAlert, SimpleInventoryItem).join(
-        SimpleInventoryItem, SimpleLowStockAlert.item_id == SimpleInventoryItem.id
-    ).filter(
-        SimpleLowStockAlert.is_acknowledged == False,
-        SimpleInventoryItem.is_active == True
-    ).all()
-    
-    return jsonify({
-        'alerts': [{
-            'id': alert.id,
-            'item_name': item.name,
-            'current_stock': alert.current_stock,
-            'reorder_level': alert.reorder_level,
-            'alert_date': alert.alert_date.isoformat()
-        } for alert, item in alerts]
-    })
-
-@app.route('/api/inventory/usage_report')
-@login_required
-def api_usage_report():
-    """Generate usage analytics report"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-    
-    days = request.args.get('days', 30, type=int)
-    start_date = datetime.now() - timedelta(days=days)
-    
-    # Get transaction summary
-    transactions = SimpleStockTransaction.query.filter(
-        SimpleStockTransaction.date_time >= start_date
-    ).all()
-    
-    # Calculate usage patterns
-    usage_by_item = {}
-    usage_by_type = {}
-    
-    for txn in transactions:
-        # By item
-        if txn.item.name not in usage_by_item:
-            usage_by_item[txn.item.name] = 0
-        if txn.quantity_changed < 0:  # Only count outgoing transactions
-            usage_by_item[txn.item.name] += abs(txn.quantity_changed)
-        
-        # By transaction type
-        if txn.transaction_type not in usage_by_type:
-            usage_by_type[txn.transaction_type] = 0
-        usage_by_type[txn.transaction_type] += 1
-    
-    # Top 10 most used items
-    top_items = sorted(usage_by_item.items(), key=lambda x: x[1], reverse=True)[:10]
-    
-    return jsonify({
-        'period_days': days,
-        'total_transactions': len(transactions),
-        'top_consumed_items': top_items,
-        'transaction_types': usage_by_type,
-        'total_items_tracked': len(usage_by_item)
-    })
-
 @app.route('/record_bulk_transaction', methods=['POST'])
 @login_required
 def record_bulk_transaction():
-    """Record multiple inventory items consumed in one treatment/transaction"""
+    """Record bulk transaction for multiple items (e.g., facial treatment)"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('simple_inventory'))
 
     try:
-        treatment_type = request.form.get('treatment_type')
+        # Get form data
+        treatment_type = request.form.get('treatment_type', '').strip()
         client_name = request.form.get('client_name', '').strip()
-        reason = request.form.get('reason', '').strip()
+        treatment_notes = request.form.get('treatment_notes', '').strip()
         
-        item_ids = request.form.getlist('item_ids[]')
-        quantities = request.form.getlist('quantities[]')
+        # Get arrays of item data
+        item_ids = request.form.getlist('item_id[]')
+        quantities = request.form.getlist('quantity[]')
         item_notes = request.form.getlist('item_notes[]')
         
-        if not item_ids or not quantities:
-            flash('Please select at least one product with quantity', 'warning')
+        if not treatment_type:
+            flash('Treatment type is required', 'warning')
             return redirect(url_for('simple_inventory'))
         
-        if len(item_ids) != len(quantities):
-            flash('Mismatch between products and quantities', 'danger')
+        if not item_ids or not quantities:
+            flash('At least one item must be selected', 'warning')
             return redirect(url_for('simple_inventory'))
+        
+        # Build reason string
+        reason = f'{treatment_type} treatment'
+        if client_name:
+            reason += f' for {client_name}'
+        if treatment_notes:
+            reason += f' - {treatment_notes}'
         
         # Generate reference number for this bulk transaction
-        import random
-        reference_number = f'BULK-{datetime.now().strftime("%Y%m%d")}-{random.randint(1000, 9999)}'
+        reference_number = f'BULK-{int(datetime.now().timestamp())}'
         
         processed_items = []
         insufficient_stock_items = []
         
-        # Process each item in the bulk transaction
-        for i, (item_id, quantity_str) in enumerate(zip(item_ids, quantities)):
-            if not item_id or not quantity_str:
+        # Process each item
+        for i, item_id in enumerate(item_ids):
+            if not item_id or not quantities[i]:
                 continue
                 
             item_id = int(item_id)
-            quantity = float(quantity_str)
-            item_note = item_notes[i] if i < len(item_notes) else ''
+            quantity = float(quantities[i])
+            individual_notes = item_notes[i] if i < len(item_notes) and item_notes[i] else ''
+            
+            if quantity <= 0:
+                continue
             
             item = SimpleInventoryItem.query.get(item_id)
             if not item:
-                flash(f'Invalid item selected', 'danger')
                 continue
-                
-            # Check if sufficient stock
-            if item.current_stock < quantity:
+            
+            # Calculate new stock (negative for consumption)
+            new_stock = item.current_stock - quantity
+            
+            # Track insufficient stock but still process
+            if new_stock < 0:
                 insufficient_stock_items.append({
                     'name': item.name,
                     'requested': quantity,
                     'available': item.current_stock
                 })
-                continue
             
             # Update stock
-            old_stock = item.current_stock
-            item.current_stock -= quantity
-            item.last_updated = datetime.utcnow()
+            item.current_stock = new_stock
             
-            # Build comprehensive reason
-            treatment_reason = f'{treatment_type} Treatment'
-            if client_name:
-                treatment_reason += f' for {client_name}'
-            if reason:
-                treatment_reason += f' - {reason}'
-            if item_note:
-                treatment_reason += f' ({item_note})'
+            # Create individual reason for this item
+            item_reason = reason
+            if individual_notes:
+                item_reason += f' (Notes: {individual_notes})'
             
             # Create transaction record
             transaction = SimpleStockTransaction(
                 item_id=item_id,
-                transaction_type='Treatment',
-                quantity_changed=-quantity,
-                remaining_balance=item.current_stock,
+                transaction_type=treatment_type,
+                quantity_change=-quantity,  # Negative for consumption
+                new_stock_level=new_stock,
                 user_id=current_user.id,
-                reason=treatment_reason,
+                reason=item_reason,
                 reference_number=reference_number
             )
-            
             db.session.add(transaction)
-            processed_items.append({
-                'name': item.name,
-                'quantity': quantity,
-                'remaining': item.current_stock
-            })
             
-            # Create low stock alert if needed
-            if item.is_low_stock:
+            processed_items.append(item.name)
+            
+            # Check for low stock alert
+            if new_stock <= item.minimum_stock:
                 existing_alert = SimpleLowStockAlert.query.filter_by(
-                    item_id=item_id, 
+                    item_id=item_id,
                     is_acknowledged=False
                 ).first()
                 
                 if not existing_alert:
                     alert = SimpleLowStockAlert(
                         item_id=item_id,
-                        current_stock=item.current_stock,
-                        reorder_level=item.reorder_level
+                        current_stock=new_stock,
+                        minimum_stock=item.minimum_stock
                     )
                     db.session.add(alert)
         
@@ -559,3 +530,183 @@ def record_bulk_transaction():
     
     return redirect(url_for('simple_inventory'))
 
+# Transaction Type Management Routes
+@app.route('/add_transaction_type', methods=['POST'])
+@login_required
+def add_transaction_type():
+    """Add a new transaction type"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('simple_inventory'))
+
+    try:
+        name = request.form.get('name', '').strip()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not name or not display_name:
+            flash('Name and Display Name are required', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        # Check if name already exists
+        existing_type = TransactionType.query.filter_by(name=name).first()
+        if existing_type:
+            flash('Transaction type with this name already exists', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        # Create new transaction type
+        transaction_type = TransactionType(
+            name=name,
+            display_name=display_name,
+            description=description if description else None
+        )
+        
+        db.session.add(transaction_type)
+        db.session.commit()
+        
+        flash(f'Transaction type "{display_name}" added successfully', 'success')
+        
+    except Exception as e:
+        flash(f'Error adding transaction type: {str(e)}', 'danger')
+        db.session.rollback()
+    
+    return redirect(url_for('simple_inventory'))
+
+@app.route('/edit_transaction_type', methods=['POST'])
+@login_required
+def edit_transaction_type():
+    """Edit an existing transaction type"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('simple_inventory'))
+
+    try:
+        type_id = int(request.form.get('type_id'))
+        name = request.form.get('name', '').strip()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        transaction_type = TransactionType.query.get(type_id)
+        if not transaction_type:
+            flash('Transaction type not found', 'danger')
+            return redirect(url_for('simple_inventory'))
+        
+        if not name or not display_name:
+            flash('Name and Display Name are required', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        # Check if name already exists (excluding current type)
+        existing_type = TransactionType.query.filter(
+            TransactionType.name == name,
+            TransactionType.id != type_id
+        ).first()
+        if existing_type:
+            flash('Transaction type with this name already exists', 'warning')
+            return redirect(url_for('simple_inventory'))
+        
+        # Update transaction type
+        transaction_type.name = name
+        transaction_type.display_name = display_name
+        transaction_type.description = description if description else None
+        
+        db.session.commit()
+        
+        flash(f'Transaction type "{display_name}" updated successfully', 'success')
+        
+    except ValueError:
+        flash('Invalid transaction type ID', 'danger')
+    except Exception as e:
+        flash(f'Error updating transaction type: {str(e)}', 'danger')
+        db.session.rollback()
+    
+    return redirect(url_for('simple_inventory'))
+
+@app.route('/toggle_transaction_type/<int:type_id>/<is_active>', methods=['POST'])
+@login_required
+def toggle_transaction_type(type_id, is_active):
+    """Toggle transaction type active status"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        transaction_type = TransactionType.query.get(type_id)
+        if not transaction_type:
+            return jsonify({'error': 'Transaction type not found'}), 404
+        
+        active = is_active.lower() == 'true'
+        transaction_type.is_active = active
+        
+        db.session.commit()
+        
+        status = 'activated' if active else 'deactivated'
+        return jsonify({
+            'success': True,
+            'message': f'Transaction type "{transaction_type.display_name}" {status} successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/delete_transaction_type/<int:type_id>', methods=['POST'])
+@login_required
+def delete_transaction_type(type_id):
+    """Delete a transaction type"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        transaction_type = TransactionType.query.get(type_id)
+        if not transaction_type:
+            return jsonify({'error': 'Transaction type not found'}), 404
+        
+        # Check if transaction type is used in any transactions
+        used_count = SimpleStockTransaction.query.filter_by(transaction_type=transaction_type.name).count()
+        if used_count > 0:
+            return jsonify({
+                'error': f'Cannot delete transaction type "{transaction_type.display_name}". It is used in {used_count} transaction(s).'
+            }), 400
+        
+        display_name = transaction_type.display_name
+        db.session.delete(transaction_type)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Transaction type "{display_name}" deleted successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Create default transaction types
+def create_default_transaction_types():
+    """Create default transaction types if they don't exist"""
+    default_types = [
+        {'name': 'Treatment', 'display_name': 'Treatment (Facial/Service)', 'description': 'Used for spa and salon treatments'},
+        {'name': 'Sale', 'display_name': 'Sale', 'description': 'Products sold to customers'},
+        {'name': 'Purchase', 'display_name': 'Purchase', 'description': 'New inventory purchased'},
+        {'name': 'Return', 'display_name': 'Return', 'description': 'Items returned from customers'},
+        {'name': 'Adjustment', 'display_name': 'Adjustment', 'description': 'Inventory adjustments'},
+        {'name': 'Transfer', 'display_name': 'Transfer', 'description': 'Stock transfers between locations'},
+    ]
+    
+    for type_data in default_types:
+        existing_type = TransactionType.query.filter_by(name=type_data['name']).first()
+        if not existing_type:
+            transaction_type = TransactionType(**type_data)
+            db.session.add(transaction_type)
+    
+    try:
+        db.session.commit()
+        print("Default transaction types created successfully!")
+    except Exception as e:
+        print(f"Error creating default transaction types: {e}")
+        db.session.rollback()
+
+# Call this when the app starts
+try:
+    create_default_transaction_types()
+except Exception as e:
+    print(f"Failed to create default transaction types: {e}")
