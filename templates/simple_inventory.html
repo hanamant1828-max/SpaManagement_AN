@@ -150,7 +150,7 @@
                                     <th>SKU</th>
                                     <th>Category</th>
                                     <th>Current Stock</th>
-                                    <th>Reorder Level</th>
+                                    <th>Minimum Stock</th>
                                     <th>Unit Price</th>
                                     <th>Stock Value</th>
                                     <th>Supplier</th>
@@ -174,10 +174,10 @@
                                             {{ item.current_stock }}
                                         </strong>
                                     </td>
-                                    <td>{{ item.reorder_level }}</td>
-                                    <td>₹{{ "%.2f"|format(item.unit_price) }}</td>
-                                    <td>₹{{ "%.2f"|format(item.stock_value) }}</td>
-                                    <td>{{ item.supplier_name or '-' }}</td>
+                                    <td>{{ item.minimum_stock }}</td>
+                                    <td>₹{{ "%.2f"|format(item.unit_cost) }}</td>
+                                    <td>₹{{ "%.2f"|format(item.current_stock * item.unit_cost) }}</td>
+                                    <td>{{ item.supplier or '-' }}</td>
                                     <td>
                                         {% if item.is_out_of_stock %}
                                         <span class="badge bg-danger">Out of Stock</span>
