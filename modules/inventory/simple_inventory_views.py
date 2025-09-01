@@ -365,6 +365,37 @@ def record_transaction():
     
     return redirect(url_for('simple_inventory'))
 
+@app.route('/get_inventory_item/<int:item_id>')
+@login_required
+def get_inventory_item(item_id):
+    """Get inventory item details for editing"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'success': False, 'message': 'Access denied'})
+    
+    try:
+        item = SimpleInventoryItem.query.get(item_id)
+        if not item:
+            return jsonify({'success': False, 'message': 'Item not found'})
+        
+        item_data = {
+            'id': item.id,
+            'name': item.name,
+            'description': item.description,
+            'category': item.category,
+            'current_stock': item.current_stock,
+            'minimum_stock': item.minimum_stock,
+            'unit_cost': item.unit_cost,
+            'supplier': item.supplier,
+            'location': item.location,
+            'expiry_date': item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else None,
+            'sku': item.sku
+        }
+        
+        return jsonify({'success': True, 'item': item_data})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/delete_inventory_item/<int:item_id>', methods=['POST'])
 @login_required
 def delete_inventory_item(item_id):
