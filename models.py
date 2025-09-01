@@ -14,7 +14,7 @@ class Role(db.Model):
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     users = db.relationship('User', backref='user_role', lazy=True, foreign_keys='User.role_id')
     permissions = db.relationship('RolePermission', backref='role', lazy=True, cascade='all, delete-orphan')
@@ -28,7 +28,7 @@ class Permission(db.Model):
     module = db.Column(db.String(50), nullable=False)  # dashboard, staff, clients, etc.
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     role_permissions = db.relationship('RolePermission', backref='permission', lazy=True, cascade='all, delete-orphan')
 
@@ -38,7 +38,7 @@ class RolePermission(db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
     permission_id = db.Column(db.Integer, db.ForeignKey('permission.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     __table_args__ = (db.UniqueConstraint('role_id', 'permission_id'),)
 
 class Category(db.Model):
@@ -53,7 +53,7 @@ class Category(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     services = db.relationship('Service', backref='service_category', lazy=True)
     inventory = db.relationship('Inventory', backref='inventory_category', lazy=True)
@@ -68,7 +68,7 @@ class Department(db.Model):
     manager_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     staff = db.relationship('User', backref='staff_department', lazy=True, foreign_keys='User.department_id')
     managed_by = db.relationship('User', backref='managed_departments', lazy=True, foreign_keys='Department.manager_id')
@@ -93,15 +93,15 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    
+
     # Dynamic role system
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=True)
     role = db.Column(db.String(20), nullable=False, default='staff')  # Fallback for compatibility
-    
+
     phone = db.Column(db.String(20))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Staff-specific fields
     commission_rate = db.Column(db.Float, default=0.0)
     hourly_rate = db.Column(db.Float, default=0.0)
@@ -109,7 +109,7 @@ class User(UserMixin, db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
     department = db.Column(db.String(50))  # Fallback for compatibility
     hire_date = db.Column(db.Date)
-    
+
     # 1. Enhanced Staff Profile Details
     profile_photo_url = db.Column(db.String(255))
     gender = db.Column(db.String(10), default='other')
@@ -118,44 +118,44 @@ class User(UserMixin, db.Model):
     staff_code = db.Column(db.String(20), unique=True)
     notes_bio = db.Column(db.Text)
     designation = db.Column(db.String(100))
-    
+
     # 2. ID Proofs & Verification
     aadhaar_number = db.Column(db.String(12))
     aadhaar_card_url = db.Column(db.String(255))
     pan_number = db.Column(db.String(10))
     pan_card_url = db.Column(db.String(255))
     verification_status = db.Column(db.Boolean, default=False)
-    
+
     # 3. Facial Recognition Login
     face_image_url = db.Column(db.String(255))
     facial_encoding = db.Column(db.Text)
     enable_face_checkin = db.Column(db.Boolean, default=True)
-    
+
     # 4. Work Schedule
     working_days = db.Column(db.String(7), default='1111100')
     shift_start_time = db.Column(db.Time)
     shift_end_time = db.Column(db.Time)
     break_time = db.Column(db.String(50))
     weekly_off_days = db.Column(db.String(20))
-    
+
     # 5. Performance & Commission
     commission_percentage = db.Column(db.Float, default=0.0)
     fixed_commission = db.Column(db.Float, default=0.0)
     total_revenue_generated = db.Column(db.Float, default=0.0)
-    
+
     # 6. Activity & Status
     last_login = db.Column(db.DateTime)
     last_service_performed = db.Column(db.DateTime)
-    
+
     # Performance tracking
     total_sales = db.Column(db.Float, default=0.0)
     total_clients_served = db.Column(db.Integer, default=0)
     average_rating = db.Column(db.Float, default=0.0)
-    
+
     # Availability and preferences
     work_schedule = db.Column(db.Text)  # JSON for weekly schedule
     specialties = db.Column(db.Text)  # JSON for service specialties
-    
+
     # Relationships
     appointments = db.relationship('Appointment', backref='assigned_staff', lazy=True)
     expenses = db.relationship('Expense', backref='created_by_user', lazy=True)
@@ -180,7 +180,7 @@ class User(UserMixin, db.Model):
         # Admin users have full access - shortcut for efficiency
         if self.role == 'admin' or (self.user_role and self.user_role.name == 'admin'):
             return True
-            
+
         # Dynamic permissions from role-permission system
         if self.user_role:
             user_permissions = [rp.permission.name for rp in self.user_role.permissions if rp.permission.is_active]
@@ -190,7 +190,7 @@ class User(UserMixin, db.Model):
             # Check for specific resource permissions (e.g., 'clients_view', 'clients_create')
             resource_permissions = [p for p in user_permissions if p.startswith(resource + '_')]
             return len(resource_permissions) > 0 or resource in user_permissions
-        
+
         # Fallback to legacy permissions
         permissions = {
             'admin': ['all'],
@@ -200,7 +200,7 @@ class User(UserMixin, db.Model):
         }
         user_role_permissions = permissions.get(self.role, [])
         return 'all' in user_role_permissions or resource in user_role_permissions
-    
+
     def get_role_name(self):
         """Get the role name from dynamic system or fallback"""
         if self.user_role:
@@ -209,7 +209,7 @@ class User(UserMixin, db.Model):
 
 class Customer(db.Model):
     __tablename__ = 'client'  # Keep table name for backward compatibility
-    
+
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
@@ -223,29 +223,29 @@ class Customer(db.Model):
     total_visits = db.Column(db.Integer, default=0)
     total_spent = db.Column(db.Float, default=0.0)
     is_active = db.Column(db.Boolean, default=True)
-    
+
     # Customer preferences and notes
     preferences = db.Column(db.Text)
     allergies = db.Column(db.Text)
     notes = db.Column(db.Text)
     face_encoding = db.Column(db.Text)  # Store face encoding as JSON string
     face_image_url = db.Column(db.String(255))  # Store face image path
-    
+
     # Loyalty status
     loyalty_points = db.Column(db.Integer, default=0)
     is_vip = db.Column(db.Boolean, default=False)
-    
+
     # Communication preferences
     preferred_communication = db.Column(db.String(20), default='email')  # email, sms, whatsapp
     marketing_consent = db.Column(db.Boolean, default=True)
     reminder_preferences = db.Column(db.Text)  # JSON for reminder settings
-    
+
     # Advanced customer tracking
     referral_source = db.Column(db.String(100))
     lifetime_value = db.Column(db.Float, default=0.0)
     last_no_show = db.Column(db.DateTime)
     no_show_count = db.Column(db.Integer, default=0)
-    
+
     # Relationships
     appointments = db.relationship('Appointment', backref='customer', lazy=True)
     packages = db.relationship('CustomerPackage', backref='customer', lazy=True)
@@ -275,11 +275,11 @@ class Service(db.Model):
     category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     appointments = db.relationship('Appointment', backref='service', lazy=True)
     package_services = db.relationship('PackageService', backref='service', lazy=True)
-    
+
     def deduct_inventory_for_service(self):
         """Deduct inventory items when this service is performed"""
         movements = []
@@ -296,10 +296,10 @@ class Service(db.Model):
                     created_by=1  # System user, should be current user in real implementation
                 )
                 movements.append(movement)
-                
+
                 # Update inventory stock
                 service_item.inventory_item.current_stock -= service_item.quantity_per_service
-        
+
         return movements
 
 class Appointment(db.Model):
@@ -313,14 +313,14 @@ class Appointment(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Billing
     amount = db.Column(db.Float)
     discount = db.Column(db.Float, default=0.0)
     tips = db.Column(db.Float, default=0.0)
     is_paid = db.Column(db.Boolean, default=False)
     inventory_deducted = db.Column(db.Boolean, default=False)  # Track if inventory was deducted
-    
+
     def process_inventory_deduction(self):
         """Process inventory deduction when appointment is completed and billed"""
         if not self.inventory_deducted and self.status == 'completed' and self.is_paid:
@@ -351,12 +351,12 @@ class Package(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # New fields for unlimited sessions and date ranges
     has_unlimited_sessions = db.Column(db.Boolean, default=False)  # True for unlimited packages
     start_date = db.Column(db.Date)  # Optional start date for package validity
     end_date = db.Column(db.Date)  # Optional end date for package validity
-    
+
     # Relationships
     services = db.relationship('PackageService', backref='package', lazy=True)
     customer_packages = db.relationship('CustomerPackage', backref='package', lazy=True)
@@ -374,13 +374,13 @@ class PackageService(db.Model):
     service_discount = db.Column(db.Float, default=0.0)  # Individual service discount percentage
     original_price = db.Column(db.Float, nullable=False)  # Original service price
     discounted_price = db.Column(db.Float, nullable=False)  # Final discounted price
-    
+
     # New field for unlimited sessions per service
     is_unlimited = db.Column(db.Boolean, default=False)  # True for unlimited sessions
 
 class CustomerPackage(db.Model):
     __tablename__ = 'client_package'  # Keep table name for backward compatibility
-    
+
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # Keep FK reference to table name
     package_id = db.Column(db.Integer, db.ForeignKey('package.id'), nullable=False)
@@ -392,27 +392,27 @@ class CustomerPackage(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     auto_renewed = db.Column(db.Boolean, default=False)
     renewal_count = db.Column(db.Integer, default=0)
-    
+
     # Service-wise session tracking
     sessions_remaining = db.relationship('CustomerPackageSession', backref='customer_package', lazy=True)
 
 class CustomerPackageSession(db.Model):
     """Track remaining sessions for each service in a customer's package"""
     __tablename__ = 'client_package_session'  # Keep table name for backward compatibility
-    
+
     id = db.Column(db.Integer, primary_key=True)
     client_package_id = db.Column(db.Integer, db.ForeignKey('client_package.id'), nullable=False)  # Keep FK reference to table name
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     sessions_total = db.Column(db.Integer, nullable=False)
     sessions_used = db.Column(db.Integer, default=0)
     is_unlimited = db.Column(db.Boolean, default=False)  # True for unlimited sessions
-    
+
     @property
     def sessions_remaining(self):
         if self.is_unlimited:
             return float('inf')  # Unlimited sessions
         return max(0, self.sessions_total - self.sessions_used)
-    
+
     # Relationships
     service = db.relationship('Service', backref='customer_sessions')
 
@@ -424,56 +424,56 @@ class Inventory(db.Model):
     barcode = db.Column(db.String(100), unique=True)  # Barcode for scanning
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
-    
+
     # Stock tracking with units of measurement
     current_stock = db.Column(db.Float, default=0.0)  # Changed to Float for precise measurements
     min_stock_level = db.Column(db.Float, default=5.0)
     max_stock_level = db.Column(db.Float, default=100.0)
     reorder_point = db.Column(db.Float, default=10.0)
     reorder_quantity = db.Column(db.Float, default=50.0)
-    
+
     # Units of measurement and conversions
     base_unit = db.Column(db.String(20), nullable=False, default='pcs')  # pcs, ml, liter, gram, kg
     selling_unit = db.Column(db.String(20), nullable=False, default='pcs')  # Unit for customer sales
     conversion_factor = db.Column(db.Float, default=1.0)  # Conversion from base to selling unit
-    
+
     # Pricing
     cost_price = db.Column(db.Float, default=0.0)  # Cost per base unit
     selling_price = db.Column(db.Float, default=0.0)  # Selling price per selling unit
     markup_percentage = db.Column(db.Float, default=0.0)
-    
+
     # Item classification
     item_type = db.Column(db.String(20), default='consumable')  # consumable, sellable, both
     is_service_item = db.Column(db.Boolean, default=False)  # Used in services
     is_retail_item = db.Column(db.Boolean, default=False)  # Sold to customers
-    
+
     # Supplier and purchasing
     primary_supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
     supplier_name = db.Column(db.String(100))  # Fallback for compatibility
     supplier_contact = db.Column(db.String(100))  # Fallback for compatibility
     supplier_sku = db.Column(db.String(50))  # Supplier's product code
-    
+
     # Expiry and quality
     has_expiry = db.Column(db.Boolean, default=False)
     expiry_date = db.Column(db.Date)
-    shelf_life_days = db.Column(db.Integer)  # Standard shelf life
     batch_number = db.Column(db.String(50))
-    
+    shelf_life_days = db.Column(db.Integer)  # Standard shelf life
+
     # Location and storage
     storage_location = db.Column(db.String(100))
     storage_temperature = db.Column(db.String(50))  # room_temp, refrigerated, frozen
     storage_notes = db.Column(db.Text)
-    
+
     # Tracking and alerts
     enable_low_stock_alert = db.Column(db.Boolean, default=True)
     enable_expiry_alert = db.Column(db.Boolean, default=True)
     expiry_alert_days = db.Column(db.Integer, default=30)  # Days before expiry to alert
-    
+
     # NEW: Advanced Tracking Types
     tracking_type = db.Column(db.String(20), default='piece_wise', nullable=False)  # container_lifecycle, piece_wise, manual_entry
     supports_batches = db.Column(db.Boolean, default=False)  # Enable batch/lot tracking
     requires_open_close = db.Column(db.Boolean, default=False)  # For container/lifecycle tracking
-    
+
     # Status and metadata
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -485,19 +485,19 @@ class Inventory(db.Model):
     supplier = db.relationship('Supplier', backref='supplied_items', lazy=True)
     stock_movements = db.relationship('StockMovement', backref='inventory_item', lazy=True)
     service_items = db.relationship('ServiceInventoryItem', backref='inventory_item', lazy=True)
-    
+
     @property
     def is_low_stock(self):
         return self.current_stock <= self.min_stock_level
-    
+
     @property
     def is_reorder_needed(self):
         return self.current_stock <= self.reorder_point
-    
+
     @property
     def is_out_of_stock(self):
         return self.current_stock <= 0
-    
+
     @property
     def is_overstocked(self):
         return self.current_stock > self.max_stock_level
@@ -508,23 +508,23 @@ class Inventory(db.Model):
             return False
         days_until_expiry = (self.expiry_date - date.today()).days
         return days_until_expiry <= self.expiry_alert_days
-    
+
     @property
     def is_expired(self):
         if not self.has_expiry or not self.expiry_date:
             return False
         return self.expiry_date < date.today()
-    
+
     @property
     def stock_value(self):
         """Total value of current stock at cost price"""
         return self.current_stock * self.cost_price
-    
+
     @property
     def potential_revenue(self):
         """Potential revenue from current stock at selling price"""
         return self.convert_to_selling_unit(self.current_stock) * self.selling_price
-    
+
     @property
     def profit_margin(self):
         """Profit margin percentage"""
@@ -532,15 +532,15 @@ class Inventory(db.Model):
             return 0
         cost_per_selling_unit = self.cost_price / self.conversion_factor
         return ((self.selling_price - cost_per_selling_unit) / self.selling_price) * 100
-    
+
     def convert_to_selling_unit(self, quantity_in_base_unit):
         """Convert quantity from base unit to selling unit"""
         return quantity_in_base_unit / self.conversion_factor
-    
+
     def convert_to_base_unit(self, quantity_in_selling_unit):
         """Convert quantity from selling unit to base unit"""
         return quantity_in_selling_unit * self.conversion_factor
-    
+
     def can_fulfill_quantity(self, requested_quantity, unit='base'):
         """Check if we have enough stock for requested quantity"""
         if unit == 'selling':
@@ -548,7 +548,7 @@ class Inventory(db.Model):
         else:
             requested_in_base = requested_quantity
         return self.current_stock >= requested_in_base
-    
+
     def get_stock_status(self):
         """Get comprehensive stock status"""
         if self.is_expired:
@@ -583,7 +583,7 @@ class Supplier(db.Model):
     rating = db.Column(db.Float, default=0.0)  # 1-5 star rating
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     purchase_orders = db.relationship('PurchaseOrder', backref='supplier', lazy=True)
 
@@ -603,7 +603,7 @@ class StockMovement(db.Model):
     reason = db.Column(db.String(200))  # Reason for adjustment, wastage etc.
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     created_by_user = db.relationship('User', backref='stock_movements')
 
@@ -617,10 +617,10 @@ class ServiceInventoryItem(db.Model):
     is_optional = db.Column(db.Boolean, default=False)  # Optional vs required item
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     service = db.relationship('Service', backref='inventory_items')
-    
+
     __table_args__ = (db.UniqueConstraint('service_id', 'inventory_id'),)
 
 class PurchaseOrder(db.Model):
@@ -639,7 +639,7 @@ class PurchaseOrder(db.Model):
     notes = db.Column(db.Text)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     items = db.relationship('PurchaseOrderItem', backref='purchase_order', lazy=True)
     created_by_user = db.relationship('User', backref='purchase_orders')
@@ -655,14 +655,14 @@ class PurchaseOrderItem(db.Model):
     total_cost = db.Column(db.Float, nullable=False)
     batch_number = db.Column(db.String(50))
     expiry_date = db.Column(db.Date)
-    
+
     # Relationships
     inventory_item = db.relationship('Inventory', backref='purchase_order_items')
-    
+
     @property
     def quantity_pending(self):
         return self.quantity_ordered - self.quantity_received
-    
+
     @property
     def is_fully_received(self):
         return self.quantity_received >= self.quantity_ordered
@@ -680,7 +680,7 @@ class InventoryAdjustment(db.Model):
     cost_impact = db.Column(db.Float, default=0.0)  # Financial impact of adjustment
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     inventory_item = db.relationship('Inventory', backref='adjustments')
     created_by_user = db.relationship('User', backref='inventory_adjustments')
@@ -697,15 +697,15 @@ class InventoryItem(db.Model):
     status = db.Column(db.String(20), default='in_stock')  # in_stock, issued, consumed, expired, damaged
     quantity = db.Column(db.Float, nullable=False)  # Original quantity
     remaining_quantity = db.Column(db.Float, nullable=False)  # Current remaining quantity
-    
+
     # Lifecycle tracking
     issued_at = db.Column(db.DateTime)  # When item was opened/issued
     issued_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     consumed_at = db.Column(db.DateTime)  # When item was fully consumed
     consumed_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     inventory = db.relationship('Inventory', backref='inventory_items')
     issued_by_user = db.relationship('User', foreign_keys=[issued_by], backref='issued_items')
@@ -713,51 +713,36 @@ class InventoryItem(db.Model):
     consumption_entries = db.relationship('ConsumptionEntry', backref='inventory_item', lazy=True)
 
 class ConsumptionEntry(db.Model):
-    """Track individual consumption entries for all tracking types"""
+    __tablename__ = 'consumption_entry'
+
     id = db.Column(db.Integer, primary_key=True)
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
-    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'))  # For container tracking
-    
-    # Entry details
-    entry_type = db.Column(db.String(20), nullable=False)  # open, consume, deduct, adjust
+    entry_type = db.Column(db.String(20), nullable=False)  # 'open', 'consume', 'deduct', 'adjust'
     quantity = db.Column(db.Float, nullable=False)
-    unit = db.Column(db.String(20), nullable=False)
-    reason = db.Column(db.String(200), nullable=False)
-    notes = db.Column(db.Text)
-    
-    # Reference information
-    reference_id = db.Column(db.Integer)  # appointment_id, service_id, etc.
-    reference_type = db.Column(db.String(50))  # appointment, service, manual, adjustment
-    
-    # Staff tracking
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Batch/lot tracking
-    batch_number = db.Column(db.String(50))
+    unit = db.Column(db.String(20), default='pcs')
+    reason = db.Column(db.Text)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     cost_impact = db.Column(db.Float, default=0.0)
-    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     # Relationships
     inventory = db.relationship('Inventory', backref='consumption_entries')
-    created_by_user = db.relationship('User', backref='consumption_entries')
+    staff = db.relationship('User', backref='consumption_entries')
 
 class UsageDuration(db.Model):
-    """Track how long items last from open to finish"""
+    __tablename__ = 'usage_duration'
+
     id = db.Column(db.Integer, primary_key=True)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
-    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'))
-    
-    opened_at = db.Column(db.DateTime, nullable=False)
-    finished_at = db.Column(db.DateTime)
-    duration_hours = db.Column(db.Float)  # Total hours from open to finish
-    
-    opened_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    finished_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
+    started_at = db.Column(db.DateTime, nullable=False)
+    ended_at = db.Column(db.DateTime)
+    duration_hours = db.Column(db.Float)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     # Relationships
-    inventory = db.relationship('Inventory', backref='usage_durations')
-    opened_by_user = db.relationship('User', foreign_keys=[opened_by], backref='opened_items')
-    finished_by_user = db.relationship('User', foreign_keys=[finished_by], backref='finished_items')
+    inventory_item = db.relationship('InventoryItem', backref='usage_durations')
+    staff = db.relationship('User', backref='usage_durations')
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -787,7 +772,7 @@ class Invoice(db.Model):
     payment_method = db.Column(db.String(20))  # cash, card, online
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationship
     customer = db.relationship('Customer', backref='invoices')
     appointment = db.relationship('Appointment', backref='invoice', uselist=False)
@@ -799,7 +784,7 @@ class StaffSchedule(db.Model):
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     is_available = db.Column(db.Boolean, default=True)
-    
+
     # Relationship
     staff = db.relationship('User', backref='schedules')
 
@@ -816,7 +801,7 @@ class Review(db.Model):
     comment = db.Column(db.Text)
     is_public = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     staff = db.relationship('User', backref='reviews')
     service = db.relationship('Service', backref='reviews')
@@ -833,7 +818,7 @@ class Communication(db.Model):
     sent_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+
     # Relationships
     creator = db.relationship('User', backref='communications')
 
@@ -850,7 +835,7 @@ class Commission(db.Model):
     is_paid = db.Column(db.Boolean, default=False)
     paid_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     staff = db.relationship('User', backref='commissions')
     appointment = db.relationship('Appointment', backref='commission', uselist=False)
@@ -867,7 +852,7 @@ class ProductSale(db.Model):
     sale_date = db.Column(db.DateTime, default=datetime.utcnow)
     payment_method = db.Column(db.String(20))
     is_refunded = db.Column(db.Boolean, default=False)
-    
+
     # Relationships
     product = db.relationship('Inventory', backref='sales')
     customer = db.relationship('Customer', backref='product_purchases')
@@ -900,7 +885,7 @@ class Waitlist(db.Model):
     status = db.Column(db.String(20), default='waiting')  # waiting, contacted, booked, expired
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime)
-    
+
     # Relationships
     customer = db.relationship('Customer', backref='waitlist_entries')
     service = db.relationship('Service', backref='waitlist_entries')
@@ -919,7 +904,7 @@ class RecurringAppointment(db.Model):
     end_date = db.Column(db.Date)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     customer = db.relationship('Customer', backref='recurring_appointments')
     service = db.relationship('Service', backref='recurring_bookings')
@@ -936,7 +921,7 @@ class Location(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     operating_hours = db.Column(db.Text)  # JSON for weekly hours
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     manager = db.relationship('User', backref='managed_locations')
 
@@ -949,7 +934,7 @@ class BusinessSettings(db.Model):
     description = db.Column(db.Text)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+
     # Relationships
     updater = db.relationship('User', backref='setting_updates')
 
@@ -966,7 +951,7 @@ class Attendance(db.Model):
     date = db.Column(db.Date, nullable=False, default=date.today)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     staff = db.relationship('User', backref='attendance_records')
 
@@ -981,7 +966,7 @@ class Leave(db.Model):
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
     applied_date = db.Column(db.DateTime, default=datetime.utcnow)
     approved_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+
     # Relationships
     staff = db.relationship('User', backref='leave_requests', foreign_keys=[staff_id])
     approver = db.relationship('User', foreign_keys=[approved_by])
@@ -994,7 +979,7 @@ class StaffService(db.Model):
     skill_level = db.Column(db.String(20), default='beginner')  # beginner, intermediate, expert
     assigned_date = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-    
+
     # Relationships
     staff = db.relationship('User', backref='staff_services')
     service = db.relationship('Service', backref='service_staff')
@@ -1011,7 +996,6 @@ class StaffPerformance(db.Model):
     attendance_percentage = db.Column(db.Float, default=0.0)
     commission_earned = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     staff = db.relationship('User', backref='performance_records')
-

@@ -1078,10 +1078,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load consumption tracking data when tab is clicked
-    document.getElementById('consumption-tab').addEventListener('click', function() {
-        loadConsumptionData();
-    });
+    const consumptionTab = document.getElementById('consumption-tab');
+    if (consumptionTab) {
+        consumptionTab.addEventListener('click', function() {
+            setTimeout(loadConsumptionData, 200);
+        });
+    }
+
+    // Initialize modals when page loads
+    initializeConsumptionModals();
 });
+
+function initializeConsumptionModals() {
+    // Load inventory items when any consumption modal is opened
+    const modals = ['openItemModal', 'consumeItemModal', 'deductQuantityModal', 'adjustStockModal'];
+    
+    modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.addEventListener('show.bs.modal', function() {
+                loadInventoryItems();
+                if (modalId === 'consumeItemModal') {
+                    loadOpenItems();
+                }
+            });
+        }
+    });
+}
 
 // NEW: Consumption Tracking Functions
 
@@ -1480,6 +1503,7 @@ function loadOpenItems() {
         .then(data => {
             if (data.status === 'success') {
                 populateOpenItemsDropdown(data.items);
+                loadOpenItemsTable();
             } else {
                 loadOpenItemsPlaceholder();
             }

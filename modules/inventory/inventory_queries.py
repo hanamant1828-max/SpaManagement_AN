@@ -2,11 +2,13 @@
 Inventory-related database queries with comprehensive management features
 """
 from datetime import date, timedelta
-from sqlalchemy import or_, func, and_, desc
+from sqlalchemy import func, and_, or_, desc, asc, text
+from sqlalchemy.orm import joinedload
 from app import db
 from models import (
-    Inventory, Category, Supplier, StockMovement, ServiceInventoryItem,
-    PurchaseOrder, PurchaseOrderItem, InventoryAdjustment, ProductSale
+    Inventory, StockMovement, Service, Appointment, 
+    AppointmentService, ServiceCategory, User, InventoryItem, 
+    ConsumptionEntry, UsageDuration
 )
 
 def get_all_inventory():
@@ -321,102 +323,83 @@ def create_stock_adjustment(inventory_id, new_quantity, adjustment_type, reason,
     return adjustment
 
 def generate_reorder_suggestions():
-    """Generate automatic reorder suggestions"""
-    items_to_reorder = Inventory.query.filter(
-        Inventory.is_active == True,
-        Inventory.current_stock <= Inventory.reorder_point,
-        Inventory.reorder_quantity > 0
-    ).all()
-
+    """Generate automatic reorder suggestions based on consumption patterns"""
     suggestions = []
-    for item in items_to_reorder:
+
+    # Get items that are low stock
+    low_stock_items = get_low_stock_items()
+
+    for item in low_stock_items:
+        # Calculate suggested reorder quantity based on consumption rate
+        recent_movements = StockMovement.query.filter(
+            StockMovement.inventory_id == item.id,
+            StockMovement.movement_type == 'out',
+            StockMovement.created_at >= datetime.utcnow() - timedelta(days=30)
+        ).all()
+
+        monthly_consumption = sum(abs(m.quantity) for m in recent_movements)
+        suggested_quantity = max(monthly_consumption * 2, item.min_stock_level * 3)
+
         suggestions.append({
             'item_id': item.id,
             'item_name': item.name,
             'current_stock': item.current_stock,
-            'reorder_point': item.reorder_point,
-            'suggested_quantity': item.reorder_quantity,
-            'supplier_id': item.primary_supplier_id,
-            'supplier_name': item.supplier.name if item.supplier else item.supplier_name,
-            'estimated_cost': item.reorder_quantity * item.cost_price
+            'suggested_quantity': suggested_quantity,
+            'estimated_cost': suggested_quantity * (item.cost_price or 0),
+            'supplier_name': item.supplier_name,
+            'priority': 'high' if item.current_stock <= 0 else 'medium'
         })
 
     return suggestions
 
-# NEW: Advanced Consumption Tracking Functions
-
-def open_inventory_item(inventory_id, quantity, reason, batch_number, created_by):
+def open_inventory_item(inventory_id, quantity, reason, batch_number, user_id):
     """Open/Issue an inventory item for container/lifecycle tracking"""
-    from models import Inventory, InventoryItem, ConsumptionEntry, UsageDuration, StockMovement
-    from datetime import datetime
-    import uuid
-
-    inventory = Inventory.query.get(inventory_id)
-    if not inventory:
-        return None
-
-    # Allow opening for any tracking type, not just container_lifecycle
-    if not inventory.can_fulfill_quantity(quantity):
-        return None
-
     try:
-        # Generate unique item code
-        item_code = f"{inventory.sku or 'ITEM'}-{uuid.uuid4().hex[:8].upper()}"
+        inventory = Inventory.query.get(inventory_id)
+        if not inventory or inventory.current_stock < quantity:
+            return None
 
-        # Create inventory item instance
+        # Create inventory item record
+        item_code = f"ITM{datetime.now().strftime('%Y%m%d%H%M%S')}"
         inventory_item = InventoryItem(
-            inventory_id=inventory_id,
             item_code=item_code,
-            batch_number=batch_number,
+            inventory_id=inventory_id,
             quantity=quantity,
             remaining_quantity=quantity,
             status='issued',
             issued_at=datetime.utcnow(),
-            issued_by=created_by
-        )
-
-        db.session.add(inventory_item)
-        db.session.flush()  # Flush to get the ID
-
-        # Create consumption entry
-        consumption_entry = ConsumptionEntry(
-            inventory_id=inventory_id,
-            inventory_item_id=inventory_item.id,
-            entry_type='open',
-            quantity=quantity,
-            unit=inventory.base_unit,
-            reason=reason,
             batch_number=batch_number,
-            cost_impact=quantity * inventory.cost_price,
-            created_by=created_by
+            issued_by=user_id
         )
 
-        # Create usage duration tracking
-        usage_duration = UsageDuration(
+        # Create stock movement
+        movement = StockMovement(
             inventory_id=inventory_id,
-            inventory_item_id=inventory_item.id,
-            opened_at=datetime.utcnow(),
-            opened_by=created_by
+            movement_type='out',
+            quantity=-quantity,
+            unit=inventory.base_unit or 'pcs',
+            reason=reason,
+            created_by=user_id,
+            created_at=datetime.utcnow()
         )
 
         # Update inventory stock
         inventory.current_stock -= quantity
 
-        # Create stock movement
-        movement = StockMovement(
+        # Create consumption entry
+        consumption = ConsumptionEntry(
             inventory_id=inventory_id,
-            movement_type='service_use',
-            quantity=-quantity,
-            unit=inventory.base_unit,
-            reference_type='open',
-            reference_id=inventory_item.id,
+            entry_type='open',
+            quantity=quantity,
+            unit=inventory.base_unit or 'pcs',
             reason=reason,
-            created_by=created_by
+            staff_id=user_id,
+            created_at=datetime.utcnow()
         )
 
-        db.session.add(consumption_entry)
-        db.session.add(usage_duration)
+        db.session.add(inventory_item)
         db.session.add(movement)
+        db.session.add(consumption)
         db.session.commit()
 
         return inventory_item
@@ -426,153 +409,157 @@ def open_inventory_item(inventory_id, quantity, reason, batch_number, created_by
         print(f"Error opening inventory item: {e}")
         return None
 
-def consume_inventory_item(item_id, reason, created_by):
+def consume_inventory_item(item_id, reason, user_id):
     """Mark inventory item as fully consumed"""
-    from models import InventoryItem, ConsumptionEntry, UsageDuration
-    from datetime import datetime
+    try:
+        inventory_item = InventoryItem.query.get(item_id)
+        if not inventory_item or inventory_item.status != 'issued':
+            return None
 
-    inventory_item = InventoryItem.query.get(item_id)
-    if not inventory_item or inventory_item.status != 'issued':
+        # Update item status
+        inventory_item.status = 'consumed'
+        inventory_item.consumed_at = datetime.utcnow()
+        inventory_item.consumed_by = user_id
+
+        # Calculate duration if needed
+        duration_hours = None
+        if inventory_item.issued_at:
+            duration = datetime.utcnow() - inventory_item.issued_at
+            duration_hours = duration.total_seconds() / 3600
+
+        # Create consumption entry
+        consumption = ConsumptionEntry(
+            inventory_id=inventory_item.inventory_id,
+            entry_type='consume',
+            quantity=inventory_item.remaining_quantity,
+            unit=inventory_item.inventory.base_unit or 'pcs',
+            reason=reason,
+            staff_id=user_id,
+            created_at=datetime.utcnow()
+        )
+
+        # Create usage duration record
+        if duration_hours:
+            usage_duration = UsageDuration(
+                inventory_item_id=item_id,
+                started_at=inventory_item.issued_at,
+                ended_at=datetime.utcnow(),
+                duration_hours=duration_hours,
+                staff_id=user_id
+            )
+            db.session.add(usage_duration)
+
+        db.session.add(consumption)
+        db.session.commit()
+
+        class Result:
+            def __init__(self, duration_hours):
+                self.duration_hours = duration_hours
+
+        return Result(duration_hours)
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error consuming inventory item: {e}")
         return None
 
-    # Update item status
-    inventory_item.status = 'consumed'
-    inventory_item.consumed_at = datetime.utcnow()
-    inventory_item.consumed_by = created_by
-    inventory_item.remaining_quantity = 0
-
-    # Create consumption entry
-    consumption_entry = ConsumptionEntry(
-        inventory_id=inventory_item.inventory_id,
-        inventory_item_id=item_id,
-        entry_type='consume',
-        quantity=inventory_item.remaining_quantity,
-        unit=inventory_item.inventory.base_unit,
-        reason=reason,
-        batch_number=inventory_item.batch_number,
-        created_by=created_by
-    )
-
-    # Update usage duration
-    usage_duration = UsageDuration.query.filter_by(
-        inventory_item_id=item_id, 
-        finished_at=None
-    ).first()
-
-    if usage_duration:
-        usage_duration.finished_at = datetime.utcnow()
-        usage_duration.finished_by = created_by
-        duration = usage_duration.finished_at - usage_duration.opened_at
-        usage_duration.duration_hours = duration.total_seconds() / 3600
-
-    db.session.add(consumption_entry)
-    db.session.commit()
-
-    return usage_duration
-
-def deduct_inventory_quantity(inventory_id, quantity, unit, reason, reference_id, reference_type, created_by):
+def deduct_inventory_quantity(inventory_id, quantity, unit, reason, reference_id, reference_type, user_id):
     """Deduct specific quantity for piece-wise tracking"""
-    from models import Inventory, ConsumptionEntry
+    try:
+        inventory = Inventory.query.get(inventory_id)
+        if not inventory or inventory.current_stock < quantity:
+            return None
 
-    inventory = Inventory.query.get(inventory_id)
-    if not inventory:
+        # Create stock movement
+        movement = StockMovement(
+            inventory_id=inventory_id,
+            movement_type='out',
+            quantity=-quantity,
+            unit=unit,
+            reason=reason,
+            reference_id=reference_id,
+            reference_type=reference_type,
+            created_by=user_id,
+            created_at=datetime.utcnow()
+        )
+
+        # Update inventory stock
+        inventory.current_stock -= quantity
+
+        # Create consumption entry
+        consumption = ConsumptionEntry(
+            inventory_id=inventory_id,
+            entry_type='deduct',
+            quantity=quantity,
+            unit=unit,
+            reason=reason,
+            staff_id=user_id,
+            created_at=datetime.utcnow()
+        )
+
+        db.session.add(movement)
+        db.session.add(consumption)
+        db.session.commit()
+
+        return {
+            'remaining_stock': inventory.current_stock,
+            'deducted_quantity': quantity
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deducting inventory quantity: {e}")
         return None
 
-    # Convert to base unit if needed
-    if unit != inventory.base_unit:
-        try:
-            quantity_in_base = convert_units(quantity, unit, inventory.base_unit)
-        except:
-            quantity_in_base = quantity
-    else:
-        quantity_in_base = quantity
-
-    if not inventory.can_fulfill_quantity(quantity_in_base):
-        return None
-
-    # Create consumption entry
-    consumption_entry = ConsumptionEntry(
-        inventory_id=inventory_id,
-        entry_type='deduct',
-        quantity=quantity,
-        unit=unit,
-        reason=reason,
-        reference_id=reference_id,
-        reference_type=reference_type,
-        cost_impact=quantity_in_base * inventory.cost_price,
-        created_by=created_by
-    )
-
-    # Update inventory stock
-    inventory.current_stock -= quantity_in_base
-
-    # Create stock movement
-    movement = StockMovement(
-        inventory_id=inventory_id,
-        movement_type='service_use',
-        quantity=-quantity_in_base,
-        unit=inventory.base_unit,
-        reference_type=reference_type,
-        reference_id=reference_id,
-        reason=reason,
-        created_by=created_by
-    )
-
-    db.session.add(consumption_entry)
-    db.session.add(movement)
-    db.session.commit()
-
-    return {
-        'remaining_stock': inventory.current_stock,
-        'deducted_quantity': quantity_in_base
-    }
-
-def create_manual_adjustment(inventory_id, new_quantity, adjustment_type, reason, created_by):
+def create_manual_adjustment(inventory_id, new_quantity, adjustment_type, reason, user_id):
     """Create manual stock adjustment"""
-    from models import Inventory, ConsumptionEntry
+    try:
+        inventory = Inventory.query.get(inventory_id)
+        if not inventory:
+            return None
 
-    inventory = Inventory.query.get(inventory_id)
-    if not inventory:
+        old_quantity = inventory.current_stock
+        adjustment = new_quantity - old_quantity
+
+        # Create stock movement
+        movement = StockMovement(
+            inventory_id=inventory_id,
+            movement_type='adjustment',
+            quantity=adjustment,
+            unit=inventory.base_unit or 'pcs',
+            reason=f"{adjustment_type}: {reason}",
+            created_by=user_id,
+            created_at=datetime.utcnow()
+        )
+
+        # Update inventory stock
+        inventory.current_stock = new_quantity
+
+        # Create consumption entry
+        consumption = ConsumptionEntry(
+            inventory_id=inventory_id,
+            entry_type='adjust',
+            quantity=abs(adjustment),
+            unit=inventory.base_unit or 'pcs',
+            reason=reason,
+            staff_id=user_id,
+            created_at=datetime.utcnow()
+        )
+
+        db.session.add(movement)
+        db.session.add(consumption)
+        db.session.commit()
+
+        return {
+            'old_quantity': old_quantity,
+            'new_quantity': new_quantity,
+            'adjustment': adjustment
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating manual adjustment: {e}")
         return None
-
-    old_quantity = inventory.current_stock
-    adjustment_quantity = new_quantity - old_quantity
-
-    # Create consumption entry
-    consumption_entry = ConsumptionEntry(
-        inventory_id=inventory_id,
-        entry_type='adjust',
-        quantity=abs(adjustment_quantity),
-        unit=inventory.base_unit,
-        reason=reason,
-        reference_type='manual_adjustment',
-        cost_impact=abs(adjustment_quantity) * inventory.cost_price,
-        created_by=created_by
-    )
-
-    # Update inventory stock
-    inventory.current_stock = new_quantity
-
-    # Create stock movement
-    movement = StockMovement(
-        inventory_id=inventory_id,
-        movement_type='adjustment',
-        quantity=adjustment_quantity,
-        unit=inventory.base_unit,
-        reference_type='manual_adjustment',
-        reason=reason,
-        created_by=created_by
-    )
-
-    db.session.add(consumption_entry)
-    db.session.add(movement)
-    db.session.commit()
-
-    return {
-        'old_quantity': old_quantity,
-        'new_quantity': new_quantity,
-        'adjustment': adjustment_quantity
-    }
 
 def get_consumption_entries(inventory_id=None, entry_type=None, staff_id=None, days=30):
     """Get consumption entries with filtering using StockMovement table"""
