@@ -125,6 +125,7 @@ def get_items_by_status(status='all'):
         query = query.filter(Inventory.current_stock <= Inventory.reorder_point)
     elif status == 'overstocked':
         query = query.filter(Inventory.current_stock > Inventory.max_stock_level)
+    # For 'all' status, no additional filters are applied
     
     return query.order_by(Inventory.name).all()
 

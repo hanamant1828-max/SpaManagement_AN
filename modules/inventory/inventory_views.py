@@ -163,19 +163,27 @@ def api_inventory_by_status(status):
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
     
-    items = get_items_by_status(status)
-    return jsonify({
-        'status': 'success',
-        'items': [{
-            'id': item.id,
-            'name': item.name,
-            'current_stock': item.current_stock,
-            'base_unit': item.base_unit,
-            'status': item.get_stock_status(),
-            'cost_value': item.stock_value,
-            'selling_value': item.potential_revenue
-        } for item in items]
-    })
+    try:
+        items = get_items_by_status(status)
+        return jsonify({
+            'status': 'success',
+            'items': [{
+                'id': item.id,
+                'name': item.name,
+                'current_stock': float(item.current_stock),
+                'base_unit': item.base_unit or 'units',
+                'status': item.get_stock_status(),
+                'cost_value': float(item.stock_value or 0),
+                'selling_value': float(item.potential_revenue or 0)
+            } for item in items]
+        })
+    except Exception as e:
+        print(f"Error in inventory status API: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'items': []
+        }), 500
 
 @app.route('/api/inventory/valuation')
 @login_required
@@ -473,3 +481,38 @@ def api_staff_usage():
         'status': 'success',
         'report': report
     })
+
+@app.route('/api/inventory/open-items')
+@login_required
+def api_open_items():
+    """API: Get currently open inventory items"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import InventoryItem
+        
+        open_items = InventoryItem.query.filter_by(status='issued').all()
+        
+        items_data = []
+        for item in open_items:
+            items_data.append({
+                'id': item.id,
+                'item_code': item.item_code,
+                'inventory_name': item.inventory.name,
+                'remaining_quantity': float(item.remaining_quantity),
+                'unit': item.inventory.base_unit or 'units',
+                'issued_at': item.issued_at.isoformat() if item.issued_at else None
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'items': items_data
+        })
+    
+    except Exception as e:
+        print(f"Error in open items API: {e}")
+        return jsonify({
+            'status': 'success',
+            'items': []
+        })

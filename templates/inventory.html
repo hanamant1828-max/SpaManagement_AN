@@ -862,13 +862,24 @@ function loadConsumptionData() {
 
 function loadInventoryItems() {
     fetch('/api/inventory/status/all')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.status === 'success') {
                 populateInventoryDropdowns(data.items);
+            } else {
+                console.error('Error in response:', data);
+                populateInventoryDropdowns([]);
             }
         })
-        .catch(error => console.error('Error loading inventory items:', error));
+        .catch(error => {
+            console.error('Error loading inventory items:', error);
+            populateInventoryDropdowns([]);
+        });
 }
 
 function populateInventoryDropdowns(items) {
@@ -883,42 +894,118 @@ function populateInventoryDropdowns(items) {
         }
     });
 
-    // Populate dropdowns
+    if (!items || items.length === 0) {
+        // Add a message when no items are available
+        [openSelect, deductSelect, adjustSelect].forEach(select => {
+            if (select) {
+                const noItemsOption = document.createElement('option');
+                noItemsOption.value = '';
+                noItemsOption.textContent = 'No items available';
+                noItemsOption.disabled = true;
+                select.appendChild(noItemsOption);
+            }
+        });
+        return;
+    }
+
+    // Populate dropdowns with available items
     items.forEach(item => {
-        // Create option for open inventory
-        if (openSelect) {
-            const openOption = document.createElement('option');
-            openOption.value = item.id;
-            openOption.textContent = `${item.name} (${item.current_stock} ${item.base_unit || 'units'})`;
-            openSelect.appendChild(openOption);
-        }
+        try {
+            const stockDisplay = `${item.current_stock || 0} ${item.base_unit || 'units'}`;
+            const itemText = `${item.name} (${stockDisplay})`;
 
-        // Create option for deduct inventory
-        if (deductSelect) {
-            const deductOption = document.createElement('option');
-            deductOption.value = item.id;
-            deductOption.textContent = `${item.name} (${item.current_stock} ${item.base_unit || 'units'})`;
-            deductSelect.appendChild(deductOption);
-        }
+            // Create option for open inventory
+            if (openSelect) {
+                const openOption = document.createElement('option');
+                openOption.value = item.id;
+                openOption.textContent = itemText;
+                if (item.current_stock <= 0) {
+                    openOption.disabled = true;
+                    openOption.textContent = `${item.name} (Out of stock)`;
+                }
+                openSelect.appendChild(openOption);
+            }
 
-        // Create option for adjust inventory
-        if (adjustSelect) {
-            const adjustOption = document.createElement('option');
-            adjustOption.value = item.id;
-            adjustOption.textContent = `${item.name} (${item.current_stock} ${item.base_unit || 'units'})`;
-            adjustSelect.appendChild(adjustOption);
+            // Create option for deduct inventory
+            if (deductSelect) {
+                const deductOption = document.createElement('option');
+                deductOption.value = item.id;
+                deductOption.textContent = itemText;
+                if (item.current_stock <= 0) {
+                    deductOption.disabled = true;
+                    deductOption.textContent = `${item.name} (Out of stock)`;
+                }
+                deductSelect.appendChild(deductOption);
+            }
+
+            // Create option for adjust inventory
+            if (adjustSelect) {
+                const adjustOption = document.createElement('option');
+                adjustOption.value = item.id;
+                adjustOption.textContent = itemText;
+                adjustSelect.appendChild(adjustOption);
+            }
+        } catch (error) {
+            console.error('Error processing item:', item, error);
         }
     });
 }
 
 function loadOpenItems() {
-    // This would load currently open items for the consume modal
-    // For now, we'll implement a placeholder
+    // Load currently open items for the consume modal
+    fetch('/api/inventory/open-items')
+        .then(response => {
+            if (!response.ok) {
+                // If endpoint doesn't exist, use placeholder
+                if (response.status === 404) {
+                    loadOpenItemsPlaceholder();
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                populateOpenItemsDropdown(data.items);
+            } else {
+                loadOpenItemsPlaceholder();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading open items:', error);
+            loadOpenItemsPlaceholder();
+        });
+}
+
+function loadOpenItemsPlaceholder() {
     const select = document.getElementById('consumeItemId');
     if (select) {
-        select.innerHTML = '<option value="">Choose an open item...</option>';
-        // TODO: Load actual open items from API
+        select.innerHTML = '<option value="">No open items available</option>';
     }
+}
+
+function populateOpenItemsDropdown(items) {
+    const select = document.getElementById('consumeItemId');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Choose an open item...</option>';
+
+    if (!items || items.length === 0) {
+        const noItemsOption = document.createElement('option');
+        noItemsOption.value = '';
+        noItemsOption.textContent = 'No open items available';
+        noItemsOption.disabled = true;
+        select.appendChild(noItemsOption);
+        return;
+    }
+
+    items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.item_code} - ${item.inventory_name} (${item.remaining_quantity} ${item.unit})`;
+        select.appendChild(option);
+    });
 }
 
 function loadConsumptionEntries() {
