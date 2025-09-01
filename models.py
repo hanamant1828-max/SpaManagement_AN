@@ -710,13 +710,14 @@ class InventoryItem(db.Model):
     inventory = db.relationship('Inventory', backref='inventory_items')
     issued_by_user = db.relationship('User', foreign_keys=[issued_by], backref='issued_items')
     consumed_by_user = db.relationship('User', foreign_keys=[consumed_by], backref='consumed_items')
-    consumption_entries = db.relationship('ConsumptionEntry', backref='inventory_item', lazy=True)
+    consumption_entries = db.relationship('ConsumptionEntry', foreign_keys='ConsumptionEntry.inventory_item_id', lazy=True)
 
 class ConsumptionEntry(db.Model):
     __tablename__ = 'consumption_entry'
 
     id = db.Column(db.Integer, primary_key=True)
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=True)
     entry_type = db.Column(db.String(20), nullable=False)  # 'open', 'consume', 'deduct', 'adjust'
     quantity = db.Column(db.Float, nullable=False)
     unit = db.Column(db.String(20), default='pcs')
