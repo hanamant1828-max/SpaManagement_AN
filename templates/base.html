@@ -24,7 +24,7 @@
     {% if current_user.is_authenticated %}
     <nav class="navbar navbar-dark bg-primary fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}" style="display: none;">
                 <i class="fas fa-spa me-2"></i>Spa & Salon Suite
             </a>
 
