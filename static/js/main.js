@@ -323,7 +323,7 @@ function initializeBootstrapComponents() {
             setTimeout(initializeBootstrapComponents, 100);
             return;
         }
-        
+
         // Initialize all existing alerts with proper error handling
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(alert => {
@@ -335,9 +335,9 @@ function initializeBootstrapComponents() {
                 console.warn('Error initializing alert:', e);
             }
         });
-        
+
         console.log('Bootstrap components initialized successfully');
-        
+
     } catch (error) {
         console.error('Error in initializeBootstrapComponents:', error);
     }
@@ -1456,183 +1456,6 @@ function updateServicePrice(serviceId, price) {
     } catch (error) {
         console.error('Error updating service price:', error);
     }
-}
-
-// Face Recognition Functions
-function initializeFaceRecognition() {
-    console.log('Face recognition system initialized');
-
-    // Check if browser supports getUserMedia
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.error('Camera access not supported in this browser');
-        return false;
-    }
-
-    return true;
-}
-
-// Start camera for face recognition
-async function startFaceRecognitionCamera(videoElementId) {
-    try {
-        const video = document.getElementById(videoElementId);
-        if (!video) {
-            throw new Error(`Video element ${videoElementId} not found`);
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                width: 640,
-                height: 480,
-                facingMode: 'user'
-            }
-        });
-
-        video.srcObject = stream;
-        video.play();
-
-        console.log('Face recognition camera started successfully');
-        return stream;
-
-    } catch (error) {
-        console.error('Error starting face recognition camera:', error);
-        alert('Could not access camera. Please check permissions.');
-        return null;
-    }
-}
-
-// Capture face for recognition
-function captureFrameForRecognition(videoElement, canvasElement) {
-    if (!videoElement || !canvasElement) {
-        console.error('Video or canvas element not found');
-        return null;
-    }
-
-    const ctx = canvasElement.getContext('2d');
-    canvasElement.width = videoElement.videoWidth;
-    canvasElement.height = videoElement.videoHeight;
-
-    ctx.drawImage(videoElement, 0, 0);
-
-    // Get image data as base64
-    const imageData = canvasElement.toDataURL('image/jpeg', 0.8);
-    return imageData;
-}
-
-// Send face data for recognition
-async function performFaceRecognition(imageData) {
-    try {
-        const csrfToken = document.querySelector('[name=csrf_token]')?.value ||
-                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
-
-        const response = await fetch('/api/recognize_face', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(csrfToken && {'X-CSRFToken': csrfToken})
-            },
-            body: JSON.stringify({
-                face_image: imageData
-            })
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            return result;
-        } else {
-            console.error('Face recognition failed:', result.error);
-            return { success: false, error: result.error };
-        }
-
-    } catch (error) {
-        console.error('Network error during face recognition:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-// Prevent multiple initializations
-let faceCaptureFunctionality = false;
-
-function initializeFaceCapture() {
-    if (faceCaptureFunctionality) {
-        return; // Already initialized
-    }
-    
-    console.log('Initializing face capture functionality...');
-    faceCaptureFunctionality = true;
-    
-    // Your face capture initialization code here
-}
-
-// Global error handler to prevent uncaught errors
-window.addEventListener('error', function(event) {
-    console.error('JavaScript Error:', event.error);
-    // Prevent the default browser error handling
-    event.preventDefault();
-    return false;
-});
-
-// Handle navigation errors gracefully
-function handleNavigationError(error) {
-    console.error('Navigation error:', error);
-    // Show user-friendly error message
-    if (typeof showAlert === 'function') {
-        showAlert('Navigation error occurred. Please try again.', 'danger');
-    }
-}
-
-// Enhanced navigation handler
-document.addEventListener('click', function(e) {
-    const target = e.target.closest('a[href]');
-    if (target && target.getAttribute('href').startsWith('/')) {
-        // Add loading state for internal navigation
-        const originalText = target.innerHTML;
-        target.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-
-        // Reset after a delay if navigation doesn't complete
-        setTimeout(() => {
-            if (target.innerHTML.includes('Loading...')) {
-                target.innerHTML = originalText;
-            }
-        }, 3000);
-    }
-});
-
-// Package filtering functionality
-function filterPackages(filterType = null) {
-    const searchTerm = document.getElementById('packageSearch')?.value.toLowerCase() || '';
-    const packageRows = document.querySelectorAll('tr[data-package-type]');
-
-    // Update active button state
-    if (filterType !== null) {
-        const filterButtons = document.querySelectorAll('.btn-group button');
-        filterButtons.forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-    }
-
-    packageRows.forEach(row => {
-        const packageName = row.querySelector('td strong')?.textContent.toLowerCase() || '';
-        const packageType = row.getAttribute('data-package-type')?.toLowerCase() || '';
-        
-        let showRow = true;
-
-        // Apply type filter
-        if (filterType && filterType !== 'all') {
-            if (filterType === 'service_package') {
-                // Show regular packages for "Service Packages"
-                showRow = packageType === 'regular';
-            } else {
-                showRow = packageType === filterType;
-            }
-        }
-
-        // Apply search filter
-        if (showRow && searchTerm) {
-            showRow = packageName.includes(searchTerm) || packageType.includes(searchTerm);
-        }
-
-        row.style.display = showRow ? '' : 'none';
-    });
 }
 
 // Face recognition functionality
