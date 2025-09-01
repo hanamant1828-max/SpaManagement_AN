@@ -598,3 +598,129 @@ def api_open_items():
             'status': 'success',
             'items': []
         })
+
+@app.route('/api/inventory/activity-summary')
+@login_required
+def api_activity_summary():
+    """API: Get consumption activity summary for dashboard cards"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from models import ConsumptionEntry, InventoryItem
+        from datetime import datetime, timedelta
+        from app import db
+
+        # Today's activity
+        today = datetime.utcnow().date()
+        today_count = ConsumptionEntry.query.filter(
+            db.func.date(ConsumptionEntry.created_at) == today
+        ).count()
+
+        # Currently open items
+        open_count = InventoryItem.query.filter_by(status='issued').count()
+
+        # Weekly usage
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        weekly_count = ConsumptionEntry.query.filter(
+            ConsumptionEntry.created_at >= week_ago,
+            ConsumptionEntry.entry_type == 'consume'
+        ).count()
+
+        return jsonify({
+            'status': 'success',
+            'today_count': today_count,
+            'open_items_count': open_count,
+            'weekly_count': weekly_count
+        })
+
+    except Exception as e:
+        print(f"Error in activity summary API: {e}")
+        return jsonify({
+            'status': 'success',
+            'today_count': 0,
+            'open_items_count': 0,
+            'weekly_count': 0
+        })
+
+@app.route('/api/inventory/consumption-analytics')
+@login_required
+def api_consumption_analytics():
+    """API: Get detailed consumption analytics"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from models import ConsumptionEntry, Inventory, UsageDuration
+        from datetime import datetime, timedelta
+        from app import db
+
+        # This month's data
+        month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Total opened and consumed this month
+        total_opened = ConsumptionEntry.query.filter(
+            ConsumptionEntry.created_at >= month_start,
+            ConsumptionEntry.entry_type == 'open'
+        ).count()
+
+        total_consumed = ConsumptionEntry.query.filter(
+            ConsumptionEntry.created_at >= month_start,
+            ConsumptionEntry.entry_type == 'consume'
+        ).count()
+
+        # Average duration (if usage duration tracking exists)
+        avg_duration = 0
+        try:
+            duration_result = db.session.query(db.func.avg(UsageDuration.duration_hours)).filter(
+                UsageDuration.started_at >= month_start,
+                UsageDuration.duration_hours.isnot(None)
+            ).scalar()
+            avg_duration = float(duration_result or 0)
+        except:
+            avg_duration = 0
+
+        # Top consumed items this month
+        top_items_query = db.session.query(
+            Inventory.name.label('item_name'),
+            db.func.count(ConsumptionEntry.id).label('usage_count'),
+            db.func.sum(ConsumptionEntry.quantity).label('total_quantity'),
+            Inventory.base_unit.label('unit'),
+            db.func.sum(ConsumptionEntry.cost_impact).label('cost_impact')
+        ).join(
+            ConsumptionEntry, Inventory.id == ConsumptionEntry.inventory_id
+        ).filter(
+            ConsumptionEntry.created_at >= month_start
+        ).group_by(
+            Inventory.id, Inventory.name, Inventory.base_unit
+        ).order_by(
+            db.func.count(ConsumptionEntry.id).desc()
+        ).limit(10).all()
+
+        top_items = []
+        for item in top_items_query:
+            top_items.append({
+                'item_name': item.item_name,
+                'usage_count': item.usage_count,
+                'total_quantity': float(item.total_quantity or 0),
+                'unit': item.unit or 'units',
+                'cost_impact': float(item.cost_impact or 0)
+            })
+
+        return jsonify({
+            'status': 'success',
+            'total_opened': total_opened,
+            'total_consumed': total_consumed,
+            'avg_duration': avg_duration,
+            'top_items': top_items
+        })
+
+    except Exception as e:
+        print(f"Error in consumption analytics API: {e}")
+        return jsonify({
+            'status': 'success',
+            'total_opened': 0,
+            'total_consumed': 0,
+            'avg_duration': 0,
+            'top_items': []
+        })

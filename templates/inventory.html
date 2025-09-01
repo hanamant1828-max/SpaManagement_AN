@@ -76,7 +76,7 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="handleConsumptionTabClick();">
+                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="setTimeout(loadConsumptionData, 200);">
                                 <i class="fas fa-clipboard-list me-1"></i>Consumption Tracking
                             </button>
                         </li>
@@ -172,15 +172,15 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#updateStockModal" 
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#updateStockModal"
                                                         onclick="updateStock({{ item.id }}, '{{ item.name }}', {{ item.current_stock }})">
                                                     <i class="fas fa-plus-minus"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-secondary" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#editInventoryModal" 
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editInventoryModal"
                                                         onclick="editItem({{ item.id }})">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
@@ -236,7 +236,7 @@
                                         <td><strong class="text-danger">{{ item.min_stock_level - item.current_stock }}</strong></td>
                                         <td>{{ item.supplier_name or '-' }}</td>
                                         <td>
-                                            <button class="btn btn-sm btn-warning" 
+                                            <button class="btn btn-sm btn-warning"
                                                     onclick="reorderItem({{ item.id }})">
                                                 <i class="fas fa-shopping-cart me-1"></i>Reorder
                                             </button>
@@ -295,11 +295,11 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-danger" 
+                                                <button class="btn btn-sm btn-danger"
                                                         onclick="markExpired({{ item.id }})">
                                                     <i class="fas fa-trash me-1"></i>Mark Expired
                                                 </button>
-                                                <button class="btn btn-sm btn-warning" 
+                                                <button class="btn btn-sm btn-warning"
                                                         onclick="useUrgently({{ item.id }})">
                                                     <i class="fas fa-exclamation me-1"></i>Use Urgently
                                                 </button>
@@ -330,78 +330,273 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-4">
-                        <!-- Quick Action Cards -->
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-primary h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-box-open fa-2x text-primary mb-2"></i>
-                                    <h6>Open Item</h6>
-                                    <p class="small text-muted">Start using a bottle/jar</p>
-                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#openItemModal">
-                                        Open Item
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-success h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
-                                    <h6>Mark Consumed</h6>
-                                    <p class="small text-muted">Item fully used up</p>
-                                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#consumeItemModal">
-                                        Mark Consumed
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-warning h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-minus-circle fa-2x text-warning mb-2"></i>
-                                    <h6>Deduct Quantity</h6>
-                                    <p class="small text-muted">Use specific amount</p>
-                                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#deductQuantityModal">
-                                        Deduct Stock
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-secondary h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-edit fa-2x text-secondary mb-2"></i>
-                                    <h6>Manual Adjust</h6>
-                                    <p class="small text-muted">Custom stock change</p>
-                                    <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#adjustStockModal">
-                                        Adjust Stock
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Sub-tabs for Consumption Tracking -->
+                    <ul class="nav nav-tabs mb-4" id="consumptionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="overview-subtab" data-bs-toggle="tab" data-bs-target="#consumption-overview" type="button" role="tab">
+                                <i class="fas fa-tachometer-alt me-1"></i>Overview
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="open-items-subtab" data-bs-toggle="tab" data-bs-target="#open-items-view" type="button" role="tab">
+                                <i class="fas fa-box-open me-1"></i>Open Items
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-subtab" data-bs-toggle="tab" data-bs-target="#consumption-history" type="button" role="tab" onclick="filterConsumptionHistory('all')">
+                                <i class="fas fa-history me-1"></i>History
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="analytics-subtab" data-bs-toggle="tab" data-bs-target="#consumption-analytics" type="button" role="tab">
+                                <i class="fas fa-chart-bar me-1"></i>Analytics
+                            </button>
+                        </li>
+                    </ul>
 
-                    <!-- Recent Consumption Entries -->
-                    <div class="row">
-                        <div class="col-12">
-                            <h6 class="mb-3">Recent Consumption Entries</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover" id="consumptionEntriesTable">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Item</th>
-                                            <th>Action</th>
-                                            <th>Quantity</th>
-                                            <th>Staff</th>
-                                            <th>Reason</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="consumptionEntriesBody">
-                                        <!-- Consumption entries will be loaded here via JavaScript -->
-                                    </tbody>
-                                </table>
+                    <!-- Sub-tab Content -->
+                    <div class="tab-content" id="consumptionTabContent">
+                        <!-- Overview Tab -->
+                        <div class="tab-pane fade show active" id="consumption-overview" role="tabpanel">
+                            <div class="row mb-4">
+                                <!-- Quick Action Cards -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-primary h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
+                                            <h6>Today's Activity</h6>
+                                            <p class="h4 mb-0 font-weight-bold"><span id="todayActivityCount">0</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-secondary h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-box-open fa-2x text-secondary mb-2"></i>
+                                            <h6>Open Items</h6>
+                                            <p class="h4 mb-0 font-weight-bold"><span id="openItemsCount">0</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-success h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-sync-alt fa-2x text-success mb-2"></i>
+                                            <h6>Weekly Usage</h6>
+                                            <p class="h4 mb-0 font-weight-bold"><span id="weeklyUsageCount">0</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-warning h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-box-tissue fa-2x text-warning mb-2"></i>
+                                            <h6>Low Stock Items</h6>
+                                            <p class="h4 mb-0 font-weight-bold">{{ low_stock_count }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card shadow h-100">
+                                        <div class="card-header py-3">
+                                            <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row text-center">
+                                                <div class="col-6 mb-3">
+                                                    <button class="btn btn-lg btn-primary w-100" data-bs-toggle="modal" data-bs-target="#openItemModal">
+                                                        <i class="fas fa-box-open me-2"></i>Open Item
+                                                    </button>
+                                                </div>
+                                                <div class="col-6 mb-3">
+                                                    <button class="btn btn-lg btn-success w-100" data-bs-toggle="modal" data-bs-target="#consumeItemModal">
+                                                        <i class="fas fa-check-circle me-2"></i>Mark Consumed
+                                                    </button>
+                                                </div>
+                                                <div class="col-6 mb-3">
+                                                    <button class="btn btn-lg btn-warning w-100" data-bs-toggle="modal" data-bs-target="#deductQuantityModal">
+                                                        <i class="fas fa-minus-circle me-2"></i>Deduct Stock
+                                                    </button>
+                                                </div>
+                                                <div class="col-6 mb-3">
+                                                    <button class="btn btn-lg btn-secondary w-100" data-bs-toggle="modal" data-bs-target="#adjustStockModal">
+                                                        <i class="fas fa-edit me-2"></i>Adjust Stock
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card shadow h-100">
+                                        <div class="card-header py-3">
+                                            <h6 class="m-0 font-weight-bold text-primary">Top Consumed Items</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Rank</th>
+                                                            <th>Item Name</th>
+                                                            <th>Uses</th>
+                                                            <th>Total Qty</th>
+                                                            <th>Cost Impact</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="topConsumedItemsBody">
+                                                        <!-- Top consumed items loaded via JS -->
+                                                        <tr>
+                                                            <td colspan="5" class="text-center text-muted py-4">
+                                                                <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>Loading analytics...
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Open Items Tab -->
+                        <div class="tab-pane fade" id="open-items-view" role="tabpanel">
+                            <div class="card shadow">
+                                <div class="card-header py-3 bg-secondary text-white">
+                                    <h6 class="m-0 font-weight-bold">
+                                        <i class="fas fa-box-open me-2"></i>Currently Open Items
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover" id="openItemsTable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Item Code</th>
+                                                    <th>Item Name</th>
+                                                    <th>Opened On</th>
+                                                    <th>Remaining Qty</th>
+                                                    <th>Age</th>
+                                                    <th>Staff</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="openItemsBody">
+                                                <!-- Open items will be loaded here via JavaScript -->
+                                                <tr>
+                                                    <td colspan="7" class="text-center text-muted py-4">
+                                                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>Loading open items...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Consumption History Tab -->
+                        <div class="tab-pane fade" id="consumption-history" role="tabpanel">
+                            <div class="card shadow">
+                                <div class="card-header py-3 bg-primary text-white">
+                                    <h6 class="m-0 font-weight-bold">
+                                        <i class="fas fa-history me-2"></i>Consumption History
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Filter Buttons -->
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary active" onclick="filterConsumptionHistory('all')">All</button>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="filterConsumptionHistory('today')">Today</button>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="filterConsumptionHistory('week')">This Week</button>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="filterConsumptionHistory('month')">This Month</button>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-download"></i> Export CSV
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Recent Consumption Entries -->
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover" id="consumptionEntriesTable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Item</th>
+                                                    <th>Action</th>
+                                                    <th>Quantity</th>
+                                                    <th>Staff</th>
+                                                    <th>Reason</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="consumptionEntriesBody">
+                                                <!-- Consumption entries will be loaded here via JavaScript -->
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted py-4">
+                                                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>Loading history...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Consumption Analytics Tab -->
+                        <div class="tab-pane fade" id="consumption-analytics" role="tabpanel">
+                            <div class="card shadow">
+                                <div class="card-header py-3 bg-success text-white">
+                                    <h6 class="m-0 font-weight-bold">
+                                        <i class="fas fa-chart-bar me-2"></i>Consumption Analytics
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-4">
+                                            <div class="card text-center h-100">
+                                                <div class="card-body">
+                                                    <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
+                                                    <h5 class="text-primary font-weight-bold">Total Items Opened</h5>
+                                                    <p class="h2 mb-0 font-weight-bold"><span id="totalOpenedCount">0</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-4">
+                                            <div class="card text-center h-100">
+                                                <div class="card-body">
+                                                    <i class="fas fa-box-tissue fa-3x text-success mb-3"></i>
+                                                    <h5 class="text-success font-weight-bold">Total Items Consumed</h5>
+                                                    <p class="h2 mb-0 font-weight-bold"><span id="totalConsumedCount">0</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-4">
+                                            <div class="card text-center h-100">
+                                                <div class="card-body">
+                                                    <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                                                    <h5 class="text-warning font-weight-bold">Avg. Usage Duration</h5>
+                                                    <p class="h2 mb-0 font-weight-bold"><span id="avgDurationHours">0.0</span> <small>hrs</small></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Placeholder for charts if needed -->
+                                    <div class="row mt-4">
+                                        <div class="col-12 text-center">
+                                            <p class="text-muted">Detailed charts and graphs can be added here.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -784,7 +979,7 @@ let activeTab = 'all-items';
 function setActiveTab(tabId) {
     activeTab = tabId;
     console.log('Active tab set to:', tabId);
-    
+
     // Load data specific to the tab
     switch(tabId) {
         case 'consumption-tracking':
@@ -892,75 +1087,213 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function loadConsumptionData() {
     console.log('Loading consumption tracking data...');
-    try {
-        // Load inventory items for dropdowns
-        loadInventoryItems();
-        loadOpenItems();
-        loadConsumptionEntries();
-    } catch (error) {
-        console.error('Error loading consumption data:', error);
-    }
+    // Load inventory items for dropdowns
+    loadInventoryItems();
+    loadOpenItems();
+    loadConsumptionEntries();
+    loadConsumptionAnalytics();
+    loadActivitySummary();
 }
 
-// Fix missing updateStock function
-function updateStock(itemId, itemName, currentStock) {
-    console.log('updateStock called with:', itemId, itemName, currentStock);
-    currentItemId = itemId;
-    originalStock = currentStock;
+function loadActivitySummary() {
+    console.log('Loading activity summary...');
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
 
-    const stockItemName = document.getElementById('stockItemName');
-    const currentStockInput = document.getElementById('currentStock');
-    const stockAdjustment = document.getElementById('stockAdjustment');
-    const newStock = document.getElementById('newStock');
-    
-    if (stockItemName) stockItemName.value = itemName;
-    if (currentStockInput) currentStockInput.value = currentStock;
-    if (stockAdjustment) stockAdjustment.value = 0;
-    if (newStock) newStock.value = currentStock;
-}
-
-// Add event listener for consumption tracking tab
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Setting up consumption tracking tab event listener...');
-    
-    // Initialize all tab event listeners
-    const tabButtons = document.querySelectorAll('#inventoryTabs button[data-bs-toggle="pill"]');
-    tabButtons.forEach(button => {
-        button.addEventListener('shown.bs.tab', function(e) {
-            const targetId = e.target.getAttribute('data-bs-target');
-            console.log('Tab activated:', targetId);
-            
-            // Load specific data based on tab
-            if (targetId === '#consumption-tracking') {
-                console.log('Loading consumption tracking data...');
-                loadConsumptionData();
-            }
-        });
+    fetch('/api/inventory/activity-summary', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            document.getElementById('todayActivityCount').textContent = data.today_count || 0;
+            document.getElementById('openItemsCount').textContent = data.open_items_count || 0;
+            document.getElementById('weeklyUsageCount').textContent = data.weekly_count || 0;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading activity summary:', error);
+        // Set fallback values
+        document.getElementById('todayActivityCount').textContent = '0';
+        document.getElementById('openItemsCount').textContent = '0';
+        document.getElementById('weeklyUsageCount').textContent = '0';
     });
-    
-    const consumptionTab = document.getElementById('consumption-tab');
-    if (consumptionTab) {
-        // Also load data when tab is clicked for the first time
-        consumptionTab.addEventListener('click', function(e) {
-            console.log('Consumption tab clicked, loading data...');
-            setTimeout(loadConsumptionData, 200);
+}
+
+function loadConsumptionAnalytics() {
+    console.log('Loading consumption analytics...');
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+
+    fetch('/api/inventory/consumption-analytics', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            updateAnalyticsDisplay(data);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading consumption analytics:', error);
+        // Set fallback values
+        document.getElementById('totalOpenedCount').textContent = '0';
+        document.getElementById('totalConsumedCount').textContent = '0';
+        document.getElementById('avgDurationHours').textContent = '0';
+    });
+}
+
+function updateAnalyticsDisplay(data) {
+    document.getElementById('totalOpenedCount').textContent = data.total_opened || 0;
+    document.getElementById('totalConsumedCount').textContent = data.total_consumed || 0;
+    document.getElementById('avgDurationHours').textContent = (data.avg_duration || 0).toFixed(1);
+
+    // Update top consumed items table
+    updateTopConsumedItems(data.top_items || []);
+}
+
+function updateTopConsumedItems(topItems) {
+    const tbody = document.getElementById('topConsumedItemsBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (topItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No consumption data available</td></tr>';
+        return;
+    }
+
+    topItems.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><span class="badge bg-primary">#${index + 1}</span></td>
+            <td>${item.item_name}</td>
+            <td>${item.usage_count}</td>
+            <td>${item.total_quantity} ${item.unit}</td>
+            <td>₹${(item.cost_impact || 0).toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function loadOpenItemsTable() {
+    console.log('Loading open items table...');
+    const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+
+    fetch('/api/inventory/open-items', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken && {'X-CSRFToken': csrfToken})
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            updateOpenItemsTable(data.items || []);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading open items table:', error);
+        updateOpenItemsTable([]);
+    });
+}
+
+function updateOpenItemsTable(openItems) {
+    const tbody = document.getElementById('openItemsBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (openItems.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    <i class="fas fa-box-open fa-2x mb-2"></i><br>
+                    No items currently open
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    openItems.forEach(item => {
+        const openedDate = new Date(item.issued_at);
+        const now = new Date();
+        const durationHours = Math.floor((now - openedDate) / (1000 * 60 * 60));
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><code>${item.item_code}</code></td>
+            <td>${item.inventory_name}</td>
+            <td>${openedDate.toLocaleDateString()}</td>
+            <td>${item.remaining_quantity} ${item.unit}</td>
+            <td>${durationHours}h</td>
+            <td>Staff</td>
+            <td>
+                <button class="btn btn-sm btn-success" onclick="quickConsumeItem(${item.id})">
+                    <i class="fas fa-check"></i> Consume
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function filterConsumptionHistory(period) {
+    console.log('Filtering consumption history for period:', period);
+
+    // Update active button
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    // Reload consumption entries with filter
+    loadConsumptionEntries(period);
+}
+
+function quickConsumeItem(itemId) {
+    if (confirm('Mark this item as fully consumed?')) {
+        const csrfToken = document.querySelector('[name=csrf_token]')?.value;
+
+        fetch(`/api/inventory-item/${itemId}/consume`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(csrfToken && {'X-CSRFToken': csrfToken})
+            },
+            body: JSON.stringify({
+                reason: 'Quick consume from open items view'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Item marked as consumed successfully!');
+                loadOpenItemsTable();
+                loadActivitySummary();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while consuming the item.');
         });
-        
-        console.log('Event listener added to consumption tab');
-    } else {
-        console.error('Consumption tab not found!');
     }
-    
-    // Load initial data if consumption tab is already active
-    if (consumptionTab && consumptionTab.classList.contains('active')) {
-        console.log('Consumption tab is already active, loading data...');
-        loadConsumptionData();
-    }
-});
+}
+
 
 function loadInventoryItems() {
     console.log('Loading inventory items for consumption tracking...');
-    
+
     // Get CSRF token for authenticated API calls
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
 
@@ -990,21 +1323,21 @@ function loadInventoryItems() {
         })
         .catch(error => {
             console.error('Error loading inventory items:', error);
-            
+
             // Fallback: try to get data from the current page
             console.log('Attempting fallback method...');
             try {
                 // Try to extract inventory data from the template
                 const inventoryRows = document.querySelectorAll('#all-items tbody tr');
                 const fallbackItems = [];
-                
+
                 inventoryRows.forEach((row, index) => {
                     try {
                         const cells = row.querySelectorAll('td');
                         if (cells.length >= 3) {
                             const nameElement = cells[0].querySelector('strong');
                             const stockElement = cells[2].querySelector('strong') || cells[2];
-                            
+
                             if (nameElement && stockElement) {
                                 const itemData = {
                                     id: index + 1, // Temporary ID
@@ -1019,7 +1352,7 @@ function loadInventoryItems() {
                         console.warn('Error parsing row:', e);
                     }
                 });
-                
+
                 if (fallbackItems.length > 0) {
                     console.log('Using fallback data:', fallbackItems.length, 'items');
                     populateInventoryDropdowns(fallbackItems);
@@ -1076,7 +1409,7 @@ function populateInventoryDropdowns(items) {
 
     console.log('Processing items for dropdowns...');
     let processedCount = 0;
-    
+
     // Populate dropdowns with available items
     items.forEach((item, index) => {
         try {
@@ -1111,13 +1444,13 @@ function populateInventoryDropdowns(items) {
                 adjustOption.textContent = itemText;
                 adjustSelect.appendChild(adjustOption);
             }
-            
+
             processedCount++;
         } catch (error) {
             console.error('Error processing item:', item, error);
         }
     });
-    
+
     console.log(`Successfully processed ${processedCount} items for dropdowns`);
 }
 
@@ -1187,11 +1520,11 @@ function populateOpenItemsDropdown(items) {
     });
 }
 
-function loadConsumptionEntries() {
+function loadConsumptionEntries(period = 'all') {
     // Get CSRF token for authenticated API calls
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
 
-    fetch('/api/inventory/consumption-entries', {
+    fetch(`/api/inventory/consumption-entries?period=${period}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -1206,20 +1539,25 @@ function loadConsumptionEntries() {
         })
         .then(data => {
             if (data.status === 'success') {
-                populateConsumptionTable(data.entries);
+                populateConsumptionTable(data.entries || []);
             } else {
                 console.error('Error in response:', data);
+                displayConsumptionTableError('Failed to load consumption history.');
             }
         })
         .catch(error => {
             console.error('Error loading consumption entries:', error);
-            // Show fallback message in table
-            const tbody = document.querySelector('#consumptionTable tbody');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Unable to load consumption entries</td></tr>';
-            }
+            displayConsumptionTableError('An error occurred while fetching history.');
         });
 }
+
+function displayConsumptionTableError(message) {
+    const tbody = document.querySelector('#consumptionEntriesBody');
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${message}</td></tr>`;
+    }
+}
+
 
 function populateConsumptionTable(entries) {
     const tbody = document.getElementById('consumptionEntriesBody');
@@ -1239,7 +1577,7 @@ function populateConsumptionTable(entries) {
             <td>${entry.inventory_name}</td>
             <td><span class="badge bg-${getEntryTypeBadge(entry.entry_type)}">${entry.entry_type}</span></td>
             <td>${entry.quantity} ${entry.unit}</td>
-            <td>${entry.staff_name}</td>
+            <td>${entry.staff_name || 'N/A'}</td>
             <td>${entry.reason}</td>
         `;
         tbody.appendChild(row);
