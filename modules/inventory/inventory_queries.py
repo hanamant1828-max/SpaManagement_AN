@@ -574,26 +574,34 @@ def create_manual_adjustment(inventory_id, new_quantity, adjustment_type, reason
     }
 
 def get_consumption_entries(inventory_id=None, entry_type=None, staff_id=None, days=30):
-    """Get consumption entries with filtering"""
-    from models import ConsumptionEntry
+    """Get consumption entries with filtering using StockMovement table"""
+    from models import StockMovement, Inventory, User
     from datetime import datetime, timedelta
     
-    query = ConsumptionEntry.query
+    query = StockMovement.query.join(Inventory)
     
     if inventory_id:
-        query = query.filter(ConsumptionEntry.inventory_id == inventory_id)
+        query = query.filter(StockMovement.inventory_id == inventory_id)
     
     if entry_type:
-        query = query.filter(ConsumptionEntry.entry_type == entry_type)
+        # Map entry types to movement types
+        movement_type_map = {
+            'open': 'service_use',
+            'consume': 'service_use', 
+            'deduct': 'service_use',
+            'adjust': 'adjustment'
+        }
+        movement_type = movement_type_map.get(entry_type, entry_type)
+        query = query.filter(StockMovement.movement_type == movement_type)
     
     if staff_id:
-        query = query.filter(ConsumptionEntry.created_by == staff_id)
+        query = query.filter(StockMovement.created_by == staff_id)
     
     # Filter by date range
     start_date = datetime.utcnow() - timedelta(days=days)
-    query = query.filter(ConsumptionEntry.created_at >= start_date)
+    query = query.filter(StockMovement.created_at >= start_date)
     
-    return query.order_by(ConsumptionEntry.created_at.desc()).all()
+    return query.order_by(StockMovement.created_at.desc()).limit(50).all()
 
 def get_usage_duration_report(inventory_id=None, days=30):
     """Get usage duration report"""

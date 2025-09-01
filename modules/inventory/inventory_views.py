@@ -430,7 +430,8 @@ def api_consumption_entries():
         return jsonify({'error': 'Access denied'}), 403
     
     try:
-        from modules.inventory.inventory_queries import get_consumption_entries
+        from models import StockMovement, Inventory, User
+        from datetime import datetime, timedelta
         
         # Get query parameters
         inventory_id = request.args.get('inventory_id', type=int)
@@ -438,25 +439,41 @@ def api_consumption_entries():
         staff_id = request.args.get('staff_id', type=int)
         days = request.args.get('days', 30, type=int)
         
-        entries = get_consumption_entries(inventory_id, entry_type, staff_id, days)
+        # Build query for stock movements (consumption tracking)
+        query = db.session.query(StockMovement).join(Inventory, StockMovement.inventory_id == Inventory.id)
+        
+        if inventory_id:
+            query = query.filter(StockMovement.inventory_id == inventory_id)
+        
+        if entry_type:
+            query = query.filter(StockMovement.movement_type == entry_type)
+        
+        if staff_id:
+            query = query.filter(StockMovement.created_by == staff_id)
+        
+        # Filter by date range
+        start_date = datetime.utcnow() - timedelta(days=days)
+        query = query.filter(StockMovement.created_at >= start_date)
+        
+        movements = query.order_by(StockMovement.created_at.desc()).limit(50).all()
         
         entries_data = []
-        for entry in entries:
+        for movement in movements:
             try:
                 entry_data = {
-                    'id': entry.id,
-                    'inventory_name': entry.inventory.name if entry.inventory else 'Unknown',
-                    'entry_type': entry.entry_type,
-                    'quantity': float(entry.quantity),
-                    'unit': entry.unit,
-                    'reason': entry.reason,
-                    'staff_name': f"{entry.created_by_user.first_name} {entry.created_by_user.last_name}" if entry.created_by_user else 'Unknown',
-                    'created_at': entry.created_at.isoformat() if entry.created_at else '',
-                    'cost_impact': float(entry.cost_impact or 0)
+                    'id': movement.id,
+                    'inventory_name': movement.inventory.name if movement.inventory else 'Unknown',
+                    'entry_type': movement.movement_type,
+                    'quantity': abs(float(movement.quantity)),
+                    'unit': movement.unit or 'units',
+                    'reason': movement.reason or 'No reason provided',
+                    'staff_name': f"{movement.created_by_user.first_name} {movement.created_by_user.last_name}" if movement.created_by_user else 'System',
+                    'created_at': movement.created_at.isoformat() if movement.created_at else '',
+                    'cost_impact': 0.0  # Calculate if needed
                 }
                 entries_data.append(entry_data)
             except Exception as e:
-                print(f"Error processing entry {entry.id}: {e}")
+                print(f"Error processing movement {movement.id}: {e}")
                 continue
         
         return jsonify({
