@@ -6,7 +6,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from app import app, db
-from models import SimpleInventoryItem, SimpleStockTransaction, SimpleLowStockAlert, ServiceInventoryMapping, Service
+from models import SimpleInventoryItem, SimpleStockTransaction, SimpleLowStockAlert
 
 @app.route('/simple_inventory')
 @login_required
@@ -56,10 +56,6 @@ def simple_inventory():
     categories = db.session.query(SimpleInventoryItem.category).distinct().all()
     categories = [cat[0] for cat in categories if cat[0]]
     
-    # Get services and service mappings
-    services = Service.query.filter_by(is_active=True).all()
-    service_mappings = ServiceInventoryMapping.query.all()
-    
     return render_template('simple_inventory.html',
                          items=items,
                          transactions=transactions,
@@ -71,9 +67,7 @@ def simple_inventory():
                          items_consumed_today=items_consumed_today,
                          avg_daily_usage=round(avg_daily_usage, 1),
                          total_transactions=len(transactions),
-                         categories=categories,
-                         services=services,
-                         service_mappings=service_mappings)
+                         categories=categories)
 
 @app.route('/add_inventory_item', methods=['POST'])
 @login_required
@@ -434,184 +428,3 @@ def api_usage_report():
         'total_items_tracked': len(usage_by_item)
     })
 
-@app.route('/add_service_mapping', methods=['POST'])
-@login_required
-def add_service_mapping():
-    """Create service-inventory mapping"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('simple_inventory'))
-
-    try:
-        service_id = int(request.form.get('service_id'))
-        inventory_item_id = int(request.form.get('inventory_item_id'))
-        consumption_amount = float(request.form.get('consumption_amount'))
-        unit = request.form.get('unit')
-        is_required = bool(request.form.get('is_required'))
-        notes = request.form.get('notes', '').strip()
-        
-        # Check if mapping already exists
-        existing_mapping = ServiceInventoryMapping.query.filter_by(
-            service_id=service_id, 
-            inventory_item_id=inventory_item_id
-        ).first()
-        
-        if existing_mapping:
-            flash('This service is already mapped to this inventory item.', 'warning')
-            return redirect(url_for('simple_inventory'))
-        
-        # Verify service and item exist
-        service = Service.query.get(service_id)
-        item = SimpleInventoryItem.query.get(inventory_item_id)
-        
-        if not service or not item:
-            flash('Invalid service or inventory item selected.', 'danger')
-            return redirect(url_for('simple_inventory'))
-        
-        # Create mapping
-        mapping = ServiceInventoryMapping(
-            service_id=service_id,
-            inventory_item_id=inventory_item_id,
-            consumption_amount=consumption_amount,
-            unit=unit,
-            is_required=is_required,
-            notes=notes
-        )
-        
-        db.session.add(mapping)
-        db.session.commit()
-        
-        flash(f'Successfully linked "{service.name}" to "{item.name}" ({consumption_amount} {unit} per service)', 'success')
-        
-    except ValueError as e:
-        flash(f'Invalid input: {str(e)}', 'danger')
-    except Exception as e:
-        flash(f'Error creating service mapping: {str(e)}', 'danger')
-        db.session.rollback()
-    
-    return redirect(url_for('simple_inventory'))
-
-@app.route('/delete_service_mapping/<int:mapping_id>', methods=['POST'])
-@login_required
-def delete_service_mapping(mapping_id):
-    """Delete service-inventory mapping"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        mapping = ServiceInventoryMapping.query.get(mapping_id)
-        if not mapping:
-            return jsonify({'error': 'Mapping not found'}), 404
-        
-        service_name = mapping.service.name
-        item_name = mapping.inventory_item.name
-        
-        db.session.delete(mapping)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Mapping between {service_name} and {item_name} deleted successfully'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/consume_service_inventory/<int:appointment_id>', methods=['POST'])
-@login_required
-def consume_service_inventory(appointment_id):
-    """Automatically consume inventory based on service mappings when appointment is completed"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        from models import Appointment
-        
-        appointment = Appointment.query.get(appointment_id)
-        if not appointment:
-            return jsonify({'error': 'Appointment not found'}), 404
-        
-        # Get service mappings for this appointment's service
-        mappings = ServiceInventoryMapping.query.filter_by(service_id=appointment.service_id).all()
-        
-        if not mappings:
-            return jsonify({'success': True, 'message': 'No inventory mappings found for this service'})
-        
-        consumed_items = []
-        insufficient_stock = []
-        
-        for mapping in mappings:
-            item = mapping.inventory_item
-            
-            # Check if sufficient stock available
-            if item.current_stock >= mapping.consumption_amount:
-                # Update stock
-                old_stock = item.current_stock
-                item.current_stock -= mapping.consumption_amount
-                item.last_updated = datetime.utcnow()
-                
-                # Create transaction record
-                transaction = SimpleStockTransaction(
-                    item_id=item.id,
-                    transaction_type='Service',
-                    quantity_changed=-mapping.consumption_amount,
-                    remaining_balance=item.current_stock,
-                    user_id=current_user.id,
-                    reason=f'Service consumption: {appointment.service.name}',
-                    reference_number=f'APPT-{appointment_id}'
-                )
-                
-                db.session.add(transaction)
-                consumed_items.append({
-                    'item': item.name,
-                    'consumed': mapping.consumption_amount,
-                    'unit': mapping.unit,
-                    'remaining': item.current_stock
-                })
-                
-                # Create low stock alert if needed
-                if item.is_low_stock:
-                    existing_alert = SimpleLowStockAlert.query.filter_by(
-                        item_id=item.id, 
-                        is_acknowledged=False
-                    ).first()
-                    
-                    if not existing_alert:
-                        alert = SimpleLowStockAlert(
-                            item_id=item.id,
-                            current_stock=item.current_stock,
-                            reorder_level=item.reorder_level
-                        )
-                        db.session.add(alert)
-                
-            else:
-                insufficient_stock.append({
-                    'item': item.name,
-                    'required': mapping.consumption_amount,
-                    'available': item.current_stock,
-                    'unit': mapping.unit,
-                    'is_required': mapping.is_required
-                })
-        
-        # If any required items have insufficient stock, don't process any consumption
-        required_insufficient = [item for item in insufficient_stock if item['is_required']]
-        if required_insufficient:
-            db.session.rollback()
-            return jsonify({
-                'error': 'Insufficient stock for required items',
-                'insufficient_items': required_insufficient
-            }), 400
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'consumed_items': consumed_items,
-            'insufficient_items': insufficient_stock,
-            'message': f'Successfully consumed inventory for {len(consumed_items)} items'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500

@@ -1113,21 +1113,3 @@ class SimpleLowStockAlert(db.Model):
     item = db.relationship('SimpleInventoryItem', backref='alerts')
     acknowledged_by_user = db.relationship('User', backref='acknowledged_simple_alerts')
 
-class ServiceInventoryMapping(db.Model):
-    """Map services to inventory items with consumption amounts"""
-    __tablename__ = 'service_inventory_mapping'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    inventory_item_id = db.Column(db.Integer, db.ForeignKey('simple_inventory_items.id'), nullable=False)
-    consumption_amount = db.Column(db.Float, nullable=False)  # Amount consumed per service
-    unit = db.Column(db.String(20), default='pcs')  # Unit of consumption (pcs, ml, grams, etc.)
-    is_required = db.Column(db.Boolean, default=True)  # Whether item is required for service
-    notes = db.Column(db.Text)  # Additional notes
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    service = db.relationship('Service', backref='inventory_mappings')
-    inventory_item = db.relationship('SimpleInventoryItem', backref='service_mappings')
-    
-    __table_args__ = (db.UniqueConstraint('service_id', 'inventory_item_id'),)
