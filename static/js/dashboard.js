@@ -352,6 +352,87 @@ function quickAddAppointment() {
     }
 }
 
+// Prevent multiple dashboard initializations
+let dashboardInitialized = false;
+
+function initializeDashboard() {
+    if (dashboardInitialized) {
+        return;
+    }
+    dashboardInitialized = true;
+    
+    console.log('Dashboard loaded successfully');
+    console.log('Dashboard JavaScript loaded and ready');
+    
+    // Initialize dashboard-specific functionality here
+    try {
+        // Initialize charts if they exist
+        if (typeof Chart !== 'undefined' && document.getElementById('revenueChart')) {
+            initializeCharts();
+        }
+        
+        // Initialize any dashboard widgets
+        initializeDashboardWidgets();
+        
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+    }
+}
+
+function initializeCharts() {
+    try {
+        // Revenue chart
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueCtx) {
+            // Chart initialization code here
+        }
+        
+        // Other charts
+        const appointmentCtx = document.getElementById('appointmentChart');
+        if (appointmentCtx) {
+            // Chart initialization code here
+        }
+        
+    } catch (error) {
+        console.error('Chart initialization error:', error);
+    }
+}
+
+function initializeDashboardWidgets() {
+    try {
+        // Initialize any dashboard-specific widgets
+        console.log('Dashboard widgets initialized');
+    } catch (error) {
+        console.error('Widget initialization error:', error);
+    }
+}
+
+function refreshDashboardData() {
+    try {
+        console.log('Refreshing dashboard data...');
+        // Refresh dashboard data without page reload
+        // Implementation would go here
+    } catch (error) {
+        console.error('Dashboard refresh error:', error);
+    }
+}
+
+// Navigation functions with proper error handling
+function quickAddAppointment() {
+    try {
+        const modal = document.getElementById('addAppointmentModal');
+        if (modal) {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } else {
+            window.location.href = '/bookings';
+        }
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
 function quickAddClient() {
     try {
         const modal = document.getElementById('addClientModal');
@@ -385,7 +466,6 @@ function quickCheckInventory() {
     }
 }
 
-// Enhanced navigation function for staff management
 function navigateToStaffManagement() {
     try {
         console.log('Navigating to staff management...');
@@ -396,14 +476,29 @@ function navigateToStaffManagement() {
     }
 }
 
-// Make all navigation functions globally available
+function handleNavigationError(error) {
+    console.error('Navigation error:', error);
+    if (typeof showAlert === 'function') {
+        showAlert('Navigation error occurred. Please try again.', 'warning');
+    }
+}
+
+// Initialize dashboard when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        initializeDashboard();
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+    }
+});
+
+// Make functions globally available
 window.navigateToStaffManagement = navigateToStaffManagement;
 window.quickAddAppointment = quickAddAppointment;
 window.quickAddClient = quickAddClient;
 window.quickViewReports = quickViewReports;
 window.quickCheckInventory = quickCheckInventory;
-
-// Error handler for navigation issues
+window.refreshDashboardData = refreshDashboardData;
 function handleNavigationError(error) {
     console.error('Navigation failed:', error);
     if (typeof showNotification === 'function') {

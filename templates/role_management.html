@@ -459,6 +459,17 @@ function savePermissions() {
             });
         }
     }).catch(error => {
+        console.error('Permission update error:', error);
+        alert('Network error occurred while updating permissions');
+    }).finally(() => {
+        // Reset button state
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
+    });
+}ating permissions: ' + (data.error || 'Unknown error'));
+            });
+        }
+    }).catch(error => {
         console.error('Error:', error);
         alert('Network error occurred');
     }).finally(() => {

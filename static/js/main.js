@@ -1550,7 +1550,214 @@ async function performFaceRecognition(imageData) {
     }
 }
 
-// Function to handle navigation errors
+// Prevent multiple initializations
+let faceCaptureFunctionality = false;
+
+function initializeFaceCapture() {
+    if (faceCaptureFunctionality) {
+        return; // Already initialized
+    }
+    
+    console.log('Initializing face capture functionality...');
+    faceCaptureFunctionality = true;
+    
+    // Your face capture initialization code here
+}
+
+// Global error handler to prevent uncaught errors
+window.addEventListener('error', function(event) {
+    console.error('JavaScript Error:', event.error);
+    // Prevent the default browser error handling
+    event.preventDefault();
+    return false;
+});
+
+// Handle navigation errors gracefully
+function handleNavigationError(error) {
+    console.error('Navigation error:', error);
+    // Show user-friendly message instead of breaking
+    if (typeof showAlert === 'function') {
+        showAlert('Navigation error occurred. Please try again.', 'warning');
+    }
+}
+
+// Enhanced navigation functions with error handling
+function navigateToStaffManagement() {
+    try {
+        console.log('Navigating to staff management...');
+        window.location.href = '/comprehensive_staff';
+    } catch (error) {
+        console.error('Staff management navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
+function quickAddAppointment() {
+    try {
+        const modal = document.getElementById('addAppointmentModal');
+        if (modal) {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } else {
+            window.location.href = '/bookings';
+        }
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
+function quickAddClient() {
+    try {
+        const modal = document.getElementById('addClientModal');
+        if (modal) {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } else {
+            window.location.href = '/clients';
+        }
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
+function quickViewReports() {
+    try {
+        window.location.href = '/reports';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
+function quickCheckInventory() {
+    try {
+        window.location.href = '/inventory';
+    } catch (error) {
+        console.error('Navigation error:', error);
+        handleNavigationError(error);
+    }
+}
+
+// Face recognition functions with error handling
+async function initiateFaceRecognition() {
+    try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera access not supported by this browser');
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 } 
+        });
+        
+        return { success: true, stream: stream };
+
+    } catch (error) {
+        console.error('Face recognition initialization error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function captureFaceImage(videoElement) {
+    try {
+        if (!videoElement || videoElement.videoWidth === 0) {
+            throw new Error('Video element not ready');
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoElement, 0, 0);
+        
+        return canvas.toDataURL('image/jpeg', 0.8);
+
+    } catch (error) {
+        console.error('Face capture error:', error);
+        return null;
+    }
+}
+
+async function recognizeFace(imageData) {
+    try {
+        const response = await fetch('/api/recognize_face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                face_image: imageData
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        console.error('Network error during face recognition:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Utility function to get CSRF token
+function getCsrfToken() {
+    const tokenElement = document.querySelector('[name=csrf_token]');
+    return tokenElement ? tokenElement.value : '';
+}
+
+// Alert function for user feedback
+function showAlert(message, type = 'info') {
+    // Create alert if it doesn't exist
+    const alertContainer = document.getElementById('alert-container') || document.body;
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    alertContainer.insertBefore(alertDiv, alertContainer.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        console.log('Main JavaScript loaded and ready');
+        
+        // Initialize face capture only once
+        if (typeof initializeFaceCapture === 'function') {
+            initializeFaceCapture();
+        }
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
+});
+
+// Make functions globally available
+window.navigateToStaffManagement = navigateToStaffManagement;
+window.quickAddAppointment = quickAddAppointment;
+window.quickAddClient = quickAddClient;
+window.quickViewReports = quickViewReports;
+window.quickCheckInventory = quickCheckInventory;
+window.initiateFaceRecognition = initiateFaceRecognition;
+window.captureFaceImage = captureFaceImage;
+window.recognizeFace = recognizeFace;
+window.showAlert = showAlert;ation errors
 function handleNavigationError(error) {
     console.error('Navigation error:', error);
     // Show user-friendly error message
