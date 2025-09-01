@@ -525,7 +525,7 @@
             <form method="POST" action="{{ url_for('edit_inventory_item') }}">
                 <div class="modal-body">
                     <input type="hidden" id="editItemId" name="item_id">
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="editItemName" class="form-label">Item Name *</label>
@@ -541,12 +541,12 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="editItemDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="editItemDescription" name="description" rows="2"></textarea>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="editMinimumStock" class="form-label">Minimum Stock Level *</label>
@@ -557,7 +557,7 @@
                             <input type="number" class="form-control" id="editUnitCost" name="unit_cost" step="0.01" min="0">
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="editSupplier" class="form-label">Supplier</label>
@@ -568,7 +568,7 @@
                             <input type="text" class="form-control" id="editLocation" name="location">
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="editExpiryDate" class="form-label">Expiry Date</label>
                         <input type="date" class="form-control" id="editExpiryDate" name="expiry_date">
@@ -652,14 +652,9 @@
                 <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="treatmentType" class="form-label">Treatment Type *</label>
+                            <label for="treatmentType" class="form-label">Transaction Type <span class="text-danger">*</span></label>
                             <select class="form-select" id="treatmentType" name="treatment_type" required>
-                                <option value="Facial">Facial Treatment</option>
-                                <option value="Hair">Hair Treatment</option>
-                                <option value="Body">Body Treatment</option>
-                                <option value="Manicure">Manicure</option>
-                                <option value="Pedicure">Pedicure</option>
-                                <option value="Other">Other Treatment</option>
+                                <option value="treatment" selected>Treatment (Facial/Service)</option>
                             </select>
                         </div>
                         <div class="col-md-6">
