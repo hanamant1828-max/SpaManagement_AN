@@ -882,7 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function loadInventoryItems() {
     // Get CSRF token for authenticated API calls
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-    
+
     fetch('/api/inventory/status/all', {
         method: 'GET',
         headers: {
@@ -988,7 +988,7 @@ function populateInventoryDropdowns(items) {
 function loadOpenItems() {
     // Get CSRF token for authenticated API calls
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-    
+
     // Load currently open items for the consume modal
     fetch('/api/inventory/open-items', {
         method: 'GET',
@@ -1054,7 +1054,7 @@ function populateOpenItemsDropdown(items) {
 function loadConsumptionEntries() {
     // Get CSRF token for authenticated API calls
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-    
+
     fetch('/api/inventory/consumption-entries', {
         method: 'GET',
         headers: {
@@ -1140,7 +1140,7 @@ function submitOpenItem() {
     };
 
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-    
+
     fetch(`/api/inventory/${inventoryId}/open`, {
         method: 'POST',
         headers: {
@@ -1178,7 +1178,7 @@ function submitConsumeItem() {
     const data = { reason: reason };
 
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-    
+
     fetch(`/api/inventory-item/${itemId}/consume`, {
         method: 'POST',
         headers: {
@@ -1226,7 +1226,7 @@ function submitDeductQuantity() {
     };
 
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-    
+
     fetch(`/api/inventory/${inventoryId}/deduct`, {
         method: 'POST',
         headers: {
@@ -1270,7 +1270,7 @@ function submitAdjustStock() {
     };
 
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-    
+
     fetch(`/api/inventory/${inventoryId}/adjust`, {
         method: 'POST',
         headers: {

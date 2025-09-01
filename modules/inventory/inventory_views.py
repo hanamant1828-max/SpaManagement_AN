@@ -21,10 +21,10 @@ def inventory():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     search_query = request.args.get('search', '')
     filter_type = request.args.get('filter', 'all')
-    
+
     if search_query:
         inventory_list = search_inventory(search_query)
     elif filter_type == 'low_stock':
@@ -33,11 +33,11 @@ def inventory():
         inventory_list = get_expiring_items()
     else:
         inventory_list = get_all_inventory()
-    
+
     categories = get_inventory_categories()
     form = InventoryForm()
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
-    
+
     return render_template('inventory.html', 
                          items=inventory_list,  # Changed from inventory to items
                          form=form,
@@ -53,11 +53,11 @@ def create_inventory_route():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     form = InventoryForm()
     categories = get_inventory_categories()
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
-    
+
     if form.validate_on_submit():
         try:
             inventory_data = {
@@ -73,22 +73,22 @@ def create_inventory_route():
                 'supplier_name': form.supplier.data.strip() if form.supplier.data else '',
                 'is_active': True
             }
-            
+
             # Validate required fields
             if not inventory_data['name']:
                 flash('Item name is required', 'danger')
                 return redirect(url_for('inventory'))
-            
+
             if inventory_data['current_stock'] < 0:
                 flash('Current stock cannot be negative', 'danger')
                 return redirect(url_for('inventory'))
-            
+
             inventory = create_inventory(inventory_data)
             if inventory:
                 flash(f'Inventory item "{inventory.name}" created successfully!', 'success')
             else:
                 flash('Error creating inventory item. Please try again.', 'danger')
-                
+
         except ValueError as e:
             flash(f'Invalid input: {str(e)}', 'danger')
         except Exception as e:
@@ -100,12 +100,12 @@ def create_inventory_route():
         for field, errors in form.errors.items():
             for error in errors:
                 error_messages.append(f"{field}: {error}")
-        
+
         if error_messages:
             flash(f'Validation errors: {"; ".join(error_messages)}', 'danger')
         else:
             flash('Error creating inventory item. Please check your input.', 'danger')
-    
+
     return redirect(url_for('inventory'))
 
 @app.route('/inventory/update/<int:id>', methods=['POST'])
@@ -114,16 +114,16 @@ def update_inventory_route(id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     inventory_item = get_inventory_by_id(id)
     if not inventory_item:
         flash('Inventory item not found', 'danger')
         return redirect(url_for('inventory'))
-    
+
     form = InventoryForm()
     categories = get_inventory_categories()
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
-    
+
     if form.validate_on_submit():
         inventory_data = {
             'name': form.name.data,
@@ -136,12 +136,12 @@ def update_inventory_route(id):
             'expiry_date': form.expiry_date.data,
             'supplier': form.supplier.data or ''
         }
-        
+
         update_inventory(id, inventory_data)
         flash('Inventory item updated successfully!', 'success')
     else:
         flash('Error updating inventory item. Please check your input.', 'danger')
-    
+
     return redirect(url_for('inventory'))
 
 @app.route('/inventory/delete/<int:id>', methods=['POST'])
@@ -150,12 +150,12 @@ def delete_inventory_route(id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if delete_inventory(id):
         flash('Inventory item deleted successfully!', 'success')
     else:
         flash('Error deleting inventory item', 'danger')
-    
+
     return redirect(url_for('inventory'))
 
 @app.route('/inventory/stock-update/<int:id>', methods=['POST'])
@@ -164,11 +164,11 @@ def update_stock_route(id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     quantity_change = request.form.get('quantity_change', type=float)
     movement_type = request.form.get('movement_type', 'adjustment')
     reason = request.form.get('reason', 'Manual stock update')
-    
+
     if quantity_change is not None:
         inventory_item = update_stock(
             id, quantity_change, movement_type, 
@@ -180,7 +180,7 @@ def update_stock_route(id):
             flash('Error updating stock', 'danger')
     else:
         flash('Invalid quantity change', 'danger')
-    
+
     return redirect(url_for('inventory'))
 
 # API Endpoints for Comprehensive Inventory Management
@@ -191,11 +191,11 @@ def api_inventory_by_status(status):
     """API: Get inventory items by status for consumption tracking dropdowns"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         items = get_items_by_status(status)
         items_data = []
-        
+
         for item in items:
             try:
                 items_data.append({
@@ -214,7 +214,7 @@ def api_inventory_by_status(status):
             except Exception as e:
                 print(f"Error processing item {item.id}: {e}")
                 continue
-        
+
         return jsonify({
             'status': 'success',
             'items': items_data,
@@ -234,9 +234,9 @@ def api_inventory_valuation():
     """API: Get total inventory valuation"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     valuation = get_inventory_valuation()
-    
+
     return jsonify({
         'status': 'success',
         'total_cost_value': float(valuation.total_cost_value or 0),
@@ -251,9 +251,9 @@ def api_reorder_suggestions():
     """API: Get automatic reorder suggestions"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     suggestions = generate_reorder_suggestions()
-    
+
     return jsonify({
         'status': 'success',
         'suggestions': suggestions,
@@ -266,9 +266,9 @@ def api_inventory_alerts():
     """API: Get real-time inventory alerts"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     alerts = []
-    
+
     # Low stock alerts
     low_stock_items = get_items_by_status('low_stock')
     for item in low_stock_items:
@@ -281,7 +281,7 @@ def api_inventory_alerts():
             'min_stock': item.min_stock_level,
             'message': f'{item.name} is running low ({item.current_stock} {item.base_unit} remaining)'
         })
-    
+
     return jsonify({
         'status': 'success',
         'alerts': alerts,
@@ -296,9 +296,9 @@ def api_auto_deduct_inventory(appointment_id):
     """API: Auto-deduct inventory for completed appointment"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     success = auto_deduct_service_inventory(appointment_id)
-    
+
     if success:
         return jsonify({
             'status': 'success',
@@ -320,23 +320,23 @@ def api_open_inventory_item(inventory_id):
     """API: Open/Issue an inventory item (Container/Lifecycle tracking)"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     from modules.inventory.inventory_queries import open_inventory_item
-    
+
     try:
         data = request.get_json()
         if not data:
             return jsonify({'status': 'error', 'message': 'No data provided'}), 400
-            
+
         quantity = float(data.get('quantity', 1.0))
         reason = data.get('reason', 'Opened for use')
         batch_number = data.get('batch_number', '')
-        
+
         if quantity <= 0:
             return jsonify({'status': 'error', 'message': 'Quantity must be greater than 0'}), 400
-        
+
         result = open_inventory_item(inventory_id, quantity, reason, batch_number, current_user.id)
-        
+
         if result:
             return jsonify({
                 'status': 'success',
@@ -346,7 +346,7 @@ def api_open_inventory_item(inventory_id):
             })
         else:
             return jsonify({'status': 'error', 'message': 'Failed to open item. Check if sufficient stock is available.'}), 400
-    
+
     except ValueError as e:
         return jsonify({'status': 'error', 'message': 'Invalid quantity value'}), 400
     except Exception as e:
@@ -359,14 +359,14 @@ def api_consume_inventory_item(item_id):
     """API: Mark inventory item as fully consumed"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     from modules.inventory.inventory_queries import consume_inventory_item
-    
+
     data = request.get_json()
     reason = data.get('reason', 'Fully consumed')
-    
+
     result = consume_inventory_item(item_id, reason, current_user.id)
-    
+
     if result:
         return jsonify({
             'status': 'success',
@@ -382,21 +382,21 @@ def api_deduct_inventory(inventory_id):
     """API: Deduct specific quantity (Piece-wise tracking)"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     from modules.inventory.inventory_queries import deduct_inventory_quantity
-    
+
     data = request.get_json()
     quantity = float(data.get('quantity'))
     unit = data.get('unit', 'pcs')
     reason = data.get('reason', 'Service consumption')
     reference_id = data.get('reference_id')
     reference_type = data.get('reference_type', 'manual')
-    
+
     result = deduct_inventory_quantity(
         inventory_id, quantity, unit, reason, 
         reference_id, reference_type, current_user.id
     )
-    
+
     if result:
         return jsonify({
             'status': 'success',
@@ -413,18 +413,18 @@ def api_adjust_inventory(inventory_id):
     """API: Manual stock adjustment"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     from modules.inventory.inventory_queries import create_manual_adjustment
-    
+
     data = request.get_json()
     new_quantity = float(data.get('new_quantity'))
     adjustment_type = data.get('adjustment_type', 'manual_adjustment')
     reason = data.get('reason', 'Manual adjustment')
-    
+
     result = create_manual_adjustment(
         inventory_id, new_quantity, adjustment_type, reason, current_user.id
     )
-    
+
     if result:
         return jsonify({
             'status': 'success',
@@ -442,35 +442,35 @@ def api_consumption_entries():
     """API: Get consumption entries with filtering"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         from models import StockMovement, Inventory, User
         from datetime import datetime, timedelta
-        
+
         # Get query parameters
         inventory_id = request.args.get('inventory_id', type=int)
         entry_type = request.args.get('entry_type')
         staff_id = request.args.get('staff_id', type=int)
         days = request.args.get('days', 30, type=int)
-        
+
         # Build query for stock movements (consumption tracking)
         query = db.session.query(StockMovement).join(Inventory, StockMovement.inventory_id == Inventory.id)
-        
+
         if inventory_id:
             query = query.filter(StockMovement.inventory_id == inventory_id)
-        
+
         if entry_type:
             query = query.filter(StockMovement.movement_type == entry_type)
-        
+
         if staff_id:
             query = query.filter(StockMovement.created_by == staff_id)
-        
+
         # Filter by date range
         start_date = datetime.utcnow() - timedelta(days=days)
         query = query.filter(StockMovement.created_at >= start_date)
-        
+
         movements = query.order_by(StockMovement.created_at.desc()).limit(50).all()
-        
+
         entries_data = []
         for movement in movements:
             try:
@@ -489,13 +489,13 @@ def api_consumption_entries():
             except Exception as e:
                 print(f"Error processing movement {movement.id}: {e}")
                 continue
-        
+
         return jsonify({
             'status': 'success',
             'entries': entries_data,
             'total_entries': len(entries_data)
         })
-    
+
     except Exception as e:
         print(f"Error in consumption entries API: {e}")
         return jsonify({
@@ -510,14 +510,14 @@ def api_usage_duration():
     """API: Get usage duration reports"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     from modules.inventory.inventory_queries import get_usage_duration_report
-    
+
     inventory_id = request.args.get('inventory_id', type=int)
     days = request.args.get('days', 30, type=int)
-    
+
     report = get_usage_duration_report(inventory_id, days)
-    
+
     return jsonify({
         'status': 'success',
         'report': report
@@ -529,14 +529,14 @@ def api_staff_usage():
     """API: Get staff usage reports"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     from modules.inventory.inventory_queries import get_staff_usage_report
-    
+
     staff_id = request.args.get('staff_id', type=int)
     days = request.args.get('days', 30, type=int)
-    
+
     report = get_staff_usage_report(staff_id, days)
-    
+
     return jsonify({
         'status': 'success',
         'report': report
@@ -548,12 +548,12 @@ def api_open_items():
     """API: Get currently open inventory items"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         from models import InventoryItem
-        
+
         open_items = InventoryItem.query.filter_by(status='issued').all()
-        
+
         items_data = []
         for item in open_items:
             items_data.append({
@@ -564,12 +564,12 @@ def api_open_items():
                 'unit': item.inventory.base_unit or 'units',
                 'issued_at': item.issued_at.isoformat() if item.issued_at else None
             })
-        
+
         return jsonify({
             'status': 'success',
             'items': items_data
         })
-    
+
     except Exception as e:
         print(f"Error in open items API: {e}")
         return jsonify({
