@@ -715,7 +715,7 @@ def delete_transaction_type(type_id):
 def create_default_transaction_types():
     """Create default transaction types if they don't exist"""
     default_types = [
-        {'name': 'Treatment', 'display_name': 'Treatment (Facial/Service)', 'description': 'Used for spa and salon treatments'},
+        {'name': 'Treatment', 'display_name': 'Treatment', 'description': 'Used for spa and salon treatments'},
         {'name': 'Sale', 'display_name': 'Sale', 'description': 'Products sold to customers'},
         {'name': 'Purchase', 'display_name': 'Purchase', 'description': 'New inventory purchased'},
         {'name': 'Return', 'display_name': 'Return', 'description': 'Items returned from customers'},
