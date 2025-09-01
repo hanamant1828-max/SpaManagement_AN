@@ -76,7 +76,7 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab">
+                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="setTimeout(loadConsumptionData, 200);">
                                 <i class="fas fa-clipboard-list me-1"></i>Consumption Tracking
                             </button>
                         </li>
@@ -873,13 +873,28 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Consumption tracking tab activated!');
             loadConsumptionData();
         });
+        
+        // Also load data when tab is clicked for the first time
+        consumptionTab.addEventListener('click', function(e) {
+            console.log('Consumption tab clicked, loading data...');
+            setTimeout(loadConsumptionData, 100); // Small delay to ensure tab is active
+        });
+        
         console.log('Event listener added to consumption tab');
     } else {
         console.error('Consumption tab not found!');
     }
+    
+    // Load initial data if consumption tab is already active
+    if (consumptionTab && consumptionTab.classList.contains('active')) {
+        console.log('Consumption tab is already active, loading data...');
+        loadConsumptionData();
+    }
 });
 
 function loadInventoryItems() {
+    console.log('Loading inventory items for consumption tracking...');
+    
     // Get CSRF token for authenticated API calls
     const csrfToken = document.querySelector('[name=csrf_token]')?.value;
 
@@ -891,26 +906,77 @@ function loadInventoryItems() {
         }
     })
         .then(response => {
+            console.log('API response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('API Response:', data);
-            if (data.status === 'success') {
-                console.log('Loading', data.items.length, 'inventory items');
+            console.log('API Response received:', data);
+            if (data.status === 'success' && data.items) {
+                console.log('Successfully loaded', data.items.length, 'inventory items');
                 populateInventoryDropdowns(data.items);
             } else {
-                console.error('Error in response:', data);
+                console.error('Error in response or no items:', data);
                 populateInventoryDropdowns([]);
             }
         })
         .catch(error => {
             console.error('Error loading inventory items:', error);
-            console.error('Full error details:', error);
-            populateInventoryDropdowns([]);
+            
+            // Fallback: try to get data from the current page
+            console.log('Attempting fallback method...');
+            try {
+                // Try to extract inventory data from the template
+                const inventoryRows = document.querySelectorAll('#all-items tbody tr');
+                const fallbackItems = [];
+                
+                inventoryRows.forEach((row, index) => {
+                    try {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length >= 3) {
+                            const nameElement = cells[0].querySelector('strong');
+                            const stockElement = cells[2].querySelector('strong') || cells[2];
+                            
+                            if (nameElement && stockElement) {
+                                const itemData = {
+                                    id: index + 1, // Temporary ID
+                                    name: nameElement.textContent.trim(),
+                                    current_stock: parseFloat(stockElement.textContent.trim()) || 0,
+                                    base_unit: 'units'
+                                };
+                                fallbackItems.push(itemData);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing row:', e);
+                    }
+                });
+                
+                if (fallbackItems.length > 0) {
+                    console.log('Using fallback data:', fallbackItems.length, 'items');
+                    populateInventoryDropdowns(fallbackItems);
+                } else {
+                    populateInventoryDropdowns([]);
+                }
+            } catch (fallbackError) {
+                console.error('Fallback method failed:', fallbackError);
+                populateInventoryDropdowns([]);
+            }
         });
+}
+
+// Add the missing updateStock function
+function updateStock(itemId, itemName, currentStock) {
+    console.log('updateStock called with:', itemId, itemName, currentStock);
+    currentItemId = itemId;
+    originalStock = currentStock;
+
+    document.getElementById('stockItemName').value = itemName;
+    document.getElementById('currentStock').value = currentStock;
+    document.getElementById('stockAdjustment').value = 0;
+    document.getElementById('newStock').value = currentStock;
 }
 
 function populateInventoryDropdowns(items) {
@@ -942,21 +1008,24 @@ function populateInventoryDropdowns(items) {
         return;
     }
 
+    console.log('Processing items for dropdowns...');
+    let processedCount = 0;
+    
     // Populate dropdowns with available items
-    items.forEach(item => {
+    items.forEach((item, index) => {
         try {
             const stockDisplay = `${item.current_stock || 0} ${item.base_unit || 'units'}`;
             const itemText = `${item.name} (${stockDisplay})`;
+            const isOutOfStock = (item.current_stock || 0) <= 0;
+
+            console.log(`Processing item ${index + 1}: ${item.name}, Stock: ${item.current_stock}, Unit: ${item.base_unit}`);
 
             // Create option for open inventory
             if (openSelect) {
                 const openOption = document.createElement('option');
                 openOption.value = item.id;
-                openOption.textContent = itemText;
-                if (item.current_stock <= 0) {
-                    openOption.disabled = true;
-                    openOption.textContent = `${item.name} (Out of stock)`;
-                }
+                openOption.textContent = isOutOfStock ? `${item.name} (Out of stock)` : itemText;
+                openOption.disabled = isOutOfStock;
                 openSelect.appendChild(openOption);
             }
 
@@ -964,25 +1033,26 @@ function populateInventoryDropdowns(items) {
             if (deductSelect) {
                 const deductOption = document.createElement('option');
                 deductOption.value = item.id;
-                deductOption.textContent = itemText;
-                if (item.current_stock <= 0) {
-                    deductOption.disabled = true;
-                    deductOption.textContent = `${item.name} (Out of stock)`;
-                }
+                deductOption.textContent = isOutOfStock ? `${item.name} (Out of stock)` : itemText;
+                deductOption.disabled = isOutOfStock;
                 deductSelect.appendChild(deductOption);
             }
 
-            // Create option for adjust inventory
+            // Create option for adjust inventory (always enabled)
             if (adjustSelect) {
                 const adjustOption = document.createElement('option');
                 adjustOption.value = item.id;
                 adjustOption.textContent = itemText;
                 adjustSelect.appendChild(adjustOption);
             }
+            
+            processedCount++;
         } catch (error) {
             console.error('Error processing item:', item, error);
         }
     });
+    
+    console.log(`Successfully processed ${processedCount} items for dropdowns`);
 }
 
 function loadOpenItems() {

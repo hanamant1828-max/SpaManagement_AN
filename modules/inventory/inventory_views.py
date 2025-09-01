@@ -193,39 +193,61 @@ def api_inventory_by_status(status):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        items = get_items_by_status(status)
+        print(f"Loading inventory items with status: {status}")
+        
+        if status == 'all':
+            items = get_all_inventory()
+        else:
+            items = get_items_by_status(status)
+            
+        print(f"Found {len(items)} inventory items")
+        
         items_data = []
 
         for item in items:
             try:
-                items_data.append({
+                # Get basic attributes safely
+                item_data = {
                     'id': item.id,
-                    'name': item.name,
+                    'name': item.name or 'Unnamed Item',
                     'current_stock': float(item.current_stock or 0),
-                    'base_unit': item.base_unit or 'pcs',
-                    'selling_unit': item.selling_unit or 'pcs',
-                    'category': item.category or 'general',
-                    'item_type': item.item_type or 'consumable',
+                    'base_unit': getattr(item, 'base_unit', 'pcs') or 'pcs',
+                    'selling_unit': getattr(item, 'selling_unit', 'pcs') or 'pcs',
+                    'category': getattr(item, 'category', 'general') or 'general',
+                    'item_type': getattr(item, 'item_type', 'consumable') or 'consumable',
                     'is_service_item': getattr(item, 'is_service_item', True),
-                    'tracking_type': getattr(item, 'tracking_type', 'piece_wise'),
-                    'cost_value': float(getattr(item, 'stock_value', 0) or 0),
-                    'selling_value': float(getattr(item, 'potential_revenue', 0) or 0)
-                })
+                    'tracking_type': getattr(item, 'tracking_type', 'piece_wise') or 'piece_wise',
+                    'cost_price': float(getattr(item, 'cost_price', 0) or 0),
+                    'selling_price': float(getattr(item, 'selling_price', 0) or 0),
+                    'min_stock_level': float(getattr(item, 'min_stock_level', 0) or 0)
+                }
+                
+                items_data.append(item_data)
+                print(f"Added item: {item_data['name']} (Stock: {item_data['current_stock']})")
+                
             except Exception as e:
                 print(f"Error processing item {item.id}: {e}")
                 continue
 
+        print(f"Successfully processed {len(items_data)} items")
+        
         return jsonify({
             'status': 'success',
             'items': items_data,
-            'total': len(items_data)
+            'total': len(items_data),
+            'message': f'Loaded {len(items_data)} inventory items'
         })
+        
     except Exception as e:
         print(f"Error in inventory status API: {e}")
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'status': 'error',
             'message': str(e),
-            'items': []
+            'items': [],
+            'total': 0
         }), 500
 
 @app.route('/api/inventory/valuation')
