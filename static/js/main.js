@@ -85,12 +85,12 @@ async function startCamera() {
     const captureBtn = document.getElementById('captureFaceBtn');
 
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                width: 400, 
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: 400,
                 height: 300,
-                facingMode: 'user' 
-            } 
+                facingMode: 'user'
+            }
         });
 
         currentStream = stream;
@@ -676,7 +676,7 @@ function initializeStockModal(modal) {
 // Action handlers
 function handleDeleteAction(button, id) {
     const itemType = button.dataset.type || 'item';
-    const confirmMessage = `Are you sure you want to delete this ${itemType}? This action cannot be undone.`;
+    const confirmMessage = 'Are you sure you want to delete this ' + itemType + '? This action cannot be undone.';
 
     if (confirm(confirmMessage)) {
         // Show loading state
@@ -686,7 +686,7 @@ function handleDeleteAction(button, id) {
         // In a real app, this would make an API call
         setTimeout(() => {
             button.closest('tr')?.remove();
-            showNotification(`${itemType} deleted successfully`, 'success');
+            showNotification(itemType + ' deleted successfully', 'success');
         }, 1000);
     }
 }
@@ -696,7 +696,7 @@ function handleToggleStatus(button, id) {
     const newStatus = !currentStatus;
     const action = newStatus ? 'activate' : 'deactivate';
 
-    if (confirm(`Are you sure you want to ${action} this item?`)) {
+    if (confirm('Are you sure you want to ' + action + ' this item?')) {
         button.disabled = true;
 
         // Update button state
@@ -707,7 +707,7 @@ function handleToggleStatus(button, id) {
                 '<i class="fas fa-eye"></i>';
             button.disabled = false;
 
-            showNotification(`Item ${action}d successfully`, 'success');
+            showNotification('Item ' + action + 'd successfully', 'success');
         }, 500);
     }
 }
@@ -779,7 +779,7 @@ function initializeSearch() {
 }
 
 function performSearch(query, target) {
-    const rows = document.querySelectorAll(`${target} tbody tr`);
+    const rows = document.querySelectorAll(target + ' tbody tr');
 
     rows.forEach(row => {
         const text = row.textContent.toLowerCase();
@@ -836,7 +836,7 @@ function sortTable(table, header) {
     table.querySelectorAll('th').forEach(th => {
         th.classList.remove('sorted-asc', 'sorted-desc');
     });
-    header.classList.add(`sorted-${header.dataset.sortDirection}`);
+    header.classList.add('sorted-' + header.dataset.sortDirection);
 }
 
 // Auto-refresh functionality
@@ -1020,7 +1020,7 @@ function exportTableData(table, filename) {
     const csvContent = Array.from(rows).map(row => {
         const cells = row.querySelectorAll('th, td');
         return Array.from(cells).map(cell => {
-            return `"${cell.textContent.trim().replace(/"/g, '""')}"`;
+            return '"' + cell.textContent.trim().replace(/"/g, '""') + '"';
         }).join(',');
     }).join('\n');
 
@@ -1083,21 +1083,21 @@ function checkForSystemNotifications() {
 function checkLowStockNotifications() {
     const lowStockElements = document.querySelectorAll('[data-low-stock="true"]');
     if (lowStockElements.length > 0) {
-        showNotification(`${lowStockElements.length} items are low in stock`, 'warning');
+        showNotification(lowStockElements.length + ' items are low in stock', 'warning');
     }
 }
 
 function checkExpiringItemsNotifications() {
     const expiringElements = document.querySelectorAll('[data-expiring="true"]');
     if (expiringElements.length > 0) {
-        showNotification(`${expiringElements.length} items are expiring soon`, 'warning');
+        showNotification(expiringElements.length + ' items are expiring soon', 'warning');
     }
 }
 
 function checkUpcomingAppointmentsNotifications() {
     const upcomingElements = document.querySelectorAll('[data-upcoming="true"]');
     if (upcomingElements.length > 0) {
-        showNotification(`${upcomingElements.length} appointments coming up`, 'info');
+        showNotification(upcomingElements.length + ' appointments coming up', 'info');
     }
 }
 
@@ -1246,10 +1246,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // Define updateServicePrice function globally first
 function updateServicePrice(serviceId, price) {
     try {
-        console.log(`Service ${serviceId} selected with price: ${price}`);
+        console.log('Service ' + serviceId + ' selected with price: ' + price);
 
         // Update any price display elements
-        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
+        const priceDisplays = document.querySelectorAll('[data-service-price="' + serviceId + '"]');
         priceDisplays.forEach(display => {
             display.textContent = formatCurrency(price);
         });
@@ -1258,7 +1258,7 @@ function updateServicePrice(serviceId, price) {
         const priceElements = document.querySelectorAll('.service-price');
         priceElements.forEach(element => {
             if (element.dataset.serviceId === serviceId) {
-                element.textContent = `₹${price}`;
+                element.textContent = '₹' + price;
             }
         });
 
@@ -1302,10 +1302,10 @@ function navigateToStaffManagement() {
 // Update service price function - consolidated and fixed
 function updateServicePrice(serviceId, price) {
     try {
-        console.log(`Service ${serviceId} selected with price: ${price}`);
+        console.log('Service ' + serviceId + ' selected with price: ' + price);
 
         // Update any price display elements
-        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
+        const priceDisplays = document.querySelectorAll('[data-service-price="' + serviceId + '"]');
         priceDisplays.forEach(display => {
             display.textContent = formatCurrency(price);
         });
@@ -1314,7 +1314,7 @@ function updateServicePrice(serviceId, price) {
         const priceElements = document.querySelectorAll('.service-price');
         priceElements.forEach(element => {
             if (element.dataset.serviceId === serviceId) {
-                element.textContent = `₹${price}`;
+                element.textContent = '₹' + price;
             }
         });
 
@@ -1412,10 +1412,10 @@ function calculateTotal() {
 // Update service price function - consolidated and fixed
 function updateServicePrice(serviceId, price) {
     try {
-        console.log(`Service ${serviceId} selected with price: ${price}`);
+        console.log('Service ' + serviceId + ' selected with price: ' + price);
 
         // Update any price display elements
-        const priceDisplays = document.querySelectorAll(`[data-service-price="${serviceId}"]`);
+        const priceDisplays = document.querySelectorAll('[data-service-price="' + serviceId + '"]');
         priceDisplays.forEach(display => {
             display.textContent = formatCurrency(price);
         });
@@ -1424,7 +1424,7 @@ function updateServicePrice(serviceId, price) {
         const priceElements = document.querySelectorAll('.service-price');
         priceElements.forEach(element => {
             if (element.dataset.serviceId === serviceId) {
-                element.textContent = `₹${price}`;
+                element.textContent = '₹' + price;
             }
         });
 
