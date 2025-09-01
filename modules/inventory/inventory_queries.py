@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 from app import db
 from models import (
     Inventory, StockMovement, Service, Appointment, 
-    AppointmentService, ServiceCategory, User, InventoryItem, 
+    Category, User, InventoryItem, 
     ConsumptionEntry, UsageDuration
 )
 
