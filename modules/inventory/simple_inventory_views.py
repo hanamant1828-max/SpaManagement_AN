@@ -56,13 +56,59 @@ def simple_inventory():
     # Only allow treatment transaction type
     transaction_types = [{'name': 'treatment', 'display_name': 'Treatment (Facial/Service)'}]
 
+    # Calculate statistics for dashboard cards
+    total_items = len(items)
+    low_stock_count = sum(1 for item in items if item.current_stock <= item.minimum_stock)
+    total_stock_value = sum(item.current_stock * item.unit_cost for item in items)
+    
+    # Get today's transactions
+    today = datetime.now().date()
+    todays_transactions = SimpleStockTransaction.query.filter(
+        db.func.date(SimpleStockTransaction.date_time) == today
+    ).count()
+    
+    # Get recent transactions for the consumption tab
+    transactions = SimpleStockTransaction.query.order_by(
+        SimpleStockTransaction.date_time.desc()
+    ).limit(50).all()
+    
+    # Calculate additional stats
+    total_transactions = SimpleStockTransaction.query.count()
+    week_ago = datetime.now() - timedelta(days=7)
+    weekly_transactions = SimpleStockTransaction.query.filter(
+        SimpleStockTransaction.date_time >= week_ago
+    ).count()
+    
+    # Items consumed today (negative transactions)
+    items_consumed_today = SimpleStockTransaction.query.filter(
+        db.func.date(SimpleStockTransaction.date_time) == today,
+        SimpleStockTransaction.quantity_change < 0
+    ).count()
+    
+    # Average daily usage (last 30 days)
+    month_ago = datetime.now() - timedelta(days=30)
+    monthly_consumption = SimpleStockTransaction.query.filter(
+        SimpleStockTransaction.date_time >= month_ago,
+        SimpleStockTransaction.quantity_change < 0
+    ).count()
+    avg_daily_usage = round(monthly_consumption / 30, 1) if monthly_consumption > 0 else 0
+
     return render_template('simple_inventory.html', 
                          items=items, 
                          categories=categories,
                          transaction_types=transaction_types,
                          category_filter=category_filter,
                          status_filter=status_filter,
-                         search_query=search_query)
+                         search_query=search_query,
+                         total_items=total_items,
+                         low_stock_count=low_stock_count,
+                         total_stock_value=total_stock_value,
+                         todays_transactions=todays_transactions,
+                         transactions=transactions,
+                         total_transactions=total_transactions,
+                         weekly_transactions=weekly_transactions,
+                         items_consumed_today=items_consumed_today,
+                         avg_daily_usage=avg_daily_usage)
 
 @app.route('/add_inventory_item', methods=['POST'])
 @login_required
