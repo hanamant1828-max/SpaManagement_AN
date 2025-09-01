@@ -71,6 +71,10 @@ with app.app_context():
         # Initialize default data
         from routes import create_default_data
         create_default_data()
+        
+        # Import inventory category views
+        import modules.inventory.inventory_category_views  # noqa: F401
+        
     except Exception as e:
         logging.error(f"Database initialization failed: {e}")
         logging.info("Attempting database migration...")
@@ -81,6 +85,10 @@ with app.app_context():
             db.create_all()
             from routes import create_default_data
             create_default_data()
+            
+            # Import inventory category views after migration
+            import modules.inventory.inventory_category_views  # noqa: F401
+            
         except Exception as migration_error:
             logging.error(f"Migration failed: {migration_error}")
             logging.warning("Application starting with limited functionality")

@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Categories{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-tags me-2"></i>Inventory Categories
+            </h1>
+            <p class="text-muted">Manage inventory categories for better organization</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                <i class="fas fa-plus me-1"></i>Add Category
+            </button>
+            <a href="{{ url_for('simple_inventory') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Inventory
+            </a>
+        </div>
+    </div>
+
+    <!-- Categories Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <div class="badge bg-primary fs-6 me-2">{{ categories|length }}</div>
+                        <h6 class="card-title mb-0">Total Categories</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <div class="badge bg-success fs-6 me-2">{{ categories | selectattr('is_active') | list | length }}</div>
+                        <h6 class="card-title mb-0">Active Categories</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                        <div class="badge bg-warning fs-6 me-2">{{ categories | rejectattr('is_active') | list | length }}</div>
+                        <h6 class="card-title mb-0">Inactive Categories</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>All Categories
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Color</th>
+                            <th>Sort Order</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th width="200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if categories %}
+                            {% for category in categories %}
+                            <tr class="{% if not category.is_active %}table-secondary{% endif %}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="{{ category.icon }} me-2" style="color: {{ category.color }}"></i>
+                                        <div>
+                                            <strong>{{ category.display_name }}</strong>
+                                            <br><small class="text-muted">{{ category.name }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if category.description %}
+                                        {{ category.description[:100] }}{% if category.description|length > 100 %}...{% endif %}
+                                    {% else %}
+                                        <span class="text-muted">No description</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ category.color }}; color: white;">
+                                        {{ category.color }}
+                                    </span>
+                                </td>
+                                <td>{{ category.sort_order }}</td>
+                                <td>
+                                    {% if category.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ category.created_at.strftime('%Y-%m-%d') if category.created_at else 'N/A' }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editCategoryModal"
+                                                onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.display_name }}', '{{ category.description or '' }}', '{{ category.color }}', '{{ category.icon }}', {{ category.sort_order }}, {{ category.is_active|lower }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" action="{{ url_for('toggle_inventory_category', category_id=category.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-{% if category.is_active %}warning{% else %}success{% endif %}" 
+                                                    title="{% if category.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                                <i class="fas fa-{% if category.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                        </form>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="deleteCategory({{ category.id }}, '{{ category.display_name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                        <h5>No Categories Found</h5>
+                                        <p>Create your first inventory category to get started.</p>
+                                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                                            <i class="fas fa-plus me-1"></i>Add Category
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCategoryModalLabel">
+                    <i class="fas fa-plus me-2"></i>Add New Category
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_inventory_category_route') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">Category Name *</label>
+                        <input type="text" class="form-control" id="categoryName" name="name" required>
+                        <div class="form-text">Internal name (lowercase, underscores only)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryDisplayName" class="form-label">Display Name *</label>
+                        <input type="text" class="form-control" id="categoryDisplayName" name="display_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="categoryDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="categoryColor" class="form-label">Color</label>
+                            <input type="color" class="form-control form-control-color" id="categoryColor" name="color" value="#28a745">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="categoryIcon" class="form-label">Icon</label>
+                            <select class="form-select" id="categoryIcon" name="icon">
+                                <option value="fas fa-boxes">📦 Boxes</option>
+                                <option value="fas fa-pills">💊 Medicine</option>
+                                <option value="fas fa-tint">💧 Liquids</option>
+                                <option value="fas fa-tools">🔧 Tools</option>
+                                <option value="fas fa-spa">🧴 Cosmetics</option>
+                                <option value="fas fa-leaf">🌿 Natural</option>
+                                <option value="fas fa-cogs">⚙️ Equipment</option>
+                                <option value="fas fa-clipboard">📋 Supplies</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="categorySortOrder" class="form-label">Sort Order</label>
+                            <input type="number" class="form-control" id="categorySortOrder" name="sort_order" value="0" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="categoryActive" name="is_active" checked>
+                                <label class="form-check-label" for="categoryActive">
+                                    Active Category
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Create Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCategoryModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Category
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="editCategoryForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editCategoryName" class="form-label">Category Name *</label>
+                        <input type="text" class="form-control" id="editCategoryName" name="name" required>
+                        <div class="form-text">Internal name (lowercase, underscores only)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryDisplayName" class="form-label">Display Name *</label>
+                        <input type="text" class="form-control" id="editCategoryDisplayName" name="display_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editCategoryDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editCategoryColor" class="form-label">Color</label>
+                            <input type="color" class="form-control form-control-color" id="editCategoryColor" name="color">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editCategoryIcon" class="form-label">Icon</label>
+                            <select class="form-select" id="editCategoryIcon" name="icon">
+                                <option value="fas fa-boxes">📦 Boxes</option>
+                                <option value="fas fa-pills">💊 Medicine</option>
+                                <option value="fas fa-tint">💧 Liquids</option>
+                                <option value="fas fa-tools">🔧 Tools</option>
+                                <option value="fas fa-spa">🧴 Cosmetics</option>
+                                <option value="fas fa-leaf">🌿 Natural</option>
+                                <option value="fas fa-cogs">⚙️ Equipment</option>
+                                <option value="fas fa-clipboard">📋 Supplies</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editCategorySortOrder" class="form-label">Sort Order</label>
+                            <input type="number" class="form-control" id="editCategorySortOrder" name="sort_order" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="editCategoryActive" name="is_active">
+                                <label class="form-check-label" for="editCategoryActive">
+                                    Active Category
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Update Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editCategory(id, name, displayName, description, color, icon, sortOrder, isActive) {
+    document.getElementById('editCategoryForm').action = `/inventory-categories/${id}/edit`;
+    document.getElementById('editCategoryName').value = name;
+    document.getElementById('editCategoryDisplayName').value = displayName;
+    document.getElementById('editCategoryDescription').value = description;
+    document.getElementById('editCategoryColor').value = color;
+    document.getElementById('editCategoryIcon').value = icon;
+    document.getElementById('editCategorySortOrder').value = sortOrder;
+    document.getElementById('editCategoryActive').checked = isActive;
+}
+
+function deleteCategory(id, name) {
+    if (confirm(`Are you sure you want to delete the category "${name}"? This action cannot be undone.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/inventory-categories/${id}/delete`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Auto-generate category name from display name
+document.getElementById('categoryDisplayName').addEventListener('input', function() {
+    const displayName = this.value;
+    const categoryName = displayName.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    document.getElementById('categoryName').value = categoryName;
+});
+
+document.getElementById('editCategoryDisplayName').addEventListener('input', function() {
+    const displayName = this.value;
+    const categoryName = displayName.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    document.getElementById('editCategoryName').value = categoryName;
+});
+</script>
+
+{% endblock %}
