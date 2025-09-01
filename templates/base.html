@@ -136,8 +136,8 @@
 
                     {% if current_user.can_access('inventory') %}
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('inventory') }}">
-                            <i class="fas fa-boxes me-2"></i>Inventory & Products
+                        <a class="nav-link text-white" href="{{ url_for('simple_inventory') }}">
+                            <i class="fas fa-boxes me-2"></i>Simple Inventory Management
                         </a>
                     </li>
                     {% endif %}

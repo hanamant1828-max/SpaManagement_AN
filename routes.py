@@ -21,6 +21,7 @@ from modules.bookings.bookings_views import *
 from modules.clients.clients_views import *
 from modules.services.services_views import *
 from modules.inventory.inventory_views import *
+from modules.inventory.simple_inventory_views import *  # New simple inventory system
 from modules.billing.billing_views import *
 from modules.expenses.expenses_views import *
 from modules.reports.reports_views import *
