@@ -471,18 +471,23 @@
                     <!-- Inventory Table -->
                     <div class="data-table">
                         <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                            <h6 class="mb-0">Inventory Items ({{ items|length }})</h6>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" onclick="toggleView('table')">
-                                    <i class="fas fa-table"></i>
-                                </button>
-                                <button class="btn btn-outline-primary" onclick="toggleView('grid')">
-                                    <i class="fas fa-th"></i>
-                                </button>
+                            <h6 class="mb-0">Inventory Items ({{ products|length }})</h6>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('add_inventory_product') }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Add Product
+                                </a>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="toggleView('table')">
+                                        <i class="fas fa-table"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="toggleView('grid')">
+                                        <i class="fas fa-th"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
-                        {% if items %}
+                        {% if products %}
                         <div class="table-responsive" id="tableView">
                             <table class="table table-hover mb-0" id="inventoryTable">
                                 <thead>
@@ -492,24 +497,22 @@
                                                 <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll()">
                                             </div>
                                         </th>
-                                        <th width="15%">Item Details</th>
-                                        <th width="8%">SKU/Barcode</th>
+                                        <th width="15%">Product Details</th>
+                                        <th width="8%">Code/Barcode</th>
                                         <th width="10%">Category</th>
                                         <th width="8%">Stock</th>
                                         <th width="10%">Pricing</th>
                                         <th width="8%">Status</th>
-                                        <th width="8%">ABC</th>
                                         <th width="10%">Supplier</th>
-                                        <th width="8%">Expiry</th>
                                         <th width="12%">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for item in items %}
-                                    <tr data-item-id="{{ item.id }}" class="inventory-row">
+                                    {% for product in products %}
+                                    <tr data-product-id="{{ product.product_id }}" class="inventory-row">
                                         <td>
                                             <div class="form-check">
-                                                <input class="form-check-input item-select" type="checkbox" value="{{ item.id }}">
+                                                <input class="form-check-input item-select" type="checkbox" value="{{ product.product_id }}">
                                             </div>
                                         </td>
                                         <td>
@@ -517,108 +520,74 @@
                                                 <div class="item-avatar me-3">
                                                     <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center" 
                                                          style="width: 40px; height: 40px;">
-                                                        {{ item.name[0].upper() }}
+                                                        {{ product.name[0].upper() }}
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <div class="fw-bold">{{ item.name }}</div>
-                                                    {% if item.description %}
-                                                    <small class="text-muted">{{ item.description[:30] }}{% if item.description|length > 30 %}...{% endif %}</small>
+                                                    <div class="fw-bold">{{ product.name }}</div>
+                                                    {% if product.description %}
+                                                    <small class="text-muted">{{ product.description[:30] }}{% if product.description|length > 30 %}...{% endif %}</small>
                                                     {% endif %}
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="font-monospace small">{{ item.sku }}</div>
-                                            {% if item.barcode %}
-                                            <div class="font-monospace small text-muted">{{ item.barcode }}</div>
+                                            <div class="font-monospace small">{{ product.product_code }}</div>
+                                            {% if product.barcode %}
+                                            <div class="font-monospace small text-muted">{{ product.barcode }}</div>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <span class="badge bg-secondary">{{ item.category or 'N/A' }}</span>
+                                            <span class="badge bg-secondary">
+                                                {{ product.category.category_name if product.category else 'N/A' }}
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="text-center">
-                                                <div class="fw-bold {% if item.is_low_stock %}text-warning{% elif item.is_out_of_stock %}text-danger{% endif %}">
-                                                    {{ item.current_stock }}
+                                                <div class="fw-bold {% if product.current_stock <= product.reorder_level %}text-warning{% elif product.current_stock == 0 %}text-danger{% endif %}">
+                                                    {{ product.current_stock }} {{ product.unit }}
                                                 </div>
-                                                <small class="text-muted">Min: {{ item.minimum_stock }}</small>
+                                                <small class="text-muted">Min: {{ product.reorder_level }}</small>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="small">
-                                                <div>Cost: ₹{{ item.unit_cost }}</div>
-                                                {% if item.selling_price %}
-                                                <div class="text-success">Sell: ₹{{ item.selling_price }}</div>
+                                                <div>Cost: ₹{{ product.unit_cost }}</div>
+                                                {% if product.selling_price %}
+                                                <div class="text-success">Sell: ₹{{ product.selling_price }}</div>
                                                 {% endif %}
                                             </div>
                                         </td>
                                         <td>
-                                            {% set status = item.get_stock_status() %}
-                                            <span class="status-badge status-{{ status.level }}">{{ status.status.replace('_', ' ') }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-info">{{ item.abc_classification }}</span>
-                                        </td>
-                                        <td>
-                                            <div class="small">
-                                                {{ item.supplier or 'N/A' }}
-                                                {% if item.lead_time_days %}
-                                                <div class="text-muted">{{ item.lead_time_days }}d lead</div>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {% if item.expiry_date %}
-                                                {% set days_to_expiry = item.days_until_expiry %}
-                                                <div class="small {% if days_to_expiry < 30 %}text-warning{% elif days_to_expiry < 0 %}text-danger{% endif %}">
-                                                    {{ item.expiry_date.strftime('%d/%m/%Y') }}
-                                                    {% if days_to_expiry < 0 %}
-                                                    <div class="text-danger">Expired</div>
-                                                    {% elif days_to_expiry < 30 %}
-                                                    <div class="text-warning">{{ days_to_expiry }}d left</div>
-                                                    {% endif %}
-                                                </div>
+                                            {% if product.current_stock == 0 %}
+                                                <span class="status-badge status-critical">Out of Stock</span>
+                                            {% elif product.current_stock <= product.reorder_level %}
+                                                <span class="status-badge status-low">Low Stock</span>
                                             {% else %}
-                                                <span class="text-muted">N/A</span>
+                                                <span class="status-badge status-normal">Normal</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <div class="action-buttons">
-                                                <button class="btn btn-sm btn-outline-primary" 
-                                                        data-bs-toggle="modal" data-bs-target="#quickStockModal"
-                                                        onclick="openQuickStock({{ item.id }}, '{{ item.name }}', {{ item.current_stock }})"
-                                                        title="Quick Stock Update">
-                                                    <i class="fas fa-plus-minus"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-secondary"
-                                                        onclick="editItem({{ item.id }})"
-                                                        title="Edit Item">
+                                            <div class="small">
+                                                {{ product.supplier.supplier_name if product.supplier else 'N/A' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-1">
+                                                <a href="{{ url_for('edit_inventory_product', product_id=product.product_id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" title="Edit Product">
                                                     <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        onclick="deleteProduct({{ product.product_id }}, '{{ product.name }}')"
+                                                        title="Delete Product">
+                                                    <i class="fas fa-trash"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-info"
-                                                        onclick="viewItemHistory({{ item.id }})"
-                                                        title="View History">
-                                                    <i class="fas fa-history"></i>
+                                                        onclick="viewProductDetails({{ product.product_id }})"
+                                                        title="View Details">
+                                                    <i class="fas fa-eye"></i>
                                                 </button>
-                                                <div class="btn-group">
-                                                    <button class="btn btn-sm btn-outline-dark dropdown-toggle" 
-                                                            data-bs-toggle="dropdown" aria-expanded="false">
-                                                        <i class="fas fa-ellipsis-h"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        <li><a class="dropdown-item" href="#" onclick="duplicateItem({{ item.id }})">
-                                                            <i class="fas fa-copy me-2"></i>Duplicate
-                                                        </a></li>
-                                                        <li><a class="dropdown-item" href="#" onclick="printLabel({{ item.id }})">
-                                                            <i class="fas fa-print me-2"></i>Print Label
-                                                        </a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item text-danger" href="#" onclick="archiveItem({{ item.id }})">
-                                                            <i class="fas fa-archive me-2"></i>Archive
-                                                        </a></li>
-                                                    </ul>
-                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -1249,6 +1218,35 @@ function exportInventoryData() {
 function exportAllData() {
     // Export all data
     console.log('Exporting all data...');
+}
+
+// Delete product function
+function deleteProduct(productId, productName) {
+    if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/inventory/product/delete/${productId}`;
+        
+        // Add CSRF token if available
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken.getAttribute('content');
+            form.appendChild(csrfInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// View product details
+function viewProductDetails(productId) {
+    // For now, redirect to edit page - can be enhanced later
+    window.location.href = `/inventory/product/edit/${productId}`;
 }
 
 // Initialize the inventory manager
