@@ -165,6 +165,8 @@
                                     <th scope="col">Unit Price</th>
                                     <th scope="col">Stock Value</th>
                                     <th scope="col">Supplier</th>
+                                    <th scope="col">Created</th>
+                                    <th scope="col">Last Updated</th>
                                     <th scope="col">Status</th>
                                     <th scope="col">Actions</th>
                                 </tr>
@@ -189,6 +191,30 @@
                                     <td>₹{{ "%.2f"|format(item.unit_cost) }}</td>
                                     <td>₹{{ "%.2f"|format(item.current_stock * item.unit_cost) }}</td>
                                     <td>{{ item.supplier or '-' }}</td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if item.created_at %}
+                                                {{ item.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                                {% if item.creator %}
+                                                    <br>by {{ item.creator.full_name }}
+                                                {% endif %}
+                                            {% else %}
+                                                {{ item.date_added.strftime('%Y-%m-%d %H:%M') if item.date_added }}
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if item.updated_at %}
+                                                {{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                                {% if item.updater %}
+                                                    <br>by {{ item.updater.full_name }}
+                                                {% endif %}
+                                            {% else %}
+                                                {{ item.last_updated.strftime('%Y-%m-%d %H:%M') if item.last_updated }}
+                                            {% endif %}
+                                        </small>
+                                    </td>
                                     <td>
                                         {% if item.is_out_of_stock %}
                                         <span class="badge bg-danger">Out of Stock</span>
@@ -396,8 +422,9 @@
                                     <th>Quantity Changed</th>
                                     <th>Remaining Balance</th>
                                     <th>User</th>
-                                    <th>Reference</th>
                                     <th>Reason</th>
+                                    <th>Created By</th>
+                                    <th>Last Updated</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -421,9 +448,32 @@
                                         </span>
                                     </td>
                                     <td>{{ transaction.new_stock_level }}</td>
-                                    <td>{{ transaction.user.first_name if transaction.user else 'System' }}</td>
-                                    <td>{{ transaction.reference_number or '-' }}</td>
+                                    <td>{{ transaction.user.full_name if transaction.user else 'System' }}</td>
                                     <td>{{ transaction.reason or '-' }}</td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if transaction.created_at %}
+                                                {{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                                {% if transaction.creator %}
+                                                    <br>{{ transaction.creator.full_name }}
+                                                {% endif %}
+                                            {% else %}
+                                                {{ transaction.date_time.strftime('%Y-%m-%d %H:%M') }}
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if transaction.updated_at and transaction.updated_at != transaction.created_at %}
+                                                {{ transaction.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                                {% if transaction.updater %}
+                                                    <br>{{ transaction.updater.full_name }}
+                                                {% endif %}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </small>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

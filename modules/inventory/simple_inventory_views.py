@@ -158,7 +158,7 @@ def add_inventory_item():
                 flash('Invalid expiry date format', 'warning')
                 return redirect(url_for('simple_inventory'))
 
-        # Create new item
+        # Create new item with timestamp tracking
         new_item = SimpleInventoryItem(
             sku=sku,
             name=name,
@@ -169,7 +169,11 @@ def add_inventory_item():
             unit_cost=unit_cost,
             supplier=supplier,
             location=location,
-            expiry_date=expiry_date_obj
+            expiry_date=expiry_date_obj,
+            created_at=datetime.now(),
+            created_by=current_user.id,
+            updated_at=datetime.now(),
+            updated_by=current_user.id
         )
 
         db.session.add(new_item)
@@ -237,7 +241,7 @@ def edit_inventory_item():
                 flash('Invalid expiry date format', 'warning')
                 return redirect(url_for('simple_inventory'))
 
-        # Update item
+        # Update item with timestamp tracking
         item.name = name
         item.description = description
         item.category = category
@@ -246,6 +250,8 @@ def edit_inventory_item():
         item.supplier = supplier
         item.location = location
         item.expiry_date = expiry_date_obj
+        item.updated_at = datetime.now()
+        item.updated_by = current_user.id
 
         db.session.commit()
         flash(f'Item "{name}" updated successfully!', 'success')
@@ -299,7 +305,7 @@ def update_stock():
         # Update item stock
         item.current_stock = new_stock
 
-        # Create transaction record
+        # Create transaction record with timestamp tracking
         transaction = SimpleStockTransaction(
             item_id=item_id,
             transaction_type=transaction_type,
@@ -307,7 +313,11 @@ def update_stock():
             new_stock_level=new_stock,
             user_id=current_user.id,
             reason=reason or f'{transaction_type} transaction',
-            reference_number=reference_number
+            reference_number=reference_number,
+            created_at=datetime.now(),
+            created_by=current_user.id,
+            updated_at=datetime.now(),
+            updated_by=current_user.id
         )
         db.session.add(transaction)
 
@@ -465,10 +475,14 @@ def delete_inventory_item(item_id):
         item_name = item.name
         item_sku = item.sku
 
-        # Soft delete by marking as inactive instead of hard delete
+        # Soft delete by marking as inactive with timestamp tracking
         item.is_active = False
         item.name = f"[DELETED] {item.name}"
         item.sku = f"DEL_{item.sku}"
+        item.deleted_at = datetime.now()
+        item.deleted_by = current_user.id
+        item.updated_at = datetime.now()
+        item.updated_by = current_user.id
 
         db.session.commit()
 

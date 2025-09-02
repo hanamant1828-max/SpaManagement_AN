@@ -44,10 +44,23 @@ class SimpleInventoryItem(db.Model):
     last_purchase_date = db.Column(db.Date)
     last_sale_date = db.Column(db.Date)
     
+    # CRUD Operation Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    deleted_at = db.Column(db.DateTime)
+    deleted_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
     # Analytics Support
     total_purchased = db.Column(db.Float, default=0.0)
     total_sold = db.Column(db.Float, default=0.0)
     total_adjustments = db.Column(db.Float, default=0.0)
+    
+    # Relationships for timestamp tracking
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_inventory_items')
+    updater = db.relationship('User', foreign_keys=[updated_by], backref='updated_inventory_items')
+    deleter = db.relationship('User', foreign_keys=[deleted_by], backref='deleted_inventory_items')
     
     @property
     def is_low_stock(self):
@@ -170,7 +183,7 @@ class SimpleInventoryItem(db.Model):
             return {'status': 'NORMAL', 'level': 'success', 'color': 'success'}
 
 class SimpleStockTransaction(db.Model):
-    """Simple stock transaction model"""
+    """Simple stock transaction model with comprehensive timestamp tracking"""
     __tablename__ = 'simple_stock_transactions'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -183,9 +196,24 @@ class SimpleStockTransaction(db.Model):
     reason = db.Column(db.String(200))
     reference_number = db.Column(db.String(100))
     
+    # Enhanced Timestamp Tracking
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Transaction Status
+    is_active = db.Column(db.Boolean, default=True)
+    cancelled_at = db.Column(db.DateTime)
+    cancelled_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    cancellation_reason = db.Column(db.String(200))
+    
     # Relationships
     item = db.relationship('SimpleInventoryItem', backref='transactions')
-    user = db.relationship('User', backref='simple_stock_transactions')
+    user = db.relationship('User', backref='simple_stock_transactions', foreign_keys=[user_id])
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_transactions')
+    updater = db.relationship('User', foreign_keys=[updated_by], backref='updated_transactions')
+    canceller = db.relationship('User', foreign_keys=[cancelled_by], backref='cancelled_transactions')
 
 class SimpleLowStockAlert(db.Model):
     """Simple low stock alert model"""
