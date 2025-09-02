@@ -211,8 +211,20 @@ body {
 /* Inventory table specific styling */
 #itemsTable thead.table-dark th {
     background-color: #343a40 !important;
-    color: white !important;
+    color: #ffffff !important;
     border-color: #454d55 !important;
+    padding: 12px 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+/* Ensure all table headers are visible */
+.table thead th {
+    background-color: #495057 !important;
+    color: #ffffff !important;
+    border-color: #6c757d !important;
     padding: 12px 8px;
     font-weight: 600;
     text-transform: uppercase;
