@@ -4,54 +4,116 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
+    <!-- Modern Header Section -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">
-                    <i class="fas fa-boxes me-2"></i>Inventory Management
-                </h1>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
-                    <i class="fas fa-plus me-2"></i>Add Item
-                </button>
+            <div class="card border-0 shadow-sm bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h2 mb-2 fw-bold">
+                                <i class="fas fa-warehouse me-3"></i>Inventory Management
+                            </h1>
+                            <p class="mb-0 opacity-75">Monitor stock levels, track consumption, and manage your inventory efficiently</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-light btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                                <i class="fas fa-plus me-2"></i>Add New Item
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-light btn-lg dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-download me-2"></i>Export
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i>Export to Excel</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-file-csv me-2"></i>Export to CSV</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i>Export to PDF</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Alert Cards -->
+    <!-- Enhanced Alert Cards -->
     <div class="row mb-4">
         {% set low_stock_count = items|selectattr('is_low_stock')|list|length %}
         {% set expiring_count = items|selectattr('is_expiring_soon')|list|length %}
+        {% set out_of_stock_count = items|selectattr('is_out_of_stock')|list|length %}
+        {% set total_items = items|length %}
 
-        <div class="col-md-6 mb-3">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Low Stock Items
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #28a745 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="icon-circle bg-success bg-opacity-10 p-3 rounded-circle">
+                                <i class="fas fa-boxes fa-2x text-success"></i>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold">{{ low_stock_count }}</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Total Items</div>
+                            <div class="h3 mb-0 fw-bold text-success">{{ total_items }}</div>
+                            <div class="text-muted small">Active inventory</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6 mb-3">
-            <div class="card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Expiring Soon
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #ffc107 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="icon-circle bg-warning bg-opacity-10 p-3 rounded-circle">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold">{{ expiring_count }}</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-danger"></i>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Low Stock</div>
+                            <div class="h3 mb-0 fw-bold text-warning">{{ low_stock_count }}</div>
+                            <div class="text-muted small">Items need restocking</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #dc3545 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="icon-circle bg-danger bg-opacity-10 p-3 rounded-circle">
+                                <i class="fas fa-clock fa-2x text-danger"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Expiring Soon</div>
+                            <div class="h3 mb-0 fw-bold text-danger">{{ expiring_count }}</div>
+                            <div class="text-muted small">Within 30 days</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #6f42c1 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="icon-circle bg-purple bg-opacity-10 p-3 rounded-circle">
+                                <i class="fas fa-chart-line fa-2x" style="color: #6f42c1;"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Stock Value</div>
+                            <div class="h3 mb-0 fw-bold" style="color: #6f42c1;">₹{{ "{:,.0f}".format(items|sum(attribute='stock_value')|default(0)) }}</div>
+                            <div class="text-muted small">Total inventory worth</div>
                         </div>
                     </div>
                 </div>
@@ -59,35 +121,71 @@
         </div>
     </div>
 
-    <!-- Filter Tabs -->
+    <!-- Enhanced Filter and Search Section -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <ul class="nav nav-pills" id="inventoryTabs" role="tablist">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <!-- Search and Filter Row -->
+                    <div class="row align-items-center mb-3">
+                        <div class="col-lg-6 mb-3 mb-lg-0">
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0" placeholder="Search inventory items..." id="searchInput">
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="d-flex gap-2 justify-content-lg-end">
+                                <select class="form-select" id="categoryFilter">
+                                    <option value="">All Categories</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.name }}">{{ category.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select class="form-select" id="statusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="normal">Normal Stock</option>
+                                    <option value="low_stock">Low Stock</option>
+                                    <option value="out_of_stock">Out of Stock</option>
+                                    <option value="expiring">Expiring Soon</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modern Tab Navigation -->
+                    <ul class="nav nav-pills nav-fill" id="inventoryTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="all-tab" data-bs-toggle="pill" data-bs-target="#all-items" type="button" role="tab">
-                                <i class="fas fa-list me-1"></i>All Items
+                            <button class="nav-link active px-4 py-3" id="all-tab" data-bs-toggle="pill" data-bs-target="#all-items" type="button" role="tab">
+                                <i class="fas fa-th-list me-2"></i>All Items
+                                <span class="badge bg-primary bg-opacity-20 text-primary ms-2">{{ items|length }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="low-stock-tab" data-bs-toggle="pill" data-bs-target="#low-stock-items" type="button" role="tab">
-                                <i class="fas fa-exclamation-triangle me-1"></i>Low Stock
+                            <button class="nav-link px-4 py-3" id="low-stock-tab" data-bs-toggle="pill" data-bs-target="#low-stock-items" type="button" role="tab">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Low Stock
+                                <span class="badge bg-warning bg-opacity-20 text-warning ms-2">{{ low_stock_count }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="setTimeout(loadConsumptionData, 200);">
-                                <i class="fas fa-clipboard-list me-1"></i>Consumption Tracking
+                            <button class="nav-link px-4 py-3" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="setTimeout(loadConsumptionData, 200);">
+                                <i class="fas fa-clipboard-list me-2"></i>Consumption
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="expiring-tab" data-bs-toggle="pill" data-bs-target="#expiring-items" type="button" role="tab">
-                                <i class="fas fa-clock me-1"></i>Expiring Soon
+                            <button class="nav-link px-4 py-3" id="expiring-tab" data-bs-toggle="pill" data-bs-target="#expiring-items" type="button" role="tab">
+                                <i class="fas fa-clock me-2"></i>Expiring
+                                <span class="badge bg-danger bg-opacity-20 text-danger ms-2">{{ expiring_count }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="categories-tab" data-bs-toggle="pill" data-bs-target="#categories-view" type="button" role="tab">
-                                <i class="fas fa-tags me-1"></i>By Category
+                            <button class="nav-link px-4 py-3" id="categories-tab" data-bs-toggle="pill" data-bs-target="#categories-view" type="button" role="tab">
+                                <i class="fas fa-tags me-2"></i>Categories
                             </button>
                         </li>
                     </ul>
@@ -98,92 +196,155 @@
 
     <!-- Tab Content -->
     <div class="tab-content" id="inventoryTabContent">
-        <!-- All Items Tab -->
+        <!-- Enhanced All Items Tab -->
         <div class="tab-pane fade show active" id="all-items" role="tabpanel">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">All Inventory Items</h6>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 py-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="m-0 fw-bold">
+                            <i class="fas fa-list-ul me-2 text-primary"></i>All Inventory Items
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-sort me-1"></i>Sort
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-columns me-1"></i>Columns
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     {% if items %}
                         <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
+                            <table class="table table-hover mb-0 modern-table">
+                                <thead class="table-light">
                                     <tr>
-                                        <th>Item Name</th>
-                                        <th>Category</th>
-                                        <th>Current Stock</th>
-                                        <th>Min Level</th>
-                                        <th>Unit Price</th>
-                                        <th>Supplier</th>
-                                        <th>Expiry Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <th class="border-0 py-3 ps-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAll">
+                                            </div>
+                                        </th>
+                                        <th class="border-0 py-3">Item Details</th>
+                                        <th class="border-0 py-3">Category</th>
+                                        <th class="border-0 py-3">Stock Status</th>
+                                        <th class="border-0 py-3">Pricing</th>
+                                        <th class="border-0 py-3">Supplier</th>
+                                        <th class="border-0 py-3">Expiry</th>
+                                        <th class="border-0 py-3">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for item in items %}
-                                    <tr class="{% if item.is_low_stock %}table-warning{% elif item.is_expiring_soon %}table-danger{% endif %}">
+                                    <tr class="inventory-row {% if item.is_low_stock %}low-stock-row{% elif item.is_expiring_soon %}expiring-row{% endif %}" data-item-id="{{ item.id }}">
+                                        <td class="ps-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="{{ item.id }}">
+                                            </div>
+                                        </td>
                                         <td>
-                                            <div>
-                                                <strong>{{ item.name }}</strong>
-                                                {% if item.description %}
-                                                <br><small class="text-muted">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                                            <div class="d-flex align-items-center">
+                                                <div class="item-avatar me-3">
+                                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                                        <i class="fas fa-box text-primary"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold mb-1">{{ item.name }}</div>
+                                                    {% if item.description %}
+                                                    <div class="text-muted small">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</div>
+                                                    {% endif %}
+                                                    <div class="text-muted small">SKU: {{ item.sku or 'N/A' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">{{ item.category.title() }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="stock-info">
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <strong class="{% if item.is_low_stock %}text-warning{% elif item.is_out_of_stock %}text-danger{% else %}text-success{% endif %} me-2">
+                                                        {{ item.current_stock }}
+                                                    </strong>
+                                                    <span class="text-muted small">{{ item.base_unit or 'units' }}</span>
+                                                </div>
+                                                <div class="progress" style="height: 4px;">
+                                                    {% set stock_percentage = (item.current_stock / (item.max_stock_level or 100)) * 100 %}
+                                                    <div class="progress-bar {% if stock_percentage < 20 %}bg-danger{% elif stock_percentage < 40 %}bg-warning{% else %}bg-success{% endif %}" 
+                                                         style="width: {{ stock_percentage|min(100) }}%"></div>
+                                                </div>
+                                                <div class="text-muted small mt-1">Min: {{ item.min_stock_level }}</div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="pricing-info">
+                                                <div class="fw-semibold text-success">₹{{ "%.2f"|format(item.selling_price or 0) }}</div>
+                                                {% if item.cost_price %}
+                                                <div class="text-muted small">Cost: ₹{{ "%.2f"|format(item.cost_price) }}</div>
                                                 {% endif %}
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge bg-secondary">{{ item.category.title() }}</span>
-                                        </td>
-                                        <td>
-                                            <strong class="{% if item.is_low_stock %}text-warning{% endif %}">
-                                                {{ item.current_stock }}
-                                            </strong>
-                                        </td>
-                                        <td>{{ item.min_stock_level }}</td>
-                                        <td>₹{{ "%.2f"|format(item.selling_price or 0) }}</td>
-                                        <td>
                                             {% if item.supplier_name %}
-                                                <div>{{ item.supplier_name }}</div>
-                                                {% if item.supplier_contact %}
-                                                <small class="text-muted">{{ item.supplier_contact }}</small>
-                                                {% endif %}
+                                                <div class="supplier-info">
+                                                    <div class="fw-semibold small">{{ item.supplier_name }}</div>
+                                                    {% if item.supplier_contact %}
+                                                    <div class="text-muted small">{{ item.supplier_contact }}</div>
+                                                    {% endif %}
+                                                </div>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
                                         <td>
                                             {% if item.expiry_date %}
-                                                <span class="{% if item.is_expiring_soon %}text-danger{% endif %}">
-                                                    {{ item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else '-' }}
-                                                </span>
+                                                <div class="expiry-info">
+                                                    <div class="small {% if item.is_expiring_soon %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                                                        {{ item.expiry_date.strftime('%d %b %Y') if item.expiry_date else '-' }}
+                                                    </div>
+                                                    {% if item.is_expiring_soon %}
+                                                    <div class="text-danger small">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Expiring Soon
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
                                             {% else %}
-                                                <span class="text-muted">-</span>
+                                                <span class="text-muted small">No expiry</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if item.is_low_stock %}
-                                                <span class="badge bg-warning">Low Stock</span>
-                                            {% elif item.is_expiring_soon %}
-                                                <span class="badge bg-danger">Expiring</span>
-                                            {% else %}
-                                                <span class="badge bg-success">Good</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#updateStockModal"
-                                                        onclick="updateStock({{ item.id }}, '{{ item.name }}', {{ item.current_stock }})">
-                                                    <i class="fas fa-plus-minus"></i>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-cog"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-secondary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#editInventoryModal"
-                                                        onclick="editItem({{ item.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           data-bs-toggle="modal" data-bs-target="#updateStockModal"
+                                                           onclick="updateStock({{ item.id }}, '{{ item.name }}', {{ item.current_stock }})">
+                                                            <i class="fas fa-plus-minus me-2"></i>Update Stock
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#"
+                                                           data-bs-toggle="modal" data-bs-target="#editInventoryModal"
+                                                           onclick="editItem({{ item.id }})">
+                                                            <i class="fas fa-edit me-2"></i>Edit Item
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#">
+                                                            <i class="fas fa-chart-line me-2"></i>View Analytics
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#">
+                                                            <i class="fas fa-history me-2"></i>Stock History
+                                                        </a>
+                                                    </li>
+                                                </ul>
                                             </div>
                                         </td>
                                     </tr>
@@ -191,11 +352,34 @@
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-between align-items-center p-4 border-top">
+                            <div class="text-muted small">
+                                Showing {{ items|length }} of {{ items|length }} items
+                            </div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                    </li>
+                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
                     {% else %}
                         <div class="text-center py-5">
-                            <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No inventory items found</h5>
-                            <p class="text-muted">Add your first inventory item to get started.</p>
+                            <div class="empty-state">
+                                <i class="fas fa-boxes fa-4x text-muted mb-4"></i>
+                                <h4 class="text-muted mb-3">No inventory items found</h4>
+                                <p class="text-muted mb-4">Start building your inventory by adding your first item.</p>
+                                <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                                    <i class="fas fa-plus me-2"></i>Add Your First Item
+                                </button>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -969,6 +1153,152 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.alert-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.alert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.icon-circle {
+    transition: transform 0.2s ease-in-out;
+}
+
+.alert-card:hover .icon-circle {
+    transform: scale(1.1);
+}
+
+.modern-table {
+    font-size: 0.95rem;
+}
+
+.modern-table th {
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.8rem;
+}
+
+.inventory-row {
+    transition: all 0.2s ease;
+}
+
+.inventory-row:hover {
+    background-color: #f8f9fa;
+    transform: translateX(2px);
+    box-shadow: -3px 0 0 #007bff;
+}
+
+.low-stock-row {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107;
+}
+
+.expiring-row {
+    background-color: #f8d7da !important;
+    border-left: 3px solid #dc3545;
+}
+
+.stock-info .progress {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+
+.stock-info .progress-bar {
+    border-radius: 10px;
+}
+
+.item-avatar {
+    transition: transform 0.2s ease;
+}
+
+.inventory-row:hover .item-avatar {
+    transform: scale(1.05);
+}
+
+.nav-pills .nav-link {
+    border-radius: 12px;
+    margin: 0 4px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.nav-pills .nav-link:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    transform: translateY(-1px);
+}
+
+.nav-pills .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.empty-state {
+    padding: 60px 20px;
+}
+
+.empty-state i {
+    opacity: 0.5;
+}
+
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
+
+.search-highlight {
+    background-color: #fff3cd;
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+.input-group-lg > .form-control {
+    border-radius: 12px;
+}
+
+.input-group-lg > .input-group-text {
+    border-radius: 12px 0 0 12px;
+}
+
+.dropdown-menu {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.dropdown-item {
+    padding: 0.6rem 1.25rem;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+
+@media (max-width: 768px) {
+    .alert-card .card-body {
+        padding: 1.5rem !important;
+    }
+    
+    .modern-table th,
+    .modern-table td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .item-avatar {
+        display: none;
+    }
+}
+</style>
+{% endblock %}
+
 {% block extra_scripts %}
 <script>
 let currentItemId = null;
@@ -1070,7 +1400,7 @@ function useUrgently(itemId) {
     }
 }
 
-// Update new stock when adjustment changes
+// Enhanced inventory functionality
 document.addEventListener('DOMContentLoaded', function() {
     const adjustmentInput = document.getElementById('stockAdjustment');
     if (adjustmentInput) {
@@ -1087,7 +1417,143 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize modals when page loads
     initializeConsumptionModals();
+    
+    // Initialize enhanced search and filter functionality
+    initializeSearchAndFilters();
+    initializeTableInteractions();
 });
+
+function initializeSearchAndFilters() {
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(performSearch, 300));
+    }
+    
+    if (clearSearch) {
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            performSearch();
+        });
+    }
+    
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', performSearch);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', performSearch);
+    }
+}
+
+function initializeTableInteractions() {
+    // Select all checkbox functionality
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const itemCheckboxes = document.querySelectorAll('tbody input[type="checkbox"]');
+            itemCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkActionsVisibility();
+        });
+    }
+    
+    // Individual checkbox functionality
+    const itemCheckboxes = document.querySelectorAll('tbody input[type="checkbox"]');
+    itemCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkActionsVisibility);
+    });
+}
+
+function performSearch() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('.inventory-row');
+    
+    rows.forEach(row => {
+        const itemName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const category = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        
+        let matchesSearch = searchTerm === '' || itemName.includes(searchTerm);
+        let matchesCategory = categoryFilter === '' || category.includes(categoryFilter.toLowerCase());
+        let matchesStatus = statusFilter === '' || checkStatusMatch(row, statusFilter);
+        
+        if (matchesSearch && matchesCategory && matchesStatus) {
+            row.style.display = '';
+            highlightSearchTerm(row, searchTerm);
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    updateResultsCount();
+}
+
+function checkStatusMatch(row, statusFilter) {
+    const stockCell = row.querySelector('.stock-info strong');
+    const expiryCell = row.querySelector('.expiry-info');
+    
+    switch(statusFilter) {
+        case 'low_stock':
+            return row.classList.contains('low-stock-row');
+        case 'out_of_stock':
+            return stockCell && parseFloat(stockCell.textContent) <= 0;
+        case 'expiring':
+            return row.classList.contains('expiring-row');
+        case 'normal':
+            return !row.classList.contains('low-stock-row') && !row.classList.contains('expiring-row');
+        default:
+            return true;
+    }
+}
+
+function highlightSearchTerm(row, searchTerm) {
+    if (searchTerm === '') return;
+    
+    const itemNameCell = row.querySelector('td:nth-child(2)');
+    const originalText = itemNameCell.textContent;
+    const highlightedText = originalText.replace(
+        new RegExp(searchTerm, 'gi'),
+        match => `<span class="search-highlight">${match}</span>`
+    );
+    
+    if (originalText !== highlightedText) {
+        itemNameCell.innerHTML = highlightedText;
+    }
+}
+
+function updateResultsCount() {
+    const visibleRows = document.querySelectorAll('.inventory-row[style=""], .inventory-row:not([style*="display: none"])').length;
+    const totalRows = document.querySelectorAll('.inventory-row').length;
+    
+    const resultText = document.querySelector('.text-muted.small');
+    if (resultText) {
+        resultText.textContent = `Showing ${visibleRows} of ${totalRows} items`;
+    }
+}
+
+function updateBulkActionsVisibility() {
+    const checkedBoxes = document.querySelectorAll('tbody input[type="checkbox"]:checked');
+    // Add bulk actions toolbar here if needed
+    console.log(`${checkedBoxes.length} items selected`);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 function initializeConsumptionModals() {
     // Load inventory items when any consumption modal is opened
