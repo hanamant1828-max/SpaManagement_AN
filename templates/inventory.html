@@ -282,8 +282,9 @@
                                                 </div>
                                                 <div class="progress" style="height: 4px;">
                                                     {% set stock_percentage = (item.current_stock / (item.max_stock_level or 100)) * 100 %}
+                                                    {% set width_percentage = stock_percentage if stock_percentage <= 100 else 100 %}
                                                     <div class="progress-bar {% if stock_percentage < 20 %}bg-danger{% elif stock_percentage < 40 %}bg-warning{% else %}bg-success{% endif %}" 
-                                                         style="width: {{ [stock_percentage, 100]|min }}%"></div>
+                                                         style="width: {{ width_percentage }}%"></div>
                                                 </div>
                                                 <div class="text-muted small mt-1">Min: {{ item.min_stock_level }}</div>
                                             </div>
