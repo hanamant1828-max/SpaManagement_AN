@@ -432,22 +432,35 @@ def get_inventory_item(item_id):
 def delete_inventory_item(item_id):
     """Delete an inventory item"""
     if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
         item = SimpleInventoryItem.query.get(item_id)
         if not item:
-            return jsonify({'error': 'Item not found'}), 404
+            return jsonify({'success': False, 'error': 'Item not found'}), 404
 
         # Check if item has transactions
         transactions_count = SimpleStockTransaction.query.filter_by(item_id=item_id).count()
         if transactions_count > 0:
             return jsonify({
-                'error': f'Cannot delete item with transaction history ({transactions_count} transactions). Consider marking as inactive instead.'
+                'success': False,
+                'error': f'Cannot delete "{item.name}" - it has {transactions_count} transaction(s). Consider marking as inactive instead.'
             }), 400
 
+        # Check if item has low stock alerts
+        alerts_count = SimpleLowStockAlert.query.filter_by(item_id=item_id).count()
+        if alerts_count > 0:
+            # Delete associated alerts first
+            SimpleLowStockAlert.query.filter_by(item_id=item_id).delete()
+
         item_name = item.name
-        db.session.delete(item)
+        item_sku = item.sku
+        
+        # Soft delete by marking as inactive instead of hard delete
+        item.is_active = False
+        item.name = f"[DELETED] {item.name}"
+        item.sku = f"DEL_{item.sku}"
+        
         db.session.commit()
 
         return jsonify({
@@ -457,7 +470,11 @@ def delete_inventory_item(item_id):
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error deleting inventory item {item_id}: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Database error occurred while deleting item: {str(e)}'
+        }), 500
 
 @app.route('/record_bulk_transaction', methods=['POST'])
 @login_required

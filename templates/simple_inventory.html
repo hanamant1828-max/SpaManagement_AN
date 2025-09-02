@@ -898,16 +898,52 @@ function editItem(itemId) {
 }
 
 function deleteItem(itemId, itemName) {
-    if (confirm(`Are you sure you want to delete "${itemName}"?`)) {
+    if (confirm(`Are you sure you want to delete "${itemName}"?\n\nThis action cannot be undone.`)) {
+        // Show loading state
+        const deleteButtons = document.querySelectorAll(`button[onclick*="deleteItem(${itemId}"]`);
+        deleteButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        });
+
         fetch(`/delete_inventory_item/${itemId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             }
-        }).then(response => {
-            if (response.ok) {
-                location.reload();
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                showAlert('success', data.message || `Item "${itemName}" deleted successfully`);
+                // Remove the row from table instead of full page reload
+                const row = document.querySelector(`tr:has(button[onclick*="deleteItem(${itemId}"])`);
+                if (row) {
+                    row.style.transition = 'opacity 0.3s ease';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                }
+                // Update counters
+                updateItemCounters();
+            } else {
+                showAlert('error', data.error || 'Failed to delete item');
+                // Restore button state
+                deleteButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-trash"></i>';
+                });
             }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showAlert('error', 'An error occurred while deleting the item');
+            // Restore button state
+            deleteButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash"></i>';
+            });
         });
     }
 }
@@ -1020,6 +1056,80 @@ function deleteTransactionType(id, displayName) {
         }).catch(error => {
             alert('Error: ' + error);
         });
+    }
+}
+
+// Helper function to show alerts
+function showAlert(type, message) {
+    const alertTypes = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    };
+    
+    const alertClass = alertTypes[type] || 'alert-info';
+    const iconClass = type === 'success' ? 'fa-check-circle' : 
+                     type === 'error' ? 'fa-exclamation-triangle' :
+                     type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+    
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            <i class="fas ${iconClass} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        const alert = document.querySelector('.alert:last-of-type');
+        if (alert) {
+            alert.classList.remove('show');
+            setTimeout(() => alert.remove(), 150);
+        }
+    }, 5000);
+}
+
+// Helper function to update item counters after deletion
+function updateItemCounters() {
+    const table = document.getElementById('itemsTable');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tbody tr:not([style*="display: none"])');
+    const totalItems = rows.length;
+    let lowStockCount = 0;
+    let totalStockValue = 0;
+    
+    rows.forEach(row => {
+        // Check if row has warning/danger class for low stock
+        if (row.classList.contains('table-warning') || row.classList.contains('table-danger')) {
+            lowStockCount++;
+        }
+        
+        // Calculate stock value from the row
+        const stockValueCell = row.cells[6]; // Stock Value column
+        if (stockValueCell) {
+            const value = parseFloat(stockValueCell.textContent.replace('₹', '')) || 0;
+            totalStockValue += value;
+        }
+    });
+    
+    // Update counter cards
+    const totalItemsElement = document.querySelector('.card-body .h5.mb-0.font-weight-bold');
+    if (totalItemsElement && totalItemsElement.textContent.match(/^\d+$/)) {
+        totalItemsElement.textContent = totalItems;
+    }
+    
+    const lowStockElements = document.querySelectorAll('.card-body .h5.mb-0.font-weight-bold');
+    if (lowStockElements.length > 1) {
+        lowStockElements[1].textContent = lowStockCount;
+    }
+    
+    if (lowStockElements.length > 2) {
+        lowStockElements[2].textContent = `₹${totalStockValue.toFixed(2)}`;
     }
 }
 
