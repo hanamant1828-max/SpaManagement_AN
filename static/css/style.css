@@ -644,10 +644,17 @@ html, body {
 .main-content .row {
     margin: 0;
     margin-right: 0;
+    --bs-gutter-x: 30px; /* Override Bootstrap's default gutter */
 }
 
 .main-content .col {
     padding: 0 15px;
+}
+
+/* Prevent excessive Bootstrap gutter calculations */
+.main-content [class*="col"] {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
 }
 
 /* Error and success states */
