@@ -397,6 +397,9 @@ class Appointment(db.Model):
     is_paid = db.Column(db.Boolean, default=False)
     inventory_deducted = db.Column(db.Boolean, default=False)  # Track if inventory was deducted
 
+    # Relationships
+    staff = db.relationship('User', backref='appointments', foreign_keys=[staff_id])
+
     def process_inventory_deduction(self):
         """Process inventory deduction when appointment is completed and billed"""
         if not self.inventory_deducted and self.status == 'completed' and self.is_paid:
