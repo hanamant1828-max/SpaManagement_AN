@@ -6,25 +6,52 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 import json
 
-# Simple Inventory Models
+# Professional Inventory Management Models
 class SimpleInventoryItem(db.Model):
-    """Simple inventory item model for basic inventory management"""
+    """Simple inventory item model - basic structure first"""
     __tablename__ = 'simple_inventory_items'
     
+    # Basic Information
     id = db.Column(db.Integer, primary_key=True)
     sku = db.Column(db.String(50), unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     category = db.Column(db.String(50))
+    
+    # Stock Management
     current_stock = db.Column(db.Float, default=0.0, nullable=False)
     minimum_stock = db.Column(db.Float, default=5.0, nullable=False)
+    
+    # Basic Pricing
     unit_cost = db.Column(db.Float, default=0.0)
-    supplier = db.Column(db.String(100))
+    
+    # Basic Location
     location = db.Column(db.String(100))
+    
+    # Supplier Information  
+    supplier = db.Column(db.String(100))
+    
+    # Dates & Expiry
     expiry_date = db.Column(db.Date)
+    
+    # Status & Control
+    is_active = db.Column(db.Boolean, default=True)
+    is_serialized = db.Column(db.Boolean, default=False)
+    is_perishable = db.Column(db.Boolean, default=False)
+    is_hazardous = db.Column(db.Boolean, default=False)
+    requires_approval = db.Column(db.Boolean, default=False)
+    
+    # Timestamps
     date_added = db.Column(db.DateTime, default=datetime.utcnow)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_active = db.Column(db.Boolean, default=True)
+    last_counted_date = db.Column(db.DateTime)
+    last_purchase_date = db.Column(db.Date)
+    last_sale_date = db.Column(db.Date)
+    
+    # Analytics Support
+    total_purchased = db.Column(db.Float, default=0.0)
+    total_sold = db.Column(db.Float, default=0.0)
+    total_adjustments = db.Column(db.Float, default=0.0)
     
     @property
     def is_low_stock(self):
@@ -33,6 +60,118 @@ class SimpleInventoryItem(db.Model):
     @property
     def is_out_of_stock(self):
         return self.current_stock <= 0
+    
+    @property
+    def stock_value(self):
+        return self.current_stock * self.unit_cost
+    
+    # Tracking Fields
+    last_purchase_date = db.Column(db.Date)
+    last_sale_date = db.Column(db.Date)
+    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_counted_date = db.Column(db.Date)  # For cycle counting
+    
+    # Analytics Support
+    total_purchased = db.Column(db.Float, default=0.0)
+    total_sold = db.Column(db.Float, default=0.0)
+    total_adjustments = db.Column(db.Float, default=0.0)
+    
+    @property
+    def is_low_stock(self):
+        """Check if item is below minimum stock level"""
+        return self.current_stock <= self.minimum_stock
+    
+    @property
+    def is_out_of_stock(self):
+        """Check if item is completely out of stock"""
+        return self.current_stock <= 0
+    
+    @property
+    def is_overstocked(self):
+        """Check if item exceeds maximum stock level"""
+        return self.current_stock > self.maximum_stock if self.maximum_stock else False
+        
+    @property
+    def needs_reorder(self):
+        """Check if item has reached reorder point"""
+        return self.current_stock <= self.reorder_point
+    
+    @property
+    def stock_value(self):
+        """Calculate current stock value at cost price"""
+        return self.current_stock * self.unit_cost
+    
+    @property
+    def retail_value(self):
+        """Calculate current stock value at selling price"""
+        return self.current_stock * self.selling_price
+    
+    @property
+    def markup_amount(self):
+        """Calculate markup amount per unit"""
+        return self.selling_price - self.unit_cost if self.selling_price and self.unit_cost else 0
+    
+    @property
+    def profit_margin(self):
+        """Calculate profit margin percentage"""
+        if self.selling_price and self.selling_price > 0:
+            return ((self.selling_price - self.unit_cost) / self.selling_price) * 100
+        return 0
+    
+    @property
+    def days_until_expiry(self):
+        """Calculate days until expiry"""
+        if self.expiry_date:
+            return (self.expiry_date - date.today()).days
+        return None
+    
+    @property
+    def is_expired(self):
+        """Check if item has expired"""
+        if self.expiry_date:
+            return date.today() > self.expiry_date
+        return False
+    
+    @property
+    def is_near_expiry(self):
+        """Check if item expires within 30 days"""
+        days = self.days_until_expiry
+        return days is not None and 0 <= days <= 30
+    
+    @property
+    def turnover_rate(self):
+        """Calculate inventory turnover rate (annual estimate)"""
+        if self.current_stock > 0 and self.total_sold > 0:
+            return (self.total_sold * 365) / (self.current_stock * 30)  # Approximate monthly turnover
+        return 0
+    
+    @property
+    def abc_classification(self):
+        """ABC Analysis classification based on value and movement"""
+        value_score = self.stock_value
+        movement_score = self.total_sold or 0
+        combined_score = value_score + (movement_score * self.unit_cost)
+        
+        if combined_score > 5000:
+            return 'A'  # High value/movement
+        elif combined_score > 1000:
+            return 'B'  # Medium value/movement
+        else:
+            return 'C'  # Low value/movement
+    
+    def get_stock_status(self):
+        """Get comprehensive stock status"""
+        if self.is_out_of_stock:
+            return {'status': 'OUT_OF_STOCK', 'level': 'critical', 'color': 'danger'}
+        elif self.is_low_stock:
+            return {'status': 'LOW_STOCK', 'level': 'warning', 'color': 'warning'}
+        elif self.is_overstocked:
+            return {'status': 'OVERSTOCKED', 'level': 'info', 'color': 'info'}
+        elif self.needs_reorder:
+            return {'status': 'REORDER', 'level': 'warning', 'color': 'warning'}
+        else:
+            return {'status': 'NORMAL', 'level': 'success', 'color': 'success'}
 
 class SimpleStockTransaction(db.Model):
     """Simple stock transaction model"""

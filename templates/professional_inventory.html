@@ -1,0 +1,1260 @@
+{% extends "base.html" %}
+
+{% block title %}Professional Inventory Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2c5282;
+        --secondary-color: #4a90e2;
+        --success-color: #38a169;
+        --warning-color: #d69e2e;
+        --danger-color: #e53e3e;
+        --info-color: #3182ce;
+        --dark-color: #2d3748;
+        --light-color: #f7fafc;
+        --border-radius: 8px;
+        --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --transition: all 0.3s ease;
+    }
+
+    .inventory-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+        border: none;
+        overflow: hidden;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    }
+
+    .metric-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .metric-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .inventory-tabs .nav-link {
+        border: none;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .inventory-tabs .nav-link:hover {
+        background-color: #f1f5f9;
+    }
+
+    .inventory-tabs .nav-link.active {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .search-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        margin-bottom: 1.5rem;
+    }
+
+    .data-table {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+    }
+
+    .table th {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: var(--dark-color);
+        padding: 1rem 0.75rem;
+    }
+
+    .table td {
+        padding: 1rem 0.75rem;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-normal { background: #dcfce7; color: #166534; }
+    .status-low { background: #fef3c7; color: #92400e; }
+    .status-critical { background: #fecaca; color: #991b1b; }
+    .status-reorder { background: #dbeafe; color: #1e40af; }
+
+    .action-buttons .btn {
+        margin: 0 0.125rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--border-radius);
+    }
+
+    .inventory-modal .modal-content {
+        border-radius: var(--border-radius);
+        border: none;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .inventory-modal .modal-header {
+        background: var(--primary-color);
+        color: white;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+
+    .form-control, .form-select {
+        border-radius: var(--border-radius);
+        border: 1px solid #d1d5db;
+        transition: var(--transition);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(44, 82, 130, 0.25);
+    }
+
+    .analytics-chart {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 1.5rem;
+    }
+
+    .inventory-alerts {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 1.5rem;
+    }
+
+    .alert-item {
+        padding: 1rem;
+        border-left: 4px solid;
+        background: #f8fafc;
+        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .alert-critical { border-left-color: var(--danger-color); }
+    .alert-warning { border-left-color: var(--warning-color); }
+    .alert-info { border-left-color: var(--info-color); }
+
+    .quick-actions {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+    }
+
+    .fab-button {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: none;
+        background: var(--primary-color);
+        color: white;
+        font-size: 1.25rem;
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .fab-button:hover {
+        background: var(--secondary-color);
+        transform: scale(1.1);
+    }
+
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .loading-spinner.active {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .inventory-header {
+            padding: 1rem 0;
+        }
+        
+        .metric-card {
+            margin-bottom: 1rem;
+        }
+        
+        .search-filters {
+            padding: 1rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="inventory-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="h2 mb-2">
+                        <i class="fas fa-warehouse me-3"></i>
+                        Professional Inventory Management
+                    </h1>
+                    <p class="mb-0 opacity-75">Comprehensive stock control, analytics, and business intelligence</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#quickStockModal">
+                            <i class="fas fa-tachometer-alt me-1"></i>Quick Stock
+                        </button>
+                        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                            <i class="fas fa-plus me-1"></i>Add Item
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="exportInventoryData()">
+                            <i class="fas fa-download me-1"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics Dashboard -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="card-body d-flex align-items-center">
+                    <div class="metric-icon bg-primary me-3">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value text-primary">{{ total_items }}</div>
+                        <div class="metric-label">Total Items</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="card-body d-flex align-items-center">
+                    <div class="metric-icon bg-warning me-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value text-warning">{{ low_stock_count }}</div>
+                        <div class="metric-label">Low Stock Alerts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="card-body d-flex align-items-center">
+                    <div class="metric-icon bg-success me-3">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value text-success">₹{{ "%.0f"|format(total_stock_value) }}</div>
+                        <div class="metric-label">Stock Value</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <div class="card-body d-flex align-items-center">
+                    <div class="metric-icon bg-info me-3">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div>
+                        <div class="metric-value text-info">{{ todays_transactions }}</div>
+                        <div class="metric-label">Today's Activity</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Analytics Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="analytics-chart">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2 text-primary"></i>
+                        Inventory Analytics
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary active" onclick="showChart('movement')">Movement</button>
+                        <button class="btn btn-outline-primary" onclick="showChart('value')">Value</button>
+                        <button class="btn btn-outline-primary" onclick="showChart('abc')">ABC Analysis</button>
+                    </div>
+                </div>
+                <canvas id="inventoryChart" height="80"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="inventory-alerts">
+                <h5 class="mb-3">
+                    <i class="fas fa-bell me-2 text-warning"></i>
+                    Smart Alerts
+                </h5>
+                <div id="alertsContainer">
+                    {% if items %}
+                        {% set critical_items = items|selectattr('is_out_of_stock')|list %}
+                        {% set low_stock_items = items|selectattr('is_low_stock')|list %}
+                        {% set expired_items = items|selectattr('is_expired')|list %}
+                        
+                        {% for item in critical_items[:3] %}
+                        <div class="alert-item alert-critical">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ item.name }}</strong>
+                                    <br><small class="text-muted">Out of Stock</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger" onclick="quickReorder({{ item.id }})">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% for item in low_stock_items[:3] %}
+                        <div class="alert-item alert-warning">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ item.name }}</strong>
+                                    <br><small class="text-muted">Stock: {{ item.current_stock }}</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-warning" onclick="adjustStock({{ item.id }})">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="card border-0 shadow">
+        <div class="card-header bg-transparent border-0 p-0">
+            <ul class="nav nav-tabs inventory-tabs" id="inventoryTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory-pane" type="button" role="tab">
+                        <i class="fas fa-list me-2"></i>Inventory Master
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions-pane" type="button" role="tab">
+                        <i class="fas fa-exchange-alt me-2"></i>Transactions
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-pane" type="button" role="tab">
+                        <i class="fas fa-chart-bar me-2"></i>Reports & Analytics
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-pane" type="button" role="tab">
+                        <i class="fas fa-cog me-2"></i>Settings
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div class="tab-content" id="inventoryTabContent">
+                
+                <!-- Inventory Master Tab -->
+                <div class="tab-pane fade show active" id="inventory-pane" role="tabpanel">
+                    <!-- Search and Filters -->
+                    <div class="search-filters">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0" id="searchItems" 
+                                           placeholder="Search by name, SKU, or barcode..." onkeyup="filterInventory()">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="filterCategory" onchange="filterInventory()">
+                                    <option value="">All Categories</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category }}">{{ category }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="filterStatus" onchange="filterInventory()">
+                                    <option value="">All Status</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="low_stock">Low Stock</option>
+                                    <option value="out_of_stock">Out of Stock</option>
+                                    <option value="expired">Expired</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="filterABC" onchange="filterInventory()">
+                                    <option value="">ABC Analysis</option>
+                                    <option value="A">Class A (High)</option>
+                                    <option value="B">Class B (Medium)</option>
+                                    <option value="C">Class C (Low)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Table -->
+                    <div class="data-table">
+                        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                            <h6 class="mb-0">Inventory Items ({{ items|length }})</h6>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="toggleView('table')">
+                                    <i class="fas fa-table"></i>
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="toggleView('grid')">
+                                    <i class="fas fa-th"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {% if items %}
+                        <div class="table-responsive" id="tableView">
+                            <table class="table table-hover mb-0" id="inventoryTable">
+                                <thead>
+                                    <tr>
+                                        <th width="3%">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                            </div>
+                                        </th>
+                                        <th width="15%">Item Details</th>
+                                        <th width="8%">SKU/Barcode</th>
+                                        <th width="10%">Category</th>
+                                        <th width="8%">Stock</th>
+                                        <th width="10%">Pricing</th>
+                                        <th width="8%">Status</th>
+                                        <th width="8%">ABC</th>
+                                        <th width="10%">Supplier</th>
+                                        <th width="8%">Expiry</th>
+                                        <th width="12%">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr data-item-id="{{ item.id }}" class="inventory-row">
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input item-select" type="checkbox" value="{{ item.id }}">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="item-avatar me-3">
+                                                    <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center" 
+                                                         style="width: 40px; height: 40px;">
+                                                        {{ item.name[0].upper() }}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ item.name }}</div>
+                                                    {% if item.description %}
+                                                    <small class="text-muted">{{ item.description[:30] }}{% if item.description|length > 30 %}...{% endif %}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="font-monospace small">{{ item.sku }}</div>
+                                            {% if item.barcode %}
+                                            <div class="font-monospace small text-muted">{{ item.barcode }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ item.category or 'N/A' }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                <div class="fw-bold {% if item.is_low_stock %}text-warning{% elif item.is_out_of_stock %}text-danger{% endif %}">
+                                                    {{ item.current_stock }}
+                                                </div>
+                                                <small class="text-muted">Min: {{ item.minimum_stock }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="small">
+                                                <div>Cost: ₹{{ item.unit_cost }}</div>
+                                                {% if item.selling_price %}
+                                                <div class="text-success">Sell: ₹{{ item.selling_price }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% set status = item.get_stock_status() %}
+                                            <span class="status-badge status-{{ status.level }}">{{ status.status.replace('_', ' ') }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ item.abc_classification }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="small">
+                                                {{ item.supplier or 'N/A' }}
+                                                {% if item.lead_time_days %}
+                                                <div class="text-muted">{{ item.lead_time_days }}d lead</div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if item.expiry_date %}
+                                                {% set days_to_expiry = item.days_until_expiry %}
+                                                <div class="small {% if days_to_expiry < 30 %}text-warning{% elif days_to_expiry < 0 %}text-danger{% endif %}">
+                                                    {{ item.expiry_date.strftime('%d/%m/%Y') }}
+                                                    {% if days_to_expiry < 0 %}
+                                                    <div class="text-danger">Expired</div>
+                                                    {% elif days_to_expiry < 30 %}
+                                                    <div class="text-warning">{{ days_to_expiry }}d left</div>
+                                                    {% endif %}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        data-bs-toggle="modal" data-bs-target="#quickStockModal"
+                                                        onclick="openQuickStock({{ item.id }}, '{{ item.name }}', {{ item.current_stock }})"
+                                                        title="Quick Stock Update">
+                                                    <i class="fas fa-plus-minus"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        onclick="editItem({{ item.id }})"
+                                                        title="Edit Item">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info"
+                                                        onclick="viewItemHistory({{ item.id }})"
+                                                        title="View History">
+                                                    <i class="fas fa-history"></i>
+                                                </button>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-sm btn-outline-dark dropdown-toggle" 
+                                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li><a class="dropdown-item" href="#" onclick="duplicateItem({{ item.id }})">
+                                                            <i class="fas fa-copy me-2"></i>Duplicate
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" onclick="printLabel({{ item.id }})">
+                                                            <i class="fas fa-print me-2"></i>Print Label
+                                                        </a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a class="dropdown-item text-danger" href="#" onclick="archiveItem({{ item.id }})">
+                                                            <i class="fas fa-archive me-2"></i>Archive
+                                                        </a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-boxes fa-4x text-muted"></i>
+                            </div>
+                            <h4 class="text-muted">No inventory items found</h4>
+                            <p class="text-muted mb-4">Start building your inventory by adding your first item.</p>
+                            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                                <i class="fas fa-plus me-2"></i>Add Your First Item
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Bulk Actions Bar -->
+                    <div class="bulk-actions-bar p-3 bg-light border-top d-none" id="bulkActionsBar">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold"><span id="selectedCount">0</span> items selected</span>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-primary" onclick="bulkUpdateStock()">
+                                    <i class="fas fa-edit me-1"></i>Update Stock
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="bulkUpdateCategory()">
+                                    <i class="fas fa-tags me-1"></i>Change Category
+                                </button>
+                                <button class="btn btn-outline-success" onclick="bulkExport()">
+                                    <i class="fas fa-download me-1"></i>Export Selected
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="bulkArchive()">
+                                    <i class="fas fa-archive me-1"></i>Archive
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Tab -->
+                <div class="tab-pane fade" id="transactions-pane" role="tabpanel">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="btn-group me-2">
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#recordTransactionModal">
+                                    <i class="fas fa-plus me-1"></i>Record Transaction
+                                </button>
+                                <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#bulkTransactionModal">
+                                    <i class="fas fa-layer-group me-1"></i>Bulk Transaction
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <select class="form-select" id="transactionTypeFilter">
+                                    <option value="">All Transaction Types</option>
+                                    <option value="Purchase">Purchases</option>
+                                    <option value="Sale">Sales</option>
+                                    <option value="Adjustment">Adjustments</option>
+                                    <option value="Transfer">Transfers</option>
+                                    <option value="Return">Returns</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" onclick="filterTransactions()">
+                                    <i class="fas fa-filter"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if transactions %}
+                    <div class="data-table">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date/Time</th>
+                                        <th>Transaction ID</th>
+                                        <th>Item</th>
+                                        <th>Type</th>
+                                        <th>Quantity</th>
+                                        <th>Value</th>
+                                        <th>Balance</th>
+                                        <th>User</th>
+                                        <th>Reference</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr>
+                                        <td>
+                                            <div class="small">
+                                                {{ transaction.date_time.strftime('%d/%m/%Y') }}
+                                                <div class="text-muted">{{ transaction.date_time.strftime('%H:%M') }}</div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <code class="small">{{ transaction.transaction_id or transaction.id }}</code>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">{{ transaction.item.name }}</div>
+                                            <small class="text-muted">{{ transaction.item.sku }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if transaction.transaction_type == 'Purchase' %}bg-success
+                                                {% elif transaction.transaction_type == 'Sale' %}bg-primary
+                                                {% elif transaction.transaction_type == 'Adjustment' %}bg-warning
+                                                {% elif transaction.transaction_type == 'Transfer' %}bg-info
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ transaction.transaction_type }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="{% if transaction.quantity_change > 0 %}text-success{% else %}text-danger{% endif %}">
+                                                {{ transaction.transaction_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if transaction.total_cost %}
+                                            ₹{{ "%.2f"|format(transaction.total_cost) }}
+                                            {% else %}
+                                            <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold">{{ transaction.new_stock_level }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="small">
+                                                {{ transaction.user.first_name if transaction.user else 'System' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="small">
+                                                {{ transaction.reference_number or transaction.document_number or '-' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info" onclick="viewTransactionDetails({{ transaction.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No transactions recorded yet</h5>
+                        <p class="text-muted">Start by recording your first inventory transaction.</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Reports Tab -->
+                <div class="tab-pane fade" id="reports-pane" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-4">
+                                <h5>Professional Reports & Analytics</h5>
+                                <p class="text-muted">Generate comprehensive inventory reports for better decision making.</p>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-chart-pie fa-2x text-primary mb-3"></i>
+                                            <h6>ABC Analysis Report</h6>
+                                            <p class="small text-muted">Classify items by value and movement</p>
+                                            <button class="btn btn-primary btn-sm" onclick="generateABCReport()">Generate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-clock fa-2x text-warning mb-3"></i>
+                                            <h6>Aging Analysis</h6>
+                                            <p class="small text-muted">Track slow-moving and dead stock</p>
+                                            <button class="btn btn-warning btn-sm" onclick="generateAgingReport()">Generate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-sync-alt fa-2x text-success mb-3"></i>
+                                            <h6>Turnover Analysis</h6>
+                                            <p class="small text-muted">Inventory turnover rates and efficiency</p>
+                                            <button class="btn btn-success btn-sm" onclick="generateTurnoverReport()">Generate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-rupee-sign fa-2x text-info mb-3"></i>
+                                            <h6>Valuation Report</h6>
+                                            <p class="small text-muted">FIFO, LIFO, and weighted average</p>
+                                            <button class="btn btn-info btn-sm" onclick="generateValuationReport()">Generate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                                            <h6>Low Stock Report</h6>
+                                            <p class="small text-muted">Items requiring attention</p>
+                                            <button class="btn btn-danger btn-sm" onclick="generateLowStockReport()">Generate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-calendar-times fa-2x text-secondary mb-3"></i>
+                                            <h6>Expiry Report</h6>
+                                            <p class="small text-muted">Expired and near-expiry items</p>
+                                            <button class="btn btn-secondary btn-sm" onclick="generateExpiryReport()">Generate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="tab-pane fade" id="settings-pane" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Inventory Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="inventorySettingsForm">
+                                        <div class="mb-3">
+                                            <label class="form-label">Default Low Stock Threshold</label>
+                                            <input type="number" class="form-control" value="5" min="0">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Auto-reorder Threshold</label>
+                                            <input type="number" class="form-control" value="10" min="0">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Default Currency</label>
+                                            <select class="form-select">
+                                                <option value="INR" selected>Indian Rupee (₹)</option>
+                                                <option value="USD">US Dollar ($)</option>
+                                                <option value="EUR">Euro (€)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="enableAutoReorder">
+                                            <label class="form-check-label" for="enableAutoReorder">
+                                                Enable Auto-reordering
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="enableExpiryAlerts" checked>
+                                            <label class="form-check-label" for="enableExpiryAlerts">
+                                                Enable Expiry Alerts
+                                            </label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Data Management</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-success" onclick="importData()">
+                                            <i class="fas fa-upload me-2"></i>Import Inventory Data
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportAllData()">
+                                            <i class="fas fa-download me-2"></i>Export All Data
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="backupData()">
+                                            <i class="fas fa-database me-2"></i>Backup Database
+                                        </button>
+                                        <hr>
+                                        <button class="btn btn-outline-danger" onclick="resetData()">
+                                            <i class="fas fa-trash me-2"></i>Reset All Data
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Action Buttons -->
+<div class="quick-actions">
+    <button class="fab-button" data-bs-toggle="modal" data-bs-target="#quickStockModal" title="Quick Stock Update">
+        <i class="fas fa-plus-minus"></i>
+    </button>
+    <button class="fab-button" data-bs-toggle="modal" data-bs-target="#addItemModal" title="Add New Item">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+
+<!-- Loading Spinner -->
+<div class="loading-spinner" id="loadingSpinner">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2 text-muted">Processing your request...</p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Professional Inventory Management JavaScript
+class ProfessionalInventoryManager {
+    constructor() {
+        this.currentChart = null;
+        this.selectedItems = new Set();
+        this.init();
+    }
+
+    init() {
+        this.initializeCharts();
+        this.bindEvents();
+        this.loadData();
+    }
+
+    initializeCharts() {
+        const ctx = document.getElementById('inventoryChart');
+        if (ctx) {
+            this.currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Normal Stock', 'Low Stock', 'Out of Stock', 'Overstock'],
+                    datasets: [{
+                        data: [
+                            {{ items|selectattr('get_stock_status().level', 'equalto', 'success')|list|length }},
+                            {{ items|selectattr('is_low_stock')|list|length }},
+                            {{ items|selectattr('is_out_of_stock')|list|length }},
+                            {{ items|selectattr('is_overstocked')|list|length }}
+                        ],
+                        backgroundColor: ['#38a169', '#d69e2e', '#e53e3e', '#3182ce']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    bindEvents() {
+        // Real-time search
+        document.getElementById('searchItems')?.addEventListener('input', (e) => {
+            this.debounce(() => this.filterInventory(), 300)();
+        });
+
+        // Checkbox selection
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('item-select')) {
+                this.handleItemSelection();
+            }
+        });
+    }
+
+    filterInventory() {
+        const search = document.getElementById('searchItems')?.value.toLowerCase() || '';
+        const category = document.getElementById('filterCategory')?.value || '';
+        const status = document.getElementById('filterStatus')?.value || '';
+        const abc = document.getElementById('filterABC')?.value || '';
+
+        const rows = document.querySelectorAll('.inventory-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const itemName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const itemCategory = row.querySelector('td:nth-child(4)').textContent;
+            const itemStatus = row.querySelector('.status-badge').textContent.toLowerCase();
+            const itemABC = row.querySelector('td:nth-child(8) .badge').textContent;
+
+            const matchSearch = itemName.includes(search);
+            const matchCategory = !category || itemCategory.includes(category);
+            const matchStatus = !status || itemStatus.includes(status.replace('_', ' '));
+            const matchABC = !abc || itemABC === abc;
+
+            if (matchSearch && matchCategory && matchStatus && matchABC) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        this.updateVisibleCount(visibleCount);
+    }
+
+    handleItemSelection() {
+        const checkboxes = document.querySelectorAll('.item-select:checked');
+        const bulkBar = document.getElementById('bulkActionsBar');
+        const countSpan = document.getElementById('selectedCount');
+
+        if (checkboxes.length > 0) {
+            bulkBar.classList.remove('d-none');
+            countSpan.textContent = checkboxes.length;
+        } else {
+            bulkBar.classList.add('d-none');
+        }
+    }
+
+    updateVisibleCount(count) {
+        // Update any visible count indicators
+        const indicators = document.querySelectorAll('[data-count="visible"]');
+        indicators.forEach(indicator => {
+            indicator.textContent = count;
+        });
+    }
+
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    showLoading(show = true) {
+        const spinner = document.getElementById('loadingSpinner');
+        if (spinner) {
+            spinner.classList.toggle('active', show);
+        }
+    }
+
+    loadData() {
+        // Load any additional data needed for the interface
+        this.loadAlerts();
+        this.updateMetrics();
+    }
+
+    loadAlerts() {
+        // Simulate loading alerts
+        setTimeout(() => {
+            this.refreshAlerts();
+        }, 1000);
+    }
+
+    refreshAlerts() {
+        // Refresh the alerts section
+        const alertsContainer = document.getElementById('alertsContainer');
+        // Update with fresh alert data
+    }
+
+    updateMetrics() {
+        // Update dashboard metrics in real-time
+        // This could fetch fresh data via AJAX
+    }
+}
+
+// Chart functions
+function showChart(type) {
+    // Update chart based on type (movement, value, abc)
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Update chart data based on type
+    // Implementation would vary based on chart type
+}
+
+// Filter functions
+function clearFilters() {
+    document.getElementById('searchItems').value = '';
+    document.getElementById('filterCategory').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterABC').value = '';
+    inventoryManager.filterInventory();
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.item-select');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+    });
+    
+    inventoryManager.handleItemSelection();
+}
+
+function toggleView(viewType) {
+    // Toggle between table and grid view
+    const tableView = document.getElementById('tableView');
+    const buttons = document.querySelectorAll('[onclick*="toggleView"]');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Implementation for grid view would go here
+}
+
+// Modal functions
+function openQuickStock(itemId, itemName, currentStock) {
+    // Open quick stock modal with pre-filled data
+    document.getElementById('quickStockItemId').value = itemId;
+    document.getElementById('quickStockItemName').textContent = itemName;
+    document.getElementById('quickStockCurrent').textContent = currentStock;
+}
+
+function editItem(itemId) {
+    // Open edit modal and load item data
+    inventoryManager.showLoading(true);
+    
+    fetch(`/get_inventory_item/${itemId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate edit modal with item data
+                // Show edit modal
+            }
+        })
+        .catch(error => {
+            console.error('Error loading item:', error);
+        })
+        .finally(() => {
+            inventoryManager.showLoading(false);
+        });
+}
+
+// Report functions
+function generateABCReport() {
+    inventoryManager.showLoading(true);
+    // Generate ABC analysis report
+    setTimeout(() => {
+        inventoryManager.showLoading(false);
+        // Show success message or download report
+    }, 2000);
+}
+
+function generateAgingReport() {
+    // Generate aging analysis report
+    console.log('Generating aging report...');
+}
+
+function generateTurnoverReport() {
+    // Generate turnover analysis report
+    console.log('Generating turnover report...');
+}
+
+function generateValuationReport() {
+    // Generate valuation report
+    console.log('Generating valuation report...');
+}
+
+function generateLowStockReport() {
+    // Generate low stock report
+    console.log('Generating low stock report...');
+}
+
+function generateExpiryReport() {
+    // Generate expiry report
+    console.log('Generating expiry report...');
+}
+
+// Bulk operations
+function bulkUpdateStock() {
+    // Bulk stock update
+    console.log('Bulk updating stock...');
+}
+
+function bulkUpdateCategory() {
+    // Bulk category update
+    console.log('Bulk updating categories...');
+}
+
+function bulkExport() {
+    // Export selected items
+    console.log('Exporting selected items...');
+}
+
+function bulkArchive() {
+    // Archive selected items
+    console.log('Archiving selected items...');
+}
+
+// Export functions
+function exportInventoryData() {
+    // Export inventory data
+    console.log('Exporting inventory data...');
+}
+
+function exportAllData() {
+    // Export all data
+    console.log('Exporting all data...');
+}
+
+// Initialize the inventory manager
+let inventoryManager;
+document.addEventListener('DOMContentLoaded', function() {
+    inventoryManager = new ProfessionalInventoryManager();
+});
+</script>
+{% endblock %}
