@@ -433,6 +433,7 @@ class Inventory(db.Model):
     category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
     current_stock = db.Column(db.Float, default=0.0)
     reorder_level = db.Column(db.Float, default=0.0)
+    min_stock_level = db.Column(db.Float, default=0.0)  # Alias for reorder_level
     unit = db.Column(db.String(20), default='pcs')
     supplier_id = db.Column(db.Integer)
     cost_price = db.Column(db.Float, default=0.0)

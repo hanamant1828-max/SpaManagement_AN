@@ -1,0 +1,1086 @@
+# 📦 Complete Inventory Management Module - Professional Development Plan
+
+## Table of Contents
+1. [Executive Summary](#executive-summary)
+2. [Database Schema & Architecture](#database-schema--architecture)
+3. [Enhanced Features & Improvements](#enhanced-features--improvements)
+4. [User Interface Flow & Design](#user-interface-flow--design)
+5. [Technical Implementation Guide](#technical-implementation-guide)
+6. [Security & Compliance](#security--compliance)
+7. [Development Deliverables](#development-deliverables)
+8. [Project Timeline](#project-timeline)
+
+---
+
+## Executive Summary
+
+This document provides a comprehensive blueprint for developing a professional-grade Inventory Management Module for spa management software. The system combines robust database architecture, intuitive user interfaces, and advanced features like Excel import/export, batch tracking, approval workflows, and mobile accessibility.
+
+### Key Features
+- **Multi-level Inventory Tracking**: Categories, suppliers, products with full audit trails
+- **Advanced Transaction Management**: Batch processing, approval workflows, mobile scanning
+- **Real-time Stock Monitoring**: Automated alerts, reorder notifications, expiry tracking
+- **Comprehensive Reporting**: Custom report builder, scheduled exports, analytics dashboard
+- **Mobile-First Design**: Responsive interface, barcode scanning, offline capabilities
+- **Excel Integration**: Bulk import/export, template validation, error handling
+
+---
+
+## Database Schema & Architecture
+
+### Core Database Tables
+
+#### 1. Enhanced Category Master
+```sql
+CREATE TABLE category_master (
+    category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(50),
+    updated_by VARCHAR(50),
+    INDEX idx_active (is_active),
+    INDEX idx_name (category_name)
+);
+```
+
+#### 2. Enhanced Supplier Master
+```sql
+CREATE TABLE supplier_master (
+    supplier_id INT PRIMARY KEY AUTO_INCREMENT,
+    supplier_name VARCHAR(150) NOT NULL,
+    supplier_code VARCHAR(50) UNIQUE,
+    contact_person VARCHAR(100),
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    address TEXT,
+    city VARCHAR(50),
+    state VARCHAR(50),
+    postal_code VARCHAR(20),
+    country VARCHAR(50),
+    tax_id VARCHAR(50),
+    payment_terms VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+    rating DECIMAL(2,1) DEFAULT 5.0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(50),
+    updated_by VARCHAR(50),
+    INDEX idx_active (is_active),
+    INDEX idx_name (supplier_name),
+    INDEX idx_code (supplier_code)
+);
+```
+
+#### 3. Enhanced Inventory Master
+```sql
+CREATE TABLE inventory_master (
+    product_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_code VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    category_id INT,
+    supplier_id INT,
+    unit VARCHAR(20),
+    unit_cost DECIMAL(10,2),
+    selling_price DECIMAL(10,2),
+    reorder_level INT DEFAULT 0,
+    max_stock_level INT,
+    storage_location VARCHAR(100),
+    shelf_life_days INT,
+    is_batch_tracked BOOLEAN DEFAULT FALSE,
+    is_expiry_tracked BOOLEAN DEFAULT FALSE,
+    barcode VARCHAR(100),
+    image_url VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(50),
+    updated_by VARCHAR(50),
+    FOREIGN KEY (category_id) REFERENCES category_master(category_id),
+    FOREIGN KEY (supplier_id) REFERENCES supplier_master(supplier_id),
+    INDEX idx_product_code (product_code),
+    INDEX idx_category (category_id),
+    INDEX idx_supplier (supplier_id),
+    INDEX idx_active (is_active),
+    INDEX idx_barcode (barcode)
+);
+```
+
+#### 4. Advanced Inventory Transactions
+```sql
+CREATE TABLE inventory_transactions (
+    transaction_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT,
+    transaction_type ENUM('IN','OUT','ADJUST','TRANSFER','DAMAGED','EXPIRED','RETURNED') NOT NULL,
+    quantity INT NOT NULL,
+    unit_cost DECIMAL(10,2),
+    total_value DECIMAL(12,2) GENERATED ALWAYS AS (quantity * unit_cost) STORED,
+    batch_number VARCHAR(50),
+    lot_number VARCHAR(50),
+    expiry_date DATE,
+    reference_document VARCHAR(100),
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    location_from VARCHAR(100),
+    location_to VARCHAR(100),
+    created_by VARCHAR(50),
+    approved_by VARCHAR(50),
+    approved_at TIMESTAMP NULL,
+    status ENUM('PENDING','APPROVED','REJECTED','CANCELLED') DEFAULT 'PENDING',
+    FOREIGN KEY (product_id) REFERENCES inventory_master(product_id),
+    INDEX idx_product_date (product_id, transaction_date),
+    INDEX idx_batch (batch_number),
+    INDEX idx_status (status),
+    INDEX idx_type (transaction_type),
+    INDEX idx_created_by (created_by)
+);
+```
+
+### Additional Management Tables
+
+#### 5. Stock Alerts System
+```sql
+CREATE TABLE stock_alerts (
+    alert_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT,
+    alert_type ENUM('LOW_STOCK','OUT_OF_STOCK','EXPIRY_SOON','EXPIRED','OVERSTOCK','DAMAGED') NOT NULL,
+    alert_message TEXT,
+    threshold_value INT,
+    current_value INT,
+    alert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_resolved BOOLEAN DEFAULT FALSE,
+    resolved_by VARCHAR(50),
+    resolved_at TIMESTAMP NULL,
+    resolution_notes TEXT,
+    FOREIGN KEY (product_id) REFERENCES inventory_master(product_id),
+    INDEX idx_product (product_id),
+    INDEX idx_type (alert_type),
+    INDEX idx_resolved (is_resolved),
+    INDEX idx_date (alert_date)
+);
+```
+
+#### 6. Physical Stock Counts
+```sql
+CREATE TABLE stock_counts (
+    count_id INT PRIMARY KEY AUTO_INCREMENT,
+    count_reference VARCHAR(50) UNIQUE,
+    count_date DATE,
+    location VARCHAR(100),
+    count_type ENUM('FULL','CYCLE','SPOT','LOCATION') DEFAULT 'FULL',
+    status ENUM('PLANNED','IN_PROGRESS','COMPLETED','CANCELLED') DEFAULT 'PLANNED',
+    started_by VARCHAR(50),
+    started_at TIMESTAMP NULL,
+    completed_by VARCHAR(50),
+    completed_at TIMESTAMP NULL,
+    total_products INT DEFAULT 0,
+    counted_products INT DEFAULT 0,
+    products_with_variance INT DEFAULT 0,
+    total_variance_value DECIMAL(12,2) DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_date (count_date),
+    INDEX idx_location (location)
+);
+
+CREATE TABLE stock_count_details (
+    count_detail_id INT PRIMARY KEY AUTO_INCREMENT,
+    count_id INT,
+    product_id INT,
+    system_quantity INT,
+    counted_quantity INT,
+    variance_quantity INT GENERATED ALWAYS AS (counted_quantity - system_quantity) STORED,
+    variance_value DECIMAL(10,2),
+    batch_number VARCHAR(50),
+    expiry_date DATE,
+    counted_by VARCHAR(50),
+    counted_at TIMESTAMP NULL,
+    notes TEXT,
+    FOREIGN KEY (count_id) REFERENCES stock_counts(count_id),
+    FOREIGN KEY (product_id) REFERENCES inventory_master(product_id),
+    INDEX idx_count (count_id),
+    INDEX idx_product (product_id),
+    INDEX idx_variance (variance_quantity)
+);
+```
+
+#### 7. User Activity Audit
+```sql
+CREATE TABLE audit_log (
+    audit_id INT PRIMARY KEY AUTO_INCREMENT,
+    table_name VARCHAR(50),
+    record_id INT,
+    action ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    old_values JSON,
+    new_values JSON,
+    changed_by VARCHAR(50),
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    INDEX idx_table_record (table_name, record_id),
+    INDEX idx_user (changed_by),
+    INDEX idx_date (changed_at)
+);
+```
+
+### Advanced Database Views and Functions
+
+#### Current Stock with Batch Information
+```sql
+CREATE VIEW current_stock_detailed AS
+SELECT 
+    im.product_id,
+    im.product_code,
+    im.name AS product_name,
+    cm.category_name,
+    sm.supplier_name,
+    im.unit,
+    im.storage_location,
+    it.batch_number,
+    it.expiry_date,
+    SUM(CASE 
+        WHEN it.transaction_type IN ('IN','ADJUST') AND it.status = 'APPROVED' THEN it.quantity 
+        WHEN it.transaction_type IN ('OUT','DAMAGED','EXPIRED','RETURNED') AND it.status = 'APPROVED' THEN -it.quantity 
+        ELSE 0 
+    END) as batch_stock,
+    im.reorder_level,
+    im.max_stock_level,
+    CASE 
+        WHEN SUM(CASE WHEN it.transaction_type IN ('IN','ADJUST') AND it.status = 'APPROVED' THEN it.quantity 
+                      WHEN it.transaction_type IN ('OUT','DAMAGED','EXPIRED','RETURNED') AND it.status = 'APPROVED' THEN -it.quantity 
+                      ELSE 0 END) <= 0 THEN 'OUT_OF_STOCK'
+        WHEN SUM(CASE WHEN it.transaction_type IN ('IN','ADJUST') AND it.status = 'APPROVED' THEN it.quantity 
+                      WHEN it.transaction_type IN ('OUT','DAMAGED','EXPIRED','RETURNED') AND it.status = 'APPROVED' THEN -it.quantity 
+                      ELSE 0 END) <= im.reorder_level THEN 'LOW_STOCK'
+        WHEN SUM(CASE WHEN it.transaction_type IN ('IN','ADJUST') AND it.status = 'APPROVED' THEN it.quantity 
+                      WHEN it.transaction_type IN ('OUT','DAMAGED','EXPIRED','RETURNED') AND it.status = 'APPROVED' THEN -it.quantity 
+                      ELSE 0 END) >= im.max_stock_level THEN 'OVERSTOCK'
+        ELSE 'NORMAL'
+    END as stock_status,
+    CASE 
+        WHEN it.expiry_date <= CURDATE() THEN 'EXPIRED'
+        WHEN it.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'EXPIRING_SOON'
+        ELSE 'GOOD'
+    END as expiry_status
+FROM inventory_master im
+JOIN category_master cm ON im.category_id = cm.category_id
+LEFT JOIN supplier_master sm ON im.supplier_id = sm.supplier_id
+LEFT JOIN inventory_transactions it ON im.product_id = it.product_id 
+WHERE im.is_active = TRUE
+GROUP BY im.product_id, im.product_code, im.name, cm.category_name, sm.supplier_name, 
+         im.unit, im.storage_location, it.batch_number, it.expiry_date, im.reorder_level, im.max_stock_level
+HAVING batch_stock > 0 OR it.batch_number IS NULL;
+```
+
+#### Stock Movement Summary
+```sql
+CREATE VIEW stock_movement_summary AS
+SELECT 
+    im.product_id,
+    im.product_code,
+    im.name,
+    COUNT(it.transaction_id) as total_transactions,
+    SUM(CASE WHEN it.transaction_type = 'IN' AND it.status = 'APPROVED' THEN it.quantity ELSE 0 END) as total_in,
+    SUM(CASE WHEN it.transaction_type = 'OUT' AND it.status = 'APPROVED' THEN it.quantity ELSE 0 END) as total_out,
+    SUM(CASE WHEN it.transaction_type = 'ADJUST' AND it.status = 'APPROVED' THEN it.quantity ELSE 0 END) as total_adjustments,
+    MAX(it.transaction_date) as last_transaction_date,
+    AVG(CASE WHEN it.transaction_type = 'OUT' AND it.status = 'APPROVED' THEN it.quantity ELSE NULL END) as avg_usage,
+    ROUND(
+        SUM(CASE WHEN it.transaction_type = 'OUT' AND it.status = 'APPROVED' THEN it.quantity ELSE 0 END) / 
+        NULLIF(DATEDIFF(CURDATE(), MIN(it.transaction_date)), 0) * 30, 2
+    ) as monthly_usage_rate
+FROM inventory_master im
+LEFT JOIN inventory_transactions it ON im.product_id = it.product_id
+WHERE im.is_active = TRUE
+GROUP BY im.product_id, im.product_code, im.name;
+```
+
+---
+
+## Enhanced Features & Improvements
+
+### 1. Advanced Stock Management Features
+
+#### Batch and Lot Tracking
+- **FIFO/LIFO Support**: Automatic batch selection based on expiry dates
+- **Batch Genealogy**: Track relationships between batches
+- **Quality Control**: Batch-level quality status tracking
+- **Recall Management**: Quick identification of affected batches
+
+#### Multi-Location Support
+```sql
+CREATE TABLE storage_locations (
+    location_id INT PRIMARY KEY AUTO_INCREMENT,
+    location_code VARCHAR(20) UNIQUE NOT NULL,
+    location_name VARCHAR(100) NOT NULL,
+    location_type ENUM('WAREHOUSE','ROOM','SHELF','SECTION') DEFAULT 'SECTION',
+    parent_location_id INT,
+    capacity INT,
+    temperature_controlled BOOLEAN DEFAULT FALSE,
+    security_level ENUM('LOW','MEDIUM','HIGH') DEFAULT 'LOW',
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (parent_location_id) REFERENCES storage_locations(location_id)
+);
+
+CREATE TABLE product_locations (
+    product_location_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT,
+    location_id INT,
+    quantity INT DEFAULT 0,
+    min_quantity INT DEFAULT 0,
+    max_quantity INT DEFAULT 0,
+    is_primary_location BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (product_id) REFERENCES inventory_master(product_id),
+    FOREIGN KEY (location_id) REFERENCES storage_locations(location_id),
+    UNIQUE KEY unique_product_location (product_id, location_id)
+);
+```
+
+#### Automated Reordering System
+```sql
+CREATE TABLE reorder_rules (
+    rule_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT,
+    supplier_id INT,
+    min_order_quantity INT,
+    economic_order_quantity INT,
+    lead_time_days INT DEFAULT 7,
+    safety_stock_days INT DEFAULT 3,
+    is_auto_reorder BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES inventory_master(product_id),
+    FOREIGN KEY (supplier_id) REFERENCES supplier_master(supplier_id)
+);
+
+CREATE TABLE purchase_suggestions (
+    suggestion_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT,
+    supplier_id INT,
+    suggested_quantity INT,
+    estimated_cost DECIMAL(10,2),
+    reason TEXT,
+    priority ENUM('LOW','MEDIUM','HIGH','URGENT') DEFAULT 'MEDIUM',
+    status ENUM('PENDING','APPROVED','ORDERED','CANCELLED') DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES inventory_master(product_id),
+    FOREIGN KEY (supplier_id) REFERENCES supplier_master(supplier_id)
+);
+```
+
+### 2. Advanced Reporting and Analytics
+
+#### ABC Analysis Implementation
+```sql
+CREATE VIEW abc_analysis AS
+WITH product_values AS (
+    SELECT 
+        im.product_id,
+        im.product_code,
+        im.name,
+        SUM(it.quantity * it.unit_cost) as total_value,
+        SUM(it.quantity) as total_usage
+    FROM inventory_master im
+    JOIN inventory_transactions it ON im.product_id = it.product_id
+    WHERE it.transaction_type = 'OUT' 
+    AND it.status = 'APPROVED'
+    AND it.transaction_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    GROUP BY im.product_id, im.product_code, im.name
+),
+ranked_products AS (
+    SELECT *,
+        PERCENT_RANK() OVER (ORDER BY total_value DESC) as value_rank
+    FROM product_values
+)
+SELECT *,
+    CASE 
+        WHEN value_rank <= 0.2 THEN 'A'
+        WHEN value_rank <= 0.5 THEN 'B'
+        ELSE 'C'
+    END as abc_category
+FROM ranked_products;
+```
+
+#### Turnover Rate Analysis
+```sql
+CREATE VIEW inventory_turnover AS
+SELECT 
+    im.product_id,
+    im.product_code,
+    im.name,
+    cm.category_name,
+    AVG(current_stock) as avg_stock,
+    SUM(usage_quantity) as annual_usage,
+    ROUND(SUM(usage_quantity) / NULLIF(AVG(current_stock), 0), 2) as turnover_rate,
+    CASE 
+        WHEN SUM(usage_quantity) / NULLIF(AVG(current_stock), 0) > 12 THEN 'FAST_MOVING'
+        WHEN SUM(usage_quantity) / NULLIF(AVG(current_stock), 0) > 4 THEN 'MEDIUM_MOVING'
+        WHEN SUM(usage_quantity) / NULLIF(AVG(current_stock), 0) > 1 THEN 'SLOW_MOVING'
+        ELSE 'DEAD_STOCK'
+    END as movement_category
+FROM inventory_master im
+JOIN category_master cm ON im.category_id = cm.category_id
+-- Additional joins and calculations...
+GROUP BY im.product_id, im.product_code, im.name, cm.category_name;
+```
+
+### 3. Mobile and Scanning Integration
+
+#### Barcode Management
+```sql
+CREATE TABLE product_barcodes (
+    barcode_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT,
+    barcode_value VARCHAR(100) NOT NULL UNIQUE,
+    barcode_type ENUM('UPC','EAN','CODE128','QR') DEFAULT 'CODE128',
+    is_primary BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES inventory_master(product_id),
+    INDEX idx_barcode (barcode_value)
+);
+```
+
+#### Mobile Transaction Support
+- **Offline Capability**: Local storage with sync capabilities
+- **Voice Input**: Voice-to-text for notes and quantities
+- **Photo Documentation**: Attach photos to transactions
+- **GPS Tracking**: Location verification for mobile transactions
+
+---
+
+## User Interface Flow & Design
+
+### 1. Dashboard Design (Landing Page)
+
+#### Main Dashboard Layout
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ 📊 Inventory Management Dashboard                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ Welcome back, John Smith | Last login: 2024-02-15 09:30 AM         │
+├─────────────────────────────────────────────────────────────────────┤
+│ 🔔 Alerts (5) | 📊 Generate Report | ⚙ Settings | 👤 Profile      │
+├─────────────────────────────────────────────────────────────────────┤
+│                        KEY PERFORMANCE INDICATORS                    │
+│ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐│
+│ │📦 PRODUCTS  │ │📉 LOW STOCK │ │⚠ EXPIRING   │ │💰 TOTAL VALUE   ││
+│ │    1,247    │ │     23      │ │     8       │ │   $245,670     ││
+│ │ +12 this wk │ │ -5 from yst │ │ in 30 days  │ │ +2.3% this mth ││
+│ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────────┘│
+├─────────────────────────────────────────────────────────────────────┤
+│                    QUICK ACCESS & ACTIVITY FEED                     │
+│ ┌── Quick Actions ──────────┐ ┌── Recent Activity ─────────────────┐│
+│ │ [➕ Add Product]         │ │ 🔄 Product "Face Oil" restocked   ││
+│ │ [🔄 New Transaction]     │ │    (+20 units) - 2 hours ago      ││
+│ │ [📊 Stock Count]         │ │ ⚠ Low stock alert: "Day Cream"   ││
+│ │ [📥 Import Data]         │ │    (8 units left) - 4 hours ago   ││
+│ │ [📈 Generate Report]     │ │ 👤 Sarah completed stock count     ││
+│ │ [🔍 Search Products]     │ │    Zone A - 6 hours ago           ││
+│ └──────────────────────────┘ └────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────────┤
+│                           ANALYTICS CHARTS                          │
+│ ┌── Stock Levels by Category ──┐ ┌── Usage Trends (30 days) ──────┐│
+│ │        📊 [Chart Area]        │ │        📈 [Chart Area]         ││
+│ │                              │ │                               ││
+│ └──────────────────────────────┘ └───────────────────────────────┘│
+│ ┌── Top 10 Products ───────────┐ ┌── Supplier Performance ───────┐│
+│ │        📋 [List/Chart]        │ │        ⭐ [Rating Chart]      ││
+│ │                              │ │                               ││
+│ └──────────────────────────────┘ └───────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 2. Navigation Structure
+
+#### Main Menu System
+```
+Primary Navigation:
+┌─────────────────────────────────────────────────┐
+│ 🏠 Dashboard | 📦 Inventory | 📊 Reports | ⚙ Admin │
+└─────────────────────────────────────────────────┘
+
+Inventory Submenu:
+┌─────────────────────────────────────────────────────────────────┐
+│ 🏷 Categories | 🏢 Suppliers | 📋 Products | 🔄 Transactions │
+│ 📊 Stock Counts | 🚨 Alerts | 📱 Mobile Tools                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3. Products Management Interface
+
+#### Enhanced Product List View
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ 📋 Products Management                                              │
+├───────────────────────────────────────────────────────────────────────┤
+│ [➕ Add Product] [📥 Bulk Import] [📤 Export] [📱 Scan Product]      │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Search & Filter Panel ─────────────────────────────────────────┐ │
+│ │ 🔍 Search: [_________________] [🔍] [🎤] [📷]                    │ │
+│ │                                                                    │ │
+│ │ Filters: Category [All ▼] | Supplier [All ▼] | Status [All ▼]    │ │
+│ │ Stock Level [All ▼] | Location [All ▼] | Price [$___] to [$___]  │ │
+│ │                                                                    │ │
+│ │ Sort by: [Name ▼] | View: [📋 Table] [📊 Cards] [📈 Analytics]   │ │
+│ │ [Clear All] [Save Filter] [📥 Load Saved Filter ▼]               │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ Products Table (1,247 items, showing 1-50):                          │
+│ ┌──┬─────────────────┬──────────┬─────────┬────────┬─────────┬──────┐ │
+│ │☐ │ Product Info    │ Category │ Stock   │ Status │ Value   │ Act. │ │
+│ ├──┼─────────────────┼──────────┼─────────┼────────┼─────────┼──────┤ │
+│ │☐ │ 📷 ABC-001      │ Oils     │ 45/50   │ 🟢     │ $1,250  │ ⋮    │ │
+│ │  │ Face Massage Oil│ XYZ Corp │ units   │ Normal │         │      │ │
+│ │  │ Exp: 2024-12-01 │          │ 📍 A-12 │        │         │      │ │
+│ ├──┼─────────────────┼──────────┼─────────┼────────┼─────────┼──────┤ │
+│ │☐ │ 📷 DEF-002      │ Creams   │ 8/25    │ 🔴     │ $680    │ ⋮    │ │
+│ │  │ Anti-Age Cream  │ ABC Supp │ units   │ Low    │         │      │ │
+│ │  │ Exp: 2024-08-15 │          │ 📍 B-05 │        │         │      │ │
+│ └──┴─────────────────┴──────────┴─────────┴────────┴─────────┴──────┘ │
+│                                                                       │
+│ Bulk Actions: [☐ Select All] [🗑 Delete] [📤 Export] [📋 Edit Tags] │
+│ Pagination: [⏮ First] [◀ Prev] Page 1 of 25 [▶ Next] [⏭ Last]     │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+#### Advanced Product Detail View
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ 📋 Face Massage Oil (ABC-001) - Product Details                     │
+├───────────────────────────────────────────────────────────────────────┤
+│ [✏ Edit] [📋 Duplicate] [🏷 Print Label] [📱 QR Code] [🗑 Archive]  │
+├───────────────────────────────────────────────────────────────────────┤
+│ Tabs: [📋 Overview] [📦 Stock] [🔄 History] [📊 Analytics] [📎 Files]│
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Product Information ───────┐ ┌─── Stock Summary ──────────────┐ │
+│ │ 📷 [Product Image]            │ │ Current Stock: 45 units        │ │
+│ │                               │ │ Available: 40 units           │ │
+│ │ Name: Face Massage Oil        │ │ Reserved: 5 units             │ │
+│ │ Code: ABC-001                 │ │ Location: A-12                │ │
+│ │ Barcode: 1234567890123        │ │ Reorder Level: 10 units       │ │
+│ │ Category: Massage Oils        │ │ Max Level: 100 units          │ │
+│ │ Supplier: XYZ Corporation     │ │ Last Restocked: 2024-02-15    │ │
+│ │ Unit: 500ml Bottle            │ │ Status: 🟢 Normal Stock       │ │
+│ │ Cost: $15.50                  │ │ Value: $1,237.50              │ │
+│ │ Price: $28.00                 │ │ Turnover: 6.2x/year          │ │
+│ └───────────────────────────────┘ └───────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Batch Information ─────────────────────────────────────────────┐ │
+│ │ ┌───┬─────────┬────────┬──────────────┬─────────────┬──────────┐  │ │
+│ │ │ # │ Batch   │ Stock  │ Expiry Date  │ Received    │ Status   │  │ │
+│ │ ├───┼─────────┼────────┼──────────────┼─────────────┼──────────┤  │ │
+│ │ │ 1 │ B240215 │ 20 un  │ 2024-12-01   │ 2024-02-15  │ 🟢 Good  │  │ │
+│ │ │ 2 │ B240201 │ 15 un  │ 2024-11-15   │ 2024-02-01  │ 🟢 Good  │ │
+│ │ │ 3 │ B240110 │ 10 un  │ 2024-10-30   │ 2024-01-10  │ 🟡 Soon  │  │ │
+│ │ └───┴─────────┴────────┴──────────────┴─────────────┴──────────┘  │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Recent Transactions ───────────────────────────────────────────┐ │
+│ │ Date     │ Type │ Qty │ Reference    │ By          │ Notes        │ │
+│ │ 02/15    │ IN   │ +20 │ PO-2024-001  │ John Smith  │ New shipment │ │
+│ │ 02/12    │ OUT  │ -5  │ SVC-123      │ Sarah Jones │ Facial svc   │ │
+│ │ 02/10    │ OUT  │ -3  │ SVC-122      │ Mike Brown  │ Body massage │ │
+│ │ 02/08    │ ADJ  │ +1  │ INV-COUNT    │ Admin       │ Count adjust │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Analytics & Insights ──────────────────────────────────────────┐ │
+│ │ 📈 Usage Trend (30 days): ████████████░░░░ 75% of average        │ │
+│ │ 📊 Days of Stock Remaining: 18 days (based on usage pattern)      │ │
+│ │ 💰 Revenue Impact: $2,450 (last 30 days)                         │ │
+│ │ 🔄 Reorder Suggestion: Order 25 units in 8 days                  │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+### 4. Transaction Management System
+
+#### Transaction Processing Workflow
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ 🔄 Transaction Management                                            │
+├───────────────────────────────────────────────────────────────────────┤
+│ [➕ New Transaction] [📥 Bulk Import] [📊 Batch Process] [🔍 Search] │
+├───────────────────────────────────────────────────────────────────────┤
+│ Status Workflow: [📝 Draft] → [⏳ Pending] → [✅ Approved] → [📊 Complete]│
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Filter & Search Panel ─────────────────────────────────────────┐ │
+│ │ Status: [All ▼] [Pending: 5] [Approved] [Rejected] [Draft: 2]     │ │
+│ │ Type: [All ▼] [Stock In] [Stock Out] [Adjustment] [Transfer]      │ │
+│ │ Date: [📅 Last 30 days ▼] User: [All ▼] Value: [$___] to [$___] │ │
+│ │ Product: [Search product...] Location: [All locations ▼]          │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ Transaction List:                                                     │
+│ ┌──┬────────┬────────────┬──────┬─────┬────────────┬─────────┬──────┐ │
+│ │☐ │ ID     │ Product    │ Type │ Qty │ Status     │ By      │ Act. │ │
+│ ├──┼────────┼────────────┼──────┼─────┼────────────┼─────────┼──────┤ │
+│ │☐ │ T-1234 │ Face Oil   │ IN   │ +20 │ 🟡 Pending │ J.Smith │ ⋮   │ │
+│ │  │        │ ABC-001    │      │     │ 2hrs ago   │         │      │ │
+│ ├──┼────────┼────────────┼──────┼─────┼────────────┼─────────┼──────┤ │
+│ │☐ │ T-1235 │ Day Cream  │ OUT  │ -5  │ ✅ Approved│ S.Jones │ ⋮   │ │
+│ │  │        │ DEF-002    │      │     │ Today      │         │      │ │
+│ ├──┼────────┼────────────┼──────┼─────┼────────────┼─────────┼──────┤ │
+│ │☐ │ T-1236 │ Shampoo    │ ADJ  │ +2  │ 🔴 Rejected│ M.Brown │ ⋮   │ │
+│ │  │        │ GHI-003    │      │     │ Yesterday  │         │      │ │
+│ └──┴────────┴────────────┴──────┴─────┴────────────┴─────────┴──────┘ │
+│                                                                       │
+│ Bulk Actions: [☐ Select All] [✅ Approve] [🔴 Reject] [📤 Export]   │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+#### Smart Transaction Entry Form
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ ➕ New Transaction - Smart Entry                                     │
+├───────────────────────────────────────────────────────────────────────┤
+│ Transaction Type: ● Stock In  ○ Stock Out  ○ Adjustment  ○ Transfer   │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Product Selection ──────────────────────────────────────────────┐ │
+│ │ Search: [🔍 Type product name, code, or scan barcode...]          │ │
+│ │ [📱 Scan Barcode] [🎤 Voice Search] [📋 Recent Products]          │ │
+│ │                                                                    │ │
+│ │ ┌─ Selected Product ─────────────────────────────────────────────┐ │ │
+│ │ │ 📷 Face Massage Oil (ABC-001)                                 │ │ │
+│ │ │ Current Stock: 45 units | Location: A-12 | Last: 2024-02-15   │ │ │
+│ │ │ Cost: $15.50 | Supplier: XYZ Corp | Expiry: Various batches   │ │ │
+│ │ └────────────────────────────────────────────────────────────────┘ │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Transaction Details ────────────────────────────────────────────┐ │
+│ │ Quantity: * [_____] units                                          │ │
+│ │ Unit Cost: $ [15.50] (auto-filled)                                │ │
+│ │ Total Value: $ [310.00] (calculated)                              │ │
+│ │                                                                    │ │
+│ │ Batch/Lot: [B240220____] Expiry: [📅 2024-12-01]                 │ │
+│ │ Reference: [PO-2024-015_] Location: [A-12 ▼]                     │ │
+│ │                                                                    │ │
+│ │ Transaction Date: * [📅 2024-02-20] Time: [14:30]                │ │
+│ │                                                                    │ │
+│ │ Notes: [____________________________________________]              │ │
+│ │       [____________________________________________]              │ │
+│ │                                                                    │ │
+│ │ Attachments: [📎 Add Files] [📷 Take Photo] [📄 Documents]       │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Approval & Workflow ────────────────────────────────────────────┐ │
+│ │ ☑ Requires Approval (Value > $200)                                │ │
+│ │ Approver: [Manager ▼] Notify: ☑ Email ☑ SMS                      │ │
+│ │                                                                    │ │
+│ │ Priority: ○ Low ● Normal ○ High ○ Urgent                          │ │
+│ │ Category: [Regular Purchase ▼]                                    │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Impact Preview ─────────────────────────────────────────────────┐ │
+│ │ Stock After Transaction: 45 → 65 units                            │ │
+│ │ Stock Status: Normal → Normal                                      │ │
+│ │ Days of Stock: 18 → 26 days                                       │ │
+│ │ Inventory Value Impact: +$310.00                                  │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ [Cancel] [💾 Save Draft] [📤 Submit] [🔄 Submit & Add Another]      │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+### 5. Advanced Reporting System
+
+#### Report Dashboard
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ 📈 Reports & Analytics Dashboard                                     │
+├───────────────────────────────────────────────────────────────────────┤
+│ [🔧 Report Builder] [📊 Scheduled Reports] [📤 Export Center]        │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Quick Reports ──────────────────────────────────────────────────┐ │
+│ │ [📦 Current Stock] [📉 Low Stock] [⚠ Expiry Report] [💰 Valuation]│ │
+│ │ [📈 Usage Trends] [🔄 Turnover] [📊 ABC Analysis] [🏢 Supplier]   │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Report Categories ──────────────────────────────────────────────┐ │
+│ │                                                                    │ │
+│ │ 📦 INVENTORY REPORTS        📊 FINANCIAL REPORTS                   │ │
+│ │ • Current Stock Level      • Inventory Valuation                   │ │
+│ │ • Stock Movement           • Cost Analysis                         │ │
+│ │ • Low Stock Alert          • Purchase History                      │ │
+│ │ • Expiry Tracking          • Price Variance                        │ │
+│ │ • Dead Stock Analysis      • Supplier Spending                     │ │
+│ │ • Location Wise Stock      • ROI Analysis                          │ │
+│ │                                                                    │ │
+│ │ 🔄 ACTIVITY REPORTS        🏢 SUPPLIER REPORTS                     │ │
+│ │ • Transaction History      • Supplier Performance                  │ │
+│ │ • User Activity Log        • Delivery Tracking                     │ │
+│ │ • Audit Trail             • Quality Ratings                        │ │
+│ │ • System Usage            • Payment Terms                          │ │
+│ │ • Mobile Access Log       • Order Frequency                        │ │
+│ │                                                                    │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Scheduled Reports & Alerts ────────────────────────────────────┐ │
+│ │ Active Schedules:                                                  │ │
+│ │ • 📅 Weekly Stock Report → admin@spa.com (Every Monday 8 AM)      │ │
+│ │ • 📅 Monthly Financial Summary → manager@spa.com (1st of month)   │ │
+│ │ • 📅 Daily Low Stock Alert → inventory@spa.com (If alerts > 5)    │ │
+│ │                                                                    │ │
+│ │ [➕ New Schedule] [⚙ Manage Schedules] [📧 Email Settings]        │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+#### Interactive Report Builder
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ 🔧 Advanced Report Builder                                           │
+├───────────────────────────────────────────────────────────────────────┤
+│ Report Name: [Monthly Inventory Analysis_____________] [💾 Save]      │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Step 1: Data Source ────────────────────────────────────────────┐ │
+│ │ Primary: ● Products ○ Transactions ○ Suppliers ○ Stock Counts     │ │
+│ │ Join with: ☑ Categories ☑ Suppliers ☐ Locations ☐ Users          │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Step 2: Field Selection ───────────────────────────────────────┐ │
+│ │ Available Fields:           Selected Fields:                       │ │
+│ │ ┌─────────────────────┐    ┌─────────────────────────────────────┐ │ │
+│ │ │ Dimensions:         │ →  │ ✓ Product Code                      │ │ │
+│ │ │ ☐ Product Code      │    │ ✓ Product Name                      │ │ │
+│ │ │ ☐ Product Name      │    │ ✓ Category                          │ │ │
+│ │ │ ☐ Category          │    │ ✓ Current Stock                     │ │ │
+│ │ │ ☐ Supplier          │    │ ✓ Stock Value                       │ │ │
+│ │ │ ☐ Location          │    │                                     │ │ │
+│ │ │                     │    │ Calculations:                       │ │ │
+│ │ │ Measures:           │    │ ✓ Total Value = Stock × Cost        │ │ │
+│ │ │ ☐ Current Stock     │    │ ✓ Days of Stock = Stock ÷ Avg Usage│ │ │
+│ │ │ ☐ Stock Value       │    │ ✓ Turnover Rate                     │ │ │
+│ │ │ ☐ Usage Quantity    │    │                                     │ │ │
+│ │ │ ☐ Purchase Cost     │    │ [➕ Add Calculation]                │ │ │
+│ │ └─────────────────────┘    └─────────────────────────────────────┘ │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Step 3: Filters & Conditions ──────────────────────────────────┐ │
+│ │ Category: [All Categories ▼] [Multiple selection]                 │ │
+│ │ Stock Level: [All ▼] [Low Stock] [Normal] [Overstock]            │ │
+│ │ Date Range: [📅 Last 30 days ▼] Custom: [📅] to [📅]            │ │
+│ │ Value Range: $[_____] to $[_____]                                 │ │
+│ │ Location: [All Locations ▼] Status: [Active ▼]                   │ │
+│ │                                                                    │ │
+│ │ Advanced Filters: [➕ Add Condition]                              │ │
+│ │ • Current Stock < Reorder Level                                    │ │
+│ │ • Expiry Date <= 30 days from now                                 │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Step 4: Visualization & Format ────────────────────────────────┐ │
+│ │ Output Type: ● Table ○ Chart ○ Both ○ Dashboard                   │ │
+│ │                                                                    │ │
+│ │ Chart Type: [Bar Chart ▼] [Line] [Pie] [Scatter] [Heatmap]       │ │
+│ │ Group By: [Category ▼] Sort By: [Stock Value ▼] [Desc ▼]         │ │
+│ │                                                                    │ │
+│ │ Export Formats: ☑ Excel ☑ PDF ☑ CSV ☐ PowerBI ☐ Google Sheets   │ │
+│ │ Page Layout: [Portrait ▼] Font Size: [10pt ▼]                    │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ┌─── Step 5: Schedule & Distribution ───────────────────────────────┐ │
+│ │ Execution: ● Run Now ○ Schedule ○ On-Demand                       │ │
+│ │                                                                    │ │
+│ │ Schedule Options:                                                  │ │
+│ │ Frequency: [Monthly ▼] Day: [1st ▼] Time: [08:00 ▼]              │ │
+│ │                                                                    │ │
+│ │ Recipients: [admin@spa.com____________] [➕ Add]                   │ │
+│ │ Subject: [Monthly Inventory Report - {{date}}]                    │ │
+│ │ Message: [Report generated automatically...]                      │ │
+│ └────────────────────────────────────────────────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ [❮ Back] [👁 Preview] [💾 Save Template] [🚀 Generate Report]      │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+### 6. Mobile-Optimized Interface
+
+#### Mobile Navigation
+```
+┌─────────────────────────┐
+│ ☰ Inventory             │
+├─────────────────────────┤
+│ 🔍 Quick Search         │
+│ [________________] [🔍] │
+├─────────────────────────┤
+│ 📊 Dashboard            │
+│ 📦 Products (1,247)     │
+│ 🔄 Transactions         │
+│ 📱 Scan & Count         │
+│ 🚨 Alerts (5)          │
+│ 📈 Reports              │
+│ ⚙ Settings             │
+├─────────────────────────┤
+│ Quick Actions:          │
+│ [📱 Scan Product]      │
+│ [🔄 Quick Trans]       │
+│ [📊 Stock Count]       │
+└─────────────────────────┘
+```
+
+#### Mobile Product Scanner
+```
+┌─────────────────────────────────┐
+│ 📱 Product Scanner              │
+├─────────────────────────────────┤
+│ ┌─────────────────────────────┐ │
+│ │                             │ │
+│ │     📷 Camera View          │ │
+│ │                             │ │
+│ │  ┌─────────────────────┐    │ │
+│ │  │ ████ ████ ████ ████ │    │ │
+│ │  │ Scan barcode here   │    │ │
+│ │  │ ████ ████ ████ ████ │    │ │
+│ │  └─────────────────────┘    │ │
+│ │                             │ │
+│ └─────────────────────────────┘ │
+├─────────────────────────────────┤
+│ [💡 Flash] [🔄 Flip] [⌨ Manual]│
+├─────────────────────────────────┤
+│ Recent Scans:                   │
+│ • ABC-001 - Face Oil           │
+│ • DEF-002 - Day Cream          │
+│ • GHI-003 - Shampoo            │
+├─────────────────────────────────┤
+│ [🏠 Home] [📋 Products] [⚙ Set]│
+└─────────────────────────────────┘
+```
+
+#### Mobile Transaction Entry
+```
+┌─────────────────────────────────┐
+│ 🔄 Quick Transaction            │
+├─────────────────────────────────┤
+│ Product: ABC-001 Face Oil       │
+│ ┌─────────────────────────────┐ │
+│ │ 📷 [Image] Current: 45 units│ │
+│ │ Location: A-12 Status: 🟢   │ │
+│ └─────────────────────────────┘ │
+├─────────────────────────────────┤
+│ Transaction Type:               │
+│ ● Stock In  ○ Stock Out        │
+│ ○ Adjust    ○ Transfer          │
+├─────────────────────────────────┤
+│ Quantity:                       │
+│ [🔢 20] units                  │
+│ [- 1] [- 5] [- 10] [+ 10] [+ 5] [+ 1] │
+├─────────────────────────────────┤
+│ Reference:                      │
+│ [PO-2024-015_______]           │
+├─────────────────────────────────┤
+│ Notes: (Optional)               │
+│ [_________________________]    │
+├─────────────────────────────────┤
+│ 🎤 Voice Note | 📷 Take Photo   │
+├─────────────────────────────────┤
+│ [Cancel] [💾 Save] [📤 Submit] │
+└─────────────────────────────────┘
+```
+
+---
+
+## Technical Implementation Guide
+
+### 1. Technology Stack Recommendations
+
+#### Backend Technologies
+```
+Primary Stack Options:
+
+Option A - Node.js Stack:
+├── Runtime: Node.js 18+
+├── Framework: Express.js / Fastify
+├── Database: MySQL 8.0 / PostgreSQL 14+
+├── ORM: Prisma / TypeORM
+├── Authentication: JWT + Passport.js
+├── File Processing: ExcelJS / SheetJS
+├── Background Jobs: Bull Queue + Redis
+├── API Documentation: Swagger/OpenAPI
+└── Testing: Jest + Supertest
+
+Option B - Python Stack:
+├── Runtime: Python 3.9+
+├── Framework: Django / FastAPI
+├── Database: PostgreSQL / MySQL
+├── ORM: Django ORM / SQLAlchemy
+├── Authentication: Django Auth / OAuth2
+├── File Processing: Pandas + OpenPyXL
+├── Background Jobs: Celery + Redis
+├── API Documentation: DRF / FastAPI Auto
+└── Testing: pytest + Factory Boy
+
+Option C - PHP Stack:
+├── Runtime: PHP 8.1+
+├── Framework: Laravel 10+
+├── Database: MySQL 8.0
+├── ORM: Eloquent
+├── Authentication: Laravel Sanctum
+├── File Processing: Laravel Excel
+├── Background Jobs: Laravel Queues
+├── API Documentation: L5-Swagger
+└── Testing: PHPUnit + Laravel Dusk
+```
+
+#### Frontend Technologies
+```
+Modern Frontend Stack:
+├── Framework: React 18+ / Vue 3+ / Angular 15+
+├── State Management: Redux Toolkit / Zustand / Pinia
+├── UI Framework: Material-UI / Ant Design / Tailwind
+├── Form Management: React Hook Form / VeeValidate
+├── Charts: Chart.js / D3.js / Recharts
+├── Mobile: React Native / Ionic / PWA
+├── Build Tool: Vite / Webpack 5
+├── Testing: Vitest / Jest + React Testing Library
+└── PWA: Workbox for offline capabilities
+```
+
+#### Database Optimization
+```sql
+-- Essential Indexes for Performance
+CREATE INDEX idx_product_search ON inventory_master(name, product_code, barcode);
+CREATE INDEX idx_transaction_reporting ON inventory_transactions(product_id, transaction_date, status);
+CREATE INDEX idx_stock_alerts ON stock_alerts(product_id, is_resolved, alert_date);
+CREATE INDEX idx_audit_trail ON audit_log(table_name, record_id, changed_at);
+CREATE INDEX idx_batch_tracking ON inventory_transactions(batch_number, expiry_date);
+
+-- Composite Indexes for Complex Queries
+CREATE INDEX idx_product_category_active ON inventory_master(category_id, is_active, created_at);
+CREATE INDEX idx_transaction_type_date ON inventory_transactions(transaction_type, transaction_date, status);
+CREATE INDEX idx_stock_location_product ON product_locations(location_id, product_id, quantity);
+
+-- Full-Text Search for Product Names (MySQL)
+ALTER TABLE inventory_master ADD FULLTEXT(name, description);
+-- For PostgreSQL, use GIN indexes with tsvector
+```
+
+### 2. API Design Patterns
+
+#### RESTful API Structure
+```
+API Endpoints Structure:
+
+Authentication:
+POST   /api/auth/login
+POST   /api/auth/logout  
+GET    /api/auth/profile
+PUT    /api/auth/profile
+
+Categories:
+GET    /api/categories              # List all categories
+POST   /api/categories              # Create category
+GET    /api/categories/{id}         # Get category details
+PUT    /api/categories/{id}         # Update category
+DELETE /api/categories/{id}         # Delete category
+GET    /api/categories/{id}/products # Products in category
+
+Suppliers:
+GET    /api/suppliers               # List suppliers
+POST   /api/suppliers               # Create supplier
+GET    /api/suppliers/{id}          # Get supplier details
+PUT    /api/suppliers/{id}          # Update supplier
+DELETE /api/suppliers/{id}          # Archive supplier
+GET    /api/suppliers/{id}/products # Supplier products
+GET    /api/suppliers/{id}/performance # Supplier metrics
+
+Products:
+GET    /api/products                # List products with filtering
+POST   /api/products                # Create product
+GET    /api/products/{id}           # Product details
+PUT    /api/products/{id}           # Update product
+DELETE /api/products/{id}           # Archive product
+GET    /api/products/{id}/stock     # Current stock info
+GET    /api/products/{id}/batches   # Batch information
+GET    /api/products/{id}/transactions # Transaction history
+POST   /api/products/bulk-import    # Excel import
+GET    /api/products/export         # Excel export
+POST   /api/products/search         # Advanced search
+
+Transactions:
+GET    /api/transactions            # List transactions
+POST   /api/transactions            # Create transaction
+GET    /api/transactions/{id}       # Transaction details
+PUT    /api/transactions/{id}       # Update transaction
+DELETE /api/transactions/{id}       # Cancel transaction
+POST   /api/transactions/{id}/approve # Approve transaction
+POST   /api/transactions/{id}/reject  # Reject transaction
+POST   /api/transactions/bulk-import # Import transactions
+GET    /api/transactions/pending    # Pending approvals
+
+Stock Management:
+GET    /api/stock/current          # Current stock levels
+GET    /api/stock/low              # Low stock items
+GET    /api/stock/expiring         # Expiring items
+POST   /api/stock/count            # Create stock count
+GET    /api/stock/counts           # List stock counts
+PUT    /api/stock/counts/{id}      # Update stock count
+GET    /api/stock/movements        # Stock movement report
+
+Reports:
+GET    /api/reports/templates      # Available report templates
+POST   /api/reports/generate       # Generate custom report
+GET    /api/reports/scheduled      # Scheduled reports
+POST   /api/reports/schedule       # Schedule report
+GET    /api/reports/{id}/download  # Download report
+
+Alerts:
+GET    /api/alerts                 # List alerts
+POST   /api/alerts/{id}/resolve    # Resolve alert
+GET    /api/alerts/settings        # Alert settings
+PUT    /api/alerts/settings        # Update alert settings
+
+Mobile API:
+GET    /api/mobile/sync            # Sync data for offline
+POST   /api/mobile/transactions    # Submit offline transactions
+GET    /api/mobile/products/search # Quick product search
+POST   /api/mobile/barcode         # Barcode lookup
+```
+
+#### API Response Standards
+```json
+// Success Response Format
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Face Massage Oil",
+    "stock": 45
+  },
+  "meta": {
+    "timestamp": "2024-02-20T10:30:00Z",
+    "version": "1.0"
+  }
+}
+
+// Paginated Response Format
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 50,
+    "total": 1247,
+    "total_pages": 25,
+    "has_next": true,
+    "has_previous": false
+  }
+}
+
+// Error Response Format
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input data",
+    "details": [
+      {
+        "field": "quantity",
+        "message": "Quantity must be greater than 0"
+      }
+    ]
+  },
+  "meta": {
+    "timestamp": "2024-02-20T10:30:00Z",
+    "
