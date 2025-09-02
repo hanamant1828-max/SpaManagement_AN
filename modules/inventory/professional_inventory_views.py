@@ -8,8 +8,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, desc
 from app import app, db
-from models import (SimpleInventoryItem, SimpleStockTransaction, SimpleLowStockAlert, 
-                   TransactionType, User, InventoryProduct)
+from models import (InventoryCategory, Supplier, User, Role, Permission)
 import json
 import io
 import csv
