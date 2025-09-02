@@ -45,7 +45,11 @@ def inventory():
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
     
     # Get master items for the Inventory Master tab
-    master_items = InventoryMaster.query.filter_by(is_active=True).all()
+    try:
+        master_items = InventoryMaster.query.filter_by(is_active=True).all()
+    except:
+        # Fallback: if InventoryMaster table doesn't exist, use regular inventory
+        master_items = inventory_list
 
     return render_template('inventory.html', 
                          items=inventory_list,  # Changed from inventory to items
