@@ -24,11 +24,16 @@
                         <button type="button" class="btn btn-primary px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
                             <i class="fas fa-plus me-2"></i>Add Item
                         </button>
+                        <a href="{{ url_for('bulk_import_inventory') }}" class="btn btn-success px-4 py-2 fw-semibold">
+                            <i class="fas fa-upload me-2"></i>Bulk Import
+                        </a>
                         <div class="dropdown">
                             <button class="btn btn-outline-secondary px-4 py-2 dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-download me-2"></i>Export
                             </button>
                             <ul class="dropdown-menu shadow-lg border-0">
+                                <li><a class="dropdown-item py-2" href="{{ url_for('download_inventory_template') }}"><i class="fas fa-file-excel me-3 text-success"></i>Download Template</a></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-excel me-3 text-success"></i>Export to Excel</a></li>
                                 <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-csv me-3 text-info"></i>Export to CSV</a></li>
                                 <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-pdf me-3 text-danger"></i>Export to PDF</a></li>

@@ -1,10 +1,15 @@
 """
 Inventory views and routes
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
-from app import app
+from app import app, db
 from forms import InventoryForm
+import pandas as pd
+import io
+from datetime import datetime
+from werkzeug.utils import secure_filename
+import os
 from .inventory_queries import (
     get_all_inventory, get_inventory_by_id, get_low_stock_items, 
     get_expiring_items, get_inventory_categories, search_inventory, 
@@ -14,6 +19,7 @@ from .inventory_queries import (
     convert_units, auto_deduct_service_inventory, create_stock_adjustment,
     generate_reorder_suggestions
 )
+from models import Inventory, Category
 
 @app.route('/inventory')
 @login_required
@@ -44,6 +50,264 @@ def inventory():
                          categories=categories,
                          search_query=search_query,
                          filter_type=filter_type)
+
+@app.route('/inventory/bulk-import', methods=['GET', 'POST'])
+@login_required
+def bulk_import_inventory():
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'GET':
+        return render_template('inventory_import.html')
+    
+    # Handle file upload
+    if 'inventory_file' not in request.files:
+        flash('No file selected', 'error')
+        return redirect(url_for('bulk_import_inventory'))
+    
+    file = request.files['inventory_file']
+    if file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('bulk_import_inventory'))
+    
+    if not file.filename.lower().endswith(('.xlsx', '.xls')):
+        flash('Please upload an Excel file (.xlsx or .xls)', 'error')
+        return redirect(url_for('bulk_import_inventory'))
+    
+    try:
+        # Read the Excel file
+        df = pd.read_excel(file)
+        
+        # Validate required columns
+        required_columns = ['name', 'sku', 'category', 'current_stock', 'cost_price']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            flash(f'Missing required columns: {", ".join(missing_columns)}', 'error')
+            return redirect(url_for('bulk_import_inventory'))
+        
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        # Process each row
+        for index, row in df.iterrows():
+            try:
+                # Check if SKU already exists
+                existing_item = Inventory.query.filter_by(sku=str(row['sku'])).first()
+                if existing_item:
+                    errors.append(f"Row {index + 2}: SKU '{row['sku']}' already exists")
+                    error_count += 1
+                    continue
+                
+                # Get or create category
+                category = Category.query.filter_by(name=str(row['category']), category_type='inventory').first()
+                if not category:
+                    category = Category(
+                        name=str(row['category']),
+                        display_name=str(row['category']).title(),
+                        category_type='inventory',
+                        is_active=True
+                    )
+                    db.session.add(category)
+                    db.session.flush()  # Get the ID
+                
+                # Create inventory item
+                inventory_data = {
+                    'name': str(row['name']).strip(),
+                    'sku': str(row['sku']).strip(),
+                    'category_id': category.id,
+                    'category': str(row['category']),
+                    'current_stock': float(row['current_stock']) if pd.notna(row['current_stock']) else 0.0,
+                    'cost_price': float(row['cost_price']) if pd.notna(row['cost_price']) else 0.0,
+                    'description': str(row.get('description', '')) if pd.notna(row.get('description')) else '',
+                    'selling_price': float(row.get('selling_price', 0)) if pd.notna(row.get('selling_price')) else 0.0,
+                    'min_stock_level': float(row.get('min_stock_level', 5)) if pd.notna(row.get('min_stock_level')) else 5.0,
+                    'max_stock_level': float(row.get('max_stock_level', 100)) if pd.notna(row.get('max_stock_level')) else 100.0,
+                    'reorder_point': float(row.get('reorder_point', 10)) if pd.notna(row.get('reorder_point')) else 10.0,
+                    'reorder_quantity': float(row.get('reorder_quantity', 50)) if pd.notna(row.get('reorder_quantity')) else 50.0,
+                    'base_unit': str(row.get('base_unit', 'pcs')).strip() if pd.notna(row.get('base_unit')) else 'pcs',
+                    'selling_unit': str(row.get('selling_unit', 'pcs')).strip() if pd.notna(row.get('selling_unit')) else 'pcs',
+                    'conversion_factor': float(row.get('conversion_factor', 1.0)) if pd.notna(row.get('conversion_factor')) else 1.0,
+                    'item_type': str(row.get('item_type', 'consumable')).strip() if pd.notna(row.get('item_type')) else 'consumable',
+                    'supplier_name': str(row.get('supplier_name', '')).strip() if pd.notna(row.get('supplier_name')) else '',
+                    'supplier_contact': str(row.get('supplier_contact', '')).strip() if pd.notna(row.get('supplier_contact')) else '',
+                    'storage_location': str(row.get('storage_location', '')).strip() if pd.notna(row.get('storage_location')) else '',
+                    'storage_temperature': str(row.get('storage_temperature', 'room_temp')).strip() if pd.notna(row.get('storage_temperature')) else 'room_temp',
+                    'has_expiry': bool(row.get('has_expiry', False)) if pd.notna(row.get('has_expiry')) else False,
+                    'shelf_life_days': int(row.get('shelf_life_days', 0)) if pd.notna(row.get('shelf_life_days')) else None,
+                    'enable_low_stock_alert': bool(row.get('enable_low_stock_alert', True)) if pd.notna(row.get('enable_low_stock_alert')) else True,
+                    'enable_expiry_alert': bool(row.get('enable_expiry_alert', True)) if pd.notna(row.get('enable_expiry_alert')) else True,
+                    'is_active': True,
+                    'created_at': datetime.now(),
+                    'updated_at': datetime.now()
+                }
+                
+                # Handle optional date fields
+                if pd.notna(row.get('expiry_date')):
+                    try:
+                        if isinstance(row['expiry_date'], str):
+                            inventory_data['expiry_date'] = datetime.strptime(row['expiry_date'], '%Y-%m-%d').date()
+                        else:
+                            inventory_data['expiry_date'] = row['expiry_date'].date()
+                    except:
+                        pass
+                
+                # Calculate markup if selling price is provided
+                if inventory_data['cost_price'] > 0 and inventory_data['selling_price'] > 0:
+                    inventory_data['markup_percentage'] = ((inventory_data['selling_price'] - inventory_data['cost_price']) / inventory_data['cost_price']) * 100
+                
+                # Create the inventory item
+                new_item = Inventory(**inventory_data)
+                db.session.add(new_item)
+                success_count += 1
+                
+            except Exception as e:
+                errors.append(f"Row {index + 2}: {str(e)}")
+                error_count += 1
+                continue
+        
+        # Commit changes
+        db.session.commit()
+        
+        # Show results
+        if success_count > 0:
+            flash(f'Successfully imported {success_count} inventory items', 'success')
+        
+        if error_count > 0:
+            flash(f'{error_count} items failed to import. Check errors below.', 'warning')
+            for error in errors[:10]:  # Show only first 10 errors
+                flash(error, 'error')
+        
+        return redirect(url_for('inventory'))
+        
+    except Exception as e:
+        flash(f'Error processing file: {str(e)}', 'error')
+        return redirect(url_for('bulk_import_inventory'))
+
+@app.route('/inventory/download-template')
+@login_required
+def download_inventory_template():
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Create sample Excel template
+    sample_data = {
+        'name': ['Face Cream Premium', 'Hair Shampoo Organic', 'Massage Oil Lavender'],
+        'sku': ['FC001', 'HS002', 'MO003'],
+        'description': ['Premium anti-aging face cream', 'Organic herbal hair shampoo', 'Relaxing lavender massage oil'],
+        'category': ['skincare', 'haircare', 'massage'],
+        'current_stock': [25, 15, 30],
+        'min_stock_level': [5, 10, 8],
+        'max_stock_level': [100, 80, 60],
+        'reorder_point': [10, 15, 12],
+        'reorder_quantity': [50, 40, 30],
+        'base_unit': ['pcs', 'bottles', 'bottles'],
+        'selling_unit': ['pcs', 'bottles', 'bottles'],
+        'conversion_factor': [1.0, 1.0, 1.0],
+        'cost_price': [150.0, 250.0, 180.0],
+        'selling_price': [200.0, 350.0, 250.0],
+        'item_type': ['consumable', 'consumable', 'consumable'],
+        'supplier_name': ['Beauty Supplies Co', 'Organic Products Ltd', 'Essential Oils Inc'],
+        'supplier_contact': ['+91-9876543210', '+91-9876543211', '+91-9876543212'],
+        'storage_location': ['Shelf A1', 'Shelf B2', 'Cabinet C1'],
+        'storage_temperature': ['room_temp', 'room_temp', 'cool'],
+        'has_expiry': [True, True, False],
+        'shelf_life_days': [365, 730, None],
+        'expiry_date': ['2025-12-31', '2026-06-30', None],
+        'enable_low_stock_alert': [True, True, True],
+        'enable_expiry_alert': [True, True, False]
+    }
+    
+    df = pd.DataFrame(sample_data)
+    
+    # Create Excel file in memory
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Write the data
+        df.to_excel(writer, sheet_name='Inventory Template', index=False)
+        
+        # Get the workbook and worksheet
+        workbook = writer.book
+        worksheet = writer.sheets['Inventory Template']
+        
+        # Auto-adjust column widths
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        # Add instructions sheet
+        instructions_data = {
+            'Field': ['name', 'sku', 'description', 'category', 'current_stock', 'min_stock_level', 'max_stock_level', 
+                     'reorder_point', 'reorder_quantity', 'base_unit', 'selling_unit', 'conversion_factor',
+                     'cost_price', 'selling_price', 'item_type', 'supplier_name', 'supplier_contact',
+                     'storage_location', 'storage_temperature', 'has_expiry', 'shelf_life_days', 'expiry_date',
+                     'enable_low_stock_alert', 'enable_expiry_alert'],
+            'Required': ['Yes', 'Yes', 'No', 'Yes', 'Yes', 'No', 'No', 'No', 'No', 'No', 'No', 'No',
+                        'Yes', 'No', 'No', 'No', 'No', 'No', 'No', 'No', 'No', 'No', 'No', 'No'],
+            'Description': [
+                'Product name (e.g., Face Cream Premium)',
+                'Unique product code (e.g., FC001)',
+                'Product description',
+                'Category name (e.g., skincare, haircare)',
+                'Current stock quantity (e.g., 25)',
+                'Minimum stock level for alerts (default: 5)',
+                'Maximum stock level (default: 100)',
+                'Stock level to trigger reorder (default: 10)',
+                'Quantity to reorder (default: 50)',
+                'Base unit (pcs, bottles, ml, kg, etc.)',
+                'Selling unit (same as base_unit usually)',
+                'Conversion factor between units (default: 1.0)',
+                'Cost price per unit (e.g., 150.0)',
+                'Selling price per unit (e.g., 200.0)',
+                'Type: consumable, sellable, or both',
+                'Supplier company name',
+                'Supplier contact information',
+                'Storage location (e.g., Shelf A1)',
+                'Storage temperature: room_temp, cool, refrigerated, frozen',
+                'True/False - does item expire?',
+                'Number of days the item stays fresh',
+                'Expiry date in YYYY-MM-DD format',
+                'True/False - enable low stock alerts',
+                'True/False - enable expiry alerts'
+            ]
+        }
+        
+        instructions_df = pd.DataFrame(instructions_data)
+        instructions_df.to_excel(writer, sheet_name='Instructions', index=False)
+        
+        # Auto-adjust instruction sheet columns
+        instructions_ws = writer.sheets['Instructions']
+        for column in instructions_ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 80)
+            instructions_ws.column_dimensions[column_letter].width = adjusted_width
+    
+    output.seek(0)
+    
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f'inventory_import_template_{datetime.now().strftime("%Y%m%d")}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 @app.route('/inventory/create', methods=['POST'])
 @app.route('/inventory/add', methods=['POST'])
