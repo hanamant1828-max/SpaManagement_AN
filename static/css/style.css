@@ -643,6 +643,7 @@ html, body {
 
 .main-content .row {
     margin: 0;
+    margin-right: 0;
 }
 
 .main-content .col {
