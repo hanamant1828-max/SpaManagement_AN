@@ -123,24 +123,34 @@
                     {% endif %}
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('services') }}">
-                            <i class="fas fa-spa me-2"></i>Service Management
+                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseInventory">
+                            <i class="fas fa-boxes me-2"></i>
+                            <span>Inventory Management</span>
                         </a>
+                        <div id="collapseInventory" class="collapse" data-parent="#accordionSidebar">
+                            <div class="bg-white py-2 collapse-inner rounded">
+                                <h6 class="collapse-header">Inventory Management:</h6>
+                                <a class="collapse-item" href="{{ url_for('simple_inventory') }}">Simple Inventory</a>
+                                <a class="collapse-item" href="{{ url_for('professional_inventory') }}">Professional Inventory</a>
+                                <a class="collapse-item" href="{{ url_for('inventory_categories') }}">Inventory Categories</a>
+                                <a class="collapse-item" href="{{ url_for('suppliers') }}">Suppliers</a>
+                            </div>
+                        </div>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('packages') }}">
-                            <i class="fas fa-gift me-2"></i>Subscription Packages
+                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseServices">
+                            <i class="fas fa-spa"></i>
+                            <span>Services</span>
                         </a>
+                        <div id="collapseServices" class="collapse" data-parent="#accordionSidebar">
+                            <div class="bg-white py-2 collapse-inner rounded">
+                                <h6 class="collapse-header">Service Management:</h6>
+                                <a class="collapse-item" href="{{ url_for('services') }}">All Services</a>
+                                <a class="collapse-item" href="{{ url_for('service_categories') }}">Service Categories</a>
+                            </div>
+                        </div>
                     </li>
-
-                    {% if current_user.can_access('inventory') %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('professional_inventory') }}">
-                            <i class="fas fa-cubes me-2"></i>Professional Inventory Management
-                        </a>
-                    </li>
-                    {% endif %}
 
                     {% if current_user.can_access('reports') %}
                     <li class="nav-item">
