@@ -283,7 +283,7 @@ class Service(db.Model):
     # Relationships
     appointments = db.relationship('Appointment', backref='service', lazy=True)
     package_services = db.relationship('PackageService', backref='service', lazy=True)
-    # inventory_items relationship removed to prevent conflict with ServiceInventoryItem backref
+    inventory_items = db.relationship('ServiceInventoryItem', backref='service', lazy=True)
 
     def deduct_inventory_for_service(self):
         """Deduct inventory items when this service is performed"""
@@ -424,7 +424,137 @@ class CustomerPackageSession(db.Model):
     # Relationships
     service = db.relationship('Service', backref='customer_sessions')
 
-# Inventory models removed - fresh implementation coming
+# Inventory models - Professional implementation
+class Inventory(db.Model):
+    """Main inventory items table - legacy compatibility"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
+    current_stock = db.Column(db.Float, default=0.0)
+    reorder_level = db.Column(db.Float, default=0.0)
+    unit = db.Column(db.String(20), default='pcs')
+    supplier_id = db.Column(db.Integer)
+    cost_price = db.Column(db.Float, default=0.0)
+    selling_price = db.Column(db.Float, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def can_fulfill_quantity(self, quantity):
+        return self.current_stock >= quantity
+
+class InventoryMaster(db.Model):
+    """Products master table"""
+    product_id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    supplier_id = db.Column(db.Integer)
+    unit = db.Column(db.String(20), default='pcs')
+    reorder_level = db.Column(db.Integer, default=0)
+    expiry_date = db.Column(db.Date)
+    username = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class InventoryTransaction(db.Model):
+    """Stock movement transactions"""
+    transaction_id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
+    transaction_type = db.Column(db.String(10), nullable=False)  # 'IN' or 'OUT'
+    quantity = db.Column(db.Integer, nullable=False)
+    transaction_date = db.Column(db.DateTime, default=datetime.utcnow)
+    username = db.Column(db.String(50))
+    notes = db.Column(db.Text)
+
+class StockMovement(db.Model):
+    """Track all stock movements"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'))
+    movement_type = db.Column(db.String(50), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), default='pcs')
+    reference_type = db.Column(db.String(50))
+    reference_id = db.Column(db.Integer)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    inventory = db.relationship('Inventory', backref='movements')
+
+class InventoryItem(db.Model):
+    """Alternative inventory table"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50))
+    current_stock = db.Column(db.Float, default=0.0)
+    unit = db.Column(db.String(20), default='pcs')
+    cost_price = db.Column(db.Float, default=0.0)
+    selling_price = db.Column(db.Float, default=0.0)
+    reorder_level = db.Column(db.Float, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class SimpleInventoryItem(db.Model):
+    """Simple inventory management"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50))
+    current_stock = db.Column(db.Float, default=0.0)
+    unit = db.Column(db.String(20), default='pcs')
+    reorder_level = db.Column(db.Float, default=0.0)
+    cost_price = db.Column(db.Float, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class SimpleStockTransaction(db.Model):
+    """Simple stock transactions"""
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('simple_inventory_item.id'))
+    transaction_type = db.Column(db.String(10), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class SimpleLowStockAlert(db.Model):
+    """Low stock alerts"""
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('simple_inventory_item.id'))
+    alert_level = db.Column(db.Float, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class ServiceInventoryItem(db.Model):
+    """Link services to inventory items they consume"""
+    id = db.Column(db.Integer, primary_key=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'))
+    quantity_per_service = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), default='pcs')
+    
+    inventory_item = db.relationship('Inventory', backref='service_items')
+
+class ConsumptionEntry(db.Model):
+    """Track inventory consumption"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'))
+    quantity_used = db.Column(db.Float, nullable=False)
+    used_date = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text)
+
+class UsageDuration(db.Model):
+    """Track usage duration for inventory"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'))
+    usage_days = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class InventoryAdjustment(db.Model):
+    """Inventory adjustments"""
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'))
+    adjustment_type = db.Column(db.String(50), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    reason = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
