@@ -1,5 +1,6 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import calendar
+from sqlalchemy import or_, and_
 
 def format_currency(amount):
     """Format amount as currency"""
@@ -93,7 +94,7 @@ def validate_appointment_time(appointment_date, duration, staff_id):
     """Validate if appointment time slot is available"""
     from models import Appointment
     end_time = appointment_date + timedelta(minutes=duration)
-    
+
     # Check for overlapping appointments
     overlapping = Appointment.query.filter(
         Appointment.staff_id == staff_id,
@@ -104,23 +105,23 @@ def validate_appointment_time(appointment_date, duration, staff_id):
             and_(Appointment.appointment_date >= appointment_date, Appointment.end_time <= end_time)
         )
     ).first()
-    
+
     return overlapping is None
 
 def generate_invoice_number():
     """Generate unique invoice number"""
     today = date.today()
     prefix = today.strftime("INV%Y%m%d")
-    
+
     from models import Invoice
     last_invoice = Invoice.query.filter(
         Invoice.invoice_number.like(f"{prefix}%")
     ).order_by(Invoice.invoice_number.desc()).first()
-    
+
     if last_invoice:
         last_num = int(last_invoice.invoice_number[-3:])
         new_num = last_num + 1
     else:
         new_num = 1
-    
+
     return f"{prefix}{new_num:03d}"

@@ -323,7 +323,7 @@ class Customer(db.Model):
     no_show_count = db.Column(db.Integer, default=0)
 
     # Relationships
-    appointments = db.relationship('Appointment', backref='customer', lazy=True)
+    appointments = db.relationship('Appointment', backref='client', lazy=True)
     packages = db.relationship('CustomerPackage', backref='customer', lazy=True)
 
     @property
