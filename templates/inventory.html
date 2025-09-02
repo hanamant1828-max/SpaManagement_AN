@@ -174,6 +174,12 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-semibold px-4 py-3 rounded-3" id="inventory-master-tab" data-bs-toggle="pill" data-bs-target="#inventory-master-items" type="button" role="tab">
+                                    <i class="fas fa-archive me-2"></i>Inventory Master
+                                    <span class="badge bg-info text-white ms-2">{{ master_items|length if master_items else 0 }}</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
                                 <button class="nav-link fw-semibold px-4 py-3 rounded-3" id="low-stock-tab" data-bs-toggle="pill" data-bs-target="#low-stock-items" type="button" role="tab">
                                     <i class="fas fa-exclamation-triangle me-2"></i>Low Stock
                                     <span class="badge bg-warning text-white ms-2">{{ low_stock_count }}</span>
@@ -393,6 +399,120 @@
                                 <p class="text-muted mb-4">Start building your inventory by adding your first item.</p>
                                 <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
                                     <i class="fas fa-plus me-2"></i>Add Your First Item
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Master Tab -->
+        <div class="tab-pane fade" id="inventory-master-items" role="tabpanel">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 py-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-wrapper me-3">
+                                <i class="fas fa-archive text-info fs-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="m-0 fw-bold text-dark">Product Catalog</h4>
+                                <p class="text-muted mb-0 small">Master data for all products</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-info px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#addMasterModal">
+                            <i class="fas fa-plus me-2"></i>Add Product
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if master_items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>SKU</th>
+                                        <th>Category</th>
+                                        <th>Current Stock</th>
+                                        <th>Reorder Level</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in master_items %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-cube text-muted"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark">{{ item.name }}</div>
+                                                    {% if item.description %}
+                                                        <div class="text-muted small">{{ item.description[:50] }}...</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">{{ item.sku }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ item.category }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <strong class="me-2 {% if item.current_stock <= item.min_stock_level %}text-danger{% elif item.current_stock <= item.reorder_point %}text-warning{% else %}text-success{% endif %}">
+                                                    {{ "%.1f"|format(item.current_stock) }}
+                                                </strong>
+                                                <span class="text-muted small">{{ item.base_unit }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">{{ item.reorder_point }} {{ item.base_unit }}</span>
+                                        </td>
+                                        <td>
+                                            {% if item.is_low_stock %}
+                                                <span class="badge bg-danger">Low Stock</span>
+                                            {% elif item.is_reorder_needed %}
+                                                <span class="badge bg-warning">Reorder</span>
+                                            {% elif item.is_out_of_stock %}
+                                                <span class="badge bg-dark">Out of Stock</span>
+                                            {% else %}
+                                                <span class="badge bg-success">In Stock</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" data-bs-toggle="tooltip" title="View Transactions">
+                                                    <i class="fas fa-list"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" data-bs-toggle="tooltip" title="Add Stock">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning" data-bs-toggle="tooltip" title="Edit Product">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-archive fs-2 mb-3"></i>
+                                <h5>No products in catalog yet</h5>
+                                <p class="mb-0">Add your first product to get started!</p>
+                                <button type="button" class="btn btn-info mt-3" data-bs-toggle="modal" data-bs-target="#addMasterModal">
+                                    <i class="fas fa-plus me-2"></i>Add First Product
                                 </button>
                             </div>
                         </div>
@@ -1312,6 +1432,72 @@
     }
 }
 </style>
+<!-- Add Product Modal for Inventory Master -->
+<div class="modal fade" id="addMasterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('inventory_master_add') }}">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Product Name *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">SKU *</label>
+                            <input type="text" class="form-control" name="sku" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Category *</label>
+                            <select class="form-select" name="category" required>
+                                {% for category in categories %}
+                                    <option value="{{ category.display_name }}">{{ category.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Base Unit *</label>
+                            <select class="form-select" name="base_unit" required>
+                                <option value="pcs">Pieces</option>
+                                <option value="ml">Milliliters</option>
+                                <option value="liter">Liters</option>
+                                <option value="gram">Grams</option>
+                                <option value="kg">Kilograms</option>
+                                <option value="box">Box</option>
+                                <option value="bottle">Bottle</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Min Stock Level</label>
+                            <input type="number" class="form-control" name="min_stock_level" value="5" step="0.1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Max Stock Level</label>
+                            <input type="number" class="form-control" name="max_stock_level" value="100" step="0.1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Reorder Point</label>
+                            <input type="number" class="form-control" name="reorder_point" value="10" step="0.1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}

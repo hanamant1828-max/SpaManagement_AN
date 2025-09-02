@@ -43,13 +43,17 @@ def inventory():
     categories = get_inventory_categories()
     form = InventoryForm()
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
+    
+    # Get master items for the Inventory Master tab
+    master_items = InventoryMaster.query.filter_by(is_active=True).all()
 
     return render_template('inventory.html', 
                          items=inventory_list,  # Changed from inventory to items
                          form=form,
                          categories=categories,
                          search_query=search_query,
-                         filter_type=filter_type)
+                         filter_type=filter_type,
+                         master_items=master_items)
 
 # NEW: Inventory Master Routes (Structured Approach)
 @app.route('/inventory/master')
