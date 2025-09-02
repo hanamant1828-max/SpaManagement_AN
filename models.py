@@ -355,6 +355,7 @@ class Service(db.Model):
     # Relationships
     appointments = db.relationship('Appointment', backref='service', lazy=True)
     package_services = db.relationship('PackageService', backref='service', lazy=True)
+    # inventory_items relationship removed to prevent conflict with ServiceInventoryItem backref
 
     def deduct_inventory_for_service(self):
         """Deduct inventory items when this service is performed"""
@@ -397,8 +398,8 @@ class Appointment(db.Model):
     is_paid = db.Column(db.Boolean, default=False)
     inventory_deducted = db.Column(db.Boolean, default=False)  # Track if inventory was deducted
 
-    # Relationships
-    staff = db.relationship('User', backref='appointments', foreign_keys=[staff_id])
+    # Relationships - use existing backref from User model
+    # staff relationship is already created by User.appointments backref='assigned_staff'
 
     def process_inventory_deduction(self):
         """Process inventory deduction when appointment is completed and billed"""
