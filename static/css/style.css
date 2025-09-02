@@ -59,25 +59,7 @@
     color: white !important;
 }
 
-/* Main content adjustment */
-.main-content {
-    margin-left: 280px;
-    padding-top: 0px; /* Remove top padding */
-    min-height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    background-color: #f8f9fa;
-}
-
-@media (max-width: 991.98px) {
-    .main-content {
-        margin-left: 0;
-        padding-top: 0px; /* Remove top padding */
-        overflow-y: auto;
-        overflow-x: hidden;
-        background-color: #f8f9fa;
-    }
-}
+/* This section is now handled by the vertical sidebar layout styles below */
 
 /* Professional Inventory Styling */
 .stat-card {
@@ -785,7 +767,7 @@ body {
 
     .main-content {
         margin-left: 0;
-        padding: 10px 20px 20px 20px; /* Reduced top padding */
+        padding: 0 20px 20px 20px; /* ZERO top padding */
         height: calc(100vh - 56px);
         overflow-y: auto;
         overflow-x: hidden;
@@ -799,7 +781,7 @@ body {
     }
 
     .main-content {
-        padding: 10px 15px 20px 15px; /* Reduced top padding */
+        padding: 0 15px 20px 15px; /* ZERO top padding */
         height: auto;
         overflow: visible;
     }
