@@ -40,11 +40,6 @@ class SimpleInventoryItem(db.Model):
     # Timestamps
     date_added = db.Column(db.DateTime, default=datetime.utcnow)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    requires_approval = db.Column(db.Boolean, default=False)
-    
-    # Timestamps
-    date_added = db.Column(db.DateTime, default=datetime.utcnow)
-    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_counted_date = db.Column(db.DateTime)
     last_purchase_date = db.Column(db.Date)
     last_sale_date = db.Column(db.Date)
