@@ -166,6 +166,8 @@ html, body {
     height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* Ensure container scrolling works */
@@ -175,6 +177,28 @@ html, body {
     padding-top: 0 !important; /* Remove top padding */
     margin-top: 0 !important; /* Remove top margin */
 }
+
+/* Bootstrap reset overrides */
+* {
+    box-sizing: border-box;
+}
+
+/* Remove default Bootstrap margins that might cause spacing */
+.row {
+    margin-top: 0 !important;
+}
+
+.col, .col-1, .col-2, .col-3, .col-4, .col-5, .col-6, 
+.col-7, .col-8, .col-9, .col-10, .col-11, .col-12,
+.col-auto, .col-sm, .col-md, .col-lg, .col-xl, .col-xxl {
+    padding-top: 0 !important;
+}
+
+/* Zero space utility classes */
+.mt-0-important { margin-top: 0 !important; }
+.pt-0-important { padding-top: 0 !important; }
+.mb-0-important { margin-bottom: 0 !important; }
+.pb-0-important { padding-bottom: 0 !important; }
 
 /* Base styling */
 body {
@@ -680,6 +704,36 @@ body {
     padding-top: 0 !important;
 }
 
+/* Force immediate content start */
+.main-content > .container-fluid:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.main-content > .container-fluid:first-child > .row:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.main-content > .container-fluid:first-child > .row:first-child > .col:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Remove any spacing from the first element in main content */
+.main-content > *:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Specific fixes for dashboard and other pages */
+.dashboard-content,
+.page-header,
+.content-wrapper {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
 /* Error and success states */
 .is-invalid {
     border-color: var(--bs-danger);
@@ -710,6 +764,7 @@ body {
     padding-top: 56px; /* Height of fixed navbar */
     height: 100vh;
     overflow: hidden;
+    margin: 0 !important;
 }
 
 @media (min-width: 992px) {
