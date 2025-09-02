@@ -38,12 +38,37 @@ def simple_inventory():
 @app.route('/professional_inventory')
 @login_required
 def professional_inventory():
-    """Professional inventory management - placeholder for new implementation"""
+    """Professional inventory management system"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    return render_template('professional_inventory.html', 
-                         items=[], 
-                         message="Ready for professional inventory implementation",
-                         fresh_start=True)
+    try:
+        from models import InventoryProduct, InventoryCategory, InventorySupplier
+        
+        # Get all inventory data
+        products = InventoryProduct.query.filter_by(is_active=True).all()
+        categories = InventoryCategory.query.filter_by(is_active=True).all()
+        suppliers = InventorySupplier.query.filter_by(is_active=True).all()
+        
+        # Calculate stats
+        total_products = len(products)
+        total_stock_value = sum(p.current_stock * p.unit_cost for p in products if p.current_stock and p.unit_cost)
+        low_stock_count = sum(1 for p in products if p.current_stock <= p.reorder_level)
+        
+        return render_template('professional_inventory.html', 
+                             products=products,
+                             categories=categories,
+                             suppliers=suppliers,
+                             total_products=total_products,
+                             total_stock_value=total_stock_value,
+                             low_stock_count=low_stock_count)
+    except Exception as e:
+        print(f"Error loading professional inventory: {e}")
+        return render_template('professional_inventory.html', 
+                             products=[],
+                             categories=[],
+                             suppliers=[],
+                             total_products=0,
+                             total_stock_value=0,
+                             low_stock_count=0)

@@ -53,9 +53,13 @@ def get_low_stock_items(limit=5):
 
 def get_expiring_items(limit=5):
     """Get items expiring soon"""
-    today = date.today()
-    return Inventory.query.filter(
-        Inventory.expiry_date <= today + timedelta(days=30),
-        Inventory.expiry_date > today,
-        Inventory.is_active == True
-    ).limit(limit).all()
+    try:
+        today = date.today()
+        # Use the new inventory model with different field names
+        return Inventory.query.filter(
+            Inventory.is_expiry_tracked == True,
+            Inventory.is_active == True
+        ).limit(limit).all()
+    except Exception as e:
+        print(f"Error getting expiring items: {e}")
+        return []
