@@ -24,6 +24,9 @@
                         <button type="button" class="btn btn-primary px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
                             <i class="fas fa-plus me-2"></i>Add Item
                         </button>
+                        <a href="{{ url_for('inventory_master') }}" class="btn btn-info px-4 py-2 fw-semibold">
+                            <i class="fas fa-database me-2"></i>New: Master Catalog
+                        </a>
                         <a href="{{ url_for('bulk_import_inventory') }}" class="btn btn-success px-4 py-2 fw-semibold">
                             <i class="fas fa-upload me-2"></i>Bulk Import
                         </a>
