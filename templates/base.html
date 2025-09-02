@@ -254,7 +254,7 @@
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="container-fluid mt-3" id="alert-container">
+                <div class="container-fluid mt-2" id="alert-container">
                     {% for category, message in messages %}
                         <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
                             {{ message }}
@@ -263,7 +263,7 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="container-fluid mt-3" id="alert-container" style="display: none;"></div>
+                <div class="container-fluid" id="alert-container" style="display: none;"></div>
             {% endif %}
         {% endwith %}
 

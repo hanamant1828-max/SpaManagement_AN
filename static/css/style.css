@@ -62,7 +62,7 @@
 /* Main content adjustment */
 .main-content {
     margin-left: 280px;
-    padding-top: 15px;
+    padding-top: 0px; /* Remove top padding */
     min-height: 100vh;
     overflow-y: auto;
     overflow-x: hidden;
@@ -72,7 +72,7 @@
 @media (max-width: 991.98px) {
     .main-content {
         margin-left: 0;
-        padding-top: 65px;
+        padding-top: 0px; /* Remove top padding */
         overflow-y: auto;
         overflow-x: hidden;
         background-color: #f8f9fa;
@@ -172,6 +172,8 @@ html, body {
 .container-fluid {
     max-width: 100%;
     overflow-x: hidden;
+    padding-top: 0 !important; /* Remove top padding */
+    margin-top: 0 !important; /* Remove top margin */
 }
 
 /* Base styling */
@@ -658,6 +660,26 @@ body {
     box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
 }
 
+/* Fix page content spacing */
+.page-content {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+    margin-top: 0 !important;
+}
+
+.row:first-child {
+    margin-top: 0 !important;
+}
+
+.col-12:first-child .h3, 
+.col-12:first-child h3 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
 /* Error and success states */
 .is-invalid {
     border-color: var(--bs-danger);
@@ -708,7 +730,7 @@ body {
 
     .main-content {
         margin-left: 0;
-        padding: 20px;
+        padding: 10px 20px 20px 20px; /* Reduced top padding */
         height: calc(100vh - 56px);
         overflow-y: auto;
         overflow-x: hidden;
@@ -722,7 +744,7 @@ body {
     }
 
     .main-content {
-        padding: 20px 15px;
+        padding: 10px 15px 20px 15px; /* Reduced top padding */
         height: auto;
         overflow: visible;
     }
