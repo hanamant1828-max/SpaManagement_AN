@@ -36,9 +36,10 @@ class SimpleInventoryItem(db.Model):
     
     # Status & Control
     is_active = db.Column(db.Boolean, default=True)
-    is_serialized = db.Column(db.Boolean, default=False)
-    is_perishable = db.Column(db.Boolean, default=False)
-    is_hazardous = db.Column(db.Boolean, default=False)
+    
+    # Timestamps
+    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)olean, default=False)
     requires_approval = db.Column(db.Boolean, default=False)
     
     # Timestamps
