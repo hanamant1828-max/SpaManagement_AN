@@ -666,54 +666,18 @@ body {
     box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
 }
 
-/* Fix page content spacing */
-.page-content {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+/* Natural content spacing */
+.main-content .container-fluid {
+    max-width: 100%;
+    padding: 0;
 }
 
-.h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
-    margin-top: 0 !important;
+.main-content .row {
+    margin: 0;
 }
 
-.row:first-child {
-    margin-top: 0 !important;
-}
-
-.col-12:first-child .h3, 
-.col-12:first-child h3 {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-
-/* Force immediate content start */
-.main-content > .container-fluid:first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-
-.main-content > .container-fluid:first-child > .row:first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-
-.main-content > .container-fluid:first-child > .row:first-child > .col:first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-
-/* Remove any spacing from the first element in main content */
-.main-content > *:first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-
-/* Specific fixes for dashboard and other pages */
-.dashboard-content,
-.page-header,
-.content-wrapper {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+.main-content .col {
+    padding: 0 15px;
 }
 
 /* Error and success states */
@@ -767,10 +731,14 @@ body {
 
     .main-content {
         margin-left: 0;
-        padding: 0 20px 20px 20px; /* ZERO top padding */
+        padding: 20px; /* Equal padding on all sides */
         height: calc(100vh - 56px);
         overflow-y: auto;
         overflow-x: hidden;
+        width: calc(100vw - 280px); /* Ensure proper width */
+        position: fixed;
+        top: 56px;
+        right: 0;
     }
 }
 
@@ -778,12 +746,15 @@ body {
     body {
         overflow: auto;
         height: auto;
+        padding-left: 0;
     }
 
     .main-content {
-        padding: 0 15px 20px 15px; /* ZERO top padding */
+        padding: 15px; /* Equal padding on all sides */
         height: auto;
         overflow: visible;
+        position: relative;
+        width: 100%;
     }
 }
 
