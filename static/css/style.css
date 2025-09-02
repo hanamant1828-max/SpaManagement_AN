@@ -220,33 +220,9 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Special styling for NAME column header */
-#itemsTable thead th:first-child {
-    background: linear-gradient(135deg, #007bff, #0056b3) !important;
-    color: #ffffff !important;
-    font-weight: 700;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-}
-
 /* Ensure all table headers are visible */
 .table thead th {
     background-color: #495057 !important;
-    color: #ffffff !important;
-    border-color: #6c757d !important;
-    padding: 12px 8px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-}
-
-/* Enhanced styling for better readability */
-.table tbody td:first-child {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    color: #2c3e50;
-    border-left: 3px solid #007bff;
-}
 
 #transactionsTable thead th {
     background-color: #495057 !important;
