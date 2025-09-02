@@ -53,8 +53,16 @@ def simple_inventory():
     ).all()
     categories = [cat[0] for cat in categories if cat[0]]
 
-    # Only allow treatment transaction type
-    transaction_types = [{'name': 'treatment', 'display_name': 'Treatment (Facial/Service)'}]
+    # Get all transaction types from database
+    from models import TransactionType
+    transaction_types_db = TransactionType.query.filter_by(is_active=True).all()
+    
+    # Convert to list format for backward compatibility
+    transaction_types = [{'name': tt.name, 'display_name': tt.display_name} for tt in transaction_types_db]
+    
+    # Fallback if no transaction types exist
+    if not transaction_types:
+        transaction_types = [{'name': 'treatment', 'display_name': 'Treatment (Facial/Service)'}]
 
     # Calculate statistics for template (keep all old functionality)
     total_items = len(items)
@@ -95,6 +103,7 @@ def simple_inventory():
                          items=items, 
                          categories=categories,
                          transaction_types=transaction_types,
+                         transaction_types_db=transaction_types_db,
                          category_filter=category_filter,
                          status_filter=status_filter,
                          search_query=search_query,
