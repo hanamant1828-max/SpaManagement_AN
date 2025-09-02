@@ -496,7 +496,152 @@ class CustomerPackageSession(db.Model):
     # Relationships
     service = db.relationship('Service', backref='customer_sessions')
 
+# RESTRUCTURED: Separate Master Data from Transactions
+class InventoryMaster(db.Model):
+    """Product catalog - Master data for inventory items"""
+    __tablename__ = 'inventory_master'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    # Product identification
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    sku = db.Column(db.String(50), unique=True, nullable=False)  # Stock Keeping Unit
+    barcode = db.Column(db.String(100), unique=True)  # Barcode for scanning
+    
+    # Categorization
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
+    
+    # Units of measurement and conversions
+    base_unit = db.Column(db.String(20), nullable=False, default='pcs')  # pcs, ml, liter, gram, kg
+    selling_unit = db.Column(db.String(20), nullable=False, default='pcs')  # Unit for customer sales
+    conversion_factor = db.Column(db.Float, default=1.0)  # Conversion from base to selling unit
+    
+    # Stock level thresholds
+    min_stock_level = db.Column(db.Float, default=5.0)
+    max_stock_level = db.Column(db.Float, default=100.0)
+    reorder_point = db.Column(db.Float, default=10.0)
+    reorder_quantity = db.Column(db.Float, default=50.0)
+    
+    # Item classification
+    item_type = db.Column(db.String(20), default='consumable')  # consumable, sellable, both
+    is_service_item = db.Column(db.Boolean, default=False)  # Used in services
+    is_retail_item = db.Column(db.Boolean, default=False)  # Sold to customers
+    
+    # Supplier information
+    primary_supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
+    supplier_name = db.Column(db.String(100))  # Fallback for compatibility
+    supplier_contact = db.Column(db.String(100))  # Fallback for compatibility
+    supplier_sku = db.Column(db.String(50))  # Supplier's product code
+    
+    # Storage and quality settings
+    storage_location = db.Column(db.String(100))
+    storage_temperature = db.Column(db.String(50))  # room_temp, refrigerated, frozen
+    storage_notes = db.Column(db.Text)
+    has_expiry = db.Column(db.Boolean, default=False)
+    shelf_life_days = db.Column(db.Integer)  # Standard shelf life
+    
+    # Tracking and alert settings
+    enable_low_stock_alert = db.Column(db.Boolean, default=True)
+    enable_expiry_alert = db.Column(db.Boolean, default=True)
+    expiry_alert_days = db.Column(db.Integer, default=30)  # Days before expiry to alert
+    tracking_type = db.Column(db.String(20), default='piece_wise', nullable=False)  # container_lifecycle, piece_wise, manual_entry
+    supports_batches = db.Column(db.Boolean, default=False)  # Enable batch/lot tracking
+    requires_open_close = db.Column(db.Boolean, default=False)  # For container/lifecycle tracking
+    
+    # Status and metadata
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    supplier = db.relationship('Supplier', backref='supplied_items', lazy=True)
+    transactions = db.relationship('InventoryTransaction', backref='master_item', lazy=True)
+    # Service items will be handled separately to avoid FK conflicts
+    
+    @property
+    def current_stock(self):
+        """Calculate current stock from all transactions"""
+        if not self.transactions:
+            return 0.0
+        
+        total = 0.0
+        for transaction in self.transactions:
+            if transaction.transaction_type in ['purchase', 'adjustment_in', 'opening_stock']:
+                total += transaction.quantity
+            elif transaction.transaction_type in ['sale', 'consumption', 'adjustment_out', 'wastage', 'transfer_out']:
+                total -= transaction.quantity
+        return max(0.0, total)
+    
+    @property
+    def is_low_stock(self):
+        return self.current_stock <= self.min_stock_level
+    
+    @property
+    def is_reorder_needed(self):
+        return self.current_stock <= self.reorder_point
+    
+    @property
+    def is_out_of_stock(self):
+        return self.current_stock <= 0
+    
+    @property
+    def is_overstocked(self):
+        return self.current_stock > self.max_stock_level
+    
+    def convert_to_selling_unit(self, quantity_in_base_unit):
+        """Convert quantity from base unit to selling unit"""
+        return quantity_in_base_unit / self.conversion_factor
+    
+    def convert_to_base_unit(self, quantity_in_selling_unit):
+        """Convert quantity from selling unit to base unit"""
+        return quantity_in_selling_unit * self.conversion_factor
+
+class InventoryTransaction(db.Model):
+    """Stock movements and transactions"""
+    __tablename__ = 'inventory_transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_master_id = db.Column(db.Integer, db.ForeignKey('inventory_master.id'), nullable=False)
+    
+    # Transaction details
+    transaction_type = db.Column(db.String(30), nullable=False)  # purchase, sale, consumption, adjustment_in, adjustment_out, transfer_in, transfer_out, opening_stock, wastage
+    quantity = db.Column(db.Float, nullable=False)  # Positive for in, negative for out (optional, can use type)
+    unit_cost = db.Column(db.Float, default=0.0)  # Cost per unit for this transaction
+    unit_price = db.Column(db.Float, default=0.0)  # Selling price per unit (for sales)
+    
+    # Batch and expiry tracking
+    batch_number = db.Column(db.String(50))
+    expiry_date = db.Column(db.Date)
+    manufacture_date = db.Column(db.Date)
+    
+    # Reference and notes
+    transaction_reference = db.Column(db.String(100))  # PO number, invoice number, etc.
+    notes = db.Column(db.Text)
+    
+    # Supplier for purchases
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
+    supplier_name = db.Column(db.String(100))  # Fallback
+    
+    # Location tracking
+    location_from = db.Column(db.String(100))  # For transfers
+    location_to = db.Column(db.String(100))  # For transfers
+    
+    # User and timestamp
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Related transaction (for returns, adjustments)
+    related_transaction_id = db.Column(db.Integer, db.ForeignKey('inventory_transaction.id'))
+    
+    # Relationships
+    supplier = db.relationship('Supplier', backref='inventory_transactions', lazy=True)
+    created_by_user = db.relationship('User', backref='inventory_transactions')
+    related_transaction = db.relationship('InventoryTransaction', remote_side=[id])
+
+# Legacy support - Keep original Inventory model for backward compatibility
 class Inventory(db.Model):
+    """Legacy inventory model - kept for backward compatibility"""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
@@ -562,7 +707,7 @@ class Inventory(db.Model):
     last_counted_at = db.Column(db.DateTime)  # Last physical stock count
 
     # Relationships
-    supplier = db.relationship('Supplier', backref='supplied_items', lazy=True)
+    supplier = db.relationship('Supplier', backref='legacy_supplied_items', lazy=True)
     stock_movements = db.relationship('StockMovement', backref='inventory_item', lazy=True)
     service_items = db.relationship('ServiceInventoryItem', backref='inventory_item', lazy=True)
 

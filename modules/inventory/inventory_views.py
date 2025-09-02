@@ -19,7 +19,7 @@ from .inventory_queries import (
     convert_units, auto_deduct_service_inventory, create_stock_adjustment,
     generate_reorder_suggestions
 )
-from models import Inventory, Category
+from models import Inventory, InventoryMaster, InventoryTransaction, Category
 
 @app.route('/inventory')
 @login_required
@@ -50,6 +50,72 @@ def inventory():
                          categories=categories,
                          search_query=search_query,
                          filter_type=filter_type)
+
+# NEW: Inventory Master Routes (Structured Approach)
+@app.route('/inventory/master')
+@login_required
+def inventory_master():
+    """View inventory master catalog - products only, no stock levels"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    master_items = InventoryMaster.query.filter_by(is_active=True).all()
+    categories = Category.query.all()
+    
+    # Calculate stats
+    low_stock_count = sum(1 for item in master_items if item.is_low_stock)
+    active_items = len(master_items)
+    
+    return render_template('inventory_master.html',
+                         master_items=master_items,
+                         categories=categories,
+                         low_stock_count=low_stock_count,
+                         active_items=active_items)
+
+@app.route('/inventory/master/add', methods=['POST'])
+@login_required
+def inventory_master_add():
+    """Add new product to master catalog"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        # Create master item
+        master_item = InventoryMaster(
+            name=request.form.get('name'),
+            sku=request.form.get('sku'),
+            description=request.form.get('description'),
+            category=request.form.get('category'),
+            base_unit=request.form.get('base_unit'),
+            min_stock_level=float(request.form.get('min_stock_level', 5)),
+            max_stock_level=float(request.form.get('max_stock_level', 100)),
+            reorder_point=float(request.form.get('reorder_point', 10))
+        )
+        
+        db.session.add(master_item)
+        db.session.commit()
+        
+        flash(f'Product "{master_item.name}" added to catalog successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error adding product: {str(e)}', 'error')
+    
+    return redirect(url_for('inventory_master'))
+
+@app.route('/inventory/transactions')
+@login_required
+def inventory_transactions():
+    """View all inventory transactions"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    transactions = InventoryTransaction.query.order_by(InventoryTransaction.created_at.desc()).limit(100).all()
+    
+    return render_template('inventory_transactions.html', transactions=transactions)
 
 @app.route('/inventory/bulk-import', methods=['GET', 'POST'])
 @login_required
