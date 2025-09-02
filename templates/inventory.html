@@ -3,33 +3,36 @@
 {% block title %}Inventory Management - Spa & Salon Management Suite{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Modern Header Section -->
-    <div class="row mb-3">
+<div class="container-fluid px-4 py-3">
+    <!-- Professional Header Section -->
+    <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                <div class="card-body text-white py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h1 class="h3 mb-1 fw-bold">
-                                <i class="fas fa-warehouse me-2"></i>Inventory Management
-                            </h1>
-                            <p class="mb-0 opacity-75 small">Monitor stock levels, track consumption, and manage your inventory efficiently</p>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-light shadow-sm" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
-                                <i class="fas fa-plus me-2"></i>Add New Item
-                            </button>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-download me-2"></i>Export
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i>Export to Excel</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-file-csv me-2"></i>Export to CSV</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i>Export to PDF</a></li>
-                                </ul>
+            <div class="bg-white rounded-3 shadow-sm border-0 p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icon-wrapper me-3">
+                                <i class="fas fa-warehouse text-primary fs-2"></i>
                             </div>
+                            <div>
+                                <h1 class="h2 mb-1 text-dark fw-bold">Inventory Management</h1>
+                                <p class="text-muted mb-0 fs-6">Comprehensive inventory tracking and management system</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3 flex-shrink-0">
+                        <button type="button" class="btn btn-primary px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                            <i class="fas fa-plus me-2"></i>Add Item
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary px-4 py-2 dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-download me-2"></i>Export
+                            </button>
+                            <ul class="dropdown-menu shadow-lg border-0">
+                                <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-excel me-3 text-success"></i>Export to Excel</a></li>
+                                <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-csv me-3 text-info"></i>Export to CSV</a></li>
+                                <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-pdf me-3 text-danger"></i>Export to PDF</a></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -37,83 +40,83 @@
         </div>
     </div>
 
-    <!-- Enhanced Alert Cards -->
-    <div class="row mb-3">
+    <!-- Professional Statistics Cards -->
+    <div class="row g-4 mb-4">
         {% set low_stock_count = items|selectattr('is_low_stock')|list|length %}
         {% set expiring_count = items|selectattr('is_expiring_soon')|list|length %}
         {% set out_of_stock_count = items|selectattr('is_out_of_stock')|list|length %}
         {% set total_items = items|length %}
 
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #28a745 !important;">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="icon-circle bg-success bg-opacity-10 p-3 rounded-circle">
-                                <i class="fas fa-boxes fa-2x text-success"></i>
-                            </div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="stat-content">
+                            <h6 class="text-muted text-uppercase fw-semibold mb-2 small">Total Items</h6>
+                            <h2 class="mb-0 fw-bold text-dark">{{ total_items }}</h2>
+                            <p class="text-muted mb-0 small mt-1">Active inventory items</p>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small fw-semibold text-uppercase mb-1">Total Items</div>
-                            <div class="h3 mb-0 fw-bold text-success">{{ total_items }}</div>
-                            <div class="text-muted small">Active inventory</div>
+                        <div class="stat-icon">
+                            <div class="icon-circle bg-primary bg-opacity-10 p-3 rounded-circle">
+                                <i class="fas fa-boxes fs-3 text-primary"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #ffc107 !important;">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="stat-content">
+                            <h6 class="text-muted text-uppercase fw-semibold mb-2 small">Low Stock</h6>
+                            <h2 class="mb-0 fw-bold text-warning">{{ low_stock_count }}</h2>
+                            <p class="text-muted mb-0 small mt-1">Items need restocking</p>
+                        </div>
+                        <div class="stat-icon">
                             <div class="icon-circle bg-warning bg-opacity-10 p-3 rounded-circle">
-                                <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                <i class="fas fa-exclamation-triangle fs-3 text-warning"></i>
                             </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small fw-semibold text-uppercase mb-1">Low Stock</div>
-                            <div class="h3 mb-0 fw-bold text-warning">{{ low_stock_count }}</div>
-                            <div class="text-muted small">Items need restocking</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #dc3545 !important;">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="stat-content">
+                            <h6 class="text-muted text-uppercase fw-semibold mb-2 small">Expiring Soon</h6>
+                            <h2 class="mb-0 fw-bold text-danger">{{ expiring_count }}</h2>
+                            <p class="text-muted mb-0 small mt-1">Within 30 days</p>
+                        </div>
+                        <div class="stat-icon">
                             <div class="icon-circle bg-danger bg-opacity-10 p-3 rounded-circle">
-                                <i class="fas fa-clock fa-2x text-danger"></i>
+                                <i class="fas fa-clock fs-3 text-danger"></i>
                             </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small fw-semibold text-uppercase mb-1">Expiring Soon</div>
-                            <div class="h3 mb-0 fw-bold text-danger">{{ expiring_count }}</div>
-                            <div class="text-muted small">Within 30 days</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 alert-card" style="border-left: 4px solid #6f42c1 !important;">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card border-0 shadow-sm h-100 stat-card">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="icon-circle bg-purple bg-opacity-10 p-3 rounded-circle">
-                                <i class="fas fa-chart-line fa-2x" style="color: #6f42c1;"></i>
-                            </div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="stat-content">
+                            <h6 class="text-muted text-uppercase fw-semibold mb-2 small">Stock Value</h6>
+                            <h2 class="mb-0 fw-bold text-success">₹{{ "{:,.0f}".format(items|sum(attribute='stock_value')|default(0)) }}</h2>
+                            <p class="text-muted mb-0 small mt-1">Total inventory worth</p>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small fw-semibold text-uppercase mb-1">Stock Value</div>
-                            <div class="h3 mb-0 fw-bold" style="color: #6f42c1;">₹{{ "{:,.0f}".format(items|sum(attribute='stock_value')|default(0)) }}</div>
-                            <div class="text-muted small">Total inventory worth</div>
+                        <div class="stat-icon">
+                            <div class="icon-circle bg-success bg-opacity-10 p-3 rounded-circle">
+                                <i class="fas fa-chart-line fs-3 text-success"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -121,33 +124,28 @@
         </div>
     </div>
 
-    <!-- Enhanced Filter and Search Section -->
-    <div class="row mb-3">
+    <!-- Professional Search and Filter Section -->
+    <div class="row g-4 mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <!-- Search and Filter Row -->
-                    <div class="row align-items-center mb-3">
-                        <div class="col-lg-6 mb-3 mb-lg-0">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-light border-end-0">
-                                    <i class="fas fa-search text-muted"></i>
-                                </span>
-                                <input type="text" class="form-control border-start-0" placeholder="Search inventory items..." id="searchInput">
-                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                    <div class="row align-items-center g-3">
+                        <div class="col-lg-8">
+                            <div class="search-wrapper position-relative">
+                                <input type="text" class="form-control form-control-lg ps-5 border-1 rounded-3" 
+                                       placeholder="Search inventory items by name, SKU, or category..." id="searchInput">
+                                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
                             </div>
                         </div>
-                        <div class="col-lg-6">
-                            <div class="d-flex gap-2 justify-content-lg-end">
-                                <select class="form-select" id="categoryFilter">
+                        <div class="col-lg-4">
+                            <div class="d-flex gap-3">
+                                <select class="form-select form-select-lg border-1 rounded-3" id="categoryFilter">
                                     <option value="">All Categories</option>
                                     {% for category in categories %}
                                     <option value="{{ category.name }}">{{ category.display_name }}</option>
                                     {% endfor %}
                                 </select>
-                                <select class="form-select" id="statusFilter">
+                                <select class="form-select form-select-lg border-1 rounded-3" id="statusFilter">
                                     <option value="">All Status</option>
                                     <option value="normal">Normal Stock</option>
                                     <option value="low_stock">Low Stock</option>
@@ -158,37 +156,39 @@
                         </div>
                     </div>
 
-                    <!-- Modern Tab Navigation -->
-                    <ul class="nav nav-pills nav-fill" id="inventoryTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active px-4 py-3" id="all-tab" data-bs-toggle="pill" data-bs-target="#all-items" type="button" role="tab">
-                                <i class="fas fa-th-list me-2"></i>All Items
-                                <span class="badge bg-primary bg-opacity-20 text-primary ms-2">{{ items|length }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link px-4 py-3" id="low-stock-tab" data-bs-toggle="pill" data-bs-target="#low-stock-items" type="button" role="tab">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Low Stock
-                                <span class="badge bg-warning bg-opacity-20 text-warning ms-2">{{ low_stock_count }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link px-4 py-3" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="setTimeout(loadConsumptionData, 200);">
-                                <i class="fas fa-clipboard-list me-2"></i>Consumption
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link px-4 py-3" id="expiring-tab" data-bs-toggle="pill" data-bs-target="#expiring-items" type="button" role="tab">
-                                <i class="fas fa-clock me-2"></i>Expiring
-                                <span class="badge bg-danger bg-opacity-20 text-danger ms-2">{{ expiring_count }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link px-4 py-3" id="categories-tab" data-bs-toggle="pill" data-bs-target="#categories-view" type="button" role="tab">
-                                <i class="fas fa-tags me-2"></i>Categories
-                            </button>
-                        </li>
-                    </ul>
+                    <!-- Professional Tab Navigation -->
+                    <div class="mt-4">
+                        <ul class="nav nav-pills nav-fill bg-light rounded-3 p-1" id="inventoryTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active fw-semibold px-4 py-3 rounded-3" id="all-tab" data-bs-toggle="pill" data-bs-target="#all-items" type="button" role="tab">
+                                    <i class="fas fa-th-list me-2"></i>All Items
+                                    <span class="badge bg-white text-primary ms-2">{{ items|length }}</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-semibold px-4 py-3 rounded-3" id="low-stock-tab" data-bs-toggle="pill" data-bs-target="#low-stock-items" type="button" role="tab">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Low Stock
+                                    <span class="badge bg-warning text-white ms-2">{{ low_stock_count }}</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-semibold px-4 py-3 rounded-3" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption-tracking" type="button" role="tab" onclick="setTimeout(loadConsumptionData, 200);">
+                                    <i class="fas fa-clipboard-list me-2"></i>Consumption
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-semibold px-4 py-3 rounded-3" id="expiring-tab" data-bs-toggle="pill" data-bs-target="#expiring-items" type="button" role="tab">
+                                    <i class="fas fa-clock me-2"></i>Expiring
+                                    <span class="badge bg-danger text-white ms-2">{{ expiring_count }}</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-semibold px-4 py-3 rounded-3" id="categories-tab" data-bs-toggle="pill" data-bs-target="#categories-view" type="button" role="tab">
+                                    <i class="fas fa-tags me-2"></i>Categories
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -196,20 +196,26 @@
 
     <!-- Tab Content -->
     <div class="tab-content" id="inventoryTabContent">
-        <!-- Enhanced All Items Tab -->
+        <!-- Professional All Items Tab -->
         <div class="tab-pane fade show active" id="all-items" role="tabpanel">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom-0 py-4">
+            <div class="card border-0 shadow-sm professional-table">
+                <div class="card-header bg-white border-bottom py-4">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="m-0 fw-bold">
-                            <i class="fas fa-list-ul me-2 text-primary"></i>All Inventory Items
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-sort me-1"></i>Sort
+                        <div class="d-flex align-items-center">
+                            <div class="icon-wrapper me-3" style="width: 50px; height: 50px;">
+                                <i class="fas fa-list-ul fs-5"></i>
+                            </div>
+                            <div>
+                                <h4 class="m-0 fw-bold text-dark">Inventory Items</h4>
+                                <p class="text-muted mb-0 small">Manage your complete inventory</p>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-3">
+                            <button class="btn btn-outline-primary px-4 py-2">
+                                <i class="fas fa-sort me-2"></i>Sort & Filter
                             </button>
-                            <button class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-columns me-1"></i>Columns
+                            <button class="btn btn-outline-secondary px-4 py-2">
+                                <i class="fas fa-columns me-2"></i>Customize View
                             </button>
                         </div>
                     </div>
