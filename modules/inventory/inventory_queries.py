@@ -6,10 +6,14 @@ from sqlalchemy import func, and_, or_, desc, asc, text
 from sqlalchemy.orm import joinedload
 from app import db
 from models import (
-    Inventory, StockMovement, Service, Appointment, 
-    Category, User, InventoryItem, 
-    ConsumptionEntry, UsageDuration
+    InventoryProduct, InventoryTransaction, Service, Appointment, 
+    InventoryCategory, User, InventoryItem, 
+    ConsumptionEntry, UsageDuration, InventorySupplier,
+    InventoryAlert, StockMovement
 )
+# Alias for compatibility
+Inventory = InventoryProduct
+Category = InventoryCategory
 
 def get_all_inventory():
     """Get all active inventory items"""

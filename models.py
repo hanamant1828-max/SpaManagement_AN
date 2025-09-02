@@ -58,9 +58,8 @@ class Category(db.Model):
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Relationships (remove the problematic inventory relationship for now)
     services = db.relationship('Service', backref='service_category', lazy=True, foreign_keys='Service.category_id')
-    inventory = db.relationship('InventoryMaster', backref='inventory_category', lazy=True, foreign_keys='InventoryMaster.category_id')
     expenses = db.relationship('Expense', backref='expense_category', lazy=True, foreign_keys='Expense.category_id')
 
 class Department(db.Model):
@@ -424,11 +423,12 @@ class CustomerPackageSession(db.Model):
     # Relationships
     service = db.relationship('Service', backref='customer_sessions')
 
-# Enhanced Professional Inventory Management System
+# 📦 Professional Inventory Management System
+# Built from scratch following the comprehensive plan
 
-class CategoryMaster(db.Model):
-    """Enhanced category management with full audit trail"""
-    __tablename__ = 'category_master'
+class InventoryCategory(db.Model):
+    """Enhanced category master with full audit trail"""
+    __tablename__ = 'inventory_category'
     
     category_id = db.Column(db.Integer, primary_key=True)
     category_name = db.Column(db.String(100), nullable=False, unique=True, index=True)
@@ -439,9 +439,9 @@ class CategoryMaster(db.Model):
     created_by = db.Column(db.String(50))
     updated_by = db.Column(db.String(50))
 
-class SupplierMaster(db.Model):
+class InventorySupplier(db.Model):
     """Enhanced supplier master with complete business details"""
-    __tablename__ = 'supplier_master'
+    __tablename__ = 'inventory_supplier'
     
     supplier_id = db.Column(db.Integer, primary_key=True)
     supplier_name = db.Column(db.String(150), nullable=False, index=True)
@@ -463,31 +463,34 @@ class SupplierMaster(db.Model):
     created_by = db.Column(db.String(50))
     updated_by = db.Column(db.String(50))
 
-class StorageLocation(db.Model):
+class InventoryLocation(db.Model):
     """Multi-location inventory management"""
-    __tablename__ = 'storage_locations'
+    __tablename__ = 'inventory_location'
     
     location_id = db.Column(db.Integer, primary_key=True)
     location_code = db.Column(db.String(20), unique=True, nullable=False)
     location_name = db.Column(db.String(100), nullable=False)
     location_type = db.Column(db.String(20), default='SECTION')  # WAREHOUSE, ROOM, SHELF, SECTION
-    parent_location_id = db.Column(db.Integer, db.ForeignKey('storage_locations.location_id'))
+    parent_location_id = db.Column(db.Integer, db.ForeignKey('inventory_location.location_id'))
     capacity = db.Column(db.Integer)
     temperature_controlled = db.Column(db.Boolean, default=False)
     security_level = db.Column(db.String(10), default='LOW')  # LOW, MEDIUM, HIGH
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Self-referencing relationship for parent-child locations
+    children = db.relationship('InventoryLocation', backref=db.backref('parent', remote_side=[location_id]))
 
-class InventoryMaster(db.Model):
+class InventoryProduct(db.Model):
     """Enhanced inventory master with professional features"""
-    __tablename__ = 'inventory_master'
+    __tablename__ = 'inventory_product'
     
     product_id = db.Column(db.Integer, primary_key=True)
     product_code = db.Column(db.String(50), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    category_id = db.Column(db.Integer, db.ForeignKey('category_master.category_id'), index=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_master.supplier_id'), index=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('inventory_category.category_id'), index=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('inventory_supplier.supplier_id'), index=True)
     unit = db.Column(db.String(20), default='pcs')
     unit_cost = db.Column(db.Float, default=0.0)
     selling_price = db.Column(db.Float, default=0.0)
@@ -505,22 +508,44 @@ class InventoryMaster(db.Model):
     created_by = db.Column(db.String(50))
     updated_by = db.Column(db.String(50))
     
+    # Legacy compatibility fields
+    current_stock = db.Column(db.Float, default=0.0)  # For existing code compatibility
+    min_stock_level = db.Column(db.Float, default=0.0)  # Alias for reorder_level
+    cost_price = db.Column(db.Float, default=0.0)  # Alias for unit_cost
+    
     # Relationships
-    category = db.relationship('CategoryMaster', backref='products')
-    supplier = db.relationship('SupplierMaster', backref='products')
-    transactions = db.relationship('InventoryTransaction', backref='product')
-    locations = db.relationship('ProductLocation', backref='product')
+    category = db.relationship('InventoryCategory', backref='products')
+    supplier = db.relationship('InventorySupplier', backref='products')
+    
+    @property
+    def id(self):
+        """Legacy compatibility - return product_id as id"""
+        return self.product_id
+    
+    def can_fulfill_quantity(self, quantity):
+        """Calculate if we have enough stock to fulfill a quantity"""
+        # Calculate current stock from approved transactions
+        approved_in = sum(t.quantity for t in self.transactions 
+                         if t.status == 'APPROVED' and t.transaction_type == 'IN')
+        approved_out = sum(t.quantity for t in self.transactions 
+                          if t.status == 'APPROVED' and t.transaction_type == 'OUT')
+        calculated_stock = approved_in - approved_out
+        
+        # Update current_stock field for compatibility
+        self.current_stock = calculated_stock
+        
+        return calculated_stock >= quantity
 
 class InventoryTransaction(db.Model):
     """Advanced inventory transactions with approval workflow"""
-    __tablename__ = 'inventory_transactions'
+    __tablename__ = 'inventory_transaction'
     
     transaction_id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'), index=True)
     transaction_type = db.Column(db.String(10), nullable=False, index=True)  # IN, OUT, ADJUST, TRANSFER, DAMAGED, EXPIRED, RETURNED
     quantity = db.Column(db.Integer, nullable=False)
     unit_cost = db.Column(db.Float, default=0.0)
-    total_value = db.Column(db.Float, default=0.0)  # quantity * unit_cost
+    total_value = db.Column(db.Float, default=0.0)
     batch_number = db.Column(db.String(50), index=True)
     lot_number = db.Column(db.String(50))
     expiry_date = db.Column(db.Date)
@@ -534,57 +559,21 @@ class InventoryTransaction(db.Model):
     approved_at = db.Column(db.DateTime)
     status = db.Column(db.String(20), default='PENDING', index=True)  # PENDING, APPROVED, REJECTED, CANCELLED
     
+    # Relationship
+    product = db.relationship('InventoryProduct', backref='transactions')
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Auto-calculate total value
         if self.unit_cost and self.quantity:
             self.total_value = self.quantity * self.unit_cost
 
-class ProductLocation(db.Model):
-    """Track product quantities across multiple locations"""
-    __tablename__ = 'product_locations'
-    
-    product_location_id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
-    location_id = db.Column(db.Integer, db.ForeignKey('storage_locations.location_id'))
-    quantity = db.Column(db.Integer, default=0)
-    min_quantity = db.Column(db.Integer, default=0)
-    max_quantity = db.Column(db.Integer, default=0)
-    is_primary_location = db.Column(db.Boolean, default=False)
-    
-    location = db.relationship('StorageLocation', backref='product_locations')
-
-# Add required legacy attributes to InventoryMaster for compatibility
-def add_legacy_attributes():
-    """Add attributes needed by existing code"""
-    if not hasattr(InventoryMaster, 'current_stock'):
-        InventoryMaster.current_stock = db.Column(db.Float, default=0.0)
-    if not hasattr(InventoryMaster, 'min_stock_level'):
-        InventoryMaster.min_stock_level = db.Column(db.Float, default=0.0)
-    if not hasattr(InventoryMaster, 'cost_price'):
-        InventoryMaster.cost_price = InventoryMaster.unit_cost
-    if not hasattr(InventoryMaster, 'id'):
-        InventoryMaster.id = InventoryMaster.product_id
-    
-    def can_fulfill_quantity(self, quantity):
-        # Calculate current stock from transactions
-        approved_in = sum(t.quantity for t in self.transactions if t.status == 'APPROVED' and t.transaction_type == 'IN')
-        approved_out = sum(t.quantity for t in self.transactions if t.status == 'APPROVED' and t.transaction_type == 'OUT')
-        current_stock = approved_in - approved_out
-        return current_stock >= quantity
-    
-    InventoryMaster.can_fulfill_quantity = can_fulfill_quantity
-
-add_legacy_attributes()
-
-# Legacy compatibility alias
-Inventory = InventoryMaster
-
-class StockAlert(db.Model):
+class InventoryAlert(db.Model):
     """Advanced stock alerts system"""
-    __tablename__ = 'stock_alerts'
+    __tablename__ = 'inventory_alert'
     
     alert_id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'), index=True)
     alert_type = db.Column(db.String(20), nullable=False, index=True)  # LOW_STOCK, OUT_OF_STOCK, EXPIRY_SOON, EXPIRED, OVERSTOCK, DAMAGED
     alert_message = db.Column(db.Text)
     threshold_value = db.Column(db.Integer)
@@ -595,11 +584,12 @@ class StockAlert(db.Model):
     resolved_at = db.Column(db.DateTime)
     resolution_notes = db.Column(db.Text)
     
-    product = db.relationship('InventoryMaster', backref='alerts')
+    # Relationship
+    product = db.relationship('InventoryProduct', backref='alerts')
 
-class StockCount(db.Model):
+class InventoryStockCount(db.Model):
     """Physical stock count management"""
-    __tablename__ = 'stock_counts'
+    __tablename__ = 'inventory_stock_count'
     
     count_id = db.Column(db.Integer, primary_key=True)
     count_reference = db.Column(db.String(50), unique=True, nullable=False)
@@ -618,53 +608,13 @@ class StockCount(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class StockCountDetail(db.Model):
-    """Individual product counts within a stock count"""
-    __tablename__ = 'stock_count_details'
-    
-    count_detail_id = db.Column(db.Integer, primary_key=True)
-    count_id = db.Column(db.Integer, db.ForeignKey('stock_counts.count_id'), index=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), index=True)
-    system_quantity = db.Column(db.Integer)
-    counted_quantity = db.Column(db.Integer)
-    variance_quantity = db.Column(db.Integer)  # counted_quantity - system_quantity
-    variance_value = db.Column(db.Float)
-    batch_number = db.Column(db.String(50))
-    expiry_date = db.Column(db.Date)
-    counted_by = db.Column(db.String(50))
-    counted_at = db.Column(db.DateTime)
-    notes = db.Column(db.Text)
-    
-    stock_count = db.relationship('StockCount', backref='details')
-    product = db.relationship('InventoryMaster', backref='count_details')
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.counted_quantity is not None and self.system_quantity is not None:
-            self.variance_quantity = self.counted_quantity - self.system_quantity
-
-class AuditLog(db.Model):
-    """Comprehensive audit logging for inventory changes"""
-    __tablename__ = 'audit_log'
-    
-    audit_id = db.Column(db.Integer, primary_key=True)
-    table_name = db.Column(db.String(50), index=True)
-    record_id = db.Column(db.Integer, index=True)
-    action = db.Column(db.String(10), nullable=False)  # INSERT, UPDATE, DELETE
-    old_values = db.Column(db.Text)  # JSON string
-    new_values = db.Column(db.Text)  # JSON string
-    changed_by = db.Column(db.String(50), index=True)
-    changed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    ip_address = db.Column(db.String(45))
-    user_agent = db.Column(db.Text)
-
-class ReorderRule(db.Model):
+class InventoryReorderRule(db.Model):
     """Automated reordering system"""
-    __tablename__ = 'reorder_rules'
+    __tablename__ = 'inventory_reorder_rule'
     
     rule_id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), unique=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_master.supplier_id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'), unique=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('inventory_supplier.supplier_id'))
     reorder_point = db.Column(db.Integer, nullable=False)
     reorder_quantity = db.Column(db.Integer, nullable=False)
     max_stock_level = db.Column(db.Integer)
@@ -674,34 +624,15 @@ class ReorderRule(db.Model):
     last_reorder_date = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    product = db.relationship('InventoryMaster', backref='reorder_rule', uselist=False)
-    supplier = db.relationship('SupplierMaster', backref='reorder_rules')
+    # Relationships
+    product = db.relationship('InventoryProduct', backref='reorder_rule', uselist=False)
+    supplier = db.relationship('InventorySupplier', backref='reorder_rules')
 
-class ReorderRequest(db.Model):
-    """Generated reorder requests"""
-    __tablename__ = 'reorder_requests'
-    
-    request_id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
-    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_master.supplier_id'))
-    requested_quantity = db.Column(db.Integer, nullable=False)
-    current_stock = db.Column(db.Integer)
-    reorder_point = db.Column(db.Integer)
-    status = db.Column(db.String(20), default='PENDING')  # PENDING, APPROVED, ORDERED, RECEIVED, CANCELLED
-    priority = db.Column(db.String(10), default='NORMAL')  # LOW, NORMAL, HIGH, URGENT
-    requested_date = db.Column(db.DateTime, default=datetime.utcnow)
-    approved_by = db.Column(db.String(50))
-    approved_at = db.Column(db.DateTime)
-    order_reference = db.Column(db.String(100))
-    notes = db.Column(db.Text)
-    
-    product = db.relationship('InventoryMaster', backref='reorder_requests')
-    supplier = db.relationship('SupplierMaster', backref='reorder_requests')
-
+# Legacy compatibility models for existing code
 class StockMovement(db.Model):
     """Track all stock movements - legacy compatibility"""
     id = db.Column(db.Integer, primary_key=True)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'))
     movement_type = db.Column(db.String(50), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
     unit = db.Column(db.String(20), default='pcs')
@@ -710,10 +641,10 @@ class StockMovement(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    inventory = db.relationship('InventoryMaster', backref='movements')
+    inventory = db.relationship('InventoryProduct', backref='movements')
 
 class InventoryItem(db.Model):
-    """Alternative inventory table"""
+    """Simple inventory items - legacy compatibility"""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50))
@@ -724,76 +655,57 @@ class InventoryItem(db.Model):
     reorder_level = db.Column(db.Float, default=0.0)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class SimpleInventoryItem(db.Model):
-    """Simple inventory management"""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    category = db.Column(db.String(50))
-    current_stock = db.Column(db.Float, default=0.0)
-    unit = db.Column(db.String(20), default='pcs')
-    reorder_level = db.Column(db.Float, default=0.0)
-    cost_price = db.Column(db.Float, default=0.0)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class SimpleStockTransaction(db.Model):
-    """Simple stock transactions"""
-    id = db.Column(db.Integer, primary_key=True)
-    item_id = db.Column(db.Integer, db.ForeignKey('simple_inventory_item.id'))
-    transaction_type = db.Column(db.String(10), nullable=False)
-    quantity = db.Column(db.Float, nullable=False)
-    notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class SimpleLowStockAlert(db.Model):
-    """Low stock alerts"""
-    id = db.Column(db.Integer, primary_key=True)
-    item_id = db.Column(db.Integer, db.ForeignKey('simple_inventory_item.id'))
-    alert_level = db.Column(db.Float, nullable=False)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def can_fulfill_quantity(self, quantity):
+        return self.current_stock >= quantity
 
 class ServiceInventoryItem(db.Model):
-    """Link services to inventory items they consume"""
+    """Link services to inventory items"""
     id = db.Column(db.Integer, primary_key=True)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'))
     quantity_per_service = db.Column(db.Float, nullable=False)
     unit = db.Column(db.String(20), default='pcs')
     
-    inventory_item = db.relationship('InventoryMaster', backref='service_items')
+    inventory_item = db.relationship('InventoryProduct', backref='service_items')
 
 class ConsumptionEntry(db.Model):
     """Track inventory consumption"""
     id = db.Column(db.Integer, primary_key=True)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'))
     quantity_used = db.Column(db.Float, nullable=False)
     used_date = db.Column(db.DateTime, default=datetime.utcnow)
     notes = db.Column(db.Text)
     
-    inventory_item = db.relationship('InventoryMaster', backref='consumption_entries')
+    inventory_item = db.relationship('InventoryProduct', backref='consumption_entries')
 
 class UsageDuration(db.Model):
-    """Track usage duration for inventory"""
+    """Track usage duration"""
     id = db.Column(db.Integer, primary_key=True)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'))
     usage_days = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    inventory_item = db.relationship('InventoryMaster', backref='usage_durations')
+    inventory_item = db.relationship('InventoryProduct', backref='usage_durations')
 
 class InventoryAdjustment(db.Model):
     """Inventory adjustments"""
     id = db.Column(db.Integer, primary_key=True)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'))
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'))
     adjustment_type = db.Column(db.String(50), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
     reason = db.Column(db.Text)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    inventory_item = db.relationship('InventoryMaster', backref='adjustments')
+    inventory_item = db.relationship('InventoryProduct', backref='adjustments')
+
+# Legacy aliases for existing code
+Inventory = InventoryProduct
+InventoryMaster = InventoryProduct
+CategoryMaster = InventoryCategory
+SupplierMaster = InventorySupplier
+InventoryTransaction = InventoryTransaction
 
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
