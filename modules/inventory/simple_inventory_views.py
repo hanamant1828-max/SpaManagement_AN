@@ -56,10 +56,10 @@ def simple_inventory():
     # Get all transaction types from database
     from models import TransactionType
     transaction_types_db = TransactionType.query.filter_by(is_active=True).all()
-    
+
     # Convert to list format for backward compatibility
     transaction_types = [{'name': tt.name, 'display_name': tt.display_name} for tt in transaction_types_db]
-    
+
     # Fallback if no transaction types exist
     if not transaction_types:
         transaction_types = [{'name': 'treatment', 'display_name': 'Treatment (Facial/Service)'}]
@@ -68,30 +68,30 @@ def simple_inventory():
     total_items = len(items)
     low_stock_count = sum(1 for item in items if item.current_stock <= item.minimum_stock)
     total_stock_value = sum(item.current_stock * item.unit_cost for item in items)
-    
+
     # Get today's transactions
     today = datetime.now().date()
     todays_transactions = SimpleStockTransaction.query.filter(
         db.func.date(SimpleStockTransaction.date_time) == today
     ).count()
-    
+
     # Get recent transactions for the consumption tab
     transactions = SimpleStockTransaction.query.order_by(
         SimpleStockTransaction.date_time.desc()
     ).limit(50).all()
-    
+
     # Additional statistics needed by template
     total_transactions = SimpleStockTransaction.query.count()
     week_ago = datetime.now() - timedelta(days=7)
     weekly_transactions = SimpleStockTransaction.query.filter(
         SimpleStockTransaction.date_time >= week_ago
     ).count()
-    
+
     items_consumed_today = SimpleStockTransaction.query.filter(
         db.func.date(SimpleStockTransaction.date_time) == today,
         SimpleStockTransaction.quantity_change < 0
     ).count()
-    
+
     month_ago = datetime.now() - timedelta(days=30)
     monthly_consumption = SimpleStockTransaction.query.filter(
         SimpleStockTransaction.date_time >= month_ago,
@@ -376,7 +376,7 @@ def record_transaction():
 
         # Check for negative stock (but allow negative for tracking)
         if new_stock < 0:
-            flash(f'⚠️ Warning: This will result in negative stock. Current: {item.current_stock}, Requested: {quantity}', 'warning')
+            flash('⚠️ Warning: This will result in negative stock. Current: {item.current_stock}, Requested: {quantity}', 'warning')
 
         # Update item stock
         item.current_stock = new_stock
@@ -464,12 +464,12 @@ def delete_inventory_item(item_id):
 
         item_name = item.name
         item_sku = item.sku
-        
+
         # Soft delete by marking as inactive instead of hard delete
         item.is_active = False
         item.name = f"[DELETED] {item.name}"
         item.sku = f"DEL_{item.sku}"
-        
+
         db.session.commit()
 
         return jsonify({

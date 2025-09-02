@@ -283,15 +283,17 @@
                                     <td>{{ item.minimum_stock }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-secondary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editMasterItemModal" 
-                                                    onclick="editMasterItem({{ item.id }})">
-                                                <i class="fas fa-edit"></i>
+                                            <button class="btn btn-sm btn-outline-success me-1" onclick="purchaseItem({{ item.id }})" title="Purchase/Add Stock">
+                                                <i class="fas fa-plus"></i> Purchase
                                             </button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                    onclick="deleteMasterItem({{ item.id }}, '{{ item.name }}')">
-                                                <i class="fas fa-trash"></i>
+                                            <button class="btn btn-sm btn-outline-warning me-1" onclick="consumeItem({{ item.id }})" title="Consume Item">
+                                                <i class="fas fa-minus"></i> Consume
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editMasterItem({{ item.id }})">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteMasterItem({{ item.id }})">
+                                                <i class="fas fa-trash"></i> Delete
                                             </button>
                                         </div>
                                     </td>
@@ -946,6 +948,157 @@
     </div>
 </div>
 
+<!-- Edit Master Item Modal -->
+    <div class="modal fade" id="editMasterItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Master Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/simple-inventory/master/edit">
+                    <div class="modal-body">
+                        <input type="hidden" id="editMasterItemId" name="item_id">
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="editMasterItemName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">SKU</label>
+                            <input type="text" class="form-control" id="editMasterItemSku" name="sku" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-control" id="editMasterItemCategory" name="category">
+                                <option value="skincare">Skincare</option>
+                                <option value="haircare">Haircare</option>
+                                <option value="massage">Massage</option>
+                                <option value="nails">Nails</option>
+                                <option value="tools">Tools</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="editMasterItemDescription" name="description"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Minimum Stock</label>
+                                <input type="number" class="form-control" id="editMasterItemMinStock" name="minimum_stock" step="0.1" min="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Unit Cost</label>
+                                <input type="number" class="form-control" id="editMasterItemUnitCost" name="unit_cost" step="0.01" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Item Modal -->
+    <div class="modal fade" id="purchaseItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Purchase Item - Add Stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/simple-inventory/purchase">
+                    <div class="modal-body">
+                        <input type="hidden" id="purchaseItemId" name="item_id">
+                        <div class="mb-3">
+                            <label class="form-label">Item Name</label>
+                            <input type="text" class="form-control" id="purchaseItemName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Current Stock</label>
+                            <input type="text" class="form-control" id="purchaseCurrentStock" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity to Add</label>
+                            <input type="number" class="form-control" name="quantity" step="0.1" min="0.1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Unit Cost (Optional)</label>
+                            <input type="number" class="form-control" name="unit_cost" step="0.01" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Supplier (Optional)</label>
+                            <input type="text" class="form-control" name="supplier" placeholder="Supplier name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Reference Number (Optional)</label>
+                            <input type="text" class="form-control" name="reference_number" placeholder="Invoice/PO number">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" name="notes" placeholder="Purchase notes..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Add Stock</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consume Item Modal -->
+    <div class="modal fade" id="consumeItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Consume Item - Deduct Stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/simple-inventory/consume">
+                    <div class="modal-body">
+                        <input type="hidden" id="consumeItemId" name="item_id">
+                        <div class="mb-3">
+                            <label class="form-label">Item Name</label>
+                            <input type="text" class="form-control" id="consumeItemName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Current Stock</label>
+                            <input type="text" class="form-control" id="consumeCurrentStock" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="consumeQuantity" class="form-label">Quantity to Consume</label>
+                            <input type="number" class="form-control" id="consumeQuantity" name="quantity" step="0.1" min="0.1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="consumptionType" class="form-label">Consumption Type</label>
+                            <select class="form-control" id="consumptionType" name="consumption_type" required>
+                                <option value="service_use">Service Use</option>
+                                <option value="treatment">Treatment</option>
+                                <option value="wastage">Wastage</option>
+                                <option value="damaged">Damaged</option>
+                                <option value="expired">Expired</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="consumeReason" class="form-label">Reason</label>
+                            <textarea class="form-control" id="consumeReason" name="reason" placeholder="Reason for consumption..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">Consume Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 <script>
 // JavaScript functions for interactivity
 function updateStock(itemId, itemName, currentStock) {
@@ -1231,17 +1384,71 @@ function editMasterItem(itemId) {
                 document.getElementById('editMasterItemSku').value = item.sku;
                 document.getElementById('editMasterItemCategory').value = item.category;
                 document.getElementById('editMasterItemDescription').value = item.description || '';
-                document.getElementById('editMasterSupplier').value = item.supplier || '';
-                document.getElementById('editMasterReorderLevel').value = item.minimum_stock;
-                document.getElementById('editMasterUnitCost').value = item.unit_cost || 0;
-                document.getElementById('editMasterLocation').value = item.location || '';
+                document.getElementById('editMasterItemMinStock').value = item.minimum_stock || 0;
+                document.getElementById('editMasterItemUnitCost').value = item.unit_cost || 0;
+
+                const editModal = new bootstrap.Modal(document.getElementById('editMasterItemModal'));
+                editModal.show();
             } else {
-                alert('Error loading item details: ' + data.message);
+                alert('Error fetching item details');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error loading item details');
+            alert('Error fetching item details');
+        });
+}
+
+function purchaseItem(itemId) {
+    // Fetch item details and populate the purchase modal
+    fetch(`/get_inventory_item/${itemId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = data.item;
+                document.getElementById('purchaseItemId').value = item.id;
+                document.getElementById('purchaseItemName').value = item.name;
+                document.getElementById('purchaseCurrentStock').value = `${item.current_stock || 0} units`;
+
+                const purchaseModal = new bootstrap.Modal(document.getElementById('purchaseItemModal'));
+                purchaseModal.show();
+            } else {
+                alert('Error fetching item details');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error fetching item details');
+        });
+}
+
+function consumeItem(itemId) {
+    // Fetch item details and populate the consume modal
+    fetch(`/get_inventory_item/${itemId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = data.item;
+                const currentStock = item.current_stock || 0;
+
+                if (currentStock <= 0) {
+                    alert('Cannot consume item - no stock available');
+                    return;
+                }
+
+                document.getElementById('consumeItemId').value = item.id;
+                document.getElementById('consumeItemName').value = item.name;
+                document.getElementById('consumeCurrentStock').value = `${currentStock} units`;
+
+                const consumeModal = new bootstrap.Modal(document.getElementById('consumeItemModal'));
+                consumeModal.show();
+            } else {
+                alert('Error fetching item details');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error fetching item details');
         });
 }
 
