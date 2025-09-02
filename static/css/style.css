@@ -697,14 +697,10 @@ body {
 
     .main-content {
         margin-left: 0;
-        padding: 20px; /* Equal padding on all sides */
-        height: calc(100vh - 56px);
+        padding: 20px;
+        min-height: calc(100vh - 56px);
         overflow-y: auto;
         overflow-x: hidden;
-        width: calc(100vw - 280px); /* Ensure proper width */
-        position: fixed;
-        top: 56px;
-        right: 0;
     }
 }
 
