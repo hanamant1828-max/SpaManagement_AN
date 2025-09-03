@@ -3,7 +3,7 @@ Hanaman Inventory Database Queries
 Clean CRUD operations for inventory management
 """
 from app import db
-from .models import HanamanProduct, HanamanCategory, HanamanStockMovement, HanamanSupplier
+from .models import HanamanProduct, HanamanCategory, HanamanStockMovement, HanamanSupplier, ProductMaster
 from datetime import datetime
 from flask_login import current_user
 
@@ -262,5 +262,73 @@ def delete_supplier(supplier_id):
     except Exception as e:
         db.session.rollback()
         print(f"Error deleting supplier: {e}")
+        return False
+
+# Product Master CRUD Operations
+def get_all_product_masters():
+    """Get all active product masters with joined data"""
+    return db.session.query(ProductMaster, HanamanCategory, HanamanSupplier).join(
+        HanamanCategory, ProductMaster.category_id == HanamanCategory.id
+    ).join(
+        HanamanSupplier, ProductMaster.supplier_id == HanamanSupplier.id
+    ).filter(ProductMaster.is_active == True).order_by(ProductMaster.product_name).all()
+
+def get_product_master_by_id(product_id):
+    """Get product master by ID"""
+    return ProductMaster.query.get(product_id)
+
+def create_product_master(product_data):
+    """Create a new product master"""
+    try:
+        product = ProductMaster(
+            product_name=product_data['product_name'],
+            category_id=product_data['category_id'],
+            supplier_id=product_data['supplier_id'],
+            unit=product_data['unit'],
+            min_stock=product_data['min_stock'],
+            created_by=current_user.id if current_user.is_authenticated else 1
+        )
+        db.session.add(product)
+        db.session.commit()
+        return product
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating product master: {e}")
+        return None
+
+def update_product_master(product_id, product_data):
+    """Update existing product master"""
+    try:
+        product = ProductMaster.query.get(product_id)
+        if product:
+            product.product_name = product_data['product_name']
+            product.category_id = product_data['category_id']
+            product.supplier_id = product_data['supplier_id']
+            product.unit = product_data['unit']
+            product.min_stock = product_data['min_stock']
+            product.updated_by = current_user.id if current_user.is_authenticated else 1
+            product.updated_at = datetime.utcnow()
+            db.session.commit()
+            return product
+        return None
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating product master: {e}")
+        return None
+
+def delete_product_master(product_id):
+    """Soft delete product master"""
+    try:
+        product = ProductMaster.query.get(product_id)
+        if product:
+            product.is_active = False
+            product.updated_by = current_user.id if current_user.is_authenticated else 1
+            product.updated_at = datetime.utcnow()
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting product master: {e}")
         return False
 

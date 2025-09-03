@@ -116,3 +116,28 @@ class HanamanSupplier(db.Model):
     def __str__(self):
         return self.name
 
+class ProductMaster(db.Model):
+    """Product Master for spa inventory management"""
+    __tablename__ = 'product_master'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    product_name = db.Column(db.String(100), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('hanaman_category.id'), nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('hanaman_supplier.id'), nullable=False)
+    unit = db.Column(db.String(20), nullable=False, default='piece')  # ml, liter, piece, etc.
+    min_stock = db.Column(db.Integer, nullable=False, default=5)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    category = db.relationship('HanamanCategory', backref='product_masters')
+    supplier = db.relationship('HanamanSupplier', backref='product_masters')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_products')
+    updater = db.relationship('User', foreign_keys=[updated_by], backref='updated_products')
+    
+    def __str__(self):
+        return self.product_name
+

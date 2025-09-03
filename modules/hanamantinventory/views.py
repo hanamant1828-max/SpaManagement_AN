@@ -9,7 +9,8 @@ from .queries import (
     get_all_products, get_product_by_id, create_product, update_product, delete_product,
     get_all_categories, get_category_by_id, create_category, update_category, delete_category,
     get_low_stock_products, search_products, update_stock, get_inventory_stats, get_stock_movements,
-    get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier, delete_supplier
+    get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier, delete_supplier,
+    get_all_product_masters, get_product_master_by_id, create_product_master, update_product_master, delete_product_master
 )
 import uuid
 
@@ -21,11 +22,11 @@ def hanaman_inventory():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get filter parameters
     search_query = request.args.get('search', '')
     filter_type = request.args.get('filter', 'all')
-    
+
     # Get products based on filters
     if search_query:
         products = search_products(search_query)
@@ -33,13 +34,13 @@ def hanaman_inventory():
         products = get_low_stock_products()
     else:
         products = get_all_products()
-    
+
     # Get categories for dropdowns
     categories = get_all_categories()
-    
+
     # Get statistics
     stats = get_inventory_stats()
-    
+
     return render_template('hanaman_inventory.html', 
                          products=products, 
                          categories=categories, 
@@ -55,13 +56,13 @@ def hanaman_add_product():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         # Generate SKU if not provided
         sku = request.form.get('sku', '').strip()
         if not sku:
             sku = f"HAN-{str(uuid.uuid4())[:8].upper()}"
-        
+
         product_data = {
             'name': request.form.get('name', '').strip(),
             'sku': sku,
@@ -76,23 +77,23 @@ def hanaman_add_product():
             'supplier_name': request.form.get('supplier_name', '').strip(),
             'supplier_contact': request.form.get('supplier_contact', '').strip(),
         }
-        
+
         # Validate required fields
         if not product_data['name']:
             flash('Product name is required', 'danger')
             return redirect(url_for('hanaman_inventory'))
-        
+
         product = create_product(product_data)
         if product:
             flash(f'Product "{product.name}" added successfully!', 'success')
         else:
             flash('Error adding product. SKU might already exist.', 'danger')
-            
+
     except ValueError as e:
         flash(f'Invalid input: Please check your data', 'danger')
     except Exception as e:
         flash(f'Error adding product: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory'))
 
 @app.route('/hanaman-inventory/product/edit/<int:product_id>', methods=['POST'])
@@ -102,7 +103,7 @@ def hanaman_edit_product(product_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         product_data = {
             'name': request.form.get('name', '').strip(),
@@ -116,18 +117,18 @@ def hanaman_edit_product(product_id):
             'supplier_name': request.form.get('supplier_name', '').strip(),
             'supplier_contact': request.form.get('supplier_contact', '').strip(),
         }
-        
+
         product = update_product(product_id, product_data)
         if product:
             flash(f'Product "{product.name}" updated successfully!', 'success')
         else:
             flash('Error updating product', 'danger')
-            
+
     except ValueError:
         flash('Invalid input: Please check your data', 'danger')
     except Exception as e:
         flash(f'Error updating product: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory'))
 
 @app.route('/hanaman-inventory/product/delete/<int:product_id>', methods=['POST'])
@@ -137,7 +138,7 @@ def hanaman_delete_product(product_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         product = get_product_by_id(product_id)
         if product and delete_product(product_id):
@@ -146,7 +147,7 @@ def hanaman_delete_product(product_id):
             flash('Error deleting product', 'danger')
     except Exception as e:
         flash(f'Error deleting product: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory'))
 
 # Stock operations
@@ -157,22 +158,22 @@ def hanaman_update_stock(product_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         new_quantity = float(request.form.get('new_quantity', 0))
         reason = request.form.get('reason', 'Manual stock update').strip()
-        
+
         product = update_stock(product_id, new_quantity, 'adjust', reason)
         if product:
             flash(f'Stock updated for "{product.name}". New quantity: {new_quantity} {product.unit}', 'success')
         else:
             flash('Error updating stock', 'danger')
-            
+
     except ValueError:
         flash('Invalid quantity value', 'danger')
     except Exception as e:
         flash(f'Error updating stock: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory'))
 
 # Category operations
@@ -183,24 +184,24 @@ def hanaman_add_category():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
-        
+
         if not name:
             flash('Category name is required', 'danger')
             return redirect(url_for('hanaman_inventory'))
-        
+
         category = create_category(name, description)
         if category:
             flash(f'Category "{category.name}" added successfully!', 'success')
         else:
             flash('Error adding category. Name might already exist.', 'danger')
-            
+
     except Exception as e:
         flash(f'Error adding category: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory'))
 
 # Consumption route
@@ -211,40 +212,40 @@ def hanaman_consume_stock(product_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         quantity_to_consume = float(request.form.get('new_quantity', 0))
         reason = request.form.get('reason', 'Stock consumption').strip()
         notes = request.form.get('notes', '').strip()
-        
+
         if quantity_to_consume <= 0:
             flash('Consumption quantity must be greater than zero', 'danger')
             return redirect(url_for('hanaman_inventory'))
-            
+
         product = get_product_by_id(product_id)
         if not product:
             flash('Product not found', 'danger')
             return redirect(url_for('hanaman_inventory'))
-        
+
         if product.current_stock < quantity_to_consume:
             flash(f'Insufficient stock. Available: {product.current_stock} {product.unit}', 'danger')
             return redirect(url_for('hanaman_inventory'))
-        
+
         # Calculate new stock after consumption
         new_stock = max(0, product.current_stock - quantity_to_consume)
         full_reason = f"{reason}" + (f" - {notes}" if notes else "")
-        
+
         updated_product = update_stock(product_id, new_stock, 'consume', full_reason)
         if updated_product:
             flash(f'Consumed {quantity_to_consume} {product.unit} of "{product.name}". Remaining: {new_stock} {product.unit}', 'success')
         else:
             flash('Error processing consumption', 'danger')
-            
+
     except ValueError:
         flash('Invalid quantity value', 'danger')
     except Exception as e:
         flash(f'Error consuming stock: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory'))
 
 # API endpoints for AJAX requests
@@ -254,7 +255,7 @@ def api_hanaman_get_product(product_id):
     """Get product data as JSON"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     product = get_product_by_id(product_id)
     if product:
         return jsonify({
@@ -281,7 +282,7 @@ def api_hanaman_inventory_stats():
     """Get inventory statistics as JSON"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     return jsonify(get_inventory_stats())
 
 # Configuration Page
@@ -292,10 +293,10 @@ def hanaman_inventory_config():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     categories = get_all_categories()
     suppliers = get_all_suppliers()
-    
+
     return render_template('hanaman_config.html', 
                          categories=categories,
                          suppliers=suppliers)
@@ -308,24 +309,24 @@ def hanaman_edit_category(category_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
-        
+
         if not name:
             flash('Category name is required', 'danger')
             return redirect(url_for('hanaman_inventory_config'))
-        
+
         category = update_category(category_id, name, description)
         if category:
             flash(f'Category "{category.name}" updated successfully!', 'success')
         else:
             flash('Error updating category', 'danger')
-            
+
     except Exception as e:
         flash(f'Error updating category: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory_config'))
 
 @app.route('/hanaman-inventory/category/delete/<int:category_id>', methods=['POST'])
@@ -335,7 +336,7 @@ def hanaman_delete_category(category_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         category = get_category_by_id(category_id)
         if category and delete_category(category_id):
@@ -344,7 +345,7 @@ def hanaman_delete_category(category_id):
             flash('Error deleting category', 'danger')
     except Exception as e:
         flash(f'Error deleting category: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory_config'))
 
 # Supplier CRUD operations
@@ -355,7 +356,7 @@ def hanaman_add_supplier():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         supplier_data = {
             'name': request.form.get('name', '').strip(),
@@ -369,20 +370,20 @@ def hanaman_add_supplier():
             'gst_number': request.form.get('gst_number', '').strip(),
             'payment_terms': request.form.get('payment_terms', '').strip(),
         }
-        
+
         if not supplier_data['name']:
             flash('Supplier name is required', 'danger')
             return redirect(url_for('hanaman_inventory_config'))
-        
+
         supplier = create_supplier(supplier_data)
         if supplier:
             flash(f'Supplier "{supplier.name}" added successfully!', 'success')
         else:
             flash('Error adding supplier. Name might already exist.', 'danger')
-            
+
     except Exception as e:
         flash(f'Error adding supplier: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory_config'))
 
 @app.route('/hanaman-inventory/supplier/edit/<int:supplier_id>', methods=['POST'])
@@ -392,7 +393,7 @@ def hanaman_edit_supplier(supplier_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         supplier_data = {
             'name': request.form.get('name', '').strip(),
@@ -406,16 +407,16 @@ def hanaman_edit_supplier(supplier_id):
             'gst_number': request.form.get('gst_number', '').strip(),
             'payment_terms': request.form.get('payment_terms', '').strip(),
         }
-        
+
         supplier = update_supplier(supplier_id, supplier_data)
         if supplier:
             flash(f'Supplier "{supplier.name}" updated successfully!', 'success')
         else:
             flash('Error updating supplier', 'danger')
-            
+
     except Exception as e:
         flash(f'Error updating supplier: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory_config'))
 
 @app.route('/hanaman-inventory/supplier/delete/<int:supplier_id>', methods=['POST'])
@@ -425,7 +426,7 @@ def hanaman_delete_supplier(supplier_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         supplier = get_supplier_by_id(supplier_id)
         if supplier and delete_supplier(supplier_id):
@@ -434,6 +435,132 @@ def hanaman_delete_supplier(supplier_id):
             flash('Error deleting supplier', 'danger')
     except Exception as e:
         flash(f'Error deleting supplier: {str(e)}', 'danger')
-    
+
     return redirect(url_for('hanaman_inventory_config'))
 
+# Product Master Management Routes
+@app.route('/hanaman-inventory/product-master')
+@login_required
+def hanaman_product_master():
+    """Product Master management page"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Get all product masters with joined data
+    product_masters_data = get_all_product_masters()
+    categories = get_all_categories()
+    suppliers = get_all_suppliers()
+
+    return render_template('product_master.html', 
+                         product_masters_data=product_masters_data,
+                         categories=categories,
+                         suppliers=suppliers)
+
+@app.route('/hanaman-inventory/product-master/add', methods=['POST'])
+@login_required
+def hanaman_add_product_master():
+    """Add new product master"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        product_data = {
+            'product_name': request.form.get('product_name', '').strip(),
+            'category_id': int(request.form.get('category_id')),
+            'supplier_id': int(request.form.get('supplier_id')),
+            'unit': request.form.get('unit', '').strip(),
+            'min_stock': int(request.form.get('min_stock', 5))
+        }
+
+        # Validate required fields
+        if not product_data['product_name']:
+            flash('Product name is required', 'danger')
+            return redirect(url_for('hanaman_product_master'))
+
+        if not product_data['unit']:
+            flash('Unit is required', 'danger')
+            return redirect(url_for('hanaman_product_master'))
+
+        product = create_product_master(product_data)
+        if product:
+            flash(f'Product "{product.product_name}" added successfully!', 'success')
+        else:
+            flash('Error adding product master', 'danger')
+
+    except ValueError as e:
+        flash('Invalid input: Please check your data', 'danger')
+    except Exception as e:
+        flash(f'Error adding product master: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_product_master'))
+
+@app.route('/hanaman-inventory/product-master/edit/<int:product_id>', methods=['POST'])
+@login_required
+def hanaman_edit_product_master(product_id):
+    """Edit existing product master"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        product_data = {
+            'product_name': request.form.get('product_name', '').strip(),
+            'category_id': int(request.form.get('category_id')),
+            'supplier_id': int(request.form.get('supplier_id')),
+            'unit': request.form.get('unit', '').strip(),
+            'min_stock': int(request.form.get('min_stock', 5))
+        }
+
+        product = update_product_master(product_id, product_data)
+        if product:
+            flash(f'Product "{product.product_name}" updated successfully!', 'success')
+        else:
+            flash('Error updating product master', 'danger')
+
+    except ValueError:
+        flash('Invalid input: Please check your data', 'danger')
+    except Exception as e:
+        flash(f'Error updating product master: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_product_master'))
+
+@app.route('/hanaman-inventory/product-master/delete/<int:product_id>', methods=['POST'])
+@login_required
+def hanaman_delete_product_master(product_id):
+    """Delete product master (soft delete)"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        product = get_product_master_by_id(product_id)
+        if product and delete_product_master(product_id):
+            flash(f'Product "{product.product_name}" deleted successfully!', 'success')
+        else:
+            flash('Error deleting product master', 'danger')
+    except Exception as e:
+        flash(f'Error deleting product master: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_product_master'))
+
+@app.route('/api/hanaman-inventory/product-master/<int:product_id>')
+@login_required
+def api_hanaman_get_product_master(product_id):
+    """Get product master data as JSON for editing"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    product = get_product_master_by_id(product_id)
+    if product:
+        return jsonify({
+            'id': product.id,
+            'product_name': product.product_name,
+            'category_id': product.category_id,
+            'supplier_id': product.supplier_id,
+            'unit': product.unit,
+            'min_stock': product.min_stock,
+            'is_active': product.is_active
+        })
+    return jsonify({'error': 'Product not found'}), 404
