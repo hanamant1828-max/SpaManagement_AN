@@ -130,10 +130,18 @@
                         <div id="collapseInventory" class="collapse" data-parent="#accordionSidebar">
                             <div class="bg-white py-2 collapse-inner rounded">
                                 <h6 class="collapse-header">Inventory Management:</h6>
-                                <a class="collapse-item" href="{{ url_for('simple_inventory') }}">Simple Inventory</a>
-                                <a class="collapse-item" href="{{ url_for('professional_inventory') }}">Professional Inventory</a>
-                                <a class="collapse-item" href="{{ url_for('inventory_categories') }}">Inventory Categories</a>
-                                <a class="collapse-item" href="{{ url_for('suppliers') }}">Suppliers</a>
+                                <a class="dropdown-item" href="{{ url_for('inventory') }}">
+                                        <i class="fas fa-boxes me-2"></i>Inventory Items
+                                    </a>
+                                    <a class="dropdown-item" href="{{ url_for('inventory_master') }}">
+                                        <i class="fas fa-database me-2"></i>Master Data
+                                    </a>
+                                    <a class="dropdown-item" href="{{ url_for('suppliers') }}">
+                                        <i class="fas fa-truck me-2"></i>Suppliers
+                                    </a>
+                                    <a class="dropdown-item" href="{{ url_for('inventory_categories') }}">
+                                        <i class="fas fa-tags me-2"></i>Categories
+                                    </a>
                             </div>
                         </div>
                     </li>
