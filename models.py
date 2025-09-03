@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 import json
 
-# Inventory models removed - fresh implementation needed
+# Hanaman Inventory Models will be imported at the end to avoid circular imports
 
 
 # CRUD System Models for Dynamic Configuration
@@ -947,4 +947,5 @@ class StaffPerformance(db.Model):
     # Relationships
     staff = db.relationship('User', backref='performance_records')
 
-
+# Import Hanaman Inventory Models after all other models are defined
+from modules.hanamantinventory.models import HanamanProduct, HanamanCategory, HanamanStockMovement

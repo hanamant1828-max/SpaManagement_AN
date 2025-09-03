@@ -17,6 +17,9 @@ from modules.settings import settings_views
 from modules.notifications import notifications_views
 from modules.checkin import checkin_views
 
+# Import Hanaman Inventory views
+from modules.hanamantinventory import views as hanaman_views
+
 # Import all view modules - removed duplicate imports to prevent route conflicts
 
 
