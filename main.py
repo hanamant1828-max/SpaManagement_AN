@@ -17,12 +17,7 @@ from modules.settings import settings_views
 from modules.notifications import notifications_views
 from modules.checkin import checkin_views
 
-# Import all view modules
-from modules.inventory.inventory_views import *
-from modules.inventory.professional_inventory_views import *
-from modules.inventory.supplier_views import *
-from modules.inventory.inventory_master_views import *
-from modules.services.service_category_views import *
+# Import all view modules - removed duplicate imports to prevent route conflicts
 
 
 if __name__ == "__main__":
