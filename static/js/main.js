@@ -1190,14 +1190,53 @@ if (document.head) {
 function setActiveNavLink() {
     const currentPath = window.location.pathname;
     const navLinks = document.querySelectorAll('#sidebar .nav-link');
+    const dropdownItems = document.querySelectorAll('#sidebar .dropdown-item, #sidebar .collapse-item');
 
+    // Remove active class from all nav links
     navLinks.forEach(link => {
         link.classList.remove('active');
+    });
+
+    // Check main navigation links (not dropdown toggles)
+    navLinks.forEach(link => {
+        // Skip dropdown toggle links (they have href="#" or data-toggle)
+        if (link.getAttribute('href') === '#' || link.getAttribute('data-toggle') === 'collapse') {
+            return;
+        }
 
         // Check if link href matches current path
-        const linkPath = new URL(link.href).pathname;
-        if (linkPath === currentPath || (currentPath === '/' && linkPath.includes('dashboard'))) {
-            link.classList.add('active');
+        try {
+            const linkPath = new URL(link.href).pathname;
+            if (linkPath === currentPath || (currentPath === '/' && linkPath.includes('dashboard'))) {
+                link.classList.add('active');
+            }
+        } catch (e) {
+            // Skip invalid URLs
+        }
+    });
+
+    // Check dropdown items and mark parent as active if needed
+    dropdownItems.forEach(item => {
+        try {
+            const itemPath = new URL(item.href).pathname;
+            if (itemPath === currentPath) {
+                item.classList.add('active');
+                
+                // Find and expand the parent dropdown
+                const parentCollapse = item.closest('.collapse');
+                if (parentCollapse) {
+                    parentCollapse.classList.add('show');
+                    
+                    // Find the dropdown toggle button and mark as active
+                    const toggleButton = document.querySelector(`[data-target="#${parentCollapse.id}"]`);
+                    if (toggleButton) {
+                        toggleButton.classList.add('active');
+                        toggleButton.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            }
+        } catch (e) {
+            // Skip invalid URLs
         }
     });
 }
