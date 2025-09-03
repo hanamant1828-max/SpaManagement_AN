@@ -202,3 +202,124 @@ def toggle_inventory_category(category_id):
         flash(f'Error updating category status: {str(e)}', 'danger')
     
     return redirect(url_for('inventory_categories'))
+
+# JSON API endpoints for professional inventory frontend
+@app.route('/inventory/category/add', methods=['POST'])
+@login_required
+def add_inventory_category_api():
+    """JSON API endpoint for creating inventory categories"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        # Get form data
+        category_name = request.form.get('category_name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not category_name:
+            return jsonify({'success': False, 'error': 'Category name is required'}), 400
+        
+        # Create category
+        category = create_inventory_category({
+            'name': category_name.lower().replace(' ', '_'),
+            'display_name': category_name,
+            'description': description,
+            'color': '#007bff',
+            'icon': 'fas fa-boxes',
+            'is_active': True,
+            'sort_order': 0
+        })
+        
+        return jsonify({'success': True, 'category_id': category.id, 'message': 'Category created successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/inventory_master/category/edit/<int:category_id>', methods=['POST'])
+@login_required
+def edit_inventory_category_api(category_id):
+    """JSON API endpoint for updating inventory categories"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        category = get_inventory_category_by_id(category_id)
+        if not category:
+            return jsonify({'success': False, 'error': 'Category not found'}), 404
+        
+        # Get form data
+        category_name = request.form.get('category_name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not category_name:
+            return jsonify({'success': False, 'error': 'Category name is required'}), 400
+        
+        # Update category
+        update_inventory_category(category_id, {
+            'name': category_name.lower().replace(' ', '_'),
+            'display_name': category_name,
+            'description': description
+        })
+        
+        return jsonify({'success': True, 'message': 'Category updated successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/inventory_master/category/delete/<int:category_id>', methods=['POST'])
+@login_required
+def delete_inventory_category_api(category_id):
+    """JSON API endpoint for deleting inventory categories"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        category = get_inventory_category_by_id(category_id)
+        if not category:
+            return jsonify({'success': False, 'error': 'Category not found'}), 404
+        
+        # Check if category is being used by any inventory items
+        from models import SimpleInventoryItem
+        items_using_category = SimpleInventoryItem.query.filter_by(category=category.name).count()
+        
+        if items_using_category > 0:
+            return jsonify({
+                'success': False, 
+                'error': f'Cannot delete category as it is being used by {items_using_category} inventory item(s)'
+            }), 400
+        
+        category_name = category.display_name
+        db.session.delete(category)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': f'Category "{category_name}" deleted successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/inventory/categories', methods=['GET'])
+@login_required
+def get_categories_api():
+    """JSON API endpoint for fetching all categories"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        categories = get_all_inventory_categories()
+        categories_data = []
+        for category in categories:
+            categories_data.append({
+                'category_id': category.id,
+                'category_name': category.display_name,
+                'description': category.description or '',
+                'internal_name': category.name,
+                'color': category.color,
+                'icon': category.icon,
+                'is_active': category.is_active,
+                'sort_order': category.sort_order
+            })
+        
+        return jsonify({'categories': categories_data})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
