@@ -1579,7 +1579,7 @@ function saveCategory() {
     const form = document.getElementById('addCategoryForm');
     const formData = new FormData(form);
     
-    fetch('/inventory_master/category/add', {
+    fetch('/inventory/category/add', {
         method: 'POST',
         body: formData
     })

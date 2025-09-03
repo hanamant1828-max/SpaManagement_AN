@@ -801,6 +801,24 @@ function initializeDataTables() {
     });
 }
 
+function setupRowSelection(table) {
+    const rows = table.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        row.addEventListener('click', function() {
+            // Toggle selection
+            this.classList.toggle('selected');
+            
+            // Add visual feedback
+            if (this.classList.contains('selected')) {
+                this.style.backgroundColor = '#e3f2fd';
+            } else {
+                this.style.backgroundColor = '';
+            }
+        });
+    });
+}
+
 function setupTableSorting(table) {
     const headers = table.querySelectorAll('th[data-sortable]');
 

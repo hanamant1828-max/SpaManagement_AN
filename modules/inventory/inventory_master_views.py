@@ -35,8 +35,7 @@ def inventory_master():
 def add_inventory_category():
     """Add new inventory category"""
     if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
         category_name = request.form.get('category_name', '').strip()
@@ -44,14 +43,12 @@ def add_inventory_category():
         is_active = 'is_active' in request.form
 
         if not category_name:
-            flash('Category name is required', 'danger')
-            return redirect(url_for('inventory_master_crud'))
+            return jsonify({'success': False, 'error': 'Category name is required'})
 
         # Check if category already exists
         existing = InventoryCategory.query.filter_by(category_name=category_name).first()
         if existing:
-            flash(f'Category "{category_name}" already exists', 'warning')
-            return redirect(url_for('inventory_master_crud'))
+            return jsonify({'success': False, 'error': f'Category "{category_name}" already exists'})
 
         # Create new category
         category = InventoryCategory(
@@ -64,13 +61,11 @@ def add_inventory_category():
         db.session.add(category)
         db.session.commit()
 
-        flash(f'Category "{category_name}" created successfully!', 'success')
+        return jsonify({'success': True, 'message': f'Category "{category_name}" created successfully!'})
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Error creating category: {str(e)}', 'danger')
-
-    return redirect(url_for('inventory_master_crud'))
+        return jsonify({'success': False, 'error': f'Error creating category: {str(e)}'})
 
 @app.route('/inventory/category/update/<int:category_id>', methods=['POST'])
 @login_required
