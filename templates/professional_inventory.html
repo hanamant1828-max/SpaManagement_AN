@@ -365,7 +365,7 @@
                                     <strong>{{ item.name }}</strong>
                                     <br><small class="text-muted">Out of Stock</small>
                                 </div>
-                                <button class="btn btn-sm btn-outline-danger" onclick="quickReorder({{ item.id }})">
+                                <button class="btn btn-sm btn-outline-danger" onclick="quickReorder({{ item.id or 0 }})">
                                     <i class="fas fa-shopping-cart"></i>
                                 </button>
                             </div>
@@ -379,7 +379,7 @@
                                     <strong>{{ item.name }}</strong>
                                     <br><small class="text-muted">Stock: {{ item.current_stock }}</small>
                                 </div>
-                                <button class="btn btn-sm btn-outline-warning" onclick="adjustStock({{ item.id }})">
+                                <button class="btn btn-sm btn-outline-warning" onclick="adjustStock({{ item.id or 0 }})">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -584,12 +584,12 @@
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 <button class="btn btn-sm btn-outline-danger" 
-                                                        onclick="deleteProduct({{ product.product_id }}, '{{ product.name }}')"
+                                                        onclick="deleteProduct({{ product.product_id or 0 }}, '{{ product.name or '' }}')"
                                                         title="Delete Product">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-info"
-                                                        onclick="viewProductDetails({{ product.product_id }})"
+                                                        onclick="viewProductDetails({{ product.product_id or 0 }})"
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
