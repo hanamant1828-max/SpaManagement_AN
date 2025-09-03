@@ -3,7 +3,7 @@ Hanaman Inventory Database Queries
 Clean CRUD operations for inventory management
 """
 from app import db
-from .models import HanamanProduct, HanamanCategory, HanamanStockMovement
+from .models import HanamanProduct, HanamanCategory, HanamanStockMovement, HanamanSupplier, HanamanItemTemplate
 from datetime import datetime
 from flask_login import current_user
 
@@ -210,3 +210,137 @@ def get_inventory_stats():
         'out_of_stock_count': out_of_stock_count,
         'total_inventory_value': round(total_value, 2)
     }
+
+# Supplier CRUD Operations
+def get_all_suppliers():
+    """Get all active suppliers"""
+    return HanamanSupplier.query.filter_by(is_active=True).order_by(HanamanSupplier.name).all()
+
+def get_supplier_by_id(supplier_id):
+    """Get supplier by ID"""
+    return HanamanSupplier.query.get(supplier_id)
+
+def create_supplier(supplier_data):
+    """Create a new supplier"""
+    try:
+        supplier = HanamanSupplier(**supplier_data)
+        db.session.add(supplier)
+        db.session.commit()
+        return supplier
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating supplier: {e}")
+        return None
+
+def update_supplier(supplier_id, supplier_data):
+    """Update existing supplier"""
+    try:
+        supplier = HanamanSupplier.query.get(supplier_id)
+        if supplier:
+            for key, value in supplier_data.items():
+                if hasattr(supplier, key):
+                    setattr(supplier, key, value)
+            supplier.updated_at = datetime.utcnow()
+            db.session.commit()
+            return supplier
+        return None
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating supplier: {e}")
+        return None
+
+def delete_supplier(supplier_id):
+    """Soft delete supplier"""
+    try:
+        supplier = HanamanSupplier.query.get(supplier_id)
+        if supplier:
+            supplier.is_active = False
+            supplier.updated_at = datetime.utcnow()
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting supplier: {e}")
+        return False
+
+# Item Template CRUD Operations
+def get_all_item_templates():
+    """Get all active item templates"""
+    return HanamanItemTemplate.query.filter_by(is_active=True).order_by(HanamanItemTemplate.name).all()
+
+def get_item_template_by_id(template_id):
+    """Get item template by ID"""
+    return HanamanItemTemplate.query.get(template_id)
+
+def create_item_template(template_data):
+    """Create a new item template"""
+    try:
+        template = HanamanItemTemplate(**template_data)
+        db.session.add(template)
+        db.session.commit()
+        return template
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating item template: {e}")
+        return None
+
+def update_item_template(template_id, template_data):
+    """Update existing item template"""
+    try:
+        template = HanamanItemTemplate.query.get(template_id)
+        if template:
+            for key, value in template_data.items():
+                if hasattr(template, key):
+                    setattr(template, key, value)
+            template.updated_at = datetime.utcnow()
+            db.session.commit()
+            return template
+        return None
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating item template: {e}")
+        return None
+
+def delete_item_template(template_id):
+    """Soft delete item template"""
+    try:
+        template = HanamanItemTemplate.query.get(template_id)
+        if template:
+            template.is_active = False
+            template.updated_at = datetime.utcnow()
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting item template: {e}")
+        return False
+
+def create_product_from_template(template_id, product_data):
+    """Create a product using an item template"""
+    try:
+        template = HanamanItemTemplate.query.get(template_id)
+        if not template:
+            return None
+        
+        # Merge template data with provided data
+        merged_data = {
+            'name': product_data.get('name', template.name),
+            'description': product_data.get('description', template.description),
+            'category_id': product_data.get('category_id', template.category_id),
+            'unit': product_data.get('unit', template.default_unit),
+            'min_stock_level': product_data.get('min_stock_level', template.default_min_stock),
+            'max_stock_level': product_data.get('max_stock_level', template.default_max_stock),
+            'cost_price': product_data.get('cost_price', template.estimated_cost),
+            'current_stock': product_data.get('current_stock', 0),
+            'sku': product_data.get('sku', ''),
+            'selling_price': product_data.get('selling_price', 0),
+            'supplier_name': product_data.get('supplier_name', ''),
+            'supplier_contact': product_data.get('supplier_contact', ''),
+        }
+        
+        return create_product(merged_data)
+    except Exception as e:
+        print(f"Error creating product from template: {e}")
+        return None

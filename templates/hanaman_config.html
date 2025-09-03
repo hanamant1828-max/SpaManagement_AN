@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+
+{% block title %}Hanaman Inventory Configuration{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-header {
+        background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+        color: white;
+        padding: 2rem 0;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+    
+    .nav-tabs .nav-link {
+        border: none;
+        border-radius: 8px 8px 0 0;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        margin-right: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background: #4c51bf;
+        color: white;
+    }
+    
+    .config-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .item-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .item-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: #4c51bf;
+    }
+    
+    .btn-action {
+        margin: 0 0.2rem;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    .table th {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #374151;
+        padding: 0.75rem;
+    }
+    
+    .table td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="config-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2 class="mb-0">
+                        <i class="fas fa-cog"></i> Inventory Configuration
+                    </h2>
+                    <p class="mb-0 mt-2">Manage categories, suppliers, and item templates</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('hanaman_inventory') }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left"></i> Back to Inventory
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs" id="configTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" 
+                    type="button" role="tab" aria-controls="categories" aria-selected="true">
+                <i class="fas fa-tags"></i> Categories
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="suppliers-tab" data-bs-toggle="tab" data-bs-target="#suppliers" 
+                    type="button" role="tab" aria-controls="suppliers" aria-selected="false">
+                <i class="fas fa-truck"></i> Suppliers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="templates-tab" data-bs-toggle="tab" data-bs-target="#templates" 
+                    type="button" role="tab" aria-controls="templates" aria-selected="false">
+                <i class="fas fa-copy"></i> Item Templates
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="configTabContent">
+        
+        <!-- Categories Tab -->
+        <div class="tab-pane fade show active" id="categories" role="tabpanel" aria-labelledby="categories-tab">
+            <div class="config-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Product Categories</h5>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                        <i class="fas fa-plus"></i> Add Category
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Products Count</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories %}
+                            <tr>
+                                <td><strong>{{ category.name }}</strong></td>
+                                <td>{{ category.description or '-' }}</td>
+                                <td>{{ category.products|length }} products</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary btn-action" 
+                                            onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}')"
+                                            data-bs-toggle="modal" data-bs-target="#editCategoryModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('hanaman_delete_category', category_id=category.id) }}" 
+                                          style="display:inline;" onsubmit="return confirm('Delete {{ category.name }}?')">
+                                        <button type="submit" class="btn btn-sm btn-danger btn-action">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="fas fa-tag fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">No categories found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suppliers Tab -->
+        <div class="tab-pane fade" id="suppliers" role="tabpanel" aria-labelledby="suppliers-tab">
+            <div class="config-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Suppliers Management</h5>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                        <i class="fas fa-plus"></i> Add Supplier
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Supplier Name</th>
+                                <th>Contact Person</th>
+                                <th>Phone / Email</th>
+                                <th>Location</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for supplier in suppliers %}
+                            <tr>
+                                <td>
+                                    <strong>{{ supplier.name }}</strong>
+                                    {% if supplier.gst_number %}
+                                    <br><small class="text-muted">GST: {{ supplier.gst_number }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ supplier.contact_person or '-' }}</td>
+                                <td>
+                                    {% if supplier.phone %}<div>{{ supplier.phone }}</div>{% endif %}
+                                    {% if supplier.email %}<div><small>{{ supplier.email }}</small></div>{% endif %}
+                                </td>
+                                <td>{{ supplier.city or '-' }}, {{ supplier.state or '-' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary btn-action" 
+                                            onclick="editSupplier({{ supplier.id }})"
+                                            data-bs-toggle="modal" data-bs-target="#editSupplierModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('hanaman_delete_supplier', supplier_id=supplier.id) }}" 
+                                          style="display:inline;" onsubmit="return confirm('Delete {{ supplier.name }}?')">
+                                        <button type="submit" class="btn btn-sm btn-danger btn-action">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <i class="fas fa-truck fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">No suppliers found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Item Templates Tab -->
+        <div class="tab-pane fade" id="templates" role="tabpanel" aria-labelledby="templates-tab">
+            <div class="config-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Item Templates</h5>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTemplateModal">
+                        <i class="fas fa-plus"></i> Add Template
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Template Name</th>
+                                <th>Category</th>
+                                <th>Default Unit</th>
+                                <th>Stock Levels</th>
+                                <th>Est. Cost</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for template in item_templates %}
+                            <tr>
+                                <td>
+                                    <strong>{{ template.name }}</strong>
+                                    {% if template.description %}
+                                    <br><small class="text-muted">{{ template.description[:50] }}{% if template.description|length > 50 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ template.category.name if template.category else '-' }}</td>
+                                <td>{{ template.default_unit }}</td>
+                                <td>
+                                    <small>Min: {{ template.default_min_stock }}</small><br>
+                                    <small>Max: {{ template.default_max_stock }}</small>
+                                </td>
+                                <td>₹{{ "%.2f"|format(template.estimated_cost) }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary btn-action" 
+                                            onclick="editTemplate({{ template.id }})"
+                                            data-bs-toggle="modal" data-bs-target="#editTemplateModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('hanaman_delete_template', template_id=template.id) }}" 
+                                          style="display:inline;" onsubmit="return confirm('Delete {{ template.name }}?')">
+                                        <button type="submit" class="btn btn-sm btn-danger btn-action">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <i class="fas fa-copy fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">No item templates found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('hanaman_add_category') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Category Name *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editCategoryForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Category Name *</label>
+                        <input type="text" name="name" id="editCategoryName" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" id="editCategoryDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Supplier Modal -->
+<div class="modal fade" id="addSupplierModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('hanaman_add_supplier') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Supplier Name *</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Contact Person</label>
+                                <input type="text" name="contact_person" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" name="phone" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">City</label>
+                                <input type="text" name="city" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">State</label>
+                                <input type="text" name="state" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Pincode</label>
+                                <input type="text" name="pincode" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">GST Number</label>
+                                <input type="text" name="gst_number" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Payment Terms</label>
+                                <input type="text" name="payment_terms" class="form-control" placeholder="e.g., 30 days">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item Template Modal -->
+<div class="modal fade" id="addTemplateModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('hanaman_add_template') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Item Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Template Name *</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Category</label>
+                                <select name="category_id" class="form-control">
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Default Unit</label>
+                                <select name="default_unit" class="form-control">
+                                    <option value="pcs">Pieces</option>
+                                    <option value="bottles">Bottles</option>
+                                    <option value="ml">Milliliters</option>
+                                    <option value="grams">Grams</option>
+                                    <option value="kg">Kilograms</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Min Stock</label>
+                                <input type="number" name="default_min_stock" class="form-control" value="5" min="0" step="0.1">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Max Stock</label>
+                                <input type="number" name="default_max_stock" class="form-control" value="100" min="0" step="0.1">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Est. Cost</label>
+                                <input type="number" name="estimated_cost" class="form-control" value="0" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editCategory(id, name, description) {
+    document.getElementById('editCategoryName').value = name;
+    document.getElementById('editCategoryDescription').value = description;
+    document.getElementById('editCategoryForm').action = '/hanaman-inventory/category/edit/' + id;
+}
+
+function editSupplier(id) {
+    // This would load supplier data for editing - simplified for now
+    console.log('Edit supplier:', id);
+}
+
+function editTemplate(id) {
+    // This would load template data for editing - simplified for now
+    console.log('Edit template:', id);
+}
+</script>
+{% endblock %}

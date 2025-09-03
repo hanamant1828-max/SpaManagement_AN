@@ -93,3 +93,47 @@ class HanamanStockMovement(db.Model):
     
     def __str__(self):
         return f"{self.product.name} - {self.movement_type}: {self.quantity}"
+
+class HanamanSupplier(db.Model):
+    """Supplier management for inventory"""
+    __tablename__ = 'hanaman_supplier'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    contact_person = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(100))
+    address = db.Column(db.Text)
+    city = db.Column(db.String(50))
+    state = db.Column(db.String(50))
+    pincode = db.Column(db.String(10))
+    gst_number = db.Column(db.String(20))
+    payment_terms = db.Column(db.String(100))
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __str__(self):
+        return self.name
+
+class HanamanItemTemplate(db.Model):
+    """Item templates for quick product creation"""
+    __tablename__ = 'hanaman_item_template'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    category_id = db.Column(db.Integer, db.ForeignKey('hanaman_category.id'))
+    default_unit = db.Column(db.String(20), default='pcs')
+    default_min_stock = db.Column(db.Float, default=5.0)
+    default_max_stock = db.Column(db.Float, default=100.0)
+    estimated_cost = db.Column(db.Float, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    category = db.relationship('HanamanCategory', backref='item_templates')
+    
+    def __str__(self):
+        return self.name

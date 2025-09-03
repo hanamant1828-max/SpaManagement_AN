@@ -948,4 +948,4 @@ class StaffPerformance(db.Model):
     staff = db.relationship('User', backref='performance_records')
 
 # Import Hanaman Inventory Models after all other models are defined
-from modules.hanamantinventory.models import HanamanProduct, HanamanCategory, HanamanStockMovement
+from modules.hanamantinventory.models import HanamanProduct, HanamanCategory, HanamanStockMovement, HanamanSupplier, HanamanItemTemplate
