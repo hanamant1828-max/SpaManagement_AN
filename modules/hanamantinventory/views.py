@@ -9,8 +9,7 @@ from .queries import (
     get_all_products, get_product_by_id, create_product, update_product, delete_product,
     get_all_categories, get_category_by_id, create_category, update_category, delete_category,
     get_low_stock_products, search_products, update_stock, get_inventory_stats, get_stock_movements,
-    get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier, delete_supplier,
-    get_all_item_templates, get_item_template_by_id, create_item_template, update_item_template, delete_item_template
+    get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier, delete_supplier
 )
 import uuid
 
@@ -289,19 +288,17 @@ def api_hanaman_inventory_stats():
 @app.route('/hanaman-inventory/config')
 @login_required
 def hanaman_inventory_config():
-    """Configuration page with categories, suppliers, and item templates"""
+    """Configuration page with categories and suppliers"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
     categories = get_all_categories()
     suppliers = get_all_suppliers()
-    item_templates = get_all_item_templates()
     
     return render_template('hanaman_config.html', 
                          categories=categories,
-                         suppliers=suppliers,
-                         item_templates=item_templates)
+                         suppliers=suppliers)
 
 # Category CRUD operations
 @app.route('/hanaman-inventory/category/edit/<int:category_id>', methods=['POST'])
@@ -440,90 +437,3 @@ def hanaman_delete_supplier(supplier_id):
     
     return redirect(url_for('hanaman_inventory_config'))
 
-# Item Template CRUD operations
-@app.route('/hanaman-inventory/template/add', methods=['POST'])
-@login_required
-def hanaman_add_template():
-    """Add new item template"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    try:
-        template_data = {
-            'name': request.form.get('name', '').strip(),
-            'description': request.form.get('description', '').strip(),
-            'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
-            'default_unit': request.form.get('default_unit', 'pcs').strip(),
-            'default_min_stock': float(request.form.get('default_min_stock', 5)),
-            'default_max_stock': float(request.form.get('default_max_stock', 100)),
-            'estimated_cost': float(request.form.get('estimated_cost', 0)),
-        }
-        
-        if not template_data['name']:
-            flash('Template name is required', 'danger')
-            return redirect(url_for('hanaman_inventory_config'))
-        
-        template = create_item_template(template_data)
-        if template:
-            flash(f'Item template "{template.name}" added successfully!', 'success')
-        else:
-            flash('Error adding item template', 'danger')
-            
-    except ValueError:
-        flash('Invalid input: Please check your data', 'danger')
-    except Exception as e:
-        flash(f'Error adding item template: {str(e)}', 'danger')
-    
-    return redirect(url_for('hanaman_inventory_config'))
-
-@app.route('/hanaman-inventory/template/edit/<int:template_id>', methods=['POST'])
-@login_required
-def hanaman_edit_template(template_id):
-    """Edit existing item template"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    try:
-        template_data = {
-            'name': request.form.get('name', '').strip(),
-            'description': request.form.get('description', '').strip(),
-            'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
-            'default_unit': request.form.get('default_unit', 'pcs').strip(),
-            'default_min_stock': float(request.form.get('default_min_stock', 5)),
-            'default_max_stock': float(request.form.get('default_max_stock', 100)),
-            'estimated_cost': float(request.form.get('estimated_cost', 0)),
-        }
-        
-        template = update_item_template(template_id, template_data)
-        if template:
-            flash(f'Item template "{template.name}" updated successfully!', 'success')
-        else:
-            flash('Error updating item template', 'danger')
-            
-    except ValueError:
-        flash('Invalid input: Please check your data', 'danger')
-    except Exception as e:
-        flash(f'Error updating item template: {str(e)}', 'danger')
-    
-    return redirect(url_for('hanaman_inventory_config'))
-
-@app.route('/hanaman-inventory/template/delete/<int:template_id>', methods=['POST'])
-@login_required
-def hanaman_delete_template(template_id):
-    """Delete item template"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    try:
-        template = get_item_template_by_id(template_id)
-        if template and delete_item_template(template_id):
-            flash(f'Item template "{template.name}" deleted successfully!', 'success')
-        else:
-            flash('Error deleting item template', 'danger')
-    except Exception as e:
-        flash(f'Error deleting item template: {str(e)}', 'danger')
-    
-    return redirect(url_for('hanaman_inventory_config'))
