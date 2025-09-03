@@ -289,17 +289,19 @@ def api_hanaman_inventory_stats():
 @app.route('/hanaman-inventory/config')
 @login_required
 def hanaman_inventory_config():
-    """Configuration page with categories and suppliers"""
+    """Configuration page with categories, suppliers, and product masters"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
     categories = get_all_categories()
     suppliers = get_all_suppliers()
+    product_masters_data = get_all_product_masters()
 
     return render_template('hanaman_config.html', 
                          categories=categories,
-                         suppliers=suppliers)
+                         suppliers=suppliers,
+                         product_masters_data=product_masters_data)
 
 # Category CRUD operations
 @app.route('/hanaman-inventory/category/edit/<int:category_id>', methods=['POST'])
