@@ -51,13 +51,13 @@ def inventory():
         # Fallback: if InventoryMaster table doesn't exist, use regular inventory
         master_items = inventory_list
 
-    return render_template('inventory.html', 
-                         items=inventory_list,  # Changed from inventory to items
-                         form=form,
+    return render_template('professional_inventory.html', 
+                         products=inventory_list,  # Changed to match professional template
                          categories=categories,
-                         search_query=search_query,
-                         filter_type=filter_type,
-                         master_items=master_items)
+                         suppliers=[],  # Add empty suppliers for template compatibility
+                         total_products=len(inventory_list),
+                         total_stock_value=sum(getattr(item, 'cost_price', 0) * getattr(item, 'current_stock', 0) for item in inventory_list),
+                         low_stock_count=len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]))
 
 # NEW: Inventory Master Routes (Structured Approach)
 @app.route('/inventory/master')
