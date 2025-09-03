@@ -67,6 +67,35 @@ def add_inventory_category():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Error creating category: {str(e)}'})
 
+@app.route('/inventory/categories', methods=['GET'])
+@login_required
+def get_inventory_categories():
+    """Get all inventory categories"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        categories = InventoryCategory.query.order_by(InventoryCategory.category_name).all()
+        
+        categories_data = []
+        for category in categories:
+            categories_data.append({
+                'category_id': category.category_id,
+                'category_name': category.category_name,
+                'description': category.description or '',
+                'is_active': category.is_active,
+                'created_at': category.created_at.strftime('%Y-%m-%d') if category.created_at else '',
+                'created_by': category.created_by or ''
+            })
+        
+        return jsonify({
+            'success': True,
+            'categories': categories_data
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Error loading categories: {str(e)}'})
+
 @app.route('/inventory/category/update/<int:category_id>', methods=['POST'])
 @login_required
 def update_inventory_category(category_id):

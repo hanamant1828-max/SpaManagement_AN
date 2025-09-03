@@ -1504,7 +1504,7 @@ function loadMasterData() {
 }
 
 function loadCategories() {
-    fetch('/inventory_master/categories')
+    fetch('/inventory/categories')
         .then(response => response.json())
         .then(data => {
             const tbody = document.getElementById('categoriesTableBody');
