@@ -26,11 +26,10 @@ app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database - Using SQLite for simplicity
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///spa_management.db"
-
-# SQLite doesn't need complex pooling configuration
+# Configure the database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
     "pool_pre_ping": True,
 }
 
