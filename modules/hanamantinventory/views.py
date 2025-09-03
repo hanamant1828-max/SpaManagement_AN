@@ -204,6 +204,50 @@ def hanaman_add_category():
     
     return redirect(url_for('hanaman_inventory'))
 
+# Consumption route
+@app.route('/hanaman-inventory/consume/<int:product_id>', methods=['POST'])
+@login_required
+def hanaman_consume_stock(product_id):
+    """Consume/Use inventory stock"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        quantity_to_consume = float(request.form.get('new_quantity', 0))
+        reason = request.form.get('reason', 'Stock consumption').strip()
+        notes = request.form.get('notes', '').strip()
+        
+        if quantity_to_consume <= 0:
+            flash('Consumption quantity must be greater than zero', 'danger')
+            return redirect(url_for('hanaman_inventory'))
+            
+        product = get_product_by_id(product_id)
+        if not product:
+            flash('Product not found', 'danger')
+            return redirect(url_for('hanaman_inventory'))
+        
+        if product.current_stock < quantity_to_consume:
+            flash(f'Insufficient stock. Available: {product.current_stock} {product.unit}', 'danger')
+            return redirect(url_for('hanaman_inventory'))
+        
+        # Calculate new stock after consumption
+        new_stock = max(0, product.current_stock - quantity_to_consume)
+        full_reason = f"{reason}" + (f" - {notes}" if notes else "")
+        
+        updated_product = update_stock(product_id, new_stock, 'consume', full_reason)
+        if updated_product:
+            flash(f'Consumed {quantity_to_consume} {product.unit} of "{product.name}". Remaining: {new_stock} {product.unit}', 'success')
+        else:
+            flash('Error processing consumption', 'danger')
+            
+    except ValueError:
+        flash('Invalid quantity value', 'danger')
+    except Exception as e:
+        flash(f'Error consuming stock: {str(e)}', 'danger')
+    
+    return redirect(url_for('hanaman_inventory'))
+
 # API endpoints for AJAX requests
 @app.route('/api/hanaman-inventory/product/<int:product_id>')
 @login_required
