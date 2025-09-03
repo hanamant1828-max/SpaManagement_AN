@@ -1200,10 +1200,10 @@ class ProfessionalInventoryManager {
                     labels: ['Normal Stock', 'Low Stock', 'Out of Stock', 'Overstock'],
                     datasets: [{
                         data: [
-                            {{ items|selectattr('get_stock_status().level', 'equalto', 'success')|list|length }},
-                            {{ items|selectattr('is_low_stock')|list|length }},
-                            {{ items|selectattr('is_out_of_stock')|list|length }},
-                            {{ items|selectattr('is_overstocked')|list|length }}
+                            {% if items %}{{ items|selectattr('get_stock_status().level', 'equalto', 'success')|list|length }}{% else %}0{% endif %},
+                            {% if items %}{{ items|selectattr('is_low_stock')|list|length }}{% else %}0{% endif %},
+                            {% if items %}{{ items|selectattr('is_out_of_stock')|list|length }}{% else %}0{% endif %},
+                            {% if items %}{{ items|selectattr('is_overstocked')|list|length }}{% else %}0{% endif %}
                         ],
                         backgroundColor: ['#38a169', '#d69e2e', '#e53e3e', '#3182ce']
                     }]
