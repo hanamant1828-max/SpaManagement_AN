@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, desc
 from app import app, db
-from models import (InventoryCategory, Supplier, User, Role, Permission)
+from models import (InventoryCategory, InventorySupplier, User, Role, Permission, InventoryProduct)
 import json
 import io
 import csv
@@ -23,137 +23,38 @@ def inventory_pro():
         return redirect(url_for('dashboard'))
 
     try:
-        # Get filter parameters
-        category_filter = request.args.get('category', '')
-        status_filter = request.args.get('status', '')
-        search_query = request.args.get('search', '')
-        abc_filter = request.args.get('abc', '')
-        location_filter = request.args.get('location', '')
-
-        # Build base query with optimized loading
-        query = InventoryProduct.query.filter_by(is_active=True)
-
-        # Apply filters
-        if category_filter:
-            query = query.filter(InventoryProduct.category == category_filter)
-
-        if location_filter:
-            query = query.filter(InventoryProduct.location == location_filter)
-
-        if status_filter:
-            if status_filter == 'low_stock':
-                query = query.filter(InventoryProduct.current_stock <= InventoryProduct.minimum_stock)
-            elif status_filter == 'out_of_stock':
-                query = query.filter(InventoryProduct.current_stock <= 0)
-            elif status_filter == 'overstocked':
-                query = query.filter(InventoryProduct.current_stock > InventoryProduct.maximum_stock)
-            elif status_filter == 'normal':
-                query = query.filter(
-                    and_(
-                        InventoryProduct.current_stock > InventoryProduct.minimum_stock,
-                        or_(
-                            InventoryProduct.maximum_stock.is_(None),
-                            InventoryProduct.current_stock <= InventoryProduct.maximum_stock
-                        )
-                    )
-                )
-            elif status_filter == 'expired':
-                query = query.filter(
-                    and_(
-                        InventoryProduct.expiry_date.isnot(None),
-                        InventoryProduct.expiry_date < date.today()
-                    )
-                )
-
-        if search_query:
-            search_term = f'%{search_query}%'
-            query = query.filter(
-                or_(
-                    InventoryProduct.name.ilike(search_term),
-                    InventoryProduct.sku.ilike(search_term),
-                    InventoryProduct.barcode.ilike(search_term),
-                    InventoryProduct.description.ilike(search_term),
-                    InventoryProduct.supplier.ilike(search_term)
-                )
-            )
-
-        # Get items with pagination support
-        page = request.args.get('page', 1, type=int)
-        per_page = 50  # Professional systems typically show more items per page
-
-        items = query.order_by(
-            # Smart ordering: critical items first, then by name
-            InventoryProduct.current_stock.asc(),
-            InventoryProduct.name.asc()
-        ).all()  # Get all for now, implement pagination later if needed
-
-        # Apply ABC filter (post-query since it's a calculated property)
-        if abc_filter:
-            items = [item for item in items if item.abc_classification == abc_filter]
-
-        # Get categories and locations for filters
-        categories = db.session.query(InventoryProduct.category).distinct().filter(
-            InventoryProduct.category.isnot(None),
-            InventoryProduct.is_active == True
-        ).all()
-        categories = sorted([cat[0] for cat in categories if cat[0]])
-
-        locations = db.session.query(InventoryProduct.location).distinct().filter(
-            InventoryProduct.location.isnot(None),
-            InventoryProduct.is_active == True
-        ).all()
-        locations = sorted([loc[0] for loc in locations if loc[0]])
-
-        # Calculate comprehensive metrics
-        metrics = calculate_inventory_metrics(items)
-
-        # Get recent transactions for activity feed
-        recent_transactions = SimpleStockTransaction.query.join(InventoryProduct).filter(
-            InventoryProduct.is_active == True
-        ).order_by(desc(SimpleStockTransaction.date_time)).limit(50).all()
-
-        # Get active alerts
-        active_alerts = SimpleLowStockAlert.query.join(InventoryProduct).filter(
-            and_(
-                InventoryProduct.is_active == True,
-                SimpleLowStockAlert.is_acknowledged == False,
-                SimpleLowStockAlert.is_resolved == False
-            )
-        ).order_by(desc(SimpleLowStockAlert.alert_date)).limit(10).all()
-
-        # Get transaction types for dropdowns
-        transaction_types = TransactionType.query.filter_by(is_active=True).order_by(
-            TransactionType.sort_order, TransactionType.display_name
-        ).all()
-
-        # Prepare analytics data
-        analytics_data = prepare_analytics_data(items, recent_transactions)
-
+        # Get inventory products
+        products = InventoryProduct.query.filter_by(is_active=True).all()
+        
+        # Get categories and suppliers for master data
+        categories = InventoryCategory.query.filter_by(is_active=True).all()
+        suppliers = InventorySupplier.query.filter_by(is_active=True).all()
+        
+        # Calculate basic metrics
+        total_items = len(products)
+        total_stock_value = sum(p.current_stock * p.unit_cost for p in products if p.current_stock and p.unit_cost)
+        low_stock_count = sum(1 for p in products if p.current_stock <= p.reorder_level)
+        out_of_stock_count = sum(1 for p in products if p.current_stock <= 0)
+        todays_transactions = 0  # Will be updated when transaction model is available
+        
         return render_template('professional_inventory.html',
-                             # Core data
-                             items=items,
-                             transactions=recent_transactions,
-                             alerts=active_alerts,
-
-                             # Filter options
+                             products=products,
                              categories=categories,
-                             locations=locations,
-                             transaction_types=transaction_types,
-
-                             # Current filters
-                             category_filter=category_filter,
-                             status_filter=status_filter,
-                             search_query=search_query,
-                             abc_filter=abc_filter,
-                             location_filter=location_filter,
-
-                             # Metrics and analytics
-                             **metrics,
-                             analytics_data=analytics_data,
-
-                             # Additional data
-                             current_date=date.today(),
-                             user=current_user)
+                             suppliers=suppliers,
+                             total_items=total_items,
+                             total_stock_value=total_stock_value,
+                             low_stock_count=low_stock_count,
+                             out_of_stock_count=out_of_stock_count,
+                             todays_transactions=todays_transactions,
+                             items=products,  # For compatibility
+                             transactions=[],  # Empty for now
+                             alerts=[])  # Empty for now
+                             
+    except Exception as e:
+        app.logger.error(f"Error in professional inventory: {str(e)}")
+        flash('An error occurred while loading inventory data. Please try again.', 'danger')
+        return redirect(url_for('dashboard'))
+        
 
     except Exception as e:
         app.logger.error(f"Error in professional inventory: {str(e)}")
