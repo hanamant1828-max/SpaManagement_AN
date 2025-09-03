@@ -34,7 +34,7 @@ def get_expiring_items(days=30):
     """Get items expiring within specified days"""
     today = date.today()
     return Inventory.query.filter(
-        Inventory.has_expiry == True,
+        Inventory.expiry_date != None,
         Inventory.expiry_date <= today + timedelta(days=days),
         Inventory.expiry_date > today,
         Inventory.is_active == True
@@ -43,9 +43,8 @@ def get_expiring_items(days=30):
 def get_inventory_categories():
     """Get all active inventory categories"""
     return Category.query.filter(
-        Category.category_type == 'product',
         Category.is_active == True
-    ).order_by(Category.display_name).all()
+    ).order_by(Category.category_name).all()
 
 def search_inventory(query):
     """Search inventory by name or description"""
