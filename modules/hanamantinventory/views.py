@@ -10,7 +10,8 @@ from .queries import (
     get_all_categories, get_category_by_id, create_category, update_category, delete_category,
     get_low_stock_products, search_products, update_stock, get_inventory_stats, get_stock_movements,
     get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier, delete_supplier,
-    get_all_product_masters, get_product_master_by_id, create_product_master, update_product_master, delete_product_master
+    get_all_product_masters, get_product_master_by_id, create_product_master, update_product_master, delete_product_master,
+    get_all_purchases, get_purchase_by_id, create_purchase, update_purchase, delete_purchase
 )
 import uuid
 
@@ -289,7 +290,7 @@ def api_hanaman_inventory_stats():
 @app.route('/hanaman-inventory/config')
 @login_required
 def hanaman_inventory_config():
-    """Configuration page with categories, suppliers, and product masters"""
+    """Configuration page with categories, suppliers, product masters and purchases"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -297,11 +298,13 @@ def hanaman_inventory_config():
     categories = get_all_categories()
     suppliers = get_all_suppliers()
     product_masters_data = get_all_product_masters()
+    purchases_data = get_all_purchases()
 
     return render_template('hanaman_config.html', 
                          categories=categories,
                          suppliers=suppliers,
-                         product_masters_data=product_masters_data)
+                         product_masters_data=product_masters_data,
+                         purchases_data=purchases_data)
 
 # Category CRUD operations
 @app.route('/hanaman-inventory/category/edit/<int:category_id>', methods=['POST'])
@@ -566,3 +569,131 @@ def api_hanaman_get_product_master(product_id):
             'is_active': product.is_active
         })
     return jsonify({'error': 'Product not found'}), 404
+
+# Purchase CRUD Routes
+@app.route('/hanaman-inventory/purchase/add', methods=['POST'])
+@login_required
+def hanaman_add_purchase():
+    """Add new purchase"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        from datetime import datetime as dt
+        
+        purchase_data = {
+            'purchase_order_number': request.form.get('purchase_order_number', '').strip(),
+            'product_master_id': int(request.form.get('product_master_id')),
+            'supplier_id': int(request.form.get('supplier_id')),
+            'quantity': float(request.form.get('quantity')),
+            'unit_price': float(request.form.get('unit_price')),
+            'purchase_date': dt.strptime(request.form.get('purchase_date'), '%Y-%m-%d').date(),
+            'received_date': dt.strptime(request.form.get('received_date'), '%Y-%m-%d').date() if request.form.get('received_date') else None,
+            'status': request.form.get('status', 'pending'),
+            'notes': request.form.get('notes', '').strip(),
+            'invoice_number': request.form.get('invoice_number', '').strip()
+        }
+
+        # Validate required fields
+        if not purchase_data['quantity'] or purchase_data['quantity'] <= 0:
+            flash('Quantity must be greater than 0', 'danger')
+            return redirect(url_for('hanaman_inventory_config'))
+
+        if not purchase_data['unit_price'] or purchase_data['unit_price'] <= 0:
+            flash('Unit price must be greater than 0', 'danger')
+            return redirect(url_for('hanaman_inventory_config'))
+
+        purchase = create_purchase(purchase_data)
+        if purchase:
+            flash(f'Purchase order "{purchase.purchase_order_number}" added successfully!', 'success')
+        else:
+            flash('Error adding purchase', 'danger')
+
+    except ValueError as e:
+        flash('Invalid input: Please check your data', 'danger')
+    except Exception as e:
+        flash(f'Error adding purchase: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_inventory_config'))
+
+@app.route('/hanaman-inventory/purchase/edit/<int:purchase_id>', methods=['POST'])
+@login_required
+def hanaman_edit_purchase(purchase_id):
+    """Edit existing purchase"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        from datetime import datetime as dt
+        
+        purchase_data = {
+            'product_master_id': int(request.form.get('product_master_id')),
+            'supplier_id': int(request.form.get('supplier_id')),
+            'quantity': float(request.form.get('quantity')),
+            'unit_price': float(request.form.get('unit_price')),
+            'purchase_date': dt.strptime(request.form.get('purchase_date'), '%Y-%m-%d').date(),
+            'received_date': dt.strptime(request.form.get('received_date'), '%Y-%m-%d').date() if request.form.get('received_date') else None,
+            'status': request.form.get('status', 'pending'),
+            'notes': request.form.get('notes', '').strip(),
+            'invoice_number': request.form.get('invoice_number', '').strip()
+        }
+
+        purchase = update_purchase(purchase_id, purchase_data)
+        if purchase:
+            flash(f'Purchase order "{purchase.purchase_order_number}" updated successfully!', 'success')
+        else:
+            flash('Error updating purchase', 'danger')
+
+    except ValueError:
+        flash('Invalid input: Please check your data', 'danger')
+    except Exception as e:
+        flash(f'Error updating purchase: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_inventory_config'))
+
+@app.route('/hanaman-inventory/purchase/delete/<int:purchase_id>', methods=['POST'])
+@login_required
+def hanaman_delete_purchase(purchase_id):
+    """Delete purchase (soft delete)"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        purchase = get_purchase_by_id(purchase_id)
+        if purchase and delete_purchase(purchase_id):
+            flash(f'Purchase order "{purchase.purchase_order_number}" deleted successfully!', 'success')
+        else:
+            flash('Error deleting purchase', 'danger')
+    except Exception as e:
+        flash(f'Error deleting purchase: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_inventory_config'))
+
+@app.route('/api/hanaman-inventory/purchase/<int:purchase_id>')
+@login_required
+def api_hanaman_get_purchase(purchase_id):
+    """Get purchase data as JSON for editing"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    purchase = get_purchase_by_id(purchase_id)
+    if purchase:
+        return jsonify({
+            'id': purchase.id,
+            'purchase_order_number': purchase.purchase_order_number,
+            'product_master_id': purchase.product_master_id,
+            'supplier_id': purchase.supplier_id,
+            'quantity': purchase.quantity,
+            'unit_price': purchase.unit_price,
+            'total_amount': purchase.total_amount,
+            'purchase_date': purchase.purchase_date.strftime('%Y-%m-%d'),
+            'received_date': purchase.received_date.strftime('%Y-%m-%d') if purchase.received_date else '',
+            'status': purchase.status,
+            'notes': purchase.notes,
+            'invoice_number': purchase.invoice_number,
+            'is_active': purchase.is_active
+        })
+    return jsonify({'error': 'Purchase not found'}), 404

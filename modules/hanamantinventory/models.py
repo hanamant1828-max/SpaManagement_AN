@@ -141,3 +141,34 @@ class ProductMaster(db.Model):
     def __str__(self):
         return self.product_name
 
+class HanamanPurchase(db.Model):
+    """Purchase transactions for inventory management"""
+    __tablename__ = 'hanaman_purchase'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    purchase_order_number = db.Column(db.String(50), unique=True, nullable=False)
+    product_master_id = db.Column(db.Integer, db.ForeignKey('product_master.id'), nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('hanaman_supplier.id'), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    total_amount = db.Column(db.Float, nullable=False)
+    purchase_date = db.Column(db.Date, nullable=False)
+    received_date = db.Column(db.Date)
+    status = db.Column(db.String(20), default='pending')  # pending, received, cancelled
+    notes = db.Column(db.Text)
+    invoice_number = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    product_master = db.relationship('ProductMaster', backref='purchases')
+    supplier = db.relationship('HanamanSupplier', backref='purchases')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_purchases')
+    updater = db.relationship('User', foreign_keys=[updated_by], backref='updated_purchases')
+    
+    def __str__(self):
+        return f"PO-{self.purchase_order_number} - {self.product_master.product_name}"
+

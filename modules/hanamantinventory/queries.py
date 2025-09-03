@@ -3,7 +3,7 @@ Hanaman Inventory Database Queries
 Clean CRUD operations for inventory management
 """
 from app import db
-from .models import HanamanProduct, HanamanCategory, HanamanStockMovement, HanamanSupplier, ProductMaster
+from .models import HanamanProduct, HanamanCategory, HanamanStockMovement, HanamanSupplier, ProductMaster, HanamanPurchase
 from datetime import datetime
 from flask_login import current_user
 
@@ -330,5 +330,94 @@ def delete_product_master(product_id):
     except Exception as e:
         db.session.rollback()
         print(f"Error deleting product master: {e}")
+        return False
+
+# Purchase CRUD Operations
+def get_all_purchases():
+    """Get all active purchases with joined data"""
+    from .models import HanamanPurchase, ProductMaster, HanamanSupplier
+    return db.session.query(HanamanPurchase, ProductMaster, HanamanSupplier).join(
+        ProductMaster, HanamanPurchase.product_master_id == ProductMaster.id
+    ).join(
+        HanamanSupplier, HanamanPurchase.supplier_id == HanamanSupplier.id
+    ).filter(HanamanPurchase.is_active == True).order_by(HanamanPurchase.purchase_date.desc()).all()
+
+def get_purchase_by_id(purchase_id):
+    """Get purchase by ID"""
+    from .models import HanamanPurchase
+    return HanamanPurchase.query.get(purchase_id)
+
+def create_purchase(purchase_data):
+    """Create a new purchase"""
+    from .models import HanamanPurchase
+    try:
+        # Generate purchase order number if not provided
+        if not purchase_data.get('purchase_order_number'):
+            import uuid
+            purchase_data['purchase_order_number'] = f"PO-{str(uuid.uuid4())[:8].upper()}"
+        
+        purchase = HanamanPurchase(
+            purchase_order_number=purchase_data['purchase_order_number'],
+            product_master_id=purchase_data['product_master_id'],
+            supplier_id=purchase_data['supplier_id'],
+            quantity=purchase_data['quantity'],
+            unit_price=purchase_data['unit_price'],
+            total_amount=purchase_data['quantity'] * purchase_data['unit_price'],
+            purchase_date=purchase_data['purchase_date'],
+            received_date=purchase_data.get('received_date'),
+            status=purchase_data.get('status', 'pending'),
+            notes=purchase_data.get('notes', ''),
+            invoice_number=purchase_data.get('invoice_number', ''),
+            created_by=current_user.id if current_user.is_authenticated else 1
+        )
+        db.session.add(purchase)
+        db.session.commit()
+        return purchase
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating purchase: {e}")
+        return None
+
+def update_purchase(purchase_id, purchase_data):
+    """Update existing purchase"""
+    from .models import HanamanPurchase
+    try:
+        purchase = HanamanPurchase.query.get(purchase_id)
+        if purchase:
+            purchase.product_master_id = purchase_data['product_master_id']
+            purchase.supplier_id = purchase_data['supplier_id']
+            purchase.quantity = purchase_data['quantity']
+            purchase.unit_price = purchase_data['unit_price']
+            purchase.total_amount = purchase_data['quantity'] * purchase_data['unit_price']
+            purchase.purchase_date = purchase_data['purchase_date']
+            purchase.received_date = purchase_data.get('received_date')
+            purchase.status = purchase_data.get('status', 'pending')
+            purchase.notes = purchase_data.get('notes', '')
+            purchase.invoice_number = purchase_data.get('invoice_number', '')
+            purchase.updated_by = current_user.id if current_user.is_authenticated else 1
+            purchase.updated_at = datetime.utcnow()
+            db.session.commit()
+            return purchase
+        return None
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating purchase: {e}")
+        return None
+
+def delete_purchase(purchase_id):
+    """Soft delete purchase"""
+    from .models import HanamanPurchase
+    try:
+        purchase = HanamanPurchase.query.get(purchase_id)
+        if purchase:
+            purchase.is_active = False
+            purchase.updated_by = current_user.id if current_user.is_authenticated else 1
+            purchase.updated_at = datetime.utcnow()
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting purchase: {e}")
         return False
 
