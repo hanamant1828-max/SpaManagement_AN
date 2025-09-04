@@ -181,7 +181,7 @@ def update_client_route(id):
             flash(error_msg, 'danger')
     else:
         # Form validation failed
-        # Form validation failed
+        flash('Please correct the errors in the form and try again.', 'danger')
 
     return redirect(url_for('customers'))
 
