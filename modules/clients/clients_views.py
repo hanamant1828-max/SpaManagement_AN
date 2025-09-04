@@ -47,33 +47,51 @@ def create_customer_route():
 
     form = CustomerForm()
     if form.validate_on_submit():
-        # Convert empty email to None to avoid unique constraint violation
+        # Validate and clean data
         email_value = form.email.data
         if email_value and email_value.strip():
-            email_value = email_value.strip()
+            email_value = email_value.strip().lower()
         else:
             email_value = None
             
+        phone_value = form.phone.data.strip()
+        
+        # Server-side validation for duplicates
+        from .clients_queries import get_customer_by_phone, get_customer_by_email
+        
+        # Check for duplicate phone number
+        if get_customer_by_phone(phone_value):
+            flash('A customer with this phone number already exists. Please use a different phone number.', 'danger')
+            return redirect(url_for('customers'))
+            
+        # Check for duplicate email (only if email is provided)
+        if email_value and get_customer_by_email(email_value):
+            flash('A customer with this email address already exists. Please use a different email or update the existing customer profile.', 'danger')
+            return redirect(url_for('customers'))
+            
         customer_data = {
-            'first_name': form.first_name.data,
-            'last_name': form.last_name.data,
-            'phone': form.phone.data,
+            'first_name': form.first_name.data.strip().title(),
+            'last_name': form.last_name.data.strip().title(),
+            'phone': phone_value,
             'email': email_value,
-            'address': form.address.data or '',
+            'address': form.address.data.strip() if form.address.data else '',
             'date_of_birth': form.date_of_birth.data,
-            'gender': form.gender.data,
-            'preferences': form.preferences.data or '',
-            'allergies': form.allergies.data or '',
-            'notes': form.notes.data or ''
+            'gender': form.gender.data if form.gender.data else None,
+            'preferences': form.preferences.data.strip() if form.preferences.data else '',
+            'allergies': form.allergies.data.strip() if form.allergies.data else '',
+            'notes': form.notes.data.strip() if form.notes.data else ''
         }
 
         try:
             create_customer(customer_data)
             flash('Customer created successfully!', 'success')
         except Exception as e:
-            flash(f'Error creating customer: {str(e)}', 'danger')
+            flash('An error occurred while creating the customer. Please try again.', 'danger')
     else:
-        flash('Error creating customer. Please check your input.', 'danger')
+        # Display specific validation errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
 
     return redirect(url_for('customers'))
 
@@ -113,30 +131,51 @@ def update_client_route(id):
 
     form = CustomerForm()
     if form.validate_on_submit():
-        # Convert empty email to None to avoid unique constraint violation
+        # Validate and clean data
         email_value = form.email.data
         if email_value and email_value.strip():
-            email_value = email_value.strip()
+            email_value = email_value.strip().lower()
         else:
             email_value = None
             
+        phone_value = form.phone.data.strip()
+        
+        # Server-side validation for duplicates (excluding current customer)
+        from .clients_queries import get_customer_by_phone, get_customer_by_email
+        
+        # Check for duplicate phone number (excluding current customer)
+        existing_phone_customer = get_customer_by_phone(phone_value)
+        if existing_phone_customer and existing_phone_customer.id != id:
+            flash('A customer with this phone number already exists. Please use a different phone number.', 'danger')
+            return redirect(url_for('customers'))
+            
+        # Check for duplicate email (only if email is provided and excluding current customer)
+        if email_value:
+            existing_email_customer = get_customer_by_email(email_value)
+            if existing_email_customer and existing_email_customer.id != id:
+                flash('A customer with this email address already exists. Please use a different email or update the existing customer profile.', 'danger')
+                return redirect(url_for('customers'))
+            
         customer_data = {
-            'first_name': form.first_name.data,
-            'last_name': form.last_name.data,
-            'phone': form.phone.data,
+            'first_name': form.first_name.data.strip().title(),
+            'last_name': form.last_name.data.strip().title(),
+            'phone': phone_value,
             'email': email_value,
-            'address': form.address.data or '',
+            'address': form.address.data.strip() if form.address.data else '',
             'date_of_birth': form.date_of_birth.data,
-            'gender': form.gender.data,
-            'preferences': form.preferences.data or '',
-            'allergies': form.allergies.data or '',
-            'notes': form.notes.data or ''
+            'gender': form.gender.data if form.gender.data else None,
+            'preferences': form.preferences.data.strip() if form.preferences.data else '',
+            'allergies': form.allergies.data.strip() if form.allergies.data else '',
+            'notes': form.notes.data.strip() if form.notes.data else ''
         }
 
         update_customer(id, customer_data)
         flash('Customer updated successfully!', 'success')
     else:
-        flash('Error updating customer. Please check your input.', 'danger')
+        # Display specific validation errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
 
     return redirect(url_for('customers'))
 

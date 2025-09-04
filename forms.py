@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField, TextAreaField, FloatField, IntegerField, DateField, DateTimeField, BooleanField, TimeField, HiddenField, SubmitField, SelectMultipleField, EmailField
-from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
+from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError, Regexp
 from wtforms.widgets import TextArea, CheckboxInput, ListWidget
 from datetime import datetime, date
 from wtforms import DecimalField
@@ -27,10 +27,24 @@ class UserForm(FlaskForm):
     is_active = BooleanField('Active')
 
 class CustomerForm(FlaskForm):
-    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
-    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
-    email = StringField('Email', validators=[Optional(), Email()])
-    phone = StringField('Phone', validators=[DataRequired(), Length(max=20)])
+    first_name = StringField('First Name', validators=[
+        DataRequired(message="First name is required"), 
+        Length(min=2, max=50, message="First name must be between 2 and 50 characters")
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message="Last name is required"), 
+        Length(min=2, max=50, message="Last name must be between 2 and 50 characters")
+    ])
+    email = StringField('Email', validators=[
+        Optional(), 
+        Email(message="Please enter a valid email address"),
+        Length(max=120, message="Email address is too long")
+    ])
+    phone = StringField('Phone', validators=[
+        DataRequired(message="Phone number is required"), 
+        Length(min=10, max=20, message="Phone number must be between 10 and 20 characters"),
+        Regexp(r'^[\d\s\+\-\(\)]+$', message="Phone number can only contain digits, spaces, +, -, (, )")
+    ])
     date_of_birth = DateField('Date of Birth', validators=[Optional()])
     gender = SelectField('Gender', choices=[
         ('', 'Select Gender'),
@@ -38,10 +52,34 @@ class CustomerForm(FlaskForm):
         ('female', 'Female'),
         ('other', 'Other')
     ], validators=[Optional()])
-    address = TextAreaField('Address', validators=[Optional()])
-    preferences = TextAreaField('Preferences', validators=[Optional()])
-    allergies = TextAreaField('Allergies', validators=[Optional()])
-    notes = TextAreaField('Notes', validators=[Optional()])
+    address = TextAreaField('Address', validators=[
+        Optional(), 
+        Length(max=500, message="Address is too long")
+    ])
+    preferences = TextAreaField('Preferences', validators=[
+        Optional(), 
+        Length(max=1000, message="Preferences text is too long")
+    ])
+    allergies = TextAreaField('Allergies', validators=[
+        Optional(), 
+        Length(max=1000, message="Allergies text is too long")
+    ])
+    notes = TextAreaField('Notes', validators=[
+        Optional(), 
+        Length(max=1000, message="Notes text is too long")
+    ])
+    
+    def validate_date_of_birth(self, field):
+        if field.data:
+            from datetime import date
+            today = date.today()
+            if field.data > today:
+                raise ValidationError("Date of birth cannot be in the future")
+            
+            # Check if person is older than 120 years
+            age = today.year - field.data.year - ((today.month, today.day) < (field.data.month, field.data.day))
+            if age > 120:
+                raise ValidationError("Please enter a valid date of birth")
 
 class ServiceForm(FlaskForm):
     name = StringField('Service Name', validators=[DataRequired(), Length(max=100)])

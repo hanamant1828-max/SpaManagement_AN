@@ -13,6 +13,16 @@ def get_customer_by_id(customer_id):
     """Get customer by ID"""
     return Customer.query.get(customer_id)
 
+def get_customer_by_phone(phone):
+    """Get customer by phone number"""
+    return Customer.query.filter_by(phone=phone, is_active=True).first()
+
+def get_customer_by_email(email):
+    """Get customer by email address"""
+    if email:
+        return Customer.query.filter_by(email=email, is_active=True).first()
+    return None
+
 def search_customers(query):
     """Search customers by name, phone, or email"""
     return Customer.query.filter(
