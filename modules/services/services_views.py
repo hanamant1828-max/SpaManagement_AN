@@ -186,21 +186,30 @@ def export_service_categories():
 @login_required
 def services():
     """Enhanced Service Management with filtering and CRUD"""
-    if not current_user.can_access('services'):
-        flash('Access denied', 'danger')
+    print(f"Services route accessed by user: {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+    
+    try:
+        if not current_user.can_access('services'):
+            flash('Access denied', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        category_filter = request.args.get('category', '')
+        services_list = get_all_services(category_filter)
+        categories = get_all_service_categories()
+        
+        form = ServiceForm()
+        
+        print(f"Services loaded: {len(services_list)} services, {len(categories)} categories")
+        
+        return render_template('services.html', 
+                             services=services_list,
+                             categories=categories,
+                             form=form,
+                             category_filter=category_filter)
+    except Exception as e:
+        print(f"Error in services route: {str(e)}")
+        flash(f'Error loading services: {str(e)}', 'danger')
         return redirect(url_for('dashboard'))
-    
-    category_filter = request.args.get('category', '')
-    services_list = get_all_services(category_filter)
-    categories = get_all_service_categories()
-    
-    form = ServiceForm()
-    
-    return render_template('services.html', 
-                         services=services_list,
-                         categories=categories,
-                         form=form,
-                         category_filter=category_filter)
 
 @app.route('/services/create', methods=['POST'])
 @login_required
@@ -341,6 +350,17 @@ def export_services():
     except Exception as e:
         flash(f'Error exporting services: {str(e)}', 'danger')
         return redirect(url_for('services'))
+
+# Test route for debugging
+@app.route('/test-services')
+@login_required
+def test_services():
+    """Test route to check if services module is working"""
+    return jsonify({
+        'status': 'success',
+        'message': 'Services module is working',
+        'user': current_user.username if current_user.is_authenticated else 'anonymous'
+    })
 
 # API Endpoints for AJAX operations
 @app.route('/api/services/category/<int:category_id>')

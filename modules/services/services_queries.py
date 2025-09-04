@@ -72,9 +72,15 @@ def delete_service(service_id):
 # Service Category Queries
 def get_all_service_categories():
     """Get all service categories ordered by sort_order"""
-    return Category.query.filter_by(category_type='service').order_by(
-        Category.sort_order, Category.display_name
-    ).all()
+    try:
+        categories = Category.query.filter_by(category_type='service').order_by(
+            Category.sort_order, Category.display_name
+        ).all()
+        print(f"Retrieved {len(categories)} service categories from database")
+        return categories
+    except Exception as e:
+        print(f"Error in get_all_service_categories: {str(e)}")
+        return []
 
 def get_category_by_id(category_id):
     """Get category by ID"""
@@ -254,16 +260,22 @@ def export_categories_csv():
 # Enhanced Service Queries
 def get_all_services(category_filter=''):
     """Get all services with optional category filtering"""
-    query = Service.query
-    
-    if category_filter:
-        if category_filter.isdigit():
-            query = query.filter_by(category_id=int(category_filter))
-        else:
-            # Support legacy category filtering
-            query = query.filter_by(category=category_filter)
-    
-    return query.order_by(Service.name).all()
+    try:
+        query = Service.query
+        
+        if category_filter:
+            if category_filter.isdigit():
+                query = query.filter_by(category_id=int(category_filter))
+            else:
+                # Support legacy category filtering
+                query = query.filter_by(category=category_filter)
+        
+        services = query.order_by(Service.name).all()
+        print(f"Retrieved {len(services)} services from database")
+        return services
+    except Exception as e:
+        print(f"Error in get_all_services: {str(e)}")
+        return []
 
 def get_service_by_id(service_id):
     """Get service by ID"""

@@ -128,7 +128,7 @@
                             <i class="fas fa-boxes me-2"></i>Hanaman Inventory
                         </a>
                     </li>
-                    
+
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('hanaman_inventory_config') }}">
                             <i class="fas fa-cogs me-2"></i>Inventory Configuration
@@ -144,7 +144,7 @@
                         <div id="collapseServices" class="collapse" data-parent="#accordionSidebar">
                             <div class="bg-white py-2 collapse-inner rounded">
                                 <h6 class="collapse-header">Service Management:</h6>
-                                <a class="collapse-item" href="{{ url_for('services') }}">All Services</a>
+                                <a class="collapse-item" href="{{ url_for('services') }}" onclick="console.log('Services menu clicked')">All Services</a>
                                 <a class="collapse-item" href="{{ url_for('service_categories') }}">Service Categories</a>
                             </div>
                         </div>

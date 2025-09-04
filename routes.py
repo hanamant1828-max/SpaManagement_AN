@@ -32,6 +32,8 @@ from modules.notifications.notifications_views import *
 from modules.settings.settings_views import *
 from modules.staff.staff_views import *
 
+print("Services module imported successfully")
+
 
 @app.context_processor
 def utility_processor():
