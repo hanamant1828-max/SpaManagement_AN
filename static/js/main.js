@@ -1292,35 +1292,44 @@ function bookAppointment(customerId) {
 
 function editCustomer(customerId) {
     try {
-        console.log('Edit customer:', customerId);
+        console.log('Edit customer called with ID:', customerId);
 
-        if (!customerId) {
+        // Validate customer ID
+        if (!customerId || customerId === 'null' || customerId === null) {
+            console.error('Invalid customer ID provided:', customerId);
             showNotification('Invalid customer ID', 'error');
             return;
         }
 
-        // Show edit modal or redirect to edit page
         const editModal = document.getElementById('editCustomerModal');
-        if (editModal) {
-            // Store customer ID globally for modal use
-            window.currentCustomerId = customerId;
-
-            // Store customer ID in the form for submission
-            const form = editModal.querySelector('#editCustomerForm');
-            if (form) {
-                form.dataset.customerId = customerId;
-            }
-
-            // Load customer data and show modal
-            loadCustomerDataForEdit(customerId);
-            const modal = new bootstrap.Modal(editModal);
-            modal.show();
-        } else {
-            // Fallback: redirect to edit page
-            window.location.href = `/clients/edit/${customerId}`;
+        if (!editModal) {
+            console.error('Edit modal not found');
+            showNotification('Edit modal not available', 'error');
+            return;
         }
+
+        // Store customer ID for form submission
+        window.currentCustomerId = customerId;
+
+        // Set up the form
+        const form = editModal.querySelector('#editCustomerForm');
+        if (form) {
+            form.dataset.customerId = customerId;
+            // Clear any previous data
+            form.reset();
+        }
+
+        // Show modal first, then load data
+        const modal = new bootstrap.Modal(editModal);
+        modal.show();
+
+        // Load customer data after modal is shown
+        setTimeout(() => {
+            loadCustomerDataForEdit(customerId);
+        }, 100);
+
     } catch (error) {
-        console.error('Error editing customer:', error);
+        console.error('Error in editCustomer function:', error);
         showNotification('Error opening customer editor', 'error');
     }
 }
@@ -1393,30 +1402,70 @@ function validateEmail(email) {
 function loadCustomerDataForEdit(customerId) {
     console.log('Loading customer data for editing:', customerId);
 
-    if (!customerId) {
-        console.error('Invalid customer ID provided');
+    // Validate customer ID again
+    if (!customerId || customerId === 'null' || customerId === null) {
+        console.error('Invalid customer ID provided to loadCustomerDataForEdit:', customerId);
         showNotification('Invalid customer ID', 'error');
         return;
     }
 
-    fetch(`/api/customers/${customerId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                populateEditForm(data.customer);
-            } else {
-                showNotification(data.error || 'Error loading customer data', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching customer data:', error);
-            showNotification('Error loading customer data. Please try again.', 'error');
-        });
+    // Show loading indicator in modal
+    const modalBody = document.querySelector('#editCustomerModal .modal-body');
+    if (modalBody) {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'loading-indicator';
+        loadingDiv.className = 'text-center p-3';
+        loadingDiv.innerHTML = `
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading customer data...</p>
+        `;
+        modalBody.appendChild(loadingDiv);
+    }
+
+    fetch(`/api/customers/${customerId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('API response status:', response.status);
+        
+        // Remove loading indicator
+        const loadingDiv = document.getElementById('loading-indicator');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Customer data received:', data);
+        
+        if (data.success && data.customer) {
+            populateEditForm(data.customer);
+            showNotification('Customer data loaded successfully', 'success', 2000);
+        } else {
+            throw new Error(data.error || 'Customer data not found');
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching customer data:', error);
+        
+        // Remove loading indicator if still present
+        const loadingDiv = document.getElementById('loading-indicator');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+        
+        showNotification('Error loading customer data. Please try again.', 'error');
+    });
 }
 
 function deleteCustomer(customerId, customerName) {
@@ -1436,41 +1485,69 @@ function deleteCustomer(customerId, customerName) {
 }
 
 function populateEditForm(customer) {
+    console.log('Populating edit form with customer data:', customer);
+    
     const form = document.querySelector('#editCustomerForm');
-    if (form && customer) {
-        const firstNameField = form.querySelector('[name="first_name"]');
-        const lastNameField = form.querySelector('[name="last_name"]');
-        const phoneField = form.querySelector('[name="phone"]');
-        const emailField = form.querySelector('[name="email"]');
-        const addressField = form.querySelector('[name="address"]');
-        const dobField = form.querySelector('[name="date_of_birth"]');
-        const genderField = form.querySelector('[name="gender"]');
-        const preferencesField = form.querySelector('[name="preferences"]');
-        const allergiesField = form.querySelector('[name="allergies"]');
-        const notesField = form.querySelector('[name="notes"]');
+    if (!form) {
+        console.error('Edit customer form not found');
+        return;
+    }
 
-        if (firstNameField) firstNameField.value = customer.first_name || '';
-        if (lastNameField) lastNameField.value = customer.last_name || '';
-        if (phoneField) phoneField.value = customer.phone || '';
-        if (emailField) emailField.value = customer.email || '';
-        if (addressField) addressField.value = customer.address || '';
-        if (dobField && customer.date_of_birth) dobField.value = customer.date_of_birth;
-        if (genderField) genderField.value = customer.gender || '';
-        if (preferencesField) preferencesField.value = customer.preferences || '';
-        if (allergiesField) allergiesField.value = customer.allergies || '';
-        if (notesField) notesField.value = customer.notes || '';
+    if (!customer) {
+        console.error('No customer data provided');
+        return;
+    }
 
-        // Store customer ID for form submission
+    try {
+        // Clear form first
+        form.reset();
+
+        // Populate form fields with safe fallbacks
+        const fields = {
+            'first_name': customer.first_name || '',
+            'last_name': customer.last_name || '',
+            'phone': customer.phone || '',
+            'email': customer.email || '',
+            'address': customer.address || '',
+            'date_of_birth': customer.date_of_birth || '',
+            'gender': customer.gender || '',
+            'preferences': customer.preferences || '',
+            'allergies': customer.allergies || '',
+            'notes': customer.notes || ''
+        };
+
+        // Set each field value
+        Object.entries(fields).forEach(([fieldName, value]) => {
+            const field = form.querySelector(`[name="${fieldName}"]`);
+            if (field) {
+                field.value = value;
+                console.log(`Set ${fieldName} to:`, value);
+            } else {
+                console.warn(`Field ${fieldName} not found in form`);
+            }
+        });
+
+        // Store customer ID in form
         form.dataset.customerId = customer.id;
+        window.currentCustomerId = customer.id;
+
+        console.log('Edit form populated successfully');
+
+    } catch (error) {
+        console.error('Error populating edit form:', error);
+        showNotification('Error loading customer data into form', 'error');
     }
 }
 
-// Handle edit customer form submission
+// Handle edit customer form submission - Completely recreated
 function handleEditCustomerSubmit(event) {
     event.preventDefault();
+    console.log('Edit customer form submitted');
 
     const form = event.target;
-    const customerId = form.dataset.customerId;
+    const customerId = form.dataset.customerId || window.currentCustomerId;
+
+    console.log('Customer ID for update:', customerId);
 
     if (!customerId) {
         console.error('Customer ID not found for editing.');
@@ -1484,42 +1561,64 @@ function handleEditCustomerSubmit(event) {
         return;
     }
 
+    // Show loading state
     showFormLoading(form);
+    showNotification('Updating customer...', 'info', 2000);
 
     // Gather form data
     const formData = new FormData(form);
+    
+    // Log form data for debugging
+    console.log('Form data being sent:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+    }
 
-    // Send data to the server using the existing update route
+    // Send data to server - use traditional form submission approach
     fetch(`/clients/update/${customerId}`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        redirect: 'manual' // Handle redirects manually
     })
     .then(response => {
-        // Flask redirects (302) are handled differently by fetch
-        // The response.redirected property indicates a successful redirect occurred
-        if (response.ok || response.redirected) {
-            // Success - show notification and close modal
+        console.log('Update response:', response.status, response.statusText);
+        
+        // Check for successful responses (200 or 302 redirect)
+        if (response.status === 200 || response.status === 302) {
+            // Success - close modal and show message
             showNotification('Customer updated successfully!', 'success');
+            
             const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
-            if (modal) modal.hide();
-            // Refresh the page to show updated data
-            setTimeout(() => window.location.reload(), 1000);
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Refresh page to show updated data
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+            
+            return Promise.resolve();
         } else {
             // Handle error responses
             return response.text().then(text => {
+                console.log('Error response text:', text);
+                
                 if (text.includes('duplicate') || text.includes('already exists')) {
-                    showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
+                    showNotification('A customer with this phone/email already exists.', 'warning');
                 } else if (text.includes('not found')) {
-                    showNotification('Customer not found. Please refresh the page and try again.', 'error');
+                    showNotification('Customer not found. Please refresh and try again.', 'error');
+                } else if (text.includes('validation')) {
+                    showNotification('Validation error. Please check your input.', 'warning');
                 } else {
-                    showNotification('Error updating customer. Please check your input and try again.', 'error');
+                    showNotification('Error updating customer. Please try again.', 'error');
                 }
             });
         }
     })
     .catch(error => {
-        console.error('Error submitting edit customer form:', error);
-        showNotification('Network error occurred while updating the customer. Please try again.', 'error');
+        console.error('Network error during customer update:', error);
+        showNotification('Network error. Please check your connection and try again.', 'error');
     })
     .finally(() => {
         hideFormLoading(form);
