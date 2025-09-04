@@ -27,10 +27,14 @@ def search_customers(query):
 
 def create_customer(customer_data):
     """Create a new customer"""
-    customer = Customer(**customer_data)
-    db.session.add(customer)
-    db.session.commit()
-    return customer
+    try:
+        customer = Customer(**customer_data)
+        db.session.add(customer)
+        db.session.commit()
+        return customer
+    except Exception as e:
+        db.session.rollback()
+        raise e
 
 def update_customer(customer_id, customer_data):
     """Update an existing customer"""

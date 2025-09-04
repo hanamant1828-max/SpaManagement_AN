@@ -47,11 +47,18 @@ def create_customer_route():
 
     form = CustomerForm()
     if form.validate_on_submit():
+        # Convert empty email to None to avoid unique constraint violation
+        email_value = form.email.data
+        if email_value and email_value.strip():
+            email_value = email_value.strip()
+        else:
+            email_value = None
+            
         customer_data = {
             'first_name': form.first_name.data,
             'last_name': form.last_name.data,
             'phone': form.phone.data,
-            'email': form.email.data,
+            'email': email_value,
             'address': form.address.data or '',
             'date_of_birth': form.date_of_birth.data,
             'gender': form.gender.data,
@@ -60,8 +67,11 @@ def create_customer_route():
             'notes': form.notes.data or ''
         }
 
-        create_customer(customer_data)
-        flash('Customer created successfully!', 'success')
+        try:
+            create_customer(customer_data)
+            flash('Customer created successfully!', 'success')
+        except Exception as e:
+            flash(f'Error creating customer: {str(e)}', 'danger')
     else:
         flash('Error creating customer. Please check your input.', 'danger')
 
@@ -103,11 +113,18 @@ def update_client_route(id):
 
     form = CustomerForm()
     if form.validate_on_submit():
+        # Convert empty email to None to avoid unique constraint violation
+        email_value = form.email.data
+        if email_value and email_value.strip():
+            email_value = email_value.strip()
+        else:
+            email_value = None
+            
         customer_data = {
             'first_name': form.first_name.data,
             'last_name': form.last_name.data,
             'phone': form.phone.data,
-            'email': form.email.data,
+            'email': email_value,
             'address': form.address.data or '',
             'date_of_birth': form.date_of_birth.data,
             'gender': form.gender.data,
