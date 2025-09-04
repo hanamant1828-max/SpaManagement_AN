@@ -1,31 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}Comprehensive Staff Management - Spa & Salon Management Suite{% endblock %}
+{% block title %}JavaScript Staff Management - Spa & Salon Management Suite{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-0">
-                    <i class="fas fa-users-cog me-2"></i>Comprehensive Staff Management
+                    <i class="fas fa-users-cog me-2"></i>Staff Management
                 </h1>
                 <div class="btn-group">
-                    <a href="{{ url_for('create_comprehensive_staff') }}" class="btn btn-primary">
+                    <button type="button" class="btn btn-primary" onclick="showAddForm()">
                         <i class="fas fa-plus me-2"></i>Add New Staff
-                    </a>
-                    <a href="{{ url_for('export_staff') }}" class="btn btn-success">
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="exportStaffData()">
                         <i class="fas fa-download me-2"></i>Export Data
-                    </a>
-                    <a href="{{ url_for('staff') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Basic View
-                    </a>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="refreshStaffData()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Stats -->
+    <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
@@ -33,7 +34,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="card-title">Total Staff</h5>
-                            <h3 class="mb-0">{{ staff|length }}</h3>
+                            <h3 class="mb-0" id="totalStaffCount">0</h3>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-users fa-2x"></i>
@@ -48,7 +49,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="card-title">Active Staff</h5>
-                            <h3 class="mb-0">{{ staff|selectattr('is_active')|list|length }}</h3>
+                            <h3 class="mb-0" id="activeStaffCount">0</h3>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-user-check fa-2x"></i>
@@ -63,7 +64,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="card-title">Departments</h5>
-                            <h3 class="mb-0">{{ departments|length }}</h3>
+                            <h3 class="mb-0" id="departmentCount">0</h3>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-building fa-2x"></i>
@@ -77,11 +78,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h5 class="card-title">Services</h5>
-                            <h3 class="mb-0">{{ services|length }}</h3>
+                            <h5 class="card-title">Roles</h5>
+                            <h3 class="mb-0" id="roleCount">0</h3>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-tools fa-2x"></i>
+                            <i class="fas fa-user-tag fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -94,60 +95,194 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <!-- Search Bar -->
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="staffSearch" 
-                                       placeholder="Search staff by name, email, employee ID, or staff code..."
-                                       value="{{ request.args.get('search', '') }}">
-                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Search Staff</label>
+                            <input type="text" class="form-control" id="searchInput" 
+                                   placeholder="Search by name, email, code..." 
+                                   onkeyup="filterStaff()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" id="roleFilter" onchange="filterStaff()">
+                                <option value="">All Roles</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Department</label>
+                            <select class="form-select" id="departmentFilter" onchange="filterStaff()">
+                                <option value="">All Departments</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter" onchange="filterStaff()">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-outline-secondary d-block w-100" onclick="clearFilters()">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
                         </div>
                     </div>
-                    
-                    <!-- Filters -->
-                    <form method="GET" class="row g-3">
-                        <input type="hidden" name="search" id="searchInput" value="{{ request.args.get('search', '') }}">
-                        <div class="col-md-3">
-                            <label class="form-label">Filter by Role</label>
-                            <select name="role" class="form-select">
-                                <option value="">All Roles</option>
-                                {% for role in roles %}
-                                <option value="{{ role.id }}" {{ 'selected' if request.args.get('role') == role.id|string }}>{{ role.display_name }}</option>
-                                {% endfor %}
-                            </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Form (Initially Hidden) -->
+    <div class="row mb-4" id="staffFormContainer" style="display: none;">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0" id="formTitle">Add New Staff Member</h5>
+                </div>
+                <div class="card-body">
+                    <form id="staffForm">
+                        <input type="hidden" id="staffId" value="">
+                        <input type="hidden" id="formMode" value="add">
+                        
+                        <div class="row g-3">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary">Basic Information</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Username *</label>
+                                    <input type="text" class="form-control" id="username" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="firstName" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="lastName" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="phone">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="password">
+                                    <small class="form-text text-muted" id="passwordHelp">Leave blank to keep current password</small>
+                                </div>
+                            </div>
+
+                            <!-- Role & Department -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary">Role & Department</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Role</label>
+                                    <select class="form-select" id="roleId">
+                                        <option value="">Select Role</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Department</label>
+                                    <select class="form-select" id="departmentId">
+                                        <option value="">Select Department</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Designation</label>
+                                    <input type="text" class="form-control" id="designation">
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="form-label">Commission Rate (%)</label>
+                                        <input type="number" class="form-control" id="commissionRate" min="0" max="100" step="0.1">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Hourly Rate ($)</label>
+                                        <input type="number" class="form-control" id="hourlyRate" min="0" step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Personal Details -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary">Personal Details</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Gender</label>
+                                    <select class="form-select" id="gender">
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="form-label">Date of Birth</label>
+                                        <input type="date" class="form-control" id="dateOfBirth">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Date of Joining</label>
+                                        <input type="date" class="form-control" id="dateOfJoining">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Work Schedule -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary">Work Schedule</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="form-label">Shift Start</label>
+                                        <input type="time" class="form-control" id="shiftStart">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Shift End</label>
+                                        <input type="time" class="form-control" id="shiftEnd">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Working Days</label>
+                                    <input type="text" class="form-control" id="workingDays" 
+                                           placeholder="1111100 (Mon-Sun, 1=working, 0=off)">
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="enableFaceCheckin" checked>
+                                    <label class="form-check-label" for="enableFaceCheckin">
+                                        Enable Face Check-in
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="col-12">
+                                <h6 class="text-primary">Additional Information</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Notes/Bio</label>
+                                    <textarea class="form-control" id="notesBio" rows="3" 
+                                              placeholder="Additional notes or biography"></textarea>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Filter by Department</label>
-                            <select name="department" class="form-select">
-                                <option value="">All Departments</option>
-                                {% for dept in departments %}
-                                <option value="{{ dept.id }}" {{ 'selected' if request.args.get('department') == dept.id|string }}>{{ dept.display_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
-                                <option value="inactive" {{ 'selected' if request.args.get('status') == 'inactive' }}>Inactive</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">&nbsp;</label>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-outline-primary">
-                                    <i class="fas fa-filter me-2"></i>Filter
-                                </button>
+
+                        <!-- Form Actions -->
+                        <div class="row">
+                            <div class="col-12">
+                                <hr>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-secondary" onclick="hideStaffForm()">
+                                        <i class="fas fa-times me-1"></i>Cancel
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                                        <i class="fas fa-save me-1"></i>Save Staff
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -159,194 +294,49 @@
     <!-- Staff List -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Comprehensive Staff Members</h6>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Staff Members</h5>
                 </div>
                 <div class="card-body">
-                    {% if staff %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Photo</th>
-                                    <th>Staff Info</th>
-                                    <th>Role & Department</th>
-                                    <th>Contact</th>
-                                    <th>Schedule</th>
-                                    <th>Performance</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for member in staff %}
-                                <tr data-staff-id="{{ member.id }}" data-updated="{{ cache_buster or '' }}">
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if member.profile_photo_url %}
-                                                <img src="{{ member.profile_photo_url }}?v={{ cache_buster or '' }}" alt="Profile" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
-                                            {% else %}
-                                                <div class="avatar-circle me-3" style="width: 40px; height: 40px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                                                    {{ (member.first_name[0] if member.first_name else 'S') + (member.last_name[0] if member.last_name else 'M') }}
-                                                </div>
-                                            {% endif %}
-                                            <div>
-                                                <strong>{{ member.full_name or ('Staff Member #' + member.id|string) }}</strong>
-                                                <br><small class="text-muted">{{ member.staff_code or ('STF' + (member.id|string).zfill(3)) }}</small>
-                                                {% if member.email %}
-                                                <br><small class="text-muted">{{ member.email }}</small>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong>{{ member.user_role.display_name if member.user_role else member.role.title() }}</strong>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">{{ member.staff_department.display_name if member.staff_department else 'No Department' }}</small>
-                                        </div>
-                                        <div>
-                                            <small class="badge bg-secondary">{{ member.designation or 'No Designation' }}</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>{{ member.phone or 'Not provided' }}</div>
-                                        {% if member.gender %}
-                                        <small class="text-muted">{{ member.gender.title() }}</small>
-                                        {% endif %}
-                                        <br>
-                                        {% if member.email %}
-                                        <small class="text-muted">{{ member.email }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong>Join Date:</strong>
-                                            {% if member.date_of_joining %}
-                                                {{ member.date_of_joining.strftime('%d/%m/%Y') }}
-                                            {% elif member.created_at %}
-                                                {{ member.created_at.strftime('%d/%m/%Y') }}
-                                            {% else %}
-                                                Not set
-                                            {% endif %}
-                                        </div>
-                                        {% if member.shift_start_time and member.shift_end_time %}
-                                        <small class="text-muted">
-                                            Shift: {{ member.shift_start_time.strftime('%H:%M') }} - {{ member.shift_end_time.strftime('%H:%M') }}
-                                        </small>
-                                        {% endif %}
-                                        {% if member.working_days %}
-                                        <br><small class="badge bg-info">Working Days: {{ member.working_days }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if member.verification_status else 'warning' }}">
-                                            {{ 'Verified' if member.verification_status else 'Pending' }}
-                                        </span>
-                                        {% if member.enable_face_checkin %}
-                                        <br><small class="badge bg-info mt-1">Face ID</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="performance-metrics">
-                                            <div><strong>Revenue:</strong> ₹{{ "%.2f"|format(member.total_revenue_generated or 0) }}</div>
-                                            <div><small>Clients: {{ member.total_clients_served or 0 }}</small></div>
-                                            {% if member.average_rating %}
-                                            <div><small>Rating: ⭐{{ "%.1f"|format(member.average_rating) }}</small></div>
-                                            {% endif %}
-
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if member.is_active else 'danger' }}">
-                                            {{ 'Active' if member.is_active else 'Inactive' }}
-                                        </span>
-                                        {% if member.last_login %}
-                                        <br><small class="text-muted">Last: {{ member.last_login.strftime('%d/%m/%Y') }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group-vertical" role="group">
-                                            <a href="{{ url_for('edit_comprehensive_staff', staff_id=member.id) }}" 
-                                               class="btn btn-sm btn-outline-primary" title="Edit Profile">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="{{ url_for('staff_performance', staff_id=member.id) }}" 
-                                               class="btn btn-sm btn-outline-info" title="Performance">
-                                                <i class="fas fa-chart-line"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-warning" 
-                                                    onclick="setupFacialRecognition({{ member.id }})" title="Facial Setup">
-                                                <i class="fas fa-user-check"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-success" 
-                                                    onclick="manageAttendance({{ member.id }})" title="Attendance">
-                                                <i class="fas fa-clock"></i>
-                                            </button>
-                                            {% if current_user.has_role('admin') %}
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                    onclick="deactivateStaff({{ member.id }})" title="Deactivate">
-                                                <i class="fas fa-ban"></i>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <!-- Loading State -->
+                    <div id="loadingState" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading staff data...</p>
                     </div>
-                    {% else %}
-                    <div class="text-center py-5">
+
+                    <!-- Staff Table -->
+                    <div id="staffTableContainer" style="display: none;">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Staff Info</th>
+                                        <th>Role & Department</th>
+                                        <th>Contact</th>
+                                        <th>Work Details</th>
+                                        <th>Performance</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffTableBody">
+                                    <!-- Staff rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="emptyState" class="text-center py-5" style="display: none;">
                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No staff members found</h5>
                         <p class="text-muted">Add your first staff member to get started.</p>
-                        <a href="{{ url_for('create_comprehensive_staff') }}" class="btn btn-primary">
+                        <button type="button" class="btn btn-primary" onclick="showAddForm()">
                             <i class="fas fa-plus me-2"></i>Add Staff Member
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Attendance Modal -->
-<div class="modal fade" id="attendanceModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Staff Attendance Management</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="attendanceStaffId">
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <h6 id="attendanceStaffName">Staff Member</h6>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-6">
-                        <button class="btn btn-success w-100" onclick="punchIn()">
-                            <i class="fas fa-sign-in-alt me-2"></i>Punch In
                         </button>
-                    </div>
-                    <div class="col-6">
-                        <button class="btn btn-danger w-100" onclick="punchOut()">
-                            <i class="fas fa-sign-out-alt me-2"></i>Punch Out
-                        </button>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <h6>Today's Attendance</h6>
-                        <div id="todayAttendance">
-                            <small class="text-muted">Loading attendance data...</small>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -354,349 +344,498 @@
     </div>
 </div>
 
-<!-- Face Recognition Modal -->
-<div class="modal fade" id="faceRecognitionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Setup Facial Recognition</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <div class="face-capture-container">
-                    <video id="faceVideo" autoplay style="width: 100%; max-width: 400px; height: 300px; border: 2px dashed #007bff; border-radius: 8px;"></video>
-                    <canvas id="faceCanvas" style="display: none;"></canvas>
-                    <div class="mt-3">
-                        <button type="button" class="btn btn-primary btn-lg" id="captureFaceBtn" disabled>
-                            <i class="fas fa-camera me-2"></i>Capture Face
-                        </button>
-                        <p class="small text-muted mt-2">
-                            Position your face within the frame and click capture when ready.
-                            <br>Ensure good lighting for best results.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Alert Container -->
+<div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <!-- Alerts will be dynamically added here -->
 </div>
 
 <script>
-// Force page refresh on load to ensure fresh data
+// Global Variables
+let allStaff = [];
+let filteredStaff = [];
+let rolesData = [];
+let departmentsData = [];
+let isEditing = false;
+
+// Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Comprehensive Staff Management page loaded');
-    console.log('Staff count:', document.querySelectorAll('[data-staff-id]').length);
-    
-    // Add refresh button functionality
-    const refreshBtn = document.createElement('button');
-    refreshBtn.className = 'btn btn-outline-primary btn-sm';
-    refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh Data';
-    refreshBtn.onclick = function() {
-        window.location.reload(true); // Force reload from server
-    };
-    
-    const headerActions = document.querySelector('.btn-group');
-    if (headerActions) {
-        headerActions.appendChild(refreshBtn);
-    }
+    console.log('JavaScript Staff Management loaded');
+    loadStaffData();
+    setupFormHandlers();
 });
 
-function deactivateStaff(staffId) {
-    if (confirm('Are you sure you want to deactivate this staff member?')) {
-        fetch(`/staff/deactivate/${staffId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Force hard reload to show updated data
-                window.location.reload(true);
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error deactivating staff member');
-        });
+// Load all staff data from API
+async function loadStaffData() {
+    try {
+        showLoading(true);
+        
+        const response = await fetch('/api/staff');
+        const data = await response.json();
+        
+        if (data.success) {
+            allStaff = data.staff;
+            rolesData = data.roles;
+            departmentsData = data.departments;
+            
+            populateDropdowns();
+            updateStats();
+            renderStaffTable();
+            showAlert('Staff data loaded successfully', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to load staff data');
+        }
+    } catch (error) {
+        console.error('Error loading staff data:', error);
+        showAlert('Error loading staff data: ' + error.message, 'danger');
+        showEmptyState();
+    } finally {
+        showLoading(false);
     }
 }
 
-function refreshStaffData() {
-    console.log('Refreshing staff data...');
+// Populate dropdown menus
+function populateDropdowns() {
+    // Populate role dropdowns
+    const roleSelects = ['roleFilter', 'roleId'];
+    roleSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            // Clear existing options (except first)
+            const firstOption = select.firstElementChild;
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            
+            rolesData.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role.id;
+                option.textContent = role.display_name;
+                select.appendChild(option);
+            });
+        }
+    });
     
-    // Show loading indicator
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'position-fixed top-50 start-50 translate-middle bg-white border rounded p-3';
-    loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing data...';
-    loadingDiv.style.zIndex = '9999';
-    document.body.appendChild(loadingDiv);
-    
-    // Force page reload
-    setTimeout(() => {
-        window.location.reload(true);
-    }, 500);
+    // Populate department dropdowns
+    const deptSelects = ['departmentFilter', 'departmentId'];
+    deptSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            // Clear existing options (except first)
+            const firstOption = select.firstElementChild;
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            
+            departmentsData.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.id;
+                option.textContent = dept.display_name;
+                select.appendChild(option);
+            });
+        }
+    });
 }
 
-function manageAttendance(staffId) {
-    const staffRow = document.querySelector(`[data-staff-id="${staffId}"]`);
-    const staffName = staffRow.querySelector('strong').textContent;
+// Update statistics cards
+function updateStats() {
+    const totalStaff = allStaff.length;
+    const activeStaff = allStaff.filter(s => s.is_active).length;
     
-    document.getElementById('attendanceStaffId').value = staffId;
-    document.getElementById('attendanceStaffName').textContent = staffName;
-    
-    // Load today's attendance
-    loadTodayAttendance(staffId);
-    
-    const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
-    modal.show();
+    document.getElementById('totalStaffCount').textContent = totalStaff;
+    document.getElementById('activeStaffCount').textContent = activeStaff;
+    document.getElementById('departmentCount').textContent = departmentsData.length;
+    document.getElementById('roleCount').textContent = rolesData.length;
 }
 
-function loadTodayAttendance(staffId) {
-    const attendanceDiv = document.getElementById('todayAttendance');
-    attendanceDiv.innerHTML = '<small class="text-muted">Loading...</small>';
+// Render staff table
+function renderStaffTable() {
+    filteredStaff = [...allStaff];
+    filterStaff();
     
-    // This would typically fetch from the server
-    setTimeout(() => {
-        attendanceDiv.innerHTML = `
-            <div class="card">
-                <div class="card-body p-2">
-                    <small>
-                        <strong>Status:</strong> <span class="badge bg-success">Present</span><br>
-                        <strong>Check-in:</strong> 09:30 AM<br>
-                        <strong>Hours:</strong> 7.5 hours
-                    </small>
+    const tbody = document.getElementById('staffTableBody');
+    tbody.innerHTML = '';
+    
+    if (filteredStaff.length === 0) {
+        showEmptyState();
+        return;
+    }
+    
+    filteredStaff.forEach(staff => {
+        const row = createStaffRow(staff);
+        tbody.appendChild(row);
+    });
+    
+    showTable(true);
+}
+
+// Create staff table row
+function createStaffRow(staff) {
+    const row = document.createElement('tr');
+    row.setAttribute('data-staff-id', staff.id);
+    
+    // Generate initials
+    const initials = (staff.first_name?.[0] || 'S') + (staff.last_name?.[0] || 'M');
+    
+    row.innerHTML = `
+        <td>
+            <div class="d-flex align-items-center">
+                <div class="avatar-circle me-3" style="width: 40px; height: 40px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    ${initials}
+                </div>
+                <div>
+                    <strong>${staff.full_name}</strong>
+                    <br><small class="text-muted">${staff.staff_code || ''}</small>
+                    <br><small class="text-muted">${staff.username}</small>
                 </div>
             </div>
-        `;
-    }, 500);
-}
-
-function punchIn() {
-    const staffId = document.getElementById('attendanceStaffId').value;
-    
-    fetch('/staff/attendance/punch-in', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            staff_id: staffId,
-            method: 'manual'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Punched in successfully at ' + data.check_in_time);
-            loadTodayAttendance(staffId);
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error punching in');
-    });
-}
-
-function punchOut() {
-    const staffId = document.getElementById('attendanceStaffId').value;
-    
-    fetch('/staff/attendance/punch-out', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            staff_id: staffId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Punched out successfully at ' + data.check_out_time + '. Total hours: ' + data.total_hours);
-            loadTodayAttendance(staffId);
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error punching out');
-    });
-}
-
-function setupFacialRecognition(staffId) {
-    const staffRow = document.querySelector(`[data-staff-id="${staffId}"]`);
-    const staffName = staffRow.querySelector('strong').textContent;
-    
-    if (confirm(`Setup facial recognition for ${staffName}?`)) {
-        const modal = new bootstrap.Modal(document.getElementById('faceRecognitionModal'));
-        modal.show();
-        startFaceCapture(staffId);
-    }
-}
-
-function startFaceCapture(staffId) {
-    const video = document.getElementById('faceVideo');
-    const canvas = document.getElementById('faceCanvas');
-    
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-            video.srcObject = stream;
-            
-            document.getElementById('captureFaceBtn').onclick = function() {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                
-                // Convert to base64 and send to server
-                const imageData = canvas.toDataURL('image/jpeg');
-                
-                fetch('/staff/facial-recognition/setup', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        staff_id: staffId,
-                        face_encoding: imageData
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Facial recognition setup completed!');
-                        stream.getTracks().forEach(track => track.stop());
-                        bootstrap.Modal.getInstance(document.getElementById('faceRecognitionModal')).hide();
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                });
-            };
-        })
-        .catch(error => {
-            console.error('Camera access error:', error);
-            alert('Camera access denied or not available');
-        });
-}
-
-// Add keyboard shortcut for refresh (F5 or Ctrl+R)
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
-        e.preventDefault();
-        refreshStaffData();
-    }
-});
-
-// Search functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('staffSearch');
-    const clearSearchBtn = document.getElementById('clearSearch');
-    const hiddenSearchInput = document.getElementById('searchInput');
-    const filterForm = document.querySelector('form');
-    
-    if (searchInput && filterForm) {
-        // Real-time search as user types
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            hiddenSearchInput.value = this.value;
-            
-            // Get all staff rows
-            const staffRows = document.querySelectorAll('[data-staff-id]');
-            
-            staffRows.forEach(function(row) {
-                const staffName = row.querySelector('strong').textContent.toLowerCase();
-                const staffCode = row.querySelector('small').textContent.toLowerCase();
-                const emailCell = row.querySelector('td:nth-child(4)');
-                const email = emailCell ? emailCell.textContent.toLowerCase() : '';
-                
-                // Check if search term matches name, code, or email
-                const isVisible = searchTerm === '' || 
-                    staffName.includes(searchTerm) || 
-                    staffCode.includes(searchTerm) || 
-                    email.includes(searchTerm);
-                
-                row.style.display = isVisible ? '' : 'none';
-            });
-            
-            // Update visible count
-            const visibleRows = document.querySelectorAll('[data-staff-id]:not([style*="display: none"])');
-            updateSearchResults(visibleRows.length);
-        });
-        
-        // Clear search functionality
-        clearSearchBtn.addEventListener('click', function() {
-            searchInput.value = '';
-            hiddenSearchInput.value = '';
-            
-            // Show all rows
-            const staffRows = document.querySelectorAll('[data-staff-id]');
-            staffRows.forEach(function(row) {
-                row.style.display = '';
-            });
-            
-            updateSearchResults(staffRows.length);
-            searchInput.focus();
-        });
-        
-        // Handle Enter key for search
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                // Update hidden input and submit form for server-side search
-                hiddenSearchInput.value = this.value;
-                filterForm.submit();
+        </td>
+        <td>
+            <div><strong>${staff.role_display}</strong></div>
+            <div><small class="text-muted">${staff.department_display}</small></div>
+            <div><span class="badge bg-secondary">${staff.designation || 'No Designation'}</span></div>
+        </td>
+        <td>
+            <div>${staff.email || 'No email'}</div>
+            <div><small class="text-muted">${staff.phone || 'No phone'}</small></div>
+            ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ''}
+        </td>
+        <td>
+            <div><strong>Commission:</strong> ${staff.commission_rate}%</div>
+            <div><strong>Hourly:</strong> $${staff.hourly_rate}</div>
+            ${staff.shift_start_time && staff.shift_end_time ? 
+                `<div><small>Shift: ${staff.shift_start_time} - ${staff.shift_end_time}</small></div>` : 
+                '<div><small>No shift set</small></div>'
             }
-        });
-    }
-});
+        </td>
+        <td>
+            <div><strong>Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
+            <div><small>Clients: ${staff.total_clients_served}</small></div>
+            ${staff.average_rating > 0 ? `<div><small>Rating: ⭐${staff.average_rating.toFixed(1)}</small></div>` : ''}
+        </td>
+        <td>
+            <span class="badge bg-${staff.is_active ? 'success' : 'danger'}">
+                ${staff.is_active ? 'Active' : 'Inactive'}
+            </span>
+            ${staff.verification_status ? '<br><span class="badge bg-info mt-1">Verified</span>' : ''}
+            ${staff.enable_face_checkin ? '<br><span class="badge bg-primary mt-1">Face ID</span>' : ''}
+        </td>
+        <td>
+            <div class="btn-group-vertical btn-group-sm">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="editStaff(${staff.id})" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="viewPerformance(${staff.id})" title="Performance">
+                    <i class="fas fa-chart-line"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteStaff(${staff.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    return row;
+}
 
-// Update search results count
-function updateSearchResults(count) {
-    let resultDiv = document.getElementById('searchResults');
-    if (!resultDiv) {
-        resultDiv = document.createElement('div');
-        resultDiv.id = 'searchResults';
-        resultDiv.className = 'mb-2 text-muted small';
-        
-        const cardBody = document.querySelector('.card-body .table-responsive');
-        if (cardBody && cardBody.parentNode) {
-            cardBody.parentNode.insertBefore(resultDiv, cardBody);
-        }
+// Filter staff based on search and filters
+function filterStaff() {
+    let filtered = [...allStaff];
+    
+    // Search filter
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    if (searchTerm) {
+        filtered = filtered.filter(staff => 
+            staff.full_name.toLowerCase().includes(searchTerm) ||
+            staff.email.toLowerCase().includes(searchTerm) ||
+            staff.staff_code.toLowerCase().includes(searchTerm) ||
+            staff.username.toLowerCase().includes(searchTerm) ||
+            staff.phone.includes(searchTerm)
+        );
     }
     
-    const totalRows = document.querySelectorAll('[data-staff-id]').length;
-    if (count === totalRows) {
-        resultDiv.textContent = `Showing all ${totalRows} staff members`;
-    } else {
-        resultDiv.textContent = `Showing ${count} of ${totalRows} staff members`;
+    // Role filter
+    const roleFilter = document.getElementById('roleFilter').value;
+    if (roleFilter) {
+        filtered = filtered.filter(staff => staff.role_id == roleFilter);
     }
+    
+    // Department filter
+    const deptFilter = document.getElementById('departmentFilter').value;
+    if (deptFilter) {
+        filtered = filtered.filter(staff => staff.department_id == deptFilter);
+    }
+    
+    // Status filter
+    const statusFilter = document.getElementById('statusFilter').value;
+    if (statusFilter === 'active') {
+        filtered = filtered.filter(staff => staff.is_active);
+    } else if (statusFilter === 'inactive') {
+        filtered = filtered.filter(staff => !staff.is_active);
+    }
+    
+    filteredStaff = filtered;
+    renderFilteredStaff();
+}
+
+// Render filtered staff
+function renderFilteredStaff() {
+    const tbody = document.getElementById('staffTableBody');
+    tbody.innerHTML = '';
+    
+    if (filteredStaff.length === 0) {
+        showEmptyState();
+        return;
+    }
+    
+    filteredStaff.forEach(staff => {
+        const row = createStaffRow(staff);
+        tbody.appendChild(row);
+    });
+    
+    showTable(true);
+}
+
+// Clear all filters
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('roleFilter').value = '';
+    document.getElementById('departmentFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    filterStaff();
+}
+
+// Show/hide loading state
+function showLoading(show) {
+    document.getElementById('loadingState').style.display = show ? 'block' : 'none';
+    document.getElementById('staffTableContainer').style.display = show ? 'none' : 'block';
+    document.getElementById('emptyState').style.display = 'none';
+}
+
+// Show/hide table
+function showTable(show) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('staffTableContainer').style.display = show ? 'block' : 'none';
+    document.getElementById('emptyState').style.display = show ? 'none' : 'block';
+}
+
+// Show empty state
+function showEmptyState() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('staffTableContainer').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+}
+
+// Show add form
+function showAddForm() {
+    isEditing = false;
+    document.getElementById('formMode').value = 'add';
+    document.getElementById('formTitle').textContent = 'Add New Staff Member';
+    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
+    document.getElementById('passwordHelp').textContent = 'Password is required for new staff';
+    document.getElementById('password').required = true;
+    
+    clearForm();
+    document.getElementById('staffFormContainer').style.display = 'block';
+    document.getElementById('username').focus();
+}
+
+// Edit staff
+async function editStaff(staffId) {
+    try {
+        isEditing = true;
+        document.getElementById('formMode').value = 'edit';
+        document.getElementById('formTitle').textContent = 'Edit Staff Member';
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
+        document.getElementById('passwordHelp').textContent = 'Leave blank to keep current password';
+        document.getElementById('password').required = false;
+        
+        // Load staff data
+        const response = await fetch(`/api/staff/${staffId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            populateForm(data.staff);
+            document.getElementById('staffFormContainer').style.display = 'block';
+            document.getElementById('firstName').focus();
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        showAlert('Error loading staff data: ' + error.message, 'danger');
+    }
+}
+
+// Populate form with staff data
+function populateForm(staff) {
+    document.getElementById('staffId').value = staff.id;
+    document.getElementById('username').value = staff.username || '';
+    document.getElementById('firstName').value = staff.first_name || '';
+    document.getElementById('lastName').value = staff.last_name || '';
+    document.getElementById('email').value = staff.email || '';
+    document.getElementById('phone').value = staff.phone || '';
+    document.getElementById('roleId').value = staff.role_id || '';
+    document.getElementById('departmentId').value = staff.department_id || '';
+    document.getElementById('designation').value = staff.designation || '';
+    document.getElementById('commissionRate').value = staff.commission_rate || '';
+    document.getElementById('hourlyRate').value = staff.hourly_rate || '';
+    document.getElementById('gender').value = staff.gender || '';
+    document.getElementById('dateOfBirth').value = staff.date_of_birth || '';
+    document.getElementById('dateOfJoining').value = staff.date_of_joining || '';
+    document.getElementById('shiftStart').value = staff.shift_start_time || '';
+    document.getElementById('shiftEnd').value = staff.shift_end_time || '';
+    document.getElementById('workingDays').value = staff.working_days || '';
+    document.getElementById('enableFaceCheckin').checked = staff.enable_face_checkin;
+    document.getElementById('notesBio').value = staff.notes_bio || '';
+}
+
+// Clear form
+function clearForm() {
+    document.getElementById('staffForm').reset();
+    document.getElementById('staffId').value = '';
+}
+
+// Hide staff form
+function hideStaffForm() {
+    document.getElementById('staffFormContainer').style.display = 'none';
+    clearForm();
+}
+
+// Setup form handlers
+function setupFormHandlers() {
+    document.getElementById('staffForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await saveStaff();
+    });
+}
+
+// Save staff (add or update)
+async function saveStaff() {
+    try {
+        const formData = {
+            username: document.getElementById('username').value,
+            first_name: document.getElementById('firstName').value,
+            last_name: document.getElementById('lastName').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            role_id: parseInt(document.getElementById('roleId').value) || null,
+            department_id: parseInt(document.getElementById('departmentId').value) || null,
+            designation: document.getElementById('designation').value,
+            commission_rate: parseFloat(document.getElementById('commissionRate').value) || 0,
+            hourly_rate: parseFloat(document.getElementById('hourlyRate').value) || 0,
+            gender: document.getElementById('gender').value,
+            date_of_birth: document.getElementById('dateOfBirth').value,
+            date_of_joining: document.getElementById('dateOfJoining').value,
+            shift_start_time: document.getElementById('shiftStart').value,
+            shift_end_time: document.getElementById('shiftEnd').value,
+            working_days: document.getElementById('workingDays').value,
+            enable_face_checkin: document.getElementById('enableFaceCheckin').checked,
+            notes_bio: document.getElementById('notesBio').value
+        };
+        
+        // Add password if provided
+        const password = document.getElementById('password').value;
+        if (password) {
+            formData.password = password;
+        }
+        
+        let url, method;
+        if (isEditing) {
+            const staffId = document.getElementById('staffId').value;
+            url = `/api/staff/${staffId}`;
+            method = 'PUT';
+        } else {
+            url = '/api/staff';
+            method = 'POST';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert(data.message, 'success');
+            hideStaffForm();
+            loadStaffData(); // Refresh data
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        showAlert('Error saving staff: ' + error.message, 'danger');
+    }
+}
+
+// Delete staff
+async function deleteStaff(staffId) {
+    const staff = allStaff.find(s => s.id === staffId);
+    if (!staff) return;
+    
+    if (!confirm(`Are you sure you want to delete ${staff.full_name}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/staff/${staffId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert(data.message, 'success');
+            loadStaffData(); // Refresh data
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        showAlert('Error deleting staff: ' + error.message, 'danger');
+    }
+}
+
+// View performance (placeholder)
+function viewPerformance(staffId) {
+    const staff = allStaff.find(s => s.id === staffId);
+    if (staff) {
+        showAlert(`Performance view for ${staff.full_name} - Feature coming soon!`, 'info');
+    }
+}
+
+// Refresh staff data
+async function refreshStaffData() {
+    showAlert('Refreshing staff data...', 'info');
+    await loadStaffData();
+}
+
+// Export staff data (placeholder)
+function exportStaffData() {
+    showAlert('Export functionality - Feature coming soon!', 'info');
+}
+
+// Show alert
+function showAlert(message, type = 'info') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alertId = 'alert-' + Date.now();
+    
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        const alert = document.getElementById(alertId);
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
 }
 </script>
 
-<style>
-.avatar-circle {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: var(--bs-primary);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 0.9em;
-}
-
-.badge {
-    font-size: 0.75em;
-}
-</style>
 {% endblock %}

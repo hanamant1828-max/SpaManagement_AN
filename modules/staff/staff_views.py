@@ -789,3 +789,280 @@ def test_comprehensive_staff():
             '/staff/export'
         ]
     })
+
+# ===== API ENDPOINTS FOR JAVASCRIPT CRUD OPERATIONS =====
+
+@app.route('/api/staff', methods=['GET'])
+@login_required
+def api_get_all_staff():
+    """API endpoint to get all staff data for JavaScript"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        staff_list = get_comprehensive_staff()
+        roles = get_active_roles()
+        departments = get_active_departments()
+        
+        # Convert staff to JSON-serializable format
+        staff_data = []
+        for staff in staff_list:
+            staff_data.append({
+                'id': staff.id,
+                'username': staff.username,
+                'first_name': staff.first_name,
+                'last_name': staff.last_name,
+                'full_name': f"{staff.first_name} {staff.last_name}",
+                'email': staff.email,
+                'phone': staff.phone,
+                'role': staff.role,
+                'role_id': staff.role_id,
+                'role_display': staff.user_role.display_name if staff.user_role else staff.role.title(),
+                'department_id': staff.department_id,
+                'department_display': staff.staff_department.display_name if staff.staff_department else 'No Department',
+                'designation': staff.designation,
+                'staff_code': staff.staff_code,
+                'employee_id': staff.employee_id,
+                'commission_rate': staff.commission_rate or 0,
+                'hourly_rate': staff.hourly_rate or 0,
+                'is_active': staff.is_active,
+                'gender': staff.gender,
+                'date_of_birth': staff.date_of_birth.isoformat() if staff.date_of_birth else None,
+                'date_of_joining': staff.date_of_joining.isoformat() if staff.date_of_joining else None,
+                'shift_start_time': staff.shift_start_time.strftime('%H:%M') if staff.shift_start_time else None,
+                'shift_end_time': staff.shift_end_time.strftime('%H:%M') if staff.shift_end_time else None,
+                'working_days': staff.working_days,
+                'verification_status': staff.verification_status,
+                'enable_face_checkin': staff.enable_face_checkin,
+                'total_revenue_generated': staff.total_revenue_generated or 0,
+                'total_clients_served': staff.total_clients_served or 0,
+                'average_rating': staff.average_rating or 0,
+                'last_login': staff.last_login.isoformat() if staff.last_login else None,
+                'notes_bio': staff.notes_bio
+            })
+        
+        roles_data = [{'id': r.id, 'name': r.name, 'display_name': r.display_name} for r in roles]
+        departments_data = [{'id': d.id, 'name': d.name, 'display_name': d.display_name} for d in departments]
+        
+        return jsonify({
+            'success': True,
+            'staff': staff_data,
+            'roles': roles_data,
+            'departments': departments_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>', methods=['GET'])
+@login_required  
+def api_get_staff(staff_id):
+    """API endpoint to get single staff member data"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        staff = get_staff_by_id(staff_id)
+        if not staff:
+            return jsonify({'error': 'Staff member not found'}), 404
+            
+        staff_data = {
+            'id': staff.id,
+            'username': staff.username,
+            'first_name': staff.first_name,
+            'last_name': staff.last_name,
+            'email': staff.email,
+            'phone': staff.phone,
+            'role': staff.role,
+            'role_id': staff.role_id,
+            'department_id': staff.department_id,
+            'designation': staff.designation,
+            'staff_code': staff.staff_code,
+            'employee_id': staff.employee_id,
+            'commission_rate': staff.commission_rate or 0,
+            'hourly_rate': staff.hourly_rate or 0,
+            'is_active': staff.is_active,
+            'gender': staff.gender,
+            'date_of_birth': staff.date_of_birth.isoformat() if staff.date_of_birth else '',
+            'date_of_joining': staff.date_of_joining.isoformat() if staff.date_of_joining else '',
+            'shift_start_time': staff.shift_start_time.strftime('%H:%M') if staff.shift_start_time else '',
+            'shift_end_time': staff.shift_end_time.strftime('%H:%M') if staff.shift_end_time else '',
+            'working_days': staff.working_days or '',
+            'verification_status': staff.verification_status,
+            'enable_face_checkin': staff.enable_face_checkin,
+            'notes_bio': staff.notes_bio or ''
+        }
+        
+        return jsonify({'success': True, 'staff': staff_data})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff', methods=['POST'])
+@login_required
+def api_create_staff():
+    """API endpoint to create new staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['username', 'first_name', 'last_name', 'email', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+        
+        # Check for duplicate username/email
+        existing = User.query.filter(
+            (User.username == data['username']) | (User.email == data['email'])
+        ).first()
+        if existing:
+            return jsonify({'error': 'Username or email already exists'}), 400
+        
+        # Prepare staff data
+        staff_data = {
+            'username': data['username'],
+            'first_name': data['first_name'],
+            'last_name': data['last_name'],
+            'email': data['email'],
+            'password_hash': generate_password_hash(data['password']),
+            'phone': data.get('phone', ''),
+            'role': data.get('role', 'staff'),
+            'role_id': data.get('role_id'),
+            'department_id': data.get('department_id'),
+            'designation': data.get('designation', ''),
+            'commission_rate': float(data.get('commission_rate', 0)),
+            'hourly_rate': float(data.get('hourly_rate', 0)),
+            'gender': data.get('gender', ''),
+            'date_of_birth': datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date() if data.get('date_of_birth') else None,
+            'date_of_joining': datetime.strptime(data['date_of_joining'], '%Y-%m-%d').date() if data.get('date_of_joining') else date.today(),
+            'shift_start_time': datetime.strptime(data['shift_start_time'], '%H:%M').time() if data.get('shift_start_time') else None,
+            'shift_end_time': datetime.strptime(data['shift_end_time'], '%H:%M').time() if data.get('shift_end_time') else None,
+            'working_days': data.get('working_days', '1111100'),
+            'verification_status': False,
+            'enable_face_checkin': data.get('enable_face_checkin', True),
+            'notes_bio': data.get('notes_bio', ''),
+            'is_active': True
+        }
+        
+        # Create staff member
+        new_staff = create_staff(staff_data)
+        
+        # Generate staff code if not provided
+        if not new_staff.staff_code:
+            new_staff.staff_code = f"STF{str(new_staff.id).zfill(3)}"
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Staff member {new_staff.first_name} {new_staff.last_name} created successfully',
+            'staff': {
+                'id': new_staff.id,
+                'first_name': new_staff.first_name,
+                'last_name': new_staff.last_name,
+                'staff_code': new_staff.staff_code
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>', methods=['PUT'])
+@login_required
+def api_update_staff(staff_id):
+    """API endpoint to update staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        staff = get_staff_by_id(staff_id)
+        if not staff:
+            return jsonify({'error': 'Staff member not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update staff data
+        update_data = {}
+        
+        # Basic fields
+        for field in ['first_name', 'last_name', 'email', 'phone', 'designation', 'notes_bio']:
+            if field in data:
+                update_data[field] = data[field]
+        
+        # Numeric fields
+        for field in ['commission_rate', 'hourly_rate']:
+            if field in data:
+                update_data[field] = float(data[field]) if data[field] else 0
+        
+        # Role and department
+        if 'role_id' in data:
+            update_data['role_id'] = data['role_id']
+        if 'department_id' in data:
+            update_data['department_id'] = data['department_id']
+        if 'role' in data:
+            update_data['role'] = data['role']
+        
+        # Date fields
+        if data.get('date_of_birth'):
+            update_data['date_of_birth'] = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
+        if data.get('date_of_joining'):
+            update_data['date_of_joining'] = datetime.strptime(data['date_of_joining'], '%Y-%m-%d').date()
+        
+        # Time fields
+        if data.get('shift_start_time'):
+            update_data['shift_start_time'] = datetime.strptime(data['shift_start_time'], '%H:%M').time()
+        if data.get('shift_end_time'):
+            update_data['shift_end_time'] = datetime.strptime(data['shift_end_time'], '%H:%M').time()
+        
+        # Other fields
+        if 'working_days' in data:
+            update_data['working_days'] = data['working_days']
+        if 'gender' in data:
+            update_data['gender'] = data['gender']
+        if 'enable_face_checkin' in data:
+            update_data['enable_face_checkin'] = data['enable_face_checkin']
+        
+        # Update password if provided
+        if data.get('password'):
+            update_data['password_hash'] = generate_password_hash(data['password'])
+        
+        # Apply updates
+        updated_staff = update_staff(staff_id, update_data)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Staff member {updated_staff.first_name} {updated_staff.last_name} updated successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
+@login_required
+def api_delete_staff(staff_id):
+    """API endpoint to delete (deactivate) staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        staff = get_staff_by_id(staff_id)
+        if not staff:
+            return jsonify({'error': 'Staff member not found'}), 404
+        
+        staff_name = f"{staff.first_name} {staff.last_name}"
+        
+        # Soft delete (deactivate)
+        if delete_staff(staff_id):
+            return jsonify({
+                'success': True,
+                'message': f'Staff member {staff_name} has been deactivated successfully'
+            })
+        else:
+            return jsonify({'error': 'Failed to delete staff member'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
