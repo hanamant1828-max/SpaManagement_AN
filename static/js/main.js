@@ -1539,7 +1539,7 @@ function populateEditForm(customer) {
     }
 }
 
-// Handle edit customer form submission - Completely recreated
+// Handle edit customer form submission - Fixed for Flask redirects
 function handleEditCustomerSubmit(event) {
     event.preventDefault();
     console.log('Edit customer form submitted');
@@ -1565,64 +1565,19 @@ function handleEditCustomerSubmit(event) {
     showFormLoading(form);
     showNotification('Updating customer...', 'info', 2000);
 
-    // Gather form data
-    const formData = new FormData(form);
+    // Use traditional form submission since Flask redirects don't work well with fetch
+    const originalAction = form.action;
+    form.action = `/clients/update/${customerId}`;
     
-    // Log form data for debugging
-    console.log('Form data being sent:');
-    for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-    }
+    // Create a hidden input to track the submission
+    const trackingInput = document.createElement('input');
+    trackingInput.type = 'hidden';
+    trackingInput.name = 'ajax_submit';
+    trackingInput.value = '1';
+    form.appendChild(trackingInput);
 
-    // Send data to server - use traditional form submission approach
-    fetch(`/clients/update/${customerId}`, {
-        method: 'POST',
-        body: formData,
-        redirect: 'manual' // Handle redirects manually
-    })
-    .then(response => {
-        console.log('Update response:', response.status, response.statusText);
-        
-        // Check for successful responses (200 or 302 redirect)
-        if (response.status === 200 || response.status === 302) {
-            // Success - close modal and show message
-            showNotification('Customer updated successfully!', 'success');
-            
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
-            if (modal) {
-                modal.hide();
-            }
-            
-            // Refresh page to show updated data
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-            
-            return Promise.resolve();
-        } else {
-            // Handle error responses
-            return response.text().then(text => {
-                console.log('Error response text:', text);
-                
-                if (text.includes('duplicate') || text.includes('already exists')) {
-                    showNotification('A customer with this phone/email already exists.', 'warning');
-                } else if (text.includes('not found')) {
-                    showNotification('Customer not found. Please refresh and try again.', 'error');
-                } else if (text.includes('validation')) {
-                    showNotification('Validation error. Please check your input.', 'warning');
-                } else {
-                    showNotification('Error updating customer. Please try again.', 'error');
-                }
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Network error during customer update:', error);
-        showNotification('Network error. Please check your connection and try again.', 'error');
-    })
-    .finally(() => {
-        hideFormLoading(form);
-    });
+    // Submit the form normally - Flask will handle the redirect and flash message
+    form.submit();
 }
 
 // Make functions globally available

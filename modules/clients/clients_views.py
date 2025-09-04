@@ -116,11 +116,15 @@ def edit_client_route(id):
 @login_required
 def update_client_route(id):
     if not current_user.can_access('clients'):
+        if request.form.get('ajax_submit'):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
     client = get_customer_by_id(id)
     if not client:
+        if request.form.get('ajax_submit'):
+            return jsonify({'success': False, 'error': 'Client not found'}), 404
         flash('Client not found', 'danger')
         return redirect(url_for('customers'))
 
@@ -141,14 +145,20 @@ def update_client_route(id):
         # Check for duplicate phone number (excluding current customer)
         existing_phone_customer = get_customer_by_phone(phone_value)
         if existing_phone_customer and existing_phone_customer.id != id:
-            flash('A customer with this phone number already exists. Please use a different phone number.', 'danger')
+            error_msg = 'A customer with this phone number already exists. Please use a different phone number.'
+            if request.form.get('ajax_submit'):
+                return jsonify({'success': False, 'error': error_msg}), 400
+            flash(error_msg, 'danger')
             return redirect(url_for('customers'))
             
         # Check for duplicate email (only if email is provided and excluding current customer)
         if email_value:
             existing_email_customer = get_customer_by_email(email_value)
             if existing_email_customer and existing_email_customer.id != id:
-                flash('A customer with this email address already exists. Please use a different email or update the existing customer profile.', 'danger')
+                error_msg = 'A customer with this email address already exists. Please use a different email or update the existing customer profile.'
+                if request.form.get('ajax_submit'):
+                    return jsonify({'success': False, 'error': error_msg}), 400
+                flash(error_msg, 'danger')
                 return redirect(url_for('customers'))
             
         customer_data = {
@@ -166,9 +176,24 @@ def update_client_route(id):
 
         try:
             updated_customer = update_customer(id, customer_data)
-            flash(f'Customer "{updated_customer.first_name} {updated_customer.last_name}" has been updated successfully!', 'success')
+            success_msg = f'Customer "{updated_customer.first_name} {updated_customer.last_name}" has been updated successfully!'
+            
+            if request.form.get('ajax_submit'):
+                return jsonify({'success': True, 'message': success_msg, 'customer': customer_data})
+            
+            flash(success_msg, 'success')
         except Exception as e:
-            flash(f'Error updating customer: {str(e)}', 'danger')
+            error_msg = f'Error updating customer: {str(e)}'
+            if request.form.get('ajax_submit'):
+                return jsonify({'success': False, 'error': error_msg}), 500
+            flash(error_msg, 'danger')
+    else:
+        # Form validation failed
+        if request.form.get('ajax_submit'):
+            errors = []
+            for field, field_errors in form.errors.items():
+                errors.extend(field_errors)
+            return jsonify({'success': False, 'error': 'Validation failed: ' + '; '.join(errors)}), 400
 
     return redirect(url_for('customers'))
 
