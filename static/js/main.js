@@ -41,6 +41,12 @@ function setupGlobalEventListeners() {
 
     // Handle form submissions
     document.addEventListener('submit', handleFormSubmit);
+    
+    // Specifically handle edit customer form
+    const editCustomerForm = document.getElementById('editCustomerForm');
+    if (editCustomerForm) {
+        editCustomerForm.addEventListener('submit', handleEditCustomerSubmit);
+    }
 
     // Handle button clicks
     document.addEventListener('click', handleButtonClick);
@@ -1530,6 +1536,9 @@ function populateEditForm(customer) {
         // Store customer ID in form
         form.dataset.customerId = customer.id;
         window.currentCustomerId = customer.id;
+        
+        // Set the form action dynamically 
+        form.action = `/clients/update/${customer.id}`;
 
         console.log('Edit form populated successfully');
 
@@ -1562,14 +1571,12 @@ function handleEditCustomerSubmit(event) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
     
-    // Just submit the form normally - let Flask handle it
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'ajax_submit';
-    hiddenInput.value = '1';
-    form.appendChild(hiddenInput);
+    // Validate form action is set
+    if (!form.action || form.action.endsWith('/clients')) {
+        form.action = `/clients/update/${customerId}`;
+    }
     
-    // Submit form
+    // Submit form normally - let Flask handle it with proper redirect and flash messages
     form.submit();
 }
 
