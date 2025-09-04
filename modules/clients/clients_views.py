@@ -169,8 +169,11 @@ def update_client_route(id):
             'notes': form.notes.data.strip() if form.notes.data else ''
         }
 
-        update_customer(id, customer_data)
-        flash('Customer updated successfully!', 'success')
+        try:
+            update_customer(id, customer_data)
+            flash('Customer updated successfully!', 'success')
+        except Exception as e:
+            flash('An error occurred while updating the customer. Please try again.', 'danger')
     else:
         # Display specific validation errors
         for field, errors in form.errors.items():
@@ -186,10 +189,13 @@ def delete_client_route(id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    if delete_customer(id):
-        flash('Customer deleted successfully!', 'success')
-    else:
-        flash('Error deleting customer', 'danger')
+    try:
+        if delete_customer(id):
+            flash('Customer deleted successfully!', 'success')
+        else:
+            flash('Unable to delete customer. The customer may have associated records.', 'warning')
+    except Exception as e:
+        flash('An error occurred while deleting the customer. Please try again.', 'danger')
 
     return redirect(url_for('customers'))
 
