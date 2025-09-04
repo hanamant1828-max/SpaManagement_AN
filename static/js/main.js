@@ -640,7 +640,7 @@ function initializeAppointmentModal(modal) {
     if (serviceSelect && amountInput) {
         // Clear existing options first
         serviceSelect.innerHTML = '<option value="">Select a service...</option>';
-        
+
         // Show loading state
         const loadingOption = document.createElement('option');
         loadingOption.textContent = 'Loading services...';
@@ -658,9 +658,9 @@ function initializeAppointmentModal(modal) {
             .then(services => {
                 // Clear loading option
                 serviceSelect.innerHTML = '<option value="">Select a service...</option>';
-                
+
                 console.log('Services loaded successfully:', services.length);
-                
+
                 if (services && services.length > 0) {
                     services.forEach(service => {
                         const option = document.createElement('option');
@@ -669,15 +669,15 @@ function initializeAppointmentModal(modal) {
                         option.dataset.price = service.price.toFixed(2);
                         serviceSelect.appendChild(option);
                     });
-                    
+
                     // Enable amount input
                     amountInput.disabled = false;
-                    
+
                     // Trigger change event if a service is already selected (e.g., when editing)
                     if (serviceSelect.value) {
                         handleServiceSelection(serviceSelect);
                     }
-                    
+
                     showNotification(`${services.length} services loaded successfully`, 'success', 3000);
                 } else {
                     // Handle case where no services are found
@@ -687,7 +687,7 @@ function initializeAppointmentModal(modal) {
                     serviceSelect.appendChild(option);
                     amountInput.value = '0.00';
                     amountInput.disabled = true;
-                    
+
                     showNotification('No services available. Please add services in the Services section.', 'warning', 5000);
                 }
             })
@@ -695,14 +695,14 @@ function initializeAppointmentModal(modal) {
                 console.error('Error fetching services:', error);
                 // Clear loading option and show error
                 serviceSelect.innerHTML = '<option value="">Select a service...</option>';
-                
+
                 const errorOption = document.createElement('option');
                 errorOption.textContent = 'Error loading services - Please try again';
                 errorOption.disabled = true;
                 serviceSelect.appendChild(errorOption);
                 amountInput.value = '0.00';
                 amountInput.disabled = true;
-                
+
                 showNotification('Failed to load services. Please refresh and try again.', 'error');
             });
 
@@ -1095,7 +1095,7 @@ document.addEventListener('click', function(event) {
         event.target.closest('[data-bs-dismiss="modal"]')) {
         setTimeout(forceCleanupModals, 200);
     }
-    
+
     // Handle backdrop clicks
     if (event.target.classList.contains('modal')) {
         setTimeout(forceCleanupModals, 200);
@@ -1304,13 +1304,13 @@ function editCustomer(customerId) {
         if (editModal) {
             // Store customer ID globally for modal use
             window.currentCustomerId = customerId;
-            
+
             // Store customer ID in the form for submission
             const form = editModal.querySelector('#editCustomerForm');
             if (form) {
                 form.dataset.customerId = customerId;
             }
-            
+
             // Load customer data and show modal
             loadCustomerDataForEdit(customerId);
             const modal = new bootstrap.Modal(editModal);
@@ -1423,12 +1423,12 @@ function deleteCustomer(customerId, customerName) {
     if (confirm(`Are you sure you want to delete customer "${customerName}"?\n\nThis action cannot be undone and will remove all customer data.`)) {
         // Show loading notification
         showNotification('Deleting customer...', 'info');
-        
+
         // Create form data for DELETE request
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/clients/delete/${customerId}`;
-        
+
         // Submit the form
         document.body.appendChild(form);
         form.submit();
@@ -1495,36 +1495,27 @@ function handleEditCustomerSubmit(event) {
         body: formData
     })
     .then(response => {
-        // Check if response is a redirect (Flask typically returns 302 for successful form submissions)
-        if (response.redirected || response.status === 302) {
+        // Flask redirects (302) are handled differently by fetch
+        // The response.redirected property indicates a successful redirect occurred
+        if (response.ok || response.redirected) {
             // Success - show notification and close modal
             showNotification('Customer updated successfully!', 'success');
             const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
             if (modal) modal.hide();
             // Refresh the page to show updated data
             setTimeout(() => window.location.reload(), 1000);
-            return;
+        } else {
+            // Handle error responses
+            return response.text().then(text => {
+                if (text.includes('duplicate') || text.includes('already exists')) {
+                    showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
+                } else if (text.includes('not found')) {
+                    showNotification('Customer not found. Please refresh the page and try again.', 'error');
+                } else {
+                    showNotification('Error updating customer. Please check your input and try again.', 'error');
+                }
+            });
         }
-        
-        if (response.ok) {
-            // Also handle direct 200 responses as success
-            showNotification('Customer updated successfully!', 'success');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
-            if (modal) modal.hide();
-            setTimeout(() => window.location.reload(), 1000);
-            return;
-        }
-
-        // Handle error responses
-        return response.text().then(text => {
-            if (text.includes('duplicate') || text.includes('already exists')) {
-                showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
-            } else if (text.includes('not found')) {
-                showNotification('Customer not found. Please refresh the page and try again.', 'error');
-            } else {
-                showNotification('Error updating customer. Please check your input and try again.', 'error');
-            }
-        });
     })
     .catch(error => {
         console.error('Error submitting edit customer form:', error);
