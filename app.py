@@ -66,14 +66,6 @@ with app.app_context():
     try:
         db.create_all()
         logging.info("Database tables created")
-
-        # Initialize default data
-        from routes import create_default_data
-        create_default_data()
-        
-        # Import inventory views
-        import modules.inventory.inventory_category_views  # noqa: F401
-        import modules.inventory.inventory_views  # noqa: F401
         
     except Exception as e:
         logging.error(f"Database initialization failed: {e}")
@@ -82,12 +74,6 @@ with app.app_context():
             # Skip migration attempt since file doesn't exist
             logging.info("Retrying database initialization without migration...")
             db.create_all()
-            from routes import create_default_data
-            create_default_data()
-            
-            # Import inventory views
-            import modules.inventory.inventory_category_views  # noqa: F401
-            import modules.inventory.inventory_views  # noqa: F401
             
         except Exception as migration_error:
             logging.error(f"Database initialization retry failed: {migration_error}")
