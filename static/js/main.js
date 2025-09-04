@@ -1539,7 +1539,7 @@ function populateEditForm(customer) {
     }
 }
 
-// Handle edit customer form submission - Fixed for Flask redirects
+// Handle edit customer form submission
 function handleEditCustomerSubmit(event) {
     event.preventDefault();
     console.log('Edit customer form submitted');
@@ -1565,19 +1565,61 @@ function handleEditCustomerSubmit(event) {
     showFormLoading(form);
     showNotification('Updating customer...', 'info', 2000);
 
-    // Use traditional form submission since Flask redirects don't work well with fetch
-    const originalAction = form.action;
-    form.action = `/clients/update/${customerId}`;
+    // Prepare form data
+    const formData = new FormData(form);
     
-    // Create a hidden input to track the submission
-    const trackingInput = document.createElement('input');
-    trackingInput.type = 'hidden';
-    trackingInput.name = 'ajax_submit';
-    trackingInput.value = '1';
-    form.appendChild(trackingInput);
+    // Add AJAX flag
+    formData.append('ajax_submit', '1');
 
-    // Submit the form normally - Flask will handle the redirect and flash message
-    form.submit();
+    // Log form data for debugging
+    console.log('Form data being sent:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+    }
+
+    // Use fetch for AJAX submission
+    fetch(`/clients/update/${customerId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        console.log('Update response:', response.status, response.statusText);
+        
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+    })
+    .then(data => {
+        console.log('Update successful:', data);
+        
+        if (data.success) {
+            showNotification(data.message || 'Customer updated successfully!', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+            if (modal) modal.hide();
+            
+            // Refresh page after short delay
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            throw new Error(data.error || 'Update failed');
+        }
+    })
+    .catch(error => {
+        console.error('Update error:', error);
+        
+        if (error.message.includes('duplicate') || error.message.includes('already exists')) {
+            showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
+        } else {
+            showNotification('Error updating customer: ' + error.message, 'error');
+        }
+    })
+    .finally(() => {
+        // Hide loading state
+        hideFormLoading(form);
+    });
 }
 
 // Make functions globally available
@@ -1934,3 +1976,8 @@ function calculateTotal() {
 // Face recognition functionality
 let video, canvas, context;
 let isRecognizing = false;
+
+// Export functions globally to avoid conflicts
+window.editCustomer = editCustomer;
+window.viewCustomer = viewCustomer;
+window.bookAppointment = bookAppointment;

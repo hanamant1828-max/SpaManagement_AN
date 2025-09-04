@@ -179,7 +179,7 @@ def update_client_route(id):
             success_msg = f'Customer "{updated_customer.first_name} {updated_customer.last_name}" has been updated successfully!'
             
             if request.form.get('ajax_submit'):
-                return jsonify({'success': True, 'message': success_msg, 'customer': customer_data})
+                return jsonify({'success': True, 'message': success_msg})
             
             flash(success_msg, 'success')
         except Exception as e:
