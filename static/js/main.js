@@ -231,10 +231,7 @@ function handleFormSubmit(event) {
     const form = event.target;
     const formId = form.id;
 
-    // Show loading state
-    showFormLoading(form);
-
-    // Handle specific forms
+    // Handle specific forms that need custom submission
     switch(formId) {
         case 'appointmentForm':
             return handleAppointmentSubmit(event);
@@ -244,6 +241,10 @@ function handleFormSubmit(event) {
             return handleInventorySubmit(event);
         case 'editCustomerForm': // Handle edit customer form submission
             return handleEditCustomerSubmit(event);
+        default:
+            // For regular forms, just show loading state
+            showFormLoading(form);
+            break;
     }
 }
 
@@ -1466,30 +1467,28 @@ function handleEditCustomerSubmit(event) {
     })
     .then(response => {
         if (response.ok) {
-            // Check if response is redirect (which means success)
-            if (response.redirected) {
-                showNotification('Customer updated successfully!', 'success');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
-                if (modal) modal.hide();
-                // Refresh the page to show updated data
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                // Handle other success cases
-                showNotification('Customer updated successfully!', 'success');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
-                if (modal) modal.hide();
-                setTimeout(() => window.location.reload(), 1500);
-            }
+            // Success - show notification and close modal
+            showNotification('Customer updated successfully!', 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+            if (modal) modal.hide();
+            // Refresh the page to show updated data
+            setTimeout(() => window.location.reload(), 1000);
+        } else if (response.status === 302) {
+            // Redirect response - also means success for Flask
+            showNotification('Customer updated successfully!', 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+            if (modal) modal.hide();
+            setTimeout(() => window.location.reload(), 1000);
         } else {
-            // Handle different error status codes
-            response.text().then(text => {
+            // Handle error responses
+            return response.text().then(text => {
                 if (text.includes('duplicate') || text.includes('already exists')) {
                     showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
+                } else if (text.includes('not found')) {
+                    showNotification('Customer not found. Please refresh the page and try again.', 'error');
                 } else {
                     showNotification('Error updating customer. Please check your input and try again.', 'error');
                 }
-            }).catch(() => {
-                showNotification('Error updating customer. Please try again.', 'error');
             });
         }
     })
