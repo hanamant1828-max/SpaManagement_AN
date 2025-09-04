@@ -11,7 +11,8 @@ from .queries import (
     get_low_stock_products, search_products, update_stock, get_inventory_stats, get_stock_movements,
     get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier, delete_supplier,
     get_all_product_masters, get_product_master_by_id, create_product_master, update_product_master, delete_product_master,
-    get_all_purchases, get_purchase_by_id, create_purchase, update_purchase, delete_purchase
+    get_all_purchases, get_purchase_by_id, create_purchase, update_purchase, delete_purchase,
+    get_all_transactions, get_transaction_by_id, create_transaction, update_transaction, delete_transaction, get_transaction_summary
 )
 import uuid
 
@@ -290,7 +291,7 @@ def api_hanaman_inventory_stats():
 @app.route('/hanaman-inventory/config')
 @login_required
 def hanaman_inventory_config():
-    """Configuration page with categories, suppliers, product masters and purchases"""
+    """Configuration page with categories, suppliers, product masters, purchases and transactions"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -299,12 +300,16 @@ def hanaman_inventory_config():
     suppliers = get_all_suppliers()
     product_masters_data = get_all_product_masters()
     purchases_data = get_all_purchases()
+    transactions_data = get_all_transactions()
+    transaction_summary = get_transaction_summary()
 
     return render_template('hanaman_config.html', 
                          categories=categories,
                          suppliers=suppliers,
                          product_masters_data=product_masters_data,
-                         purchases_data=purchases_data)
+                         purchases_data=purchases_data,
+                         transactions_data=transactions_data,
+                         transaction_summary=transaction_summary)
 
 # Category CRUD operations
 @app.route('/hanaman-inventory/category/edit/<int:category_id>', methods=['POST'])
@@ -697,3 +702,134 @@ def api_hanaman_get_purchase(purchase_id):
             'is_active': purchase.is_active
         })
     return jsonify({'error': 'Purchase not found'}), 404
+
+# Transaction CRUD Routes
+@app.route('/hanaman-inventory/transaction/add', methods=['POST'])
+@login_required
+def hanaman_add_transaction():
+    """Add new transaction"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        from datetime import datetime as dt
+        
+        transaction_data = {
+            'transaction_number': request.form.get('transaction_number', '').strip(),
+            'product_master_id': int(request.form.get('product_master_id')),
+            'transaction_type': request.form.get('transaction_type'),
+            'quantity': float(request.form.get('quantity')),
+            'unit_cost': float(request.form.get('unit_cost', 0)),
+            'transaction_date': dt.strptime(request.form.get('transaction_date'), '%Y-%m-%d').date(),
+            'reason': request.form.get('reason', '').strip(),
+            'reference_type': request.form.get('reference_type', '').strip(),
+            'reference_id': request.form.get('reference_id', '').strip(),
+            'reference_name': request.form.get('reference_name', '').strip(),
+            'notes': request.form.get('notes', '').strip()
+        }
+
+        # Validate required fields
+        if not transaction_data['quantity'] or transaction_data['quantity'] <= 0:
+            flash('Quantity must be greater than 0', 'danger')
+            return redirect(url_for('hanaman_inventory_config'))
+
+        if not transaction_data['reason']:
+            flash('Reason is required', 'danger')
+            return redirect(url_for('hanaman_inventory_config'))
+
+        transaction = create_transaction(transaction_data)
+        if transaction:
+            flash(f'Transaction "{transaction.transaction_number}" added successfully!', 'success')
+        else:
+            flash('Error adding transaction', 'danger')
+
+    except ValueError as e:
+        flash('Invalid input: Please check your data', 'danger')
+    except Exception as e:
+        flash(f'Error adding transaction: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_inventory_config'))
+
+@app.route('/hanaman-inventory/transaction/edit/<int:transaction_id>', methods=['POST'])
+@login_required
+def hanaman_edit_transaction(transaction_id):
+    """Edit existing transaction"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        from datetime import datetime as dt
+        
+        transaction_data = {
+            'product_master_id': int(request.form.get('product_master_id')),
+            'transaction_type': request.form.get('transaction_type'),
+            'quantity': float(request.form.get('quantity')),
+            'unit_cost': float(request.form.get('unit_cost', 0)),
+            'transaction_date': dt.strptime(request.form.get('transaction_date'), '%Y-%m-%d').date(),
+            'reason': request.form.get('reason', '').strip(),
+            'reference_type': request.form.get('reference_type', '').strip(),
+            'reference_id': request.form.get('reference_id', '').strip(),
+            'reference_name': request.form.get('reference_name', '').strip(),
+            'notes': request.form.get('notes', '').strip()
+        }
+
+        transaction = update_transaction(transaction_id, transaction_data)
+        if transaction:
+            flash(f'Transaction "{transaction.transaction_number}" updated successfully!', 'success')
+        else:
+            flash('Error updating transaction', 'danger')
+
+    except ValueError:
+        flash('Invalid input: Please check your data', 'danger')
+    except Exception as e:
+        flash(f'Error updating transaction: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_inventory_config'))
+
+@app.route('/hanaman-inventory/transaction/delete/<int:transaction_id>', methods=['POST'])
+@login_required
+def hanaman_delete_transaction(transaction_id):
+    """Delete transaction (soft delete)"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        transaction = get_transaction_by_id(transaction_id)
+        if transaction and delete_transaction(transaction_id):
+            flash(f'Transaction "{transaction.transaction_number}" deleted successfully!', 'success')
+        else:
+            flash('Error deleting transaction', 'danger')
+    except Exception as e:
+        flash(f'Error deleting transaction: {str(e)}', 'danger')
+
+    return redirect(url_for('hanaman_inventory_config'))
+
+@app.route('/api/hanaman-inventory/transaction/<int:transaction_id>')
+@login_required
+def api_hanaman_get_transaction(transaction_id):
+    """Get transaction data as JSON for editing"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    transaction = get_transaction_by_id(transaction_id)
+    if transaction:
+        return jsonify({
+            'id': transaction.id,
+            'transaction_number': transaction.transaction_number,
+            'product_master_id': transaction.product_master_id,
+            'transaction_type': transaction.transaction_type,
+            'quantity': transaction.quantity,
+            'unit_cost': transaction.unit_cost,
+            'total_cost': transaction.total_cost,
+            'transaction_date': transaction.transaction_date.strftime('%Y-%m-%d'),
+            'reason': transaction.reason,
+            'reference_type': transaction.reference_type,
+            'reference_id': transaction.reference_id,
+            'reference_name': transaction.reference_name,
+            'notes': transaction.notes,
+            'is_active': transaction.is_active
+        })
+    return jsonify({'error': 'Transaction not found'}), 404

@@ -172,3 +172,34 @@ class HanamanPurchase(db.Model):
     def __str__(self):
         return f"PO-{self.purchase_order_number} - {self.product_master.product_name}"
 
+class HanamanTransaction(db.Model):
+    """Track consumption/usage transactions for inventory management"""
+    __tablename__ = 'hanaman_transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_number = db.Column(db.String(50), unique=True, nullable=False)
+    product_master_id = db.Column(db.Integer, db.ForeignKey('product_master.id'), nullable=False)
+    transaction_type = db.Column(db.String(20), nullable=False)  # consumption, usage, waste, adjustment
+    quantity = db.Column(db.Float, nullable=False)
+    unit_cost = db.Column(db.Float, default=0.0)
+    total_cost = db.Column(db.Float, default=0.0)
+    transaction_date = db.Column(db.Date, nullable=False)
+    reason = db.Column(db.String(200), nullable=False)
+    reference_type = db.Column(db.String(20))  # service, client, staff, maintenance
+    reference_id = db.Column(db.String(50))  # ID of related service/client/staff
+    reference_name = db.Column(db.String(100))  # Name for display
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    product_master = db.relationship('ProductMaster', backref='transactions')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_transactions')
+    updater = db.relationship('User', foreign_keys=[updated_by], backref='updated_transactions')
+    
+    def __str__(self):
+        return f"TXN-{self.transaction_number} - {self.product_master.product_name}"
+

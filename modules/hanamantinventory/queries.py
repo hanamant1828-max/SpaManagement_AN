@@ -421,3 +421,154 @@ def delete_purchase(purchase_id):
         print(f"Error deleting purchase: {e}")
         return False
 
+# Transaction CRUD Operations
+def get_all_transactions():
+    """Get all active transactions with joined data"""
+    from .models import HanamanTransaction, ProductMaster
+    return db.session.query(HanamanTransaction, ProductMaster).join(
+        ProductMaster, HanamanTransaction.product_master_id == ProductMaster.id
+    ).filter(HanamanTransaction.is_active == True).order_by(HanamanTransaction.transaction_date.desc()).all()
+
+def get_transaction_by_id(transaction_id):
+    """Get transaction by ID"""
+    from .models import HanamanTransaction
+    return HanamanTransaction.query.get(transaction_id)
+
+def create_transaction(transaction_data):
+    """Create a new transaction"""
+    from .models import HanamanTransaction
+    try:
+        # Generate transaction number if not provided
+        if not transaction_data.get('transaction_number'):
+            import uuid
+            transaction_data['transaction_number'] = f"TXN-{str(uuid.uuid4())[:8].upper()}"
+        
+        transaction = HanamanTransaction(
+            transaction_number=transaction_data['transaction_number'],
+            product_master_id=transaction_data['product_master_id'],
+            transaction_type=transaction_data['transaction_type'],
+            quantity=transaction_data['quantity'],
+            unit_cost=transaction_data.get('unit_cost', 0.0),
+            total_cost=transaction_data['quantity'] * transaction_data.get('unit_cost', 0.0),
+            transaction_date=transaction_data['transaction_date'],
+            reason=transaction_data['reason'],
+            reference_type=transaction_data.get('reference_type', ''),
+            reference_id=transaction_data.get('reference_id', ''),
+            reference_name=transaction_data.get('reference_name', ''),
+            notes=transaction_data.get('notes', ''),
+            created_by=current_user.id if current_user.is_authenticated else 1
+        )
+        db.session.add(transaction)
+        db.session.commit()
+        return transaction
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating transaction: {e}")
+        return None
+
+def update_transaction(transaction_id, transaction_data):
+    """Update existing transaction"""
+    from .models import HanamanTransaction
+    try:
+        transaction = HanamanTransaction.query.get(transaction_id)
+        if transaction:
+            transaction.product_master_id = transaction_data['product_master_id']
+            transaction.transaction_type = transaction_data['transaction_type']
+            transaction.quantity = transaction_data['quantity']
+            transaction.unit_cost = transaction_data.get('unit_cost', 0.0)
+            transaction.total_cost = transaction_data['quantity'] * transaction_data.get('unit_cost', 0.0)
+            transaction.transaction_date = transaction_data['transaction_date']
+            transaction.reason = transaction_data['reason']
+            transaction.reference_type = transaction_data.get('reference_type', '')
+            transaction.reference_id = transaction_data.get('reference_id', '')
+            transaction.reference_name = transaction_data.get('reference_name', '')
+            transaction.notes = transaction_data.get('notes', '')
+            transaction.updated_by = current_user.id if current_user.is_authenticated else 1
+            transaction.updated_at = datetime.utcnow()
+            db.session.commit()
+            return transaction
+        return None
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating transaction: {e}")
+        return None
+
+def delete_transaction(transaction_id):
+    """Soft delete transaction"""
+    from .models import HanamanTransaction
+    try:
+        transaction = HanamanTransaction.query.get(transaction_id)
+        if transaction:
+            transaction.is_active = False
+            transaction.updated_by = current_user.id if current_user.is_authenticated else 1
+            transaction.updated_at = datetime.utcnow()
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting transaction: {e}")
+        return False
+
+def get_transactions_by_product(product_id, days=30):
+    """Get transactions for a specific product"""
+    from .models import HanamanTransaction
+    from datetime import date, timedelta
+    
+    start_date = date.today() - timedelta(days=days)
+    return HanamanTransaction.query.filter(
+        HanamanTransaction.product_master_id == product_id,
+        HanamanTransaction.transaction_date >= start_date,
+        HanamanTransaction.is_active == True
+    ).order_by(HanamanTransaction.transaction_date.desc()).all()
+
+def get_transactions_by_type(transaction_type, days=30):
+    """Get transactions by type"""
+    from .models import HanamanTransaction
+    from datetime import date, timedelta
+    
+    start_date = date.today() - timedelta(days=days)
+    return HanamanTransaction.query.filter(
+        HanamanTransaction.transaction_type == transaction_type,
+        HanamanTransaction.transaction_date >= start_date,
+        HanamanTransaction.is_active == True
+    ).order_by(HanamanTransaction.transaction_date.desc()).all()
+
+def get_transaction_summary(days=30):
+    """Get transaction summary statistics"""
+    from .models import HanamanTransaction
+    from datetime import date, timedelta
+    
+    start_date = date.today() - timedelta(days=days)
+    
+    total_transactions = HanamanTransaction.query.filter(
+        HanamanTransaction.transaction_date >= start_date,
+        HanamanTransaction.is_active == True
+    ).count()
+    
+    total_cost = db.session.query(
+        db.func.sum(HanamanTransaction.total_cost)
+    ).filter(
+        HanamanTransaction.transaction_date >= start_date,
+        HanamanTransaction.is_active == True
+    ).scalar() or 0
+    
+    consumption_count = HanamanTransaction.query.filter(
+        HanamanTransaction.transaction_type == 'consumption',
+        HanamanTransaction.transaction_date >= start_date,
+        HanamanTransaction.is_active == True
+    ).count()
+    
+    usage_count = HanamanTransaction.query.filter(
+        HanamanTransaction.transaction_type == 'usage',
+        HanamanTransaction.transaction_date >= start_date,
+        HanamanTransaction.is_active == True
+    ).count()
+    
+    return {
+        'total_transactions': total_transactions,
+        'total_cost': round(total_cost, 2),
+        'consumption_count': consumption_count,
+        'usage_count': usage_count
+    }
+

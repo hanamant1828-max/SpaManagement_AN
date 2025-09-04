@@ -119,6 +119,12 @@
                 <i class="fas fa-shopping-cart"></i> Purchase Items
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions" 
+                    type="button" role="tab" aria-controls="transactions" aria-selected="false">
+                <i class="fas fa-exchange-alt"></i> Consumption/Usage
+            </button>
+        </li>
 
     </ul>
 
@@ -384,6 +390,99 @@
                                 <td colspan="9" class="text-center py-4">
                                     <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
                                     <p class="text-muted">No purchases found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div class="tab-pane fade" id="transactions" role="tabpanel" aria-labelledby="transactions-tab">
+            <div class="config-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Consumption/Usage Transactions</h5>
+                    <div>
+                        <div class="d-inline-block me-3">
+                            <small class="text-muted">Total Transactions: <strong>{{ transaction_summary.total_transactions }}</strong></small>
+                            <small class="text-muted ms-2">Total Cost: <strong>₹{{ "%.2f"|format(transaction_summary.total_cost) }}</strong></small>
+                        </div>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+                            <i class="fas fa-plus"></i> Add Transaction
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Transaction #</th>
+                                <th>Product</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Cost</th>
+                                <th>Date</th>
+                                <th>Reason</th>
+                                <th>Reference</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction_data in transactions_data %}
+                            {% set transaction, product_master = transaction_data %}
+                            <tr {% if not transaction.is_active %}class="table-secondary text-muted"{% endif %}>
+                                <td>
+                                    <strong>{{ transaction.transaction_number }}</strong>
+                                    {% if not transaction.is_active %}
+                                    <span class="badge bg-secondary ms-2">Deleted</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ product_master.product_name }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if transaction.transaction_type == 'consumption' %}bg-danger
+                                        {% elif transaction.transaction_type == 'usage' %}bg-primary
+                                        {% elif transaction.transaction_type == 'waste' %}bg-warning
+                                        {% elif transaction.transaction_type == 'adjustment' %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ transaction.transaction_type.title() }}
+                                    </span>
+                                </td>
+                                <td>{{ transaction.quantity }} {{ product_master.unit }}</td>
+                                <td>₹{{ "%.2f"|format(transaction.total_cost) }}</td>
+                                <td>{{ transaction.transaction_date.strftime('%d %b %Y') }}</td>
+                                <td>{{ transaction.reason }}</td>
+                                <td>
+                                    {% if transaction.reference_name %}
+                                    <small>{{ transaction.reference_type.title() }}: {{ transaction.reference_name }}</small>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.is_active %}
+                                    <button class="btn btn-sm btn-primary btn-action" 
+                                            onclick="editTransaction({{ transaction.id }})"
+                                            data-bs-toggle="modal" data-bs-target="#editTransactionModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('hanaman_delete_transaction', transaction_id=transaction.id) }}" 
+                                          style="display:inline;" onsubmit="return confirm('Delete transaction {{ transaction.transaction_number }}?')">
+                                        <button type="submit" class="btn btn-sm btn-danger btn-action">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <i class="fas fa-exchange-alt fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">No transactions found</p>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -870,6 +969,226 @@
     </div>
 </div>
 
+<!-- Add Transaction Modal -->
+<div class="modal fade" id="addTransactionModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('hanaman_add_transaction') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Number</label>
+                                <input type="text" name="transaction_number" class="form-control" placeholder="Auto-generated if empty">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Date *</label>
+                                <input type="date" name="transaction_date" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Product *</label>
+                                <select name="product_master_id" class="form-select" required>
+                                    <option value="">Select Product</option>
+                                    {% for product_data in product_masters_data %}
+                                    {% set product = product_data[0] %}
+                                    {% if product.is_active %}
+                                    <option value="{{ product.id }}">{{ product.product_name }}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Type *</label>
+                                <select name="transaction_type" class="form-select" required>
+                                    <option value="">Select Type</option>
+                                    <option value="consumption">Consumption</option>
+                                    <option value="usage">Usage</option>
+                                    <option value="waste">Waste</option>
+                                    <option value="adjustment">Adjustment</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Quantity *</label>
+                                <input type="number" name="quantity" class="form-control" step="0.01" min="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Unit Cost</label>
+                                <input type="number" name="unit_cost" class="form-control" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Reference Type</label>
+                                <select name="reference_type" class="form-select">
+                                    <option value="">Select Reference</option>
+                                    <option value="service">Service</option>
+                                    <option value="client">Client</option>
+                                    <option value="staff">Staff</option>
+                                    <option value="maintenance">Maintenance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Reference ID</label>
+                                <input type="text" name="reference_id" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Reference Name</label>
+                                <input type="text" name="reference_name" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason *</label>
+                        <input type="text" name="reason" class="form-control" required placeholder="Reason for transaction">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Transaction Modal -->
+<div class="modal fade" id="editTransactionModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" id="editTransactionForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Number</label>
+                                <input type="text" id="editTransactionNumber" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Date *</label>
+                                <input type="date" name="transaction_date" id="editTransactionDate" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Product *</label>
+                                <select name="product_master_id" id="editTransactionProductId" class="form-select" required>
+                                    <option value="">Select Product</option>
+                                    {% for product_data in product_masters_data %}
+                                    {% set product = product_data[0] %}
+                                    {% if product.is_active %}
+                                    <option value="{{ product.id }}">{{ product.product_name }}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Type *</label>
+                                <select name="transaction_type" id="editTransactionType" class="form-select" required>
+                                    <option value="">Select Type</option>
+                                    <option value="consumption">Consumption</option>
+                                    <option value="usage">Usage</option>
+                                    <option value="waste">Waste</option>
+                                    <option value="adjustment">Adjustment</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Quantity *</label>
+                                <input type="number" name="quantity" id="editTransactionQuantity" class="form-control" step="0.01" min="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Unit Cost</label>
+                                <input type="number" name="unit_cost" id="editTransactionUnitCost" class="form-control" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Reference Type</label>
+                                <select name="reference_type" id="editTransactionReferenceType" class="form-select">
+                                    <option value="">Select Reference</option>
+                                    <option value="service">Service</option>
+                                    <option value="client">Client</option>
+                                    <option value="staff">Staff</option>
+                                    <option value="maintenance">Maintenance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Reference ID</label>
+                                <input type="text" name="reference_id" id="editTransactionReferenceId" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Reference Name</label>
+                                <input type="text" name="reference_name" id="editTransactionReferenceName" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason *</label>
+                        <input type="text" name="reason" id="editTransactionReason" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" id="editTransactionNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 
 <script>
@@ -940,6 +1259,39 @@ function editPurchase(id) {
         .catch(error => {
             console.error('Error:', error);
             alert('Error loading purchase data');
+        });
+}
+
+function editTransaction(id) {
+    // Load transaction data for editing
+    fetch(`/api/hanaman-inventory/transaction/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error loading transaction data');
+                return;
+            }
+            
+            // Populate edit form
+            document.getElementById('editTransactionNumber').value = data.transaction_number;
+            document.getElementById('editTransactionProductId').value = data.product_master_id;
+            document.getElementById('editTransactionType').value = data.transaction_type;
+            document.getElementById('editTransactionQuantity').value = data.quantity;
+            document.getElementById('editTransactionUnitCost').value = data.unit_cost;
+            document.getElementById('editTransactionDate').value = data.transaction_date;
+            document.getElementById('editTransactionReason').value = data.reason;
+            document.getElementById('editTransactionReferenceType').value = data.reference_type;
+            document.getElementById('editTransactionReferenceId').value = data.reference_id;
+            document.getElementById('editTransactionReferenceName').value = data.reference_name;
+            document.getElementById('editTransactionNotes').value = data.notes;
+            
+            // Set form action
+            document.getElementById('editTransactionForm').action = 
+                `/hanaman-inventory/transaction/edit/${id}`;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading transaction data');
         });
 }
 
