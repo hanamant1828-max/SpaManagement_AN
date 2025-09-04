@@ -636,11 +636,30 @@ function initializeAppointmentModal(modal) {
     const amountInput = modal.querySelector('#amount');
 
     if (serviceSelect && amountInput) {
+        // Clear existing options first
+        serviceSelect.innerHTML = '<option value="">Select a service...</option>';
+        
+        // Show loading state
+        const loadingOption = document.createElement('option');
+        loadingOption.textContent = 'Loading services...';
+        loadingOption.disabled = true;
+        serviceSelect.appendChild(loadingOption);
+
         // Fetch services and populate the dropdown
         fetch('/api/services')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(services => {
-                if (services.length > 0) {
+                // Clear loading option
+                serviceSelect.innerHTML = '<option value="">Select a service...</option>';
+                
+                console.log('Services loaded successfully:', services.length);
+                
+                if (services && services.length > 0) {
                     services.forEach(service => {
                         const option = document.createElement('option');
                         option.value = service.id;
@@ -648,29 +667,41 @@ function initializeAppointmentModal(modal) {
                         option.dataset.price = service.price.toFixed(2);
                         serviceSelect.appendChild(option);
                     });
+                    
+                    // Enable amount input
+                    amountInput.disabled = false;
+                    
                     // Trigger change event if a service is already selected (e.g., when editing)
                     if (serviceSelect.value) {
                         handleServiceSelection(serviceSelect);
                     }
+                    
+                    showNotification(`${services.length} services loaded successfully`, 'success', 3000);
                 } else {
                     // Handle case where no services are found
                     const option = document.createElement('option');
-                    option.textContent = 'No services available';
+                    option.textContent = 'No services available - Please add services first';
                     option.disabled = true;
                     serviceSelect.appendChild(option);
                     amountInput.value = '0.00';
                     amountInput.disabled = true;
+                    
+                    showNotification('No services available. Please add services in the Services section.', 'warning', 5000);
                 }
             })
             .catch(error => {
                 console.error('Error fetching services:', error);
-                showNotification('Failed to load services', 'error');
-                const option = document.createElement('option');
-                option.textContent = 'Error loading services';
-                option.disabled = true;
-                serviceSelect.appendChild(option);
+                // Clear loading option and show error
+                serviceSelect.innerHTML = '<option value="">Select a service...</option>';
+                
+                const errorOption = document.createElement('option');
+                errorOption.textContent = 'Error loading services - Please try again';
+                errorOption.disabled = true;
+                serviceSelect.appendChild(errorOption);
                 amountInput.value = '0.00';
                 amountInput.disabled = true;
+                
+                showNotification('Failed to load services. Please refresh and try again.', 'error');
             });
 
         // Listener for service selection change

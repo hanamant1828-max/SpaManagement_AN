@@ -91,6 +91,17 @@ def get_active_services():
         for service in services:
             print(f"Service found: ID={service.id}, Name={service.name}, Price={service.price}, Active={service.is_active}")
 
+        # If no services found, check if there are any services at all
+        if not services:
+            all_services = Service.query.all()
+            print(f"No active services found. Total services in database: {len(all_services)}")
+            if all_services:
+                print("Available services (all):")
+                for service in all_services:
+                    print(f"  - {service.name} (Active: {service.is_active})")
+            else:
+                print("No services found in database at all!")
+
         return services
     except Exception as e:
         print(f"Error retrieving active services: {e}")

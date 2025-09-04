@@ -440,7 +440,10 @@ def create_sample_services():
             {'name': 'Hair Wash & Blow Dry', 'description': 'Professional hair washing and blow drying', 'duration': 45, 'price': 35.00, 'category': 'hair'},
             {'name': 'Classic Manicure', 'description': 'Traditional manicure with nail polish', 'duration': 60, 'price': 40.00, 'category': 'nails'},
             {'name': 'Relaxing Facial', 'description': 'Deep cleansing and moisturizing facial', 'duration': 90, 'price': 80.00, 'category': 'skincare'},
-            {'name': 'Swedish Massage', 'description': '60-minute full body Swedish massage', 'duration': 60, 'price': 75.00, 'category': 'massage'}
+            {'name': 'Swedish Massage', 'description': '60-minute full body Swedish massage', 'duration': 60, 'price': 75.00, 'category': 'massage'},
+            {'name': 'Deep Tissue Massage', 'description': 'Therapeutic deep tissue massage', 'duration': 90, 'price': 95.00, 'category': 'massage'},
+            {'name': 'Express Facial', 'description': 'Quick 30-minute facial treatment', 'duration': 30, 'price': 45.00, 'category': 'skincare'},
+            {'name': 'Premium Pedicure', 'description': 'Luxurious pedicure with spa treatment', 'duration': 75, 'price': 65.00, 'category': 'nails'}
         ]
         
         created_services = []

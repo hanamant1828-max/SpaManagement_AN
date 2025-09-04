@@ -428,11 +428,11 @@
                     <!-- Service Selection -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Select Service</label>
-                        {% if services %}
+                        {% if services and services|length > 0 %}
                         <div class="service-selection">
                             {% for service in services %}
-                            <div class="service-card" onclick="selectService({{ service.id }}, '{{ service.name }}', {{ service.price }}, {{ service.duration }})">
-                                <div class="d-flex justify-content-between align-items-start">
+                            <div class="service-card" onclick="selectService({{ service.id }}, '{{ service.name|replace("'", "\\'") }}', {{ service.price }}, {{ service.duration }})">
+                                <div class="d-flex justify-content-between align-items-start"></old_str>
                                     <div>
                                         <h6 class="mb-1">{{ service.name }}</h6>
                                         <small class="text-muted">{{ service.duration }} minutes</small>

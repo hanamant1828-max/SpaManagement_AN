@@ -353,6 +353,28 @@ def book_appointment_api():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/services')
+@login_required
+def api_services():
+    """API endpoint to get all active services"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        services = get_active_services()
+        return jsonify([{
+            'id': service.id,
+            'name': service.name,
+            'description': service.description,
+            'duration': service.duration,
+            'price': float(service.price),
+            'category': service.category,
+            'is_active': service.is_active
+        } for service in services])
+    except Exception as e:
+        print(f"Error in api_services: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required
 def api_appointment_details(appointment_id):

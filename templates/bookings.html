@@ -346,16 +346,20 @@
                             <div class="mb-3">
                                 <label for="service_id" class="form-label">Service</label>
                                 <select name="service_id" id="service_id" class="form-select" required onchange="updateServicePrice(this.value, this.options[this.selectedIndex].dataset.price)">
-                                    <option value="">Select a service...</option>
-                                    {% for service in services %}
-                                    <option value="{{ service.id }}" data-price="{{ service.price }}">
-                                        {{ service.name }} - ${{ "%.2f"|format(service.price) }}
-                                    </option>
-                                    {% endfor %}
+                                    <option value="">Loading services...</option>
                                 </select>
-                                {% if not services %}
-                                <small class="text-muted">No services available. Please add services first.</small>
-                                {% endif %}
+                                <div class="mt-2">
+                                    {% if services and services|length > 0 %}
+                                        <small class="text-success">
+                                            <i class="fas fa-check-circle me-1"></i>{{ services|length }} services available
+                                        </small>
+                                    {% else %}
+                                        <small class="text-warning">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>No services available. 
+                                            <a href="{{ url_for('services') }}" class="text-decoration-none">Add services</a> first.
+                                        </small>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
