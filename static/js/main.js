@@ -1294,11 +1294,23 @@ function editCustomer(customerId) {
     try {
         console.log('Edit customer:', customerId);
 
+        if (!customerId) {
+            showNotification('Invalid customer ID', 'error');
+            return;
+        }
+
         // Show edit modal or redirect to edit page
         const editModal = document.getElementById('editCustomerModal');
         if (editModal) {
             // Store customer ID globally for modal use
             window.currentCustomerId = customerId;
+            
+            // Store customer ID in the form for submission
+            const form = editModal.querySelector('#editCustomerForm');
+            if (form) {
+                form.dataset.customerId = customerId;
+            }
+            
             // Load customer data and show modal
             loadCustomerDataForEdit(customerId);
             const modal = new bootstrap.Modal(editModal);
@@ -1381,18 +1393,29 @@ function validateEmail(email) {
 function loadCustomerDataForEdit(customerId) {
     console.log('Loading customer data for editing:', customerId);
 
+    if (!customerId) {
+        console.error('Invalid customer ID provided');
+        showNotification('Invalid customer ID', 'error');
+        return;
+    }
+
     fetch(`/api/customers/${customerId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 populateEditForm(data.customer);
             } else {
-                showNotification('Error loading customer data', 'error');
+                showNotification(data.error || 'Error loading customer data', 'error');
             }
         })
         .catch(error => {
             console.error('Error fetching customer data:', error);
-            showNotification('Error loading customer data', 'error');
+            showNotification('Error loading customer data. Please try again.', 'error');
         });
 }
 
@@ -1455,6 +1478,12 @@ function handleEditCustomerSubmit(event) {
         return;
     }
 
+    // Validate form before submission
+    if (!validateForm(form)) {
+        showNotification('Please fix the validation errors before submitting.', 'warning');
+        return;
+    }
+
     showFormLoading(form);
 
     // Gather form data
@@ -1466,31 +1495,36 @@ function handleEditCustomerSubmit(event) {
         body: formData
     })
     .then(response => {
-        if (response.ok) {
+        // Check if response is a redirect (Flask typically returns 302 for successful form submissions)
+        if (response.redirected || response.status === 302) {
             // Success - show notification and close modal
             showNotification('Customer updated successfully!', 'success');
             const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
             if (modal) modal.hide();
             // Refresh the page to show updated data
             setTimeout(() => window.location.reload(), 1000);
-        } else if (response.status === 302) {
-            // Redirect response - also means success for Flask
+            return;
+        }
+        
+        if (response.ok) {
+            // Also handle direct 200 responses as success
             showNotification('Customer updated successfully!', 'success');
             const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
             if (modal) modal.hide();
             setTimeout(() => window.location.reload(), 1000);
-        } else {
-            // Handle error responses
-            return response.text().then(text => {
-                if (text.includes('duplicate') || text.includes('already exists')) {
-                    showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
-                } else if (text.includes('not found')) {
-                    showNotification('Customer not found. Please refresh the page and try again.', 'error');
-                } else {
-                    showNotification('Error updating customer. Please check your input and try again.', 'error');
-                }
-            });
+            return;
         }
+
+        // Handle error responses
+        return response.text().then(text => {
+            if (text.includes('duplicate') || text.includes('already exists')) {
+                showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
+            } else if (text.includes('not found')) {
+                showNotification('Customer not found. Please refresh the page and try again.', 'error');
+            } else {
+                showNotification('Error updating customer. Please check your input and try again.', 'error');
+            }
+        });
     })
     .catch(error => {
         console.error('Error submitting edit customer form:', error);

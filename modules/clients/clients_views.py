@@ -218,26 +218,29 @@ def client_detail(id):
 @login_required
 def api_get_customer(customer_id):
     """API endpoint to get customer data"""
-    if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
+    try:
+        if not current_user.can_access('clients'):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-    customer = get_customer_by_id(customer_id)
-    if not customer:
-        return jsonify({'error': 'Customer not found'}), 404
+        customer = get_customer_by_id(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
-    return jsonify({
-        'success': True,
-        'customer': {
-            'id': customer.id,
-            'first_name': customer.first_name,
-            'last_name': customer.last_name,
-            'phone': customer.phone,
-            'email': customer.email,
-            'address': customer.address or '',
-            'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else None,
-            'gender': customer.gender,
-            'preferences': customer.preferences or '',
-            'allergies': customer.allergies or '',
-            'notes': customer.notes or ''
-        }
-    })
+        return jsonify({
+            'success': True,
+            'customer': {
+                'id': customer.id,
+                'first_name': customer.first_name,
+                'last_name': customer.last_name,
+                'phone': customer.phone,
+                'email': customer.email or '',
+                'address': customer.address or '',
+                'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else '',
+                'gender': customer.gender or '',
+                'preferences': customer.preferences or '',
+                'allergies': customer.allergies or '',
+                'notes': customer.notes or ''
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
