@@ -7,11 +7,52 @@ from flask_login import login_required, current_user
 from app import app, db
 from models import Service, Category
 from forms import ServiceForm, CategoryForm
-from .services_queries import (
-    get_all_services, get_service_by_id, create_service, update_service, delete_service,
-    get_all_service_categories, get_category_by_id, create_category, update_category, 
-    delete_category, reorder_category, export_services_csv, export_categories_csv
-)
+try:
+    from .services_queries import (
+        get_all_services, get_service_by_id, create_service, update_service, delete_service,
+        get_all_service_categories, get_category_by_id, create_category, update_category, 
+        delete_category, reorder_category, export_services_csv, export_categories_csv
+    )
+    print("Services queries imported successfully")
+except ImportError as e:
+    print(f"Error importing services queries: {e}")
+    # Fallback imports or create placeholder functions
+    def get_all_services(category_filter=None):
+        from models import Service
+        query = Service.query
+        if category_filter:
+            query = query.filter_by(category_id=category_filter)
+        return query.all()
+    
+    def get_all_service_categories():
+        from models import Category
+        return Category.query.filter_by(category_type='service').all()
+    
+    def get_service_by_id(service_id):
+        from models import Service
+        return Service.query.get(service_id)
+    
+    def create_service(data):
+        from models import Service
+        service = Service(**data)
+        db.session.add(service)
+        db.session.commit()
+        return service
+    
+    def update_service(service_id, data):
+        service = get_service_by_id(service_id)
+        for key, value in data.items():
+            setattr(service, key, value)
+        db.session.commit()
+        return service
+    
+    def delete_service(service_id):
+        service = get_service_by_id(service_id)
+        if service:
+            db.session.delete(service)
+            db.session.commit()
+            return {'success': True, 'message': 'Service deleted successfully'}
+        return {'success': False, 'message': 'Service not found'}
 
 # Service Category Management Routes
 @app.route('/service-categories')
