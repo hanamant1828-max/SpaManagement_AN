@@ -234,6 +234,30 @@ def client_detail(id):
                          communications=communications,
                          stats=stats)
 
+@app.route('/clients/face_management')
+@login_required
+def clients_face_management():
+    """Face management for clients"""
+    if not current_user.can_access('clients'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from .clients_queries import get_all_customers
+    from models import Customer
+    
+    # Get all customers
+    clients = get_all_customers()
+    
+    # Get customers with face data
+    clients_with_faces = Customer.query.filter(
+        Customer.facial_encoding.isnot(None),
+        Customer.is_active == True
+    ).all()
+
+    return render_template('face_management.html',
+                         clients=clients,
+                         clients_with_faces=clients_with_faces)
+
 @app.route('/api/customers/<int:customer_id>')
 @login_required
 def api_get_customer(customer_id):
