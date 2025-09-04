@@ -7,11 +7,22 @@ from flask_login import login_required, current_user
 from app import app, db
 from models import Service, Category
 from forms import ServiceForm, CategoryForm
-from .services_queries import (
-    get_all_services, get_service_by_id, create_service, update_service, delete_service,
-    get_all_service_categories, get_category_by_id, create_category, update_category, 
-    delete_category, reorder_category, export_services_csv, export_categories_csv
-)
+
+# Import queries with error handling
+try:
+    from .services_queries import (
+        get_all_services, get_service_by_id, create_service, update_service, delete_service,
+        get_all_service_categories, get_category_by_id, create_category, update_category, 
+        delete_category, reorder_category, export_services_csv, export_categories_csv
+    )
+    print("Services queries imported successfully")
+except ImportError as e:
+    print(f"Error importing services queries: {e}")
+    # Define fallback functions if import fails
+    def get_all_services(category_filter=''):
+        return Service.query.all()
+    def get_all_service_categories():
+        return Category.query.filter_by(category_type='service').all()
 
 # Service Category Management Routes
 @app.route('/service-categories')
@@ -359,8 +370,32 @@ def test_services():
     return jsonify({
         'status': 'success',
         'message': 'Services module is working',
-        'user': current_user.username if current_user.is_authenticated else 'anonymous'
+        'user': current_user.username if current_user.is_authenticated else 'anonymous',
+        'services_count': Service.query.count(),
+        'categories_count': Category.query.filter_by(category_type='service').count()
     })
+
+# Debug route to check services loading
+@app.route('/debug-services')
+@login_required
+def debug_services():
+    """Debug route to diagnose services issues"""
+    try:
+        services = Service.query.all()
+        categories = Category.query.filter_by(category_type='service').all()
+        
+        debug_info = {
+            'services_count': len(services),
+            'categories_count': len(categories),
+            'first_service': services[0].name if services else 'No services',
+            'first_category': categories[0].display_name if categories else 'No categories',
+            'current_user': current_user.username,
+            'user_permissions': current_user.can_access('services')
+        }
+        
+        return jsonify(debug_info)
+    except Exception as e:
+        return jsonify({'error': str(e), 'type': type(e).__name__})
 
 # API Endpoints for AJAX operations
 @app.route('/api/services/category/<int:category_id>')
