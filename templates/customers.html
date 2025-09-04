@@ -271,33 +271,37 @@
 
 {% block extra_scripts %}
 <script>
-function viewCustomer(customerId) {
-    // In a real implementation, this would fetch customer details via AJAX
-    document.getElementById('customerDetails').innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-    `;
+// Customer management functions are now defined in main.js
+// This ensures they're available globally across all pages
+
+// Initialize customer page specific functionality
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Customer management page initialized');
+    
+    // Add any customer-specific initialization here
+    initializeCustomerSearch();
+    initializeCustomerFilters();
+});
+
+function initializeCustomerSearch() {
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const customerRows = document.querySelectorAll('tbody tr');
+            
+            customerRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    }
 }
 
-function editCustomer(customerId) {
-    // In a real implementation, this would populate the edit modal with customer data
-    console.log('Edit customer:', customerId);
+function initializeCustomerFilters() {
+    // Add any customer filtering functionality here
+    console.log('Customer filters initialized');
 }
-
-function bookAppointment(customerId) {
-    // Redirect to bookings page with customer pre-selected
-    window.location.href = `/bookings?customer_id=${customerId}`;
-}
-
-function bookAppointmentFromModal() {
-    // Book appointment from the modal view
-    bookAppointment(currentCustomerId);
-}
-
-let currentCustomerId = null;
 </script>
 
 <style>

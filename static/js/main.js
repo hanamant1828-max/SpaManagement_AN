@@ -188,6 +188,10 @@ function handleModalShow(event) {
         case 'updateStockModal':
             initializeStockModal(modal);
             break;
+        case 'editCustomerModal': // Added case for editCustomerModal
+            const customerId = window.currentCustomerId; // Assume customerId is stored globally
+            loadCustomerDataForEdit(customerId);
+            break;
     }
 }
 
@@ -200,6 +204,11 @@ function handleModalHidden(event) {
         form.reset();
         clearFormValidation(form);
     });
+
+    // Clear customer ID after modal closes to prevent stale data
+    if (modal.id === 'editCustomerModal') {
+        window.currentCustomerId = null;
+    }
 }
 
 // Form submission handler
@@ -224,6 +233,8 @@ function handleFormSubmit(event) {
             return handleClientSubmit(event);
         case 'inventoryForm':
             return handleInventorySubmit(event);
+        case 'editCustomerForm': // Handle edit customer form submission
+            return handleEditCustomerSubmit(event);
     }
 }
 
@@ -253,6 +264,24 @@ function handleButtonClick(event) {
             break;
         case 'print':
             handlePrint(button);
+            break;
+        case 'edit': // Handle edit button click
+            const customerIdToEdit = button.dataset.customerId;
+            if (customerIdToEdit) {
+                editCustomer(customerIdToEdit);
+            }
+            break;
+        case 'book': // Handle book appointment button click
+            const customerIdToBook = button.dataset.customerId;
+            if (customerIdToBook) {
+                bookAppointment(customerIdToBook);
+            }
+            break;
+        case 'view': // Handle view customer button click
+            const customerIdToView = button.dataset.customerId;
+            if (customerIdToView) {
+                viewCustomer(customerIdToView);
+            }
             break;
     }
 }
@@ -803,12 +832,12 @@ function initializeDataTables() {
 
 function setupRowSelection(table) {
     const rows = table.querySelectorAll('tbody tr');
-    
+
     rows.forEach(row => {
         row.addEventListener('click', function() {
             // Toggle selection
             this.classList.toggle('selected');
-            
+
             // Add visual feedback
             if (this.classList.contains('selected')) {
                 this.style.backgroundColor = '#e3f2fd';
@@ -1119,13 +1148,182 @@ function checkUpcomingAppointmentsNotifications() {
     }
 }
 
-// Expose useful functions globally
+// Customer management functions
+function bookAppointment(customerId) {
+    try {
+        // Redirect to bookings page with customer pre-selected
+        window.location.href = `/bookings?customer_id=${customerId}`;
+    } catch (error) {
+        console.error('Error booking appointment:', error);
+        showNotification('Error navigating to bookings page', 'error');
+    }
+}
+
+function editCustomer(customerId) {
+    try {
+        console.log('Edit customer:', customerId);
+
+        // Show edit modal or redirect to edit page
+        const editModal = document.getElementById('editCustomerModal');
+        if (editModal) {
+            // Store customer ID globally for modal use
+            window.currentCustomerId = customerId;
+            // Load customer data and show modal
+            loadCustomerDataForEdit(customerId);
+            const modal = new bootstrap.Modal(editModal);
+            modal.show();
+        } else {
+            // Fallback: redirect to edit page
+            window.location.href = `/clients/edit/${customerId}`;
+        }
+    } catch (error) {
+        console.error('Error editing customer:', error);
+        showNotification('Error opening customer editor', 'error');
+    }
+}
+
+function viewCustomer(customerId) {
+    try {
+        // Store current customer ID for modal actions
+        window.currentCustomerId = customerId;
+
+        // Show loading in modal
+        const customerDetails = document.getElementById('customerDetails');
+        if (customerDetails) {
+            customerDetails.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading customer details...</p>
+                </div>
+            `;
+        }
+
+        // In a real implementation, this would fetch customer details via AJAX
+        setTimeout(() => {
+            if (customerDetails) {
+                customerDetails.innerHTML = `
+                    <div class="alert alert-info">
+                        Customer details would be loaded here via AJAX call to /api/customers/${customerId}
+                    </div>
+                `;
+            }
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error viewing customer:', error);
+        showNotification('Error loading customer details', 'error');
+    }
+}
+
+function bookAppointmentFromModal() {
+    try {
+        if (window.currentCustomerId) {
+            bookAppointment(window.currentCustomerId);
+        } else {
+            showNotification('No customer selected', 'warning');
+        }
+    } catch (error) {
+        console.error('Error booking appointment from modal:', error);
+        showNotification('Error booking appointment', 'error');
+    }
+}
+
+function loadCustomerDataForEdit(customerId) {
+    // In a real implementation, this would fetch customer data via AJAX
+    // and populate the edit form fields
+    console.log('Loading customer data for editing:', customerId);
+
+    // Placeholder implementation
+    fetch(`/api/customers/${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate form fields with customer data
+                populateEditForm(data.customer);
+            } else {
+                showNotification('Error loading customer data', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching customer data:', error);
+            showNotification('Error loading customer data', 'error');
+        });
+}
+
+function populateEditForm(customerData) {
+    // Populate edit form fields with customer data
+    const form = document.getElementById('editCustomerForm');
+    if (form && customerData) {
+        const fields = ['full_name', 'email', 'phone', 'address'];
+        fields.forEach(field => {
+            const input = form.querySelector(`[name="${field}"]`);
+            if (input && customerData[field]) {
+                input.value = customerData[field];
+            }
+        });
+    }
+}
+
+// Handle edit customer form submission
+function handleEditCustomerSubmit(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    const form = event.target;
+    const customerId = form.dataset.customerId; // Assuming customerId is stored in a data attribute
+
+    if (!customerId) {
+        console.error('Customer ID not found for editing.');
+        showNotification('Error: Customer ID not found.', 'error');
+        return;
+    }
+
+    // Gather form data
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    // Send data to the server
+    fetch(`/api/customers/${customerId}`, {
+        method: 'PUT', // Or 'PATCH' depending on your API
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('Customer updated successfully!', 'success');
+            bootstrap.Modal.getInstance(form).hide(); // Hide the modal
+            // Optionally refresh the customer list or redirect
+            window.location.reload();
+        } else {
+            showNotification('Error updating customer: ' + result.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting edit customer form:', error);
+        showNotification('An error occurred while updating the customer.', 'error');
+    })
+    .finally(() => {
+        hideFormLoading(form); // Ensure loading state is removed
+    });
+}
+
+// Make functions globally available
 window.showNotification = showNotification;
 window.exportTableData = exportTableData;
 window.printElement = printElement;
 window.validateForm = validateForm;
 window.saveUserPreferences = saveUserPreferences;
 window.updateServicePrice = updateServicePrice;
+window.bookAppointment = bookAppointment;
+window.editCustomer = editCustomer;
+window.viewCustomer = viewCustomer;
+window.bookAppointmentFromModal = bookAppointmentFromModal;
+// window.handleEditCustomerSubmit = handleEditCustomerSubmit; // Not needed globally if called by form submission
+
 
 // CSS for dynamic features
 const additionalStyles = `
@@ -1239,12 +1437,12 @@ function setActiveNavLink() {
             const itemPath = new URL(item.href).pathname;
             if (itemPath === currentPath) {
                 item.classList.add('active');
-                
+
                 // Find and expand the parent dropdown
                 const parentCollapse = item.closest('.collapse');
                 if (parentCollapse) {
                     parentCollapse.classList.add('show');
-                    
+
                     // Find the dropdown toggle button and mark as active
                     const toggleButton = document.querySelector(`[data-target="#${parentCollapse.id}"]`);
                     if (toggleButton) {
