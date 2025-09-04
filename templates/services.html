@@ -43,10 +43,10 @@
                     </select>
                 </div>
                 <div>
-                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#exportModal">
+                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#exportModal" title="Export services to CSV file">
                         <i class="fas fa-download me-1"></i>Export
                     </button>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal" title="Create a new service offering">
                         <i class="fas fa-plus me-2"></i>Add New Service
                     </button>
                 </div>
@@ -97,13 +97,13 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})" data-bs-toggle="tooltip" title="Edit service details">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleService({{ service.id }})">
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleService({{ service.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate service' if service.is_active else 'Activate service' }}">
                                             <i class="fas fa-{{ 'eye-slash' if service.is_active else 'eye' }}"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})" data-bs-toggle="tooltip" title="Delete service permanently">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -127,7 +127,7 @@
         <div class="tab-pane fade" id="categories-pane" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">Service Categories</h5>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Create a new service category">
                     <i class="fas fa-plus me-2"></i>Add New Category
                 </button>
             </div>
@@ -167,13 +167,13 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory({{ category.id }})">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory({{ category.id }})" data-bs-toggle="tooltip" title="Edit category details">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleCategory({{ category.id }})">
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleCategory({{ category.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate category' if category.is_active else 'Activate category' }}">
                                             <i class="fas fa-{{ 'eye-slash' if category.is_active else 'eye' }}"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }})">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }})" data-bs-toggle="tooltip" title="Delete category permanently">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -479,6 +479,11 @@
 <script>
 // Handle edit form submission
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"], [title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
     const editForm = document.getElementById('editServiceForm');
     if (editForm) {
         editForm.addEventListener('submit', function(e) {
