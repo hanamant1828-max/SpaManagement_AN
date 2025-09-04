@@ -1409,6 +1409,22 @@ function loadCustomerDataForEdit(customerId) {
         });
 }
 
+function deleteCustomer(customerId, customerName) {
+    if (confirm(`Are you sure you want to delete customer "${customerName}"?\n\nThis action cannot be undone and will remove all customer data.`)) {
+        // Show loading notification
+        showNotification('Deleting customer...', 'info');
+        
+        // Create form data for DELETE request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/clients/delete/${customerId}`;
+        
+        // Submit the form
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
 function populateEditForm(customer) {
     const form = document.querySelector('#editCustomerForm');
     if (form && customer) {
@@ -1464,18 +1480,36 @@ function handleEditCustomerSubmit(event) {
     })
     .then(response => {
         if (response.ok) {
-            showNotification('Customer updated successfully!', 'success');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
-            modal.hide();
-            // Refresh the page to show updated data
-            setTimeout(() => window.location.reload(), 1000);
+            // Check if response is redirect (which means success)
+            if (response.redirected) {
+                showNotification('Customer updated successfully!', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+                if (modal) modal.hide();
+                // Refresh the page to show updated data
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                // Handle other success cases
+                showNotification('Customer updated successfully!', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 1500);
+            }
         } else {
-            showNotification('Error updating customer', 'error');
+            // Handle different error status codes
+            response.text().then(text => {
+                if (text.includes('duplicate') || text.includes('already exists')) {
+                    showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
+                } else {
+                    showNotification('Error updating customer. Please check your input and try again.', 'error');
+                }
+            }).catch(() => {
+                showNotification('Error updating customer. Please try again.', 'error');
+            });
         }
     })
     .catch(error => {
         console.error('Error submitting edit customer form:', error);
-        showNotification('An error occurred while updating the customer.', 'error');
+        showNotification('Network error occurred while updating the customer. Please try again.', 'error');
     })
     .finally(() => {
         hideFormLoading(form);
