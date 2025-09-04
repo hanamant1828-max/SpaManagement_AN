@@ -19,35 +19,7 @@ from modules.dashboard.dashboard_views import *
 from modules.auth.auth_views import *
 from modules.bookings.bookings_views import *
 from modules.clients.clients_views import *
-
-# Import services module with error handling
-try:
-    from modules.services.services_views import *
-    print("Services views imported successfully")
-except Exception as e:
-    print(f"Error importing services views: {e}")
-    
-    # Define a fallback services route
-    @app.route('/services')
-    @login_required
-    def services_fallback():
-        if not current_user.can_access('services'):
-            flash('Access denied', 'danger')
-            return redirect(url_for('dashboard'))
-        
-        try:
-            services = Service.query.all()
-            categories = Category.query.filter_by(category_type='service').all()
-            form = ServiceForm()
-            
-            return render_template('services.html', 
-                                 services=services,
-                                 categories=categories,
-                                 form=form,
-                                 category_filter='')
-        except Exception as error:
-            flash(f'Error loading services: {str(error)}', 'danger')
-            return redirect(url_for('dashboard'))
+from modules.services.services_views import *
 from modules.inventory.inventory_views import *
 from modules.inventory.simple_inventory_views import *  # New simple inventory system
 # from modules.inventory.professional_inventory_views import *  # Professional inventory management - commented out temporarily to avoid conflicts
