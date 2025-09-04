@@ -199,7 +199,7 @@
                 <div class="modal-body">
                     <input type="hidden" id="staffId" value="">
                     <input type="hidden" id="formMode" value="add">
-                    
+
                     <div class="row g-3">
                         <!-- Basic Information -->
                         <div class="col-md-6">
@@ -430,7 +430,7 @@ function setupModalHandlers() {
     document.getElementById('staffModal').addEventListener('hidden.bs.modal', function() {
         clearForm();
     });
-    
+
     // Setup delete confirmation
     document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
         if (currentDeleteId) {
@@ -443,15 +443,15 @@ function setupModalHandlers() {
 async function loadStaffData() {
     try {
         showLoading(true);
-        
+
         const response = await fetch('/api/staff');
         const data = await response.json();
-        
+
         if (data.success) {
             allStaff = data.staff;
             rolesData = data.roles;
             departmentsData = data.departments;
-            
+
             populateDropdowns();
             updateStats();
             renderStaffTable();
@@ -479,7 +479,7 @@ function populateDropdowns() {
             const firstOption = select.firstElementChild;
             select.innerHTML = '';
             select.appendChild(firstOption);
-            
+
             rolesData.forEach(role => {
                 const option = document.createElement('option');
                 option.value = role.id;
@@ -488,7 +488,7 @@ function populateDropdowns() {
             });
         }
     });
-    
+
     // Populate department dropdowns
     const deptSelects = ['departmentFilter', 'departmentId'];
     deptSelects.forEach(selectId => {
@@ -498,7 +498,7 @@ function populateDropdowns() {
             const firstOption = select.firstElementChild;
             select.innerHTML = '';
             select.appendChild(firstOption);
-            
+
             departmentsData.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept.id;
@@ -513,7 +513,7 @@ function populateDropdowns() {
 function updateStats() {
     const totalStaff = allStaff.length;
     const activeStaff = allStaff.filter(s => s.is_active).length;
-    
+
     document.getElementById('totalStaffCount').textContent = totalStaff;
     document.getElementById('activeStaffCount').textContent = activeStaff;
     document.getElementById('departmentCount').textContent = departmentsData.length;
@@ -524,20 +524,20 @@ function updateStats() {
 function renderStaffTable() {
     filteredStaff = [...allStaff];
     filterStaff();
-    
+
     const tbody = document.getElementById('staffTableBody');
     tbody.innerHTML = '';
-    
+
     if (filteredStaff.length === 0) {
         showEmptyState();
         return;
     }
-    
+
     filteredStaff.forEach(staff => {
         const row = createStaffRow(staff);
         tbody.appendChild(row);
     });
-    
+
     showTable(true);
 }
 
@@ -545,10 +545,10 @@ function renderStaffTable() {
 function createStaffRow(staff) {
     const row = document.createElement('tr');
     row.setAttribute('data-staff-id', staff.id);
-    
+
     // Generate initials
     const initials = (staff.first_name?.[0] || 'S') + (staff.last_name?.[0] || 'M');
-    
+
     row.innerHTML = `
         <td>
             <div class="d-flex align-items-center">
@@ -606,14 +606,14 @@ function createStaffRow(staff) {
             </div>
         </td>
     `;
-    
+
     return row;
 }
 
 // Filter staff based on search and filters
 function filterStaff() {
     let filtered = [...allStaff];
-    
+
     // Search filter
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     if (searchTerm) {
@@ -625,19 +625,19 @@ function filterStaff() {
             staff.phone.includes(searchTerm)
         );
     }
-    
+
     // Role filter
     const roleFilter = document.getElementById('roleFilter').value;
     if (roleFilter) {
         filtered = filtered.filter(staff => staff.role_id == roleFilter);
     }
-    
+
     // Department filter
     const deptFilter = document.getElementById('departmentFilter').value;
     if (deptFilter) {
         filtered = filtered.filter(staff => staff.department_id == deptFilter);
     }
-    
+
     // Status filter
     const statusFilter = document.getElementById('statusFilter').value;
     if (statusFilter === 'active') {
@@ -645,7 +645,7 @@ function filterStaff() {
     } else if (statusFilter === 'inactive') {
         filtered = filtered.filter(staff => !staff.is_active);
     }
-    
+
     filteredStaff = filtered;
     renderFilteredStaff();
 }
@@ -654,17 +654,17 @@ function filterStaff() {
 function renderFilteredStaff() {
     const tbody = document.getElementById('staffTableBody');
     tbody.innerHTML = '';
-    
+
     if (filteredStaff.length === 0) {
         showEmptyState();
         return;
     }
-    
+
     filteredStaff.forEach(staff => {
         const row = createStaffRow(staff);
         tbody.appendChild(row);
     });
-    
+
     showTable(true);
 }
 
@@ -706,7 +706,7 @@ function showAddModal() {
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
     document.getElementById('passwordHelp').textContent = 'Password is required for new staff';
     document.getElementById('password').required = true;
-    
+
     clearForm();
 }
 
@@ -719,14 +719,14 @@ async function editStaff(staffId) {
         document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
         document.getElementById('passwordHelp').textContent = 'Leave blank to keep current password';
         document.getElementById('password').required = false;
-        
+
         // Load staff data
         const response = await fetch(`/api/staff/${staffId}`);
         const data = await response.json();
-        
+
         if (data.success) {
             populateForm(data.staff);
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('staffModal'));
             modal.show();
@@ -765,207 +765,223 @@ function populateForm(staff) {
 function clearForm() {
     document.getElementById('staffForm').reset();
     document.getElementById('staffId').value = '';
+    // Clear any validation messages
+    const invalidFields = document.querySelectorAll('.is-invalid');
+    invalidFields.forEach(field => field.classList.remove('is-invalid'));
+    const validationErrors = document.querySelectorAll('.validation-error');
+    validationErrors.forEach(error => error.remove());
 }
 
 // Setup form handlers
 function setupFormHandlers() {
-    document.getElementById('staffForm').addEventListener('submit', async function(e) {
+    const form = document.getElementById('staffForm');
+
+    // Form submission handler
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        await saveStaff();
+
+        // Before submitting, perform a final validation check on all fields
+        let isFormValid = true;
+        const requiredFields = ['username', 'firstName', 'lastName', 'email'];
+        requiredFields.forEach(fieldId => {
+            if (!validateSingleField(fieldId)) {
+                isFormValid = false;
+            }
+        });
+
+        // Additional check for password if it's a new staff member
+        if (!isEditing) {
+            const passwordField = document.getElementById('password');
+            if (!passwordField.value.trim()) {
+                isFormValid = false;
+                validateSingleField('password'); // Trigger validation message for password
+            }
+        }
+
+        if (!isFormValid) {
+            showAlert('Please correct the errors before submitting.', 'warning');
+            return; // Stop submission if form is invalid
+        }
+
+        // Disable submit button to prevent double submission
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+        try {
+            await saveStaff();
+        } finally {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     });
-}
 
-// Save staff (add or update)
-async function saveStaff() {
-    try {
-        const formData = {
-            username: document.getElementById('username').value,
-            first_name: document.getElementById('firstName').value,
-            last_name: document.getElementById('lastName').value,
-            email: document.getElementById('email').value,
-            phone: document.getElementById('phone').value,
-            role_id: parseInt(document.getElementById('roleId').value) || null,
-            department_id: parseInt(document.getElementById('departmentId').value) || null,
-            designation: document.getElementById('designation').value,
-            commission_rate: parseFloat(document.getElementById('commissionRate').value) || 0,
-            hourly_rate: parseFloat(document.getElementById('hourlyRate').value) || 0,
-            gender: document.getElementById('gender').value,
-            date_of_birth: document.getElementById('dateOfBirth').value,
-            date_of_joining: document.getElementById('dateOfJoining').value,
-            shift_start_time: document.getElementById('shiftStart').value,
-            shift_end_time: document.getElementById('shiftEnd').value,
-            working_days: document.getElementById('workingDays').value,
-            enable_face_checkin: document.getElementById('enableFaceCheckin').checked,
-            notes_bio: document.getElementById('notesBio').value
-        };
-        
-        // Add password if provided
-        const password = document.getElementById('password').value;
-        if (password) {
-            formData.password = password;
+    // Real-time validation for required fields
+    const requiredFields = ['username', 'firstName', 'lastName', 'email'];
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('blur', function() {
+                validateSingleField(fieldId);
+            });
+
+            field.addEventListener('input', function() {
+                // Clear validation error on input
+                this.classList.remove('is-invalid');
+                const errorElement = this.parentNode.querySelector('.validation-error');
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            });
         }
-        
-        let url, method;
-        if (isEditing) {
-            const staffId = document.getElementById('staffId').value;
-            url = `/api/staff/${staffId}`;
-            method = 'PUT';
-        } else {
-            url = '/api/staff';
-            method = 'POST';
-        }
-        
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
+    });
+
+    // Email validation on blur
+    const emailField = document.getElementById('email');
+    if (emailField) {
+        emailField.addEventListener('blur', function() {
+            const email = this.value.trim();
+            if (email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    this.classList.add('is-invalid');
+                    const existingError = this.parentNode.querySelector('.validation-error');
+                    if (!existingError) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'validation-error text-danger small mt-1';
+                        errorDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Please enter a valid email address';
+                        this.parentNode.insertBefore(errorDiv, this.nextSibling);
+                    }
+                } else {
+                    // If email is valid and correct, remove error classes
+                    this.classList.remove('is-invalid');
+                    const errorElement = this.parentNode.querySelector('.validation-error');
+                    if (errorElement) {
+                        errorElement.remove();
+                    }
+                }
+            } else {
+                // If email field is empty on blur, remove error classes if they exist
+                this.classList.remove('is-invalid');
+                this.classList.remove('is-valid');
+                const errorElement = this.parentNode.querySelector('.validation-error');
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            }
         });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert(data.message, 'success');
-            
-            // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('staffModal'));
-            modal.hide();
-            
-            loadStaffData(); // Refresh data
-        } else {
-            throw new Error(data.error);
-        }
-    } catch (error) {
-        showAlert('Error saving staff: ' + error.message, 'danger');
+    }
+
+    // Password validation for new staff
+    const passwordField = document.getElementById('password');
+    if (passwordField) {
+        passwordField.addEventListener('blur', function() {
+            // Only validate if it's a new staff member and the field is empty
+            if (!isEditing && !this.value.trim()) {
+                this.classList.add('is-invalid');
+                const existingError = this.parentNode.querySelector('.validation-error');
+                if (!existingError) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'validation-error text-danger small mt-1';
+                    errorDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Password is required for new staff members';
+                    this.parentNode.insertBefore(errorDiv, this.nextSibling);
+                }
+            } else if (!isEditing && this.value.trim()) {
+                 // If it's a new staff member and password is provided, clear any potential prior error
+                this.classList.remove('is-invalid');
+                const errorElement = this.parentNode.querySelector('.validation-error');
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            }
+        });
     }
 }
 
-// Show delete modal
-function showDeleteModal(staffId) {
-    const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) return;
-    
-    currentDeleteId = staffId;
-    document.getElementById('deleteMessage').textContent = 
-        `Are you sure you want to delete ${staff.full_name}? This action cannot be undone.`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    modal.show();
-}
+// Validate single field
+function validateSingleField(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return false; // Return false if field doesn't exist
 
-// Perform delete
-async function performDelete(staffId) {
-    try {
-        const response = await fetch(`/api/staff/${staffId}`, {
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert(data.message, 'success');
-            
-            // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-            modal.hide();
-            
-            currentDeleteId = null;
-            loadStaffData(); // Refresh data
-        } else {
-            throw new Error(data.error);
-        }
-    } catch (error) {
-        showAlert('Error deleting staff: ' + error.message, 'danger');
+    const value = field.value.trim();
+    let isValid = true;
+    let errorMessage = '';
+
+    switch (fieldId) {
+        case 'username':
+            if (!value) {
+                isValid = false;
+                errorMessage = 'Username is required';
+            } else if (value.length < 3) {
+                isValid = false;
+                errorMessage = 'Username must be at least 3 characters';
+            } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                isValid = false;
+                errorMessage = 'Username can only contain letters, numbers, and underscores';
+            }
+            break;
+        case 'firstName':
+            if (!value) {
+                isValid = false;
+                errorMessage = 'First name is required';
+            } else if (value.length > 50) {
+                isValid = false;
+                errorMessage = 'First name cannot exceed 50 characters';
+            }
+            break;
+        case 'lastName':
+            if (!value) {
+                isValid = false;
+                errorMessage = 'Last name is required';
+            } else if (value.length > 50) {
+                isValid = false;
+                errorMessage = 'Last name cannot exceed 50 characters';
+            }
+            break;
+        case 'email':
+            if (!value) {
+                isValid = false;
+                errorMessage = 'Email is required';
+            } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) {
+                    isValid = false;
+                    errorMessage = 'Please enter a valid email address';
+                }
+            }
+            break;
+        case 'password': // Specific validation for password if needed elsewhere
+            if (!isEditing && !value) {
+                isValid = false;
+                errorMessage = 'Password is required for new staff members';
+            }
+            break;
     }
-}
 
-// View performance
-function viewPerformance(staffId) {
-    const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) return;
-    
-    document.getElementById('performanceModalLabel').textContent = `${staff.full_name} - Performance`;
-    document.getElementById('performanceContent').innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">Revenue & Commission</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
-                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate}%</div>
-                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate}</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card border-success">
-                    <div class="card-header bg-success text-white">
-                        <h6 class="mb-0">Client Service</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served}</div>
-                        <div class="mb-2"><strong>Average Rating:</strong> ${staff.average_rating > 0 ? `⭐${staff.average_rating.toFixed(1)}` : 'No rating yet'}</div>
-                        <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? 'success' : 'danger'}">${staff.is_active ? 'Active' : 'Inactive'}</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="card border-info">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">Work Schedule</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-2"><strong>Shift:</strong> ${staff.shift_start_time && staff.shift_end_time ? `${staff.shift_start_time} - ${staff.shift_end_time}` : 'Not set'}</div>
-                        <div class="mb-2"><strong>Working Days:</strong> ${staff.working_days || 'Not set'}</div>
-                        <div class="mb-2"><strong>Last Login:</strong> ${staff.last_login ? new Date(staff.last_login).toLocaleDateString() : 'Never'}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const modal = new bootstrap.Modal(document.getElementById('performanceModal'));
-    modal.show();
-}
-
-// Refresh staff data
-async function refreshStaffData() {
-    showAlert('Refreshing staff data...', 'info');
-    await loadStaffData();
-}
-
-// Export staff data (placeholder)
-function exportStaffData() {
-    showAlert('Export functionality - Feature coming soon!', 'info');
-}
-
-// Show alert
-function showAlert(message, type = 'info') {
-    const alertContainer = document.getElementById('alertContainer');
-    const alertId = 'alert-' + Date.now();
-    
-    const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    
-    alertContainer.insertAdjacentHTML('beforeend', alertHtml);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        const alert = document.getElementById(alertId);
-        if (alert) {
-            alert.remove();
+    // Update field visual state
+    if (isValid) {
+        field.classList.remove('is-invalid');
+        field.classList.add('is-valid');
+        const errorElement = field.parentNode.querySelector('.validation-error');
+        if (errorElement) {
+            errorElement.remove();
         }
-    }, 5000);
-}
-</script>
+    } else {
+        field.classList.remove('is-valid');
+        field.classList.add('is-invalid');
+        const existingError = field.parentNode.querySelector('.validation-error');
+        if (!existingError) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'validation-error text-danger small mt-1';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i>${errorMessage}`;
+            field.parentNode.insertBefore(errorDiv, field.nextSibling);
+        } else {
+            // Update existing error message if it's different
+            existingError.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i>${errorMessage}`;
+        }
+    }
 
-{% endblock %}
+    return isValid;
+}

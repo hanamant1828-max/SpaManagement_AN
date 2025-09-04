@@ -908,18 +908,179 @@ def api_create_staff():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['username', 'first_name', 'last_name', 'email', 'password']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
+        # Comprehensive validation
+        validation_errors = []
+        
+        # Required fields validation
+        required_fields = {
+            'username': 'Username',
+            'first_name': 'First name',
+            'last_name': 'Last name',
+            'email': 'Email',
+            'password': 'Password'
+        }
+        
+        for field, label in required_fields.items():
+            if not data.get(field) or not str(data.get(field)).strip():
+                validation_errors.append({
+                    'field': field,
+                    'message': f'{label} is required'
+                })
+        
+        # Username validation
+        username = data.get('username', '').strip()
+        if username:
+            if len(username) < 3:
+                validation_errors.append({
+                    'field': 'username',
+                    'message': 'Username must be at least 3 characters'
+                })
+            elif len(username) > 25:
+                validation_errors.append({
+                    'field': 'username',
+                    'message': 'Username cannot exceed 25 characters'
+                })
+            elif not username.replace('_', '').isalnum():
+                validation_errors.append({
+                    'field': 'username',
+                    'message': 'Username can only contain letters, numbers, and underscores'
+                })
+        
+        # Email validation
+        email = data.get('email', '').strip()
+        if email:
+            import re
+            email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+            if not re.match(email_pattern, email):
+                validation_errors.append({
+                    'field': 'email',
+                    'message': 'Please enter a valid email address'
+                })
+        
+        # Password validation
+        password = data.get('password', '')
+        if password and len(password) < 6:
+            validation_errors.append({
+                'field': 'password',
+                'message': 'Password must be at least 6 characters'
+            })
+        
+        # Name validation
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        
+        if first_name and len(first_name) > 50:
+            validation_errors.append({
+                'field': 'first_name',
+                'message': 'First name cannot exceed 50 characters'
+            })
+        
+        if last_name and len(last_name) > 50:
+            validation_errors.append({
+                'field': 'last_name',
+                'message': 'Last name cannot exceed 50 characters'
+            })
+        
+        # Phone validation
+        phone = data.get('phone', '').strip()
+        if phone:
+            phone_pattern = r'^[+]?[\d\s\-\(\)]+$'
+            if not re.match(phone_pattern, phone):
+                validation_errors.append({
+                    'field': 'phone',
+                    'message': 'Please enter a valid phone number'
+                })
+        
+        # Commission and hourly rate validation
+        try:
+            commission_rate = float(data.get('commission_rate', 0))
+            if commission_rate < 0 or commission_rate > 100:
+                validation_errors.append({
+                    'field': 'commission_rate',
+                    'message': 'Commission rate must be between 0 and 100'
+                })
+        except (ValueError, TypeError):
+            validation_errors.append({
+                'field': 'commission_rate',
+                'message': 'Commission rate must be a valid number'
+            })
+        
+        try:
+            hourly_rate = float(data.get('hourly_rate', 0))
+            if hourly_rate < 0:
+                validation_errors.append({
+                    'field': 'hourly_rate',
+                    'message': 'Hourly rate cannot be negative'
+                })
+        except (ValueError, TypeError):
+            validation_errors.append({
+                'field': 'hourly_rate',
+                'message': 'Hourly rate must be a valid number'
+            })
+        
+        # Date validation
+        if data.get('date_of_birth'):
+            try:
+                from datetime import datetime, date
+                birth_date = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
+                today = date.today()
+                age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+                
+                if age < 16 or age > 80:
+                    validation_errors.append({
+                        'field': 'date_of_birth',
+                        'message': 'Age must be between 16 and 80 years'
+                    })
+            except ValueError:
+                validation_errors.append({
+                    'field': 'date_of_birth',
+                    'message': 'Please enter a valid date of birth'
+                })
+        
+        if data.get('date_of_joining'):
+            try:
+                join_date = datetime.strptime(data['date_of_joining'], '%Y-%m-%d').date()
+                if join_date > date.today():
+                    validation_errors.append({
+                        'field': 'date_of_joining',
+                        'message': 'Joining date cannot be in the future'
+                    })
+            except ValueError:
+                validation_errors.append({
+                    'field': 'date_of_joining',
+                    'message': 'Please enter a valid joining date'
+                })
+        
+        # Working days validation
+        working_days = data.get('working_days', '').strip()
+        if working_days:
+            if not re.match(r'^[01]{7}$', working_days):
+                validation_errors.append({
+                    'field': 'working_days',
+                    'message': 'Working days must be 7 digits of 0s and 1s (e.g., 1111100)'
+                })
+        
+        # Return validation errors if any
+        if validation_errors:
+            return jsonify({
+                'success': False,
+                'error': 'Validation failed',
+                'validation_errors': validation_errors
+            }), 400
         
         # Check for duplicate username/email
         existing = User.query.filter(
-            (User.username == data['username']) | (User.email == data['email'])
+            (User.username == username) | (User.email == email)
         ).first()
         if existing:
-            return jsonify({'error': 'Username or email already exists'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Username or email already exists',
+                'validation_errors': [
+                    {'field': 'username' if existing.username == username else 'email',
+                     'message': 'This username already exists' if existing.username == username else 'This email already exists'}
+                ]
+            }), 400
         
         # Prepare staff data
         staff_data = {
