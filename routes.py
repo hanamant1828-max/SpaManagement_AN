@@ -11,28 +11,27 @@ from models import User, Customer, Service, Appointment, Expense, Invoice, Packa
 from forms import LoginForm, UserForm, CustomerForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedCustomerForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
 import utils
 
-# Import all module views to register routes
-import modules
-
-# Import views from modules
-from modules.dashboard.dashboard_views import *
-from modules.auth.auth_views import *
-from modules.bookings.bookings_views import *
-from modules.clients.clients_views import *
-from modules.services.services_views import *
-from modules.inventory.inventory_views import *
-from modules.inventory.simple_inventory_views import *  # New simple inventory system
-# from modules.inventory.professional_inventory_views import *  # Professional inventory management - commented out temporarily to avoid conflicts
-from modules.billing.billing_views import *
-from modules.expenses.expenses_views import *
-from modules.reports.reports_views import *
-from modules.packages.packages_views import *
-from modules.checkin.checkin_views import *
-from modules.notifications.notifications_views import *
-from modules.settings.settings_views import *
-from modules.staff.staff_views import *
-
-print("Services module imported successfully")
+# Import module views individually to avoid conflicts
+try:
+    from modules.auth import auth_views
+    from modules.dashboard import dashboard_views
+    from modules.bookings import bookings_views
+    from modules.clients import clients_views
+    from modules.services import services_views
+    from modules.inventory import inventory_views
+    from modules.inventory import simple_inventory_views
+    from modules.billing import billing_views
+    from modules.expenses import expenses_views
+    from modules.reports import reports_views
+    from modules.packages import packages_views
+    from modules.checkin import checkin_views
+    from modules.notifications import notifications_views
+    from modules.settings import settings_views
+    from modules.staff import staff_views
+    print("All modules imported successfully")
+except ImportError as e:
+    print(f"Module import error: {e}")
+    print("Some modules may not be available")
 
 
 @app.context_processor
