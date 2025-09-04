@@ -1542,84 +1542,35 @@ function populateEditForm(customer) {
 // Handle edit customer form submission
 function handleEditCustomerSubmit(event) {
     event.preventDefault();
-    console.log('Edit customer form submitted');
-
+    
     const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Prevent double submission
+    if (submitBtn.disabled) {
+        return;
+    }
+    
     const customerId = form.dataset.customerId || window.currentCustomerId;
 
-    console.log('Customer ID for update:', customerId);
-
     if (!customerId) {
-        console.error('Customer ID not found for editing.');
         showNotification('Error: Customer ID not found.', 'error');
         return;
     }
 
-    // Validate form before submission
-    if (!validateForm(form)) {
-        showNotification('Please fix the validation errors before submitting.', 'warning');
-        return;
-    }
-
-    // Show loading state
-    showFormLoading(form);
-    showNotification('Updating customer...', 'info', 2000);
-
-    // Prepare form data
-    const formData = new FormData(form);
+    // Show loading and disable button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
     
-    // Add AJAX flag
-    formData.append('ajax_submit', '1');
-
-    // Log form data for debugging
-    console.log('Form data being sent:');
-    for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-    }
-
-    // Use fetch for AJAX submission
-    fetch(`/clients/update/${customerId}`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        console.log('Update response:', response.status, response.statusText);
-        
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-    })
-    .then(data => {
-        console.log('Update successful:', data);
-        
-        if (data.success) {
-            showNotification(data.message || 'Customer updated successfully!', 'success');
-            
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
-            if (modal) modal.hide();
-            
-            // Refresh page after short delay
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            throw new Error(data.error || 'Update failed');
-        }
-    })
-    .catch(error => {
-        console.error('Update error:', error);
-        
-        if (error.message.includes('duplicate') || error.message.includes('already exists')) {
-            showNotification('A customer with this phone/email already exists. Please use different contact information.', 'warning');
-        } else {
-            showNotification('Error updating customer: ' + error.message, 'error');
-        }
-    })
-    .finally(() => {
-        // Hide loading state
-        hideFormLoading(form);
-    });
+    // Just submit the form normally - let Flask handle it
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'ajax_submit';
+    hiddenInput.value = '1';
+    form.appendChild(hiddenInput);
+    
+    // Submit form
+    form.submit();
 }
 
 // Make functions globally available
