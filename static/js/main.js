@@ -209,6 +209,21 @@ function handleModalHidden(event) {
     if (modal.id === 'editCustomerModal') {
         window.currentCustomerId = null;
     }
+
+    // Force remove any lingering backdrops to prevent UI blocking
+    setTimeout(() => {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => {
+            if (backdrop.parentNode) {
+                backdrop.parentNode.removeChild(backdrop);
+            }
+        });
+
+        // Ensure body classes are cleaned up
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }, 100);
 }
 
 // Form submission handler
@@ -1041,9 +1056,64 @@ function closeTopModal() {
     const openModals = document.querySelectorAll('.modal.show');
     if (openModals.length > 0) {
         const topModal = openModals[openModals.length - 1];
-        bootstrap.Modal.getInstance(topModal)?.hide();
+        const modalInstance = bootstrap.Modal.getInstance(topModal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
     }
+
+    // Force cleanup any stuck backdrops
+    setTimeout(() => {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => {
+            if (backdrop.parentNode) {
+                backdrop.parentNode.removeChild(backdrop);
+            }
+        });
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }, 100);
 }
+
+// Modal cleanup utility function
+function forceCleanupModals() {
+    // Remove all modal backdrops
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => {
+        if (backdrop.parentNode) {
+            backdrop.parentNode.removeChild(backdrop);
+        }
+    });
+
+    // Clean up body classes and styles
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+
+    // Hide any open modals
+    const openModals = document.querySelectorAll('.modal.show');
+    openModals.forEach(modal => {
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    });
+}
+
+// Add click handler for modal close buttons
+document.addEventListener('click', function(event) {
+    // Handle close button clicks
+    if (event.target.matches('[data-bs-dismiss="modal"]') || 
+        event.target.closest('[data-bs-dismiss="modal"]')) {
+        setTimeout(forceCleanupModals, 200);
+    }
+    
+    // Handle backdrop clicks
+    if (event.target.classList.contains('modal')) {
+        setTimeout(forceCleanupModals, 200);
+    }
+});
 
 // Connection status handlers
 function handleOnlineStatus() {
