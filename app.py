@@ -79,17 +79,16 @@ with app.app_context():
         logging.error(f"Database initialization failed: {e}")
         logging.info("Attempting database migration...")
         try:
-            import subprocess
-            subprocess.run(['python', 'migrate_database.py'], check=True)
-            logging.info("Migration completed, retrying initialization...")
+            # Skip migration attempt since file doesn't exist
+            logging.info("Retrying database initialization without migration...")
             db.create_all()
             from routes import create_default_data
             create_default_data()
             
-            # Import inventory views after migration
+            # Import inventory views
             import modules.inventory.inventory_category_views  # noqa: F401
             import modules.inventory.inventory_views  # noqa: F401
             
         except Exception as migration_error:
-            logging.error(f"Migration failed: {migration_error}")
+            logging.error(f"Database initialization retry failed: {migration_error}")
             logging.warning("Application starting with limited functionality")

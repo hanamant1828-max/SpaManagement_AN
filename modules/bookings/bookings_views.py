@@ -353,9 +353,9 @@ def book_appointment_api():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/services')
+@app.route('/api/booking-services')
 @login_required
-def api_services():
+def api_booking_services():
     """API endpoint to get all active services"""
     if not current_user.can_access('bookings'):
         return jsonify({'error': 'Access denied'}), 403
