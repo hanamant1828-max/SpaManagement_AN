@@ -5,6 +5,23 @@
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Flash Messages Display -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="row mb-3">
+                <div class="col-12">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endwith %}
+
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -395,6 +412,44 @@ function initializeCustomerFilters() {
     // Add any customer filtering functionality here
     console.log('Customer filters initialized');
 }
+
+// Add form submission feedback
+function showFormSubmissionFeedback(formElement, message) {
+    const submitBtn = formElement.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    submitBtn.disabled = true;
+    
+    // Show notification
+    if (typeof showNotification === 'function') {
+        showNotification(message, 'info', 3000);
+    }
+    
+    // Reset button after form submission (in case of validation errors)
+    setTimeout(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 3000);
+}
+
+// Add event listeners for form submissions
+document.addEventListener('DOMContentLoaded', function() {
+    const addCustomerForm = document.querySelector('#addCustomerModal form');
+    const editCustomerForm = document.querySelector('#editCustomerForm');
+    
+    if (addCustomerForm) {
+        addCustomerForm.addEventListener('submit', function() {
+            showFormSubmissionFeedback(this, 'Creating customer...');
+        });
+    }
+    
+    if (editCustomerForm) {
+        editCustomerForm.addEventListener('submit', function() {
+            showFormSubmissionFeedback(this, 'Updating customer...');
+        });
+    }
+});
 </script>
 
 <style>

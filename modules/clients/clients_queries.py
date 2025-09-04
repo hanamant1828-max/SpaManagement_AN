@@ -48,12 +48,17 @@ def create_customer(customer_data):
 
 def update_customer(customer_id, customer_data):
     """Update an existing customer"""
-    customer = Customer.query.get(customer_id)
-    if customer:
-        for key, value in customer_data.items():
-            setattr(customer, key, value)
-        db.session.commit()
-    return customer
+    try:
+        customer = Customer.query.get(customer_id)
+        if customer:
+            for key, value in customer_data.items():
+                setattr(customer, key, value)
+            db.session.commit()
+            return customer
+        return None
+    except Exception as e:
+        db.session.rollback()
+        raise e
 
 def delete_customer(customer_id):
     """Soft delete a customer"""

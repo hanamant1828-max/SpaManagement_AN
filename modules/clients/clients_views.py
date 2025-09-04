@@ -83,10 +83,10 @@ def create_customer_route():
         }
 
         try:
-            create_customer(customer_data)
-            flash('Customer created successfully!', 'success')
+            new_customer = create_customer(customer_data)
+            flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
         except Exception as e:
-            flash('An error occurred while creating the customer. Please try again.', 'danger')
+            flash(f'Error creating customer: {str(e)}', 'danger')
     else:
         # Display specific validation errors
         for field, errors in form.errors.items():
@@ -170,10 +170,10 @@ def update_client_route(id):
         }
 
         try:
-            update_customer(id, customer_data)
-            flash('Customer updated successfully!', 'success')
+            updated_customer = update_customer(id, customer_data)
+            flash(f'Customer "{updated_customer.first_name} {updated_customer.last_name}" has been updated successfully!', 'success')
         except Exception as e:
-            flash('An error occurred while updating the customer. Please try again.', 'danger')
+            flash(f'Error updating customer: {str(e)}', 'danger')
     else:
         # Display specific validation errors
         for field, errors in form.errors.items():
@@ -189,13 +189,16 @@ def delete_client_route(id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    client = get_customer_by_id(id)
+    client_name = f"{client.first_name} {client.last_name}" if client else "Customer"
+    
     try:
         if delete_customer(id):
-            flash('Customer deleted successfully!', 'success')
+            flash(f'Customer "{client_name}" has been deleted successfully!', 'success')
         else:
-            flash('Unable to delete customer. The customer may have associated records.', 'warning')
+            flash(f'Unable to delete customer "{client_name}". This customer may have associated appointments or records.', 'warning')
     except Exception as e:
-        flash('An error occurred while deleting the customer. Please try again.', 'danger')
+        flash(f'Error deleting customer "{client_name}": {str(e)}', 'danger')
 
     return redirect(url_for('customers'))
 
