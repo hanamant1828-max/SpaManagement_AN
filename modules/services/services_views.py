@@ -397,11 +397,79 @@ def export_services():
 @login_required
 def test_services():
     """Test route to check if services module is working"""
-    return jsonify({
-        'status': 'success',
-        'message': 'Services module is working',
-        'user': current_user.username if current_user.is_authenticated else 'anonymous'
-    })
+    try:
+        from models import Service
+        services = Service.query.all()
+        active_services = Service.query.filter_by(is_active=True).all()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Services module is working',
+            'user': current_user.username if current_user.is_authenticated else 'anonymous',
+            'total_services': len(services),
+            'active_services': len(active_services),
+            'services': [{'id': s.id, 'name': s.name, 'price': s.price, 'active': s.is_active} for s in services]
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'user': current_user.username if current_user.is_authenticated else 'anonymous'
+        })
+
+@app.route('/create-sample-services')
+@login_required
+def create_sample_services():
+    """Create sample services for testing"""
+    try:
+        from models import Service
+        from app import db
+        
+        # Check if services already exist
+        existing_services = Service.query.count()
+        if existing_services > 0:
+            return jsonify({
+                'status': 'info',
+                'message': f'{existing_services} services already exist',
+                'services': existing_services
+            })
+        
+        # Create sample services
+        sample_services = [
+            {'name': 'Basic Haircut', 'description': 'Standard haircut and styling', 'duration': 30, 'price': 25.00, 'category': 'hair'},
+            {'name': 'Hair Wash & Blow Dry', 'description': 'Professional hair washing and blow drying', 'duration': 45, 'price': 35.00, 'category': 'hair'},
+            {'name': 'Classic Manicure', 'description': 'Traditional manicure with nail polish', 'duration': 60, 'price': 40.00, 'category': 'nails'},
+            {'name': 'Relaxing Facial', 'description': 'Deep cleansing and moisturizing facial', 'duration': 90, 'price': 80.00, 'category': 'skincare'},
+            {'name': 'Swedish Massage', 'description': '60-minute full body Swedish massage', 'duration': 60, 'price': 75.00, 'category': 'massage'}
+        ]
+        
+        created_services = []
+        for service_data in sample_services:
+            service = Service(
+                name=service_data['name'],
+                description=service_data['description'],
+                duration=service_data['duration'],
+                price=service_data['price'],
+                category=service_data['category'],
+                is_active=True
+            )
+            db.session.add(service)
+            created_services.append(service_data['name'])
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Created {len(created_services)} sample services',
+            'services': created_services
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Error creating sample services: {str(e)}'
+        })
 
 # API Endpoints for AJAX operations
 @app.route('/api/services/category/<int:category_id>')

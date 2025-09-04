@@ -310,7 +310,7 @@ function handleInputChange(event) {
 
     // Handle dependent fields
     if (input.id === 'service_id') {
-        updateServiceDependentFields(input);
+        handleServiceSelection(input);
     } else if (input.id === 'client_id') {
         loadClientData(input.value);
     }
@@ -636,12 +636,46 @@ function initializeAppointmentModal(modal) {
     const amountInput = modal.querySelector('#amount');
 
     if (serviceSelect && amountInput) {
+        // Fetch services and populate the dropdown
+        fetch('/api/services')
+            .then(response => response.json())
+            .then(services => {
+                if (services.length > 0) {
+                    services.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.id;
+                        option.textContent = `${service.name} ($${service.price.toFixed(2)})`;
+                        option.dataset.price = service.price.toFixed(2);
+                        serviceSelect.appendChild(option);
+                    });
+                    // Trigger change event if a service is already selected (e.g., when editing)
+                    if (serviceSelect.value) {
+                        handleServiceSelection(serviceSelect);
+                    }
+                } else {
+                    // Handle case where no services are found
+                    const option = document.createElement('option');
+                    option.textContent = 'No services available';
+                    option.disabled = true;
+                    serviceSelect.appendChild(option);
+                    amountInput.value = '0.00';
+                    amountInput.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching services:', error);
+                showNotification('Failed to load services', 'error');
+                const option = document.createElement('option');
+                option.textContent = 'Error loading services';
+                option.disabled = true;
+                serviceSelect.appendChild(option);
+                amountInput.value = '0.00';
+                amountInput.disabled = true;
+            });
+
+        // Listener for service selection change
         serviceSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const priceMatch = selectedOption.text.match(/\$([0-9.]+)/);
-            if (priceMatch) {
-                amountInput.value = priceMatch[1];
-            }
+            handleServiceSelection(this);
         });
 
         // Set default date to today
@@ -1229,7 +1263,7 @@ function viewCustomer(customerId) {
 function bookAppointment(customerId) {
     try {
         console.log('Book appointment for customer:', customerId);
-        
+
         // Redirect to bookings page with customer ID
         window.location.href = `/bookings?customer_id=${customerId}`;
     } catch (error) {
@@ -1287,7 +1321,7 @@ function populateEditForm(customer) {
         const preferencesField = form.querySelector('[name="preferences"]');
         const allergiesField = form.querySelector('[name="allergies"]');
         const notesField = form.querySelector('[name="notes"]');
-        
+
         if (firstNameField) firstNameField.value = customer.first_name || '';
         if (lastNameField) lastNameField.value = customer.last_name || '';
         if (phoneField) phoneField.value = customer.phone || '';
@@ -1298,7 +1332,7 @@ function populateEditForm(customer) {
         if (preferencesField) preferencesField.value = customer.preferences || '';
         if (allergiesField) allergiesField.value = customer.allergies || '';
         if (notesField) notesField.value = customer.notes || '';
-        
+
         // Store customer ID for form submission
         form.dataset.customerId = customer.id;
     }
@@ -1549,7 +1583,7 @@ function updateServicePrice(serviceId, price) {
         const priceElements = document.querySelectorAll('.service-price');
         priceElements.forEach(element => {
             if (element.dataset.serviceId === serviceId) {
-                element.textContent = '₹' + price;
+                element.textContent = '$' + price;
             }
         });
 
@@ -1605,7 +1639,7 @@ function updateServicePrice(serviceId, price) {
         const priceElements = document.querySelectorAll('.service-price');
         priceElements.forEach(element => {
             if (element.dataset.serviceId === serviceId) {
-                element.textContent = '₹' + price;
+                element.textContent = '$' + price;
             }
         });
 
@@ -1684,7 +1718,7 @@ function calculateTotal() {
         // Update total display
         const totalDisplay = document.getElementById('total-amount');
         if (totalDisplay) {
-            totalDisplay.textContent = '₹' + total.toFixed(2);
+            totalDisplay.textContent = '$' + total.toFixed(2);
         }
 
         // Update hidden total field
@@ -1695,57 +1729,6 @@ function calculateTotal() {
 
     } catch (error) {
         console.error('Error calculating total:', error);
-    }
-}
-
-// Function removed - consolidated into main updateServicePrice function above
-
-// Update service price function - consolidated and fixed
-function updateServicePrice(serviceId, price) {
-    try {
-        console.log('Service ' + serviceId + ' selected with price: ' + price);
-
-        // Update any price display elements
-        const priceDisplays = document.querySelectorAll('[data-service-price="' + serviceId + '"]');
-        priceDisplays.forEach(display => {
-            display.textContent = formatCurrency(price);
-        });
-
-        // Update service-specific price elements
-        const priceElements = document.querySelectorAll('.service-price');
-        priceElements.forEach(element => {
-            if (element.dataset.serviceId === serviceId) {
-                element.textContent = '₹' + price;
-            }
-        });
-
-        // Update amount input if exists
-        const amountField = document.getElementById('amount');
-        if (amountField) {
-            amountField.value = price;
-        }
-
-        const serviceAmountField = document.getElementById('service_amount');
-        if (serviceAmountField) {
-            serviceAmountField.value = price;
-        }
-
-        // Trigger total calculation if on billing page
-        if (typeof calculateTotal === 'function') {
-            calculateTotal();
-        }
-
-        // Trigger custom price update events
-        document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
-            detail: { serviceId: serviceId, price: price }
-        }));
-
-        document.dispatchEvent(new CustomEvent('servicePriceChanged', {
-            detail: { serviceId, price }
-        }));
-
-    } catch (error) {
-        console.error('Error updating service price:', error);
     }
 }
 

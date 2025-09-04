@@ -32,48 +32,48 @@ def get_time_slots(filter_date, staff_id=None, service_id=None):
     business_start = 9
     business_end = 18
     slot_duration = 30  # 30-minute slots
-    
+
     slots = []
     current_time = datetime.combine(filter_date, datetime.min.time().replace(hour=business_start))
     end_time = datetime.combine(filter_date, datetime.min.time().replace(hour=business_end))
-    
+
     # Get existing appointments for the date
     existing_appointments = get_appointments_by_date(filter_date)
-    
+
     # Get service duration if specified
     service_duration = 60  # Default 60 minutes
     if service_id:
         service = Service.query.get(service_id)
         if service:
             service_duration = service.duration
-    
+
     while current_time < end_time:
         # Check if slot is available
         is_available = True
-        
+
         # Check against existing appointments
         for appointment in existing_appointments:
             if staff_id and appointment.staff_id != staff_id:
                 continue
-                
+
             appointment_start = appointment.appointment_date
             appointment_end = appointment_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
-            
+
             # Check if slot conflicts with existing appointment
             slot_end = current_time + timedelta(minutes=service_duration)
             if not (current_time >= appointment_end or slot_end <= appointment_start):
                 is_available = False
                 break
-        
+
         slots.append({
             'time': current_time.strftime('%H:%M'),
             'datetime': current_time,
             'available': is_available,
             'display_time': current_time.strftime('%I:%M %p')
         })
-        
+
         current_time += timedelta(minutes=slot_duration)
-    
+
     return slots
 
 def get_active_clients():
@@ -81,8 +81,22 @@ def get_active_clients():
     return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
 
 def get_active_services():
-    """Get all active services"""
-    return Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    """Get all active services for dropdown"""
+    try:
+        from models import Service
+        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        print(f"Retrieved {len(services)} active services from database")
+
+        # Debug: Print each service
+        for service in services:
+            print(f"Service found: ID={service.id}, Name={service.name}, Price={service.price}, Active={service.is_active}")
+
+        return services
+    except Exception as e:
+        print(f"Error retrieving active services: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 def get_staff_members():
     """Get all staff members"""
@@ -94,7 +108,7 @@ def get_staff_members():
 def get_appointment_stats(filter_date):
     """Get appointment statistics for a date"""
     appointments = get_appointments_by_date(filter_date)
-    
+
     stats = {
         'total_appointments': len(appointments),
         'confirmed': len([a for a in appointments if a.status == 'confirmed']),
@@ -104,7 +118,7 @@ def get_appointment_stats(filter_date):
         'total_revenue': sum([a.amount or 0 for a in appointments if a.status == 'completed']),
         'staff_utilization': {}
     }
-    
+
     # Calculate staff utilization
     staff_members = get_staff_members()
     for staff in staff_members:
@@ -114,7 +128,7 @@ def get_appointment_stats(filter_date):
             'appointments': len(staff_appointments),
             'hours_booked': sum([a.service.duration if a.service else 60 for a in staff_appointments]) / 60
         }
-    
+
     return stats
 
 def create_appointment(appointment_data):

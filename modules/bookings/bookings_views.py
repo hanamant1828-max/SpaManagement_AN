@@ -43,6 +43,11 @@ def bookings():
     services = get_active_services()
     staff = get_staff_members()
     
+    # Debug: Print service data
+    print(f"Services loaded for booking: {len(services)} services found")
+    for service in services:
+        print(f"Service: {service.name}, Price: {service.price}, Active: {service.is_active}")
+    
     # Get time slots for the selected date
     time_slots = get_time_slots(filter_date, staff_filter)
     

@@ -164,7 +164,7 @@
                                             <span class="badge bg-info">{{ time_slots|length }} Available Slots</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="timeline-grid">
                                         {% for slot in time_slots %}
                                         <div class="time-slot-row d-flex align-items-center mb-2 p-2 
@@ -343,9 +343,19 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ form.service_id.label(class="form-label") }}
-                                {{ form.service_id(class="form-select") }}
+                            <div class="mb-3">
+                                <label for="service_id" class="form-label">Service</label>
+                                <select name="service_id" id="service_id" class="form-select" required onchange="updateServicePrice(this.value, this.options[this.selectedIndex].dataset.price)">
+                                    <option value="">Select a service...</option>
+                                    {% for service in services %}
+                                    <option value="{{ service.id }}" data-price="{{ service.price }}">
+                                        {{ service.name }} - ${{ "%.2f"|format(service.price) }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% if not services %}
+                                <small class="text-muted">No services available. Please add services first.</small>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -455,8 +465,8 @@
 
 .booked-indicator {
     display: flex;
-    align-items-center;
-    flex-wrap: wrap;
+    align-items: center;
+flex-wrap: wrap;
 }
 
 .timeline-header {
@@ -514,7 +524,7 @@ function switchView(viewType) {
         viewType === 'calendar' ? 'block' : 'none';
     document.getElementById('tableViewContainer').style.display = 
         viewType === 'table' ? 'block' : 'none';
-    
+
     // Update URL without refresh
     const url = new URL(window.location);
     url.searchParams.set('view', viewType);
@@ -549,18 +559,18 @@ function selectTimeSlot(element) {
     document.querySelectorAll('.time-slot-row').forEach(row => {
         row.classList.remove('selected');
     });
-    
+
     // Add selection to clicked slot
     element.classList.add('selected');
-    
+
     const datetime = element.dataset.datetime;
     const isAvailable = element.classList.contains('available-slot');
-    
+
     if (isAvailable) {
         // Pre-fill the appointment modal with selected time
         document.querySelector('#addAppointmentModal input[name="appointment_date"]').value = 
             datetime.replace(' ', 'T');
-        
+
         // Show the modal
         const modal = new bootstrap.Modal(document.getElementById('addAppointmentModal'));
         modal.show();
@@ -570,7 +580,7 @@ function selectTimeSlot(element) {
 function bookTimeSlot(datetime) {
     document.querySelector('#addAppointmentModal input[name="appointment_date"]').value = 
         datetime.replace(' ', 'T');
-    
+
     const modal = new bootstrap.Modal(document.getElementById('addAppointmentModal'));
     modal.show();
 }
@@ -580,7 +590,7 @@ function showAppointmentDetails(appointmentId) {
     currentAppointmentId = appointmentId;
     const modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
     modal.show();
-    
+
     // Load appointment details via AJAX
     fetch(`/api/appointment/${appointmentId}`)
         .then(response => response.json())
@@ -590,7 +600,7 @@ function showAppointmentDetails(appointmentId) {
                     `<div class="alert alert-danger">${data.error}</div>`;
                 return;
             }
-            
+
             document.getElementById('appointmentDetailsContent').innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
@@ -635,13 +645,13 @@ function updateStatus(appointmentId, newStatus) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/bookings/update-status/${appointmentId}`;
-        
+
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
         form.innerHTML = `
             <input type="hidden" name="csrf_token" value="${csrfToken}">
             <input type="hidden" name="status" value="${newStatus}">
         `;
-        
+
         document.body.appendChild(form);
         form.submit();
     }
@@ -673,12 +683,37 @@ document.head.insertAdjacentHTML('beforeend', `
             color: white !important;
             border-color: #4e73df !important;
         }
-        
+
         .time-slot-row.selected .text-success,
         .time-slot-row.selected .text-danger {
             color: white !important;
         }
     </style>
 `);
+
+// Function to update service price when a service is selected (if needed)
+function updateServicePrice(serviceId, price) {
+    const amountInput = document.querySelector('#addAppointmentModal input[name="amount"]');
+    if (amountInput && serviceId) {
+        amountInput.value = price;
+    } else if (amountInput && !serviceId) {
+        amountInput.value = ''; // Clear amount if no service is selected
+    }
+}
+
+// Ensure the updateServicePrice function is available globally or within scope
+// For demonstration, we can add it here, but it's better to have it defined once.
+// If it's already defined elsewhere, this is redundant.
+if (typeof updateServicePrice === 'undefined') {
+    function updateServicePrice(serviceId, price) {
+        const amountInput = document.querySelector('#addAppointmentModal input[name="amount"]');
+        if (amountInput && serviceId) {
+            amountInput.value = price;
+        } else if (amountInput && !serviceId) {
+            amountInput.value = ''; // Clear amount if no service is selected
+        }
+    }
+}
+
 </script>
 {% endblock %}
