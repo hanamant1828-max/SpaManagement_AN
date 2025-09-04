@@ -87,11 +87,6 @@ def create_customer_route():
             flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
         except Exception as e:
             flash(f'Error creating customer: {str(e)}', 'danger')
-    else:
-        # Display specific validation errors
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
 
     return redirect(url_for('customers'))
 
@@ -174,11 +169,6 @@ def update_client_route(id):
             flash(f'Customer "{updated_customer.first_name} {updated_customer.last_name}" has been updated successfully!', 'success')
         except Exception as e:
             flash(f'Error updating customer: {str(e)}', 'danger')
-    else:
-        # Display specific validation errors
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
 
     return redirect(url_for('customers'))
 

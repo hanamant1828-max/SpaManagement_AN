@@ -231,12 +231,6 @@ function handleFormSubmit(event) {
     const form = event.target;
     const formId = form.id;
 
-    // Validate form before submission
-    if (!validateForm(form)) {
-        event.preventDefault();
-        return false;
-    }
-
     // Show loading state
     showFormLoading(form);
 
@@ -305,21 +299,19 @@ function handleButtonClick(event) {
 function handleInputChange(event) {
     const input = event.target;
 
-    // Real-time validation
-    if (input.form) {
-        validateField(input);
-    }
-
+    // Real-time validation only on blur, not on every input change
     // Handle specific input types
     switch(input.type) {
         case 'tel':
             formatPhoneNumber(input);
             break;
         case 'email':
-            validateEmailField(input);
+            // Only clear errors on input, don't validate until blur
+            clearFieldError(input);
             break;
         case 'number':
-            validateNumericInput(input);
+            // Only clear errors on input, don't validate until blur
+            clearFieldError(input);
             break;
     }
 
@@ -515,16 +507,10 @@ function showFieldError(field, message) {
 }
 
 function clearFieldError(field) {
-    field.classList.remove('is-invalid');
+    field.classList.remove('is-invalid', 'is-valid');
     const errorDiv = field.parentNode.querySelector('.invalid-feedback');
     if (errorDiv) {
         errorDiv.remove();
-    }
-
-    if (field.value.trim()) {
-        field.classList.add('is-valid');
-    } else {
-        field.classList.remove('is-valid');
     }
 }
 
