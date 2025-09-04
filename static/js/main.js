@@ -1217,6 +1217,18 @@ function viewCustomer(customerId) {
     }
 }
 
+function bookAppointment(customerId) {
+    try {
+        console.log('Book appointment for customer:', customerId);
+        
+        // Redirect to bookings page with customer ID
+        window.location.href = `/bookings?customer_id=${customerId}`;
+    } catch (error) {
+        console.error('Error booking appointment:', error);
+        showNotification('Error booking appointment', 'error');
+    }
+}
+
 function bookAppointmentFromModal() {
     try {
         if (window.currentCustomerId) {
@@ -1228,6 +1240,11 @@ function bookAppointmentFromModal() {
         console.error('Error booking appointment from modal:', error);
         showNotification('Error booking appointment', 'error');
     }
+}
+
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
 }
 
 function loadCustomerDataForEdit(customerId) {
@@ -1250,6 +1267,24 @@ function loadCustomerDataForEdit(customerId) {
             console.error('Error fetching customer data:', error);
             showNotification('Error loading customer data', 'error');
         });
+}
+
+function populateEditForm(customer) {
+    // Populate form fields with customer data
+    const form = document.querySelector('#editCustomerForm');
+    if (form) {
+        const firstNameField = form.querySelector('[name="first_name"]');
+        const lastNameField = form.querySelector('[name="last_name"]');
+        const phoneField = form.querySelector('[name="phone"]');
+        const emailField = form.querySelector('[name="email"]');
+        const addressField = form.querySelector('[name="address"]');
+        
+        if (firstNameField) firstNameField.value = customer.first_name || '';
+        if (lastNameField) lastNameField.value = customer.last_name || '';
+        if (phoneField) phoneField.value = customer.phone || '';
+        if (emailField) emailField.value = customer.email || '';
+        if (addressField) addressField.value = customer.address || '';
+    }
 }
 
 function populateEditForm(customerData) {
