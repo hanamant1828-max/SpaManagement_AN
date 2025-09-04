@@ -301,7 +301,7 @@ function handleInputChange(event) {
             formatPhoneNumber(input);
             break;
         case 'email':
-            validateEmail(input);
+            validateEmailField(input);
             break;
         case 'number':
             validateNumericInput(input);
@@ -313,6 +313,15 @@ function handleInputChange(event) {
         updateServiceDependentFields(input);
     } else if (input.id === 'client_id') {
         loadClientData(input.value);
+    }
+}
+
+// Email field validation for input handling
+function validateEmailField(input) {
+    if (input.value && !isValidEmail(input.value)) {
+        showFieldError(input, 'Please enter a valid email address');
+    } else {
+        clearFieldError(input);
     }
 }
 
@@ -1248,16 +1257,12 @@ function validateEmail(email) {
 }
 
 function loadCustomerDataForEdit(customerId) {
-    // In a real implementation, this would fetch customer data via AJAX
-    // and populate the edit form fields
     console.log('Loading customer data for editing:', customerId);
 
-    // Placeholder implementation
     fetch(`/api/customers/${customerId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Populate form fields with customer data
                 populateEditForm(data.customer);
             } else {
                 showNotification('Error loading customer data', 'error');
@@ -1270,43 +1275,41 @@ function loadCustomerDataForEdit(customerId) {
 }
 
 function populateEditForm(customer) {
-    // Populate form fields with customer data
     const form = document.querySelector('#editCustomerForm');
-    if (form) {
+    if (form && customer) {
         const firstNameField = form.querySelector('[name="first_name"]');
         const lastNameField = form.querySelector('[name="last_name"]');
         const phoneField = form.querySelector('[name="phone"]');
         const emailField = form.querySelector('[name="email"]');
         const addressField = form.querySelector('[name="address"]');
+        const dobField = form.querySelector('[name="date_of_birth"]');
+        const genderField = form.querySelector('[name="gender"]');
+        const preferencesField = form.querySelector('[name="preferences"]');
+        const allergiesField = form.querySelector('[name="allergies"]');
+        const notesField = form.querySelector('[name="notes"]');
         
         if (firstNameField) firstNameField.value = customer.first_name || '';
         if (lastNameField) lastNameField.value = customer.last_name || '';
         if (phoneField) phoneField.value = customer.phone || '';
         if (emailField) emailField.value = customer.email || '';
         if (addressField) addressField.value = customer.address || '';
-    }
-}
-
-function populateEditForm(customerData) {
-    // Populate edit form fields with customer data
-    const form = document.getElementById('editCustomerForm');
-    if (form && customerData) {
-        const fields = ['full_name', 'email', 'phone', 'address'];
-        fields.forEach(field => {
-            const input = form.querySelector(`[name="${field}"]`);
-            if (input && customerData[field]) {
-                input.value = customerData[field];
-            }
-        });
+        if (dobField && customer.date_of_birth) dobField.value = customer.date_of_birth;
+        if (genderField) genderField.value = customer.gender || '';
+        if (preferencesField) preferencesField.value = customer.preferences || '';
+        if (allergiesField) allergiesField.value = customer.allergies || '';
+        if (notesField) notesField.value = customer.notes || '';
+        
+        // Store customer ID for form submission
+        form.dataset.customerId = customer.id;
     }
 }
 
 // Handle edit customer form submission
 function handleEditCustomerSubmit(event) {
-    event.preventDefault(); // Prevent default form submission
+    event.preventDefault();
 
     const form = event.target;
-    const customerId = form.dataset.customerId; // Assuming customerId is stored in a data attribute
+    const customerId = form.dataset.customerId;
 
     if (!customerId) {
         console.error('Customer ID not found for editing.');
@@ -1314,27 +1317,25 @@ function handleEditCustomerSubmit(event) {
         return;
     }
 
+    showFormLoading(form);
+
     // Gather form data
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
 
-    // Send data to the server
-    fetch(`/api/customers/${customerId}`, {
-        method: 'PUT', // Or 'PATCH' depending on your API
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+    // Send data to the server using the existing update route
+    fetch(`/clients/update/${customerId}`, {
+        method: 'POST',
+        body: formData
     })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
+    .then(response => {
+        if (response.ok) {
             showNotification('Customer updated successfully!', 'success');
-            bootstrap.Modal.getInstance(form).hide(); // Hide the modal
-            // Optionally refresh the customer list or redirect
-            window.location.reload();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'));
+            modal.hide();
+            // Refresh the page to show updated data
+            setTimeout(() => window.location.reload(), 1000);
         } else {
-            showNotification('Error updating customer: ' + result.error, 'error');
+            showNotification('Error updating customer', 'error');
         }
     })
     .catch(error => {
@@ -1342,7 +1343,7 @@ function handleEditCustomerSubmit(event) {
         showNotification('An error occurred while updating the customer.', 'error');
     })
     .finally(() => {
-        hideFormLoading(form); // Ensure loading state is removed
+        hideFormLoading(form);
     });
 }
 
