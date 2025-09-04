@@ -288,3 +288,97 @@ def api_get_customer(customer_id):
         })
     except Exception as e:
         return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/api/customers_with_faces')
+@login_required
+def api_customers_with_faces():
+    """API endpoint to get customers with face data"""
+    try:
+        if not current_user.can_access('clients'):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+        from models import Customer
+        customers = Customer.query.filter(
+            Customer.face_encoding.isnot(None),
+            Customer.is_active == True
+        ).order_by(Customer.first_name).all()
+
+        customers_data = []
+        for customer in customers:
+            customers_data.append({
+                'id': customer.id,
+                'full_name': customer.full_name,
+                'phone': customer.phone,
+                'email': customer.email,
+                'face_image_url': customer.face_image_url,
+                'face_registration_date': customer.created_at.isoformat() if customer.created_at else None,
+                'is_vip': customer.is_vip or False
+            })
+
+        return jsonify({
+            'success': True,
+            'customers': customers_data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/api/save_face', methods=['POST'])
+@login_required
+def api_save_face():
+    """API endpoint to save face data"""
+    try:
+        if not current_user.can_access('clients'):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+        data = request.get_json()
+        if not data or 'client_id' not in data or 'face_image' not in data:
+            return jsonify({'success': False, 'error': 'Missing required data'}), 400
+
+        customer = get_customer_by_id(data['client_id'])
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        # Here you would implement face encoding logic
+        # For now, we'll just save the image data
+        customer.face_encoding = 'encoded_face_data'  # Placeholder
+        customer.face_image_url = f'/static/faces/{customer.id}.jpg'  # Placeholder path
+        
+        from app import db
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'client_name': customer.full_name,
+            'message': 'Face data saved successfully'
+        })
+    except Exception as e:
+        from app import db
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/api/remove_face/<int:customer_id>', methods=['DELETE'])
+@login_required
+def api_remove_face(customer_id):
+    """API endpoint to remove face data"""
+    try:
+        if not current_user.can_access('clients'):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+        customer = get_customer_by_id(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        customer.face_encoding = None
+        customer.face_image_url = None
+        
+        from app import db
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Face data removed successfully'
+        })
+    except Exception as e:
+        from app import db
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500

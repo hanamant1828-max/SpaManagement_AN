@@ -211,82 +211,115 @@
 
         <!-- Face Recognition Tab -->
         <div class="tab-pane fade" id="face-capture" role="tabpanel">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-camera me-2"></i>Face Recognition Management</h5>
-                    <p class="mb-0 text-muted">Capture and manage customer face data for quick identification</p>
-                </div>
-                <div class="card-body">
-                    <!-- Face Capture Section -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="card border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>Register New Face</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label for="faceClientSelect" class="form-label">Select Customer</label>
-                                        <select class="form-select" id="faceClientSelect">
-                                            <option value="">Choose a customer...</option>
-                                            {% for customer in customers %}
-                                            <option value="{{ customer.id }}" data-name="{{ customer.first_name }} {{ customer.last_name }}" data-phone="{{ customer.phone }}">
-                                                {{ customer.first_name }} {{ customer.last_name }} - {{ customer.phone }}
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div id="selectedFaceClientInfo" class="alert alert-info d-none">
-                                        <strong>Selected Customer:</strong>
-                                        <div id="faceClientDetails"></div>
-                                    </div>
-                                </div>
+            <!-- Face Capture Section -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>Register New Face</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="faceClientSelect" class="form-label">Select Customer</label>
+                                <select class="form-select" id="faceClientSelect">
+                                    <option value="">Choose a customer...</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}" data-name="{{ customer.first_name }} {{ customer.last_name }}" data-phone="{{ customer.phone }}">
+                                        {{ customer.first_name }} {{ customer.last_name }} - {{ customer.phone }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div id="selectedFaceClientInfo" class="alert alert-info d-none">
+                                <strong>Selected Customer:</strong>
+                                <div id="faceClientDetails"></div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="card border-success">
-                                <div class="card-header bg-success text-white">
-                                    <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Face Capture</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="camera-container text-center mb-3">
-                                        <video id="faceVideo" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></video>
-                                        <canvas id="faceCanvas" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></canvas>
-                                        <div id="faceCameraPlaceholder" class="bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 2px dashed #dee2e6; border-radius: 8px;">
-                                            <div>
-                                                <i class="fas fa-camera fa-3x text-muted mb-2"></i>
-                                                <p class="text-muted mb-0">Select customer and start camera</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="d-grid gap-2">
-                                        <button id="startFaceCamera" class="btn btn-success">
-                                            <i class="fas fa-video me-2"></i>Start Camera
-                                        </button>
-                                        <button id="captureFacePhoto" class="btn btn-primary" disabled>
-                                            <i class="fas fa-camera me-2"></i>Capture Photo
-                                        </button>
-                                        <button id="saveFaceData" class="btn btn-warning" disabled>
-                                            <i class="fas fa-save me-2"></i>Save Face Data
-                                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Face Capture</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="camera-container text-center mb-3">
+                                <video id="faceVideo" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></video>
+                                <canvas id="faceCanvas" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></canvas>
+                                <div id="faceCameraPlaceholder" class="bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 2px dashed #dee2e6; border-radius: 8px;">
+                                    <div>
+                                        <i class="fas fa-camera fa-3x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">Select customer and start camera</p>
                                     </div>
                                 </div>
                             </div>
+                            <div class="d-grid gap-2">
+                                <button id="startFaceCamera" class="btn btn-success">
+                                    <i class="fas fa-video me-2"></i>Start Camera
+                                </button>
+                                <button id="captureFacePhoto" class="btn btn-primary" disabled>
+                                    <i class="fas fa-camera me-2"></i>Capture Photo
+                                </button>
+                                <button id="saveFaceData" class="btn btn-warning" disabled>
+                                    <i class="fas fa-save me-2"></i>Save Face Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition CRUD Table -->
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-friends me-2"></i>Registered Customer Faces
+                    </h6>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="refreshFaceTable()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="faceSearchInput" 
+                                       placeholder="Search by customer name or phone...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-outline-primary w-100" onclick="searchFaceData()">
+                                <i class="fas fa-search me-1"></i>Search
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Registered Faces Display -->
-                    <div class="card border-info">
-                        <div class="card-header bg-info text-white">
-                            <h6 class="mb-0"><i class="fas fa-users me-2"></i>Registered Customer Faces</h6>
-                        </div>
-                        <div class="card-body" id="registeredFacesContainer">
-                            <div class="text-center py-5">
-                                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-                                <p class="text-muted">Loading registered faces...</p>
-                            </div>
+                    <!-- Face Data Table -->
+                    <div class="table-responsive" id="faceTableContainer">
+                        <div class="text-center py-5">
+                            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">Loading face data...</p>
                         </div>
                     </div>
+
+                    <!-- Pagination -->
+                    <nav aria-label="Face data pagination" id="facePagination" class="d-none">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" onclick="changeFacePage(-1)">Previous</a>
+                            </li>
+                            <li class="page-item active">
+                                <a class="page-link" href="#" onclick="changeFacePage(1)">1</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" onclick="changeFacePage(1)">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -622,7 +655,7 @@ document.getElementById('saveFaceData').addEventListener('click', async function
         if (response.ok && result.success) {
             alert(`Face data saved successfully for ${result.client_name}!`);
             resetFaceCamera();
-            loadRegisteredFaces(); // Refresh the registered faces display
+            refreshFaceTable(); // Refresh the face data table
         } else {
             console.error('Server error:', result);
             alert(`Error saving face data: ${result.error || 'Unknown error'}`);
@@ -653,57 +686,187 @@ function resetFaceCamera() {
     capturedFaceImageData = null;
 }
 
-// Load registered faces
+// Face Data Management Variables
+let currentFacePage = 1;
+let faceSearchQuery = '';
+let allFaceData = [];
+
+// Load registered faces with table view
 function loadRegisteredFaces() {
     fetch('/api/customers_with_faces')
         .then(response => response.json())
         .then(data => {
-            const container = document.getElementById('registeredFacesContainer');
-            if (data.success && data.customers.length > 0) {
-                let html = '<div class="row">';
-                data.customers.forEach(customer => {
-                    html += `
-                        <div class="col-md-3 mb-3">
-                            <div class="card text-center h-100">
-                                <div class="card-body">
-                                    ${customer.face_image_url ? 
-                                        `<img src="${customer.face_image_url}" alt="${customer.full_name}" class="img-fluid rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;">` :
-                                        `<div class="bg-primary rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                            <i class="fas fa-user fa-2x text-white"></i>
-                                        </div>`
-                                    }
-                                    <h6 class="card-title">${customer.full_name}</h6>
-                                    <p class="card-text small text-muted">${customer.phone}</p>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="removeFaceData(${customer.id})">
-                                        <i class="fas fa-trash me-1"></i>Remove
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
+            if (data.success) {
+                allFaceData = data.customers || [];
+                displayFaceTable(allFaceData);
             } else {
-                container.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
-                        <h5>No registered faces yet</h5>
-                        <p class="text-muted">Start by selecting a customer and capturing their face data above.</p>
-                    </div>
-                `;
+                showEmptyFaceTable('Error loading face data');
             }
         })
         .catch(err => {
             console.error('Error loading registered faces:', err);
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                    <h5>Error loading registered faces</h5>
-                    <p class="text-muted">Please try refreshing the page.</p>
-                </div>
-            `;
+            showEmptyFaceTable('Error loading face data');
         });
+}
+
+// Display face data in table format
+function displayFaceTable(faceData) {
+    const container = document.getElementById('faceTableContainer');
+    
+    if (faceData.length === 0) {
+        showEmptyFaceTable('No face data registered yet');
+        return;
+    }
+
+    let tableHtml = `
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>Customer Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Registration Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    faceData.forEach(customer => {
+        const registrationDate = customer.face_registration_date ? 
+            new Date(customer.face_registration_date).toLocaleDateString() : 
+            'Unknown';
+
+        tableHtml += `
+            <tr>
+                <td>
+                    ${customer.face_image_url ? 
+                        `<img src="${customer.face_image_url}" alt="${customer.full_name}" 
+                             class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">` :
+                        `<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 50px; height: 50px;">
+                            <i class="fas fa-user text-white"></i>
+                        </div>`
+                    }
+                </td>
+                <td>
+                    <div>
+                        <strong>${customer.full_name}</strong>
+                        ${customer.is_vip ? '<span class="badge bg-warning ms-2">VIP</span>' : ''}
+                    </div>
+                </td>
+                <td>${customer.phone}</td>
+                <td>${customer.email || '-'}</td>
+                <td>${registrationDate}</td>
+                <td>
+                    <span class="badge bg-success">Active</span>
+                </td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="viewFaceDetails(${customer.id})"
+                                title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" 
+                                onclick="updateFaceData(${customer.id})"
+                                title="Update Face">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                onclick="removeFaceData(${customer.id})"
+                                title="Remove Face">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHtml += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = tableHtml;
+}
+
+// Show empty table message
+function showEmptyFaceTable(message) {
+    const container = document.getElementById('faceTableContainer');
+    container.innerHTML = `
+        <div class="text-center py-5">
+            <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
+            <h5>${message}</h5>
+            <p class="text-muted">Start by selecting a customer and capturing their face data above.</p>
+        </div>
+    `;
+}
+
+// Search face data
+function searchFaceData() {
+    const searchInput = document.getElementById('faceSearchInput');
+    faceSearchQuery = searchInput.value.trim().toLowerCase();
+    
+    if (faceSearchQuery === '') {
+        displayFaceTable(allFaceData);
+        return;
+    }
+
+    const filteredData = allFaceData.filter(customer => 
+        customer.full_name.toLowerCase().includes(faceSearchQuery) ||
+        customer.phone.includes(faceSearchQuery) ||
+        (customer.email && customer.email.toLowerCase().includes(faceSearchQuery))
+    );
+
+    displayFaceTable(filteredData);
+}
+
+// Refresh face table
+function refreshFaceTable() {
+    const container = document.getElementById('faceTableContainer');
+    container.innerHTML = `
+        <div class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+            <p class="text-muted">Loading face data...</p>
+        </div>
+    `;
+    loadRegisteredFaces();
+}
+
+// View face details
+function viewFaceDetails(customerId) {
+    const customer = allFaceData.find(c => c.id === customerId);
+    if (!customer) return;
+
+    alert(`Face Details for ${customer.full_name}\n\nPhone: ${customer.phone}\nEmail: ${customer.email || 'Not provided'}\nRegistration: ${customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown'}`);
+}
+
+// Update face data
+function updateFaceData(customerId) {
+    const customer = allFaceData.find(c => c.id === customerId);
+    if (!customer) return;
+
+    if (confirm(`Update face data for ${customer.full_name}?\n\nThis will replace the existing face registration.`)) {
+        // Set the customer in the face capture section
+        const faceSelect = document.getElementById('faceClientSelect');
+        faceSelect.value = customerId;
+        
+        // Trigger change event to update UI
+        const event = new Event('change');
+        faceSelect.dispatchEvent(event);
+        
+        // Scroll to face capture section
+        document.querySelector('#face-capture .card:first-child').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+        
+        alert('Please capture a new face photo for this customer in the section above.');
+    }
 }
 
 // Remove face data
@@ -721,7 +884,7 @@ function removeFaceData(clientId) {
             const result = await response.json();
             if (response.ok && result.success) {
                 alert('Face data removed successfully');
-                loadRegisteredFaces();
+                refreshFaceTable();
             } else {
                 alert(`Error removing face data: ${result.error || 'Unknown error'}`);
             }
@@ -734,7 +897,14 @@ function removeFaceData(clientId) {
 
 // Load registered faces when the face tab is shown
 document.getElementById('face-capture-tab').addEventListener('shown.bs.tab', function() {
-    loadRegisteredFaces();
+    refreshFaceTable();
+});
+
+// Add search functionality on Enter key
+document.getElementById('faceSearchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchFaceData();
+    }
 });
 
 // Cleanup on page unload
