@@ -34,43 +34,47 @@
     padding: 0.5rem;
 }
 
-.timetable-grid {
-    display: grid;
-    grid-template-columns: 100px repeat({{ staff_members|length }}, 1fr);
-    gap: 1px;
-    background: #e9ecef;
-    border-radius: 0 0 15px 15px;
+.timetable-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
-.time-header {
+.timetable-grid {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.grid-row {
+    display: table-row;
+}
+
+.grid-cell {
+    display: table-cell;
+    border: 1px solid #e9ecef;
+    padding: 0.75rem;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 150px;
+    min-height: 60px;
+}
+
+.time-cell {
     background: #f8f9fa;
     font-weight: bold;
-    padding: 1rem 0.5rem;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid #dee2e6;
     position: sticky;
     left: 0;
     z-index: 10;
     min-width: 100px;
 }
 
-.staff-header {
+.staff-header-cell {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 1rem;
-    text-align: center;
     font-weight: bold;
-    position: sticky;
-    top: 0;
-    z-index: 5;
+    padding: 1rem;
     min-height: 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
 }
 
 .staff-avatar {
@@ -78,59 +82,33 @@
     height: 40px;
     border-radius: 50%;
     background: rgba(255,255,255,0.2);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 0.5rem;
+    margin-bottom: 0.5rem;
     font-size: 1.2rem;
 }
 
-.time-slot {
-    background: white;
-    padding: 0.75rem;
-    border-bottom: 1px solid #e9ecef;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    position: relative;
-    min-width: 200px;
-}
-
-.time-slot.available {
+.available-slot {
     background: #f8fff8;
     border-left: 4px solid #28a745;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.time-slot.available:hover {
+.available-slot:hover {
     background: #e8f5e8;
     transform: scale(1.02);
     box-shadow: 0 3px 10px rgba(40, 167, 69, 0.2);
 }
 
-.time-slot.available:hover::after {
-    content: "Click to book";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(40, 167, 69, 0.9);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    z-index: 10;
-}
-
-.time-slot.booked {
+.booked-slot {
     background: #fff8f8;
     border-left: 4px solid #dc3545;
     cursor: pointer;
 }
 
-.time-slot.booked:hover {
+.booked-slot:hover {
     background: #f5f5f5;
     transform: scale(1.01);
 }
@@ -154,11 +132,6 @@
 .service-name {
     color: #6c757d;
     margin-bottom: 0.25rem;
-}
-
-.time-range {
-    color: #495057;
-    font-size: 0.7rem;
 }
 
 .appointment-actions {
@@ -199,18 +172,13 @@
 .legend-booked { background: #dc3545; }
 
 @media (max-width: 768px) {
-    .timetable-grid {
-        grid-template-columns: 80px repeat({{ staff_members|length }}, minmax(150px, 1fr));
+    .grid-cell {
+        min-width: 120px;
+        padding: 0.5rem;
     }
     
-    .staff-header {
-        padding: 0.5rem;
-        min-height: 60px;
-    }
-    
-    .time-slot {
-        min-width: 150px;
-        padding: 0.5rem;
+    .time-cell {
+        min-width: 80px;
     }
     
     .legend {
@@ -262,49 +230,41 @@
             </div>
         </div>
 
-        <div class="timetable-grid">
-            <!-- Time header column -->
-            <div class="time-header">Time</div>
-            
-            <!-- Staff headers -->
-            {% for staff in staff_members %}
-            <div class="staff-header">
-                <div class="staff-avatar">
-                    {{ staff.full_name[0].upper() if staff.full_name else 'S' }}
-                </div>
-                <div class="staff-name">{{ staff.full_name or 'Staff Member' }}</div>
-                <div class="staff-role" style="font-size: 0.75rem; opacity: 0.8;">{{ staff.user_role.display_name if staff.user_role else 'Staff' }}</div>
-            </div>
-            {% endfor %}
-            
-            <!-- Time slots grid -->
-            {% for time_slot in time_slots %}
-                <!-- Time label -->
-                <div class="time-header">
-                    <div style="font-weight: bold;">{{ time_slot.start_time.strftime('%I:%M %p') }}</div>
-                    <div style="font-size: 0.7rem; color: #6c757d;">{{ time_slot.duration }} min</div>
+        <div class="timetable-scroll">
+            <div class="timetable-grid">
+                <!-- Header Row with Staff Names -->
+                <div class="grid-row">
+                    <div class="grid-cell time-cell">Time</div>
+                    {% for staff in staff_members %}
+                    <div class="grid-cell staff-header-cell">
+                        <div class="staff-avatar">
+                            {{ staff.full_name[0].upper() if staff.full_name else 'S' }}
+                        </div>
+                        <div>{{ staff.full_name or 'Staff Member' }}</div>
+                        <div style="font-size: 0.75rem; opacity: 0.8;">{{ staff.user_role.display_name if staff.user_role else 'Staff' }}</div>
+                    </div>
+                    {% endfor %}
                 </div>
                 
-                <!-- Staff availability for this time slot -->
-                {% for staff in staff_members %}
-                {% set availability = staff_availability.get((staff.id, time_slot.start_time)) %}
-                {% if availability %}
-                    {% if availability.status == 'available' %}
-                    <div class="time-slot available" 
-                         onclick="bookAppointment({{ staff.id }}, '{{ selected_date.strftime('%Y-%m-%d') }}', '{{ time_slot.start_time.strftime('%H:%M') }}')">
-                        <div class="slot-content">
-                            <div style="color: #28a745; font-weight: bold;">Available</div>
-                            <button class="btn btn-success btn-xs mt-1">Book</button>
-                        </div>
+                <!-- Time Slot Rows -->
+                {% for time_slot in time_slots %}
+                <div class="grid-row">
+                    <!-- Time Column -->
+                    <div class="grid-cell time-cell">
+                        <div style="font-weight: bold;">{{ time_slot.start_time.strftime('%I:%M %p') }}</div>
+                        <div style="font-size: 0.7rem; color: #6c757d;">{{ time_slot.duration }} min</div>
                     </div>
-                    {% elif availability.status == 'booked' %}
-                    <div class="time-slot booked">
+                    
+                    <!-- Staff Availability Columns -->
+                    {% for staff in staff_members %}
+                    {% set availability = staff_availability.get((staff.id, time_slot.start_time)) %}
+                    {% if availability and availability.status == 'booked' %}
+                    <div class="grid-cell booked-slot">
                         <div class="slot-content">
                             <div class="booked-details">
                                 <div style="color: #dc3545; font-weight: bold; margin-bottom: 0.25rem;">Booked</div>
                                 <div class="client-name">{{ availability.client_name }}</div>
                                 <div class="service-name">{{ availability.service_name }}</div>
-                                <div class="time-range">{{ availability.time_range }}</div>
                                 <div class="appointment-actions">
                                     <button class="btn btn-warning btn-xs" onclick="editAppointment({{ availability.appointment.id }})">
                                         Edit
@@ -316,18 +276,19 @@
                             </div>
                         </div>
                     </div>
-                    {% endif %}
-                {% else %}
-                <div class="time-slot available" 
-                     onclick="bookAppointment({{ staff.id }}, '{{ selected_date.strftime('%Y-%m-%d') }}', '{{ time_slot.start_time.strftime('%H:%M') }}')">
-                    <div class="slot-content">
-                        <div style="color: #28a745; font-weight: bold;">Available</div>
-                        <button class="btn btn-success btn-xs mt-1">Book</button>
+                    {% else %}
+                    <div class="grid-cell available-slot" 
+                         onclick="bookAppointment({{ staff.id }}, '{{ selected_date.strftime('%Y-%m-%d') }}', '{{ time_slot.start_time.strftime('%H:%M') }}')">
+                        <div class="slot-content">
+                            <div style="color: #28a745; font-weight: bold;">Available</div>
+                            <button class="btn btn-success btn-xs mt-1">Book</button>
+                        </div>
                     </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
-                {% endif %}
                 {% endfor %}
-            {% endfor %}
+            </div>
         </div>
     </div>
 </div>
@@ -338,9 +299,10 @@
 let currentDate = new Date('{{ selected_date.strftime('%Y-%m-%d') }}');
 
 function changeDate(days) {
-    currentDate.setDate(currentDate.getDate() + days);
-    const dateString = currentDate.toISOString().split('T')[0];
-    document.getElementById('datePicker').value = dateString;
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + days);
+    const dateString = newDate.toISOString().split('T')[0];
+    currentDate = newDate;
     selectDate(dateString);
 }
 
