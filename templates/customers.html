@@ -555,12 +555,16 @@ let capturedFaceImageData = null;
 
 // Initialize face capture functionality when document is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing face capture...');
     initializeFaceCapture();
 });
 
 function initializeFaceCapture() {
+    console.log('Initializing face capture functionality...');
+    
     // Customer selection for face capture
     const faceClientSelect = document.getElementById('faceClientSelect');
+    console.log('Face client select element:', faceClientSelect);
     if (faceClientSelect) {
         faceClientSelect.addEventListener('change', function() {
             const select = this;
@@ -595,24 +599,31 @@ function initializeFaceCapture() {
 
     // Start face camera
     const startFaceCameraBtn = document.getElementById('startFaceCamera');
+    console.log('Start camera button element:', startFaceCameraBtn);
     if (startFaceCameraBtn) {
+        console.log('Adding click listener to start camera button');
         startFaceCameraBtn.addEventListener('click', startFaceCamera);
     }
 
     // Capture face photo
     const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
+    console.log('Capture photo button element:', captureFacePhotoBtn);
     if (captureFacePhotoBtn) {
+        console.log('Adding click listener to capture photo button');
         captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
     }
 
     // Save face data
     const saveFaceDataBtn = document.getElementById('saveFaceData');
+    console.log('Save face data button element:', saveFaceDataBtn);
     if (saveFaceDataBtn) {
+        console.log('Adding click listener to save face data button');
         saveFaceDataBtn.addEventListener('click', saveFaceData);
     }
 }
 
 async function startFaceCamera() {
+    console.log('Start face camera clicked, selected client ID:', selectedFaceClientId);
     if (!selectedFaceClientId) {
         alert('Please select a customer first');
         return;
@@ -656,6 +667,7 @@ async function startFaceCamera() {
 }
 
 function captureFacePhoto() {
+    console.log('Capture face photo clicked');
     const video = document.getElementById('faceVideo');
     const canvas = document.getElementById('faceCanvas');
 
@@ -692,6 +704,7 @@ function captureFacePhoto() {
 }
 
 async function saveFaceData() {
+    console.log('Save face data clicked, client ID:', selectedFaceClientId, 'has image data:', !!capturedFaceImageData);
     if (!selectedFaceClientId || !capturedFaceImageData) {
         alert('Please select a customer and capture a photo first');
         return;
