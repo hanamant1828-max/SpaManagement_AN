@@ -700,30 +700,7 @@ def api_recognize_face():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/customers', methods=['GET'])
-@login_required
-def api_get_customers():
-    """Get all customers for selection dropdown"""
-    if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
 
-    try:
-        from models import Customer
-        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
-        
-        customers_data = []
-        for customer in customers:
-            customers_data.append({
-                'id': customer.id,
-                'full_name': customer.full_name,
-                'phone': customer.phone,
-                'email': customer.email
-            })
-
-        return jsonify(customers_data)
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/customers_with_faces')
 @login_required
