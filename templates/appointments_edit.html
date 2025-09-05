@@ -89,25 +89,6 @@
                                       placeholder="Any special requirements or notes...">{{ appointment.notes or '' }}</textarea>
                         </div>
 
-                        <!-- Appointment Summary -->
-                        <div class="card bg-light mb-3" id="appointmentSummary">
-                            <div class="card-header">
-                                <h6 class="mb-0">Updated Appointment Summary</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <strong>Service:</strong> <span id="summaryService">{{ appointment.service.name }}</span><br>
-                                        <strong>Duration:</strong> <span id="summaryDuration">{{ appointment.service.duration }} minutes</span><br>
-                                        <strong>Price:</strong> <span id="summaryPrice">${{ appointment.service.price }}</span>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Date & Time:</strong> <span id="summaryDateTime">{{ appointment.appointment_date.strftime('%m/%d/%Y at %H:%M') }}</span><br>
-                                        <strong>Staff:</strong> <span id="summaryStaff">{{ appointment.assigned_staff.full_name }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Action Buttons -->
                         <div class="d-flex justify-content-between">
@@ -118,7 +99,10 @@
                                 <button type="button" class="btn btn-danger me-2" onclick="cancelAppointment()">
                                     <i class="fas fa-times me-2"></i>Cancel Appointment
                                 </button>
-                                <button type="submit" class="btn btn-success">
+                                <button type="button" class="btn btn-success me-2" onclick="markAsCompleted()">
+                                    <i class="fas fa-check me-2"></i>Mark as Completed
+                                </button>
+                                <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save me-2"></i>Save Changes
                                 </button>
                             </div>
@@ -146,47 +130,23 @@ window.cancelAppointment = function() {
     }
 };
 
-window.updateSummary = function() {
-    const serviceSelect = document.getElementById('service_id');
-    const staffSelect = document.getElementById('staff_id');
-    const dateInput = document.getElementById('appointment_date');
-    const timeInput = document.getElementById('appointment_time');
-    
-    if (!serviceSelect || !staffSelect || !dateInput || !timeInput) {
-        return; // Elements not ready yet
-    }
-    
-    // Get service details
-    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-    const serviceName = selectedOption.text.split(' - ')[0];
-    const servicePrice = selectedOption.dataset.price;
-    const serviceDuration = selectedOption.dataset.duration;
-    
-    // Get staff name
-    const staffName = staffSelect.options[staffSelect.selectedIndex].text.split(' - ')[0];
-    
-    // Format date and time
-    const date = new Date(dateInput.value + 'T' + timeInput.value);
-    const formattedDateTime = date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    
-    // Update summary
-    document.getElementById('summaryService').textContent = serviceName;
-    document.getElementById('summaryDuration').textContent = serviceDuration + ' minutes';
-    document.getElementById('summaryPrice').textContent = '$' + servicePrice;
-    document.getElementById('summaryDateTime').textContent = formattedDateTime;
-    document.getElementById('summaryStaff').textContent = staffName;
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Update summary when form changes
-    const form = document.querySelector('form');
-    if (form) {
-        const inputs = form.querySelectorAll('input, select');
+window.markAsCompleted = function() {
+    if (confirm('Are you sure you want to mark this appointment as completed?')) {
+        // Create a form to submit the status update
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("update_appointment_status", appointment_id=appointment.id) }}';
         
-        inputs.forEach(input => {
-            input.addEventListener('change', updateSummary);
-        });
+        // Add status field
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        statusInput.value = 'completed';
+        form.appendChild(statusInput);
+        
+        document.body.appendChild(form);
+        form.submit();
     }
-});
+};
 </script>
 {% endblock %}
