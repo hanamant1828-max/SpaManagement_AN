@@ -387,7 +387,7 @@ def api_remove_face(client_id):
             return jsonify({'error': 'Customer not found'}), 404
 
         customer.face_image_url = None
-        customer.facial_encoding = None # Also remove encoding if it exists
+        customer.face_encoding = None # Also remove encoding if it exists
 
         db.session.commit()
 
