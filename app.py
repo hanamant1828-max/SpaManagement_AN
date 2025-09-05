@@ -24,7 +24,16 @@ app.config['WTF_CSRF_ENABLED'] = False
 app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
 app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Add headers to prevent caching
+@app.after_request
+def after_request(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 # Configure the database - SQLite
 database_url = os.environ.get('DATABASE_URL')
