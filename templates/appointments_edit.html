@@ -22,7 +22,7 @@
                                 <strong>Customer:</strong> {{ appointment.client.full_name }}<br>
                                 <strong>Service:</strong> {{ appointment.service.name }}<br>
                                 <strong>Date & Time:</strong> {{ appointment.appointment_date.strftime('%Y-%m-%d at %H:%M') }}<br>
-                                <strong>Staff:</strong> {{ appointment.staff.full_name }}<br>
+                                <strong>Staff:</strong> {{ appointment.assigned_staff.full_name }}<br>
                                 <strong>Status:</strong> {{ appointment.status.title() }}
                             </p>
                         </div>
@@ -103,7 +103,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <strong>Date & Time:</strong> <span id="summaryDateTime">{{ appointment.appointment_date.strftime('%m/%d/%Y at %H:%M') }}</span><br>
-                                        <strong>Staff:</strong> <span id="summaryStaff">{{ appointment.staff.full_name }}</span>
+                                        <strong>Staff:</strong> <span id="summaryStaff">{{ appointment.assigned_staff.full_name }}</span>
                                     </div>
                                 </div>
                             </div>
