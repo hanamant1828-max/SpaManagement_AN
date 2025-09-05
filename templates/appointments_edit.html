@@ -133,21 +133,28 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Update summary when form changes
-    const form = document.querySelector('form');
-    const inputs = form.querySelectorAll('input, select');
-    
-    inputs.forEach(input => {
-        input.addEventListener('change', updateSummary);
-    });
-});
+// Define functions in global scope
+window.cancelAppointment = function() {
+    if (confirm('Are you sure you want to cancel this appointment? This action cannot be undone.')) {
+        // Create a form to submit the cancellation
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("cancel_appointment", appointment_id=appointment.id) }}';
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+};
 
-function updateSummary() {
+window.updateSummary = function() {
     const serviceSelect = document.getElementById('service_id');
     const staffSelect = document.getElementById('staff_id');
     const dateInput = document.getElementById('appointment_date');
     const timeInput = document.getElementById('appointment_time');
+    
+    if (!serviceSelect || !staffSelect || !dateInput || !timeInput) {
+        return; // Elements not ready yet
+    }
     
     // Get service details
     const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
@@ -168,18 +175,18 @@ function updateSummary() {
     document.getElementById('summaryPrice').textContent = '$' + servicePrice;
     document.getElementById('summaryDateTime').textContent = formattedDateTime;
     document.getElementById('summaryStaff').textContent = staffName;
-}
+};
 
-function cancelAppointment() {
-    if (confirm('Are you sure you want to cancel this appointment? This action cannot be undone.')) {
-        // Create a form to submit the cancellation
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '{{ url_for("cancel_appointment", appointment_id=appointment.id) }}';
+document.addEventListener('DOMContentLoaded', function() {
+    // Update summary when form changes
+    const form = document.querySelector('form');
+    if (form) {
+        const inputs = form.querySelectorAll('input, select');
         
-        document.body.appendChild(form);
-        form.submit();
+        inputs.forEach(input => {
+            input.addEventListener('change', updateSummary);
+        });
     }
-}
+});
 </script>
 {% endblock %}
