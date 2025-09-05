@@ -1746,10 +1746,41 @@ function setupMobileSidebarClose() {
     }
 }
 
+// Setup sidebar auto-minimize on hover out
+function setupSidebarAutoMinimize() {
+    const sidebar = document.getElementById('sidebar');
+    const body = document.body;
+    let hoverTimeout;
+
+    if (sidebar && window.innerWidth >= 992) {
+        // Add hover event listeners
+        sidebar.addEventListener('mouseenter', function() {
+            clearTimeout(hoverTimeout);
+            sidebar.classList.remove('minimized');
+            body.classList.remove('sidebar-minimized');
+        });
+
+        sidebar.addEventListener('mouseleave', function() {
+            // Add a small delay before minimizing to prevent flickering
+            hoverTimeout = setTimeout(() => {
+                sidebar.classList.add('minimized');
+                body.classList.add('sidebar-minimized');
+            }, 500); // 500ms delay
+        });
+
+        // Initialize as minimized
+        setTimeout(() => {
+            sidebar.classList.add('minimized');
+            body.classList.add('sidebar-minimized');
+        }, 1000); // Wait 1 second after page load
+    }
+}
+
 // Initialize sidebar functionality when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     setActiveNavLink();
     setupMobileSidebarClose();
+    setupSidebarAutoMinimize();
 
     // Update active link on page navigation
     window.addEventListener('popstate', setActiveNavLink);
@@ -1763,6 +1794,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (offcanvas) {
                 offcanvas.hide();
             }
+            // Re-initialize auto-minimize for desktop
+            setupSidebarAutoMinimize();
+        } else if (sidebar) {
+            // Remove minimize classes on mobile
+            sidebar.classList.remove('minimized');
+            document.body.classList.remove('sidebar-minimized');
         }
     });
 });
