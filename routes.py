@@ -590,6 +590,58 @@ def api_remove_face(client_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/save_customer_face', methods=['POST'])
+@login_required
+def api_save_customer_face():
+    """Save face data for a customer"""
+    if not current_user.can_access('face_management'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        face_image = data.get('face_image')
+
+        if not customer_id or not face_image:
+            return jsonify({'error': 'Customer ID and face image are required'}), 400
+
+        from models import Customer
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Save face image (in a real implementation, you'd save to file storage)
+        import base64
+        import os
+        
+        # Create face images directory if it doesn't exist
+        face_dir = 'static/face_images'
+        if not os.path.exists(face_dir):
+            os.makedirs(face_dir)
+        
+        # Save the image
+        image_data = face_image.split(',')[1]  # Remove data:image/jpeg;base64, prefix
+        image_filename = f'customer_{customer_id}_face.jpg'
+        image_path = os.path.join(face_dir, image_filename)
+        
+        with open(image_path, 'wb') as f:
+            f.write(base64.b64decode(image_data))
+        
+        # Update customer record
+        customer.face_image_url = f'/static/face_images/{image_filename}'
+        customer.facial_encoding = 'face_encoding_placeholder'  # In real implementation, store actual encoding
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Face data saved successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/recognize_face', methods=['POST'])
 @login_required
 def api_recognize_face():
@@ -613,16 +665,19 @@ def api_recognize_face():
 
         if not customers_with_faces:
             return jsonify({
-                'success': False,
+                'success': True,
+                'recognized': False,
                 'message': 'No registered faces found'
             })
 
         # For demonstration, we'll simulate face matching
         # In production, you would use face_recognition library here
-
-        # Simulate recognition success with first customer for demo
-        if customers_with_faces:
-            matched_customer = customers_with_faces[0]
+        import random
+        
+        # Simulate recognition with random success (70% chance for demo)
+        if customers_with_faces and random.random() > 0.3:
+            matched_customer = random.choice(customers_with_faces)
+            confidence = round(random.uniform(0.75, 0.95), 2)
 
             return jsonify({
                 'success': True,
@@ -633,7 +688,7 @@ def api_recognize_face():
                     'phone': matched_customer.phone,
                     'email': matched_customer.email
                 },
-                'confidence': 0.85  # Simulated confidence score
+                'confidence': confidence
             })
 
         return jsonify({
@@ -641,6 +696,31 @@ def api_recognize_face():
             'recognized': False,
             'message': 'No matching face found'
         })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/customers', methods=['GET'])
+@login_required
+def api_get_customers():
+    """Get all customers for selection dropdown"""
+    if not current_user.can_access('clients'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from models import Customer
+        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+        
+        customers_data = []
+        for customer in customers:
+            customers_data.append({
+                'id': customer.id,
+                'full_name': customer.full_name,
+                'phone': customer.phone,
+                'email': customer.email
+            })
+
+        return jsonify(customers_data)
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
