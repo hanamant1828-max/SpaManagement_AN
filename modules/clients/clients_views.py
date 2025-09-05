@@ -374,31 +374,6 @@ def api_save_face():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/remove_face/<int:client_id>', methods=['DELETE'])
-@login_required
-def api_remove_face(client_id):
-    """API endpoint to remove face data for a customer"""
-    if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        customer = Customer.query.get(client_id)
-        if not customer:
-            return jsonify({'error': 'Customer not found'}), 404
-
-        customer.face_image_url = None
-        customer.face_encoding = None # Also remove encoding if it exists
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Face data removed successfully'
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/customers_with_faces', methods=['GET'])
 @login_required
