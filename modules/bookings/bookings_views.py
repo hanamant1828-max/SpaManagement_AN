@@ -423,6 +423,83 @@ def api_quick_book():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/staff-availability')
+@login_required
+def staff_availability():
+    """New streamlined staff availability view for quick booking"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get selected date from query params
+    selected_date_str = request.args.get('date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = date.today()
+    else:
+        selected_date = date.today()
+    
+    # Get staff members
+    staff_members = get_staff_members()
+    
+    # Generate time slots for the day (9 AM to 6 PM, 30-minute intervals)
+    time_slots = []
+    start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
+    end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
+    
+    current_time = start_time
+    while current_time < end_time:
+        time_slots.append({
+            'start_time': current_time,
+            'end_time': current_time + timedelta(minutes=30),
+            'duration': 30
+        })
+        current_time += timedelta(minutes=30)
+    
+    # Get existing appointments for the selected date
+    existing_appointments = get_appointments_by_date(selected_date)
+    
+    # Create staff availability grid
+    staff_availability = {}
+    for staff in staff_members:
+        for time_slot in time_slots:
+            slot_key = (staff.id, time_slot['start_time'])
+            
+            # Check if this time slot is booked
+            booked_appointment = None
+            for appointment in existing_appointments:
+                if (appointment.staff_id == staff.id and 
+                    appointment.appointment_date.time() == time_slot['start_time'].time() and
+                    appointment.status != 'cancelled'):
+                    booked_appointment = appointment
+                    break
+            
+            if booked_appointment:
+                staff_availability[slot_key] = {
+                    'status': 'booked',
+                    'appointment': booked_appointment,
+                    'client_name': booked_appointment.client.full_name if booked_appointment.client else 'Unknown',
+                    'service_name': booked_appointment.service.name if booked_appointment.service else 'Service'
+                }
+            else:
+                staff_availability[slot_key] = {
+                    'status': 'available'
+                }
+    
+    # Get clients and services for booking form
+    clients = get_active_clients()
+    services = get_active_services()
+    
+    return render_template('staff_availability.html',
+                         selected_date=selected_date,
+                         staff_members=staff_members,
+                         time_slots=time_slots,
+                         staff_availability=staff_availability,
+                         clients=clients,
+                         services=services)
+
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required
 def api_appointment_details(appointment_id):
