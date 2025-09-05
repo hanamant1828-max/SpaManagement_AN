@@ -261,30 +261,6 @@ def clients_face_management():
                          clients=clients,
                          clients_with_faces=clients_with_faces)
 
-@app.route('/api/customers', methods=['GET'])
-@login_required
-def api_get_customers():
-    """Get all customers for selection dropdown"""
-    if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        customers = get_all_customers()
-        
-        customers_data = []
-        for customer in customers:
-            customers_data.append({
-                'id': customer.id,
-                'full_name': customer.full_name,
-                'phone': customer.phone,
-                'email': customer.email
-            })
-
-        return jsonify(customers_data)
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/customers/<int:customer_id>')
 @login_required
 def api_get_customer(customer_id):
