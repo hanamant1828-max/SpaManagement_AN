@@ -144,10 +144,24 @@ def get_appointment_stats(filter_date):
 
 def create_appointment(appointment_data):
     """Create a new appointment"""
-    appointment = Appointment(**appointment_data)
-    db.session.add(appointment)
-    db.session.commit()
-    return appointment
+    try:
+        # Calculate end_time if not provided
+        if 'end_time' not in appointment_data and 'service_id' in appointment_data:
+            service = Service.query.get(appointment_data['service_id'])
+            if service and 'appointment_date' in appointment_data:
+                appointment_date = appointment_data['appointment_date']
+                if isinstance(appointment_date, str):
+                    appointment_date = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M')
+                appointment_data['end_time'] = appointment_date + timedelta(minutes=service.duration)
+        
+        appointment = Appointment(**appointment_data)
+        db.session.add(appointment)
+        db.session.commit()
+        return appointment
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating appointment: {e}")
+        return None
 
 def update_appointment(appointment_id, appointment_data):
     """Update an existing appointment"""

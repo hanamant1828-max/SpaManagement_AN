@@ -445,8 +445,15 @@ function confirmQuickBooking() {
     const datetime = document.getElementById('modalDateTime').value;
     const notes = document.getElementById('modalNotes').value;
 
+    console.log('Booking data:', { staffId, clientId, serviceId, datetime, notes });
+
     if (!clientId || !serviceId) {
         showNotification('Please select both client and service', 'error');
+        return;
+    }
+
+    if (!staffId || !datetime) {
+        showNotification('Missing staff or time information', 'error');
         return;
     }
 
@@ -459,8 +466,10 @@ function confirmQuickBooking() {
         notes: notes
     };
 
+    console.log('Sending booking request:', bookingData);
+
     // Show loading
-    const bookBtn = document.querySelector('#quickBookModal .btn-primary'); // Target the booking button within the modal
+    const bookBtn = document.querySelector('#quickBookModal .btn-primary');
     const originalText = bookBtn.innerHTML;
     bookBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
     bookBtn.disabled = true;
@@ -469,11 +478,22 @@ function confirmQuickBooking() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify(bookingData)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('Error response:', text);
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Booking response:', data);
         if (data.success) {
             showNotification('Appointment booked successfully!', 'success');
             quickBookModal.hide();
@@ -484,7 +504,7 @@ function confirmQuickBooking() {
     })
     .catch(error => {
         console.error('Booking error:', error);
-        showNotification('Error booking appointment. Please try again.', 'error');
+        showNotification('Error booking appointment: ' + error.message, 'error');
     })
     .finally(() => {
         bookBtn.innerHTML = originalText;

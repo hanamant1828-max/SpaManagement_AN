@@ -12,7 +12,7 @@ from .bookings_queries import (
     delete_appointment, get_appointment_by_id, get_time_slots,
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
-from models import Service, Customer, User
+from models import Service, Customer, User, Appointment
 
 @app.route('/bookings')
 @login_required
@@ -543,6 +543,8 @@ def api_all_appointments():
         return jsonify({'error': 'Access denied'}), 403
     
     try:
+        from sqlalchemy import func
+        
         # Get filter parameters
         date_filter = request.args.get('date')
         staff_id = request.args.get('staff_id', type=int)
@@ -791,8 +793,12 @@ def appointments_book():
                 'notes': notes,
                 'status': 'scheduled',
                 'amount': service.price,
-                'payment_status': 'pending'
+                'payment_status': 'pending',
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
             }
+            
+            print(f"Creating appointment with data: {appointment_data}")
             
             # Create the appointment
             appointment = create_appointment(appointment_data)
@@ -948,6 +954,24 @@ def delete_appointment_permanent(appointment_id):
         return jsonify({'redirect_url': url_for('staff_availability', date=appointment_date)})
     
     return redirect(url_for('staff_availability', date=appointment_date))
+
+@app.route('/appointments/management')
+@login_required
+def appointments_management():
+    """Comprehensive appointments management view with full CRUD operations"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get data for dropdowns
+    clients = get_active_clients()
+    services = get_active_services()
+    staff_members = get_staff_members()
+    
+    return render_template('appointments_management.html',
+                         clients=clients,
+                         services=services,
+                         staff_members=staff_members)
 
 @app.route('/appointments/edit/<int:appointment_id>', methods=['GET', 'POST', 'PUT'])
 @login_required

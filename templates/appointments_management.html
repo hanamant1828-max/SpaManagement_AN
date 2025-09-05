@@ -1,0 +1,623 @@
+
+{% extends "base.html" %}
+
+{% block title %}Appointments Management{% endblock %}
+
+{% block extra_head %}
+<style>
+.appointments-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.appointment-card {
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.appointment-card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.status-pending { border-left: 4px solid #ffc107; }
+.status-confirmed { border-left: 4px solid #28a745; }
+.status-completed { border-left: 4px solid #17a2b8; }
+.status-cancelled { border-left: 4px solid #dc3545; }
+
+.appointment-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 20px;
+}
+
+.filters-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.appointment-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.client-info {
+    font-weight: 600;
+    color: #495057;
+}
+
+.service-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.time-info {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.staff-info {
+    color: #007bff;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .appointment-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .appointment-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="appointments-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-1">
+                    <i class="fas fa-calendar-alt me-3"></i>Appointments Management
+                </h2>
+                <p class="mb-0 opacity-75">View, create, update, and manage all appointments</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-light" onclick="showCreateModal()">
+                    <i class="fas fa-plus me-2"></i>New Appointment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <div class="row">
+            <div class="col-md-2">
+                <label class="form-label">Date Filter</label>
+                <input type="date" id="dateFilter" class="form-control" onchange="applyFilters()">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Staff</label>
+                <select id="staffFilter" class="form-select" onchange="applyFilters()">
+                    <option value="">All Staff</option>
+                    {% for staff in staff_members %}
+                    <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select id="statusFilter" class="form-select" onchange="applyFilters()">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Client</label>
+                <select id="clientFilter" class="form-select" onchange="applyFilters()">
+                    <option value="">All Clients</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}">{{ client.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-primary w-100" onclick="clearFilters()">
+                    <i class="fas fa-times me-2"></i>Clear
+                </button>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="refreshAppointments()">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointments List -->
+    <div id="appointmentsList">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading appointments...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Appointment Modal -->
+<div class="modal fade" id="appointmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Create New Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="appointmentForm">
+                    <input type="hidden" id="appointmentId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Client *</label>
+                                <select id="modalClientSelect" class="form-select" required>
+                                    <option value="">Select Client</option>
+                                    {% for client in clients %}
+                                    <option value="{{ client.id }}">{{ client.full_name }} - {{ client.phone }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Service *</label>
+                                <select id="modalServiceSelect" class="form-select" required>
+                                    <option value="">Select Service</option>
+                                    {% for service in services %}
+                                    <option value="{{ service.id }}" data-price="{{ service.price }}" data-duration="{{ service.duration }}">
+                                        {{ service.name }} - ${{ "%.2f"|format(service.price) }} ({{ service.duration }}min)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Staff *</label>
+                                <select id="modalStaffSelect" class="form-select" required>
+                                    <option value="">Select Staff</option>
+                                    {% for staff in staff_members %}
+                                    <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select id="modalStatusSelect" class="form-select">
+                                    <option value="pending">Pending</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Date *</label>
+                                <input type="date" id="modalDate" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Time *</label>
+                                <input type="time" id="modalTime" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea id="modalNotes" class="form-control" rows="3" placeholder="Any special notes or requirements..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveAppointment()">
+                    <i class="fas fa-save me-2"></i>Save Appointment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let appointmentModal;
+let currentAppointments = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    appointmentModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+    loadAppointments();
+    
+    // Set default date to today
+    document.getElementById('dateFilter').value = new Date().toISOString().split('T')[0];
+});
+
+function loadAppointments() {
+    const params = new URLSearchParams();
+    
+    const dateFilter = document.getElementById('dateFilter').value;
+    const staffFilter = document.getElementById('staffFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const clientFilter = document.getElementById('clientFilter').value;
+    
+    if (dateFilter) params.append('date', dateFilter);
+    if (staffFilter) params.append('staff_id', staffFilter);
+    if (statusFilter) params.append('status', statusFilter);
+    if (clientFilter) params.append('client_id', clientFilter);
+    
+    fetch(`/api/appointments?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.appointments) {
+                currentAppointments = data.appointments;
+                displayAppointments(data.appointments);
+            } else {
+                console.error('Error loading appointments:', data.error);
+                showError('Failed to load appointments');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to load appointments');
+        });
+}
+
+function displayAppointments(appointments) {
+    const container = document.getElementById('appointmentsList');
+    
+    if (appointments.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h5>No appointments found</h5>
+                <p class="text-muted">Try adjusting your filters or create a new appointment.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    appointments.forEach(appointment => {
+        const statusClass = `status-${appointment.status}`;
+        const statusBadge = getStatusBadge(appointment.status);
+        
+        html += `
+            <div class="appointment-card ${statusClass}">
+                <div class="card-body">
+                    <div class="appointment-details">
+                        <div class="appointment-info">
+                            <div class="client-info">
+                                <i class="fas fa-user me-2"></i>
+                                ${appointment.client ? appointment.client.name : 'Unknown Client'}
+                            </div>
+                            <div class="service-info">
+                                <i class="fas fa-spa me-2"></i>
+                                ${appointment.service ? appointment.service.name : 'Unknown Service'}
+                                ${appointment.service ? `($${appointment.service.price})` : ''}
+                            </div>
+                            <div class="staff-info">
+                                <i class="fas fa-user-tie me-2"></i>
+                                ${appointment.staff ? appointment.staff.name : 'Unknown Staff'}
+                            </div>
+                        </div>
+                        <div class="appointment-meta">
+                            <div class="time-info">
+                                <i class="fas fa-clock me-2"></i>
+                                ${new Date(appointment.appointment_date).toLocaleDateString()} 
+                                ${new Date(appointment.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </div>
+                            <div class="mt-2">
+                                ${statusBadge}
+                            </div>
+                        </div>
+                        <div class="appointment-actions">
+                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="editAppointment(${appointment.id})">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            ${appointment.status !== 'cancelled' ? `
+                                <button class="btn btn-sm btn-outline-warning btn-action" onclick="cancelAppointment(${appointment.id})">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-outline-danger btn-action" onclick="deleteAppointment(${appointment.id})">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            ${appointment.status === 'confirmed' ? `
+                                <button class="btn btn-sm btn-outline-success btn-action" onclick="completeAppointment(${appointment.id})">
+                                    <i class="fas fa-check"></i> Complete
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ${appointment.notes ? `
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-sticky-note me-1"></i>
+                                ${appointment.notes}
+                            </small>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'pending': '<span class="badge bg-warning">Pending</span>',
+        'confirmed': '<span class="badge bg-success">Confirmed</span>',
+        'completed': '<span class="badge bg-info">Completed</span>',
+        'cancelled': '<span class="badge bg-danger">Cancelled</span>'
+    };
+    return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+}
+
+function showCreateModal() {
+    document.getElementById('modalTitle').textContent = 'Create New Appointment';
+    document.getElementById('appointmentForm').reset();
+    document.getElementById('appointmentId').value = '';
+    
+    // Set default date and time
+    const now = new Date();
+    document.getElementById('modalDate').value = now.toISOString().split('T')[0];
+    document.getElementById('modalTime').value = '09:00';
+    document.getElementById('modalStatusSelect').value = 'pending';
+    
+    appointmentModal.show();
+}
+
+function editAppointment(appointmentId) {
+    const appointment = currentAppointments.find(apt => apt.id === appointmentId);
+    if (!appointment) {
+        showError('Appointment not found');
+        return;
+    }
+    
+    document.getElementById('modalTitle').textContent = 'Edit Appointment';
+    document.getElementById('appointmentId').value = appointment.id;
+    
+    const appointmentDate = new Date(appointment.appointment_date);
+    document.getElementById('modalDate').value = appointmentDate.toISOString().split('T')[0];
+    document.getElementById('modalTime').value = appointmentDate.toTimeString().substr(0, 5);
+    
+    if (appointment.client) {
+        document.getElementById('modalClientSelect').value = appointment.client.id;
+    }
+    if (appointment.service) {
+        document.getElementById('modalServiceSelect').value = appointment.service.id;
+    }
+    if (appointment.staff) {
+        document.getElementById('modalStaffSelect').value = appointment.staff.id;
+    }
+    
+    document.getElementById('modalStatusSelect').value = appointment.status;
+    document.getElementById('modalNotes').value = appointment.notes || '';
+    
+    appointmentModal.show();
+}
+
+function saveAppointment() {
+    const appointmentId = document.getElementById('appointmentId').value;
+    const isEdit = !!appointmentId;
+    
+    const appointmentData = {
+        client_id: parseInt(document.getElementById('modalClientSelect').value),
+        service_id: parseInt(document.getElementById('modalServiceSelect').value),
+        staff_id: parseInt(document.getElementById('modalStaffSelect').value),
+        appointment_date: document.getElementById('modalDate').value,
+        appointment_time: document.getElementById('modalTime').value,
+        status: document.getElementById('modalStatusSelect').value,
+        notes: document.getElementById('modalNotes').value
+    };
+    
+    if (!appointmentData.client_id || !appointmentData.service_id || !appointmentData.staff_id || !appointmentData.appointment_date || !appointmentData.appointment_time) {
+        showError('Please fill in all required fields');
+        return;
+    }
+    
+    const url = isEdit ? `/appointments/edit/${appointmentId}` : '/appointments/book';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(isEdit ? 'Appointment updated successfully!' : 'Appointment created successfully!');
+            appointmentModal.hide();
+            loadAppointments();
+        } else {
+            showError(data.error || 'Failed to save appointment');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Failed to save appointment');
+    });
+}
+
+function cancelAppointment(appointmentId) {
+    if (!confirm('Are you sure you want to cancel this appointment?')) {
+        return;
+    }
+    
+    const reason = prompt('Please enter cancellation reason (optional):');
+    
+    fetch(`/appointments/cancel/${appointmentId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: reason || '' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('Appointment cancelled successfully!');
+            loadAppointments();
+        } else {
+            showError(data.error || 'Failed to cancel appointment');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Failed to cancel appointment');
+    });
+}
+
+function deleteAppointment(appointmentId) {
+    if (!confirm('Are you sure you want to permanently delete this appointment? This action cannot be undone.')) {
+        return;
+    }
+    
+    fetch(`/appointments/delete/${appointmentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('Appointment deleted successfully!');
+            loadAppointments();
+        } else {
+            showError(data.error || 'Failed to delete appointment');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Failed to delete appointment');
+    });
+}
+
+function completeAppointment(appointmentId) {
+    fetch(`/bookings/update-status/${appointmentId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'status=completed'
+    })
+    .then(response => {
+        if (response.ok) {
+            showSuccess('Appointment marked as completed!');
+            loadAppointments();
+        } else {
+            showError('Failed to update appointment status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Failed to update appointment status');
+    });
+}
+
+function applyFilters() {
+    loadAppointments();
+}
+
+function clearFilters() {
+    document.getElementById('dateFilter').value = '';
+    document.getElementById('staffFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('clientFilter').value = '';
+    loadAppointments();
+}
+
+function refreshAppointments() {
+    loadAppointments();
+}
+
+function showSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showError(message) {
+    showNotification(message, 'error');
+}
+
+function showNotification(message, type = 'info') {
+    // Create or get notification container
+    let container = document.getElementById('notificationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notificationContainer';
+        container.className = 'position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+    }
+    
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass[type] || 'alert-info'} alert-dismissible fade show`;
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    container.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification && notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
