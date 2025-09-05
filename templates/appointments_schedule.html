@@ -176,11 +176,11 @@
         min-width: 120px;
         padding: 0.5rem;
     }
-    
+
     .time-cell {
         min-width: 80px;
     }
-    
+
     .legend {
         justify-content: flex-start;
         gap: 1rem;
@@ -216,7 +216,7 @@
                     Next Day <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
-            
+
             <!-- Legend -->
             <div class="legend">
                 <div class="legend-item">
@@ -245,7 +245,7 @@
                     </div>
                     {% endfor %}
                 </div>
-                
+
                 <!-- Time Slot Rows -->
                 {% for time_slot in time_slots %}
                 <div class="grid-row">
@@ -254,7 +254,7 @@
                         <div style="font-weight: bold;">{{ time_slot.start_time.strftime('%I:%M %p') }}</div>
                         <div style="font-size: 0.7rem; color: #6c757d;">{{ time_slot.duration }} min</div>
                     </div>
-                    
+
                     <!-- Staff Availability Columns -->
                     {% for staff in staff_members %}
                     {% set availability = staff_availability.get((staff.id, time_slot.start_time)) %}
@@ -277,7 +277,7 @@
                         </div>
                     </div>
                     {% else %}
-                    <div class="grid-cell available-slot" 
+                    <div class="grid-cell available-slot"
                          onclick="bookAppointment({{ staff.id }}, '{{ selected_date.strftime('%Y-%m-%d') }}', '{{ time_slot.start_time.strftime('%H:%M') }}')">
                         <div class="slot-content">
                             <div style="color: #28a745; font-weight: bold;">Available</div>
@@ -296,6 +296,38 @@
 
 {% block extra_scripts %}
 <script>
+// Date navigation function for schedule page
+function changeDateSchedule(newDate) {
+    const url = new URL(window.location);
+    url.searchParams.set('date', newDate);
+    window.location.href = url.toString();
+}
+
+// Quick booking function
+function quickBookSlot(staffId, date, time) {
+    const url = `{{ url_for('appointments_book') }}?staff_id=${staffId}&date=${date}&time=${time}`;
+    window.location.href = url;
+}
+
+// Show slot details
+function showSlotDetails(staffId, date, time) {
+    alert(`Slot Details:\nStaff ID: ${staffId}\nDate: ${date}\nTime: ${time}`);
+}
+
+// Highlight time slot on hover
+document.addEventListener('DOMContentLoaded', function() {
+    const timeSlots = document.querySelectorAll('.time-slot');
+    timeSlots.forEach(slot => {
+        slot.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        slot.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+
+// Original JavaScript functions from the template
 let currentDate = new Date('{{ selected_date.strftime('%Y-%m-%d') }}');
 
 function changeDate(days) {
@@ -303,7 +335,7 @@ function changeDate(days) {
     newDate.setDate(newDate.getDate() + days);
     const dateString = newDate.toISOString().split('T')[0];
     currentDate = newDate;
-    selectDate(dateString);
+    changeDateSchedule(dateString); // Use the new function
 }
 
 function selectDate(dateString) {
@@ -324,7 +356,7 @@ function cancelAppointment(appointmentId) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `{{ url_for('cancel_appointment', appointment_id='') }}${appointmentId}`;
-        
+
         // Add CSRF token if needed
         const csrfToken = document.querySelector('meta[name="csrf-token"]');
         if (csrfToken) {
@@ -334,7 +366,7 @@ function cancelAppointment(appointmentId) {
             input.value = csrfToken.getAttribute('content');
             form.appendChild(input);
         }
-        
+
         document.body.appendChild(form);
         form.submit();
     }

@@ -375,6 +375,54 @@ def api_booking_services():
         print(f"Error in api_services: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/quick-book', methods=['POST'])
+@login_required
+def api_quick_book():
+    """Quick booking API - minimal data required"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Get the next available slot for this staff/service combination
+        from datetime import datetime, timedelta
+        
+        # Default to tomorrow at 9 AM if no time specified
+        if 'appointment_date' not in data:
+            tomorrow = datetime.now() + timedelta(days=1)
+            appointment_datetime = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
+        else:
+            appointment_datetime = datetime.strptime(data['appointment_date'], '%Y-%m-%d %H:%M')
+        
+        # Get service details
+        service = Service.query.get(data['service_id'])
+        if not service:
+            return jsonify({'error': 'Service not found'}), 404
+        
+        # Create appointment with minimal data
+        appointment_data = {
+            'client_id': data['client_id'],
+            'service_id': data['service_id'],
+            'staff_id': data.get('staff_id', 1),  # Default to first staff if not specified
+            'appointment_date': appointment_datetime,
+            'notes': data.get('notes', 'Quick booking'),
+            'status': 'scheduled',
+            'amount': service.price
+        }
+        
+        appointment = create_appointment(appointment_data)
+        
+        return jsonify({
+            'success': True,
+            'appointment_id': appointment.id,
+            'message': 'Quick booking successful!',
+            'appointment_time': appointment_datetime.strftime('%Y-%m-%d %H:%M')
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required
 def api_appointment_details(appointment_id):
