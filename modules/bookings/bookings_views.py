@@ -529,8 +529,7 @@ def appointments_schedule():
             booked_appointment = None
             for appointment in existing_appointments:
                 if (appointment.staff_id == staff.id and 
-                    appointment.appointment_date <= time_slot['start_time'] and
-                    (appointment.end_time is None or appointment.end_time > time_slot['start_time']) and
+                    appointment.appointment_date.time() == time_slot['start_time'].time() and
                     appointment.status != 'cancelled'):
                     booked_appointment = appointment
                     break
@@ -541,7 +540,7 @@ def appointments_schedule():
                     'appointment': booked_appointment,
                     'client_name': booked_appointment.client.full_name if booked_appointment.client else 'Unknown',
                     'service_name': booked_appointment.service.name if booked_appointment.service else 'Service',
-                    'time_range': f"{booked_appointment.appointment_date.strftime('%H:%M')} - {booked_appointment.end_time.strftime('%H:%M') if booked_appointment.end_time else 'N/A'}"
+                    'time_range': f"{booked_appointment.appointment_date.strftime('%H:%M')} - {(booked_appointment.appointment_date + timedelta(minutes=booked_appointment.service.duration if booked_appointment.service else 60)).strftime('%H:%M')}"
                 }
             else:
                 staff_availability[slot_key] = {
