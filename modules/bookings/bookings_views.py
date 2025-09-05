@@ -651,9 +651,9 @@ def api_all_appointments():
                     'price': float(appointment.service.price)
                 } if appointment.service else None,
                 'staff': {
-                    'id': appointment.staff.id,
-                    'name': appointment.staff.full_name
-                } if appointment.staff else None,
+                    'id': appointment.assigned_staff.id,
+                    'name': appointment.assigned_staff.full_name
+                } if hasattr(appointment, 'assigned_staff') and appointment.assigned_staff else None,
                 'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d %H:%M'),
                 'end_time': appointment.end_time.strftime('%Y-%m-%d %H:%M') if appointment.end_time else None,
                 'status': appointment.status,
