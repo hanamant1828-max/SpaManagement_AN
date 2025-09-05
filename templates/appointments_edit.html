@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Appointment{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        Edit Appointment
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <!-- Current appointment details -->
+                        <div class="alert alert-info">
+                            <h6>Current Appointment:</h6>
+                            <p class="mb-0">
+                                <strong>Customer:</strong> {{ appointment.client.full_name }}<br>
+                                <strong>Service:</strong> {{ appointment.service.name }}<br>
+                                <strong>Date & Time:</strong> {{ appointment.appointment_date.strftime('%Y-%m-%d at %H:%M') }}<br>
+                                <strong>Staff:</strong> {{ appointment.staff.full_name }}<br>
+                                <strong>Status:</strong> {{ appointment.status.title() }}
+                            </p>
+                        </div>
+
+                        <!-- Client Selection -->
+                        <div class="mb-3">
+                            <label for="client_id" class="form-label">Customer Name <span class="text-danger">*</span></label>
+                            <select class="form-select" id="client_id" name="client_id" required>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}" {% if client.id == appointment.client_id %}selected{% endif %}>
+                                    {{ client.full_name }} - {{ client.phone }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Service Selection -->
+                        <div class="mb-3">
+                            <label for="service_id" class="form-label">Service Name <span class="text-danger">*</span></label>
+                            <select class="form-select" id="service_id" name="service_id" required>
+                                {% for service in services %}
+                                <option value="{{ service.id }}" {% if service.id == appointment.service_id %}selected{% endif %}
+                                        data-price="{{ service.price }}" data-duration="{{ service.duration }}">
+                                    {{ service.name }} - ${{ service.price }} ({{ service.duration }} min)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Staff Selection -->
+                        <div class="mb-3">
+                            <label for="staff_id" class="form-label">Staff Member <span class="text-danger">*</span></label>
+                            <select class="form-select" id="staff_id" name="staff_id" required>
+                                {% for staff in staff_members %}
+                                <option value="{{ staff.id }}" {% if staff.id == appointment.staff_id %}selected{% endif %}>
+                                    {{ staff.full_name }} - {{ staff.user_role.display_name if staff.user_role else 'Staff' }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Date and Time -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="appointment_date" class="form-label">Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="appointment_date" name="appointment_date" 
+                                           value="{{ appointment.appointment_date.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="appointment_time" class="form-label">Time <span class="text-danger">*</span></label>
+                                    <input type="time" class="form-control" id="appointment_time" name="appointment_time" 
+                                           value="{{ appointment.appointment_date.strftime('%H:%M') }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes (Optional)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Any special requirements or notes...">{{ appointment.notes or '' }}</textarea>
+                        </div>
+
+                        <!-- Appointment Summary -->
+                        <div class="card bg-light mb-3" id="appointmentSummary">
+                            <div class="card-header">
+                                <h6 class="mb-0">Updated Appointment Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Service:</strong> <span id="summaryService">{{ appointment.service.name }}</span><br>
+                                        <strong>Duration:</strong> <span id="summaryDuration">{{ appointment.service.duration }} minutes</span><br>
+                                        <strong>Price:</strong> <span id="summaryPrice">${{ appointment.service.price }}</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Date & Time:</strong> <span id="summaryDateTime">{{ appointment.appointment_date.strftime('%m/%d/%Y at %H:%M') }}</span><br>
+                                        <strong>Staff:</strong> <span id="summaryStaff">{{ appointment.staff.full_name }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('appointments_schedule', date=appointment.appointment_date.strftime('%Y-%m-%d')) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Schedule
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-danger me-2" onclick="cancelAppointment()">
+                                    <i class="fas fa-times me-2"></i>Cancel Appointment
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-2"></i>Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update summary when form changes
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input, select');
+    
+    inputs.forEach(input => {
+        input.addEventListener('change', updateSummary);
+    });
+});
+
+function updateSummary() {
+    const serviceSelect = document.getElementById('service_id');
+    const staffSelect = document.getElementById('staff_id');
+    const dateInput = document.getElementById('appointment_date');
+    const timeInput = document.getElementById('appointment_time');
+    
+    // Get service details
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    const serviceName = selectedOption.text.split(' - ')[0];
+    const servicePrice = selectedOption.dataset.price;
+    const serviceDuration = selectedOption.dataset.duration;
+    
+    // Get staff name
+    const staffName = staffSelect.options[staffSelect.selectedIndex].text.split(' - ')[0];
+    
+    // Format date and time
+    const date = new Date(dateInput.value + 'T' + timeInput.value);
+    const formattedDateTime = date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    // Update summary
+    document.getElementById('summaryService').textContent = serviceName;
+    document.getElementById('summaryDuration').textContent = serviceDuration + ' minutes';
+    document.getElementById('summaryPrice').textContent = '$' + servicePrice;
+    document.getElementById('summaryDateTime').textContent = formattedDateTime;
+    document.getElementById('summaryStaff').textContent = staffName;
+}
+
+function cancelAppointment() {
+    if (confirm('Are you sure you want to cancel this appointment? This action cannot be undone.')) {
+        // Create a form to submit the cancellation
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("cancel_appointment", appointment_id=appointment.id) }}';
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

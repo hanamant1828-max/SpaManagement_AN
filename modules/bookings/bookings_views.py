@@ -432,3 +432,246 @@ def update_appointment_status(appointment_id):
     flash(f'Appointment status updated to {new_status}', 'success')
     
     return redirect(url_for('bookings'))
+
+@app.route('/appointments/schedule')
+@login_required 
+def appointments_schedule():
+    """Timetable view for appointment scheduling - exactly as requested"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get selected date from query params
+    selected_date_str = request.args.get('date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = date.today()
+    else:
+        selected_date = date.today()
+    
+    # Get staff members
+    staff_members = get_staff_members()
+    
+    # Generate time slots for the day (9 AM to 6 PM, 30-minute intervals)
+    time_slots = []
+    start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
+    end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
+    
+    current_time = start_time
+    while current_time < end_time:
+        time_slots.append({
+            'start_time': current_time,
+            'end_time': current_time + timedelta(minutes=30),
+            'duration': 30
+        })
+        current_time += timedelta(minutes=30)
+    
+    # Get existing appointments for the selected date
+    existing_appointments = get_appointments_by_date(selected_date)
+    
+    # Create staff availability grid
+    staff_availability = {}
+    for staff in staff_members:
+        for time_slot in time_slots:
+            slot_key = (staff.id, time_slot['start_time'])
+            
+            # Check if this time slot is booked
+            booked_appointment = None
+            for appointment in existing_appointments:
+                if (appointment.staff_id == staff.id and 
+                    appointment.appointment_date <= time_slot['start_time'] and
+                    (appointment.end_time is None or appointment.end_time > time_slot['start_time']) and
+                    appointment.status != 'cancelled'):
+                    booked_appointment = appointment
+                    break
+            
+            if booked_appointment:
+                staff_availability[slot_key] = {
+                    'status': 'booked',
+                    'appointment': booked_appointment,
+                    'client_name': booked_appointment.client.full_name if booked_appointment.client else 'Unknown',
+                    'service_name': booked_appointment.service.name if booked_appointment.service else 'Service',
+                    'time_range': f"{booked_appointment.appointment_date.strftime('%H:%M')} - {booked_appointment.end_time.strftime('%H:%M') if booked_appointment.end_time else 'N/A'}"
+                }
+            else:
+                staff_availability[slot_key] = {
+                    'status': 'available'
+                }
+    
+    # Get clients and services for booking form
+    clients = get_active_clients()
+    services = get_active_services()
+    
+    return render_template('appointments_schedule.html',
+                         selected_date=selected_date,
+                         staff_members=staff_members,
+                         time_slots=time_slots,
+                         staff_availability=staff_availability,
+                         clients=clients,
+                         services=services)
+
+@app.route('/appointments/book', methods=['GET', 'POST'])
+@login_required
+def appointments_book():
+    """Book appointment form with pre-filled staff and time"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get pre-filled data from query params
+    staff_id = request.args.get('staff_id', type=int)
+    appointment_date = request.args.get('date')
+    appointment_time = request.args.get('time')
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            client_id = request.form.get('client_id', type=int)
+            service_id = request.form.get('service_id', type=int)
+            staff_id = request.form.get('staff_id', type=int)
+            appointment_date = request.form.get('appointment_date')
+            appointment_time = request.form.get('appointment_time')
+            notes = request.form.get('notes', '')
+            
+            # Validate required fields
+            if not all([client_id, service_id, staff_id, appointment_date, appointment_time]):
+                flash('All fields are required', 'danger')
+                return redirect(request.url)
+            
+            # Parse date and time
+            appointment_date_obj = datetime.strptime(appointment_date, '%Y-%m-%d').date()
+            appointment_time_obj = datetime.strptime(appointment_time, '%H:%M').time()
+            appointment_datetime = datetime.combine(appointment_date_obj, appointment_time_obj)
+            
+            # Get service details for end time calculation
+            service = Service.query.get(service_id)
+            if not service:
+                flash('Service not found', 'danger')
+                return redirect(request.url)
+            
+            end_time = appointment_datetime + timedelta(minutes=service.duration)
+            
+            # Create appointment data
+            appointment_data = {
+                'client_id': client_id,
+                'service_id': service_id,
+                'staff_id': staff_id,
+                'appointment_date': appointment_datetime,
+                'end_time': end_time,
+                'notes': notes,
+                'status': 'scheduled',
+                'amount': service.price
+            }
+            
+            # Create the appointment
+            appointment = create_appointment(appointment_data)
+            
+            if appointment:
+                flash('Appointment booked successfully!', 'success')
+                return redirect(url_for('appointments_schedule', date=appointment_date))
+            else:
+                flash('Error booking appointment', 'danger')
+                
+        except Exception as e:
+            flash(f'Error booking appointment: {str(e)}', 'danger')
+    
+    # Get data for form
+    clients = get_active_clients()
+    services = get_active_services()
+    staff_members = get_staff_members()
+    
+    return render_template('appointments_book.html',
+                         clients=clients,
+                         services=services,
+                         staff_members=staff_members,
+                         staff_id=staff_id,
+                         appointment_date=appointment_date,
+                         appointment_time=appointment_time)
+
+@app.route('/appointments/cancel/<int:appointment_id>', methods=['POST'])
+@login_required
+def cancel_appointment(appointment_id):
+    """Cancel an appointment"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    appointment = get_appointment_by_id(appointment_id)
+    if not appointment:
+        flash('Appointment not found', 'danger')
+        return redirect(url_for('appointments_schedule'))
+    
+    # Update status to cancelled
+    update_appointment(appointment_id, {'status': 'cancelled'})
+    flash('Appointment cancelled successfully!', 'success')
+    
+    # Get the date to redirect back to schedule
+    appointment_date = appointment.appointment_date.strftime('%Y-%m-%d')
+    return redirect(url_for('appointments_schedule', date=appointment_date))
+
+@app.route('/appointments/edit/<int:appointment_id>', methods=['GET', 'POST'])
+@login_required
+def edit_appointment(appointment_id):
+    """Edit an existing appointment"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    appointment = get_appointment_by_id(appointment_id)
+    if not appointment:
+        flash('Appointment not found', 'danger')
+        return redirect(url_for('appointments_schedule'))
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            client_id = request.form.get('client_id', type=int)
+            service_id = request.form.get('service_id', type=int)
+            staff_id = request.form.get('staff_id', type=int)
+            appointment_date = request.form.get('appointment_date')
+            appointment_time = request.form.get('appointment_time')
+            notes = request.form.get('notes', '')
+            
+            # Parse date and time
+            appointment_date_obj = datetime.strptime(appointment_date, '%Y-%m-%d').date()
+            appointment_time_obj = datetime.strptime(appointment_time, '%H:%M').time()
+            appointment_datetime = datetime.combine(appointment_date_obj, appointment_time_obj)
+            
+            # Get service details for end time calculation
+            service = Service.query.get(service_id)
+            if service:
+                end_time = appointment_datetime + timedelta(minutes=service.duration)
+            else:
+                end_time = appointment.end_time
+            
+            # Update appointment data
+            appointment_data = {
+                'client_id': client_id,
+                'service_id': service_id,
+                'staff_id': staff_id,
+                'appointment_date': appointment_datetime,
+                'end_time': end_time,
+                'notes': notes,
+                'amount': service.price if service else appointment.amount
+            }
+            
+            # Update the appointment
+            update_appointment(appointment_id, appointment_data)
+            flash('Appointment updated successfully!', 'success')
+            return redirect(url_for('appointments_schedule', date=appointment_date))
+            
+        except Exception as e:
+            flash(f'Error updating appointment: {str(e)}', 'danger')
+    
+    # Get data for form
+    clients = get_active_clients()
+    services = get_active_services()
+    staff_members = get_staff_members()
+    
+    return render_template('appointments_edit.html',
+                         appointment=appointment,
+                         clients=clients,
+                         services=services,
+                         staff_members=staff_members)

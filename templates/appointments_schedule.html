@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Appointment Booking - Timetable View{% endblock %}
+
+{% block extra_css %}
+<style>
+.timetable-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.timetable-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.date-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.date-picker {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    color: white;
+    padding: 0.5rem;
+}
+
+.timetable-grid {
+    display: grid;
+    grid-template-columns: 100px repeat({{ staff_members|length }}, 1fr);
+    gap: 1px;
+    background: #e9ecef;
+    border-radius: 0 0 15px 15px;
+    overflow-x: auto;
+}
+
+.time-header {
+    background: #f8f9fa;
+    font-weight: bold;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #dee2e6;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    min-width: 100px;
+}
+
+.staff-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.staff-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-size: 1.2rem;
+}
+
+.time-slot {
+    background: white;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    min-width: 200px;
+}
+
+.time-slot.available {
+    background: #f8fff8;
+    border-left: 4px solid #28a745;
+}
+
+.time-slot.available:hover {
+    background: #e8f5e8;
+    transform: scale(1.02);
+    box-shadow: 0 3px 10px rgba(40, 167, 69, 0.2);
+}
+
+.time-slot.available:hover::after {
+    content: "Click to book";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(40, 167, 69, 0.9);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    z-index: 10;
+}
+
+.time-slot.booked {
+    background: #fff8f8;
+    border-left: 4px solid #dc3545;
+    cursor: pointer;
+}
+
+.time-slot.booked:hover {
+    background: #f5f5f5;
+    transform: scale(1.01);
+}
+
+.slot-content {
+    text-align: center;
+    width: 100%;
+}
+
+.booked-details {
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.client-name {
+    font-weight: bold;
+    color: #721c24;
+    margin-bottom: 0.25rem;
+}
+
+.service-name {
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.time-range {
+    color: #495057;
+    font-size: 0.7rem;
+}
+
+.appointment-actions {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+}
+
+.btn-xs {
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    border-radius: 0.25rem;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+.legend-available { background: #28a745; }
+.legend-booked { background: #dc3545; }
+
+@media (max-width: 768px) {
+    .timetable-grid {
+        grid-template-columns: 80px repeat({{ staff_members|length }}, minmax(150px, 1fr));
+    }
+    
+    .staff-header {
+        padding: 0.5rem;
+        min-height: 60px;
+    }
+    
+    .time-slot {
+        min-width: 150px;
+        padding: 0.5rem;
+    }
+    
+    .legend {
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                Appointment Booking - Timetable View
+            </h1>
+            <p class="text-muted">Select available time slots to book appointments</p>
+        </div>
+    </div>
+
+    <div class="timetable-container">
+        <div class="timetable-header">
+            <div class="date-navigation">
+                <button class="btn btn-light btn-sm" onclick="changeDate(-1)">
+                    <i class="fas fa-chevron-left"></i> Previous Day
+                </button>
+                <div class="d-flex align-items-center gap-3">
+                    <h4 class="mb-0" id="selectedDate">{{ selected_date.strftime('%A, %B %d, %Y') }}</h4>
+                    <input type="date" class="date-picker" id="datePicker" value="{{ selected_date.strftime('%Y-%m-%d') }}" onchange="selectDate(this.value)">
+                </div>
+                <button class="btn btn-light btn-sm" onclick="changeDate(1)">
+                    Next Day <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color legend-available"></div>
+                    <span>🟢 Available</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-booked"></div>
+                    <span>🔴 Booked</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="timetable-grid">
+            <!-- Time header column -->
+            <div class="time-header">Time</div>
+            
+            <!-- Staff headers -->
+            {% for staff in staff_members %}
+            <div class="staff-header">
+                <div class="staff-avatar">
+                    {{ staff.full_name[0].upper() if staff.full_name else 'S' }}
+                </div>
+                <div class="staff-name">{{ staff.full_name or 'Staff Member' }}</div>
+                <div class="staff-role" style="font-size: 0.75rem; opacity: 0.8;">{{ staff.user_role.display_name if staff.user_role else 'Staff' }}</div>
+            </div>
+            {% endfor %}
+            
+            <!-- Time slots grid -->
+            {% for time_slot in time_slots %}
+                <!-- Time label -->
+                <div class="time-header">
+                    <div style="font-weight: bold;">{{ time_slot.start_time.strftime('%I:%M %p') }}</div>
+                    <div style="font-size: 0.7rem; color: #6c757d;">{{ time_slot.duration }} min</div>
+                </div>
+                
+                <!-- Staff availability for this time slot -->
+                {% for staff in staff_members %}
+                {% set availability = staff_availability.get((staff.id, time_slot.start_time)) %}
+                {% if availability %}
+                    {% if availability.status == 'available' %}
+                    <div class="time-slot available" 
+                         onclick="bookAppointment({{ staff.id }}, '{{ selected_date.strftime('%Y-%m-%d') }}', '{{ time_slot.start_time.strftime('%H:%M') }}')">
+                        <div class="slot-content">
+                            <div style="color: #28a745; font-weight: bold;">Available</div>
+                            <button class="btn btn-success btn-xs mt-1">Book</button>
+                        </div>
+                    </div>
+                    {% elif availability.status == 'booked' %}
+                    <div class="time-slot booked">
+                        <div class="slot-content">
+                            <div class="booked-details">
+                                <div style="color: #dc3545; font-weight: bold; margin-bottom: 0.25rem;">Booked</div>
+                                <div class="client-name">{{ availability.client_name }}</div>
+                                <div class="service-name">{{ availability.service_name }}</div>
+                                <div class="time-range">{{ availability.time_range }}</div>
+                                <div class="appointment-actions">
+                                    <button class="btn btn-warning btn-xs" onclick="editAppointment({{ availability.appointment.id }})">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-danger btn-xs" onclick="cancelAppointment({{ availability.appointment.id }})">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="time-slot available" 
+                     onclick="bookAppointment({{ staff.id }}, '{{ selected_date.strftime('%Y-%m-%d') }}', '{{ time_slot.start_time.strftime('%H:%M') }}')">
+                    <div class="slot-content">
+                        <div style="color: #28a745; font-weight: bold;">Available</div>
+                        <button class="btn btn-success btn-xs mt-1">Book</button>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentDate = new Date('{{ selected_date.strftime('%Y-%m-%d') }}');
+
+function changeDate(days) {
+    currentDate.setDate(currentDate.getDate() + days);
+    const dateString = currentDate.toISOString().split('T')[0];
+    document.getElementById('datePicker').value = dateString;
+    selectDate(dateString);
+}
+
+function selectDate(dateString) {
+    window.location.href = `{{ url_for('appointments_schedule') }}?date=${dateString}`;
+}
+
+function bookAppointment(staffId, date, time) {
+    window.location.href = `{{ url_for('appointments_book') }}?staff_id=${staffId}&date=${date}&time=${time}`;
+}
+
+function editAppointment(appointmentId) {
+    window.location.href = `{{ url_for('edit_appointment', appointment_id='') }}${appointmentId}`;
+}
+
+function cancelAppointment(appointmentId) {
+    if (confirm('Are you sure you want to cancel this appointment?')) {
+        // Create a form to submit the cancellation
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `{{ url_for('cancel_appointment', appointment_id='') }}${appointmentId}`;
+        
+        // Add CSRF token if needed
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            input.value = csrfToken.getAttribute('content');
+            form.appendChild(input);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}
