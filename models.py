@@ -322,6 +322,7 @@ class Appointment(db.Model):
     amount = db.Column(db.Float)
     discount = db.Column(db.Float, default=0.0)
     tips = db.Column(db.Float, default=0.0)
+    payment_status = db.Column(db.String(20), default='pending')  # pending, paid, partial
     is_paid = db.Column(db.Boolean, default=False)
     inventory_deducted = db.Column(db.Boolean, default=False)  # Track if inventory was deducted
 
