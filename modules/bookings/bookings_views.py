@@ -535,6 +535,85 @@ def api_appointment_details(appointment_id):
         'amount': float(appointment.amount) if appointment.amount else 0
     })
 
+@app.route('/api/appointments')
+@login_required
+def api_all_appointments():
+    """API endpoint to get all appointments with filters"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        # Get filter parameters
+        date_filter = request.args.get('date')
+        staff_id = request.args.get('staff_id', type=int)
+        client_id = request.args.get('client_id', type=int)
+        status = request.args.get('status')
+        
+        # Base query
+        appointments_query = Appointment.query
+        
+        # Apply filters
+        if date_filter:
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            appointments_query = appointments_query.filter(
+                func.date(Appointment.appointment_date) == filter_date
+            )
+        
+        if staff_id:
+            appointments_query = appointments_query.filter(Appointment.staff_id == staff_id)
+        
+        if client_id:
+            appointments_query = appointments_query.filter(Appointment.client_id == client_id)
+        
+        if status:
+            appointments_query = appointments_query.filter(Appointment.status == status)
+        
+        appointments = appointments_query.order_by(Appointment.appointment_date).all()
+        
+        # Format response
+        appointments_data = []
+        for appointment in appointments:
+            appointments_data.append({
+                'id': appointment.id,
+                'client': {
+                    'id': appointment.client.id,
+                    'name': appointment.client.full_name,
+                    'phone': appointment.client.phone,
+                    'email': appointment.client.email
+                } if appointment.client else None,
+                'service': {
+                    'id': appointment.service.id,
+                    'name': appointment.service.name,
+                    'duration': appointment.service.duration,
+                    'price': float(appointment.service.price)
+                } if appointment.service else None,
+                'staff': {
+                    'id': appointment.staff.id,
+                    'name': appointment.staff.full_name
+                } if appointment.staff else None,
+                'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d %H:%M'),
+                'end_time': appointment.end_time.strftime('%Y-%m-%d %H:%M') if appointment.end_time else None,
+                'status': appointment.status,
+                'notes': appointment.notes,
+                'amount': float(appointment.amount) if appointment.amount else 0,
+                'payment_status': getattr(appointment, 'payment_status', 'pending'),
+                'created_at': appointment.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        return jsonify({
+            'appointments': appointments_data,
+            'total': len(appointments_data),
+            'filters': {
+                'date': date_filter,
+                'staff_id': staff_id,
+                'client_id': client_id,
+                'status': status
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/bookings/update-status/<int:appointment_id>', methods=['POST'])
 @login_required
 def update_appointment_status(appointment_id):
@@ -651,28 +730,53 @@ def appointments_book():
     
     if request.method == 'POST':
         try:
-            # Get form data
-            client_id = request.form.get('client_id', type=int)
-            service_id = request.form.get('service_id', type=int)
-            staff_id = request.form.get('staff_id', type=int)
-            appointment_date = request.form.get('appointment_date')
-            appointment_time = request.form.get('appointment_time')
-            notes = request.form.get('notes', '')
+            # Get form data from both form and JSON
+            if request.is_json:
+                data = request.get_json()
+                client_id = data.get('client_id', type=int)
+                service_id = data.get('service_id', type=int)
+                staff_id = data.get('staff_id', type=int)
+                appointment_date = data.get('appointment_date')
+                appointment_time = data.get('appointment_time')
+                notes = data.get('notes', '')
+            else:
+                client_id = request.form.get('client_id', type=int)
+                service_id = request.form.get('service_id', type=int)
+                staff_id = request.form.get('staff_id', type=int)
+                appointment_date = request.form.get('appointment_date')
+                appointment_time = request.form.get('appointment_time')
+                notes = request.form.get('notes', '')
+            
+            print(f"Booking data: client_id={client_id}, service_id={service_id}, staff_id={staff_id}, date={appointment_date}, time={appointment_time}")
             
             # Validate required fields
             if not all([client_id, service_id, staff_id, appointment_date, appointment_time]):
-                flash('All fields are required', 'danger')
+                error_msg = 'All fields are required'
+                if request.is_json:
+                    return jsonify({'error': error_msg}), 400
+                flash(error_msg, 'danger')
                 return redirect(request.url)
             
             # Parse date and time
-            appointment_date_obj = datetime.strptime(appointment_date, '%Y-%m-%d').date()
-            appointment_time_obj = datetime.strptime(appointment_time, '%H:%M').time()
+            if isinstance(appointment_date, str):
+                appointment_date_obj = datetime.strptime(appointment_date, '%Y-%m-%d').date()
+            else:
+                appointment_date_obj = appointment_date
+                
+            if isinstance(appointment_time, str):
+                appointment_time_obj = datetime.strptime(appointment_time, '%H:%M').time()
+            else:
+                appointment_time_obj = appointment_time
+                
             appointment_datetime = datetime.combine(appointment_date_obj, appointment_time_obj)
             
             # Get service details for end time calculation
             service = Service.query.get(service_id)
             if not service:
-                flash('Service not found', 'danger')
+                error_msg = 'Service not found'
+                if request.is_json:
+                    return jsonify({'error': error_msg}), 404
+                flash(error_msg, 'danger')
                 return redirect(request.url)
             
             end_time = appointment_datetime + timedelta(minutes=service.duration)
@@ -686,20 +790,37 @@ def appointments_book():
                 'end_time': end_time,
                 'notes': notes,
                 'status': 'scheduled',
-                'amount': service.price
+                'amount': service.price,
+                'payment_status': 'pending'
             }
             
             # Create the appointment
             appointment = create_appointment(appointment_data)
             
             if appointment:
-                flash('Appointment booked successfully!', 'success')
-                return redirect(url_for('appointments_schedule', date=appointment_date))
+                success_msg = 'Appointment booked successfully!'
+                if request.is_json:
+                    return jsonify({
+                        'success': True, 
+                        'message': success_msg,
+                        'appointment_id': appointment.id
+                    })
+                flash(success_msg, 'success')
+                return redirect(url_for('staff_availability', date=appointment_date_obj.strftime('%Y-%m-%d')))
             else:
-                flash('Error booking appointment', 'danger')
+                error_msg = 'Error booking appointment'
+                if request.is_json:
+                    return jsonify({'error': error_msg}), 500
+                flash(error_msg, 'danger')
                 
         except Exception as e:
-            flash(f'Error booking appointment: {str(e)}', 'danger')
+            error_msg = f'Error booking appointment: {str(e)}'
+            print(f"Booking error: {e}")
+            import traceback
+            traceback.print_exc()
+            if request.is_json:
+                return jsonify({'error': error_msg}), 500
+            flash(error_msg, 'danger')
     
     # Get data for form
     clients = get_active_clients()
@@ -714,28 +835,121 @@ def appointments_book():
                          appointment_date=appointment_date,
                          appointment_time=appointment_time)
 
-@app.route('/appointments/cancel/<int:appointment_id>', methods=['POST'])
+@app.route('/appointments/cancel/<int:appointment_id>', methods=['POST', 'DELETE'])
 @login_required
 def cancel_appointment(appointment_id):
     """Cancel an appointment"""
     if not current_user.can_access('bookings'):
+        if request.is_json:
+            return jsonify({'error': 'Access denied'}), 403
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
     appointment = get_appointment_by_id(appointment_id)
     if not appointment:
+        if request.is_json:
+            return jsonify({'error': 'Appointment not found'}), 404
         flash('Appointment not found', 'danger')
-        return redirect(url_for('appointments_schedule'))
+        return redirect(url_for('staff_availability'))
     
-    # Update status to cancelled
-    update_appointment(appointment_id, {'status': 'cancelled'})
-    flash('Appointment cancelled successfully!', 'success')
+    try:
+        # Get cancellation reason if provided
+        cancellation_reason = ''
+        if request.is_json:
+            data = request.get_json()
+            cancellation_reason = data.get('reason', '')
+        else:
+            cancellation_reason = request.form.get('reason', '')
+        
+        # Update status to cancelled
+        appointment_data = {
+            'status': 'cancelled',
+            'notes': f"{appointment.notes}\n[Cancelled: {cancellation_reason}]" if cancellation_reason else appointment.notes,
+            'updated_at': datetime.utcnow()
+        }
+        
+        updated_appointment = update_appointment(appointment_id, appointment_data)
+        
+        if updated_appointment:
+            success_msg = 'Appointment cancelled successfully!'
+            if request.is_json:
+                return jsonify({
+                    'success': True,
+                    'message': success_msg,
+                    'appointment_id': appointment_id,
+                    'status': 'cancelled'
+                })
+            flash(success_msg, 'success')
+        else:
+            error_msg = 'Error cancelling appointment'
+            if request.is_json:
+                return jsonify({'error': error_msg}), 500
+            flash(error_msg, 'danger')
+            
+    except Exception as e:
+        error_msg = f'Error cancelling appointment: {str(e)}'
+        print(f"Cancel error: {e}")
+        if request.is_json:
+            return jsonify({'error': error_msg}), 500
+        flash(error_msg, 'danger')
     
     # Get the date to redirect back to schedule
     appointment_date = appointment.appointment_date.strftime('%Y-%m-%d')
-    return redirect(url_for('appointments_schedule', date=appointment_date))
+    
+    if request.is_json:
+        return jsonify({'redirect_url': url_for('staff_availability', date=appointment_date)})
+    
+    return redirect(url_for('staff_availability', date=appointment_date))
 
-@app.route('/appointments/edit/<int:appointment_id>', methods=['GET', 'POST'])
+@app.route('/appointments/delete/<int:appointment_id>', methods=['POST', 'DELETE'])
+@login_required
+def delete_appointment_permanent(appointment_id):
+    """Permanently delete an appointment"""
+    if not current_user.can_access('bookings'):
+        if request.is_json:
+            return jsonify({'error': 'Access denied'}), 403
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    appointment = get_appointment_by_id(appointment_id)
+    if not appointment:
+        if request.is_json:
+            return jsonify({'error': 'Appointment not found'}), 404
+        flash('Appointment not found', 'danger')
+        return redirect(url_for('staff_availability'))
+    
+    try:
+        appointment_date = appointment.appointment_date.strftime('%Y-%m-%d')
+        
+        # Permanently delete the appointment
+        if delete_appointment(appointment_id):
+            success_msg = 'Appointment deleted permanently!'
+            if request.is_json:
+                return jsonify({
+                    'success': True,
+                    'message': success_msg,
+                    'appointment_id': appointment_id
+                })
+            flash(success_msg, 'success')
+        else:
+            error_msg = 'Error deleting appointment'
+            if request.is_json:
+                return jsonify({'error': error_msg}), 500
+            flash(error_msg, 'danger')
+            
+    except Exception as e:
+        error_msg = f'Error deleting appointment: {str(e)}'
+        print(f"Delete error: {e}")
+        if request.is_json:
+            return jsonify({'error': error_msg}), 500
+        flash(error_msg, 'danger')
+    
+    if request.is_json:
+        return jsonify({'redirect_url': url_for('staff_availability', date=appointment_date)})
+    
+    return redirect(url_for('staff_availability', date=appointment_date))
+
+@app.route('/appointments/edit/<int:appointment_id>', methods=['GET', 'POST', 'PUT'])
 @login_required
 def edit_appointment(appointment_id):
     """Edit an existing appointment"""
@@ -745,30 +959,58 @@ def edit_appointment(appointment_id):
     
     appointment = get_appointment_by_id(appointment_id)
     if not appointment:
+        if request.is_json:
+            return jsonify({'error': 'Appointment not found'}), 404
         flash('Appointment not found', 'danger')
-        return redirect(url_for('appointments_schedule'))
+        return redirect(url_for('staff_availability'))
     
-    if request.method == 'POST':
+    if request.method in ['POST', 'PUT']:
         try:
-            # Get form data
-            client_id = request.form.get('client_id', type=int)
-            service_id = request.form.get('service_id', type=int)
-            staff_id = request.form.get('staff_id', type=int)
-            appointment_date = request.form.get('appointment_date')
-            appointment_time = request.form.get('appointment_time')
-            notes = request.form.get('notes', '')
+            # Get form data from both form and JSON
+            if request.is_json:
+                data = request.get_json()
+                client_id = data.get('client_id', type=int)
+                service_id = data.get('service_id', type=int)
+                staff_id = data.get('staff_id', type=int)
+                appointment_date = data.get('appointment_date')
+                appointment_time = data.get('appointment_time')
+                notes = data.get('notes', '')
+                status = data.get('status', appointment.status)
+            else:
+                client_id = request.form.get('client_id', type=int)
+                service_id = request.form.get('service_id', type=int)
+                staff_id = request.form.get('staff_id', type=int)
+                appointment_date = request.form.get('appointment_date')
+                appointment_time = request.form.get('appointment_time')
+                notes = request.form.get('notes', '')
+                status = request.form.get('status', appointment.status)
             
-            # Parse date and time
-            appointment_date_obj = datetime.strptime(appointment_date, '%Y-%m-%d').date()
-            appointment_time_obj = datetime.strptime(appointment_time, '%H:%M').time()
-            appointment_datetime = datetime.combine(appointment_date_obj, appointment_time_obj)
+            print(f"Updating appointment {appointment_id}: client_id={client_id}, service_id={service_id}, staff_id={staff_id}")
+            
+            # Validate required fields
+            if not all([client_id, service_id, staff_id]):
+                error_msg = 'Client, Service, and Staff are required'
+                if request.is_json:
+                    return jsonify({'error': error_msg}), 400
+                flash(error_msg, 'danger')
+                return redirect(request.url)
+            
+            # Parse date and time if provided
+            if appointment_date and appointment_time:
+                appointment_date_obj = datetime.strptime(appointment_date, '%Y-%m-%d').date()
+                appointment_time_obj = datetime.strptime(appointment_time, '%H:%M').time()
+                appointment_datetime = datetime.combine(appointment_date_obj, appointment_time_obj)
+            else:
+                appointment_datetime = appointment.appointment_date
             
             # Get service details for end time calculation
             service = Service.query.get(service_id)
             if service:
                 end_time = appointment_datetime + timedelta(minutes=service.duration)
+                amount = service.price
             else:
                 end_time = appointment.end_time
+                amount = appointment.amount
             
             # Update appointment data
             appointment_data = {
@@ -778,16 +1020,42 @@ def edit_appointment(appointment_id):
                 'appointment_date': appointment_datetime,
                 'end_time': end_time,
                 'notes': notes,
-                'amount': service.price if service else appointment.amount
+                'status': status,
+                'amount': amount,
+                'updated_at': datetime.utcnow()
             }
             
             # Update the appointment
-            update_appointment(appointment_id, appointment_data)
-            flash('Appointment updated successfully!', 'success')
-            return redirect(url_for('appointments_schedule', date=appointment_date))
+            updated_appointment = update_appointment(appointment_id, appointment_data)
+            
+            if updated_appointment:
+                success_msg = 'Appointment updated successfully!'
+                if request.is_json:
+                    return jsonify({
+                        'success': True,
+                        'message': success_msg,
+                        'appointment': {
+                            'id': updated_appointment.id,
+                            'status': updated_appointment.status,
+                            'appointment_date': updated_appointment.appointment_date.strftime('%Y-%m-%d %H:%M')
+                        }
+                    })
+                flash(success_msg, 'success')
+                return redirect(url_for('staff_availability', date=appointment_datetime.date().strftime('%Y-%m-%d')))
+            else:
+                error_msg = 'Error updating appointment'
+                if request.is_json:
+                    return jsonify({'error': error_msg}), 500
+                flash(error_msg, 'danger')
             
         except Exception as e:
-            flash(f'Error updating appointment: {str(e)}', 'danger')
+            error_msg = f'Error updating appointment: {str(e)}'
+            print(f"Update error: {e}")
+            import traceback
+            traceback.print_exc()
+            if request.is_json:
+                return jsonify({'error': error_msg}), 500
+            flash(error_msg, 'danger')
     
     # Get data for form
     clients = get_active_clients()

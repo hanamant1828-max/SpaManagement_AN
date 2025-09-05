@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Staff Availability - Quick Booking{% endblock %}
@@ -176,17 +175,17 @@
     .staff-availability-table {
         font-size: 0.85rem;
     }
-    
+
     .staff-header {
         min-width: 150px;
         padding: 0.75rem 0.5rem;
     }
-    
+
     .time-slot {
         padding: 0.5rem;
         min-height: 50px;
     }
-    
+
     .legend {
         flex-direction: column;
         gap: 1rem;
@@ -299,7 +298,7 @@
                                 {% if not (staff_availability.get(slot_key) and staff_availability[slot_key].status == 'booked') %}
                                 ondblclick="quickBookSlot(this)"
                                 {% endif %}>
-                                
+
                                 <div class="slot-content">
                                     {% set availability = staff_availability.get(slot_key) %}
                                     {% if availability and availability.status == 'booked' %}
@@ -353,7 +352,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -380,12 +379,12 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="modalNotes" class="form-label">Notes (Optional)</label>
                         <textarea id="modalNotes" class="form-control" rows="2" placeholder="Any special requests or notes..."></textarea>
                     </div>
-                    
+
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         This appointment will be scheduled immediately and marked as confirmed.
@@ -402,6 +401,14 @@
     </div>
 </div>
 
+<!-- Button to trigger fetching all appointments -->
+<div class="container mt-4">
+    <button class="btn btn-outline-primary" onclick="getAllAppointments()">View All Appointments</button>
+</div>
+
+<!-- Container for displaying all appointments list (will be populated by JS) -->
+<div id="appointmentsListContainer" class="mt-4"></div>
+
 <script>
 let quickBookModal;
 
@@ -415,35 +422,34 @@ function quickBookSlot(element) {
     const staffName = element.dataset.staffName;
     const time = element.dataset.time;
     const datetime = element.dataset.datetime;
-    
+
     // Populate modal
     document.getElementById('modalStaffId').value = staffId;
     document.getElementById('modalStaffName').value = staffName;
     document.getElementById('modalTimeSlot').value = time;
     document.getElementById('modalDateTime').value = datetime;
-    
+
     // Clear previous selections
     document.getElementById('modalClient').value = '';
     document.getElementById('modalService').value = '';
     document.getElementById('modalNotes').value = '';
-    
+
     // Show modal
     quickBookModal.show();
 }
 
 function confirmQuickBooking() {
-    const form = document.getElementById('quickBookForm');
     const staffId = document.getElementById('modalStaffId').value;
     const clientId = document.getElementById('modalClient').value;
     const serviceId = document.getElementById('modalService').value;
     const datetime = document.getElementById('modalDateTime').value;
     const notes = document.getElementById('modalNotes').value;
-    
+
     if (!clientId || !serviceId) {
         showNotification('Please select both client and service', 'error');
         return;
     }
-    
+
     const bookingData = {
         staff_id: parseInt(staffId),
         client_id: parseInt(clientId),
@@ -452,13 +458,13 @@ function confirmQuickBooking() {
         appointment_time: datetime.split(' ')[1],
         notes: notes
     };
-    
+
     // Show loading
-    const bookBtn = event.target;
+    const bookBtn = document.querySelector('#quickBookModal .btn-primary'); // Target the booking button within the modal
     const originalText = bookBtn.innerHTML;
     bookBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Booking...';
     bookBtn.disabled = true;
-    
+
     fetch('/appointments/book', {
         method: 'POST',
         headers: {
@@ -488,11 +494,11 @@ function confirmQuickBooking() {
 
 function refreshAvailability() {
     const selectedDate = document.getElementById('selectedDate').value;
-    
+
     // Show loading
     document.getElementById('loadingSpinner').style.display = 'block';
     document.getElementById('availabilityTable').style.opacity = '0.5';
-    
+
     // Reload page with current date
     window.location.href = `{{ url_for('staff_availability') }}?date=${selectedDate}`;
 }
@@ -509,21 +515,21 @@ function goToToday() {
 // Notification system
 function showNotification(message, type = 'info', duration = 5000) {
     const notificationContainer = document.getElementById('notificationContainer') || createNotificationContainer();
-    
+
     const alertClass = {
         'success': 'alert-success',
         'error': 'alert-danger',
         'warning': 'alert-warning',
         'info': 'alert-info'
     };
-    
+
     const iconClass = {
         'success': 'fas fa-check-circle',
         'error': 'fas fa-exclamation-triangle',
         'warning': 'fas fa-exclamation-circle',
         'info': 'fas fa-info-circle'
     };
-    
+
     const notification = document.createElement('div');
     notification.className = `alert ${alertClass[type] || 'alert-info'} alert-dismissible fade show`;
     notification.innerHTML = `
@@ -531,9 +537,9 @@ function showNotification(message, type = 'info', duration = 5000) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     notificationContainer.appendChild(notification);
-    
+
     if (duration > 0) {
         setTimeout(() => {
             if (notification && notification.parentNode) {
@@ -550,6 +556,189 @@ function createNotificationContainer() {
     container.style.zIndex = '9999';
     document.body.appendChild(container);
     return container;
+}
+
+// Book appointment function
+function bookAppointment(staffId, timeSlot, date) {
+    console.log('Booking appointment:', { staffId, timeSlot, date });
+
+    // Get form data
+    const clientId = document.getElementById('clientSelect').value;
+    const serviceId = document.getElementById('serviceSelect').value;
+    const notes = document.getElementById('notesInput').value;
+
+    if (!clientId || !serviceId) {
+        alert('Please select both client and service');
+        return;
+    }
+
+    const bookingData = {
+        client_id: parseInt(clientId),
+        service_id: parseInt(serviceId),
+        staff_id: parseInt(staffId),
+        appointment_date: date,
+        appointment_time: timeSlot,
+        notes: notes
+    };
+
+    console.log('Sending booking data:', bookingData);
+
+    // Show loading state
+    const bookButton = document.querySelector('.btn-book');
+    const originalText = bookButton.innerHTML;
+    bookButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking...';
+    bookButton.disabled = true;
+
+    // Send booking request
+    fetch('/appointments/book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Booking response:', data);
+
+        if (data.success) {
+            alert('Appointment booked successfully!');
+            // Clear form
+            document.getElementById('clientSelect').value = '';
+            document.getElementById('serviceSelect').value = '';
+            document.getElementById('notesInput').value = '';
+
+            // Refresh the page to show the new booking
+            window.location.reload();
+        } else {
+            alert('Error booking appointment: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error booking appointment: ' + error.message);
+    })
+    .finally(() => {
+        // Restore button
+        bookButton.innerHTML = originalText;
+        bookButton.disabled = false;
+    });
+}
+
+// Cancel appointment function
+function cancelAppointment(appointmentId, staffId, timeSlot, date) {
+    if (!confirm('Are you sure you want to cancel this appointment?')) {
+        return;
+    }
+
+    const reason = prompt('Please enter cancellation reason (optional):');
+
+    fetch(`/appointments/cancel/${appointmentId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: reason || '' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Appointment cancelled successfully!');
+            window.location.reload();
+        } else {
+            alert('Error cancelling appointment: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error cancelling appointment: ' + error.message);
+    });
+}
+
+// Get all appointments function
+function getAllAppointments(filters = {}) {
+    const params = new URLSearchParams(filters);
+
+    fetch(`/api/appointments?${params.toString()}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.appointments) {
+            console.log('All appointments:', data.appointments);
+            displayAppointmentsList(data.appointments);
+        } else {
+            console.error('Error fetching appointments:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// Display appointments in a list
+function displayAppointmentsList(appointments) {
+    let html = '<div class="appointments-list"><h4>All Appointments</h4>';
+
+    if (appointments.length === 0) {
+        html += '<p>No appointments found.</p>';
+    } else {
+        appointments.forEach(appointment => {
+            const statusClass = appointment.status === 'cancelled' ? 'text-danger' : 
+                              appointment.status === 'completed' ? 'text-success' : 'text-primary';
+
+            html += `
+                <div class="appointment-item border p-2 mb-2 rounded">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>${appointment.client ? appointment.client.name : 'Unknown Client'}</strong>
+                        </div>
+                        <div class="col-md-3">
+                            ${appointment.service ? appointment.service.name : 'Unknown Service'}
+                        </div>
+                        <div class="col-md-2">
+                            ${appointment.staff ? appointment.staff.name : 'Unknown Staff'}
+                        </div>
+                        <div class="col-md-2">
+                            ${appointment.appointment_date}
+                        </div>
+                        <div class="col-md-2">
+                            <span class="${statusClass}">${appointment.status}</span>
+                        </div>
+                    </div>
+                    ${appointment.notes ? `<div class="mt-1"><small>Notes: ${appointment.notes}</small></div>` : ''}
+                </div>
+            `;
+        });
+    }
+
+    html += '</div>';
+
+    // Display in a modal or dedicated container
+    const container = document.getElementById('appointmentsListContainer');
+    if (container) {
+        container.innerHTML = html;
+    } else {
+        // Create modal to display appointments
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="modal fade" id="appointmentsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">All Appointments</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${html}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Show the modal
+        new bootstrap.Modal(document.getElementById('appointmentsModal')).show();
+    }
 }
 </script>
 {% endblock %}
