@@ -507,33 +507,94 @@ def api_appointment_details(appointment_id):
     if not current_user.can_access('bookings'):
         return jsonify({'error': 'Access denied'}), 403
     
-    appointment = get_appointment_by_id(appointment_id)
-    if not appointment:
-        return jsonify({'error': 'Appointment not found'}), 404
-    
-    return jsonify({
-        'id': appointment.id,
-        'client': {
-            'id': appointment.client.id,
-            'name': appointment.client.full_name,
-            'phone': appointment.client.phone,
-            'email': appointment.client.email
-        },
-        'service': {
-            'id': appointment.service.id,
-            'name': appointment.service.name,
-            'duration': appointment.service.duration,
-            'price': float(appointment.service.price)
-        },
-        'staff': {
-            'id': appointment.staff.id,
-            'name': appointment.staff.full_name
-        },
-        'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d %H:%M'),
-        'status': appointment.status,
-        'notes': appointment.notes,
-        'amount': float(appointment.amount) if appointment.amount else 0
-    })
+    try:
+        # Get appointment with eager loading of relationships
+        from sqlalchemy.orm import joinedload
+        appointment = Appointment.query.options(
+            joinedload(Appointment.client),
+            joinedload(Appointment.service),
+            joinedload(Appointment.assigned_staff)
+        ).filter(Appointment.id == appointment_id).first()
+        
+        if not appointment:
+            return jsonify({'error': 'Appointment not found'}), 404
+        
+        # Get client data
+        client_data = {}
+        if appointment.client:
+            client_data = {
+                'id': appointment.client.id,
+                'name': appointment.client.full_name,
+                'phone': appointment.client.phone or 'N/A',
+                'email': appointment.client.email or 'N/A'
+            }
+        else:
+            # Fallback to get client by ID if relationship not loaded
+            client = Customer.query.get(appointment.client_id) if appointment.client_id else None
+            if client:
+                client_data = {
+                    'id': client.id,
+                    'name': client.full_name,
+                    'phone': client.phone or 'N/A',
+                    'email': client.email or 'N/A'
+                }
+            else:
+                client_data = {'id': None, 'name': 'Unknown Client', 'phone': 'N/A', 'email': 'N/A'}
+        
+        # Get service data
+        service_data = {}
+        if appointment.service:
+            service_data = {
+                'id': appointment.service.id,
+                'name': appointment.service.name,
+                'duration': appointment.service.duration,
+                'price': float(appointment.service.price)
+            }
+        else:
+            # Fallback to get service by ID if relationship not loaded
+            service = Service.query.get(appointment.service_id) if appointment.service_id else None
+            if service:
+                service_data = {
+                    'id': service.id,
+                    'name': service.name,
+                    'duration': service.duration,
+                    'price': float(service.price)
+                }
+            else:
+                service_data = {'id': None, 'name': 'Unknown Service', 'duration': 0, 'price': 0.0}
+        
+        # Get staff data
+        staff_data = {}
+        if hasattr(appointment, 'assigned_staff') and appointment.assigned_staff:
+            staff_data = {
+                'id': appointment.assigned_staff.id,
+                'name': appointment.assigned_staff.full_name
+            }
+        else:
+            # Fallback to get staff by ID if relationship not loaded
+            staff = User.query.get(appointment.staff_id) if appointment.staff_id else None
+            if staff:
+                staff_data = {
+                    'id': staff.id,
+                    'name': staff.full_name
+                }
+            else:
+                staff_data = {'id': None, 'name': 'Unknown Staff'}
+        
+        return jsonify({
+            'id': appointment.id,
+            'client': client_data,
+            'service': service_data,
+            'staff': staff_data,
+            'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d %H:%M'),
+            'status': appointment.status,
+            'notes': appointment.notes or '',
+            'amount': float(appointment.amount) if appointment.amount else 0
+        })
+        
+    except Exception as e:
+        print(f"Error fetching appointment details: {e}")
+        return jsonify({'error': f'Error fetching appointment details: {str(e)}'}), 500
 
 @app.route('/api/appointments')
 @login_required
