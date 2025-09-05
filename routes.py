@@ -10,6 +10,8 @@ from app import app, db
 from models import User, Customer, Service, Appointment, Expense, Invoice, Package, StaffSchedule, CustomerPackage, PackageService, Review, Communication, Commission, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings, Role, Permission, RolePermission, Category, Department, SystemSetting
 from forms import LoginForm, UserForm, CustomerForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedCustomerForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
 import utils
+import base64
+import os
 
 # Import module views individually to avoid conflicts
 try:
@@ -165,9 +167,9 @@ def communications():
     customers = Customer.query.filter_by(is_active=True).all()
     form = CommunicationForm()
 
-    return render_template('communications.html', 
-                         communications=communications, 
-                         customers=customers, 
+    return render_template('communications.html',
+                         communications=communications,
+                         customers=customers,
                          form=form)
 
 @app.route('/add_communication', methods=['POST'])
@@ -613,24 +615,24 @@ def api_save_customer_face():
         # Save face image (in a real implementation, you'd save to file storage)
         import base64
         import os
-        
+
         # Create face images directory if it doesn't exist
         face_dir = 'static/face_images'
         if not os.path.exists(face_dir):
             os.makedirs(face_dir)
-        
+
         # Save the image
         image_data = face_image.split(',')[1]  # Remove data:image/jpeg;base64, prefix
         image_filename = f'customer_{customer_id}_face.jpg'
         image_path = os.path.join(face_dir, image_filename)
-        
+
         with open(image_path, 'wb') as f:
             f.write(base64.b64decode(image_data))
-        
+
         # Update customer record
         customer.face_image_url = f'/static/face_images/{image_filename}'
         customer.facial_encoding = 'face_encoding_placeholder'  # In real implementation, store actual encoding
-        
+
         db.session.commit()
 
         return jsonify({
@@ -673,7 +675,7 @@ def api_recognize_face():
         # For demonstration, we'll simulate face matching
         # In production, you would use face_recognition library here
         import random
-        
+
         # Simulate recognition with random success (70% chance for demo)
         if customers_with_faces and random.random() > 0.3:
             matched_customer = random.choice(customers_with_faces)
