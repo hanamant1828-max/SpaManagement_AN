@@ -18,7 +18,7 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET") or "dev-secret-key-for-spa-management-system" or secrets.token_hex(32)
+app.secret_key = os.environ.get("SESSION_SECRET")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
@@ -51,9 +51,15 @@ login_manager.login_message = 'Please log in to access this page.'
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
 
-# Add CORS headers for webview compatibility
+# Add headers for webview compatibility and caching control
 @app.after_request
 def after_request(response):
+    # Cache control headers
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    # CORS headers for webview compatibility
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
