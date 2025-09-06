@@ -592,57 +592,7 @@ def api_remove_face(client_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/save_customer_face', methods=['POST'])
-@login_required
-def api_save_customer_face():
-    """Save face data for a customer"""
-    if not current_user.can_access('face_management'):
-        return jsonify({'error': 'Access denied'}), 403
 
-    try:
-        data = request.get_json()
-        customer_id = data.get('customer_id')
-        face_image = data.get('face_image')
-
-        if not customer_id or not face_image:
-            return jsonify({'error': 'Customer ID and face image are required'}), 400
-
-        from models import Customer
-        customer = Customer.query.get(customer_id)
-        if not customer:
-            return jsonify({'error': 'Customer not found'}), 404
-
-        # Save face image (in a real implementation, you'd save to file storage)
-        import base64
-        import os
-
-        # Create face images directory if it doesn't exist
-        face_dir = 'static/face_images'
-        if not os.path.exists(face_dir):
-            os.makedirs(face_dir)
-
-        # Save the image
-        image_data = face_image.split(',')[1]  # Remove data:image/jpeg;base64, prefix
-        image_filename = f'customer_{customer_id}_face.jpg'
-        image_path = os.path.join(face_dir, image_filename)
-
-        with open(image_path, 'wb') as f:
-            f.write(base64.b64decode(image_data))
-
-        # Update customer record
-        customer.face_image_url = f'/static/face_images/{image_filename}'
-        customer.facial_encoding = 'face_encoding_placeholder'  # In real implementation, store actual encoding
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Face data saved successfully'
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recognize_face', methods=['POST'])
 @login_required
@@ -760,36 +710,7 @@ def api_customer_face_login():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/customers_with_faces')
-@login_required
-def api_customers_with_faces():
-    """Get customers with face data"""
-    if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
 
-    try:
-        from models import Customer
-        customers_with_faces = Customer.query.filter(
-            Customer.face_image_url.isnot(None),
-            Customer.is_active == True
-        ).all()
-
-        customers_data = []
-        for customer in customers_with_faces:
-            customers_data.append({
-                'id': customer.id,
-                'full_name': customer.full_name,
-                'phone': customer.phone,
-                'face_image_url': customer.face_image_url
-            })
-
-        return jsonify({
-            'success': True,
-            'customers': customers_data
-        })
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # Error handlers
