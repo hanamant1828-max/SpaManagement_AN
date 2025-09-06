@@ -1235,6 +1235,13 @@
             }, 5000);
         }
 
+        // Face capture initialization
+            console.log('Initializing face capture functionality...');
+            setupFaceCapture();
+
+            // Initialize camera buttons
+            initializeCameraButtons();
+
         // Initialize customer management and face capture
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Customer management loaded');
@@ -1423,6 +1430,230 @@
                     console.error('Error removing face:', error);
                 }
             }
+        }
+    </script>
+    <script>
+        function setupFaceCapture() {
+            console.log('Setting up face capture elements...');
+            const faceClientSelect = document.getElementById('faceClientSelect');
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
+            const saveFaceDataBtn = document.getElementById('saveFaceData');
+
+            if (faceClientSelect) {
+                faceClientSelect.addEventListener('change', (e) => {
+                    selectCustomerForFace(e.target.value);
+                });
+            }
+
+            if (startCameraBtn) {
+                startCameraBtn.addEventListener('click', startFaceCamera);
+            }
+
+            if (captureFacePhotoBtn) {
+                captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
+            }
+
+            if (saveFaceDataBtn) {
+                saveFaceDataBtn.addEventListener('click', saveFaceData);
+            }
+        }
+
+        function setupCameraButtons() {
+            console.log('Setting up camera buttons...');
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+
+            console.log('Found buttons:', {
+                startCameraBtn: !!startCameraBtn,
+                startRecognitionBtn: !!startRecognitionBtn
+            });
+        }
+
+        function initializeCameraButtons() {
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+
+            if (startCameraBtn) {
+                startCameraBtn.addEventListener('click', startCamera);
+            }
+
+            if (startRecognitionBtn) {
+                startRecognitionBtn.addEventListener('click', startRecognition);
+            }
+        }
+
+        let videoStream = null;
+        let videoElement = null;
+
+        async function startCamera() {
+            console.log('Starting camera...');
+
+            try {
+                // Stop any existing stream
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+
+                // Get or create video element
+                videoElement = document.getElementById('cameraVideo');
+                if (!videoElement) {
+                    videoElement = document.createElement('video');
+                    videoElement.id = 'cameraVideo';
+                    videoElement.width = 400;
+                    videoElement.height = 300;
+                    videoElement.autoplay = true;
+                    videoElement.muted = true;
+                    videoElement.style.borderRadius = '10px';
+                    videoElement.style.border = '2px solid #007bff';
+
+                    // Insert video into the face table container
+                    const container = document.getElementById('faceTableContainer');
+                    container.innerHTML = '';
+                    container.appendChild(videoElement);
+                }
+
+                // Request camera access
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+
+                videoElement.srcObject = videoStream;
+
+                // Update button state
+                const startCameraBtn = document.getElementById('startCameraBtn');
+                startCameraBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop Camera';
+                startCameraBtn.onclick = stopCamera;
+                startCameraBtn.className = 'btn btn-danger me-2';
+
+                showNotification('Camera started successfully!', 'success');
+
+            } catch (error) {
+                console.error('Camera error:', error);
+                let errorMessage = 'Camera access failed: ';
+
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Permission denied. Please allow camera access.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No camera found on this device.';
+                } else {
+                    errorMessage += error.message;
+                }
+
+                showNotification(errorMessage, 'danger');
+            }
+        }
+
+        function stopCamera() {
+            console.log('Stopping camera...');
+
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+
+            if (videoElement) {
+                videoElement.srcObject = null;
+                videoElement.remove();
+                videoElement = null;
+            }
+
+            // Reset button
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            startCameraBtn.innerHTML = '<i class="fas fa-video me-1"></i>Start Camera';
+            startCameraBtn.onclick = startCamera;
+            startCameraBtn.className = 'btn btn-success me-2';
+
+            // Reset container
+            loadFaceData();
+
+            showNotification('Camera stopped', 'info');
+        }
+
+        async function startRecognition() {
+            console.log('Starting face recognition...');
+
+            if (!videoElement || !videoStream) {
+                showNotification('Please start the camera first', 'warning');
+                return;
+            }
+
+            try {
+                // Capture current frame
+                const canvas = document.createElement('canvas');
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(videoElement, 0, 0);
+
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+                // Send to recognition API
+                const response = await fetch('/api/customer_face_login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        face_image: imageData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.recognized) {
+                        showNotification(`Customer recognized: ${result.customer.name} (${result.confidence}% confidence)`, 'success');
+                        // You can add logic here to auto-select the recognized customer
+                    } else {
+                        showNotification('No matching customer found', 'info');
+                    }
+                } else {
+                    showNotification('Recognition failed: ' + result.error, 'danger');
+                }
+
+            } catch (error) {
+                console.error('Recognition error:', error);
+                showNotification('Recognition error: ' + error.message, 'danger');
+            }
+        }
+
+        function loadFaceData() {
+            const tableContainer = document.getElementById('faceTableContainer');
+            if (tableContainer) {
+                tableContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">Loading face data...</p>
+                    </div>
+                `;
+            }
+            loadFaceDataTable();
+        }
+
+        function showNotification(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
+            alertDiv.innerHTML = `
+                <strong><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i></strong>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
         }
     </script>
 {% endblock %}
