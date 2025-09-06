@@ -594,6 +594,37 @@ def api_save_face_data():
         print(f"Error saving face data: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/customers_with_faces', methods=['GET'])
+@login_required
+def api_get_customers_with_faces():
+    """API endpoint to get customers with face data"""
+    try:
+        # Get customers with face data
+        from models import Customer
+        customers_with_faces = Customer.query.filter(
+            Customer.face_image_url.isnot(None),
+            Customer.is_active == True
+        ).all()
+
+        customer_data = []
+        for customer in customers_with_faces:
+            customer_data.append({
+                'id': customer.id,
+                'full_name': customer.full_name,
+                'phone': customer.phone,
+                'email': customer.email,
+                'face_image_url': customer.face_image_url,
+                'face_registration_date': customer.created_at.isoformat() if customer.created_at else None
+            })
+
+        return jsonify({
+            'success': True,
+            'customers': customer_data
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/customer_face_login', methods=['POST'])
 def api_customer_face_login():
     """Customer face login endpoint"""
