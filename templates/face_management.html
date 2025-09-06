@@ -1,427 +1,620 @@
-{% extends "base.html" %}
 
-{% block title %}Face Management{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Face Management - Spa Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .face-capture-area {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .face-capture-area.active {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        .customer-face-card {
+            transition: all 0.3s ease;
+            border: 1px solid #dee2e6;
+        }
+        
+        .customer-face-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .face-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .capture-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        
+        .btn-capture {
+            background: linear-gradient(45deg, #7c3aed, #a855f7);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-capture:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
+        
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 col-lg-2 d-md-block sidebar collapse bg-dark">
+                {% include 'base.html' %}
+            </nav>
 
-{% block content %}
-<!-- Hidden CSRF token for JavaScript -->
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1><i class="fas fa-user-friends me-2"></i>Client Face Management</h1>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFaceModal">
-                    <i class="fas fa-plus me-2"></i>Add Face Data
-                </button>
-            </div>
-        </div>
-    </div>
+            <!-- Main content -->
+            <main class="col-md-10 ms-sm-auto col-lg-10 px-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2"><i class="fas fa-camera me-2"></i>Customer Face Management</h1>
+                </div>
 
-    <!-- Client Selection for Face Addition -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-users me-2"></i>Select Client for Face Registration</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="clientSelect" class="form-label">Choose Client</label>
-                        <select class="form-select" id="clientSelect">
-                            <option value="">Select a client...</option>
-                            {% for client in clients %}
-                            <option value="{{ client.id }}" data-name="{{ client.full_name }}" data-phone="{{ client.phone }}">
-                                {{ client.full_name }} - {{ client.phone }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div id="selectedClientInfo" class="alert alert-info d-none">
-                        <strong>Selected Client:</strong>
-                        <div id="clientDetails"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-camera me-2"></i>Face Capture</h5>
-                </div>
-                <div class="card-body">
-                    <div class="camera-container text-center">
-                        <video id="video" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></video>
-                        <canvas id="canvas" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></canvas>
-                        <div id="cameraPlaceholder" class="bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 2px dashed #dee2e6; border-radius: 8px;">
-                            <div>
-                                <i class="fas fa-camera fa-2x text-muted mb-2"></i>
-                                <p class="text-muted mb-0">Click "Start Camera" to begin</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-3 text-center">
-                        <button id="startCamera" class="btn btn-success me-2">
-                            <i class="fas fa-video me-1"></i>Start Camera
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs mb-4" id="faceManagementTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="customer-management-tab" data-bs-toggle="tab" data-bs-target="#customer-management" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i>Customer Management
                         </button>
-                        <button id="capturePhoto" class="btn btn-primary me-2" disabled>
-                            <i class="fas fa-camera me-1"></i>Capture
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="face-recognition-tab" data-bs-toggle="tab" data-bs-target="#face-recognition" type="button" role="tab">
+                            <i class="fas fa-user-check me-2"></i>Face Recognition
                         </button>
-                        <button id="saveface" class="btn btn-warning" disabled>
-                            <i class="fas fa-save me-1"></i>Save Face
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                    </li>
+                </ul>
 
-    <!-- Registered Faces Display -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-address-book me-2"></i>Registered Client Faces</h5>
-                </div>
-                <div class="card-body">
-                    {% if clients_with_faces %}
-                    <div class="row">
-                        {% for client in clients_with_faces %}
-                        <div class="col-md-3 mb-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    {% if client.face_image_url %}
-                                    <img src="{{ client.face_image_url }}" alt="{{ client.full_name }}" class="img-fluid rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;">
-                                    {% else %}
-                                    <div class="bg-primary rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                        <i class="fas fa-user fa-2x text-white"></i>
+                <!-- Tab Content -->
+                <div class="tab-content" id="faceManagementTabsContent">
+                    <!-- Customer Management Tab -->
+                    <div class="tab-pane fade show active" id="customer-management" role="tabpanel">
+                        <div class="row">
+                            <!-- Customer Selection -->
+                            <div class="col-md-6">
+                                <div class="card bg-dark border-secondary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Select Customer</h5>
                                     </div>
-                                    {% endif %}
-                                    <h6 class="card-title">{{ client.full_name }}</h6>
-                                    <p class="card-text small text-muted">{{ client.phone }}</p>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="removeFace({{ client.id }})">
-                                        <i class="fas fa-trash me-1"></i>Remove
-                                    </button>
+                                    <div class="card-body">
+                                        <label class="form-label">Choose Customer</label>
+                                        <select class="form-select bg-dark text-light border-secondary" id="customerSelect">
+                                            <option value="">Loading customers...</option>
+                                        </select>
+                                        <div class="mt-3">
+                                            <div class="customer-info" id="customerInfo" style="display: none;">
+                                                <h6>Customer Details:</h6>
+                                                <p class="mb-1"><strong>Name:</strong> <span id="customerName"></span></p>
+                                                <p class="mb-1"><strong>Phone:</strong> <span id="customerPhone"></span></p>
+                                                <p class="mb-0"><strong>Email:</strong> <span id="customerEmail"></span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Face Capture -->
+                            <div class="col-md-6">
+                                <div class="card bg-dark border-secondary">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0"><i class="fas fa-camera me-2"></i>Face Capture</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="face-capture-area" id="faceCaptureArea">
+                                            <video id="video" style="display: none;" autoplay></video>
+                                            <canvas id="canvas"></canvas>
+                                            <div class="text-center" id="capturePrompt">
+                                                <i class="fas fa-camera fa-3x mb-3 text-muted"></i>
+                                                <p class="mb-0">Click "Start Camera" to begin face capture</p>
+                                            </div>
+                                            <div class="capture-controls">
+                                                <button class="btn btn-success me-2" id="startCameraBtn">
+                                                    <i class="fas fa-video me-2"></i>Start Camera
+                                                </button>
+                                                <button class="btn btn-capture me-2" id="captureBtn" style="display: none;">
+                                                    <i class="fas fa-camera me-2"></i>Capture Photo
+                                                </button>
+                                                <button class="btn btn-warning" id="saveFaceBtn" style="display: none;">
+                                                    <i class="fas fa-save me-2"></i>Save Face Data
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="loading-spinner text-center mt-3" id="loadingSpinner">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Processing...</span>
+                                            </div>
+                                            <p class="mt-2">Processing face data...</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        {% endfor %}
+
+                        <!-- Registered Customer Faces -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card bg-dark border-secondary">
+                                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Registered Customer Faces</h5>
+                                        <button class="btn btn-outline-light btn-sm" id="refreshFacesBtn">
+                                            <i class="fas fa-sync-alt me-2"></i>Refresh
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row" id="customerFacesGrid">
+                                            <div class="col-12 text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading face data...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
-                        <h5>No registered faces yet</h5>
-                        <p class="text-muted">Start by selecting a client and capturing their face data above.</p>
+
+                    <!-- Face Recognition Tab -->
+                    <div class="tab-pane fade" id="face-recognition" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-8 mx-auto">
+                                <div class="card bg-dark border-secondary">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h5 class="mb-0"><i class="fas fa-search me-2"></i>Face Recognition</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="face-capture-area" id="recognitionCaptureArea">
+                                            <video id="recognitionVideo" style="display: none;" autoplay></video>
+                                            <canvas id="recognitionCanvas"></canvas>
+                                            <div class="text-center" id="recognitionPrompt">
+                                                <i class="fas fa-user-check fa-3x mb-3 text-warning"></i>
+                                                <p class="mb-0">Start camera to recognize registered customers</p>
+                                            </div>
+                                            <div class="capture-controls">
+                                                <button class="btn btn-warning me-2" id="startRecognitionBtn">
+                                                    <i class="fas fa-video me-2"></i>Start Recognition
+                                                </button>
+                                                <button class="btn btn-primary" id="recognizeFaceBtn" style="display: none;">
+                                                    <i class="fas fa-search me-2"></i>Recognize Face
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Recognition Results -->
+                                        <div class="mt-4" id="recognitionResults" style="display: none;">
+                                            <h6>Recognition Results:</h6>
+                                            <div class="alert alert-success" id="recognitionSuccess" style="display: none;">
+                                                <h6 class="alert-heading">Customer Recognized!</h6>
+                                                <p class="mb-1"><strong>Name:</strong> <span id="recognizedName"></span></p>
+                                                <p class="mb-1"><strong>Phone:</strong> <span id="recognizedPhone"></span></p>
+                                                <p class="mb-1"><strong>Confidence:</strong> <span id="recognizedConfidence"></span>%</p>
+                                                <hr>
+                                                <button class="btn btn-success btn-sm" id="bookAppointmentBtn">
+                                                    <i class="fas fa-calendar-plus me-2"></i>Book Appointment
+                                                </button>
+                                            </div>
+                                            <div class="alert alert-warning" id="recognitionFailed" style="display: none;">
+                                                <h6 class="alert-heading">No Match Found</h6>
+                                                <p class="mb-0">No registered customer found matching this face. Please register the customer first.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
                 </div>
-            </div>
+            </main>
         </div>
     </div>
-</div>
 
-<!-- Face Recognition Test Modal -->
-<div class="modal fade" id="testRecognitionModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Test Face Recognition</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center">
-                    <video id="testVideo" width="400" height="300" style="border: 2px solid #dee2e6; border-radius: 8px;"></video>
-                    <div class="mt-3">
-                        <button id="startTestCamera" class="btn btn-primary">Start Recognition Test</button>
-                        <button id="stopTestCamera" class="btn btn-secondary">Stop Test</button>
-                    </div>
-                    <div id="recognitionResults" class="mt-3"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-// Face Management JavaScript
-let stream = null;
-let selectedClientId = null;
-let capturedImageData = null;
-let recognitionInterval = null;
-
-// Client selection handling
-document.getElementById('clientSelect').addEventListener('change', function() {
-    const select = this;
-    const selectedOption = select.options[select.selectedIndex];
-    
-    if (selectedOption.value) {
-        selectedClientId = selectedOption.value;
-        const clientName = selectedOption.dataset.name;
-        const clientPhone = selectedOption.dataset.phone;
-        
-        document.getElementById('clientDetails').innerHTML = `
-            <strong>${clientName}</strong><br>
-            Phone: ${clientPhone}
-        `;
-        document.getElementById('selectedClientInfo').classList.remove('d-none');
-    } else {
-        selectedClientId = null;
-        document.getElementById('selectedClientInfo').classList.add('d-none');
-    }
-});
-
-// Camera functionality
-document.getElementById('startCamera').addEventListener('click', async function() {
-    if (!selectedClientId) {
-        alert('Please select a client first');
-        return;
-    }
-    
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 300, height: 200 } 
-        });
-        
-        const video = document.getElementById('video');
-        video.srcObject = stream;
-        video.play();
-        
-        document.getElementById('cameraPlaceholder').style.display = 'none';
-        video.style.display = 'block';
-        document.getElementById('capturePhoto').disabled = false;
-        this.disabled = true;
-        
-    } catch (err) {
-        console.error('Error accessing camera:', err);
-        alert('Could not access camera. Please check permissions.');
-    }
-});
-
-document.getElementById('capturePhoto').addEventListener('click', function() {
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Draw video frame to canvas
-    ctx.drawImage(video, 0, 0, 300, 200);
-    
-    // Show captured image
-    canvas.style.display = 'block';
-    video.style.display = 'none';
-    
-    // Get image data
-    capturedImageData = canvas.toDataURL('image/jpeg');
-    
-    document.getElementById('saveface').disabled = false;
-    this.disabled = true;
-});
-
-document.getElementById('saveface').addEventListener('click', async function() {
-    if (!selectedClientId || !capturedImageData) {
-        alert('Please select a client and capture a photo first');
-        return;
-    }
-    
-    // Show loading state
-    this.disabled = true;
-    this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
-    
-    try {
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
-                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
-        
-        const requestBody = {
-            client_id: parseInt(selectedClientId),
-            face_image: capturedImageData
-        };
-        
-        console.log('Sending face data:', {
-            client_id: requestBody.client_id,
-            image_size: capturedImageData.length
-        });
-        
-        const response = await fetch('/api/save_face', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(csrfToken && {'X-CSRFToken': csrfToken})
-            },
-            body: JSON.stringify(requestBody)
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            alert(`Face data saved successfully for ${result.client_name}!`);
-            location.reload(); // Refresh to show updated list
-        } else {
-            console.error('Server error:', result);
-            alert(`Error saving face data: ${result.error || 'Unknown error'}`);
-        }
-    } catch (err) {
-        console.error('Network error saving face:', err);
-        alert(`Network error: ${err.message}`);
-    } finally {
-        // Reset button state
-        this.disabled = false;
-        this.innerHTML = '<i class="fas fa-save me-1"></i>Save Face';
-    }
-});
-
-// Stop camera and reset
-function resetCamera() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
-    
-    document.getElementById('video').style.display = 'none';
-    document.getElementById('canvas').style.display = 'none';
-    document.getElementById('cameraPlaceholder').style.display = 'flex';
-    document.getElementById('startCamera').disabled = false;
-    document.getElementById('capturePhoto').disabled = true;
-    document.getElementById('saveface').disabled = true;
-}
-
-// Remove face function
-function removeFace(clientId) {
-    if (confirm('Are you sure you want to remove this face registration?')) {
-        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
-                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
-        
-        fetch(`/api/remove_face/${clientId}`, {
-            method: 'DELETE',
-            headers: {
-                ...(csrfToken && {'X-CSRFToken': csrfToken})
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class FaceManagementSystem {
+            constructor() {
+                this.selectedCustomer = null;
+                this.capturedImage = null;
+                this.video = null;
+                this.canvas = null;
+                this.ctx = null;
+                
+                this.init();
             }
-        }).then(async response => {
-            const result = await response.json();
-            if (response.ok && result.success) {
-                alert('Face data removed successfully');
-                location.reload();
-            } else {
-                alert(`Error removing face data: ${result.error || 'Unknown error'}`);
+            
+            init() {
+                this.setupEventListeners();
+                this.loadCustomers();
+                this.loadCustomerFaces();
             }
-        }).catch(err => {
-            console.error('Error removing face:', err);
-            alert(`Network error: ${err.message}`);
-        });
-    }
-}
-
-// Test Recognition Modal
-document.getElementById('startTestCamera').addEventListener('click', async function() {
-    try {
-        const testStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                width: 640, 
-                height: 480,
-                facingMode: 'user'
-            } 
-        });
-        const testVideo = document.getElementById('testVideo');
-        testVideo.srcObject = testStream;
-        testVideo.play();
-        
-        // Start continuous face recognition
-        recognitionInterval = setInterval(async () => {
-            try {
-                // Create a canvas to capture frame
-                const canvas = document.createElement('canvas');
-                canvas.width = testVideo.videoWidth;
-                canvas.height = testVideo.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(testVideo, 0, 0);
-                
-                // Get image data
-                const imageData = canvas.toDataURL('image/jpeg', 0.8);
-                
-                // Send for recognition
-                const csrfToken = document.querySelector('[name=csrf_token]')?.value;
-                
-                const response = await fetch('/api/recognize_face', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(csrfToken && {'X-CSRFToken': csrfToken})
-                    },
-                    body: JSON.stringify({
-                        face_image: imageData
-                    })
+            
+            setupEventListeners() {
+                // Customer selection
+                document.getElementById('customerSelect').addEventListener('change', (e) => {
+                    this.selectCustomer(e.target.value);
                 });
                 
-                const result = await response.json();
+                // Camera controls
+                document.getElementById('startCameraBtn').addEventListener('click', () => {
+                    this.startCamera('video');
+                });
                 
-                if (response.ok && result.success) {
-                    if (result.recognized) {
-                        document.getElementById('recognitionResults').innerHTML = `
-                            <div class="alert alert-success">
-                                <strong>Client Recognized!</strong><br>
-                                Name: ${result.client.name}<br>
-                                Phone: ${result.client.phone}<br>
-                                Confidence: ${(result.confidence * 100).toFixed(1)}%
-                            </div>
-                        `;
+                document.getElementById('captureBtn').addEventListener('click', () => {
+                    this.capturePhoto();
+                });
+                
+                document.getElementById('saveFaceBtn').addEventListener('click', () => {
+                    this.saveFaceData();
+                });
+                
+                // Recognition controls
+                document.getElementById('startRecognitionBtn').addEventListener('click', () => {
+                    this.startCamera('recognitionVideo');
+                });
+                
+                document.getElementById('recognizeFaceBtn').addEventListener('click', () => {
+                    this.recognizeFace();
+                });
+                
+                // Refresh button
+                document.getElementById('refreshFacesBtn').addEventListener('click', () => {
+                    this.loadCustomerFaces();
+                });
+            }
+            
+            async loadCustomers() {
+                try {
+                    const response = await fetch('/api/customers');
+                    const data = await response.json();
+                    
+                    const select = document.getElementById('customerSelect');
+                    select.innerHTML = '<option value="">Select a customer...</option>';
+                    
+                    data.forEach(customer => {
+                        const option = document.createElement('option');
+                        option.value = customer.id;
+                        option.textContent = `${customer.full_name} - ${customer.phone}`;
+                        option.dataset.customer = JSON.stringify(customer);
+                        select.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error loading customers:', error);
+                    this.showNotification('Error loading customers', 'danger');
+                }
+            }
+            
+            selectCustomer(customerId) {
+                if (!customerId) {
+                    this.selectedCustomer = null;
+                    document.getElementById('customerInfo').style.display = 'none';
+                    return;
+                }
+                
+                const select = document.getElementById('customerSelect');
+                const selectedOption = select.options[select.selectedIndex];
+                this.selectedCustomer = JSON.parse(selectedOption.dataset.customer);
+                
+                // Display customer info
+                document.getElementById('customerName').textContent = this.selectedCustomer.full_name;
+                document.getElementById('customerPhone').textContent = this.selectedCustomer.phone;
+                document.getElementById('customerEmail').textContent = this.selectedCustomer.email || 'N/A';
+                document.getElementById('customerInfo').style.display = 'block';
+            }
+            
+            async startCamera(videoId) {
+                try {
+                    const video = document.getElementById(videoId);
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: 640, 
+                            height: 480,
+                            facingMode: 'user'
+                        } 
+                    });
+                    
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    
+                    if (videoId === 'video') {
+                        document.getElementById('capturePrompt').style.display = 'none';
+                        document.getElementById('startCameraBtn').style.display = 'none';
+                        document.getElementById('captureBtn').style.display = 'inline-block';
+                        document.getElementById('faceCaptureArea').classList.add('active');
                     } else {
-                        document.getElementById('recognitionResults').innerHTML = `
-                            <div class="alert alert-warning">
-                                <strong>Scanning...</strong><br>
-                                No matching face found. Continue positioning your face in the camera.
+                        document.getElementById('recognitionPrompt').style.display = 'none';
+                        document.getElementById('startRecognitionBtn').style.display = 'none';
+                        document.getElementById('recognizeFaceBtn').style.display = 'inline-block';
+                        document.getElementById('recognitionCaptureArea').classList.add('active');
+                    }
+                    
+                    this.video = video;
+                } catch (error) {
+                    console.error('Error starting camera:', error);
+                    this.showNotification('Error accessing camera. Please check permissions.', 'danger');
+                }
+            }
+            
+            capturePhoto() {
+                if (!this.selectedCustomer) {
+                    this.showNotification('Please select a customer first', 'warning');
+                    return;
+                }
+                
+                const canvas = document.getElementById('canvas');
+                canvas.width = this.video.videoWidth;
+                canvas.height = this.video.videoHeight;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(this.video, 0, 0);
+                
+                this.capturedImage = canvas.toDataURL('image/jpeg');
+                
+                // Show captured image
+                this.video.style.display = 'none';
+                canvas.style.display = 'block';
+                
+                document.getElementById('captureBtn').style.display = 'none';
+                document.getElementById('saveFaceBtn').style.display = 'inline-block';
+                
+                this.showNotification('Photo captured! Click "Save Face Data" to save.', 'success');
+            }
+            
+            async saveFaceData() {
+                if (!this.selectedCustomer || !this.capturedImage) {
+                    this.showNotification('No customer selected or image captured', 'warning');
+                    return;
+                }
+                
+                document.getElementById('loadingSpinner').style.display = 'block';
+                
+                try {
+                    const response = await fetch('/api/save_customer_face', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            customer_id: this.selectedCustomer.id,
+                            face_image: this.capturedImage
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showNotification('Face data saved successfully!', 'success');
+                        this.resetCapture();
+                        this.loadCustomerFaces();
+                    } else {
+                        this.showNotification(result.error || 'Error saving face data', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error saving face data:', error);
+                    this.showNotification('Error saving face data', 'danger');
+                } finally {
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                }
+            }
+            
+            async recognizeFace() {
+                const video = document.getElementById('recognitionVideo');
+                const canvas = document.getElementById('recognitionCanvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                const faceImage = canvas.toDataURL('image/jpeg');
+                
+                try {
+                    const response = await fetch('/api/recognize_face', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            face_image: faceImage
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    document.getElementById('recognitionResults').style.display = 'block';
+                    
+                    if (result.success && result.recognized) {
+                        document.getElementById('recognitionSuccess').style.display = 'block';
+                        document.getElementById('recognitionFailed').style.display = 'none';
+                        
+                        document.getElementById('recognizedName').textContent = result.customer.name;
+                        document.getElementById('recognizedPhone').textContent = result.customer.phone;
+                        document.getElementById('recognizedConfidence').textContent = Math.round(result.confidence * 100);
+                    } else {
+                        document.getElementById('recognitionSuccess').style.display = 'none';
+                        document.getElementById('recognitionFailed').style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Error recognizing face:', error);
+                    this.showNotification('Error recognizing face', 'danger');
+                }
+            }
+            
+            async loadCustomerFaces() {
+                try {
+                    const response = await fetch('/api/customers_with_faces');
+                    const data = await response.json();
+                    
+                    const grid = document.getElementById('customerFacesGrid');
+                    grid.innerHTML = '';
+                    
+                    if (data.success && data.customers.length > 0) {
+                        data.customers.forEach(customer => {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-4 col-lg-3 mb-3';
+                            
+                            col.innerHTML = `
+                                <div class="customer-face-card card bg-dark border-secondary h-100">
+                                    <div class="card-body text-center">
+                                        <div class="position-relative d-inline-block mb-3">
+                                            <img src="${customer.face_image_url || '/static/images/default-avatar.png'}" 
+                                                 alt="${customer.full_name}" class="face-image">
+                                            <div class="status-indicator"></div>
+                                        </div>
+                                        <h6 class="card-title">${customer.full_name}</h6>
+                                        <p class="card-text text-muted small">${customer.phone}</p>
+                                        <button class="btn btn-danger btn-sm" onclick="faceManager.removeFace(${customer.id})">
+                                            <i class="fas fa-trash me-1"></i>Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            grid.appendChild(col);
+                        });
+                    } else {
+                        grid.innerHTML = `
+                            <div class="col-12 text-center">
+                                <i class="fas fa-users fa-3x mb-3 text-muted"></i>
+                                <p class="text-muted">No registered customer faces found.</p>
                             </div>
                         `;
                     }
-                } else {
-                    console.error('Recognition error:', result.error);
+                } catch (error) {
+                    console.error('Error loading customer faces:', error);
+                    document.getElementById('customerFacesGrid').innerHTML = `
+                        <div class="col-12 text-center text-danger">
+                            <p>Error loading customer faces</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            async removeFace(customerId) {
+                if (!confirm('Are you sure you want to remove this customer\'s face data?')) {
+                    return;
                 }
                 
-            } catch (err) {
-                console.error('Recognition processing error:', err);
+                try {
+                    const response = await fetch(`/api/remove_face/${customerId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showNotification('Face data removed successfully', 'success');
+                        this.loadCustomerFaces();
+                    } else {
+                        this.showNotification(result.error || 'Error removing face data', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error removing face data:', error);
+                    this.showNotification('Error removing face data', 'danger');
+                }
             }
-        }, 2000); // Check every 2 seconds
+            
+            resetCapture() {
+                const video = document.getElementById('video');
+                const canvas = document.getElementById('canvas');
+                
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                
+                video.style.display = 'none';
+                canvas.style.display = 'none';
+                
+                document.getElementById('capturePrompt').style.display = 'block';
+                document.getElementById('startCameraBtn').style.display = 'inline-block';
+                document.getElementById('captureBtn').style.display = 'none';
+                document.getElementById('saveFaceBtn').style.display = 'none';
+                document.getElementById('faceCaptureArea').classList.remove('active');
+                
+                this.capturedImage = null;
+                this.selectedCustomer = null;
+                document.getElementById('customerSelect').value = '';
+                document.getElementById('customerInfo').style.display = 'none';
+            }
+            
+            showNotification(message, type = 'info') {
+                // Create notification using bootstrap toast or alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+                alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 5000);
+            }
+        }
         
-        // Update button states
-        this.disabled = true;
-        document.getElementById('stopTestCamera').disabled = false;
+        // Initialize the face management system
+        const faceManager = new FaceManagementSystem();
         
-    } catch (err) {
-        console.error('Error:', err);
-        alert('Could not access camera for testing. Please check camera permissions.');
-    }
-});
-
-document.getElementById('stopTestCamera').addEventListener('click', function() {
-    // Stop recognition interval
-    if (recognitionInterval) {
-        clearInterval(recognitionInterval);
-        recognitionInterval = null;
-    }
-    
-    // Stop camera stream
-    const testVideo = document.getElementById('testVideo');
-    if (testVideo.srcObject) {
-        testVideo.srcObject.getTracks().forEach(track => track.stop());
-        testVideo.srcObject = null;
-    }
-    
-    // Reset button states
-    document.getElementById('startTestCamera').disabled = false;
-    this.disabled = true;
-    
-    // Clear results
-    document.getElementById('recognitionResults').innerHTML = `
-        <div class="alert alert-info">
-            <strong>Recognition Stopped</strong><br>
-            Click "Start Recognition Test" to begin again.
-        </div>
-    `;
-});
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', function() {
-    resetCamera();
-});
-</script>
-{% endblock %}
+        console.log('Face Management System loaded and ready');
+    </script>
+</body>
+</html>

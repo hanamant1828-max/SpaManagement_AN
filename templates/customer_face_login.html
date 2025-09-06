@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Face Login - Spa Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 2rem;
+            max-width: 500px;
+            margin: auto;
+        }
+        
+        .face-capture-area {
+            background: #f8f9fa;
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .face-capture-area.active {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        
+        .customer-welcome {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .btn-face {
+            background: linear-gradient(45deg, #7c3aed, #a855f7);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-face:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-container">
+            <div class="text-center mb-4">
+                <h2><i class="fas fa-camera me-3"></i>Face Login</h2>
+                <p class="text-muted">Look at the camera to login with your face</p>
+            </div>
+
+            <!-- Face Recognition Area -->
+            <div class="face-capture-area" id="faceCaptureArea">
+                <video id="video" style="display: none;" autoplay></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+                <div class="text-center" id="capturePrompt">
+                    <i class="fas fa-user-circle fa-4x mb-3 text-primary"></i>
+                    <p class="mb-0">Click "Start Camera" to begin face recognition</p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="text-center mb-4">
+                <button class="btn btn-face me-2" id="startCameraBtn">
+                    <i class="fas fa-video me-2"></i>Start Camera
+                </button>
+                <button class="btn btn-success" id="recognizeBtn" style="display: none;">
+                    <i class="fas fa-search me-2"></i>Recognize Me
+                </button>
+            </div>
+
+            <!-- Customer Welcome -->
+            <div id="customerWelcome" style="display: none;">
+                <div class="customer-welcome">
+                    <h4><i class="fas fa-check-circle me-2"></i>Welcome Back!</h4>
+                    <div id="customerDetails"></div>
+                    <div class="mt-3">
+                        <button class="btn btn-light" onclick="viewDashboard()">
+                            <i class="fas fa-tachometer-alt me-2"></i>View Dashboard
+                        </button>
+                        <button class="btn btn-outline-light ms-2" onclick="bookAppointment()">
+                            <i class="fas fa-calendar-plus me-2"></i>Book Appointment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recognition Failed -->
+            <div id="recognitionFailed" class="alert alert-warning" style="display: none;">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Face Not Recognized</h6>
+                <p class="mb-2">We couldn't find your face in our records.</p>
+                <button class="btn btn-warning btn-sm" onclick="tryAgain()">
+                    <i class="fas fa-redo me-1"></i>Try Again
+                </button>
+                <a href="/clients" class="btn btn-outline-warning btn-sm ms-2">
+                    <i class="fas fa-user-plus me-1"></i>Register Face
+                </a>
+            </div>
+
+            <!-- Loading -->
+            <div id="loadingSpinner" class="text-center" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Recognizing...</span>
+                </div>
+                <p class="mt-2">Recognizing your face...</p>
+            </div>
+
+            <!-- Back to Login -->
+            <div class="text-center">
+                <a href="/login" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Staff Login
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class CustomerFaceLogin {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.recognizedCustomer = null;
+                this.init();
+            }
+            
+            init() {
+                document.getElementById('startCameraBtn').addEventListener('click', () => {
+                    this.startCamera();
+                });
+                
+                document.getElementById('recognizeBtn').addEventListener('click', () => {
+                    this.recognizeFace();
+                });
+            }
+            
+            async startCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: 640, 
+                            height: 480,
+                            facingMode: 'user'
+                        } 
+                    });
+                    
+                    this.video.srcObject = stream;
+                    this.video.style.display = 'block';
+                    
+                    document.getElementById('capturePrompt').style.display = 'none';
+                    document.getElementById('startCameraBtn').style.display = 'none';
+                    document.getElementById('recognizeBtn').style.display = 'inline-block';
+                    document.getElementById('faceCaptureArea').classList.add('active');
+                    
+                } catch (error) {
+                    console.error('Error starting camera:', error);
+                    alert('Error accessing camera. Please check permissions.');
+                }
+            }
+            
+            async recognizeFace() {
+                this.canvas.width = this.video.videoWidth;
+                this.canvas.height = this.video.videoHeight;
+                
+                const ctx = this.canvas.getContext('2d');
+                ctx.drawImage(this.video, 0, 0);
+                
+                const faceImage = this.canvas.toDataURL('image/jpeg');
+                
+                document.getElementById('loadingSpinner').style.display = 'block';
+                document.getElementById('recognizeBtn').disabled = true;
+                
+                try {
+                    const response = await fetch('/api/face_login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            face_image: faceImage
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    
+                    if (result.success && result.recognized) {
+                        this.showCustomerWelcome(result.customer, result.confidence);
+                        this.recognizedCustomer = result.customer;
+                    } else {
+                        this.showRecognitionFailed();
+                    }
+                } catch (error) {
+                    console.error('Error recognizing face:', error);
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    this.showRecognitionFailed();
+                } finally {
+                    document.getElementById('recognizeBtn').disabled = false;
+                }
+            }
+            
+            showCustomerWelcome(customer, confidence) {
+                const detailsHtml = `
+                    <p class="mb-1"><strong>${customer.name}</strong></p>
+                    <p class="mb-1">Phone: ${customer.phone}</p>
+                    <p class="mb-1">Total Visits: ${customer.total_visits}</p>
+                    <p class="mb-0">Confidence: ${Math.round(confidence * 100)}%</p>
+                `;
+                
+                document.getElementById('customerDetails').innerHTML = detailsHtml;
+                document.getElementById('customerWelcome').style.display = 'block';
+                document.getElementById('recognitionFailed').style.display = 'none';
+                
+                // Hide camera
+                this.stopCamera();
+            }
+            
+            showRecognitionFailed() {
+                document.getElementById('recognitionFailed').style.display = 'block';
+                document.getElementById('customerWelcome').style.display = 'none';
+            }
+            
+            stopCamera() {
+                if (this.video.srcObject) {
+                    this.video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                this.video.style.display = 'none';
+                document.getElementById('faceCaptureArea').classList.remove('active');
+            }
+        }
+        
+        function tryAgain() {
+            document.getElementById('recognitionFailed').style.display = 'none';
+            document.getElementById('customerWelcome').style.display = 'none';
+            document.getElementById('capturePrompt').style.display = 'block';
+            document.getElementById('startCameraBtn').style.display = 'inline-block';
+            document.getElementById('recognizeBtn').style.display = 'none';
+        }
+        
+        function viewDashboard() {
+            if (faceLogin.recognizedCustomer) {
+                window.location.href = `/customer/dashboard/${faceLogin.recognizedCustomer.id}`;
+            }
+        }
+        
+        function bookAppointment() {
+            if (faceLogin.recognizedCustomer) {
+                window.location.href = `/bookings?customer_id=${faceLogin.recognizedCustomer.id}`;
+            }
+        }
+        
+        // Initialize the face login system
+        const faceLogin = new CustomerFaceLogin();
+    </script>
+</body>
+</html>

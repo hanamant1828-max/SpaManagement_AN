@@ -83,6 +83,7 @@
     color: #721c24;
     border-color: #f5c6cb;
     cursor: default;
+    min-height: 90px; /* Increased to accommodate action buttons */
 }
 
 .slot-content {
@@ -111,6 +112,22 @@
 .service-name {
     font-size: 0.75rem;
     opacity: 0.8;
+}
+
+.appointment-actions {
+    margin-top: 0.5rem;
+}
+
+.appointment-actions .btn-group .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+    border-radius: 3px;
+    margin: 0 1px;
+}
+
+.appointment-actions .btn-group .btn:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
 }
 
 .quick-book-modal .modal-content {
@@ -305,6 +322,25 @@
                                         <div class="booked-details">
                                             <div class="client-name">{{ availability.client_name }}</div>
                                             <div class="service-name">{{ availability.service_name }}</div>
+                                            <div class="appointment-actions mt-2">
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-outline-info" 
+                                                            onclick="viewAppointment({{ availability.appointment.id }})"
+                                                            title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                            onclick="editAppointment({{ availability.appointment.id }})"
+                                                            title="Edit Appointment">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                            onclick="deleteAppointment({{ availability.appointment.id }})"
+                                                            title="Delete Appointment">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     {% else %}
                                         <div class="available-indicator">
@@ -759,6 +795,145 @@ function displayAppointmentsList(appointments) {
         // Show the modal
         new bootstrap.Modal(document.getElementById('appointmentsModal')).show();
     }
+}
+
+// View appointment details
+function viewAppointment(appointmentId) {
+    console.log('Viewing appointment:', appointmentId);
+    
+    fetch(`/api/appointment/${appointmentId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showNotification(data.error, 'error');
+                return;
+            }
+            
+            const modalHTML = `
+                <div class="modal fade" id="viewAppointmentModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-info text-white">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-calendar-check me-2"></i>Appointment Details
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Client Information</h6>
+                                        <p><strong>Name:</strong> ${data.client.name}</p>
+                                        <p><strong>Phone:</strong> ${data.client.phone}</p>
+                                        <p><strong>Email:</strong> ${data.client.email}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Service Details</h6>
+                                        <p><strong>Service:</strong> ${data.service.name}</p>
+                                        <p><strong>Duration:</strong> ${data.service.duration} minutes</p>
+                                        <p><strong>Price:</strong> $${data.service.price.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Staff Member</h6>
+                                        <p><strong>Staff:</strong> ${data.staff.name}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Appointment Details</h6>
+                                        <p><strong>Date & Time:</strong> ${data.appointment_date}</p>
+                                        <p><strong>Status:</strong> <span class="badge bg-primary">${data.status}</span></p>
+                                    </div>
+                                </div>
+                                ${data.notes ? `
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h6 class="text-muted">Notes</h6>
+                                        <p class="bg-light p-3 rounded">${data.notes}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-warning" onclick="editAppointment(${appointmentId})">
+                                    <i class="fas fa-edit me-2"></i>Edit Appointment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('viewAppointmentModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to DOM and show
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modal = new bootstrap.Modal(document.getElementById('viewAppointmentModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error fetching appointment details:', error);
+            showNotification('Error loading appointment details', 'error');
+        });
+}
+
+// Edit appointment
+function editAppointment(appointmentId) {
+    console.log('Editing appointment:', appointmentId);
+    
+    // Close view modal if open
+    const viewModal = document.getElementById('viewAppointmentModal');
+    if (viewModal) {
+        bootstrap.Modal.getInstance(viewModal)?.hide();
+    }
+    
+    // Redirect to edit page
+    window.location.href = `/appointments/edit/${appointmentId}`;
+}
+
+// Delete appointment
+function deleteAppointment(appointmentId) {
+    console.log('Deleting appointment:', appointmentId);
+    
+    if (!confirm('Are you sure you want to permanently delete this appointment?')) {
+        return;
+    }
+    
+    const reason = prompt('Please enter deletion reason (optional):');
+    
+    fetch(`/appointments/delete/${appointmentId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showNotification('Appointment deleted successfully!', 'success');
+            refreshAvailability();
+        } else {
+            showNotification(data.error || 'Failed to delete appointment', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Delete error:', error);
+        showNotification('Error deleting appointment: ' + error.message, 'error');
+    });
 }
 </script>
 {% endblock %}

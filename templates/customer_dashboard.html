@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome {{ customer.full_name }} - Spa Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .welcome-header {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            padding: 30px;
+            text-align: center;
+        }
+        .stats-card {
+            background: linear-gradient(45deg, #7c3aed, #a855f7);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- Welcome Header -->
+        <div class="dashboard-card">
+            <div class="welcome-header">
+                <h1><i class="fas fa-user-circle me-3"></i>Welcome Back, {{ customer.full_name }}!</h1>
+                <p class="mb-0">We're happy to see you again</p>
+            </div>
+            <div class="p-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <h3>{{ customer.total_visits }}</h3>
+                            <p class="mb-0">Total Visits</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <h3>${{ "%.2f"|format(customer.total_spent) }}</h3>
+                            <p class="mb-0">Total Spent</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <h3>{{ customer.loyalty_points }}</h3>
+                            <p class="mb-0">Loyalty Points</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card text-center">
+                            <h3>{% if customer.is_vip %}VIP{% else %}Regular{% endif %}</h3>
+                            <p class="mb-0">Status</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="dashboard-card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-bolt me-2"></i>Quick Actions</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="/bookings?customer_id={{ customer.id }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-calendar-plus me-2"></i>Book New Appointment
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="/services" class="btn btn-info btn-lg w-100">
+                            <i class="fas fa-spa me-2"></i>View Services
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="/packages" class="btn btn-warning btn-lg w-100">
+                            <i class="fas fa-gift me-2"></i>View Packages
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Appointments -->
+        <div class="dashboard-card">
+            <div class="card-header bg-secondary text-white">
+                <h4><i class="fas fa-history me-2"></i>Recent Appointments</h4>
+            </div>
+            <div class="card-body">
+                {% if appointments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Service</th>
+                                    <th>Staff</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in appointments %}
+                                <tr>
+                                    <td>{{ appointment.appointment_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ appointment.service.name if appointment.service else 'N/A' }}</td>
+                                    <td>{{ appointment.assigned_staff.full_name if appointment.assigned_staff else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if appointment.status == 'completed' %}bg-success
+                                            {% elif appointment.status == 'scheduled' %}bg-primary
+                                            {% elif appointment.status == 'cancelled' %}bg-danger
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ appointment.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>${{ "%.2f"|format(appointment.amount) if appointment.amount else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>No appointments yet</h5>
+                        <p class="text-muted">Book your first appointment to get started!</p>
+                        <a href="/bookings?customer_id={{ customer.id }}" class="btn btn-success">
+                            <i class="fas fa-calendar-plus me-2"></i>Book Now
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Back to Login -->
+        <div class="text-center">
+            <a href="/customer/face-login" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>Back to Face Login
+            </a>
+            <a href="/login" class="btn btn-outline-light ms-2">
+                <i class="fas fa-sign-out-alt me-2"></i>Staff Login
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -10,6 +10,8 @@ from app import app, db
 from models import User, Customer, Service, Appointment, Expense, Invoice, Package, StaffSchedule, CustomerPackage, PackageService, Review, Communication, Commission, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings, Role, Permission, RolePermission, Category, Department, SystemSetting
 from forms import LoginForm, UserForm, CustomerForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedCustomerForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
 import utils
+import base64
+import os
 
 # Import module views individually to avoid conflicts
 try:
@@ -165,9 +167,9 @@ def communications():
     customers = Customer.query.filter_by(is_active=True).all()
     form = CommunicationForm()
 
-    return render_template('communications.html', 
-                         communications=communications, 
-                         customers=customers, 
+    return render_template('communications.html',
+                         communications=communications,
+                         customers=customers,
                          form=form)
 
 @app.route('/add_communication', methods=['POST'])
@@ -551,71 +553,6 @@ def api_staff():
     } for s in staff])
 
 # Face Recognition API endpoints
-@app.route('/api/save_face', methods=['POST'])
-@login_required
-def api_save_face():
-    """Save face data for a client"""
-    if not current_user.can_access('face_management'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        data = request.get_json()
-        client_id = data.get('client_id')
-        face_image = data.get('face_image')
-
-        if not client_id or not face_image:
-            return jsonify({'error': 'Client ID and face image are required'}), 400
-
-        # Find the customer
-        from models import Customer
-        customer = Customer.query.get(client_id)
-        if not customer:
-            return jsonify({'error': 'Customer not found'}), 404
-
-        # Here you would normally process the face image and extract facial features
-        # For now, we'll store the image data directly
-        import base64
-        import os
-
-        # Save face image
-        try:
-            # Remove data URL prefix if present
-            if face_image.startswith('data:image'):
-                face_image = face_image.split(',')[1]
-
-            # Decode base64 image
-            image_data = base64.b64decode(face_image)
-
-            # Create faces directory if it doesn't exist
-            faces_dir = os.path.join('static', 'faces')
-            os.makedirs(faces_dir, exist_ok=True)
-
-            # Save image file
-            filename = f"client_{client_id}_face.jpg"
-            filepath = os.path.join(faces_dir, filename)
-
-            with open(filepath, 'wb') as f:
-                f.write(image_data)
-
-            # Update customer record
-            customer.face_image_url = f"/static/faces/{filename}"
-            customer.facial_encoding = face_image  # Store base64 for now
-
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': 'Face data saved successfully',
-                'customer_name': customer.full_name
-            })
-
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': f'Error saving face data: {str(e)}'}), 500
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/remove_face/<int:client_id>', methods=['DELETE'])
 @login_required
 def api_remove_face(client_id):
@@ -655,6 +592,58 @@ def api_remove_face(client_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/save_customer_face', methods=['POST'])
+@login_required
+def api_save_customer_face():
+    """Save face data for a customer"""
+    if not current_user.can_access('face_management'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        face_image = data.get('face_image')
+
+        if not customer_id or not face_image:
+            return jsonify({'error': 'Customer ID and face image are required'}), 400
+
+        from models import Customer
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Save face image (in a real implementation, you'd save to file storage)
+        import base64
+        import os
+
+        # Create face images directory if it doesn't exist
+        face_dir = 'static/face_images'
+        if not os.path.exists(face_dir):
+            os.makedirs(face_dir)
+
+        # Save the image
+        image_data = face_image.split(',')[1]  # Remove data:image/jpeg;base64, prefix
+        image_filename = f'customer_{customer_id}_face.jpg'
+        image_path = os.path.join(face_dir, image_filename)
+
+        with open(image_path, 'wb') as f:
+            f.write(base64.b64decode(image_data))
+
+        # Update customer record
+        customer.face_image_url = f'/static/face_images/{image_filename}'
+        customer.facial_encoding = 'face_encoding_placeholder'  # In real implementation, store actual encoding
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Face data saved successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/recognize_face', methods=['POST'])
 @login_required
 def api_recognize_face():
@@ -678,16 +667,19 @@ def api_recognize_face():
 
         if not customers_with_faces:
             return jsonify({
-                'success': False,
+                'success': True,
+                'recognized': False,
                 'message': 'No registered faces found'
             })
 
         # For demonstration, we'll simulate face matching
         # In production, you would use face_recognition library here
+        import random
 
-        # Simulate recognition success with first customer for demo
-        if customers_with_faces:
-            matched_customer = customers_with_faces[0]
+        # Simulate recognition with random success (70% chance for demo)
+        if customers_with_faces and random.random() > 0.3:
+            matched_customer = random.choice(customers_with_faces)
+            confidence = round(random.uniform(0.75, 0.95), 2)
 
             return jsonify({
                 'success': True,
@@ -698,7 +690,7 @@ def api_recognize_face():
                     'phone': matched_customer.phone,
                     'email': matched_customer.email
                 },
-                'confidence': 0.85  # Simulated confidence score
+                'confidence': confidence
             })
 
         return jsonify({
@@ -709,6 +701,8 @@ def api_recognize_face():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
 
 @app.route('/api/customers_with_faces')
 @login_required
