@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Integrated Billing & Service Management{% endblock %}
+
+{% block extra_head %}
+<style>
+.billing-card {
+    transition: all 0.3s ease;
+}
+.billing-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.package-deduction {
+    color: #28a745;
+    font-weight: 500;
+}
+.extra-charge {
+    color: #dc3545;
+    font-weight: 500;
+}
+.item-row {
+    border-left: 3px solid transparent;
+    padding-left: 10px;
+    margin-bottom: 5px;
+}
+.item-row.package-item {
+    border-left-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+.item-row.extra-item {
+    border-left-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="fas fa-cash-register me-2 text-primary"></i>Integrated Billing & Service Management
+            </h1>
+            <p class="text-muted">Complete billing solution with package deductions, subscription management, and inventory sales</p>
+        </div>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card billing-card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Today's Revenue
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "{:,.2f}".format(today_revenue) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card billing-card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Revenue
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "{:,.2f}".format(total_revenue) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card billing-card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Pending Amount
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "{:,.2f}".format(pending_amount) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- New Invoice Creation -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Invoice
+                    </h6>
+                    <span class="badge badge-info">Services • Packages • Inventory</span>
+                </div>
+                <div class="card-body">
+                    <form id="billingForm">
+                        <!-- Customer Selection -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="client_id" class="form-label">Customer</label>
+                                <select class="form-select" id="client_id" name="client_id" required>
+                                    <option value="">Select Customer</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Customer Packages</label>
+                                <div id="customerPackages" class="alert alert-info">
+                                    <small>Select a customer to view their active packages</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Services Section -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-spa me-2"></i>Services
+                                <small class="text-muted">(Package deductions will be applied automatically)</small>
+                            </h6>
+                            <div id="servicesContainer">
+                                <div class="service-row row mb-2">
+                                    <div class="col-md-5">
+                                        <select class="form-select" name="service_ids[]">
+                                            <option value="">Select Service</option>
+                                            {% for service in services %}
+                                            <option value="{{ service.id }}" data-price="{{ service.price }}">
+                                                {{ service.name }} - ₹{{ service.price }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" class="form-control" name="service_quantities[]" placeholder="Qty" min="1" value="1" step="0.5">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" class="form-control" name="appointment_ids[]" placeholder="Appointment ID (Optional)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-success btn-sm" onclick="addServiceRow()">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Inventory Section -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-shopping-bag me-2"></i>Products & Inventory
+                                <small class="text-muted">(Stock will be automatically reduced)</small>
+                            </h6>
+                            <div id="inventoryContainer">
+                                <div class="inventory-row row mb-2">
+                                    <div class="col-md-6">
+                                        <select class="form-select" name="inventory_ids[]">
+                                            <option value="">Select Product</option>
+                                            {% for item in inventory_items %}
+                                            <option value="{{ item.product_id }}" data-price="{{ item.selling_price }}" data-stock="{{ item.current_stock }}">
+                                                {{ item.name }} - ₹{{ item.selling_price }} (Stock: {{ item.current_stock }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" class="form-control" name="inventory_quantities[]" placeholder="Quantity" min="1" value="1" step="0.5">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-success btn-sm" onclick="addInventoryRow()">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Billing Calculations -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="tax_rate" class="form-label">Tax Rate (%)</label>
+                                <input type="number" class="form-control" id="tax_rate" name="tax_rate" value="18" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="discount_amount" class="form-label">Discount Amount (₹)</label>
+                                <input type="number" class="form-control" id="discount_amount" name="discount_amount" value="0" step="0.01" min="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="tips_amount" class="form-label">Tips (₹)</label>
+                                <input type="number" class="form-control" id="tips_amount" name="tips_amount" value="0" step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Additional notes for this invoice"></textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-calculator me-2"></i>Create Invoice with Package Deductions
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Invoices -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-file-invoice me-2"></i>Recent Invoices
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_invoices %}
+                        {% for invoice in recent_invoices %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                            <div>
+                                <div class="font-weight-bold">{{ invoice.invoice_number }}</div>
+                                <small class="text-muted">{{ invoice.customer.full_name }}</small>
+                                <br>
+                                <small class="text-muted">{{ invoice.invoice_date.strftime('%d %b %Y') }}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="font-weight-bold text-success">₹{{ "{:,.2f}".format(invoice.total_amount) }}</div>
+                                {% if invoice.packages_deduction > 0 %}
+                                <small class="text-success">
+                                    <i class="fas fa-gift"></i> ₹{{ "{:,.2f}".format(invoice.packages_deduction) }} saved
+                                </small>
+                                {% endif %}
+                                <br>
+                                <span class="badge badge-{{ 'success' if invoice.payment_status == 'paid' else 'warning' if invoice.payment_status == 'partial' else 'danger' }}">
+                                    {{ invoice.payment_status.title() }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('list_integrated_invoices') }}" class="btn btn-outline-primary btn-sm">
+                                View All Invoices
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-file-invoice fa-3x mb-3"></i>
+                            <p>No invoices created yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Modal -->
+<div class="modal fade" id="resultModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resultModalTitle">Invoice Result</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="resultModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="viewInvoiceBtn" class="btn btn-primary" style="display: none;">View Invoice</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add service row
+function addServiceRow() {
+    const container = document.getElementById('servicesContainer');
+    const newRow = container.children[0].cloneNode(true);
+    
+    // Clear values
+    newRow.querySelectorAll('select, input').forEach(input => {
+        if (input.type === 'number') {
+            input.value = input.name.includes('quantities') ? '1' : '';
+        } else {
+            input.value = '';
+        }
+    });
+    
+    // Change button to remove
+    const button = newRow.querySelector('button');
+    button.className = 'btn btn-danger btn-sm';
+    button.innerHTML = '<i class="fas fa-minus"></i>';
+    button.onclick = function() { this.closest('.service-row').remove(); };
+    
+    container.appendChild(newRow);
+}
+
+// Add inventory row
+function addInventoryRow() {
+    const container = document.getElementById('inventoryContainer');
+    const newRow = container.children[0].cloneNode(true);
+    
+    // Clear values
+    newRow.querySelectorAll('select, input').forEach(input => {
+        if (input.type === 'number') {
+            input.value = '1';
+        } else {
+            input.value = '';
+        }
+    });
+    
+    // Change button to remove
+    const button = newRow.querySelector('button');
+    button.className = 'btn btn-danger btn-sm';
+    button.innerHTML = '<i class="fas fa-minus"></i>';
+    button.onclick = function() { this.closest('.inventory-row').remove(); };
+    
+    container.appendChild(newRow);
+}
+
+// Load customer packages
+document.getElementById('client_id').addEventListener('change', function() {
+    const clientId = this.value;
+    const packagesDiv = document.getElementById('customerPackages');
+    
+    if (!clientId) {
+        packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
+        return;
+    }
+    
+    fetch(`/integrated-billing/customer-packages/${clientId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.packages && data.packages.length > 0) {
+                let html = '<strong>Active Packages:</strong><br>';
+                data.packages.forEach(pkg => {
+                    html += `<div class="badge badge-success me-1 mb-1">${pkg.package_name}</div>`;
+                    pkg.sessions.forEach(session => {
+                        if (session.sessions_remaining > 0) {
+                            html += `<small class="d-block">${session.service_name}: ${session.sessions_remaining} sessions left</small>`;
+                        }
+                    });
+                });
+                packagesDiv.innerHTML = html;
+            } else {
+                packagesDiv.innerHTML = '<small class="text-muted">No active packages</small>';
+            }
+        })
+        .catch(error => {
+            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages</small>';
+        });
+});
+
+// Handle form submission
+document.getElementById('billingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/integrated-billing/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+        const title = document.getElementById('resultModalTitle');
+        const body = document.getElementById('resultModalBody');
+        const viewBtn = document.getElementById('viewInvoiceBtn');
+        
+        if (data.success) {
+            title.textContent = 'Invoice Created Successfully!';
+            title.className = 'text-success';
+            
+            let message = `<div class="text-success">
+                <i class="fas fa-check-circle fa-2x mb-3"></i>
+                <h5>${data.message}</h5>
+                <p><strong>Total Amount:</strong> ₹${data.total_amount.toLocaleString()}</p>
+            `;
+            
+            if (data.deductions_applied > 0) {
+                message += `<p class="text-success"><strong>Package Deductions Applied:</strong> ₹${data.deductions_applied.toLocaleString()}</p>`;
+            }
+            
+            message += '</div>';
+            body.innerHTML = message;
+            
+            viewBtn.style.display = 'block';
+            viewBtn.href = `/integrated-billing/invoice/${data.invoice_id}`;
+            
+            // Reset form
+            this.reset();
+            document.getElementById('customerPackages').innerHTML = '<small>Select a customer to view their active packages</small>';
+            
+        } else {
+            title.textContent = 'Error Creating Invoice';
+            title.className = 'text-danger';
+            body.innerHTML = `<div class="text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>${data.message}</p>
+            </div>`;
+            viewBtn.style.display = 'none';
+        }
+        
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while creating the invoice.');
+    });
+});
+</script>
+{% endblock %}
