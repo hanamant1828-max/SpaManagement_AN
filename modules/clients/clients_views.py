@@ -408,3 +408,61 @@ def api_get_customers_with_faces():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/save_customer_face', methods=['POST'])
+@login_required
+def api_save_customer_face():
+    """Save face data for a customer"""
+    if not current_user.can_access('clients'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        face_image = data.get('face_image')
+
+        if not customer_id or not face_image:
+            return jsonify({'error': 'Customer ID and face image are required'}), 400
+
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Save face image
+        import base64
+        import os
+        from datetime import datetime
+
+        # Create face images directory if it doesn't exist
+        face_dir = 'static/face_images'
+        if not os.path.exists(face_dir):
+            os.makedirs(face_dir)
+
+        # Save the image
+        image_data = face_image.split(',')[1]  # Remove data:image/jpeg;base64, prefix
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        image_filename = f'customer_{customer_id}_{timestamp}.jpg'
+        image_path = os.path.join(face_dir, image_filename)
+
+        with open(image_path, 'wb') as f:
+            f.write(base64.b64decode(image_data))
+
+        # Update customer record
+        customer.face_image_url = f'/static/face_images/{image_filename}'
+        customer.facial_encoding = 'face_encoding_stored'  # Placeholder for face encoding
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Face data saved successfully for {customer.full_name}',
+            'customer_name': customer.full_name,
+            'face_image_url': customer.face_image_url
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error saving face data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to save face data: {str(e)}'
+        }), 500
