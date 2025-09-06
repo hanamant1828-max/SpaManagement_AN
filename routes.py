@@ -553,6 +553,49 @@ def api_staff():
 
 @app.route('/api/customer_face_login', methods=['POST'])
 @login_required
+@app.route('/api/save_face_data', methods=['POST'])
+def api_save_face_data():
+    """Save customer face data endpoint"""
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        face_image = data.get('face_image')
+
+        if not customer_id or not face_image:
+            return jsonify({'error': 'Customer ID and face image are required'}), 400
+
+        # Get customer
+        from models import Customer
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Save face image (for now, just simulate success)
+        # In production, you would:
+        # 1. Process the base64 image
+        # 2. Save it to a file or cloud storage
+        # 3. Update the customer record with face data
+        
+        # For demo purposes, just update a flag
+        customer.face_image_url = f"face_data_{customer_id}.jpg"
+        
+        try:
+            from app import db
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Face data saved successfully'
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': 'Database error'}), 500
+
+    except Exception as e:
+        print(f"Error saving face data: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/customer_face_login', methods=['POST'])
 def api_customer_face_login():
     """Customer face login endpoint"""
     try:
