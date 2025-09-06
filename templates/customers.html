@@ -41,6 +41,11 @@
                         <i class="fas fa-users-cog me-2"></i>Customer Management
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="face-capture-tab" data-bs-toggle="tab" data-bs-target="#face-capture" type="button" role="tab">
+                        <i class="fas fa-camera me-2"></i>Face Management
+                    </button>
+                </li>
             </ul>
         </div>
     </div>
@@ -199,6 +204,121 @@
                             {% endif %}
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Face Management Tab -->
+        <div class="tab-pane fade" id="face-capture" role="tabpanel">
+            <!-- Face Capture Section -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>Select Customer</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="faceClientSelect" class="form-label">Choose Customer</label>
+                                <select class="form-select" id="faceClientSelect">
+                                    <option value="">Select a customer...</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}" data-name="{{ customer.full_name }}" data-phone="{{ customer.phone }}">
+                                        {{ customer.full_name }} - {{ customer.phone }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div id="selectedFaceClientInfo" class="alert alert-info d-none">
+                                <strong>Selected Customer:</strong>
+                                <div id="selectedFaceClientDetails"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Face Capture</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="camera-container text-center mb-3">
+                                <video id="faceVideo" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></video>
+                                <canvas id="faceCanvas" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></canvas>
+                                <div id="faceCameraPlaceholder" class="bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 2px dashed #dee2e6; border-radius: 8px;">
+                                    <div>
+                                        <i class="fas fa-camera fa-3x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">Select customer and start camera</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button id="startFaceCamera" class="btn btn-success">
+                                    <i class="fas fa-video me-2"></i>Start Camera
+                                </button>
+                                <button id="captureFacePhoto" class="btn btn-primary" disabled>
+                                    <i class="fas fa-camera me-2"></i>Capture Photo
+                                </button>
+                                <button id="saveFaceData" class="btn btn-warning" disabled>
+                                    <i class="fas fa-save me-2"></i>Save Face Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition CRUD Table -->
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-friends me-2"></i>Registered Customer Faces
+                    </h6>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="refreshFaceTable()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="faceSearchInput" 
+                                       placeholder="Search by customer name or phone...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-outline-primary w-100" onclick="searchFaceData()">
+                                <i class="fas fa-search me-1"></i>Search
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Face Data Table -->
+                    <div class="table-responsive" id="faceTableContainer">
+                        <div class="text-center py-5">
+                            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">Loading face data...</p>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav aria-label="Face data pagination" id="facePagination" class="d-none">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" onclick="changeFacePage(-1)">Previous</a>
+                            </li>
+                            <li class="page-item active">
+                                <a class="page-link" href="#" onclick="changeFacePage(1)">1</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" onclick="changeFacePage(1)">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
