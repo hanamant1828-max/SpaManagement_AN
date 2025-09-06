@@ -109,7 +109,7 @@
                                             {% if package.package_type == 'prepaid' %}
                                                 <span class="badge bg-success">Prepaid</span>
                                                 {% if package.credit_amount %}
-                                                <br><small class="text-success">₹{{ "%.0f"|format(package.credit_amount) }} credit</small>
+                                                <br><small class="text-success">₹{{ "%.0f"|format(package.credit_amount or 0) }} credit</small>
                                                 {% endif %}
                                             {% elif package.package_type == 'service_package' %}
                                                 <span class="badge bg-info">Service Package</span>
@@ -118,12 +118,12 @@
                                             {% elif package.package_type == 'student_offer' %}
                                                 <span class="badge bg-secondary">Student Offer</span>
                                                 {% if package.student_discount %}
-                                                <br><small class="text-info">{{ package.student_discount }}% student discount</small>
+                                                <br><small class="text-info">{{ package.student_discount or 0 }}% student discount</small>
                                                 {% endif %}
                                             {% elif package.package_type == 'kitty_party' %}
                                                 <span class="badge bg-danger">Kitty Party</span>
                                                 {% if package.min_guests %}
-                                                <br><small class="text-muted">Min {{ package.min_guests }} guests</small>
+                                                <br><small class="text-muted">Min {{ package.min_guests or 1 }} guests</small>
                                                 {% endif %}
                                             {% elif package.package_type == 'yearly_membership' %}
                                                 <span class="badge bg-dark">Yearly Membership</span>
@@ -154,8 +154,8 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <strong>₹{{ "{:,.2f}"|format(package.total_price) }}</strong>
-                                            {% if package.discount_percentage > 0 %}
+                                            <strong>₹{{ "{:,.2f}"|format(package.total_price or 0) }}</strong>
+                                            {% if package.discount_percentage and package.discount_percentage > 0 %}
                                             <br><small class="text-success">{{ package.discount_percentage }}% off</small>
                                             {% endif %}
                                         </td>
@@ -969,6 +969,7 @@ function assignPackage() {
 </script>
 
 <script>
+        // Package filtering function
         function filterPackages(type) {
             const rows = document.querySelectorAll('.package-row');
             const buttons = document.querySelectorAll('[onclick^="filterPackages"]');
