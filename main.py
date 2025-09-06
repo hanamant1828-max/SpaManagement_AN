@@ -1,6 +1,13 @@
 from app import app
 import routes  # This already imports all the module views
 
+# Import integrated billing views
+try:
+    import modules.billing.integrated_billing_views
+    print("Integrated billing views loaded successfully")
+except ImportError as e:
+    print(f"Warning: Could not load integrated billing views: {e}")
+
 # Initialize default data and routes in a more robust way
 def initialize_app():
     try:

@@ -10,11 +10,9 @@ from models import (Customer, Service, Appointment, InventoryProduct,
 from datetime import datetime
 import json
 
-# Import enhanced billing models and engine
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from enhanced_billing_models import EnhancedInvoice, InvoiceItem, InvoicePayment, BillingEngine
+# Import enhanced billing models from main models file
+from models import EnhancedInvoice, InvoiceItem, InvoicePayment
+from billing_engine import BillingEngine
 
 @app.route('/integrated-billing')
 @login_required
