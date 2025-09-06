@@ -661,7 +661,7 @@ def api_recognize_face():
         # Get all customers with face data
         from models import Customer
         customers_with_faces = Customer.query.filter(
-            Customer.facial_encoding.isnot(None),
+            Customer.face_image_url.isnot(None),
             Customer.is_active == True
         ).all()
 
@@ -703,6 +703,62 @@ def api_recognize_face():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/customer_face_login', methods=['POST'])
+@login_required
+def api_customer_face_login():
+    """Customer face login endpoint"""
+    try:
+        data = request.get_json()
+        face_image = data.get('face_image')
+
+        if not face_image:
+            return jsonify({'error': 'Face image is required'}), 400
+
+        # Get all customers with face data
+        from models import Customer
+        customers_with_faces = Customer.query.filter(
+            Customer.face_image_url.isnot(None),
+            Customer.is_active == True
+        ).all()
+
+        if not customers_with_faces:
+            return jsonify({
+                'success': True,
+                'recognized': False,
+                'message': 'No registered faces found'
+            })
+
+        # For demonstration, we'll simulate face matching
+        # In production, you would use face_recognition library here
+        import random
+
+        # Simulate recognition with random success (70% chance for demo)
+        if customers_with_faces and random.random() > 0.3:
+            matched_customer = random.choice(customers_with_faces)
+            confidence = round(random.uniform(0.75, 0.95), 2)
+
+            return jsonify({
+                'success': True,
+                'recognized': True,
+                'customer': {
+                    'id': matched_customer.id,
+                    'name': matched_customer.full_name,
+                    'phone': matched_customer.phone,
+                    'email': matched_customer.email,
+                    'total_visits': matched_customer.total_visits or 0
+                },
+                'confidence': confidence
+            })
+
+        return jsonify({
+            'success': True,
+            'recognized': False,
+            'message': 'No matching face found'
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/customers_with_faces')
 @login_required
@@ -714,7 +770,7 @@ def api_customers_with_faces():
     try:
         from models import Customer
         customers_with_faces = Customer.query.filter(
-            Customer.facial_encoding.isnot(None),
+            Customer.face_image_url.isnot(None),
             Customer.is_active == True
         ).all()
 

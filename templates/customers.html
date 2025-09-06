@@ -211,48 +211,42 @@
         <!-- Face Recognition Tab -->
         <div class="tab-pane fade" id="face-capture" role="tabpanel">
             <!-- Face Capture Section -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>Select Customer</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="faceClientSelect" class="form-label">Choose Customer</label>
-                                <select class="form-select" id="faceClientSelect">
-                                    <option value="">Select a customer...</option>
-                                    {% for customer in customers %}
-                                    <option value="{{ customer.id }}" data-name="{{ customer.full_name }}" data-phone="{{ customer.phone }}">
-                                        {{ customer.full_name }} - {{ customer.phone }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div id="selectedFaceClientInfo" class="alert alert-info d-none">
-                                <strong>Selected Customer:</strong>
-                                <div id="selectedFaceClientDetails"></div>
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-camera me-2"></i>Face Capture System
+                    </h6>
+                    <small class="text-muted">Select a customer and capture their face for recognition</small>
+                </div>
+                <div class="card-body">
+                    <!-- Customer Selection for Face Capture -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Select Customer for Face Capture</label>
+                            <select class="form-select" id="faceCustomerSelect">
+                                <option value="">Choose a customer...</option>
+                            </select>
+                            <div class="mt-2" id="selectedFaceClientInfo" style="display: none;">
+                                <div class="alert alert-info">
+                                    <div id="selectedFaceClientDetails"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card border-success">
-                        <div class="card-header bg-success text-white">
-                            <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Face Capture</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="camera-container text-center mb-3">
-                                <video id="faceVideo" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></video>
-                                <canvas id="faceCanvas" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></canvas>
-                                <div id="faceCameraPlaceholder" class="bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 2px dashed #dee2e6; border-radius: 8px;">
-                                    <div>
-                                        <i class="fas fa-camera fa-3x text-muted mb-2"></i>
-                                        <p class="text-muted mb-0">Select customer and start camera</p>
-                                    </div>
+
+                    <!-- Camera and Capture Area -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="camera-container border rounded p-3" style="min-height: 250px;">
+                                <div class="camera-placeholder text-center" id="faceCameraPlaceholder">
+                                    <i class="fas fa-camera fa-3x text-muted"></i>
+                                    <p class="mt-2 text-muted">Camera will appear here</p>
                                 </div>
+                                <video id="faceVideo" width="300" height="200" style="display: none;" autoplay></video>
+                                <canvas id="faceCanvas" width="300" height="200" style="display: none;"></canvas>
                             </div>
-                            <div class="d-grid gap-2">
+
+                            <div class="mt-3">
                                 <button id="startFaceCamera" class="btn btn-success">
                                     <i class="fas fa-video me-2"></i>Start Camera
                                 </button>
@@ -262,7 +256,38 @@
                                 <button id="saveFaceData" class="btn btn-warning" disabled>
                                     <i class="fas fa-save me-2"></i>Save Face Data
                                 </button>
+                                <button id="retakeFacePhoto" class="btn btn-secondary" disabled>
+                                    <i class="fas fa-redo me-2"></i>Retake
+                                </button>
                             </div>
+
+                            <!-- Status Messages -->
+                            <div id="faceStatusMessages" class="mt-3"></div>
+                        </div>
+
+                        <!-- Face Recognition Testing -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Test Face Recognition</h6>
+                            <div class="camera-container border rounded p-3" style="min-height: 250px;">
+                                <div class="camera-placeholder text-center" id="recognitionCameraPlaceholder">
+                                    <i class="fas fa-search fa-3x text-warning"></i>
+                                    <p class="mt-2 text-muted">Recognition camera</p>
+                                </div>
+                                <video id="recognitionVideo" width="300" height="200" style="display: none;" autoplay></video>
+                                <canvas id="recognitionCanvas" width="300" height="200" style="display: none;"></canvas>
+                            </div>
+
+                            <div class="mt-3">
+                                <button id="startRecognitionCamera" class="btn btn-warning">
+                                    <i class="fas fa-video me-2"></i>Start Recognition
+                                </button>
+                                <button id="testRecognition" class="btn btn-info" disabled>
+                                    <i class="fas fa-search me-2"></i>Test Recognition
+                                </button>
+                            </div>
+
+                            <!-- Recognition Results -->
+                            <div id="recognitionResults" class="mt-3"></div>
                         </div>
                     </div>
                 </div>
@@ -548,25 +573,23 @@
 {% block extra_scripts %}
 <!-- Customer management specific scripts -->
 <script>
-// Face Capture Variables
-let faceStream = null;
+// Face capture variables
 let selectedFaceClientId = null;
-let capturedFaceImageData = null;
-
-// Initialize face capture functionality when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing face capture...');
-    initializeFaceCapture();
-});
+let faceStream = null;
+let recognitionStream = null;
+let capturedFaceImage = null;
 
 function initializeFaceCapture() {
     console.log('Initializing face capture functionality...');
-    
+
+    // Load customers for face selection
+    loadCustomersForFaceCapture();
+    loadFaceTable();
+
     // Customer selection for face capture
-    const faceClientSelect = document.getElementById('faceClientSelect');
-    console.log('Face client select element:', faceClientSelect);
-    if (faceClientSelect) {
-        faceClientSelect.addEventListener('change', function() {
+    const faceCustomerSelect = document.getElementById('faceCustomerSelect');
+    if (faceCustomerSelect) {
+        faceCustomerSelect.addEventListener('change', function() {
             const select = this;
             const selectedOption = select.options[select.selectedIndex];
 
@@ -585,460 +608,520 @@ function initializeFaceCapture() {
 
                 const infoElement = document.getElementById('selectedFaceClientInfo');
                 if (infoElement) {
-                    infoElement.classList.remove('d-none');
+                    infoElement.style.display = 'block';
                 }
             } else {
                 selectedFaceClientId = null;
                 const infoElement = document.getElementById('selectedFaceClientInfo');
                 if (infoElement) {
-                    infoElement.classList.add('d-none');
+                    infoElement.style.display = 'none';
                 }
             }
         });
     }
 
-    // Start face camera
-    const startFaceCameraBtn = document.getElementById('startFaceCamera');
-    console.log('Start camera button element:', startFaceCameraBtn);
-    if (startFaceCameraBtn) {
-        console.log('Adding click listener to start camera button');
-        startFaceCameraBtn.addEventListener('click', startFaceCamera);
-    }
+    // Face capture event listeners
+    document.getElementById('startFaceCamera')?.addEventListener('click', startFaceCamera);
+    document.getElementById('captureFacePhoto')?.addEventListener('click', captureFacePhoto);
+    document.getElementById('saveFaceData')?.addEventListener('click', saveFaceData);
+    document.getElementById('retakeFacePhoto')?.addEventListener('click', retakeFacePhoto);
 
-    // Capture face photo
-    const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
-    console.log('Capture photo button element:', captureFacePhotoBtn);
-    if (captureFacePhotoBtn) {
-        console.log('Adding click listener to capture photo button');
-        captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
-    }
+    // Recognition event listeners
+    document.getElementById('startRecognitionCamera')?.addEventListener('click', startRecognitionCamera);
+    document.getElementById('testRecognition')?.addEventListener('click', testRecognition);
+}
 
-    // Save face data
-    const saveFaceDataBtn = document.getElementById('saveFaceData');
-    console.log('Save face data button element:', saveFaceDataBtn);
-    if (saveFaceDataBtn) {
-        console.log('Adding click listener to save face data button');
-        saveFaceDataBtn.addEventListener('click', saveFaceData);
-    }
+function loadCustomersForFaceCapture() {
+    const selectElement = document.getElementById('faceCustomerSelect');
+    if (!selectElement) return;
+
+    fetch('/api/customers')
+        .then(response => response.json())
+        .then(data => {
+            if (data.customers) {
+                data.customers.forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.id;
+                    option.textContent = `${customer.full_name} (${customer.phone})`;
+                    option.dataset.name = customer.full_name;
+                    option.dataset.phone = customer.phone;
+                    selectElement.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading customers:', error);
+            // Optionally display an error message to the user
+        });
 }
 
 async function startFaceCamera() {
-    console.log('Start face camera clicked, selected client ID:', selectedFaceClientId);
-    if (!selectedFaceClientId) {
-        alert('Please select a customer first');
+    if (selectedFaceClientId === null) {
+        alert('Please select a customer first.');
         return;
     }
 
     try {
-        faceStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                width: 300, 
-                height: 200,
-                facingMode: 'user'
-            } 
-        });
+        faceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        const videoElement = document.getElementById('faceVideo');
+        const canvasElement = document.getElementById('faceCanvas');
+        const placeholderElement = document.getElementById('faceCameraPlaceholder');
+        const startButton = document.getElementById('startFaceCamera');
+        const captureButton = document.getElementById('captureFacePhoto');
+        const retakeButton = document.getElementById('retakeFacePhoto');
 
-        const video = document.getElementById('faceVideo');
-        if (video) {
-            video.srcObject = faceStream;
-            video.play();
+        if (videoElement && canvasElement && placeholderElement) {
+            videoElement.srcObject = faceStream;
+            videoElement.style.display = 'block';
+            canvasElement.style.display = 'none'; // Hide canvas initially
+            placeholderElement.style.display = 'none'; // Hide placeholder
 
-            const placeholder = document.getElementById('faceCameraPlaceholder');
-            if (placeholder) {
-                placeholder.style.display = 'none';
-            }
-            video.style.display = 'block';
-
-            const captureBtn = document.getElementById('captureFacePhoto');
-            if (captureBtn) {
-                captureBtn.disabled = false;
-            }
-
-            const startBtn = document.getElementById('startFaceCamera');
-            if (startBtn) {
-                startBtn.disabled = true;
-            }
+            if (startButton) startButton.disabled = true;
+            if (captureButton) captureButton.disabled = false;
+            if (retakeButton) retakeButton.disabled = true; // Disable retake until photo is captured
         }
-
     } catch (err) {
         console.error('Error accessing camera:', err);
-        alert('Could not access camera. Please check permissions and try again.');
+        alert('Failed to access camera. Please check permissions.');
     }
 }
 
 function captureFacePhoto() {
-    console.log('Capture face photo clicked');
-    const video = document.getElementById('faceVideo');
-    const canvas = document.getElementById('faceCanvas');
+    const videoElement = document.getElementById('faceVideo');
+    const canvasElement = document.getElementById('faceCanvas');
+    const captureButton = document.getElementById('captureFacePhoto');
+    const retakeButton = document.getElementById('retakeFacePhoto');
+    const saveButton = document.getElementById('saveFaceData');
 
-    if (!video || !canvas) {
-        alert('Camera elements not found');
-        return;
+    if (videoElement && canvasElement) {
+        const context = canvasElement.getContext('2d');
+        
+        // Set canvas dimensions to match video for accurate capture
+        canvasElement.width = videoElement.videoWidth || 300;
+        canvasElement.height = videoElement.videoHeight || 200;
+        
+        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+        // Show canvas and hide video
+        canvasElement.style.display = 'block';
+        videoElement.style.display = 'none';
+
+        // Convert canvas content to data URL
+        capturedFaceImage = canvasElement.toDataURL('image/jpeg', 0.8);
+
+        if (captureButton) captureButton.disabled = true;
+        if (retakeButton) retakeButton.disabled = false;
+        if (saveButton) saveButton.disabled = false;
     }
+}
 
-    const ctx = canvas.getContext('2d');
+function retakeFacePhoto() {
+    const videoElement = document.getElementById('faceVideo');
+    const canvasElement = document.getElementById('faceCanvas');
+    const captureButton = document.getElementById('captureFacePhoto');
+    const retakeButton = document.getElementById('retakeFacePhoto');
+    const saveButton = document.getElementById('saveFaceData');
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth || 300;
-    canvas.height = video.videoHeight || 200;
+    if (videoElement && canvasElement) {
+        canvasElement.style.display = 'none'; // Hide canvas
+        videoElement.style.display = 'block'; // Show video again
 
-    // Draw video frame to canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Show captured image
-    canvas.style.display = 'block';
-    video.style.display = 'none';
-
-    // Get image data as base64
-    capturedFaceImageData = canvas.toDataURL('image/jpeg', 0.8);
-
-    const saveFaceBtn = document.getElementById('saveFaceData');
-    if (saveFaceBtn) {
-        saveFaceBtn.disabled = false;
-    }
-
-    const captureBtn = document.getElementById('captureFacePhoto');
-    if (captureBtn) {
-        captureBtn.disabled = true;
+        if (captureButton) captureButton.disabled = false; // Re-enable capture
+        if (retakeButton) retakeButton.disabled = true;  // Disable retake until new photo is captured
+        if (saveButton) saveButton.disabled = true;   // Disable save
+        capturedFaceImage = null; // Clear captured image
     }
 }
 
 async function saveFaceData() {
-    console.log('Save face data clicked, client ID:', selectedFaceClientId, 'has image data:', !!capturedFaceImageData);
-    if (!selectedFaceClientId || !capturedFaceImageData) {
-        alert('Please select a customer and capture a photo first');
+    if (!selectedFaceClientId || !capturedFaceImage) {
+        alert('Please select a customer and capture a photo first.');
         return;
     }
 
-    // Show loading state
-    const saveBtn = document.getElementById('saveFaceData');
-    if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
-    }
+    const saveButton = document.getElementById('saveFaceData');
+    const retakeButton = document.getElementById('retakeFacePhoto');
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.value || document.querySelector('[name=csrf_token]')?.value;
+
+    if (saveButton) saveButton.disabled = true;
+    if (retakeButton) retakeButton.disabled = true;
+    
+    // Update button text to indicate saving
+    if (saveButton) saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
 
     try {
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
-                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
-
-        const requestBody = {
-            client_id: parseInt(selectedFaceClientId),
-            face_image: capturedFaceImageData
-        };
-
-        console.log('Sending face data for client ID:', selectedFaceClientId);
-
         const response = await fetch('/api/save_face', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(csrfToken && {'X-CSRFToken': csrfToken})
+                'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+                client_id: parseInt(selectedFaceClientId),
+                face_image: capturedFaceImage
+            })
         });
 
         const result = await response.json();
 
         if (response.ok && result.success) {
-            alert(`Face data saved successfully for ${result.client_name}!`);
-            resetFaceCamera();
-            refreshFaceTable(); // Refresh the face data table
+            alert(`${result.message || 'Face data saved successfully!'}`);
+            resetFaceCaptureControls();
+            loadFaceTable(); // Refresh the table of registered faces
         } else {
-            console.error('Server error:', result);
-            alert(`Error saving face data: ${result.error || 'Unknown error'}`);
+            alert(`Error: ${result.error || 'Could not save face data.'}`);
+            // Re-enable buttons if saving failed
+            if (saveButton) saveButton.disabled = false;
+            if (retakeButton) retakeButton.disabled = false;
+            if (saveButton) saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
+        }
+    } catch (error) {
+        console.error('Network error saving face data:', error);
+        alert('Network error occurred while saving face data.');
+        // Re-enable buttons on network error
+        if (saveButton) saveButton.disabled = false;
+        if (retakeButton) retakeButton.disabled = false;
+        if (saveButton) saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
+    }
+}
+
+function resetFaceCaptureControls() {
+    stopMediaStream(faceStream); // Stop the face capture stream
+
+    const videoElement = document.getElementById('faceVideo');
+    const canvasElement = document.getElementById('faceCanvas');
+    const placeholderElement = document.getElementById('faceCameraPlaceholder');
+    const startButton = document.getElementById('startFaceCamera');
+    const captureButton = document.getElementById('captureFacePhoto');
+    const retakeButton = document.getElementById('retakeFacePhoto');
+    const saveButton = document.getElementById('saveFaceData');
+    const faceCustomerSelect = document.getElementById('faceCustomerSelect');
+
+    if (videoElement) videoElement.style.display = 'none';
+    if (canvasElement) canvasElement.style.display = 'none';
+    if (placeholderElement) placeholderElement.style.display = 'block';
+
+    if (startButton) startButton.disabled = false;
+    if (captureButton) captureButton.disabled = true;
+    if (retakeButton) retakeButton.disabled = true;
+    if (saveButton) saveButton.disabled = true;
+
+    capturedFaceImage = null;
+    selectedFaceClientId = null; // Reset selected customer
+    if (faceCustomerSelect) faceCustomerSelect.value = ''; // Reset select dropdown
+    
+    // Hide selected client info
+    const infoElement = document.getElementById('selectedFaceClientInfo');
+    if (infoElement) infoElement.style.display = 'none';
+}
+
+// --- Face Recognition Testing ---
+
+async function startRecognitionCamera() {
+    try {
+        recognitionStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        const videoElement = document.getElementById('recognitionVideo');
+        const canvasElement = document.getElementById('recognitionCanvas');
+        const placeholderElement = document.getElementById('recognitionCameraPlaceholder');
+        const startButton = document.getElementById('startRecognitionCamera');
+        const testButton = document.getElementById('testRecognition');
+
+        if (videoElement && canvasElement && placeholderElement) {
+            videoElement.srcObject = recognitionStream;
+            videoElement.style.display = 'block';
+            canvasElement.style.display = 'none'; // Hide canvas initially
+            placeholderElement.style.display = 'none'; // Hide placeholder
+
+            if (startButton) startButton.disabled = true;
+            if (testButton) testButton.disabled = false;
         }
     } catch (err) {
-        console.error('Network error saving face:', err);
-        alert(`Network error: ${err.message}`);
-    } finally {
-        // Reset button state
-        const saveBtn = document.getElementById('saveFaceData');
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Face Data';
+        console.error('Error accessing camera for recognition:', err);
+        alert('Failed to access camera for recognition. Please check permissions.');
+    }
+}
+
+async function testRecognition() {
+    if (!recognitionStream) {
+        alert('Please start the recognition camera first.');
+        return;
+    }
+
+    const videoElement = document.getElementById('recognitionVideo');
+    const canvasElement = document.getElementById('recognitionCanvas');
+    const recognitionResultsDiv = document.getElementById('recognitionResults');
+    const testButton = document.getElementById('testRecognition');
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.value || document.querySelector('[name=csrf_token]')?.value;
+
+    if (!videoElement || !canvasElement) return;
+
+    const context = canvasElement.getContext('2d');
+    canvasElement.width = videoElement.videoWidth || 300;
+    canvasElement.height = videoElement.videoHeight || 200;
+    context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+    const imageData = canvasElement.toDataURL('image/jpeg', 0.8);
+
+    if (testButton) testButton.disabled = true;
+    if (recognitionResultsDiv) recognitionResultsDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Processing...</p>';
+
+    try {
+        const response = await fetch('/api/recognize_face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ face_image: imageData })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            if (recognitionResultsDiv) {
+                recognitionResultsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Match Found:</strong> ${result.customer_name || 'Unknown Customer'}<br>
+                        Confidence: ${result.confidence ? result.confidence.toFixed(2) : 'N/A'}
+                    </div>
+                `;
+            }
+        } else {
+            if (recognitionResultsDiv) {
+                recognitionResultsDiv.innerHTML = `<div class="alert alert-danger">${result.error || 'No match found or an error occurred.'}</div>`;
+            }
         }
+    } catch (error) {
+        console.error('Network error during recognition:', error);
+        if (recognitionResultsDiv) recognitionResultsDiv.innerHTML = '<div class="alert alert-danger">Network error occurred.</div>';
+    } finally {
+        if (testButton) testButton.disabled = false;
     }
 }
 
-// Reset face camera and controls
-function resetFaceCamera() {
-    if (faceStream) {
-        faceStream.getTracks().forEach(track => track.stop());
-        faceStream = null;
+function stopMediaStream(stream) {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
     }
-
-    const video = document.getElementById('faceVideo');
-    const canvas = document.getElementById('faceCanvas');
-    const placeholder = document.getElementById('faceCameraPlaceholder');
-    const startBtn = document.getElementById('startFaceCamera');
-    const captureBtn = document.getElementById('captureFacePhoto');
-    const saveBtn = document.getElementById('saveFaceData');
-
-    if (video) video.style.display = 'none';
-    if (canvas) canvas.style.display = 'none';
-    if (placeholder) placeholder.style.display = 'flex';
-    if (startBtn) startBtn.disabled = false;
-    if (captureBtn) captureBtn.disabled = true;
-    if (saveBtn) saveBtn.disabled = true;
-
-    capturedFaceImageData = null;
 }
 
-// Face Data Management Variables
-let currentFacePage = 1;
-let faceSearchQuery = '';
-let allFaceData = [];
+// --- Face Table Management ---
 
-// Load registered faces with table view
-function loadRegisteredFaces() {
+function loadFaceTable() {
+    const faceTableContainer = document.getElementById('faceTableContainer');
+    if (!faceTableContainer) return;
+
+    faceTableContainer.innerHTML = `
+        <div class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+            <p class="text-muted">Loading face data...</p>
+        </div>
+    `;
+
     fetch('/api/customers_with_faces')
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                allFaceData = data.customers || [];
-                displayFaceTable(allFaceData);
+            if (data.success && data.customers) {
+                displayFaceTable(data.customers);
             } else {
-                showEmptyFaceTable('Error loading face data');
+                displayFaceTable([]); // Show empty table if no data or error
+                console.error('Error fetching face data:', data.error);
             }
         })
-        .catch(err => {
-            console.error('Error loading registered faces:', err);
-            showEmptyFaceTable('Error loading face data');
+        .catch(error => {
+            console.error('Network error fetching face data:', error);
+            displayFaceTable([]); // Show empty table on network error
         });
 }
 
-// Display face data in table format
-function displayFaceTable(faceData) {
-    const container = document.getElementById('faceTableContainer');
-    let tableHtml = '';
+function displayFaceTable(customers) {
+    const faceTableContainer = document.getElementById('faceTableContainer');
+    if (!faceTableContainer) return;
 
-    if (faceData.length === 0) {
-        tableHtml = `
+    if (customers.length === 0) {
+        faceTableContainer.innerHTML = `
             <div class="text-center py-5">
                 <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
                 <h5>No face data registered yet</h5>
                 <p class="text-muted">Start by selecting a customer and capturing their face data above.</p>
             </div>
         `;
-    } else {
-        tableHtml = `
-            <table class="table table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>Photo</th>
-                        <th>Customer Name</th>
-                        <th>Phone</th>
-                        <th>Email</th>
-                        <th>Registration Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        faceData.forEach(customer => {
-            const registrationDate = customer.face_registration_date ? 
-                new Date(customer.face_registration_date).toLocaleDateString() : 
-                'Unknown';
-
-            tableHtml += `
-                <tr>
-                    <td>
-                        ${customer.face_image_url ? 
-                            `<img src="${customer.face_image_url}" alt="${customer.full_name}" 
-                                 class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">` :
-                            `<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
-                                 style="width: 50px; height: 50px;">
-                                <i class="fas fa-user text-white"></i>
-                            </div>`
-                        }
-                    </td>
-                    <td>
-                        <div>
-                            <strong>${customer.full_name}</strong>
-                            ${customer.is_vip ? '<span class="badge bg-warning ms-2">VIP</span>' : ''}
-                        </div>
-                    </td>
-                    <td>${customer.phone}</td>
-                    <td>${customer.email || '-'}</td>
-                    <td>${registrationDate}</td>
-                    <td>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary" 
-                                    onclick="viewFaceDetails(${customer.id})"
-                                    title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" 
-                                    onclick="updateFaceData(${customer.id})"
-                                    title="Update Face">
-                                <i class="fas fa-camera"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" 
-                                    onclick="removeFaceData(${customer.id})"
-                                    title="Remove Face">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        tableHtml += `
-                </tbody>
-            </table>
-        `;
-    }
-
-    container.innerHTML = tableHtml;
-}
-
-// Show empty table message
-function showEmptyFaceTable(message) {
-    const container = document.getElementById('faceTableContainer');
-    container.innerHTML = `
-        <div class="text-center py-5">
-            <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
-            <h5>${message}</h5>
-            <p class="text-muted">Start by selecting a customer and capturing their face data above.</p>
-        </div>
-    `;
-}
-
-// Search face data
-function searchFaceData() {
-    const searchInput = document.getElementById('faceSearchInput');
-    faceSearchQuery = searchInput.value.trim().toLowerCase();
-
-    if (faceSearchQuery === '') {
-        displayFaceTable(allFaceData);
         return;
     }
 
-    const filteredData = allFaceData.filter(customer => 
-        customer.full_name.toLowerCase().includes(faceSearchQuery) ||
-        customer.phone.includes(faceSearchQuery) ||
-        (customer.email && customer.email.toLowerCase().includes(faceSearchQuery))
-    );
-
-    displayFaceTable(filteredData);
-}
-
-// Refresh face table
-function refreshFaceTable() {
-    const container = document.getElementById('faceTableContainer');
-    container.innerHTML = `
-        <div class="text-center py-5">
-            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-            <p class="text-muted">Loading face data...</p>
-        </div>
+    let tableHtml = `
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Photo</th>
+                    <th>Customer Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Registration Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
     `;
-    loadRegisteredFaces();
+
+    customers.forEach(customer => {
+        const registrationDate = customer.face_registration_date ? 
+            new Date(customer.face_registration_date).toLocaleDateString() : 
+            'Unknown';
+        
+        const photoHtml = customer.face_image_url 
+            ? `<img src="${customer.face_image_url}" alt="${customer.full_name}" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">`
+            : `<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="fas fa-user text-white"></i></div>`;
+
+        tableHtml += `
+            <tr>
+                <td>${photoHtml}</td>
+                <td>${customer.full_name}</td>
+                <td>${customer.phone}</td>
+                <td>${customer.email || '-'}</td>
+                <td>${registrationDate}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewFaceDetails(${customer.id})" title="View Details"><i class="fas fa-eye"></i></button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="updateFaceData(${customer.id})" title="Update Face"><i class="fas fa-camera"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeFaceData(${customer.id})" title="Remove Face"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHtml += `
+            </tbody>
+        </table>
+    `;
+    faceTableContainer.innerHTML = tableHtml;
 }
 
-// View face details
-function viewFaceDetails(customerId) {
-    const customer = allFaceData.find(c => c.id === customerId);
-    if (!customer) return;
-
-    alert(`Face Details for ${customer.full_name}\n\nPhone: ${customer.phone}\nEmail: ${customer.email || 'Not provided'}\nRegistration: ${customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown'}`);
-}
-
-// Update face data
-function updateFaceData(customerId) {
-    const customer = allFaceData.find(c => c.id === customerId);
-    if (!customer) return;
-
-    if (confirm(`Update face data for ${customer.full_name}?\n\nThis will replace the existing face registration.`)) {
-        // Set the customer in the face capture section
-        const faceSelect = document.getElementById('faceClientSelect');
-        faceSelect.value = customerId;
-
-        // Trigger change event to update UI
-        const event = new Event('change');
-        faceSelect.dispatchEvent(event);
-
-        // Scroll to face capture section
-        document.querySelector('#face-capture .card:first-child').scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
+function searchFaceData() {
+    const searchInput = document.getElementById('faceSearchInput');
+    const query = searchInput.value.trim().toLowerCase();
+    
+    // Re-fetch or filter locally if data is already loaded
+    // For simplicity, let's assume we have all data loaded in `allFaceData` or re-fetch
+    fetch('/api/customers_with_faces') // Re-fetching for this example
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.customers) {
+                const filteredCustomers = data.customers.filter(customer => 
+                    customer.full_name.toLowerCase().includes(query) ||
+                    customer.phone.includes(query) ||
+                    (customer.email && customer.email.toLowerCase().includes(query))
+                );
+                displayFaceTable(filteredCustomers);
+            } else {
+                displayFaceTable([]);
+            }
+        })
+        .catch(error => {
+            console.error('Error during face search:', error);
+            displayFaceTable([]);
         });
-
-        alert('Please capture a new face photo for this customer in the section above.');
-    }
 }
 
-// Remove face data
+function refreshFaceTable() {
+    loadFaceTable();
+}
+
+function viewFaceDetails(customerId) {
+    // Fetch detailed info if needed, or use cached data
+    fetch('/api/customers_with_faces') // Simplified: re-fetch to get details
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.customers) {
+                const customer = data.customers.find(c => c.id === customerId);
+                if (customer) {
+                    alert(`Customer: ${customer.full_name}\nPhone: ${customer.phone}\nEmail: ${customer.email || 'N/A'}\nRegistered: ${customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'N/A'}`);
+                }
+            }
+        });
+}
+
+function updateFaceData(customerId) {
+    // Logic to prompt user to retake photo for a specific customer
+    alert(`Update face for customer ID: ${customerId}. Please select them from the dropdown and capture a new photo.`);
+    
+    const selectElement = document.getElementById('faceCustomerSelect');
+    if (selectElement) {
+        selectElement.value = customerId;
+        selectElement.dispatchEvent(new Event('change')); // Trigger change event to update UI
+    }
+    
+    // Optionally scroll to the face capture section
+    document.getElementById('face-capture').scrollIntoView({ behavior: 'smooth' });
+}
+
 function removeFaceData(clientId) {
     if (confirm('Are you sure you want to remove this face registration?')) {
-        const csrfToken = document.querySelector('[name=csrf_token]')?.value || 
-                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
-
+        const csrfToken = document.querySelector('meta[name=csrf-token]')?.value || document.querySelector('[name=csrf_token]')?.value;
         fetch(`/api/remove_face/${clientId}`, {
             method: 'DELETE',
-            headers: {
-                ...(csrfToken && {'X-CSRFToken': csrfToken})
-            }
-        }).then(async response => {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(async response => {
             const result = await response.json();
             if (response.ok && result.success) {
-                alert('Face data removed successfully');
+                alert('Face data removed successfully.');
                 refreshFaceTable();
             } else {
-                alert(`Error removing face data: ${result.error || 'Unknown error'}`);
+                alert(`Error: ${result.error || 'Could not remove face data.'}`);
             }
-        }).catch(err => {
-            console.error('Error removing face:', err);
-            alert(`Network error: ${err.message}`);
+        })
+        .catch(error => {
+            console.error('Network error removing face data:', error);
+            alert('Network error occurred while removing face data.');
         });
     }
 }
 
-// Load registered faces when the face tab is shown
-document.getElementById('face-capture-tab').addEventListener('shown.bs.tab', function() {
-    refreshFaceTable();
+// Load face table when the face recognition tab is shown
+document.getElementById('face-capture-tab').addEventListener('shown.bs.tab', function (event) {
+    loadFaceTable();
 });
 
-// Add search functionality on Enter key
-document.getElementById('faceSearchInput').addEventListener('keypress', function(e) {
+// Add event listener for Enter key on search input
+document.getElementById('faceSearchInput')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         searchFaceData();
     }
 });
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', function() {
-    resetFaceCamera();
+// Cleanup media streams when the page is unloaded
+window.addEventListener('beforeunload', () => {
+    stopMediaStream(faceStream);
+    stopMediaStream(recognitionStream);
 });
+
 
 // Standard customer management functions (view, edit, delete, etc.)
 function viewCustomer(customerId) {
-    // Implementation for viewing customer details
-    console.log('View customer:', customerId);
+    console.log('Viewing customer:', customerId);
+    // Fetch and display customer details in #customerDetails modal body
 }
 
 function editCustomer(customerId) {
-    // Implementation for editing customer
-    console.log('Edit customer:', customerId);
+    console.log('Editing customer:', customerId);
+    // Fetch customer data and populate #editCustomerModal form
 }
 
 function deleteCustomer(customerId, customerName) {
-    if (confirm(`Are you sure you want to delete customer "${customerName}"?`)) {
-        // Implementation for deleting customer
-        console.log('Delete customer:', customerId);
-    }
+    console.log(`Deleting customer: ${customerId} (${customerName})`);
+    // Confirmation and then API call to delete
 }
 
 function bookAppointment(customerId) {
-    // Implementation for booking appointment
-    console.log('Book appointment for customer:', customerId);
+    console.log('Booking appointment for customer:', customerId);
+    // Logic to open booking modal or redirect
 }
 
 function bookAppointmentFromModal() {
-    // Implementation for booking from modal
-    console.log('Book appointment from modal');
+    console.log('Booking appointment from modal');
+    // Get customer ID from context and proceed with booking
 }
 </script>
 
@@ -1072,6 +1155,28 @@ function bookAppointmentFromModal() {
     background-color: var(--bs-primary);
     color: white !important;
     border-color: var(--bs-primary);
+}
+
+.camera-container {
+    position: relative;
+    background-color: #f8f9fa; /* Light background for placeholder */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* Ensures video/canvas stay within bounds */
+}
+
+.camera-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+}
+
+#faceVideo, #faceCanvas, #recognitionVideo, #recognitionCanvas {
+    display: block; /* Ensure elements are visible when active */
 }
 </style>
 {% endblock %}
