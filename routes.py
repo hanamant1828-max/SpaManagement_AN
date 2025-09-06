@@ -551,9 +551,8 @@ def api_staff():
 
 
 
-@app.route('/api/customer_face_login', methods=['POST'])
-@login_required
 @app.route('/api/save_face_data', methods=['POST'])
+@login_required
 def api_save_face_data():
     """Save customer face data endpoint"""
     try:
