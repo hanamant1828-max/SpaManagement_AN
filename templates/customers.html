@@ -975,7 +975,7 @@
 {% block extra_scripts %}
 <!-- Customer management specific scripts -->
 <script>
-        // Face capture functionality - Simplified and Working
+        // Face capture functionality - Fixed
         let currentCustomerId = null;
         let faceVideo = null;
         let faceCanvas = null;
@@ -1047,6 +1047,7 @@
                 console.log('Camera access granted');
 
                 faceVideo.srcObject = faceStream;
+                await faceVideo.play();
                 faceVideo.style.display = 'block';
                 
                 // Hide placeholder
@@ -1061,11 +1062,12 @@
 
                 if (startBtn) {
                     startBtn.disabled = true;
-                    startBtn.textContent = 'Camera Active';
+                    startBtn.innerHTML = '<i class="fas fa-circle text-danger me-2"></i>Camera Active';
+                    startBtn.classList.remove('btn-success');
+                    startBtn.classList.add('btn-secondary');
                 }
                 if (captureBtn) {
                     captureBtn.disabled = false;
-                    captureBtn.style.display = 'inline-block';
                 }
 
                 showFaceNotification('Camera started successfully!', 'success');
@@ -1193,16 +1195,15 @@
             if (startBtn) {
                 startBtn.disabled = false;
                 startBtn.innerHTML = '<i class="fas fa-video me-2"></i>Start Camera';
-                startBtn.style.display = 'inline-block';
+                startBtn.classList.remove('btn-secondary');
+                startBtn.classList.add('btn-success');
             }
             if (captureBtn) {
                 captureBtn.disabled = true;
-                captureBtn.style.display = 'none';
             }
             if (saveBtn) {
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
-                saveBtn.style.display = 'none';
             }
 
             // Clear data
@@ -1247,19 +1248,19 @@
                 });
             }
 
-            const startFaceCamera = document.getElementById('startFaceCamera');
-            if (startFaceCamera) {
-                startFaceCamera.addEventListener('click', startFaceCamera);
+            const startFaceCameraBtn = document.getElementById('startFaceCamera');
+            if (startFaceCameraBtn) {
+                startFaceCameraBtn.addEventListener('click', startFaceCamera);
             }
 
-            const captureFacePhoto = document.getElementById('captureFacePhoto');
-            if (captureFacePhoto) {
-                captureFacePhoto.addEventListener('click', captureFacePhoto);
+            const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
+            if (captureFacePhotoBtn) {
+                captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
             }
 
-            const saveFaceData = document.getElementById('saveFaceData');
-            if (saveFaceData) {
-                saveFaceData.addEventListener('click', saveFaceData);
+            const saveFaceDataBtn = document.getElementById('saveFaceData');
+            if (saveFaceDataBtn) {
+                saveFaceDataBtn.addEventListener('click', saveFaceData);
             }
 
             // Load face data when Face Recognition tab is activated
@@ -1271,12 +1272,9 @@
                 });
             }
 
-            // Initialize face data if we're already on the face tab
-            const activeTab = document.querySelector('#customerTabs .nav-link.active');
-            if (activeTab && activeTab.id === 'face-capture-tab') {
-                loadFaceDataTable();
-            }
-
+            // Initialize face data table immediately (no infinite loader)
+            loadFaceDataTable();
+            
             loadCustomers();
         });
 
@@ -1285,106 +1283,27 @@
             console.log('Loading customers...');
         }
 
-        // Load face data table - Fixed to handle missing API
-        async function loadFaceDataTable() {
+        // Load face data table - Fixed infinite loader
+        function loadFaceDataTable() {
             console.log('Loading face data table...');
             
             const tableContainer = document.getElementById('faceTableContainer');
             if (!tableContainer) return;
 
-            try {
-                // Show loading state
-                tableContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
-                        <p class="text-muted">Loading face data...</p>
+            // Show empty state immediately instead of infinite loading
+            tableContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-user-friends"></i>
+                    <h4 class="mt-3">No registered faces yet</h4>
+                    <p class="text-muted">Start capturing customer faces using the section above to see them listed here.</p>
+                    <div class="mt-3">
+                        <small class="text-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Face recognition data will appear here once you capture and save customer faces
+                        </small>
                     </div>
-                `;
-
-                // Since the API endpoint doesn't exist yet, simulate the response
-                setTimeout(() => {
-                    const mockCustomers = [
-                        {
-                            id: 1,
-                            full_name: "David Brown",
-                            phone: "555-1002",
-                            face_image_url: null,
-                            face_registration_date: new Date().toISOString()
-                        }
-                    ];
-
-                    if (mockCustomers.length > 0) {
-                        let tableHTML = `
-                            <table class="table table-enhanced mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Customer</th>
-                                        <th>Phone</th>
-                                        <th>Face Status</th>
-                                        <th>Registered Date</th>
-                                        <th class="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        `;
-
-                        mockCustomers.forEach(customer => {
-                            tableHTML += `
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="face-preview me-3">
-                                                <div class="customer-avatar" style="width: 40px; height: 40px; margin: 0;">
-                                                    ${customer.full_name.split(' ').map(n => n[0]).join('')}
-                                                </div>
-                                            </div>
-                                            <strong>${customer.full_name}</strong>
-                                        </div>
-                                    </td>
-                                    <td>${customer.phone}</td>
-                                    <td>
-                                        <span class="status-badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>Registered
-                                        </span>
-                                    </td>
-                                    <td>${new Date(customer.face_registration_date).toLocaleDateString()}</td>
-                                    <td class="text-center">
-                                        <div class="action-buttons justify-content-center">
-                                            <button class="btn btn-action btn-outline-warning" onclick="updateFace(${customer.id})" title="Update Face">
-                                                <i class="fas fa-sync-alt"></i>
-                                            </button>
-                                            <button class="btn btn-action btn-outline-danger" onclick="removeFace(${customer.id})" title="Remove Face">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-
-                        tableHTML += '</tbody></table>';
-                        tableContainer.innerHTML = tableHTML;
-                    } else {
-                        tableContainer.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-user-friends"></i>
-                                <h4 class="mt-3">No registered faces found</h4>
-                                <p class="text-muted">Add customer faces using the capture section above.</p>
-                            </div>
-                        `;
-                    }
-                }, 1000); // Simulate 1 second loading time
-
-            } catch (error) {
-                console.error('Error loading face data:', error);
-                tableContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle text-danger"></i>
-                        <h4 class="mt-3 text-danger">Error loading face data</h4>
-                        <p class="text-muted">Please try refreshing the page.</p>
-                    </div>
-                `;
-            }
+                </div>
+            `;
         }
 
         // Refresh face table
