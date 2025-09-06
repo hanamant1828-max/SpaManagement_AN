@@ -154,7 +154,7 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <strong>₹{{ "{:,.2f}"|format(package.total_price or 0) }}</strong>
+                                            <strong>₹{{ "%.2f"|format(package.total_price or 0) }}</strong>
                                             {% if package.discount_percentage and package.discount_percentage > 0 %}
                                             <br><small class="text-success">{{ package.discount_percentage }}% off</small>
                                             {% endif %}
