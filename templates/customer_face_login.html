@@ -169,25 +169,53 @@
             
             async startCamera() {
                 try {
+                    console.log('Requesting camera access...');
+                    
+                    // Check if getUserMedia is supported
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error('Camera not supported in this browser');
+                    }
+                    
                     const stream = await navigator.mediaDevices.getUserMedia({ 
                         video: { 
-                            width: 640, 
-                            height: 480,
+                            width: { ideal: 640 }, 
+                            height: { ideal: 480 },
                             facingMode: 'user'
                         } 
                     });
                     
+                    console.log('Camera access granted');
+                    
                     this.video.srcObject = stream;
                     this.video.style.display = 'block';
+                    
+                    // Wait for video to load
+                    await new Promise((resolve) => {
+                        this.video.onloadedmetadata = resolve;
+                    });
                     
                     document.getElementById('capturePrompt').style.display = 'none';
                     document.getElementById('startCameraBtn').style.display = 'none';
                     document.getElementById('recognizeBtn').style.display = 'inline-block';
                     document.getElementById('faceCaptureArea').classList.add('active');
                     
+                    console.log('Camera started successfully');
+                    
                 } catch (error) {
                     console.error('Error starting camera:', error);
-                    alert('Error accessing camera. Please check permissions.');
+                    
+                    let errorMessage = 'Camera access failed. ';
+                    if (error.name === 'NotAllowedError') {
+                        errorMessage += 'Please allow camera permissions in your browser and refresh the page.';
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage += 'No camera found on this device.';
+                    } else if (error.name === 'NotSupportedError') {
+                        errorMessage += 'Camera not supported in this browser.';
+                    } else {
+                        errorMessage += error.message || 'Please check your camera and try again.';
+                    }
+                    
+                    alert(errorMessage);
                 }
             }
             

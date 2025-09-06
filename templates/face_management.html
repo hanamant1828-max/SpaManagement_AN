@@ -614,6 +614,23 @@
         // Initialize the face management system
         const faceManager = new FaceManagementSystem();
         
+        // Global camera functions for compatibility
+        window.startFaceCamera = function(videoId, areaId) {
+            console.log('Starting camera via global function');
+            if (faceManager && faceManager.startCamera) {
+                return faceManager.startCamera(videoId);
+            }
+        };
+        
+        window.stopFaceCamera = function(videoId) {
+            console.log('Stopping camera via global function');
+            if (faceManager && faceManager.video && faceManager.video.srcObject) {
+                faceManager.video.srcObject.getTracks().forEach(track => track.stop());
+                faceManager.video.srcObject = null;
+                faceManager.video.style.display = 'none';
+            }
+        };
+        
         console.log('Face Management System loaded and ready');
     </script>
 </body>

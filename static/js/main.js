@@ -68,10 +68,104 @@ function setupGlobalEventListeners() {
 // Face Capture Functionality
 function initializeFaceCapture() {
     console.log('Initializing face capture functionality...');
+    
+    // Initialize camera buttons when page loads
+    setupCameraButtons();
 }
 
 let currentStream = null;
 let currentStaffId = null;
+let faceStream = null;
+
+function setupCameraButtons() {
+    // Setup face management camera buttons
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+    
+    if (startCameraBtn) {
+        startCameraBtn.addEventListener('click', function() {
+            startFaceCamera('video', 'faceCaptureArea');
+        });
+    }
+    
+    if (startRecognitionBtn) {
+        startRecognitionBtn.addEventListener('click', function() {
+            startFaceCamera('recognitionVideo', 'recognitionCaptureArea');
+        });
+    }
+}
+
+async function startFaceCamera(videoId, areaId) {
+    console.log('Starting face camera:', videoId);
+    
+    try {
+        const video = document.getElementById(videoId);
+        const area = document.getElementById(areaId);
+        
+        if (!video) {
+            console.error('Video element not found:', videoId);
+            alert('Camera element not found');
+            return;
+        }
+
+        // Request camera access
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: 'user'
+            }
+        });
+
+        console.log('Camera access granted');
+        
+        // Store stream reference
+        if (videoId === 'video') {
+            currentStream = stream;
+        } else {
+            faceStream = stream;
+        }
+        
+        // Set video source and show it
+        video.srcObject = stream;
+        video.style.display = 'block';
+        
+        // Hide placeholder and show controls
+        const prompt = document.getElementById(videoId === 'video' ? 'capturePrompt' : 'recognitionPrompt');
+        if (prompt) {
+            prompt.style.display = 'none';
+        }
+        
+        if (area) {
+            area.classList.add('active');
+        }
+        
+        // Update button visibility
+        if (videoId === 'video') {
+            document.getElementById('startCameraBtn').style.display = 'none';
+            document.getElementById('captureBtn').style.display = 'inline-block';
+        } else {
+            document.getElementById('startRecognitionBtn').style.display = 'none';
+            document.getElementById('recognizeFaceBtn').style.display = 'inline-block';
+        }
+
+        console.log('Camera started successfully');
+        
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        
+        let errorMessage = 'Camera access failed. ';
+        if (error.name === 'NotAllowedError') {
+            errorMessage += 'Please allow camera permissions and try again.';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage += 'No camera found on this device.';
+        } else {
+            errorMessage += 'Please check your camera settings and try again.';
+        }
+        
+        alert(errorMessage);
+    }
+}
 
 async function setupFacialRecognition(staffId) {
     currentStaffId = staffId;
@@ -101,12 +195,20 @@ async function startCamera() {
 
         currentStream = stream;
         video.srcObject = stream;
-        captureBtn.disabled = false;
-        captureBtn.onclick = captureFace;
+        video.style.display = 'block';
+        
+        if (captureBtn) {
+            captureBtn.disabled = false;
+            captureBtn.onclick = captureFace;
+        }
 
         // Add close event to stop camera
         const modal = document.getElementById('faceRecognitionModal');
-        modal.addEventListener('hidden.bs.modal', stopCamera);
+        if (modal) {
+            modal.addEventListener('hidden.bs.modal', stopCamera);
+        }
+
+        console.log('Staff camera started successfully');
 
     } catch (error) {
         console.error('Error accessing camera:', error);
@@ -138,8 +240,61 @@ function stopCamera() {
         currentStream.getTracks().forEach(track => track.stop());
         currentStream = null;
     }
+    if (faceStream) {
+        faceStream.getTracks().forEach(track => track.stop());
+        faceStream = null;
+    }
+    
     const video = document.getElementById('faceVideo');
-    video.srcObject = null;
+    if (video) {
+        video.srcObject = null;
+        video.style.display = 'none';
+    }
+    
+    // Reset all face management videos
+    const videos = ['video', 'recognitionVideo'];
+    videos.forEach(videoId => {
+        const videoElement = document.getElementById(videoId);
+        if (videoElement && videoElement.srcObject) {
+            videoElement.srcObject.getTracks().forEach(track => track.stop());
+            videoElement.srcObject = null;
+            videoElement.style.display = 'none';
+        }
+    });
+    
+    console.log('All cameras stopped');
+}
+
+function stopFaceCamera(videoId) {
+    const video = document.getElementById(videoId);
+    
+    if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        video.style.display = 'none';
+    }
+    
+    // Reset UI
+    const prompt = document.getElementById(videoId === 'video' ? 'capturePrompt' : 'recognitionPrompt');
+    if (prompt) {
+        prompt.style.display = 'block';
+    }
+    
+    const area = document.getElementById(videoId === 'video' ? 'faceCaptureArea' : 'recognitionCaptureArea');
+    if (area) {
+        area.classList.remove('active');
+    }
+    
+    // Reset buttons
+    if (videoId === 'video') {
+        document.getElementById('startCameraBtn').style.display = 'inline-block';
+        document.getElementById('captureBtn').style.display = 'none';
+    } else {
+        document.getElementById('startRecognitionBtn').style.display = 'inline-block';
+        document.getElementById('recognizeFaceBtn').style.display = 'none';
+    }
+    
+    console.log('Face camera stopped for:', videoId);
 }
 
 async function saveFaceImage(staffId, imageData) {
