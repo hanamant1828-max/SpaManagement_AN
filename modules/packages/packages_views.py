@@ -17,18 +17,28 @@ def packages():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    packages_list = get_all_packages()
+    # Get all packages and refresh data
+    packages_list = Package.query.filter_by(is_active=True).order_by(Package.package_type, Package.name).all()
     services = Service.query.filter_by(is_active=True).all()
     categories = Category.query.filter_by(category_type='service', is_active=True).all()
     client_packages = CustomerPackage.query.filter_by(is_active=True).limit(10).all()
     clients = Customer.query.filter_by(is_active=True).all()
+
+    # Get package statistics
+    stats = {
+        'total_packages': len(packages_list),
+        'active_packages': len([p for p in packages_list if p.is_active]),
+        'client_assignments': len(client_packages),
+        'available_services': len(services)
+    }
 
     return render_template('enhanced_packages.html', 
                          packages=packages_list,
                          services=services,
                          categories=categories,
                          client_packages=client_packages,
-                         clients=clients)
+                         clients=clients,
+                         stats=stats)
 
 @app.route('/packages/create', methods=['POST'])
 @login_required

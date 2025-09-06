@@ -71,6 +71,7 @@
                                 <button type="button" class="btn btn-outline-danger" onclick="filterPackages('kitty_party')">Kitty Party</button>
                                 <button type="button" class="btn btn-outline-dark" onclick="filterPackages('yearly_membership')">Yearly Membership</button>
                             </div>
+                            <span class="package-counter text-muted ms-3"></span>
                         </div>
                     </div>
                 </div>
@@ -98,51 +99,71 @@
                                 </thead>
                                 <tbody>
                                     {% for package in packages %}
-                                    <tr data-package-type="{{ package.package_type }}">
+                                    <tr class="package-row" data-package-type="{{ package.package_type }}">
                                         <td>
                                             <strong>{{ package.name }}</strong>
-                                            {% if package.description %}
-                                                <br><small class="text-muted">{{ package.description[:50] }}...</small>
-                                            {% endif %}
+                                            <br>
+                                            <small class="text-muted">{{ package.description or 'No description' }}</small>
                                         </td>
                                         <td>
-                                            <span class="badge 
-                                                {% if package.package_type == 'prepaid' %}bg-success
-                                                {% elif package.package_type == 'membership' %}bg-warning
-                                                {% elif package.package_type == 'student_offer' %}bg-info
-                                                {% elif package.package_type == 'kitty_party' %}bg-danger
-                                                {% elif package.package_type == 'yearly_membership' %}bg-dark
-                                                {% else %}bg-primary
-                                                {% endif %}">
-                                                {{ package.package_type.replace('_', ' ').title() }}
-                                            </span>
+                                            {% if package.package_type == 'prepaid' %}
+                                                <span class="badge bg-success">Prepaid</span>
+                                                {% if package.credit_amount %}
+                                                <br><small class="text-success">₹{{ "%.0f"|format(package.credit_amount) }} credit</small>
+                                                {% endif %}
+                                            {% elif package.package_type == 'service_package' %}
+                                                <span class="badge bg-info">Service Package</span>
+                                            {% elif package.package_type == 'membership' %}
+                                                <span class="badge bg-warning">Membership</span>
+                                            {% elif package.package_type == 'student_offer' %}
+                                                <span class="badge bg-secondary">Student Offer</span>
+                                                {% if package.student_discount %}
+                                                <br><small class="text-info">{{ package.student_discount }}% student discount</small>
+                                                {% endif %}
+                                            {% elif package.package_type == 'kitty_party' %}
+                                                <span class="badge bg-danger">Kitty Party</span>
+                                                {% if package.min_guests %}
+                                                <br><small class="text-muted">Min {{ package.min_guests }} guests</small>
+                                                {% endif %}
+                                            {% elif package.package_type == 'yearly_membership' %}
+                                                <span class="badge bg-dark">Yearly Membership</span>
+                                            {% else %}
+                                                <span class="badge bg-primary">Regular</span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             {% if package.services %}
-                                                <small>
-                                                    {% for ps in package.services[:2] %}
-                                                        {{ ps.service.name }} ({{ ps.sessions_included }})<br>
+                                                <ul class="list-unstyled mb-0">
+                                                    {% for service in package.services[:3] %}
+                                                    <li><small>{{ service.service.name }} ({{ service.sessions_included }})</small></li>
                                                     {% endfor %}
-                                                    {% if package.services|length > 2 %}
-                                                        <span class="text-muted">+{{ package.services|length - 2 }} more</span>
+                                                    {% if package.services|length > 3 %}
+                                                    <li><small class="text-muted">+{{ package.services|length - 3 }} more</small></li>
                                                     {% endif %}
-                                                </small>
+                                                </ul>
                                             {% else %}
-                                                <small class="text-muted">No services assigned</small>
+                                                <small class="text-muted">No specific services</small>
                                             {% endif %}
                                         </td>
-                                        <td>{{ package.validity_days }} days</td>
                                         <td>
-                                            <strong>₹{{ "%.2f"|format(package.total_price) }}</strong>
-                                            {% if package.discount_percentage %}
-                                                <br><small class="text-success">{{ package.discount_percentage }}% off</small>
+                                            {{ package.validity_days }} days
+                                            {% if package.has_unlimited_sessions %}
+                                            <br><small class="text-success">Unlimited sessions</small>
+                                            {% else %}
+                                            <br><small class="text-muted">{{ package.total_sessions }} sessions</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>₹{{ "{:,.2f}"|format(package.total_price) }}</strong>
+                                            {% if package.discount_percentage > 0 %}
+                                            <br><small class="text-success">{{ package.discount_percentage }}% off</small>
                                             {% endif %}
                                         </td>
                                         <td>
                                             {% if package.is_active %}
-                                                <span class="badge bg-success">Active</span>
+                                            <span class="badge bg-success">Active</span>
                                             {% else %}
-                                                <span class="badge bg-secondary">Inactive</span>
+                                            <span class="badge bg-secondary">Inactive</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -158,6 +179,15 @@
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="fas fa-box-open fa-3x mb-3"></i>
+                                                <p>No packages found. Create your first package to get started!</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -494,7 +524,7 @@
                     <input type="hidden" id="assign_package_id" name="package_id">
                     <div class="mb-3">
                         <label class="form-label">Select Client</label>
-                        <select name="client_id" class="form-select" required>
+                        <select name="client_id" id="assignPackageSelect" class="form-select" required>
                             <option value="">Choose client...</option>
                             {% for client in clients %}
                                 <option value="{{ client.id }}">{{ client.full_name }} - {{ client.phone }}</option>
@@ -938,6 +968,52 @@ function assignPackage() {
 }
 </script>
 
+<script>
+        function filterPackages(type) {
+            const rows = document.querySelectorAll('.package-row');
+            const buttons = document.querySelectorAll('[onclick^="filterPackages"]');
+
+            // Update button states
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Filter rows
+            let visibleCount = 0;
+            rows.forEach(row => {
+                if (type === 'all' || row.dataset.packageType === type) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Update package count if counter exists
+            const counter = document.querySelector('.package-counter');
+            if (counter) {
+                counter.textContent = `${visibleCount} package(s) shown`;
+            }
+        }
+
+        function setAssignPackageData(packageId, packageName) {
+            document.getElementById('assign_package_id').value = packageId;
+            document.querySelector('#assignPackageModal .modal-title').textContent = `Assign ${packageName}`;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Enhanced packages page loaded');
+
+            // Check if we have any packages
+            const packageRows = document.querySelectorAll('.package-row');
+            if (packageRows.length === 0) {
+                console.log('No packages found in the table');
+            } else {
+                console.log(`Found ${packageRows.length} packages`);
+            }
+        });
+    </script>
+
 <!-- Edit Package Modals (Generated for each package) -->
 {% for package in packages %}
 <div class="modal fade" id="editPackageModal{{ package.id }}" tabindex="-1">
@@ -1056,7 +1132,7 @@ function assignPackage() {
 document.addEventListener('DOMContentLoaded', function() {
     const editModal{{ package.id }} = document.getElementById('editPackageModal{{ package.id }}');
     if (editModal{{ package.id }}) {
-        
+
         // Handle service checkbox changes for edit modal {{ package.id }}
         editModal{{ package.id }}.querySelectorAll('.service-checkbox-edit-{{ package.id }}').forEach(function(checkbox) {
             checkbox.addEventListener('change', function() {
@@ -1109,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const serviceTotal = servicePrice * sessions;
                 const serviceDiscountAmount = (serviceTotal * serviceDiscount) / 100;
-                
+
                 totalOriginalPrice += serviceTotal;
                 totalSessions += sessions;
                 totalServiceDiscount += serviceDiscountAmount;
@@ -1118,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Apply package-level discount
             const packageDiscount = parseFloat(packageDiscountInput ? packageDiscountInput.value : 0) || 0;
             const packageDiscountAmount = ((totalOriginalPrice - totalServiceDiscount) * packageDiscount) / 100;
-            
+
             const finalPrice = totalOriginalPrice - totalServiceDiscount - packageDiscountAmount;
 
             // Update the total price field
