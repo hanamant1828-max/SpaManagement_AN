@@ -6,10 +6,14 @@ packages = ["freetype", "glibcLocales", "lcms2", "libGL", "libGLU", "libimagequa
 
 [deployment]
 deploymentTarget = "autoscale"
+<<<<<<< HEAD
 run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port"]
+=======
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "60", "main:app"]
+>>>>>>> 652221f357cf0f3598e1000ea467219babb37da2
 
 [workflows]
-runButton = "Project"
+runButton = "Start Flask App Fixed"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -44,11 +48,20 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main.py"
+args = "gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 60 --reload main:app"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "Start Flask App Fixed"
+author = 47216349
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
 
 [[ports]]
 localPort = 5000

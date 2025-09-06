@@ -24,10 +24,23 @@ app.config['WTF_CSRF_ENABLED'] = False
 app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
 app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+# Add headers to prevent caching
+@app.after_request
+def after_request(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+# Configure the database - SQLite
+database_url = os.environ.get('DATABASE_URL')
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///spa_management.db'
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
@@ -66,7 +79,7 @@ with app.app_context():
     try:
         db.create_all()
         logging.info("Database tables created")
-        
+
     except Exception as e:
         logging.error(f"Database initialization failed: {e}")
         logging.info("Attempting database migration...")
@@ -74,7 +87,7 @@ with app.app_context():
             # Skip migration attempt since file doesn't exist
             logging.info("Retrying database initialization without migration...")
             db.create_all()
-            
+
         except Exception as migration_error:
             logging.error(f"Database initialization retry failed: {migration_error}")
             logging.warning("Application starting with limited functionality")

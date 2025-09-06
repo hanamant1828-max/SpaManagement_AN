@@ -201,7 +201,7 @@
                                                                 <span class="ms-2">
                                                                     <strong>{{ appointment.client.full_name }}</strong> - 
                                                                     {{ appointment.service.name }} with 
-                                                                    <em>{{ appointment.staff.full_name }}</em>
+                                                                    <em>{{ appointment.assigned_staff.full_name }}</em>
                                                                 </span>
                                                                 <span class="badge bg-{{ 'success' if appointment.status == 'completed' else 'warning' if appointment.status == 'confirmed' else 'secondary' }} ms-2">
                                                                     {{ appointment.status.title() }}
@@ -275,7 +275,7 @@
                                                 <small class="text-muted">{{ appointment.service.duration }} min</small>
                                             </td>
                                             <td>
-                                                <span class="badge bg-primary">{{ appointment.staff.full_name }}</span>
+                                                <span class="badge bg-primary">{{ appointment.assigned_staff.full_name }}</span>
                                             </td>
                                             <td>{{ appointment.service.duration }} min</td>
                                             <td>
