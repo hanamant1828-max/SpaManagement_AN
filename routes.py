@@ -253,13 +253,6 @@ def business_settings():
         return redirect(url_for('dashboard'))
     return render_template('business_settings.html')
 
-@app.route('/face_management')
-@login_required
-def face_management():
-    if not current_user.can_access('face_checkin_view'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    return render_template('face_management.html')
 
 @app.route('/system_management')
 @login_required
@@ -553,104 +546,9 @@ def api_staff():
     } for s in staff])
 
 # Face Recognition API endpoints
-@app.route('/api/remove_face/<int:client_id>', methods=['DELETE'])
-@login_required
-def api_remove_face(client_id):
-    """Remove face data for a client"""
-    if not current_user.can_access('face_management'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        from models import Customer
-        customer = Customer.query.get(client_id)
-        if not customer:
-            return jsonify({'error': 'Customer not found'}), 404
-
-        # Remove face image file if it exists
-        if customer.face_image_url:
-            import os
-            try:
-                # Remove leading slash and convert to relative path
-                file_path = customer.face_image_url.lstrip('/')
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-            except:
-                pass  # Continue even if file deletion fails
-
-        # Clear face data from database
-        customer.face_image_url = None
-        customer.facial_encoding = None
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Face data removed successfully'
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
 
 
 
-@app.route('/api/recognize_face', methods=['POST'])
-@login_required
-def api_recognize_face():
-    """Recognize a face against stored client faces"""
-    if not current_user.can_access('face_management'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        data = request.get_json()
-        face_image = data.get('face_image')
-
-        if not face_image:
-            return jsonify({'error': 'Face image is required'}), 400
-
-        # Get all customers with face data
-        from models import Customer
-        customers_with_faces = Customer.query.filter(
-            Customer.face_image_url.isnot(None),
-            Customer.is_active == True
-        ).all()
-
-        if not customers_with_faces:
-            return jsonify({
-                'success': True,
-                'recognized': False,
-                'message': 'No registered faces found'
-            })
-
-        # For demonstration, we'll simulate face matching
-        # In production, you would use face_recognition library here
-        import random
-
-        # Simulate recognition with random success (70% chance for demo)
-        if customers_with_faces and random.random() > 0.3:
-            matched_customer = random.choice(customers_with_faces)
-            confidence = round(random.uniform(0.75, 0.95), 2)
-
-            return jsonify({
-                'success': True,
-                'recognized': True,
-                'customer': {
-                    'id': matched_customer.id,
-                    'name': matched_customer.full_name,
-                    'phone': matched_customer.phone,
-                    'email': matched_customer.email
-                },
-                'confidence': confidence
-            })
-
-        return jsonify({
-            'success': True,
-            'recognized': False,
-            'message': 'No matching face found'
-        })
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/customer_face_login', methods=['POST'])

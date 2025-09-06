@@ -37,7 +37,7 @@ function setupGlobalEventListeners() {
     document.addEventListener('hidden.bs.modal', handleModalHidden);
 
     // Initialize face capture functionality
-    initializeFaceCapture();
+    // initializeFaceCapture(); // Face capture functionality removed
 
     // Handle form submissions
     document.addEventListener('submit', handleFormSubmit);
