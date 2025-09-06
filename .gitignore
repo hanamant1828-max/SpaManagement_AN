@@ -139,10 +139,10 @@ cython_debug/
 .pythonlibs/
 uv.lock
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# Keep SQLite databases in the project for sharing
+# *.db
+# *.sqlite
+# *.sqlite3
 
 # Logs
 *.log
