@@ -104,17 +104,9 @@
                     {% if current_user.can_access('checkin') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('checkin') }}">
-                            <i class="fas fa-user-check me-2"></i><span>Face Recognition Check-In</span>
+                            <i class="fas fa-user-check me-2"></i><span>Check-In</span>
                         </a>
                     </li>
-
-                    {% if current_user.has_role('admin') %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('face_management') }}">
-                            <i class="fas fa-user-check me-2"></i><span>Face Management</span>
-                        </a>
-                    </li>
-                    {% endif %}
                     {% endif %}
 
                     {% if current_user.can_access('notifications') %}
