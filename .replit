@@ -1,4 +1,4 @@
-modules = ["web", "python-3.11", "nodejs-20", "postgresql-16"]
+modules = ["web", "python-3.11", "nodejs-20"]
 
 [nix]
 channel = "stable-25_05"
@@ -6,7 +6,7 @@ packages = ["freetype", "glibcLocales", "lcms2", "libGL", "libGLU", "libimagequa
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
+run = ["bash", "-c", "export SESSION_SECRET='1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca' && gunicorn --bind 0.0.0.0:5000 --reuse-port main:app"]
 
 [workflows]
 runButton = "Project"
@@ -44,7 +44,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main.py"
+args = "export SESSION_SECRET=\"1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca\" && python main.py"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
