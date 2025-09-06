@@ -71,6 +71,14 @@ function initializeFaceCapture() {
 
     // Initialize camera buttons when page loads
     setupCameraButtons();
+    
+    // Also set up event listeners for tab switching
+    document.addEventListener('shown.bs.tab', function(event) {
+        if (event.target.getAttribute('data-bs-target') === '#face-capture') {
+            console.log('Face capture tab activated, setting up camera buttons...');
+            setTimeout(setupCameraButtons, 100); // Small delay to ensure DOM is ready
+        }
+    });
 }
 
 let currentStream = null;
@@ -78,10 +86,16 @@ let currentStaffId = null;
 let faceStream = null;
 
 function setupCameraButtons() {
-    // Setup face management camera buttons
+    console.log('Setting up camera buttons...');
+    
+    // Setup face management camera buttons (for legacy views only)
     const startCameraBtn = document.getElementById('startCameraBtn');
     const startRecognitionBtn = document.getElementById('startRecognitionBtn');
-    const startFaceCameraBtn = document.getElementById('startFaceCamera');
+
+    console.log('Found buttons:', {
+        startCameraBtn: !!startCameraBtn,
+        startRecognitionBtn: !!startRecognitionBtn
+    });
 
     if (startCameraBtn) {
         startCameraBtn.addEventListener('click', function() {
@@ -95,13 +109,7 @@ function setupCameraButtons() {
         });
     }
 
-    // Handle the new face management tab button
-    if (startFaceCameraBtn) {
-        startFaceCameraBtn.addEventListener('click', function() {
-            console.log('Starting face camera from face management tab');
-            startFaceCameraForTab();
-        });
-    }
+    // Note: Face management tab camera is handled by FaceCaptureManager in customers.html
 }
 
 // New function specifically for the face management tab

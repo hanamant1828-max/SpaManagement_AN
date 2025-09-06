@@ -1007,6 +1007,21 @@
                 }
             }
         }
+
+        // Initialize face capture manager when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Face Capture Manager...');
+            const faceManager = new FaceCaptureManager();
+            
+            // Also initialize when tab is switched to face capture
+            document.getElementById('face-capture-tab').addEventListener('shown.bs.tab', function() {
+                console.log('Face capture tab shown, re-initializing...');
+                // Re-setup event listeners after tab switch
+                setTimeout(() => {
+                    faceManager.setupEventListeners();
+                }, 100);
+            });
+        });
     </script>
 
 <style>
