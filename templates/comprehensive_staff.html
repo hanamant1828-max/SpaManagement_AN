@@ -731,7 +731,15 @@ async function editStaff(staffId) {
             const modal = new bootstrap.Modal(document.getElementById('staffModal'));
             modal.show();
         } else {
-            throw new Error(data.error);
+            // If staff not found via API, try to get from local data
+            const staff = allStaff.find(s => s.id === staffId);
+            if (staff) {
+                populateForm(staff);
+                const modal = new bootstrap.Modal(document.getElementById('staffModal'));
+                modal.show();
+            } else {
+                throw new Error(data.error || 'Staff member not found');
+            }
         }
     } catch (error) {
         showAlert('Error loading staff data: ' + error.message, 'danger');

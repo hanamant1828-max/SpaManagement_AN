@@ -862,7 +862,8 @@ def api_get_staff(staff_id):
         return jsonify({'error': 'Access denied'}), 403
     
     try:
-        staff = get_staff_by_id(staff_id)
+        # Use direct query to avoid conflicts
+        staff = User.query.get(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
             
@@ -872,30 +873,31 @@ def api_get_staff(staff_id):
             'first_name': staff.first_name,
             'last_name': staff.last_name,
             'email': staff.email,
-            'phone': staff.phone,
+            'phone': staff.phone or '',
             'role': staff.role,
             'role_id': staff.role_id,
             'department_id': staff.department_id,
-            'designation': staff.designation,
-            'staff_code': staff.staff_code,
-            'employee_id': staff.employee_id,
+            'designation': staff.designation or '',
+            'staff_code': staff.staff_code or '',
+            'employee_id': staff.employee_id or '',
             'commission_rate': staff.commission_rate or 0,
             'hourly_rate': staff.hourly_rate or 0,
             'is_active': staff.is_active,
-            'gender': staff.gender,
+            'gender': staff.gender or '',
             'date_of_birth': staff.date_of_birth.isoformat() if staff.date_of_birth else '',
             'date_of_joining': staff.date_of_joining.isoformat() if staff.date_of_joining else '',
             'shift_start_time': staff.shift_start_time.strftime('%H:%M') if staff.shift_start_time else '',
             'shift_end_time': staff.shift_end_time.strftime('%H:%M') if staff.shift_end_time else '',
             'working_days': staff.working_days or '',
-            'verification_status': staff.verification_status,
-            'enable_face_checkin': staff.enable_face_checkin,
+            'verification_status': staff.verification_status or False,
+            'enable_face_checkin': staff.enable_face_checkin or False,
             'notes_bio': staff.notes_bio or ''
         }
         
         return jsonify({'success': True, 'staff': staff_data})
         
     except Exception as e:
+        print(f"Error in api_get_staff: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/staff', methods=['POST'])

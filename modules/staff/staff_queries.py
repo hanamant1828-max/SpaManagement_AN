@@ -25,14 +25,27 @@ def get_staff_by_id(staff_id):
     try:
         staff_member = User.query.get(staff_id)
         if staff_member:
-            # Ensure profile completeness
+            # Only update fields if they are truly empty and won't cause conflicts
+            updated = False
             if not staff_member.staff_code:
-                staff_member.staff_code = f"STF{str(staff_member.id).zfill(3)}"
+                # Generate unique staff code
+                existing_codes = set([u.staff_code for u in User.query.filter(User.staff_code.isnot(None)).all()])
+                code_num = staff_member.id
+                potential_code = f"STF{str(code_num).zfill(3)}"
+                while potential_code in existing_codes:
+                    code_num += 1
+                    potential_code = f"STF{str(code_num).zfill(3)}"
+                staff_member.staff_code = potential_code
+                updated = True
             if not staff_member.designation:
                 staff_member.designation = staff_member.role.title()
+                updated = True
             if not staff_member.date_of_joining:
                 staff_member.date_of_joining = staff_member.created_at.date() if staff_member.created_at else date.today()
-            db.session.commit()
+                updated = True
+            
+            if updated:
+                db.session.commit()
         return staff_member
     except Exception as e:
         print(f"Error getting staff by ID: {e}")
@@ -224,21 +237,15 @@ def get_comprehensive_staff():
             User.is_active == True
         ).order_by(User.first_name).all()
 
-        # Ensure each staff member has all required fields populated
-        updated = False
-        existing_codes = set()
+        # Only update fields that are truly missing, avoid conflicts
+        existing_codes = set([u.staff_code for u in User.query.filter(User.staff_code.isnot(None)).all()])
         
-        # First pass: collect existing staff codes
-        for member in staff_members:
-            if member.staff_code:
-                existing_codes.add(member.staff_code)
-        
-        # Second pass: assign missing codes and other fields
         for member in staff_members:
             try:
+                updated = False
                 if not member.staff_code:
                     # Generate unique staff code
-                    code_num = member.id
+                    code_num = len(existing_codes) + 1
                     potential_code = f"STF{str(code_num).zfill(3)}"
                     while potential_code in existing_codes:
                         code_num += 1
@@ -255,16 +262,18 @@ def get_comprehensive_staff():
                 if not member.date_of_joining:
                     member.date_of_joining = member.created_at.date() if member.created_at else date.today()
                     updated = True
+                
+                if updated:
+                    db.session.flush()  # Flush individual changes
             except Exception as member_error:
                 print(f"Error updating member {member.id}: {member_error}")
                 continue
 
-        if updated:
-            try:
-                db.session.commit()
-            except Exception as commit_error:
-                print(f"Error committing staff updates: {commit_error}")
-                db.session.rollback()
+        try:
+            db.session.commit()
+        except Exception as commit_error:
+            print(f"Error committing staff updates: {commit_error}")
+            db.session.rollback()
             
         print(f"Retrieved {len(staff_members)} staff members from database")
         return staff_members
