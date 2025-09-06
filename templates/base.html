@@ -195,48 +195,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- Advanced Real-World Features -->
-                    <li class="nav-item mt-3 mb-2">
-                        <div class="nav-section-header px-3">
-                            <span class="text-muted small">ADVANCED FEATURES</span>
-                        </div>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('communications') }}">
-                            <i class="fas fa-comments me-2"></i><span>Client Communications</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('promotions') }}">
-                            <i class="fas fa-tags me-2"></i><span>Marketing Promotions</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('waitlist') }}">
-                            <i class="fas fa-clock me-2"></i><span>Client Waitlist</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('product_sales') }}">
-                            <i class="fas fa-shopping-bag me-2"></i><span>Product Sales</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('recurring_appointments') }}">
-                            <i class="fas fa-redo me-2"></i><span>Recurring Appointments</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('reviews') }}">
-                            <i class="fas fa-star me-2"></i><span>Customer Reviews</span>
-                        </a>
-                    </li>
+                    
 
                     {% if current_user.has_role('admin') %}
                     <li class="nav-item">
