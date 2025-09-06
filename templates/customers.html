@@ -635,59 +635,122 @@
                 this.video = null;
                 this.canvas = null;
                 this.capturedImage = null;
+                this.stream = null;
                 this.init();
             }
 
             init() {
-                this.video = document.getElementById('faceVideo');
-                this.canvas = document.getElementById('faceCanvas');
-                this.setupEventListeners();
+                // Wait for DOM to be fully loaded
+                setTimeout(() => {
+                    this.video = document.getElementById('faceVideo');
+                    this.canvas = document.getElementById('faceCanvas');
+                    this.setupEventListeners();
+                }, 100);
             }
 
             setupEventListeners() {
-                // Customer selection
-                document.getElementById('faceCustomerSelect').addEventListener('change', (e) => {
-                    this.selectCustomer(e.target.value);
-                });
+                // Customer selection for tab interface
+                const faceClientSelect = document.getElementById('faceClientSelect');
+                if (faceClientSelect) {
+                    faceClientSelect.addEventListener('change', (e) => {
+                        this.selectCustomer(e.target.value);
+                    });
+                }
 
-                // Camera controls
-                document.getElementById('startCameraBtn').addEventListener('click', () => {
-                    this.startCamera();
-                });
+                // Camera controls for tab interface
+                const startFaceCamera = document.getElementById('startFaceCamera');
+                if (startFaceCamera) {
+                    startFaceCamera.addEventListener('click', () => {
+                        this.startCamera();
+                    });
+                }
 
-                document.getElementById('capturePhotoBtn').addEventListener('click', () => {
-                    this.capturePhoto();
-                });
+                const captureFacePhoto = document.getElementById('captureFacePhoto');
+                if (captureFacePhoto) {
+                    captureFacePhoto.addEventListener('click', () => {
+                        this.capturePhoto();
+                    });
+                }
 
-                document.getElementById('saveFaceBtn').addEventListener('click', () => {
-                    this.saveFace();
-                });
+                const saveFaceData = document.getElementById('saveFaceData');
+                if (saveFaceData) {
+                    saveFaceData.addEventListener('click', () => {
+                        this.saveFace();
+                    });
+                }
+
+                // Modal-based controls (if using modal)
+                const startCameraBtn = document.getElementById('startCameraBtn');
+                if (startCameraBtn) {
+                    startCameraBtn.addEventListener('click', () => {
+                        this.startCamera();
+                    });
+                }
+
+                const capturePhotoBtn = document.getElementById('capturePhotoBtn');
+                if (capturePhotoBtn) {
+                    capturePhotoBtn.addEventListener('click', () => {
+                        this.capturePhoto();
+                    });
+                }
+
+                const saveFaceBtn = document.getElementById('saveFaceBtn');
+                if (saveFaceBtn) {
+                    saveFaceBtn.addEventListener('click', () => {
+                        this.saveFace();
+                    });
+                }
             }
 
             selectCustomer(customerId) {
                 if (!customerId) {
                     this.selectedCustomer = null;
-                    document.getElementById('selectedCustomerInfo').classList.add('d-none');
+                    const selectedInfo = document.getElementById('selectedFaceClientInfo');
+                    if (selectedInfo) {
+                        selectedInfo.classList.add('d-none');
+                    }
                     return;
                 }
 
-                const select = document.getElementById('faceCustomerSelect');
+                // Get the select element (could be either one)
+                let select = document.getElementById('faceClientSelect');
+                if (!select) {
+                    select = document.getElementById('faceCustomerSelect');
+                }
+
+                if (!select) return;
+
                 const selectedOption = select.options[select.selectedIndex];
 
                 this.selectedCustomer = {
                     id: customerId,
-                    name: selectedOption.dataset.name,
-                    phone: selectedOption.dataset.phone
+                    name: selectedOption.dataset.name || selectedOption.textContent.split(' - ')[0],
+                    phone: selectedOption.dataset.phone || selectedOption.textContent.split(' - ')[1]
                 };
 
-                document.getElementById('selectedCustomerDetails').textContent = 
-                    `${this.selectedCustomer.name} - ${this.selectedCustomer.phone}`;
-                document.getElementById('selectedCustomerInfo').classList.remove('d-none');
+                // Update the display (could be either element)
+                const selectedDetails = document.getElementById('selectedFaceClientDetails') || document.getElementById('selectedCustomerDetails');
+                const selectedInfo = document.getElementById('selectedFaceClientInfo') || document.getElementById('selectedCustomerInfo');
+
+                if (selectedDetails && selectedInfo) {
+                    selectedDetails.textContent = `${this.selectedCustomer.name} - ${this.selectedCustomer.phone}`;
+                    selectedInfo.classList.remove('d-none');
+                }
             }
 
             async startCamera() {
+                if (!this.selectedCustomer) {
+                    this.showNotification('Please select a customer first', 'warning');
+                    return;
+                }
+
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
+                    // Stop any existing stream
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(track => track.stop());
+                    }
+
+                    this.stream = await navigator.mediaDevices.getUserMedia({
                         video: {
                             width: 640,
                             height: 480,
@@ -695,15 +758,47 @@
                         }
                     });
 
-                    this.video.srcObject = stream;
-                    this.video.style.display = 'block';
-                    document.getElementById('cameraPrompt').style.display = 'none';
-                    document.getElementById('startCameraBtn').style.display = 'none';
-                    document.getElementById('capturePhotoBtn').style.display = 'inline-block';
+                    if (this.video) {
+                        this.video.srcObject = this.stream;
+                        this.video.style.display = 'block';
+                        
+                        // Hide placeholder and update buttons
+                        const placeholder = document.getElementById('faceCameraPlaceholder');
+                        if (placeholder) {
+                            placeholder.style.display = 'none';
+                        }
+
+                        const cameraPrompt = document.getElementById('cameraPrompt');
+                        if (cameraPrompt) {
+                            cameraPrompt.style.display = 'none';
+                        }
+
+                        // Update button states (try both possible button IDs)
+                        const startBtn = document.getElementById('startFaceCamera') || document.getElementById('startCameraBtn');
+                        const captureBtn = document.getElementById('captureFacePhoto') || document.getElementById('capturePhotoBtn');
+
+                        if (startBtn) startBtn.disabled = true;
+                        if (captureBtn) {
+                            captureBtn.disabled = false;
+                            captureBtn.style.display = 'inline-block';
+                        }
+
+                        this.showNotification('Camera started successfully!', 'success');
+                    }
 
                 } catch (error) {
                     console.error('Error accessing camera:', error);
-                    this.showNotification('Error accessing camera. Please check permissions.', 'danger');
+                    let errorMessage = 'Error accessing camera. ';
+                    
+                    if (error.name === 'NotAllowedError') {
+                        errorMessage += 'Please allow camera access and try again.';
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage += 'No camera found on this device.';
+                    } else {
+                        errorMessage += 'Please check your camera and permissions.';
+                    }
+                    
+                    this.showNotification(errorMessage, 'danger');
                 }
             }
 
@@ -772,21 +867,54 @@
             }
 
             resetCapture() {
-                if (this.video.srcObject) {
-                    this.video.srcObject.getTracks().forEach(track => track.stop());
+                // Stop video stream
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
                 }
 
-                this.video.style.display = 'none';
-                this.canvas.style.display = 'none';
-                document.getElementById('cameraPrompt').style.display = 'block';
-                document.getElementById('startCameraBtn').style.display = 'inline-block';
-                document.getElementById('capturePhotoBtn').style.display = 'none';
-                document.getElementById('saveFaceBtn').style.display = 'none';
+                if (this.video && this.video.srcObject) {
+                    this.video.srcObject.getTracks().forEach(track => track.stop());
+                    this.video.srcObject = null;
+                }
 
+                // Reset UI elements
+                if (this.video) this.video.style.display = 'none';
+                if (this.canvas) this.canvas.style.display = 'none';
+
+                // Show placeholders
+                const placeholder = document.getElementById('faceCameraPlaceholder');
+                const cameraPrompt = document.getElementById('cameraPrompt');
+                if (placeholder) placeholder.style.display = 'flex';
+                if (cameraPrompt) cameraPrompt.style.display = 'block';
+
+                // Reset button states (handle both possible button IDs)
+                const startBtn = document.getElementById('startFaceCamera') || document.getElementById('startCameraBtn');
+                const captureBtn = document.getElementById('captureFacePhoto') || document.getElementById('capturePhotoBtn');
+                const saveBtn = document.getElementById('saveFaceData') || document.getElementById('saveFaceBtn');
+
+                if (startBtn) {
+                    startBtn.disabled = false;
+                    startBtn.style.display = 'inline-block';
+                }
+                if (captureBtn) {
+                    captureBtn.disabled = true;
+                    captureBtn.style.display = 'none';
+                }
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.style.display = 'none';
+                }
+
+                // Clear selections
                 this.capturedImage = null;
                 this.selectedCustomer = null;
-                document.getElementById('faceCustomerSelect').value = '';
-                document.getElementById('selectedCustomerInfo').classList.add('d-none');
+                
+                const selectElement = document.getElementById('faceClientSelect') || document.getElementById('faceCustomerSelect');
+                if (selectElement) selectElement.value = '';
+                
+                const selectedInfo = document.getElementById('selectedFaceClientInfo') || document.getElementById('selectedCustomerInfo');
+                if (selectedInfo) selectedInfo.classList.add('d-none');
             }
 
             showNotification(message, type = 'info') {
@@ -820,12 +948,146 @@
                 faceCaptureManager.resetCapture();
             });
 
+            // Load face data when Face Recognition tab is activated
+            $('#face-capture-tab').on('shown.bs.tab', function() {
+                console.log('Face Recognition tab activated');
+                loadFaceDataTable();
+            });
+
+            // Initialize face data if we're already on the face tab
+            const activeTab = document.querySelector('#customerTabs .nav-link.active');
+            if (activeTab && activeTab.id === 'face-capture-tab') {
+                loadFaceDataTable();
+            }
+
             loadCustomers();
         });
 
         // Load customers function
         function loadCustomers() {
             console.log('Loading customers...');
+        }
+
+        // Load face data table
+        async function loadFaceDataTable() {
+            try {
+                const response = await fetch('/api/customers_with_faces');
+                const result = await response.json();
+
+                const tableContainer = document.getElementById('faceTableContainer');
+                if (!tableContainer) return;
+
+                if (result.success && result.customers.length > 0) {
+                    let tableHTML = `
+                        <table class="table table-hover table-dark">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Phone</th>
+                                    <th>Face Status</th>
+                                    <th>Registered Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    result.customers.forEach(customer => {
+                        tableHTML += `
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="face-preview me-3">
+                                            <img src="${customer.face_image_url || '/static/images/default-avatar.png'}" 
+                                                 class="face-image" alt="${customer.full_name}">
+                                        </div>
+                                        <strong>${customer.full_name}</strong>
+                                    </div>
+                                </td>
+                                <td>${customer.phone}</td>
+                                <td>
+                                    <span class="badge bg-success">Registered</span>
+                                </td>
+                                <td>${customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning me-1" onclick="updateFace(${customer.id})">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="removeFace(${customer.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    tableHTML += '</tbody></table>';
+                    tableContainer.innerHTML = tableHTML;
+                } else {
+                    tableContainer.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No registered faces found</h5>
+                            <p class="text-muted">Add customer faces using the capture section above.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading face data:', error);
+                const tableContainer = document.getElementById('faceTableContainer');
+                if (tableContainer) {
+                    tableContainer.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                            <h5 class="text-danger">Error loading face data</h5>
+                            <p class="text-muted">Please try refreshing the page.</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Refresh face table
+        function refreshFaceTable() {
+            const tableContainer = document.getElementById('faceTableContainer');
+            if (tableContainer) {
+                tableContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">Loading face data...</p>
+                    </div>
+                `;
+            }
+            loadFaceDataTable();
+        }
+
+        // Search face data
+        function searchFaceData() {
+            const searchInput = document.getElementById('faceSearchInput');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            
+            // For now, just reload all data
+            // In a real implementation, you'd filter server-side
+            loadFaceDataTable();
+        }
+
+        // Update face
+        function updateFace(customerId) {
+            // You can implement this to allow updating/recapturing face data
+            alert(`Update face for customer ID: ${customerId}`);
+        }
+
+        // Remove face
+        async function removeFace(customerId) {
+            if (confirm('Are you sure you want to remove the face data for this customer?')) {
+                try {
+                    // You'd implement a delete endpoint here
+                    alert(`Remove face for customer ID: ${customerId}`);
+                    refreshFaceTable();
+                } catch (error) {
+                    console.error('Error removing face:', error);
+                }
+            }
         }
     </script>
 
