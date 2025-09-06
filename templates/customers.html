@@ -1,10 +1,407 @@
+
 {% extends "base.html" %}
 
-{% block title %}Customers - Spa & Salon Management Suite{% endblock %}
+{% block title %}Customer Management - Spa & Salon Management Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+.customer-management-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0 0 1rem 1rem;
+}
+
+.stats-overview {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #667eea;
+    display: block;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.professional-card {
+    background: white;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.professional-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+}
+
+.card-header-gradient {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    padding: 1.5rem;
+    font-weight: 600;
+}
+
+.search-section {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.search-input-group {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-input-group input {
+    border-radius: 50px;
+    padding: 15px 60px 15px 25px;
+    border: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    font-size: 1.1rem;
+}
+
+.search-input-group .search-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #667eea;
+}
+
+.customer-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-right: 15px;
+    border: 3px solid #f8f9fa;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.customer-info h5 {
+    margin: 0;
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.customer-meta {
+    color: #718096;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.btn-action:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn-action[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2d3748;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 1000;
+}
+
+.table-enhanced {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.table-enhanced thead {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.table-enhanced th {
+    border: none;
+    padding: 1.5rem 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.85rem;
+}
+
+.table-enhanced td {
+    border: none;
+    padding: 1.5rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.table-enhanced tbody tr:hover {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 10%);
+    transform: scale(1.01);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.face-management-section {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.camera-container {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.camera-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+}
+
+.face-preview {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #667eea;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.face-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #718096;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.floating-add-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.floating-add-button:hover {
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+}
+
+.modal-modern .modal-content {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+.modal-modern .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 2rem;
+}
+
+.modal-modern .modal-body {
+    padding: 2rem;
+}
+
+.form-floating-modern {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.form-floating-modern input,
+.form-floating-modern select,
+.form-floating-modern textarea {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.form-floating-modern input:focus,
+.form-floating-modern select:focus,
+.form-floating-modern textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    background: white;
+}
+
+.form-floating-modern label {
+    color: #718096;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.tabs-modern .nav-tabs {
+    border: none;
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 0.5rem;
+}
+
+.tabs-modern .nav-link {
+    border: none;
+    border-radius: 10px;
+    padding: 1rem 2rem;
+    margin: 0 0.25rem;
+    color: #718096;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.tabs-modern .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+@media (max-width: 768px) {
+    .customer-avatar {
+        width: 45px;
+        height: 45px;
+        font-size: 1rem;
+    }
+    
+    .action-buttons {
+        justify-content: center;
+    }
+    
+    .floating-add-button {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+    
+    .stats-overview {
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Flash Messages Display -->
+    <!-- Enhanced Header -->
+    <div class="customer-management-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0 display-6">
+                        <i class="fas fa-users me-3"></i>Customer Management
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">Manage your valued customers with ease and professionalism</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex align-items-center justify-content-end">
+                        <div class="me-3">
+                            <small class="text-light opacity-75">Total Customers</small>
+                            <div class="h3 mb-0">{{ customers|length if customers else 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="row mb-3">
@@ -13,7 +410,7 @@
                         <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
                             <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }} me-2"></i>
                             {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     {% endfor %}
                 </div>
@@ -21,526 +418,554 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Header with Tabs -->
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">
-                    <i class="fas fa-users me-2"></i>Customer Management
-                </h1>
+    <!-- Enhanced Stats Overview -->
+    {% if customers %}
+    <div class="stats-overview">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ customers|length }}</span>
+                    <span class="stat-label">Total Customers</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ customers|selectattr("status", "equalto", "Loyal Customer")|list|length }}</span>
+                    <span class="stat-label">Loyal Customers</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ customers|selectattr("total_visits", "gt", 0)|list|length }}</span>
+                    <span class="stat-label">Active Customers</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ customers|selectattr("is_vip", "equalto", true)|list|length }}</span>
+                    <span class="stat-label">VIP Customers</span>
+                </div>
             </div>
         </div>
     </div>
+    {% endif %}
 
-    <!-- Navigation Tabs -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <ul class="nav nav-tabs" id="customerTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management" type="button" role="tab">
-                        <i class="fas fa-users-cog me-2"></i>Customer Management
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="face-capture-tab" data-bs-toggle="tab" data-bs-target="#face-capture" type="button" role="tab">
-                        <i class="fas fa-camera me-2"></i>Face Management
-                    </button>
-                </li>
-            </ul>
-        </div>
+    <!-- Modern Tab Navigation -->
+    <div class="tabs-modern mb-4">
+        <ul class="nav nav-tabs" id="customerTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="management-tab" data-bs-toggle="tab" data-bs-target="#management" type="button" role="tab">
+                    <i class="fas fa-users-cog me-2"></i>Customer Directory
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="face-capture-tab" data-bs-toggle="tab" data-bs-target="#face-capture" type="button" role="tab">
+                    <i class="fas fa-camera me-2"></i>Face Recognition
+                </button>
+            </li>
+        </ul>
     </div>
 
     <!-- Tab Content -->
     <div class="tab-content" id="customerTabsContent">
         <!-- Customer Management Tab -->
         <div class="tab-pane fade show active" id="management" role="tabpanel">
-            <!-- Add Customer Button -->
-            <div class="row mb-3">
-                <div class="col-12 text-end">
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
-                        <i class="fas fa-plus me-2"></i>Add Customer
-                    </button>
-                </div>
-            </div>
-
-            <!-- Search Bar -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <form method="GET" class="row g-3">
-                                <div class="col-md-10">
-                                    <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="fas fa-search"></i>
-                                        </span>
-                                        <input type="text" class="form-control" name="search" 
-                                               placeholder="Search by name, phone, or email..." 
-                                               value="{{ search_query }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="submit" class="btn btn-primary w-100">Search</button>
-                                </div>
-                            </form>
-                        </div>
+            
+            <!-- Enhanced Search Section -->
+            <div class="search-section">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4 class="mb-3 text-center">Find Your Customers</h4>
+                        <form method="GET" class="search-input-group">
+                            <input type="text" class="form-control" name="search" 
+                                   placeholder="Search by name, phone, or email..." 
+                                   value="{{ search_query }}">
+                            <i class="fas fa-search search-icon"></i>
+                        </form>
+                    </div>
+                    <div class="col-md-4 text-center mt-3 mt-md-0">
+                        <button type="button" class="btn btn-lg btn-primary px-4 py-3" 
+                                data-bs-toggle="modal" data-bs-target="#addCustomerModal"
+                                style="border-radius: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                            <i class="fas fa-user-plus me-2"></i>Add New Customer
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Customers List -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card shadow">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">
-                                Customers {% if search_query %}(Search results for "{{ search_query }}"){% endif %}
-                            </h6>
+            <!-- Enhanced Customers Table -->
+            <div class="professional-card">
+                <div class="card-header-gradient">
+                    <h5 class="mb-0">
+                        <i class="fas fa-address-book me-2"></i>
+                        Customer Directory
+                        {% if search_query %}
+                            <small class="opacity-75 ms-2">(Search results for "{{ search_query }}")</small>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if customers %}
+                        <div class="table-responsive">
+                            <table class="table table-enhanced mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Contact Information</th>
+                                        <th>Visit History</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for customer in customers %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="customer-avatar">
+                                                    {{ customer.first_name[0] }}{{ customer.last_name[0] }}
+                                                </div>
+                                                <div class="customer-info">
+                                                    <h5>{{ customer.full_name }}</h5>
+                                                    <div class="customer-meta">
+                                                        {% if customer.date_of_birth %}
+                                                            <i class="fas fa-birthday-cake me-1"></i>
+                                                            Age: {{ utils.calculate_age(customer.date_of_birth) }}
+                                                        {% endif %}
+                                                        {% if customer.is_vip %}
+                                                            <span class="badge bg-warning ms-2">
+                                                                <i class="fas fa-crown"></i> VIP
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <i class="fas fa-phone me-2 text-primary"></i>
+                                                <strong>{{ customer.phone }}</strong>
+                                            </div>
+                                            {% if customer.email %}
+                                            <div class="mt-1">
+                                                <i class="fas fa-envelope me-2 text-info"></i>
+                                                <span class="text-muted">{{ customer.email }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="mb-2">
+                                                <strong class="text-success">{{ customer.total_visits }}</strong> visits
+                                            </div>
+                                            <div class="small text-muted">
+                                                {% if customer.last_visit %}
+                                                    Last: {{ utils.format_date(customer.last_visit.date()) }}
+                                                {% else %}
+                                                    Never visited
+                                                {% endif %}
+                                            </div>
+                                            <div class="small">
+                                                <strong>{{ utils.format_currency(customer.total_spent) }}</strong> spent
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge bg-{{ utils.get_status_class(customer.status.lower().replace(' ', '_')) }}">
+                                                {{ customer.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons justify-content-center">
+                                                <button class="btn btn-action btn-outline-primary" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#viewCustomerModal" 
+                                                        onclick="viewCustomer({{ customer.id }})"
+                                                        title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-action btn-outline-success" 
+                                                        onclick="bookAppointment({{ customer.id }})"
+                                                        title="Book Appointment">
+                                                    <i class="fas fa-calendar-plus"></i>
+                                                </button>
+                                                <button class="btn btn-action btn-outline-warning" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#editCustomerModal" 
+                                                        onclick="editCustomer({{ customer.id }})"
+                                                        title="Edit Customer">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-action btn-outline-danger" 
+                                                        onclick="deleteCustomer({{ customer.id }}, '{{ customer.first_name }} {{ customer.last_name }}')"
+                                                        title="Delete Customer">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="card-body">
-                            {% if customers %}
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Contact</th>
-                                                <th>Last Visit</th>
-                                                <th>Total Visits</th>
-                                                <th>Total Spent</th>
-                                                <th>Status</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for customer in customers %}
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="avatar-circle me-3">
-                                                            {{ customer.first_name[0] }}{{ customer.last_name[0] }}
-                                                        </div>
-                                                        <div>
-                                                            <strong>{{ customer.full_name }}</strong>
-                                                            {% if customer.date_of_birth %}
-                                                            <br><small class="text-muted">
-                                                                Age: {{ utils.calculate_age(customer.date_of_birth) }}
-                                                            </small>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div>{{ customer.phone }}</div>
-                                                    {% if customer.email %}
-                                                    <small class="text-muted">{{ customer.email }}</small>
-                                                    {% endif %}
-                                                </td>
-                                                <td>
-                                                    {% if customer.last_visit %}
-                                                        {{ utils.format_date(customer.last_visit.date()) }}
-                                                    {% else %}
-                                                        <span class="text-muted">Never</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td>{{ customer.total_visits }}</td>
-                                                <td>{{ utils.format_currency(customer.total_spent) }}</td>
-                                                <td>
-                                                    <span class="badge bg-{{ utils.get_status_class(customer.status.lower().replace(' ', '_')) }}">
-                                                        {{ customer.status }}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group" role="group">
-                                                        <button class="btn btn-sm btn-outline-primary" 
-                                                                data-bs-toggle="modal" 
-                                                                data-bs-target="#viewCustomerModal" 
-                                                                onclick="viewCustomer({{ customer.id }})"
-                                                                title="View Details">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-success" 
-                                                                onclick="bookAppointment({{ customer.id }})"
-                                                                title="Book Appointment">
-                                                            <i class="fas fa-calendar-plus"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-secondary" 
-                                                                data-bs-toggle="modal" 
-                                                                data-bs-target="#editCustomerModal" 
-                                                                onclick="editCustomer({{ customer.id }})"
-                                                                title="Edit Customer">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-danger" 
-                                                                onclick="deleteCustomer({{ customer.id }}, '{{ customer.first_name }} {{ customer.last_name }}')"
-                                                                title="Delete Customer">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="text-center py-5">
-                                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                                    <h5 class="text-muted">
-                                        {% if search_query %}
-                                            No customers found matching your search
-                                        {% else %}
-                                            No customers found
-                                        {% endif %}
-                                    </h5>
-                                    <p class="text-muted">
-                                        {% if search_query %}
-                                            Try adjusting your search terms.
-                                        {% else %}
-                                            Add your first customer to get started.
-                                        {% endif %}
-                                    </p>
-                                </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h4 class="mt-3">
+                                {% if search_query %}
+                                    No customers found matching your search
+                                {% else %}
+                                    No customers yet
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted">
+                                {% if search_query %}
+                                    Try adjusting your search terms or <a href="{{ url_for('customers') }}" class="text-decoration-none">view all customers</a>.
+                                {% else %}
+                                    Start building your customer base by adding your first customer.
+                                {% endif %}
+                            </p>
+                            {% if not search_query %}
+                            <button type="button" class="btn btn-primary btn-lg mt-3" 
+                                    data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                                <i class="fas fa-user-plus me-2"></i>Add Your First Customer
+                            </button>
                             {% endif %}
                         </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
         <!-- Face Management Tab -->
         <div class="tab-pane fade" id="face-capture" role="tabpanel">
-            <!-- Face Capture Section -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>Select Customer</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="faceClientSelect" class="form-label">Choose Customer</label>
-                                <select class="form-select" id="faceClientSelect">
-                                    <option value="">Select a customer...</option>
-                                    {% for customer in customers %}
-                                    <option value="{{ customer.id }}" data-name="{{ customer.full_name }}" data-phone="{{ customer.phone }}">
-                                        {{ customer.full_name }} - {{ customer.phone }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
+            <div class="face-management-section">
+                <h3 class="text-center mb-4">
+                    <i class="fas fa-camera me-2"></i>Face Recognition Management
+                </h3>
+                
+                <div class="row">
+                    <!-- Customer Selection -->
+                    <div class="col-md-6 mb-4">
+                        <div class="professional-card">
+                            <div class="card-header-gradient">
+                                <h6 class="mb-0"><i class="fas fa-user-check me-2"></i>Select Customer</h6>
                             </div>
-                            <div id="selectedFaceClientInfo" class="alert alert-info d-none">
-                                <strong>Selected Customer:</strong>
-                                <div id="selectedFaceClientDetails"></div>
+                            <div class="card-body">
+                                <div class="form-floating-modern">
+                                    <label for="faceClientSelect">Choose Customer</label>
+                                    <select class="form-select" id="faceClientSelect">
+                                        <option value="">Select a customer...</option>
+                                        {% for customer in customers %}
+                                        <option value="{{ customer.id }}" data-name="{{ customer.full_name }}" data-phone="{{ customer.phone }}">
+                                            {{ customer.full_name }} - {{ customer.phone }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div id="selectedFaceClientInfo" class="alert alert-info d-none mt-3">
+                                    <strong>Selected Customer:</strong>
+                                    <div id="selectedFaceClientDetails"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card border-success">
-                        <div class="card-header bg-success text-white">
-                            <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Face Capture</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="camera-container text-center mb-3">
-                                <video id="faceVideo" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></video>
-                                <canvas id="faceCanvas" width="300" height="200" style="border: 2px solid #dee2e6; border-radius: 8px; display: none;"></canvas>
-                                <div id="faceCameraPlaceholder" class="bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 2px dashed #dee2e6; border-radius: 8px;">
-                                    <div>
-                                        <i class="fas fa-camera fa-3x text-muted mb-2"></i>
-                                        <p class="text-muted mb-0">Select customer and start camera</p>
+
+                    <!-- Face Capture -->
+                    <div class="col-md-6 mb-4">
+                        <div class="professional-card">
+                            <div class="card-header-gradient">
+                                <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Face Capture</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="camera-container mb-4">
+                                    <video id="faceVideo" width="300" height="200" style="border-radius: 10px; display: none;"></video>
+                                    <canvas id="faceCanvas" width="300" height="200" style="border-radius: 10px; display: none;"></canvas>
+                                    <div id="faceCameraPlaceholder" class="d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <div>
+                                            <i class="fas fa-camera fa-4x text-muted mb-3"></i>
+                                            <p class="text-muted mb-0">Select customer and start camera</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="d-grid gap-2">
-                                <button id="startFaceCamera" class="btn btn-success">
-                                    <i class="fas fa-video me-2"></i>Start Camera
-                                </button>
-                                <button id="captureFacePhoto" class="btn btn-primary" disabled>
-                                    <i class="fas fa-camera me-2"></i>Capture Photo
-                                </button>
-                                <button id="saveFaceData" class="btn btn-warning" disabled>
-                                    <i class="fas fa-save me-2"></i>Save Face Data
-                                </button>
+                                <div class="d-grid gap-3">
+                                    <button id="startFaceCamera" class="btn btn-success btn-lg">
+                                        <i class="fas fa-video me-2"></i>Start Camera
+                                    </button>
+                                    <button id="captureFacePhoto" class="btn btn-primary btn-lg" disabled>
+                                        <i class="fas fa-camera me-2"></i>Capture Photo
+                                    </button>
+                                    <button id="saveFaceData" class="btn btn-warning btn-lg" disabled>
+                                        <i class="fas fa-save me-2"></i>Save Face Data
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Face Recognition CRUD Table -->
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">
+            <!-- Face Recognition Table -->
+            <div class="professional-card">
+                <div class="card-header-gradient d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
                         <i class="fas fa-user-friends me-2"></i>Registered Customer Faces
-                    </h6>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="refreshFaceTable()">
+                    </h5>
+                    <button type="button" class="btn btn-light btn-sm" onclick="refreshFaceTable()">
                         <i class="fas fa-sync-alt me-1"></i>Refresh
                     </button>
                 </div>
                 <div class="card-body">
-                    <!-- Search and Filter Section -->
-                    <div class="row mb-3">
+                    <div class="row mb-4">
                         <div class="col-md-8">
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-search"></i>
-                                </span>
+                            <div class="search-input-group">
                                 <input type="text" class="form-control" id="faceSearchInput" 
                                        placeholder="Search by customer name or phone...">
+                                <i class="fas fa-search search-icon"></i>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <button type="button" class="btn btn-outline-primary w-100" onclick="searchFaceData()">
+                            <button type="button" class="btn btn-primary w-100" onclick="searchFaceData()">
                                 <i class="fas fa-search me-1"></i>Search
                             </button>
                         </div>
                     </div>
 
-                    <!-- Face Data Table -->
                     <div class="table-responsive" id="faceTableContainer">
                         <div class="text-center py-5">
                             <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
                             <p class="text-muted">Loading face data...</p>
                         </div>
                     </div>
-
-                    <!-- Pagination -->
-                    <nav aria-label="Face data pagination" id="facePagination" class="d-none">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#" onclick="changeFacePage(-1)">Previous</a>
-                            </li>
-                            <li class="page-item active">
-                                <a class="page-link" href="#" onclick="changeFacePage(1)">1</a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="#" onclick="changeFacePage(1)">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
-<!-- Add/Edit Customer Modal -->
-    <div class="modal fade" id="addCustomerModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content bg-dark text-light">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title">
-                        <i class="fas fa-user-plus me-2"></i>Add New Customer
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="{{ url_for('create_customer_route') }}">
-                    <div class="modal-body">
-                        {{ form.hidden_tag() }}
+<!-- Floating Add Button -->
+<button type="button" class="floating-add-button" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+    <i class="fas fa-plus"></i>
+</button>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="first_name" class="form-label">First Name *</label>
-                                    {{ form.first_name(class="form-control") }}
-                                    {% if form.first_name.errors %}
-                                        <div class="text-danger small">{{ form.first_name.errors[0] }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="last_name" class="form-label">Last Name *</label>
-                                    {{ form.last_name(class="form-control") }}
-                                    {% if form.last_name.errors %}
-                                        <div class="text-danger small">{{ form.last_name.errors[0] }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="phone" class="form-label">Phone *</label>
-                                    {{ form.phone(class="form-control") }}
-                                    {% if form.phone.errors %}
-                                        <div class="text-danger small">{{ form.phone.errors[0] }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="email" class="form-label">Email</label>
-                                    {{ form.email(class="form-control") }}
-                                    {% if form.email.errors %}
-                                        <div class="text-danger small">{{ form.email.errors[0] }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="date_of_birth" class="form-label">Date of Birth</label>
-                                    {{ form.date_of_birth(class="form-control") }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="gender" class="form-label">Gender</label>
-                                    {{ form.gender(class="form-select") }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="address" class="form-label">Address</label>
-                            {{ form.address(class="form-control", rows="2") }}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="preferences" class="form-label">Preferences</label>
-                            {{ form.preferences(class="form-control", rows="2", placeholder="Customer preferences, favorite services, etc.") }}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="allergies" class="form-label">Allergies</label>
-                            {{ form.allergies(class="form-control", rows="2", placeholder="Any known allergies or sensitivities") }}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Notes</label>
-                            {{ form.notes(class="form-control", rows="3", placeholder="Additional notes about the customer") }}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>Add Customer
-                        </button>
-                    </div>
-                </form>
+<!-- Enhanced Add Customer Modal -->
+<div class="modal fade modal-modern" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Add New Customer
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-    </div>
+            <form method="POST" action="{{ url_for('create_customer_route') }}">
+                <div class="modal-body">
+                    {{ form.hidden_tag() }}
 
-    <!-- Edit Customer Modal -->
-    <div class="modal fade" id="editCustomerModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content bg-dark text-light">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title">
-                        <i class="fas fa-user-edit me-2"></i>Edit Customer
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="editCustomerForm" method="POST" action="">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_first_name" class="form-label">First Name *</label>
-                                    <input type="text" class="form-control" name="first_name" id="edit_first_name" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_last_name" class="form-label">Last Name *</label>
-                                    <input type="text" class="form-control" name="last_name" id="edit_last_name" required>
-                                </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="first_name">First Name *</label>
+                                {{ form.first_name(class="form-control") }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.first_name.errors[0] }}</div>
+                                {% endif %}
                             </div>
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_phone" class="form-label">Phone *</label>
-                                    <input type="tel" class="form-control" name="phone" id="edit_phone" required>
-                                </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="last_name">Last Name *</label>
+                                {{ form.last_name(class="form-control") }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.last_name.errors[0] }}</div>
+                                {% endif %}
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" name="email" id="edit_email">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_date_of_birth" class="form-label">Date of Birth</label>
-                                    <input type="date" class="form-control" name="date_of_birth" id="edit_date_of_birth">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_gender" class="form-label">Gender</label>
-                                    <select class="form-select" name="gender" id="edit_gender">
-                                        <option value="">Select Gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="edit_address" class="form-label">Address</label>
-                            <textarea class="form-control" name="address" id="edit_address" rows="2"></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="edit_preferences" class="form-label">Preferences</label>
-                            <textarea class="form-control" name="preferences" id="edit_preferences" rows="2" placeholder="Customer preferences, favorite services, etc."></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="edit_allergies" class="form-label">Allergies</label>
-                            <textarea class="form-control" name="allergies" id="edit_allergies" rows="2" placeholder="Any known allergies or sensitivities"></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="edit_notes" class="form-label">Notes</label>
-                            <textarea class="form-control" name="notes" id="edit_notes" rows="3" placeholder="Additional notes about the customer"></textarea>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>Update Customer
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <!-- View Customer Modal -->
-    <div class="modal fade" id="viewCustomerModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content bg-dark text-light">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title">
-                        <i class="fas fa-user me-2"></i>Customer Profile
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="phone">Phone Number *</label>
+                                {{ form.phone(class="form-control") }}
+                                {% if form.phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.phone.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="email">Email Address</label>
+                                {{ form.email(class="form-control") }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.email.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="date_of_birth">Date of Birth</label>
+                                {{ form.date_of_birth(class="form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="gender">Gender</label>
+                                {{ form.gender(class="form-select") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="address">Address</label>
+                        {{ form.address(class="form-control", rows="2") }}
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="preferences">Preferences</label>
+                        {{ form.preferences(class="form-control", rows="2", placeholder="Customer preferences, favorite services, etc.") }}
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="allergies">Allergies & Sensitivities</label>
+                        {{ form.allergies(class="form-control", rows="2", placeholder="Any known allergies or sensitivities") }}
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="notes">Additional Notes</label>
+                        {{ form.notes(class="form-control", rows="3", placeholder="Additional notes about the customer") }}
+                    </div>
                 </div>
-                <div class="modal-body" id="customerDetails">
-                    <!-- Customer details will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="bookAppointmentFromModal()">
-                        <i class="fas fa-calendar-plus me-2"></i>Book Appointment
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Add Customer
                     </button>
                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Edit Customer Modal -->
+<div class="modal fade modal-modern" id="editCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2"></i>Edit Customer
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCustomerForm" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="edit_first_name">First Name *</label>
+                                <input type="text" class="form-control" name="first_name" id="edit_first_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="edit_last_name">Last Name *</label>
+                                <input type="text" class="form-control" name="last_name" id="edit_last_name" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="edit_phone">Phone Number *</label>
+                                <input type="tel" class="form-control" name="phone" id="edit_phone" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="edit_email">Email Address</label>
+                                <input type="email" class="form-control" name="email" id="edit_email">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="edit_date_of_birth">Date of Birth</label>
+                                <input type="date" class="form-control" name="date_of_birth" id="edit_date_of_birth">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-modern">
+                                <label for="edit_gender">Gender</label>
+                                <select class="form-select" name="gender" id="edit_gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="edit_address">Address</label>
+                        <textarea class="form-control" name="address" id="edit_address" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="edit_preferences">Preferences</label>
+                        <textarea class="form-control" name="preferences" id="edit_preferences" rows="2" placeholder="Customer preferences, favorite services, etc."></textarea>
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="edit_allergies">Allergies & Sensitivities</label>
+                        <textarea class="form-control" name="allergies" id="edit_allergies" rows="2" placeholder="Any known allergies or sensitivities"></textarea>
+                    </div>
+
+                    <div class="form-floating-modern">
+                        <label for="edit_notes">Additional Notes</label>
+                        <textarea class="form-control" name="notes" id="edit_notes" rows="3" placeholder="Additional notes about the customer"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Update Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced View Customer Modal -->
+<div class="modal fade modal-modern" id="viewCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2"></i>Customer Profile
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="customerDetails">
+                <!-- Customer details will be loaded here -->
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+                <button type="button" class="btn btn-primary btn-lg" onclick="bookAppointmentFromModal()">
+                    <i class="fas fa-calendar-plus me-2"></i>Book Appointment
+                </button>
             </div>
         </div>
     </div>
@@ -750,8 +1175,6 @@
                     return;
                 }
 
-                document.getElementById('processingIndicator').style.display = 'block';
-
                 try {
                     const response = await fetch('/api/save_customer_face', {
                         method: 'POST',
@@ -769,7 +1192,6 @@
                     if (result.success) {
                         this.showNotification('Face data saved successfully!', 'success');
                         this.resetCapture();
-                        $('#faceCaptureModal').modal('hide');
 
                         // Reload the customers list to show updated face data
                         location.reload();
@@ -779,8 +1201,6 @@
                 } catch (error) {
                     console.error('Error saving face data:', error);
                     this.showNotification('Error saving face data', 'danger');
-                } finally {
-                    document.getElementById('processingIndicator').style.display = 'none';
                 }
             }
 
@@ -802,14 +1222,12 @@
 
                 // Show placeholders
                 const placeholder = document.getElementById('faceCameraPlaceholder');
-                const cameraPrompt = document.getElementById('cameraPrompt');
                 if (placeholder) placeholder.style.display = 'flex';
-                if (cameraPrompt) cameraPrompt.style.display = 'block';
 
                 // Reset button states (handle both possible button IDs)
-                const startBtn = document.getElementById('startFaceCamera') || document.getElementById('startCameraBtn');
-                const captureBtn = document.getElementById('captureFacePhoto') || document.getElementById('capturePhotoBtn');
-                const saveBtn = document.getElementById('saveFaceData') || document.getElementById('saveFaceBtn');
+                const startBtn = document.getElementById('startFaceCamera');
+                const captureBtn = document.getElementById('captureFacePhoto');
+                const saveBtn = document.getElementById('saveFaceData');
 
                 if (startBtn) {
                     startBtn.disabled = false;
@@ -828,18 +1246,19 @@
                 this.capturedImage = null;
                 this.selectedCustomer = null;
                 
-                const selectElement = document.getElementById('faceClientSelect') || document.getElementById('faceCustomerSelect');
+                const selectElement = document.getElementById('faceClientSelect');
                 if (selectElement) selectElement.value = '';
                 
-                const selectedInfo = document.getElementById('selectedFaceClientInfo') || document.getElementById('selectedCustomerInfo');
+                const selectedInfo = document.getElementById('selectedFaceClientInfo');
                 if (selectedInfo) selectedInfo.classList.add('d-none');
             }
 
             showNotification(message, type = 'info') {
                 const alertDiv = document.createElement('div');
                 alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-                alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                alertDiv.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
                 alertDiv.innerHTML = `
+                    <strong><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i></strong>
                     ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
@@ -860,11 +1279,6 @@
 
             // Initialize face capture manager
             const faceCaptureManager = new FaceCaptureManager();
-
-            // Reset face capture when modal is hidden
-            $('#faceCaptureModal').on('hidden.bs.modal', function() {
-                faceCaptureManager.resetCapture();
-            });
 
             // Load face data when Face Recognition tab is activated
             $('#face-capture-tab').on('shown.bs.tab', function() {
@@ -897,14 +1311,14 @@
 
                 if (result.success && result.customers.length > 0) {
                     let tableHTML = `
-                        <table class="table table-hover table-dark">
+                        <table class="table table-enhanced mb-0">
                             <thead>
                                 <tr>
                                     <th>Customer</th>
                                     <th>Phone</th>
                                     <th>Face Status</th>
                                     <th>Registered Date</th>
-                                    <th>Actions</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -924,16 +1338,20 @@
                                 </td>
                                 <td>${customer.phone}</td>
                                 <td>
-                                    <span class="badge bg-success">Registered</span>
+                                    <span class="status-badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Registered
+                                    </span>
                                 </td>
                                 <td>${customer.face_registration_date ? new Date(customer.face_registration_date).toLocaleDateString() : 'Unknown'}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-warning me-1" onclick="updateFace(${customer.id})">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="removeFace(${customer.id})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                <td class="text-center">
+                                    <div class="action-buttons justify-content-center">
+                                        <button class="btn btn-action btn-outline-warning" onclick="updateFace(${customer.id})" title="Update Face">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <button class="btn btn-action btn-outline-danger" onclick="removeFace(${customer.id})" title="Remove Face">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         `;
@@ -943,9 +1361,9 @@
                     tableContainer.innerHTML = tableHTML;
                 } else {
                     tableContainer.innerHTML = `
-                        <div class="text-center py-5">
-                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No registered faces found</h5>
+                        <div class="empty-state">
+                            <i class="fas fa-user-friends"></i>
+                            <h4 class="mt-3">No registered faces found</h4>
                             <p class="text-muted">Add customer faces using the capture section above.</p>
                         </div>
                     `;
@@ -955,9 +1373,9 @@
                 const tableContainer = document.getElementById('faceTableContainer');
                 if (tableContainer) {
                     tableContainer.innerHTML = `
-                        <div class="text-center py-5">
-                            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
-                            <h5 class="text-danger">Error loading face data</h5>
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle text-danger"></i>
+                            <h4 class="mt-3 text-danger">Error loading face data</h4>
                             <p class="text-muted">Please try refreshing the page.</p>
                         </div>
                     `;
@@ -971,8 +1389,8 @@
             if (tableContainer) {
                 tableContainer.innerHTML = `
                     <div class="text-center py-5">
-                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-                        <p class="text-muted">Loading face data...</p>
+                        <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+                        <p class="text-muted">Refreshing face data...</p>
                     </div>
                 `;
             }
@@ -991,8 +1409,10 @@
 
         // Update face
         function updateFace(customerId) {
-            // You can implement this to allow updating/recapturing face data
-            alert(`Update face for customer ID: ${customerId}`);
+            if (confirm('Update face data for this customer? This will replace the existing face registration.')) {
+                // You can implement this to allow updating/recapturing face data
+                alert(`Update face for customer ID: ${customerId}`);
+            }
         }
 
         // Remove face
@@ -1007,53 +1427,5 @@
                 }
             }
         }
-
-        // Initialize face capture manager when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Initializing Face Capture Manager...');
-            const faceManager = new FaceCaptureManager();
-            
-            // Also initialize when tab is switched to face capture
-            document.getElementById('face-capture-tab').addEventListener('shown.bs.tab', function() {
-                console.log('Face capture tab shown, re-initializing...');
-                // Re-setup event listeners after tab switch
-                setTimeout(() => {
-                    faceManager.setupEventListeners();
-                }, 100);
-            });
-        });
     </script>
-
-<style>
-.avatar-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: var(--bs-primary);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 0.9em;
-}
-
-.card {
-    transition: transform 0.2s ease-in-out;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-}
-
-.nav-tabs .nav-link {
-    border-radius: 0.5rem 0.5rem 0 0;
-}
-
-.nav-tabs .nav-link.active {
-    background-color: var(--bs-primary);
-    color: white !important;
-    border-color: var(--bs-primary);
-}
-</style>
 {% endblock %}
