@@ -22,26 +22,26 @@ def add_sample_data():
             # First, ensure we have the necessary categories and suppliers for products
             # Add product categories if they don't exist
             categories_data = [
-                {"name": "skincare", "display_name": "Skincare Products", "category_type": "product"},
-                {"name": "haircare", "display_name": "Hair Care Products", "category_type": "product"},
-                {"name": "massage", "display_name": "Massage Oils & Accessories", "category_type": "product"},
-                {"name": "equipment", "display_name": "Spa Equipment", "category_type": "product"}
+                {"category_name": "Skincare Products", "description": "Face and body skincare products"},
+                {"category_name": "Hair Care Products", "description": "Hair treatment and styling products"},
+                {"category_name": "Massage Oils & Accessories", "description": "Massage oils and related accessories"},
+                {"category_name": "Spa Equipment", "description": "Professional spa equipment and tools"}
             ]
             
             for cat_data in categories_data:
-                existing_cat = InventoryCategory.query.filter_by(name=cat_data["name"]).first()
+                existing_cat = InventoryCategory.query.filter_by(category_name=cat_data["category_name"]).first()
                 if not existing_cat:
                     category = InventoryCategory(**cat_data)
                     db.session.add(category)
             
             # Add suppliers if they don't exist
             suppliers_data = [
-                {"name": "Spa Supply Co", "contact_person": "John Smith", "phone": "555-0101", "email": "john@spasupply.com"},
-                {"name": "Beauty Products Ltd", "contact_person": "Sarah Johnson", "phone": "555-0102", "email": "sarah@beautyproducts.com"}
+                {"supplier_name": "Spa Supply Co", "supplier_code": "SUP001", "contact_person": "John Smith", "phone": "555-0101", "email": "john@spasupply.com"},
+                {"supplier_name": "Beauty Products Ltd", "supplier_code": "SUP002", "contact_person": "Sarah Johnson", "phone": "555-0102", "email": "sarah@beautyproducts.com"}
             ]
             
             for sup_data in suppliers_data:
-                existing_sup = InventorySupplier.query.filter_by(name=sup_data["name"]).first()
+                existing_sup = InventorySupplier.query.filter_by(supplier_name=sup_data["supplier_name"]).first()
                 if not existing_sup:
                     supplier = InventorySupplier(**sup_data)
                     db.session.add(supplier)
@@ -210,13 +210,13 @@ def add_sample_data():
                     print(f"Customer with phone {customer_info['phone']} already exists")
             
             # Get category and supplier IDs for products
-            skincare_cat = InventoryCategory.query.filter_by(name="skincare").first()
-            haircare_cat = InventoryCategory.query.filter_by(name="haircare").first()
-            massage_cat = InventoryCategory.query.filter_by(name="massage").first()
-            equipment_cat = InventoryCategory.query.filter_by(name="equipment").first()
+            skincare_cat = InventoryCategory.query.filter_by(category_name="Skincare Products").first()
+            haircare_cat = InventoryCategory.query.filter_by(category_name="Hair Care Products").first()
+            massage_cat = InventoryCategory.query.filter_by(category_name="Massage Oils & Accessories").first()
+            equipment_cat = InventoryCategory.query.filter_by(category_name="Spa Equipment").first()
             
-            supplier1 = InventorySupplier.query.filter_by(name="Spa Supply Co").first()
-            supplier2 = InventorySupplier.query.filter_by(name="Beauty Products Ltd").first()
+            supplier1 = InventorySupplier.query.filter_by(supplier_name="Spa Supply Co").first()
+            supplier2 = InventorySupplier.query.filter_by(supplier_name="Beauty Products Ltd").first()
             
             # 3. ADD 10 PRODUCTS
             print("\n--- Adding 10 Products ---")
