@@ -119,8 +119,16 @@
 
                     {% if current_user.can_access('billing') %}
                     <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('integrated_billing') }}">
+                            <i class="fas fa-cash-register me-2"></i><span>Integrated Billing</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if current_user.can_access('billing') %}
+                    <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('billing') }}">
-                            <i class="fas fa-file-invoice-dollar me-2"></i><span>Billing & Payment</span>
+                            <i class="fas fa-file-invoice-dollar me-2"></i><span>Legacy Billing</span>
                         </a>
                     </li>
                     {% endif %}
