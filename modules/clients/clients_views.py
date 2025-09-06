@@ -57,17 +57,17 @@ def create_customer_route():
         else:
             email_value = None
 
-        phone_value = form.phone.data.strip()
+        phone_value = form.phone.data.strip() if form.phone.data else ""
 
         # Server-side validation for duplicates
         from .clients_queries import get_customer_by_phone, get_customer_by_email
 
-        # Check for duplicate phone number
-        if get_customer_by_phone(phone_value):
+        # Check for duplicate phone number (only if phone is provided)
+        if phone_value and get_customer_by_phone(phone_value):
             flash('A customer with this phone number already exists. Please use a different phone number.', 'danger')
             return redirect(url_for('customers'))
 
-        # Check for duplicate email (only if email is provided)
+        # Check for duplicate email (only if email is provided and not empty)
         if email_value and get_customer_by_email(email_value):
             flash('A customer with this email address already exists. Please use a different email or update the existing customer profile.', 'danger')
             return redirect(url_for('customers'))

@@ -57,21 +57,22 @@
                 </div>
             </div>
 
-            <!-- Package Filters -->
+            <!-- Package Filters and Search -->
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <div class="btn-group" role="group" aria-label="Package filters">
-                                <button type="button" class="btn btn-outline-primary active" onclick="filterPackages('all')">All Packages</button>
-                                <button type="button" class="btn btn-outline-success" onclick="filterPackages('prepaid')">Prepaid</button>
-                                <button type="button" class="btn btn-outline-info" onclick="filterPackages('service_package')">Service Packages</button>
-                                <button type="button" class="btn btn-outline-warning" onclick="filterPackages('membership')">Memberships</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="filterPackages('student_offer')">Student Offers</button>
-                                <button type="button" class="btn btn-outline-danger" onclick="filterPackages('kitty_party')">Kitty Party</button>
-                                <button type="button" class="btn btn-outline-dark" onclick="filterPackages('yearly_membership')">Yearly Membership</button>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <div class="btn-group" role="group" aria-label="Package filters">
+                                    <button type="button" class="btn btn-outline-primary active filter-btn" onclick="filterPackages('all')">All Packages</button>
+                                    <button type="button" class="btn btn-outline-success filter-btn" onclick="filterPackages('active')">Active</button>
+                                    <button type="button" class="btn btn-outline-secondary filter-btn" onclick="filterPackages('inactive')">Inactive</button>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="text" class="form-control" id="packageSearch" placeholder="Search packages..." oninput="searchPackages()">
+                                </div>
+                                <span class="package-counter text-muted ms-3"></span>
                             </div>
-                            <span class="package-counter text-muted ms-3"></span>
                         </div>
                     </div>
                 </div>
@@ -85,7 +86,7 @@
                 <div class="card-body">
                     {% if packages %}
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover" id="packagesTable">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Package Name</th>
@@ -969,50 +970,56 @@ function assignPackage() {
 </script>
 
 <script>
-        // Package filtering function
-        function filterPackages(type) {
-            const rows = document.querySelectorAll('.package-row');
-            const buttons = document.querySelectorAll('[onclick^="filterPackages"]');
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
 
-            // Update button states
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        // Filter packages function
+        function filterPackages(status) {
+            const rows = document.querySelectorAll('#packagesTable tbody tr');
 
-            // Filter rows
-            let visibleCount = 0;
             rows.forEach(row => {
-                if (type === 'all' || row.dataset.packageType === type) {
+                if (status === 'all') {
                     row.style.display = '';
-                    visibleCount++;
+                } else {
+                    const statusBadge = row.querySelector('.badge');
+                    const packageStatus = statusBadge ? statusBadge.textContent.toLowerCase() : '';
+
+                    if (status === 'active' && packageStatus === 'active') {
+                        row.style.display = '';
+                    } else if (status === 'inactive' && packageStatus === 'inactive') {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[onclick="filterPackages('${status}')"]`).classList.add('active');
+        }
+
+        // Search packages function
+        function searchPackages() {
+            const searchTerm = document.getElementById('packageSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#packagesTable tbody tr');
+
+            rows.forEach(row => {
+                const packageName = row.cells[0].textContent.toLowerCase();
+                const description = row.cells[1].textContent.toLowerCase();
+
+                if (packageName.includes(searchTerm) || description.includes(searchTerm)) {
+                    row.style.display = '';
                 } else {
                     row.style.display = 'none';
                 }
             });
-
-            // Update package count if counter exists
-            const counter = document.querySelector('.package-counter');
-            if (counter) {
-                counter.textContent = `${visibleCount} package(s) shown`;
-            }
         }
-
-        function setAssignPackageData(packageId, packageName) {
-            document.getElementById('assign_package_id').value = packageId;
-            document.querySelector('#assignPackageModal .modal-title').textContent = `Assign ${packageName}`;
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Enhanced packages page loaded');
-
-            // Check if we have any packages
-            const packageRows = document.querySelectorAll('.package-row');
-            if (packageRows.length === 0) {
-                console.log('No packages found in the table');
-            } else {
-                console.log(`Found ${packageRows.length} packages`);
-            }
-        });
     </script>
 
 <!-- Edit Package Modals (Generated for each package) -->
@@ -1185,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const serviceDiscount = parseFloat(serviceItem.querySelector('.discount-input-edit-{{ package.id }}').value) || 0;
 
                 const serviceTotal = servicePrice * sessions;
-                const serviceDiscountAmount = (serviceTotal * serviceDiscount) / 100;
+                const serviceDiscountAmount = (serviceTotal * service.discount) / 100;
 
                 totalOriginalPrice += serviceTotal;
                 totalSessions += sessions;

@@ -19,7 +19,7 @@ def get_customer_by_phone(phone):
 
 def get_customer_by_email(email):
     """Get customer by email address"""
-    if email:
+    if email and email.strip():
         return Customer.query.filter_by(email=email, is_active=True).first()
     return None
 
