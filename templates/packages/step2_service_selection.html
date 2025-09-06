@@ -47,16 +47,40 @@
                         </div>
                         <div class="card-body">
                             <form method="POST" action="{{ url_for('package_creation_step_submit', step=2) }}" id="serviceSelectionForm">
-                                
-                                <!-- Service Categories Filter -->
-                                <div class="row mb-4">
+
+                                <!-- Search and Filter Controls -->
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control" id="service-search" 
+                                                   placeholder="Search services by name, description, or price..." 
+                                                   autocomplete="off">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <select class="form-select" id="category-filter" onchange="applyFilters()">
+                                            <option value="all">All Categories</option>
+                                            {% for category in categories %}
+                                            <option value="{{ category.id }}">{{ category.display_name }}</option>
+                                            {% endfor %}
+                                            <option value="none">No Category</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Category Filter Buttons -->
+                                <div class="row mb-3">
                                     <div class="col-12">
                                         <div class="btn-group flex-wrap" role="group">
-                                            <button type="button" class="btn btn-outline-primary active" onclick="filterByCategory('all')">
+                                            <button type="button" class="btn btn-outline-primary active" onclick="quickFilter('all')">
                                                 All Services
                                             </button>
                                             {% for category in categories %}
-                                            <button type="button" class="btn btn-outline-primary" onclick="filterByCategory('{{ category.id }}')">
+                                            <button type="button" class="btn btn-outline-primary" onclick="quickFilter('{{ category.id }}')">
                                                 <i class="{{ category.icon }}"></i> {{ category.display_name }}
                                             </button>
                                             {% endfor %}
@@ -101,7 +125,7 @@
                                                         </div>
                                                     </label>
                                                 </div>
-                                                
+
                                                 <!-- Sessions Input (hidden by default) -->
                                                 <div class="sessions-input mt-3" id="sessions_container_{{ service.id }}" style="display: none;">
                                                     <label for="sessions_{{ service.id }}" class="form-label small">Number of Sessions</label>
@@ -124,8 +148,8 @@
                                 <!-- No Services Message -->
                                 <div class="text-center py-5" id="no-services-message" style="display: none;">
                                     <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                                    <h5 class="text-muted">No services found for this category</h5>
-                                    <p class="text-muted">Try selecting a different category or "All Services"</p>
+                                    <h5 class="text-muted">No services found matching your search or category.</h5>
+                                    <p class="text-muted">Try clearing the search or selecting a different category.</p>
                                 </div>
 
                                 <div class="d-flex justify-content-between mt-4">
@@ -232,41 +256,63 @@
 <script>
 let selectedServices = new Set();
 
-// Filter services by category
-function filterByCategory(categoryId) {
+// Function to clear the search input
+function clearSearch() {
+    const searchInput = document.getElementById('service-search');
+    searchInput.value = '';
+    applyFilters();
+}
+
+// Function to apply filters (search and category)
+function applyFilters() {
+    const searchTerm = document.getElementById('service-search').value.toLowerCase();
+    const selectedCategory = document.getElementById('category-filter').value;
     const serviceCards = document.querySelectorAll('.service-card');
-    const buttons = document.querySelectorAll('.btn-group .btn');
     const noServicesMessage = document.getElementById('no-services-message');
-    
-    // Update active button
-    buttons.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    
     let visibleCount = 0;
-    
+
     serviceCards.forEach(card => {
-        if (categoryId === 'all' || card.dataset.category === categoryId) {
+        const serviceName = card.querySelector('.card-title').textContent.toLowerCase();
+        const serviceDescription = card.querySelector('.card-text').textContent.toLowerCase();
+        const serviceCategory = card.dataset.category;
+
+        const matchesSearch = serviceName.includes(searchTerm) || serviceDescription.includes(searchTerm);
+        const matchesCategory = selectedCategory === 'all' || serviceCategory === selectedCategory || (selectedCategory === 'none' && serviceCategory === 'none');
+
+        if (matchesSearch && matchesCategory) {
             card.style.display = 'block';
             visibleCount++;
         } else {
             card.style.display = 'none';
         }
     });
-    
-    // Show/hide no services message
+
     noServicesMessage.style.display = visibleCount === 0 ? 'block' : 'none';
 }
+
+// Function for quick category filtering (enhances the category buttons)
+function quickFilter(categoryId) {
+    const categoryFilter = document.getElementById('category-filter');
+    categoryFilter.value = categoryId; // Update the select dropdown
+    applyFilters();
+
+    // Update active button
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
 
 // Handle service selection
 document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('.service-checkbox');
-    
+
     checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const serviceId = this.value;
             const sessionsContainer = document.getElementById(`sessions_container_${serviceId}`);
             const serviceItem = this.closest('.service-item');
-            
+
             if (this.checked) {
                 selectedServices.add(serviceId);
                 sessionsContainer.style.display = 'block';
@@ -276,11 +322,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 sessionsContainer.style.display = 'none';
                 serviceItem.classList.remove('selected');
             }
-            
+
             updateSummary();
         });
     });
-    
+
+    // Initial filter application based on default settings or URL parameters if needed
+    applyFilters(); 
+
     // Load previously selected services if any
     {% if creation_data.get('services') %}
         {% for service in creation_data.get('services', []) %}
@@ -312,36 +361,36 @@ function updateSummary() {
     const totalSessionsSpan = document.getElementById('total-sessions');
     const estimatedPriceSpan = document.getElementById('estimated-price');
     const nextButton = document.getElementById('next-button');
-    
+
     if (selectedCheckboxes.length === 0) {
         summaryDiv.style.display = 'none';
         nextButton.disabled = true;
         return;
     }
-    
+
     let summaryHtml = '<ul class="mb-0">';
     let totalSessions = 0;
     let estimatedPrice = 0;
-    
+
     selectedCheckboxes.forEach(checkbox => {
         const serviceId = checkbox.value;
         const serviceName = checkbox.dataset.name;
         const servicePrice = parseFloat(checkbox.dataset.price);
         const sessionsInput = document.getElementById(`sessions_${serviceId}`);
         const sessions = parseInt(sessionsInput.value) || 1;
-        
+
         totalSessions += sessions;
         estimatedPrice += servicePrice * sessions;
-        
+
         summaryHtml += `<li>${serviceName} - ${sessions} session${sessions > 1 ? 's' : ''} (₹${(servicePrice * sessions).toFixed(2)})</li>`;
     });
-    
+
     summaryHtml += '</ul>';
-    
+
     summaryContent.innerHTML = summaryHtml;
     totalSessionsSpan.textContent = totalSessions;
     estimatedPriceSpan.textContent = estimatedPrice.toFixed(2);
-    
+
     summaryDiv.style.display = 'block';
     nextButton.disabled = false;
 }
