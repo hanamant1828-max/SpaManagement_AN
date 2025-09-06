@@ -18,7 +18,7 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
+app.secret_key = os.environ.get("SESSION_SECRET", "38d1afe7e2abcf9302d889f089a6dee730745f7117dd3f987111fc57ae4b29ab")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
@@ -28,8 +28,8 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 
-# Configure the database - PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+# Configure the database - SQLite
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spa_management.db'
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
