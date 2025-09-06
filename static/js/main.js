@@ -88,28 +88,47 @@ let faceStream = null;
 function setupCameraButtons() {
     console.log('Setting up camera buttons...');
     
-    // Setup face management camera buttons (for legacy views only)
-    const startCameraBtn = document.getElementById('startCameraBtn');
-    const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+    // Wait for DOM to be ready
+    setTimeout(() => {
+        // Setup face management camera buttons
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+        const startFaceCameraBtn = document.getElementById('startFaceCamera');
 
-    console.log('Found buttons:', {
-        startCameraBtn: !!startCameraBtn,
-        startRecognitionBtn: !!startRecognitionBtn
-    });
-
-    if (startCameraBtn) {
-        startCameraBtn.addEventListener('click', function() {
-            startFaceCamera('video', 'faceCaptureArea');
+        console.log('Found buttons:', {
+            startCameraBtn: !!startCameraBtn,
+            startRecognitionBtn: !!startRecognitionBtn,
+            startFaceCameraBtn: !!startFaceCameraBtn
         });
-    }
 
-    if (startRecognitionBtn) {
-        startRecognitionBtn.addEventListener('click', function() {
-            startFaceCamera('recognitionVideo', 'recognitionCaptureArea');
-        });
-    }
+        if (startCameraBtn) {
+            startCameraBtn.addEventListener('click', function() {
+                console.log('Start camera button clicked');
+                if (typeof startFaceCameraForTab === 'function') {
+                    startFaceCameraForTab();
+                } else if (typeof startFaceCamera === 'function') {
+                    startFaceCamera('faceVideo', 'faceCaptureArea');
+                } else {
+                    console.error('No face camera function available');
+                }
+            });
+        }
 
-    // Note: Face management tab camera is handled by FaceCaptureManager in customers.html
+        if (startRecognitionBtn) {
+            startRecognitionBtn.addEventListener('click', function() {
+                startFaceCamera('recognitionVideo', 'recognitionCaptureArea');
+            });
+        }
+
+        if (startFaceCameraBtn) {
+            startFaceCameraBtn.addEventListener('click', function() {
+                console.log('Start face camera button clicked');
+                if (typeof startFaceCameraForTab === 'function') {
+                    startFaceCameraForTab();
+                }
+            });
+        }
+    }, 200);
 }
 
 // New function specifically for the face management tab

@@ -755,7 +755,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('create_customer_route') }}">
+            <form method="POST" action="{{ url_for('customers_route') }}">
                 <div class="modal-body">
                     {{ form.hidden_tag() }}
 
@@ -1244,45 +1244,77 @@
 
         // Initialize customer management and face capture
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Customer management loaded');
+            console.log('Customers page loaded, initializing face capture...');
 
-            // Setup face capture event listeners
-            const faceClientSelect = document.getElementById('faceClientSelect');
-            if (faceClientSelect) {
-                faceClientSelect.addEventListener('change', (e) => {
-                    selectCustomerForFace(e.target.value);
-                });
-            }
+            // Wait for all elements to be rendered
+            setTimeout(() => {
+                setupFaceCapture();
+                initializeCameraButtons();
+                populateCustomerSelect();
 
-            const startFaceCameraBtn = document.getElementById('startCameraBtn');
-            if (startFaceCameraBtn) {
-                startFaceCameraBtn.addEventListener('click', startFaceCamera);
-            }
-
-            const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
-            if (captureFacePhotoBtn) {
-                captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
-            }
-
-            const saveFaceDataBtn = document.getElementById('saveFaceData');
-            if (saveFaceDataBtn) {
-                saveFaceDataBtn.addEventListener('click', saveFaceData);
-            }
-
-            // Load face data when Face Recognition tab is activated
-            const faceTab = document.getElementById('face-capture-tab');
-            if (faceTab) {
-                faceTab.addEventListener('shown.bs.tab', function() {
-                    console.log('Face Recognition tab activated');
-                    loadFaceDataTable();
-                });
-            }
-
-            // Initialize face data table immediately (no infinite loader)
-            loadFaceDataTable();
-
-            loadCustomers();
+                // Verify all required elements exist
+                verifyFaceCaptureElements();
+            }, 1000);
         });
+
+        function verifyFaceCaptureElements() {
+            const requiredElements = [
+                'faceClientSelect',
+                'startCameraBtn', 
+                'captureFacePhoto',
+                'saveFaceData',
+                'faceVideo',
+                'faceCanvas',
+                'faceCameraPlaceholder'
+            ];
+
+            const missingElements = [];
+            requiredElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    missingElements.push(id);
+                }
+            });
+
+            if (missingElements.length > 0) {
+                console.error('Missing face capture elements:', missingElements);
+                showFaceNotification('Some face capture elements are missing. Please refresh the page.', 'warning');
+            } else {
+                console.log('All face capture elements found successfully');
+                showFaceNotification('Face capture system ready', 'success');
+            }
+        }
+
+
+        // Customer select population function (if needed, otherwise this can be removed or refactored)
+        function populateCustomerSelect() {
+            const selectElement = document.getElementById('faceClientSelect');
+            const customers = JSON.parse('{{ customers|tojson|safe }}'); // Assuming customers are available in Jinja context
+
+            if (selectElement && customers) {
+                selectElement.innerHTML = '<option value="">Select a customer...</option>'; // Reset options
+                customers.forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.id;
+                    option.textContent = `${customer.full_name} - ${customer.phone}`;
+                    option.dataset.name = customer.full_name;
+                    option.dataset.phone = customer.phone;
+                    selectElement.appendChild(option);
+                });
+            }
+        }
+
+        // Load face data when Face Recognition tab is activated
+        const faceTab = document.getElementById('face-capture-tab');
+        if (faceTab) {
+            faceTab.addEventListener('shown.bs.tab', function() {
+                console.log('Face Recognition tab activated');
+                loadFaceDataTable();
+            });
+        }
+
+        // Initialize face data table immediately (no infinite loader)
+        loadFaceDataTable();
 
         // Load customers function
         function loadCustomers() {
