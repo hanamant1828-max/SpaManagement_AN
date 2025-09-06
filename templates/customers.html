@@ -678,28 +678,6 @@
                         this.saveFace();
                     });
                 }
-
-                // Modal-based controls (if using modal)
-                const startCameraBtn = document.getElementById('startCameraBtn');
-                if (startCameraBtn) {
-                    startCameraBtn.addEventListener('click', () => {
-                        this.startCamera();
-                    });
-                }
-
-                const capturePhotoBtn = document.getElementById('capturePhotoBtn');
-                if (capturePhotoBtn) {
-                    capturePhotoBtn.addEventListener('click', () => {
-                        this.capturePhoto();
-                    });
-                }
-
-                const saveFaceBtn = document.getElementById('saveFaceBtn');
-                if (saveFaceBtn) {
-                    saveFaceBtn.addEventListener('click', () => {
-                        this.saveFace();
-                    });
-                }
             }
 
             selectCustomer(customerId) {
@@ -745,9 +723,21 @@
                 }
 
                 try {
+                    console.log('Starting camera...');
+                    
                     // Stop any existing stream
                     if (this.stream) {
                         this.stream.getTracks().forEach(track => track.stop());
+                    }
+
+                    // Get the correct video element
+                    this.video = document.getElementById('faceVideo');
+                    this.canvas = document.getElementById('faceCanvas');
+
+                    if (!this.video) {
+                        console.error('Video element not found');
+                        this.showNotification('Camera element not found', 'danger');
+                        return;
                     }
 
                     this.stream = await navigator.mediaDevices.getUserMedia({
@@ -758,33 +748,28 @@
                         }
                     });
 
-                    if (this.video) {
-                        this.video.srcObject = this.stream;
-                        this.video.style.display = 'block';
-                        
-                        // Hide placeholder and update buttons
-                        const placeholder = document.getElementById('faceCameraPlaceholder');
-                        if (placeholder) {
-                            placeholder.style.display = 'none';
-                        }
+                    console.log('Camera access granted');
 
-                        const cameraPrompt = document.getElementById('cameraPrompt');
-                        if (cameraPrompt) {
-                            cameraPrompt.style.display = 'none';
-                        }
-
-                        // Update button states (try both possible button IDs)
-                        const startBtn = document.getElementById('startFaceCamera') || document.getElementById('startCameraBtn');
-                        const captureBtn = document.getElementById('captureFacePhoto') || document.getElementById('capturePhotoBtn');
-
-                        if (startBtn) startBtn.disabled = true;
-                        if (captureBtn) {
-                            captureBtn.disabled = false;
-                            captureBtn.style.display = 'inline-block';
-                        }
-
-                        this.showNotification('Camera started successfully!', 'success');
+                    this.video.srcObject = this.stream;
+                    this.video.style.display = 'block';
+                    
+                    // Hide placeholder and update buttons
+                    const placeholder = document.getElementById('faceCameraPlaceholder');
+                    if (placeholder) {
+                        placeholder.style.display = 'none';
                     }
+
+                    // Update button states
+                    const startBtn = document.getElementById('startFaceCamera');
+                    const captureBtn = document.getElementById('captureFacePhoto');
+
+                    if (startBtn) startBtn.disabled = true;
+                    if (captureBtn) {
+                        captureBtn.disabled = false;
+                        captureBtn.style.display = 'inline-block';
+                    }
+
+                    this.showNotification('Camera started successfully!', 'success');
 
                 } catch (error) {
                     console.error('Error accessing camera:', error);
@@ -808,6 +793,11 @@
                     return;
                 }
 
+                if (!this.video || !this.canvas) {
+                    this.showNotification('Camera not ready', 'warning');
+                    return;
+                }
+
                 this.canvas.width = this.video.videoWidth;
                 this.canvas.height = this.video.videoHeight;
 
@@ -820,10 +810,16 @@
                 this.video.style.display = 'none';
                 this.canvas.style.display = 'block';
 
-                document.getElementById('capturePhotoBtn').style.display = 'none';
-                document.getElementById('saveFaceBtn').style.display = 'inline-block';
+                const captureBtn = document.getElementById('captureFacePhoto');
+                const saveBtn = document.getElementById('saveFaceData');
 
-                this.showNotification('Photo captured! Click "Save Face" to store it.', 'success');
+                if (captureBtn) captureBtn.style.display = 'none';
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.style.display = 'inline-block';
+                }
+
+                this.showNotification('Photo captured! Click "Save Face Data" to store it.', 'success');
             }
 
             async saveFace() {

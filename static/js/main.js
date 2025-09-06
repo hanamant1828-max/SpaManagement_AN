@@ -41,7 +41,7 @@ function setupGlobalEventListeners() {
 
     // Handle form submissions
     document.addEventListener('submit', handleFormSubmit);
-    
+
     // Specifically handle edit customer form
     const editCustomerForm = document.getElementById('editCustomerForm');
     if (editCustomerForm) {
@@ -68,7 +68,7 @@ function setupGlobalEventListeners() {
 // Face Capture Functionality
 function initializeFaceCapture() {
     console.log('Initializing face capture functionality...');
-    
+
     // Initialize camera buttons when page loads
     setupCameraButtons();
 }
@@ -81,13 +81,13 @@ function setupCameraButtons() {
     // Setup face management camera buttons
     const startCameraBtn = document.getElementById('startCameraBtn');
     const startRecognitionBtn = document.getElementById('startRecognitionBtn');
-    
+
     if (startCameraBtn) {
         startCameraBtn.addEventListener('click', function() {
             startFaceCamera('video', 'faceCaptureArea');
         });
     }
-    
+
     if (startRecognitionBtn) {
         startRecognitionBtn.addEventListener('click', function() {
             startFaceCamera('recognitionVideo', 'recognitionCaptureArea');
@@ -97,11 +97,11 @@ function setupCameraButtons() {
 
 async function startFaceCamera(videoId, areaId) {
     console.log('Starting face camera:', videoId);
-    
+
     try {
         const video = document.getElementById(videoId);
         const area = document.getElementById(areaId);
-        
+
         if (!video) {
             console.error('Video element not found:', videoId);
             alert('Camera element not found');
@@ -118,28 +118,28 @@ async function startFaceCamera(videoId, areaId) {
         });
 
         console.log('Camera access granted');
-        
+
         // Store stream reference
         if (videoId === 'video') {
             currentStream = stream;
         } else {
             faceStream = stream;
         }
-        
+
         // Set video source and show it
         video.srcObject = stream;
         video.style.display = 'block';
-        
+
         // Hide placeholder and show controls
         const prompt = document.getElementById(videoId === 'video' ? 'capturePrompt' : 'recognitionPrompt');
         if (prompt) {
             prompt.style.display = 'none';
         }
-        
+
         if (area) {
             area.classList.add('active');
         }
-        
+
         // Update button visibility
         if (videoId === 'video') {
             document.getElementById('startCameraBtn').style.display = 'none';
@@ -150,10 +150,10 @@ async function startFaceCamera(videoId, areaId) {
         }
 
         console.log('Camera started successfully');
-        
+
     } catch (error) {
         console.error('Error accessing camera:', error);
-        
+
         let errorMessage = 'Camera access failed. ';
         if (error.name === 'NotAllowedError') {
             errorMessage += 'Please allow camera permissions and try again.';
@@ -162,7 +162,7 @@ async function startFaceCamera(videoId, areaId) {
         } else {
             errorMessage += 'Please check your camera settings and try again.';
         }
-        
+
         alert(errorMessage);
     }
 }
@@ -196,7 +196,7 @@ async function startCamera() {
         currentStream = stream;
         video.srcObject = stream;
         video.style.display = 'block';
-        
+
         if (captureBtn) {
             captureBtn.disabled = false;
             captureBtn.onclick = captureFace;
@@ -244,13 +244,13 @@ function stopCamera() {
         faceStream.getTracks().forEach(track => track.stop());
         faceStream = null;
     }
-    
+
     const video = document.getElementById('faceVideo');
     if (video) {
         video.srcObject = null;
         video.style.display = 'none';
     }
-    
+
     // Reset all face management videos
     const videos = ['video', 'recognitionVideo'];
     videos.forEach(videoId => {
@@ -261,30 +261,30 @@ function stopCamera() {
             videoElement.style.display = 'none';
         }
     });
-    
+
     console.log('All cameras stopped');
 }
 
 function stopFaceCamera(videoId) {
     const video = document.getElementById(videoId);
-    
+
     if (video && video.srcObject) {
         video.srcObject.getTracks().forEach(track => track.stop());
         video.srcObject = null;
         video.style.display = 'none';
     }
-    
+
     // Reset UI
     const prompt = document.getElementById(videoId === 'video' ? 'capturePrompt' : 'recognitionPrompt');
     if (prompt) {
         prompt.style.display = 'block';
     }
-    
+
     const area = document.getElementById(videoId === 'video' ? 'faceCaptureArea' : 'recognitionCaptureArea');
     if (area) {
         area.classList.remove('active');
     }
-    
+
     // Reset buttons
     if (videoId === 'video') {
         document.getElementById('startCameraBtn').style.display = 'inline-block';
@@ -293,7 +293,7 @@ function stopFaceCamera(videoId) {
         document.getElementById('startRecognitionBtn').style.display = 'inline-block';
         document.getElementById('recognizeFaceBtn').style.display = 'none';
     }
-    
+
     console.log('Face camera stopped for:', videoId);
 }
 
@@ -1252,7 +1252,7 @@ function forceCleanupModals() {
 // Add click handler for modal close buttons
 document.addEventListener('click', function(event) {
     // Handle close button clicks
-    if (event.target.matches('[data-bs-dismiss="modal"]') || 
+    if (event.target.matches('[data-bs-dismiss="modal"]') ||
         event.target.closest('[data-bs-dismiss="modal"]')) {
         setTimeout(forceCleanupModals, 200);
     }
@@ -1594,7 +1594,7 @@ function loadCustomerDataForEdit(customerId) {
     })
     .then(response => {
         console.log('API response status:', response.status);
-        
+
         // Remove loading indicator
         const loadingDiv = document.getElementById('loading-indicator');
         if (loadingDiv) {
@@ -1608,7 +1608,7 @@ function loadCustomerDataForEdit(customerId) {
     })
     .then(data => {
         console.log('Customer data received:', data);
-        
+
         if (data.success && data.customer) {
             populateEditForm(data.customer);
             showNotification('Customer data loaded successfully', 'success', 2000);
@@ -1618,13 +1618,13 @@ function loadCustomerDataForEdit(customerId) {
     })
     .catch(error => {
         console.error('Error fetching customer data:', error);
-        
+
         // Remove loading indicator if still present
         const loadingDiv = document.getElementById('loading-indicator');
         if (loadingDiv) {
             loadingDiv.remove();
         }
-        
+
         showNotification('Error loading customer data. Please try again.', 'error');
     });
 }
@@ -1647,7 +1647,7 @@ function deleteCustomer(customerId, customerName) {
 
 function populateEditForm(customer) {
     console.log('Populating edit form with customer data:', customer);
-    
+
     const form = document.querySelector('#editCustomerForm');
     if (!form) {
         console.error('Edit customer form not found');
@@ -1691,8 +1691,8 @@ function populateEditForm(customer) {
         // Store customer ID in form
         form.dataset.customerId = customer.id;
         window.currentCustomerId = customer.id;
-        
-        // Set the form action dynamically 
+
+        // Set the form action dynamically
         form.action = `/clients/update/${customer.id}`;
 
         console.log('Edit form populated successfully');
@@ -1706,15 +1706,15 @@ function populateEditForm(customer) {
 // Handle edit customer form submission
 function handleEditCustomerSubmit(event) {
     event.preventDefault();
-    
+
     const form = event.target;
     const submitBtn = form.querySelector('button[type="submit"]');
-    
+
     // Prevent double submission
     if (submitBtn.disabled) {
         return;
     }
-    
+
     const customerId = form.dataset.customerId || window.currentCustomerId;
 
     if (!customerId) {
@@ -1725,12 +1725,12 @@ function handleEditCustomerSubmit(event) {
     // Show loading and disable button
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-    
+
     // Validate form action is set
     if (!form.action || form.action.endsWith('/clients')) {
         form.action = `/clients/update/${customerId}`;
     }
-    
+
     // Submit form normally - let Flask handle it with proper redirect and flash messages
     form.submit();
 }
