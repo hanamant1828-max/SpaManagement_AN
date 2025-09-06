@@ -226,19 +226,45 @@ def get_comprehensive_staff():
 
         # Ensure each staff member has all required fields populated
         updated = False
+        existing_codes = set()
+        
+        # First pass: collect existing staff codes
         for member in staff_members:
-            if not member.staff_code:
-                member.staff_code = f"STF{str(member.id).zfill(3)}"
-                updated = True
-            if not member.designation:
-                member.designation = member.role.title()
-                updated = True
-            if not member.date_of_joining:
-                member.date_of_joining = member.created_at.date() if member.created_at else date.today()
-                updated = True
+            if member.staff_code:
+                existing_codes.add(member.staff_code)
+        
+        # Second pass: assign missing codes and other fields
+        for member in staff_members:
+            try:
+                if not member.staff_code:
+                    # Generate unique staff code
+                    code_num = member.id
+                    potential_code = f"STF{str(code_num).zfill(3)}"
+                    while potential_code in existing_codes:
+                        code_num += 1
+                        potential_code = f"STF{str(code_num).zfill(3)}"
+                    
+                    member.staff_code = potential_code
+                    existing_codes.add(potential_code)
+                    updated = True
+                    
+                if not member.designation:
+                    member.designation = member.role.title()
+                    updated = True
+                    
+                if not member.date_of_joining:
+                    member.date_of_joining = member.created_at.date() if member.created_at else date.today()
+                    updated = True
+            except Exception as member_error:
+                print(f"Error updating member {member.id}: {member_error}")
+                continue
 
         if updated:
-            db.session.commit()
+            try:
+                db.session.commit()
+            except Exception as commit_error:
+                print(f"Error committing staff updates: {commit_error}")
+                db.session.rollback()
             
         print(f"Retrieved {len(staff_members)} staff members from database")
         return staff_members

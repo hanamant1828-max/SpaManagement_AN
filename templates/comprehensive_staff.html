@@ -199,7 +199,7 @@
                 <div class="modal-body">
                     <input type="hidden" id="staffId" value="">
                     <input type="hidden" id="formMode" value="add">
-                    
+
                     <div class="row g-3">
                         <!-- Basic Information -->
                         <div class="col-md-6">
@@ -430,7 +430,7 @@ function setupModalHandlers() {
     document.getElementById('staffModal').addEventListener('hidden.bs.modal', function() {
         clearForm();
     });
-    
+
     // Setup delete confirmation
     document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
         if (currentDeleteId) {
@@ -443,15 +443,15 @@ function setupModalHandlers() {
 async function loadStaffData() {
     try {
         showLoading(true);
-        
+
         const response = await fetch('/api/staff');
         const data = await response.json();
-        
+
         if (data.success) {
             allStaff = data.staff;
             rolesData = data.roles;
             departmentsData = data.departments;
-            
+
             populateDropdowns();
             updateStats();
             renderStaffTable();
@@ -479,7 +479,7 @@ function populateDropdowns() {
             const firstOption = select.firstElementChild;
             select.innerHTML = '';
             select.appendChild(firstOption);
-            
+
             rolesData.forEach(role => {
                 const option = document.createElement('option');
                 option.value = role.id;
@@ -488,7 +488,7 @@ function populateDropdowns() {
             });
         }
     });
-    
+
     // Populate department dropdowns
     const deptSelects = ['departmentFilter', 'departmentId'];
     deptSelects.forEach(selectId => {
@@ -498,7 +498,7 @@ function populateDropdowns() {
             const firstOption = select.firstElementChild;
             select.innerHTML = '';
             select.appendChild(firstOption);
-            
+
             departmentsData.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept.id;
@@ -513,7 +513,7 @@ function populateDropdowns() {
 function updateStats() {
     const totalStaff = allStaff.length;
     const activeStaff = allStaff.filter(s => s.is_active).length;
-    
+
     document.getElementById('totalStaffCount').textContent = totalStaff;
     document.getElementById('activeStaffCount').textContent = activeStaff;
     document.getElementById('departmentCount').textContent = departmentsData.length;
@@ -524,20 +524,20 @@ function updateStats() {
 function renderStaffTable() {
     filteredStaff = [...allStaff];
     filterStaff();
-    
+
     const tbody = document.getElementById('staffTableBody');
     tbody.innerHTML = '';
-    
+
     if (filteredStaff.length === 0) {
         showEmptyState();
         return;
     }
-    
+
     filteredStaff.forEach(staff => {
         const row = createStaffRow(staff);
         tbody.appendChild(row);
     });
-    
+
     showTable(true);
 }
 
@@ -545,10 +545,10 @@ function renderStaffTable() {
 function createStaffRow(staff) {
     const row = document.createElement('tr');
     row.setAttribute('data-staff-id', staff.id);
-    
+
     // Generate initials
     const initials = (staff.first_name?.[0] || 'S') + (staff.last_name?.[0] || 'M');
-    
+
     row.innerHTML = `
         <td>
             <div class="d-flex align-items-center">
@@ -606,14 +606,14 @@ function createStaffRow(staff) {
             </div>
         </td>
     `;
-    
+
     return row;
 }
 
 // Filter staff based on search and filters
 function filterStaff() {
     let filtered = [...allStaff];
-    
+
     // Search filter
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     if (searchTerm) {
@@ -625,19 +625,19 @@ function filterStaff() {
             staff.phone.includes(searchTerm)
         );
     }
-    
+
     // Role filter
     const roleFilter = document.getElementById('roleFilter').value;
     if (roleFilter) {
         filtered = filtered.filter(staff => staff.role_id == roleFilter);
     }
-    
+
     // Department filter
     const deptFilter = document.getElementById('departmentFilter').value;
     if (deptFilter) {
         filtered = filtered.filter(staff => staff.department_id == deptFilter);
     }
-    
+
     // Status filter
     const statusFilter = document.getElementById('statusFilter').value;
     if (statusFilter === 'active') {
@@ -645,7 +645,7 @@ function filterStaff() {
     } else if (statusFilter === 'inactive') {
         filtered = filtered.filter(staff => !staff.is_active);
     }
-    
+
     filteredStaff = filtered;
     renderFilteredStaff();
 }
@@ -654,17 +654,17 @@ function filterStaff() {
 function renderFilteredStaff() {
     const tbody = document.getElementById('staffTableBody');
     tbody.innerHTML = '';
-    
+
     if (filteredStaff.length === 0) {
         showEmptyState();
         return;
     }
-    
+
     filteredStaff.forEach(staff => {
         const row = createStaffRow(staff);
         tbody.appendChild(row);
     });
-    
+
     showTable(true);
 }
 
@@ -706,7 +706,7 @@ function showAddModal() {
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
     document.getElementById('passwordHelp').textContent = 'Password is required for new staff';
     document.getElementById('password').required = true;
-    
+
     clearForm();
 }
 
@@ -719,14 +719,14 @@ async function editStaff(staffId) {
         document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
         document.getElementById('passwordHelp').textContent = 'Leave blank to keep current password';
         document.getElementById('password').required = false;
-        
+
         // Load staff data
         const response = await fetch(`/api/staff/${staffId}`);
         const data = await response.json();
-        
+
         if (data.success) {
             populateForm(data.staff);
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('staffModal'));
             modal.show();
@@ -798,13 +798,13 @@ async function saveStaff() {
             enable_face_checkin: document.getElementById('enableFaceCheckin').checked,
             notes_bio: document.getElementById('notesBio').value
         };
-        
+
         // Add password if provided
         const password = document.getElementById('password').value;
         if (password) {
             formData.password = password;
         }
-        
+
         let url, method;
         if (isEditing) {
             const staffId = document.getElementById('staffId').value;
@@ -814,7 +814,7 @@ async function saveStaff() {
             url = '/api/staff';
             method = 'POST';
         }
-        
+
         const response = await fetch(url, {
             method: method,
             headers: {
@@ -822,16 +822,16 @@ async function saveStaff() {
             },
             body: JSON.stringify(formData)
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showAlert(data.message, 'success');
-            
+
             // Hide modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('staffModal'));
             modal.hide();
-            
+
             loadStaffData(); // Refresh data
         } else {
             throw new Error(data.error);
@@ -845,11 +845,11 @@ async function saveStaff() {
 function showDeleteModal(staffId) {
     const staff = allStaff.find(s => s.id === staffId);
     if (!staff) return;
-    
+
     currentDeleteId = staffId;
     document.getElementById('deleteMessage').textContent = 
         `Are you sure you want to delete ${staff.full_name}? This action cannot be undone.`;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
 }
@@ -860,16 +860,16 @@ async function performDelete(staffId) {
         const response = await fetch(`/api/staff/${staffId}`, {
             method: 'DELETE'
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showAlert(data.message, 'success');
-            
+
             // Hide modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
             modal.hide();
-            
+
             currentDeleteId = null;
             loadStaffData(); // Refresh data
         } else {
@@ -884,7 +884,7 @@ async function performDelete(staffId) {
 function viewPerformance(staffId) {
     const staff = allStaff.find(s => s.id === staffId);
     if (!staff) return;
-    
+
     document.getElementById('performanceModalLabel').textContent = `${staff.full_name} - Performance`;
     document.getElementById('performanceContent').innerHTML = `
         <div class="row">
@@ -928,7 +928,7 @@ function viewPerformance(staffId) {
             </div>
         </div>
     `;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('performanceModal'));
     modal.show();
 }
@@ -948,16 +948,16 @@ function exportStaffData() {
 function showAlert(message, type = 'info') {
     const alertContainer = document.getElementById('alertContainer');
     const alertId = 'alert-' + Date.now();
-    
+
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}">
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     `;
-    
+
     alertContainer.insertAdjacentHTML('beforeend', alertHtml);
-    
+
     // Auto remove after 5 seconds
     setTimeout(() => {
         const alert = document.getElementById(alertId);
