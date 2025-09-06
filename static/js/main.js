@@ -81,6 +81,7 @@ function setupCameraButtons() {
     // Setup face management camera buttons
     const startCameraBtn = document.getElementById('startCameraBtn');
     const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+    const startFaceCameraBtn = document.getElementById('startFaceCamera');
 
     if (startCameraBtn) {
         startCameraBtn.addEventListener('click', function() {
@@ -92,6 +93,195 @@ function setupCameraButtons() {
         startRecognitionBtn.addEventListener('click', function() {
             startFaceCamera('recognitionVideo', 'recognitionCaptureArea');
         });
+    }
+
+    // Handle the new face management tab button
+    if (startFaceCameraBtn) {
+        startFaceCameraBtn.addEventListener('click', function() {
+            console.log('Starting face camera from face management tab');
+            startFaceCameraForTab();
+        });
+    }
+}
+
+// New function specifically for the face management tab
+async function startFaceCameraForTab() {
+    console.log('Starting face camera for tab');
+    
+    try {
+        const video = document.getElementById('faceVideo');
+        const placeholder = document.getElementById('faceCameraPlaceholder');
+        const captureBtn = document.getElementById('captureFacePhoto');
+        const saveBtn = document.getElementById('saveFaceData');
+        const startBtn = document.getElementById('startFaceCamera');
+
+        if (!video) {
+            console.error('Face video element not found');
+            alert('Camera element not found');
+            return;
+        }
+
+        // Request camera access
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: 'user'
+            }
+        });
+
+        console.log('Camera access granted for face tab');
+
+        // Set video source and show it
+        video.srcObject = stream;
+        video.style.display = 'block';
+        
+        // Hide placeholder
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+
+        // Update button states
+        if (startBtn) startBtn.style.display = 'none';
+        if (captureBtn) {
+            captureBtn.disabled = false;
+            captureBtn.style.display = 'inline-block';
+        }
+
+        // Add capture photo event listener
+        if (captureBtn) {
+            captureBtn.onclick = function() {
+                captureFacePhotoForTab();
+            };
+        }
+
+        console.log('Face camera started successfully');
+
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+
+        let errorMessage = 'Camera access failed. ';
+        if (error.name === 'NotAllowedError') {
+            errorMessage += 'Please allow camera permissions and try again.';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage += 'No camera found on this device.';
+        } else {
+            errorMessage += 'Please check your camera settings and try again.';
+        }
+
+        alert(errorMessage);
+    }
+}
+
+// Capture photo function for face management tab
+function captureFacePhotoForTab() {
+    console.log('Capturing face photo for tab');
+    
+    const video = document.getElementById('faceVideo');
+    const canvas = document.getElementById('faceCanvas');
+    const saveBtn = document.getElementById('saveFaceData');
+    
+    if (!video || !canvas) {
+        alert('Video or canvas element not found');
+        return;
+    }
+    
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Get canvas context and draw video frame
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Show canvas and enable save button
+    canvas.style.display = 'block';
+    video.style.display = 'none';
+    
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.onclick = function() {
+            saveFaceDataForTab();
+        };
+    }
+    
+    console.log('Photo captured successfully');
+}
+
+// Save face data function for face management tab
+function saveFaceDataForTab() {
+    console.log('Saving face data for tab');
+    
+    const clientSelect = document.getElementById('faceClientSelect');
+    const canvas = document.getElementById('faceCanvas');
+    
+    if (!clientSelect || !clientSelect.value) {
+        alert('Please select a customer first');
+        return;
+    }
+    
+    if (!canvas) {
+        alert('No photo captured');
+        return;
+    }
+    
+    // Get image data from canvas
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // Send to server
+    fetch('/api/save_face', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            client_id: clientSelect.value,
+            face_image: imageData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Face data saved successfully for ' + data.client_name);
+            // Reset the interface
+            resetFaceInterface();
+        } else {
+            alert('Error saving face data: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving face data. Please try again.');
+    });
+}
+
+// Reset face interface after saving
+function resetFaceInterface() {
+    const video = document.getElementById('faceVideo');
+    const canvas = document.getElementById('faceCanvas');
+    const placeholder = document.getElementById('faceCameraPlaceholder');
+    const startBtn = document.getElementById('startFaceCamera');
+    const captureBtn = document.getElementById('captureFacePhoto');
+    const saveBtn = document.getElementById('saveFaceData');
+    
+    // Stop video stream
+    if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+    }
+    
+    // Reset display states
+    if (video) video.style.display = 'none';
+    if (canvas) canvas.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'flex';
+    if (startBtn) startBtn.style.display = 'inline-block';
+    if (captureBtn) {
+        captureBtn.style.display = 'none';
+        captureBtn.disabled = true;
+    }
+    if (saveBtn) {
+        saveBtn.style.display = 'none';
+        saveBtn.disabled = true;
     }
 }
 
