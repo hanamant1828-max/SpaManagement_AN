@@ -251,7 +251,18 @@ def business_settings():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    return render_template('business_settings.html')
+    
+    # Get business settings
+    business_settings = BusinessSettings.query.first()
+    if not business_settings:
+        business_settings = BusinessSettings()
+        db.session.add(business_settings)
+        db.session.commit()
+
+    # Initialize form
+    form = BusinessSettingsForm(obj=business_settings)
+    
+    return render_template('business_settings.html', form=form, business_settings=business_settings)
 
 
 @app.route('/system_management')
@@ -440,7 +451,7 @@ def delete_role(role_id):
 
 @app.route('/update_business_settings', methods=['POST'])
 @login_required
-def update_business_settings_route():
+def update_business_settings():
     if not current_user.can_access('system_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
