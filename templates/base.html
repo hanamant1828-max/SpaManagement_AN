@@ -175,20 +175,6 @@
 
 
 
-                    {% if current_user.has_role('admin') %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('business_settings') }}">
-                            <i class="fas fa-cog me-2"></i><span>System Configuration</span>
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('settings') }}">
-                            <i class="fas fa-cog me-2"></i><span>User & Access Control</span>
-                        </a>
-                    </li>
-
                     <!-- System Management -->
                     {% if current_user.can_access('system_management') %}
                     <li class="nav-item mt-3 mb-2">
@@ -198,14 +184,26 @@
                     </li>
 
                     <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('business_settings') }}">
+                            <i class="fas fa-building me-2"></i><span>Business Configuration</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('system_management') }}">
-                            <i class="fas fa-server me-2"></i><span>System Configuration</span>
+                            <i class="fas fa-server me-2"></i><span>System Management</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('role_management') }}">
                             <i class="fas fa-users-cog me-2"></i><span>Role Management</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('settings') }}">
+                            <i class="fas fa-user-cog me-2"></i><span>User & Access Control</span>
                         </a>
                     </li>
                     {% endif %}
