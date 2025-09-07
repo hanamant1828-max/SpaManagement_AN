@@ -1,0 +1,842 @@
+
+{% extends "base.html" %}
+
+{% block title %}Complete Inventory Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+.inventory-card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.inventory-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.inventory-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.inventory-card .card-body {
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.inventory-card .btn {
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+}
+
+.inventory-card .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-pills .nav-link {
+    border-radius: 25px;
+    margin: 0 5px;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #007bff;
+}
+
+.table-responsive {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.badge-status {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="fas fa-boxes me-2"></i>Complete Inventory Management System
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <ul class="nav nav-pills flex-wrap" id="inventoryTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab">
+                                <i class="fas fa-tachometer-alt me-1"></i>Overview
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="categories-tab" data-bs-toggle="pill" data-bs-target="#categories" type="button" role="tab">
+                                <i class="fas fa-tags me-1"></i>Category Management
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="suppliers-tab" data-bs-toggle="pill" data-bs-target="#suppliers" type="button" role="tab">
+                                <i class="fas fa-truck me-1"></i>Supplier Management
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="products-tab" data-bs-toggle="pill" data-bs-target="#products" type="button" role="tab">
+                                <i class="fas fa-cube me-1"></i>Product Master
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption" type="button" role="tab">
+                                <i class="fas fa-chart-line me-1"></i>Consumption Tracking
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="purchases-tab" data-bs-toggle="pill" data-bs-target="#purchases" type="button" role="tab">
+                                <i class="fas fa-shopping-cart me-1"></i>Purchase Items
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="transactions-tab" data-bs-toggle="pill" data-bs-target="#transactions" type="button" role="tab">
+                                <i class="fas fa-exchange-alt me-1"></i>Transactions
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reports-tab" data-bs-toggle="pill" data-bs-target="#reports" type="button" role="tab">
+                                <i class="fas fa-chart-bar me-1"></i>Reports
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="inventoryTabContent">
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+            <div class="row">
+                <!-- Statistics Cards -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Products</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalProducts">{{ stats.total_products or 0 }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-cube fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Categories</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCategories">{{ stats.total_categories or 0 }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-tags fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Suppliers</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalSuppliers">{{ stats.total_suppliers or 0 }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-truck fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Low Stock Items</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" id="lowStockItems">{{ stats.low_stock_items or 0 }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access Cards -->
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="inventory-card card">
+                        <div class="card-body">
+                            <div class="inventory-icon text-primary">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <h5>Category Management</h5>
+                            <p class="text-muted">Manage inventory categories and organizational structure.</p>
+                            <button class="btn btn-primary" onclick="switchTab('categories-tab')">
+                                <i class="fas fa-cog me-1"></i>Manage Categories
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                    <div class="inventory-card card">
+                        <div class="card-body">
+                            <div class="inventory-icon text-success">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <h5>Supplier Management</h5>
+                            <p class="text-muted">Manage suppliers and vendor relationships.</p>
+                            <button class="btn btn-success" onclick="switchTab('suppliers-tab')">
+                                <i class="fas fa-users me-1"></i>Manage Suppliers
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                    <div class="inventory-card card">
+                        <div class="card-body">
+                            <div class="inventory-icon text-info">
+                                <i class="fas fa-cube"></i>
+                            </div>
+                            <h5>Product Master</h5>
+                            <p class="text-muted">Manage product master catalog and inventory items.</p>
+                            <button class="btn btn-info" onclick="switchTab('products-tab')">
+                                <i class="fas fa-box me-1"></i>Manage Products
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                    <div class="inventory-card card">
+                        <div class="card-body">
+                            <div class="inventory-icon text-warning">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h5>Consumption Tracking</h5>
+                            <p class="text-muted">Track product consumption and usage analytics.</p>
+                            <button class="btn btn-warning" onclick="switchTab('consumption-tab')">
+                                <i class="fas fa-analytics me-1"></i>View Consumption
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                    <div class="inventory-card card">
+                        <div class="card-body">
+                            <div class="inventory-icon text-danger">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <h5>Purchase Management</h5>
+                            <p class="text-muted">Manage purchases and procurement activities.</p>
+                            <button class="btn btn-danger" onclick="switchTab('purchases-tab')">
+                                <i class="fas fa-shopping-bag me-1"></i>Manage Purchases
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                    <div class="inventory-card card">
+                        <div class="card-body">
+                            <div class="inventory-icon text-secondary">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <h5>Reports & Analytics</h5>
+                            <p class="text-muted">Comprehensive inventory reports and insights.</p>
+                            <button class="btn btn-secondary" onclick="switchTab('reports-tab')">
+                                <i class="fas fa-chart-pie me-1"></i>View Reports
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Management Tab -->
+        <div class="tab-pane fade" id="categories" role="tabpanel">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Category Management</h6>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                                <i class="fas fa-plus me-1"></i>Add Category
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="categoriesTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Category Name</th>
+                                            <th>Description</th>
+                                            <th>Status</th>
+                                            <th>Created Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for category in categories %}
+                                        <tr>
+                                            <td>{{ category.id }}</td>
+                                            <td>{{ category.name }}</td>
+                                            <td>{{ category.description or '-' }}</td>
+                                            <td>
+                                                <span class="badge badge-status bg-{{ 'success' if category.is_active else 'danger' }}">
+                                                    {{ 'Active' if category.is_active else 'Inactive' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ category.created_at.strftime('%Y-%m-%d') if category.created_at else '-' }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editCategory({{ category.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supplier Management Tab -->
+        <div class="tab-pane fade" id="suppliers" role="tabpanel">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Supplier Management</h6>
+                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                                <i class="fas fa-plus me-1"></i>Add Supplier
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="suppliersTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Supplier Name</th>
+                                            <th>Contact Person</th>
+                                            <th>Phone</th>
+                                            <th>Email</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for supplier in suppliers %}
+                                        <tr>
+                                            <td>{{ supplier.id }}</td>
+                                            <td>{{ supplier.name }}</td>
+                                            <td>{{ supplier.contact_person or '-' }}</td>
+                                            <td>{{ supplier.phone or '-' }}</td>
+                                            <td>{{ supplier.email or '-' }}</td>
+                                            <td>
+                                                <span class="badge badge-status bg-{{ 'success' if supplier.is_active else 'danger' }}">
+                                                    {{ 'Active' if supplier.is_active else 'Inactive' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editSupplier({{ supplier.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSupplier({{ supplier.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Master Tab -->
+        <div class="tab-pane fade" id="products" role="tabpanel">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Product Master</h6>
+                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                <i class="fas fa-plus me-1"></i>Add Product
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="productsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Product Name</th>
+                                            <th>Category</th>
+                                            <th>Supplier</th>
+                                            <th>Current Stock</th>
+                                            <th>Unit</th>
+                                            <th>Min Stock</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for product in products %}
+                                        <tr>
+                                            <td>{{ product.id }}</td>
+                                            <td>{{ product.product_name or product.name }}</td>
+                                            <td>{{ product.category.name if product.category else '-' }}</td>
+                                            <td>{{ product.supplier.name if product.supplier else '-' }}</td>
+                                            <td>{{ product.current_stock or 0 }}</td>
+                                            <td>{{ product.unit or '-' }}</td>
+                                            <td>{{ product.min_stock or product.min_stock_level or 0 }}</td>
+                                            <td>
+                                                <span class="badge badge-status bg-{{ 'success' if product.is_active else 'danger' }}">
+                                                    {{ 'Active' if product.is_active else 'Inactive' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editProduct({{ product.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" onclick="stockAdjustment({{ product.id }})">
+                                                    <i class="fas fa-adjust"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct({{ product.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consumption Tracking Tab -->
+        <div class="tab-pane fade" id="consumption" role="tabpanel">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Consumption Tracking</h6>
+                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#recordConsumptionModal">
+                                <i class="fas fa-plus me-1"></i>Record Consumption
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="consumptionTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Product</th>
+                                            <th>Quantity Used</th>
+                                            <th>Unit</th>
+                                            <th>Purpose</th>
+                                            <th>Staff Member</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for consumption in consumption_records %}
+                                        <tr>
+                                            <td>{{ consumption.date.strftime('%Y-%m-%d') if consumption.date else '-' }}</td>
+                                            <td>{{ consumption.product.name if consumption.product else '-' }}</td>
+                                            <td>{{ consumption.quantity or 0 }}</td>
+                                            <td>{{ consumption.unit or '-' }}</td>
+                                            <td>{{ consumption.purpose or '-' }}</td>
+                                            <td>{{ consumption.staff_member or '-' }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editConsumption({{ consumption.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteConsumption({{ consumption.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase Items Tab -->
+        <div class="tab-pane fade" id="purchases" role="tabpanel">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Purchase Management</h6>
+                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#addPurchaseModal">
+                                <i class="fas fa-plus me-1"></i>New Purchase
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="purchasesTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Purchase Order</th>
+                                            <th>Date</th>
+                                            <th>Supplier</th>
+                                            <th>Product</th>
+                                            <th>Quantity</th>
+                                            <th>Unit Price</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for purchase in purchases %}
+                                        <tr>
+                                            <td>{{ purchase.purchase_order_number or purchase.id }}</td>
+                                            <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') if purchase.purchase_date else '-' }}</td>
+                                            <td>{{ purchase.supplier.name if purchase.supplier else '-' }}</td>
+                                            <td>{{ purchase.product.name if purchase.product else '-' }}</td>
+                                            <td>{{ purchase.quantity or 0 }}</td>
+                                            <td>₹{{ purchase.unit_price or 0 }}</td>
+                                            <td>₹{{ purchase.total_amount or 0 }}</td>
+                                            <td>
+                                                <span class="badge badge-status bg-{{ 'success' if purchase.status == 'completed' else 'warning' if purchase.status == 'pending' else 'info' }}">
+                                                    {{ purchase.status.title() if purchase.status else 'Pending' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editPurchase({{ purchase.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-success" onclick="receivePurchase({{ purchase.id }})">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div class="tab-pane fade" id="transactions" role="tabpanel">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Transaction History</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="transactionsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Transaction ID</th>
+                                            <th>Date</th>
+                                            <th>Product</th>
+                                            <th>Type</th>
+                                            <th>Quantity</th>
+                                            <th>Unit Cost</th>
+                                            <th>Total</th>
+                                            <th>Reference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for transaction in transactions %}
+                                        <tr>
+                                            <td>{{ transaction.transaction_number or transaction.id }}</td>
+                                            <td>{{ transaction.transaction_date.strftime('%Y-%m-%d') if transaction.transaction_date else '-' }}</td>
+                                            <td>{{ transaction.product.name if transaction.product else '-' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if transaction.transaction_type == 'in' else 'danger' }}">
+                                                    {{ transaction.transaction_type.upper() if transaction.transaction_type else 'N/A' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ transaction.quantity or 0 }}</td>
+                                            <td>₹{{ transaction.unit_cost or 0 }}</td>
+                                            <td>₹{{ transaction.total_cost or 0 }}</td>
+                                            <td>{{ transaction.reference_name or '-' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div class="tab-pane fade" id="reports" role="tabpanel">
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">Stock Level Report</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="stockLevelChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">Consumption Trends</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="consumptionChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">Low Stock Alert</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Product Name</th>
+                                            <th>Current Stock</th>
+                                            <th>Min Stock Level</th>
+                                            <th>Status</th>
+                                            <th>Action Needed</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for product in low_stock_products %}
+                                        <tr>
+                                            <td>{{ product.name }}</td>
+                                            <td>{{ product.current_stock }}</td>
+                                            <td>{{ product.min_stock_level or product.min_stock }}</td>
+                                            <td>
+                                                <span class="badge bg-warning">Low Stock</span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="reorderProduct({{ product.id }})">
+                                                    <i class="fas fa-shopping-cart me-1"></i>Reorder
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals would go here - Add Category, Add Supplier, Add Product, etc. -->
+<!-- I'll include a few key modals -->
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addCategoryForm" onsubmit="submitAddCategory(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">Category Name *</label>
+                        <input type="text" class="form-control" name="name" id="categoryName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryDescription" class="form-label">Description</label>
+                        <textarea class="form-control" name="description" id="categoryDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="is_active" id="categoryActive" checked>
+                        <label class="form-check-label" for="categoryActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tab switching function
+function switchTab(tabId) {
+    const tabTrigger = document.getElementById(tabId);
+    if (tabTrigger) {
+        const tab = new bootstrap.Tab(tabTrigger);
+        tab.show();
+    }
+}
+
+// Initialize DataTables for all tables
+$(document).ready(function() {
+    $('#categoriesTable, #suppliersTable, #productsTable, #consumptionTable, #purchasesTable, #transactionsTable').DataTable({
+        "pageLength": 25,
+        "responsive": true,
+        "order": [[ 0, "desc" ]]
+    });
+});
+
+// CRUD Functions
+function editCategory(id) {
+    // Implementation for editing categories
+    console.log('Edit category:', id);
+}
+
+function deleteCategory(id) {
+    if (confirm('Are you sure you want to delete this category?')) {
+        // Implementation for deleting categories
+        console.log('Delete category:', id);
+    }
+}
+
+function editSupplier(id) {
+    console.log('Edit supplier:', id);
+}
+
+function deleteSupplier(id) {
+    if (confirm('Are you sure you want to delete this supplier?')) {
+        console.log('Delete supplier:', id);
+    }
+}
+
+function editProduct(id) {
+    console.log('Edit product:', id);
+}
+
+function stockAdjustment(id) {
+    console.log('Stock adjustment for product:', id);
+}
+
+function deleteProduct(id) {
+    if (confirm('Are you sure you want to delete this product?')) {
+        console.log('Delete product:', id);
+    }
+}
+
+function editConsumption(id) {
+    console.log('Edit consumption:', id);
+}
+
+function deleteConsumption(id) {
+    if (confirm('Are you sure you want to delete this consumption record?')) {
+        console.log('Delete consumption:', id);
+    }
+}
+
+function editPurchase(id) {
+    console.log('Edit purchase:', id);
+}
+
+function receivePurchase(id) {
+    if (confirm('Mark this purchase as received?')) {
+        console.log('Receive purchase:', id);
+    }
+}
+
+function reorderProduct(id) {
+    console.log('Reorder product:', id);
+}
+
+function submitAddCategory(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    
+    fetch('/inventory/category/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Category added successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
+            modal.hide();
+            document.getElementById('addCategoryForm').reset();
+            location.reload();
+        } else {
+            alert(data.error || 'Error adding category');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding category');
+    });
+}
+</script>
+{% endblock %}
