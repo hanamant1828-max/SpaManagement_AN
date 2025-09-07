@@ -691,7 +691,7 @@ class ConsumptionEntry(db.Model):
     # Reference to service/appointment if applicable
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'))
     
     # Cost tracking
     cost_per_unit = db.Column(db.Float, default=0)
