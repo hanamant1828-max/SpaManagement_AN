@@ -473,40 +473,44 @@ function populateDropdowns() {
     // Populate role dropdowns
     const roleSelects = ['roleFilter', 'roleId'];
     roleSelects.forEach(selectId => {
-        const select = document.getElementById(selectId);
-        if (select) {
-            // Clear existing options (except first)
-            const firstOption = select.firstElementChild;
-            select.innerHTML = '';
-            select.appendChild(firstOption);
+                const select = document.getElementById(selectId);
+                if (select) {
+                    // Clear existing options (except first)
+                    const firstOption = select.firstElementChild;
+                    select.innerHTML = '';
+                    if (firstOption) {
+                        select.appendChild(firstOption);
+                    }
 
-            rolesData.forEach(role => {
-                const option = document.createElement('option');
-                option.value = role.id;
-                option.textContent = role.display_name;
-                select.appendChild(option);
+                    rolesData.forEach(role => {
+                        const option = document.createElement('option');
+                        option.value = role.id;
+                        option.textContent = role.display_name;
+                        select.appendChild(option);
+                    });
+                }
             });
-        }
-    });
 
     // Populate department dropdowns
     const deptSelects = ['departmentFilter', 'departmentId'];
     deptSelects.forEach(selectId => {
-        const select = document.getElementById(selectId);
-        if (select) {
-            // Clear existing options (except first)
-            const firstOption = select.firstElementChild;
-            select.innerHTML = '';
-            select.appendChild(firstOption);
+                const select = document.getElementById(selectId);
+                if (select) {
+                    // Clear existing options (except first)
+                    const firstOption = select.firstElementChild;
+                    select.innerHTML = '';
+                    if (firstOption) {
+                        select.appendChild(firstOption);
+                    }
 
-            departmentsData.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept.id;
-                option.textContent = dept.display_name;
-                select.appendChild(option);
+                    departmentsData.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.display_name;
+                        select.appendChild(option);
+                    });
+                }
             });
-        }
-    });
 }
 
 // Update statistics cards

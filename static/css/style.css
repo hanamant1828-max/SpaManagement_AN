@@ -914,6 +914,54 @@ html, body {
     z-index: 10;
 }
 
+/* ========== STAFF MANAGEMENT SPECIFIC STYLES ========== */
+.staff-availability-table.spa-table {
+    font-size: 0.8rem;
+}
+
+.staff-availability-table.spa-table .staff-header {
+    text-align: center;
+    min-width: 120px;
+    padding: 12px 8px;
+}
+
+.staff-availability-table.spa-table .time-label {
+    font-weight: 600;
+    background-color: rgba(102, 126, 234, 0.1);
+    min-width: 80px;
+}
+
+.staff-availability-table.spa-table .staff-photo {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Staff management badge styles */
+.spa-table .badge-status {
+    font-size: 0.7rem;
+    padding: 0.35em 0.65em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Staff action buttons specific styling */
+.spa-table .action-buttons .btn {
+    padding: 4px 8px;
+    margin: 0 1px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.spa-table .action-buttons .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
 /* ========== SCROLLBAR ========== */
 ::-webkit-scrollbar {
     width: 8px;
