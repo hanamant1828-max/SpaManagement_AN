@@ -173,12 +173,12 @@
                     </li>
                     {% endif %}
 
-                    
+
 
                     {% if current_user.has_role('admin') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('business_settings') }}">
-                            <i class="fas fa-cogs me-2"></i><span>Business Settings</span>
+                            <i class="fas fa-cog me-2"></i><span>System Configuration</span>
                         </a>
                     </li>
                     {% endif %}

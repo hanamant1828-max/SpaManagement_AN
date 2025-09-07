@@ -248,7 +248,7 @@ def reviews():
 @app.route('/business_settings')
 @login_required
 def business_settings():
-    if not current_user.can_access('business_settings'):
+    if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     return render_template('business_settings.html')
