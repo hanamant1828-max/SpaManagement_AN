@@ -101,3 +101,15 @@ with app.app_context():
         except Exception as migration_error:
             logging.error(f"Database initialization retry failed: {migration_error}")
             logging.warning("Application starting with limited functionality")
+
+    # Import additional inventory views
+    try:
+        from modules.inventory.comprehensive_inventory_views import *
+        print("Additional inventory views loaded successfully")
+
+        # Register consumption tracking routes
+        app.add_url_rule('/inventory/consumption/add', 'record_consumption', record_consumption, methods=['POST'])
+        app.add_url_rule('/inventory/consumption/report', 'consumption_report', consumption_report, methods=['GET'])
+
+    except Exception as e:
+        print(f"Error loading additional inventory views: {e}")

@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Complete Inventory Management System{% endblock %}
@@ -478,37 +477,20 @@
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-hover" id="consumptionTable">
+                                <table class="table table-striped" id="consumptionTable">
                                     <thead>
                                         <tr>
                                             <th>Date</th>
-                                            <th>Product</th>
-                                            <th>Quantity Used</th>
-                                            <th>Unit</th>
+                                            <th>Item</th>
+                                            <th>Quantity</th>
+                                            <th>Staff</th>
                                             <th>Purpose</th>
-                                            <th>Staff Member</th>
+                                            <th>Cost Impact</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {% for consumption in consumption_records %}
-                                        <tr>
-                                            <td>{{ consumption.date.strftime('%Y-%m-%d') if consumption.date else '-' }}</td>
-                                            <td>{{ consumption.product.name if consumption.product else '-' }}</td>
-                                            <td>{{ consumption.quantity or 0 }}</td>
-                                            <td>{{ consumption.unit or '-' }}</td>
-                                            <td>{{ consumption.purpose or '-' }}</td>
-                                            <td>{{ consumption.staff_member or '-' }}</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editConsumption({{ consumption.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteConsumption({{ consumption.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                                    <tbody id="consumptionTableBody">
+                                        <!-- Consumption entries will be loaded here -->
                                     </tbody>
                                 </table>
                             </div>
@@ -524,52 +506,27 @@
                 <div class="col-12">
                     <div class="card shadow">
                         <div class="card-header py-3 d-flex justify-content-between">
-                            <h6 class="m-0 font-weight-bold text-primary">Purchase Management</h6>
-                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#addPurchaseModal">
-                                <i class="fas fa-plus me-1"></i>New Purchase
+                            <h6 class="m-0 font-weight-bold text-primary">Purchase Items</h6>
+                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#purchaseItemModal">
+                                <i class="fas fa-plus me-1"></i>Record Purchase
                             </button>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-hover" id="purchasesTable">
+                                <table class="table table-striped" id="purchaseTable">
                                     <thead>
                                         <tr>
-                                            <th>Purchase Order</th>
                                             <th>Date</th>
-                                            <th>Supplier</th>
-                                            <th>Product</th>
+                                            <th>Item</th>
                                             <th>Quantity</th>
-                                            <th>Unit Price</th>
-                                            <th>Total</th>
-                                            <th>Status</th>
+                                            <th>Unit Cost</th>
+                                            <th>Total Cost</th>
+                                            <th>Supplier</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for purchase in purchases %}
-                                        <tr>
-                                            <td>{{ purchase.purchase_order_number or purchase.id }}</td>
-                                            <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') if purchase.purchase_date else '-' }}</td>
-                                            <td>{{ purchase.supplier.name if purchase.supplier else '-' }}</td>
-                                            <td>{{ purchase.product.name if purchase.product else '-' }}</td>
-                                            <td>{{ purchase.quantity or 0 }}</td>
-                                            <td>₹{{ purchase.unit_price or 0 }}</td>
-                                            <td>₹{{ purchase.total_amount or 0 }}</td>
-                                            <td>
-                                                <span class="badge badge-status bg-{{ 'success' if purchase.status == 'completed' else 'warning' if purchase.status == 'pending' else 'info' }}">
-                                                    {{ purchase.status.title() if purchase.status else 'Pending' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editPurchase({{ purchase.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-success" onclick="receivePurchase({{ purchase.id }})">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                                        <!-- Purchase records will be loaded here -->
                                     </tbody>
                                 </table>
                             </div>
@@ -732,6 +689,142 @@
     </div>
 </div>
 
+<!-- Record Consumption Modal -->
+<div class="modal fade" id="recordConsumptionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record Consumption</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="consumptionForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Select Item</label>
+                            <select class="form-select" id="consumptionItemSelect" required>
+                                <option value="">Choose item...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Consumption Type</label>
+                            <select class="form-select" id="consumptionType" required>
+                                <option value="">Select type...</option>
+                                <option value="open">Open Container/Package</option>
+                                <option value="deduct">Use Specific Quantity</option>
+                                <option value="consume">Mark as Fully Consumed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="consumptionQuantity" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Unit</label>
+                            <input type="text" class="form-control" id="consumptionUnit" readonly>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Purpose/Reason</label>
+                            <select class="form-select" id="consumptionPurpose" required>
+                                <option value="">Select purpose...</option>
+                                <option value="Service consumption">Service consumption</option>
+                                <option value="Treatment">Treatment</option>
+                                <option value="Cleaning">Cleaning</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Damage">Damage</option>
+                                <option value="Expiry">Expiry</option>
+                                <option value="Wastage">Wastage</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Staff Member</label>
+                            <select class="form-select" id="consumptionStaff" required>
+                                <option value="">Select staff...</option>
+                                {% for staff in staff_members %}
+                                <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="consumptionNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="recordConsumption()">Record Consumption</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Purchase Item Modal -->
+<div class="modal fade" id="purchaseItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record Purchase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="purchaseForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Select Item</label>
+                            <select class="form-select" id="purchaseItemSelect" required>
+                                <option value="">Choose item...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Purchase Date</label>
+                            <input type="date" class="form-control" id="purchaseDate" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="purchaseQuantity" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Unit Cost</label>
+                            <input type="number" class="form-control" id="purchaseUnitCost" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Total Cost</label>
+                            <input type="number" class="form-control" id="purchaseTotalCost" readonly>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Supplier</label>
+                            <input type="text" class="form-control" id="purchaseSupplier" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Reference Number</label>
+                            <input type="text" class="form-control" id="purchaseReference">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="purchaseNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="recordPurchase()">Record Purchase</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Tab switching function
 function switchTab(tabId) {
@@ -814,9 +907,9 @@ function reorderProduct(id) {
 
 function submitAddCategory(event) {
     event.preventDefault();
-    
+
     const formData = new FormData(event.target);
-    
+
     fetch('/inventory/category/add', {
         method: 'POST',
         body: formData
@@ -838,5 +931,252 @@ function submitAddCategory(event) {
         alert('Error adding category');
     });
 }
+
+// Load inventory items for consumption tracking
+function loadInventoryItems() {
+    fetch('/api/inventory/status/all')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const consumptionSelect = document.getElementById('consumptionItemSelect');
+                const purchaseSelect = document.getElementById('purchaseItemSelect');
+
+                // Clear existing options
+                consumptionSelect.innerHTML = '<option value="">Choose item...</option>';
+                purchaseSelect.innerHTML = '<option value="">Choose item...</option>';
+
+                data.items.forEach(item => {
+                    const option = new Option(
+                        `${item.name} (Stock: ${item.current_stock} ${item.base_unit})`,
+                        item.id
+                    );
+                    option.dataset.unit = item.base_unit;
+                    option.dataset.stock = item.current_stock;
+
+                    consumptionSelect.appendChild(option.cloneNode(true));
+                    purchaseSelect.appendChild(option.cloneNode(true));
+                });
+            }
+        })
+        .catch(error => console.error('Error loading inventory items:', error));
+}
+
+// Update unit when item is selected
+document.getElementById('consumptionItemSelect').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const unitField = document.getElementById('consumptionUnit');
+    const quantityField = document.getElementById('consumptionQuantity');
+
+    if (selectedOption.dataset.unit) {
+        unitField.value = selectedOption.dataset.unit;
+        quantityField.max = selectedOption.dataset.stock;
+    } else {
+        unitField.value = '';
+        quantityField.max = '';
+    }
+});
+
+// Calculate total cost for purchases
+document.getElementById('purchaseQuantity').addEventListener('input', calculatePurchaseTotal);
+document.getElementById('purchaseUnitCost').addEventListener('input', calculatePurchaseTotal);
+
+function calculatePurchaseTotal() {
+    const quantity = parseFloat(document.getElementById('purchaseQuantity').value) || 0;
+    const unitCost = parseFloat(document.getElementById('purchaseUnitCost').value) || 0;
+    const totalCost = quantity * unitCost;
+    document.getElementById('purchaseTotalCost').value = totalCost.toFixed(2);
+}
+
+// Set today's date as default
+document.getElementById('purchaseDate').value = new Date().toISOString().split('T')[0];
+
+// Record consumption
+function recordConsumption() {
+    const itemId = document.getElementById('consumptionItemSelect').value;
+    const type = document.getElementById('consumptionType').value;
+    const quantity = parseFloat(document.getElementById('consumptionQuantity').value);
+    const unit = document.getElementById('consumptionUnit').value;
+    const purpose = document.getElementById('consumptionPurpose').value;
+    const staffId = document.getElementById('consumptionStaff').value;
+    const notes = document.getElementById('consumptionNotes').value;
+
+    if (!itemId || !type || !quantity || !purpose || !staffId) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    const data = {
+        quantity: quantity,
+        unit: unit,
+        reason: `${purpose} - ${notes}`.trim(),
+        reference_type: 'manual',
+        staff_id: staffId
+    };
+
+    let endpoint = '';
+    if (type === 'open') {
+        endpoint = `/api/inventory/${itemId}/open`;
+    } else if (type === 'deduct') {
+        endpoint = `/api/inventory/${itemId}/deduct`;
+    } else if (type === 'consume') {
+        endpoint = `/api/inventory-item/${itemId}/consume`;
+    }
+
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Consumption recorded successfully!');
+            document.getElementById('consumptionForm').reset();
+            bootstrap.Modal.getInstance(document.getElementById('recordConsumptionModal')).hide();
+            loadConsumptionEntries();
+            loadInventoryItems(); // Refresh stock levels
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error recording consumption:', error);
+        alert('Error recording consumption');
+    });
+}
+
+// Record purchase
+function recordPurchase() {
+    const itemId = document.getElementById('purchaseItemSelect').value;
+    const date = document.getElementById('purchaseDate').value;
+    const quantity = parseFloat(document.getElementById('purchaseQuantity').value);
+    const unitCost = parseFloat(document.getElementById('purchaseUnitCost').value);
+    const supplier = document.getElementById('purchaseSupplier').value;
+    const reference = document.getElementById('purchaseReference').value;
+    const notes = document.getElementById('purchaseNotes').value;
+
+    if (!itemId || !date || !quantity || !unitCost || !supplier) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    const data = {
+        quantity_change: quantity,
+        movement_type: 'purchase',
+        reason: `Purchase from ${supplier} - ${notes}`.trim(),
+        cost_per_unit: unitCost,
+        reference_number: reference
+    };
+
+    fetch(`/inventory/stock-update/${itemId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(data)
+    })
+    .then(response => {
+        if (response.redirected) {
+            alert('Purchase recorded successfully!');
+            document.getElementById('purchaseForm').reset();
+            bootstrap.Modal.getInstance(document.getElementById('purchaseItemModal')).hide();
+            loadInventoryItems(); // Refresh stock levels
+            location.reload(); // Refresh the page to see updated inventory
+        } else {
+            alert('Error recording purchase');
+        }
+    })
+    .catch(error => {
+        console.error('Error recording purchase:', error);
+        alert('Error recording purchase');
+    });
+}
+
+// Load consumption entries
+function loadConsumptionEntries() {
+    fetch('/api/inventory/consumption-entries?days=30')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const tbody = document.getElementById('consumptionTableBody');
+                tbody.innerHTML = '';
+
+                data.entries.forEach(entry => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${new Date(entry.created_at).toLocaleDateString()}</td>
+                        <td>${entry.inventory_name}</td>
+                        <td>${entry.quantity} ${entry.unit}</td>
+                        <td>${entry.staff_name}</td>
+                        <td>${entry.reason}</td>
+                        <td>₹${entry.cost_impact.toFixed(2)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" onclick="viewConsumptionDetails(${entry.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    `;
+                });
+            }
+        })
+        .catch(error => console.error('Error loading consumption entries:', error));
+}
+
+function viewConsumptionDetails(entryId) {
+    alert('Consumption details feature will be implemented in the next update');
+}
+
+// Missing filter function
+function filterInventory() {
+    const searchTerm = document.getElementById('inventorySearch')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
+
+    const rows = document.querySelectorAll('#inventoryTable tbody tr');
+
+    rows.forEach(row => {
+        const name = row.cells[0]?.textContent.toLowerCase() || '';
+        const category = row.cells[1]?.textContent || '';
+        const stock = parseFloat(row.cells[2]?.textContent) || 0;
+
+        let showRow = true;
+
+        // Text search
+        if (searchTerm && !name.includes(searchTerm)) {
+            showRow = false;
+        }
+
+        // Category filter
+        if (categoryFilter && category !== categoryFilter) {
+            showRow = false;
+        }
+
+        // Status filter
+        if (statusFilter) {
+            if (statusFilter === 'low_stock' && stock > 10) {
+                showRow = false;
+            } else if (statusFilter === 'out_of_stock' && stock > 0) {
+                showRow = false;
+            }
+        }
+
+        row.style.display = showRow ? '' : 'none';
+    });
+}
+
+// Missing chart function
+function showChart(chartType) {
+    console.log('Showing chart:', chartType);
+    // Chart functionality can be implemented later
+    alert(`${chartType} chart will be implemented in the next update`);
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadInventoryItems();
+    loadConsumptionEntries();
+});
 </script>
 {% endblock %}

@@ -51,10 +51,20 @@ def inventory():
         # Fallback: if InventoryMaster table doesn't exist, use regular inventory
         master_items = inventory_list
 
-    return render_template('professional_inventory.html', 
-                         products=inventory_list,  # Changed to match professional template
+    # Get staff members for consumption tracking
+    from models import User
+    staff_members = User.query.filter_by(is_active=True).all()
+    
+    # Get recent consumption entries
+    from modules.inventory.inventory_queries import get_consumption_entries
+    consumption_records = get_consumption_entries(days=7)
+    
+    return render_template('inventory_management.html', 
+                         products=inventory_list,
                          categories=categories,
-                         suppliers=[],  # Add empty suppliers for template compatibility
+                         suppliers=[],  
+                         staff_members=staff_members,
+                         consumption_records=consumption_records,
                          total_products=len(inventory_list),
                          total_stock_value=sum(getattr(item, 'cost_price', 0) * getattr(item, 'current_stock', 0) for item in inventory_list),
                          low_stock_count=len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]))

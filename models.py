@@ -645,20 +645,88 @@ class StockMovement(db.Model):
     inventory = db.relationship('InventoryProduct', backref='movements')
 
 class InventoryItem(db.Model):
-    """Simple inventory items - legacy compatibility"""
+    """Individual inventory items for container/lifecycle tracking"""
+    __tablename__ = 'inventory_items'
+    
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    category = db.Column(db.String(50))
-    current_stock = db.Column(db.Float, default=0.0)
-    unit = db.Column(db.String(20), default='pcs')
-    cost_price = db.Column(db.Float, default=0.0)
-    selling_price = db.Column(db.Float, default=0.0)
-    reorder_level = db.Column(db.Float, default=0.0)
-    is_active = db.Column(db.Boolean, default=True)
+    item_code = db.Column(db.String(50), unique=True, nullable=False)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    remaining_quantity = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default='available')  # available, issued, consumed
+    batch_number = db.Column(db.String(50))
+    expiry_date = db.Column(db.Date)
+    
+    # Tracking fields
+    issued_at = db.Column(db.DateTime)
+    issued_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    consumed_at = db.Column(db.DateTime)
+    consumed_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Audit fields
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    inventory = db.relationship('InventoryProduct', backref='inventory_items')
+    issued_by_user = db.relationship('User', foreign_keys=[issued_by], backref='items_issued')
+    consumed_by_user = db.relationship('User', foreign_keys=[consumed_by], backref='items_consumed')
     
     def can_fulfill_quantity(self, quantity):
-        return self.current_stock >= quantity
+        return self.remaining_quantity >= quantity
+
+class ConsumptionEntry(db.Model):
+    """Track product consumption and usage"""
+    __tablename__ = 'consumption_entries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=False)
+    entry_type = db.Column(db.String(20), nullable=False)  # open, consume, deduct, adjust
+    quantity = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)
+    reason = db.Column(db.String(500))
+    
+    # Reference to service/appointment if applicable
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'))
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    
+    # Cost tracking
+    cost_per_unit = db.Column(db.Float, default=0)
+    cost_impact = db.Column(db.Float, default=0)
+    
+    # Staff tracking
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    inventory = db.relationship('InventoryProduct', backref='consumption_entries')
+    staff = db.relationship('User', backref='consumption_entries')
+    service = db.relationship('Service', backref='consumption_entries')
+    appointment = db.relationship('Appointment', backref='consumption_entries')
+    customer = db.relationship('Customer', backref='consumption_entries')
+    
+    def __str__(self):
+        return f"{self.inventory.name if self.inventory else 'Unknown'} - {self.quantity} {self.unit}"
+
+class UsageDuration(db.Model):
+    """Track usage duration for items"""
+    __tablename__ = 'usage_durations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_items.id'), nullable=False)
+    started_at = db.Column(db.DateTime, nullable=False)
+    ended_at = db.Column(db.DateTime)
+    duration_hours = db.Column(db.Float)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Relationships
+    inventory_item = db.relationship('InventoryItem', backref='usage_durations')
+    staff = db.relationship('User', backref='usage_durations')
 
 class ServiceInventoryItem(db.Model):
     """Link services to inventory items"""

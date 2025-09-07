@@ -177,32 +177,119 @@ def record_consumption():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
+        from models import ConsumptionEntry, StockMovement, Inventory
+        
         consumption_data = {
-            'product_id': int(request.form.get('product_id', 0)),
+            'inventory_id': int(request.form.get('product_id', 0)),
             'quantity': float(request.form.get('quantity', 0)),
             'unit': request.form.get('unit', '').strip(),
-            'purpose': request.form.get('purpose', '').strip(),
-            'staff_member': request.form.get('staff_member', '').strip(),
-            'date': datetime.strptime(request.form.get('date'), '%Y-%m-%d').date(),
-            'notes': request.form.get('notes', '').strip(),
-            'recorded_by': current_user.id
+            'entry_type': request.form.get('entry_type', 'consume'),
+            'reason': f"{request.form.get('purpose', '').strip()} - {request.form.get('notes', '').strip()}".strip(),
+            'staff_id': int(request.form.get('staff_id', current_user.id)),
+            'created_at': datetime.utcnow()
         }
 
-        if not consumption_data['product_id'] or not consumption_data['quantity']:
+        if not consumption_data['inventory_id'] or not consumption_data['quantity']:
             return jsonify({'error': 'Product and quantity are required'}), 400
 
-        # Create consumption record (you might need to create this model)
-        # consumption = ConsumptionRecord(**consumption_data)
-        # db.session.add(consumption)
+        # Get inventory item
+        inventory = Inventory.query.get(consumption_data['inventory_id'])
+        if not inventory:
+            return jsonify({'error': 'Inventory item not found'}), 404
+            
+        if inventory.current_stock < consumption_data['quantity']:
+            return jsonify({'error': 'Insufficient stock available'}), 400
+
+        # Create consumption record
+        consumption = ConsumptionEntry(
+            inventory_id=consumption_data['inventory_id'],
+            entry_type=consumption_data['entry_type'],
+            quantity=consumption_data['quantity'],
+            unit=consumption_data['unit'],
+            reason=consumption_data['reason'],
+            staff_id=consumption_data['staff_id'],
+            cost_impact=consumption_data['quantity'] * (inventory.cost_price or 0),
+            created_at=consumption_data['created_at']
+        )
         
-        # Update product stock
-        if ProductMaster:
-            product = ProductMaster.query.get(consumption_data['product_id'])
-            if product:
-                product.current_stock = max(0, product.current_stock - consumption_data['quantity'])
-                
+        # Create stock movement
+        movement = StockMovement(
+            inventory_id=consumption_data['inventory_id'],
+            movement_type='out',
+            quantity=-consumption_data['quantity'],
+            unit=consumption_data['unit'],
+            reason=consumption_data['reason'],
+            created_by=consumption_data['staff_id'],
+            created_at=consumption_data['created_at']
+        )
+        
+        # Update inventory stock
+        inventory.current_stock = max(0, inventory.current_stock - consumption_data['quantity'])
+        inventory.updated_at = datetime.utcnow()
+        
+        db.session.add(consumption)
+        db.session.add(movement)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Consumption recorded successfully'})
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Consumption recorded successfully',
+            'remaining_stock': inventory.current_stock
+        })
+        
+    except ValueError as e:
+        return jsonify({'error': f'Invalid input: {str(e)}'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/inventory/consumption/report')
+@login_required
+def consumption_report():
+    """Get consumption report"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+        
+    try:
+        from models import ConsumptionEntry, Inventory, User
+        from datetime import datetime, timedelta
+        
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        # Get consumption summary
+        consumption_summary = db.session.query(
+            Inventory.name.label('item_name'),
+            ConsumptionEntry.entry_type,
+            db.func.sum(ConsumptionEntry.quantity).label('total_quantity'),
+            db.func.sum(ConsumptionEntry.cost_impact).label('total_cost'),
+            db.func.count(ConsumptionEntry.id).label('total_entries')
+        ).join(
+            ConsumptionEntry, Inventory.id == ConsumptionEntry.inventory_id
+        ).filter(
+            ConsumptionEntry.created_at >= start_date
+        ).group_by(
+            Inventory.name, ConsumptionEntry.entry_type
+        ).all()
+        
+        report_data = []
+        for item in consumption_summary:
+            report_data.append({
+                'item_name': item.item_name,
+                'entry_type': item.entry_type,
+                'total_quantity': float(item.total_quantity),
+                'total_cost': float(item.total_cost or 0),
+                'total_entries': item.total_entries
+            })
+            
+        return jsonify({
+            'status': 'success',
+            'report': report_data,
+            'period_days': days
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
     except Exception as e:
         db.session.rollback()
