@@ -266,7 +266,14 @@ def system_management():
     permissions = Permission.query.all()
     categories = Category.query.all()
     departments = Department.query.all()
-    settings = SystemSetting.query.all()
+    system_settings = SystemSetting.query.all()
+    
+    # Get business settings
+    business_settings = BusinessSettings.query.first()
+    if not business_settings:
+        business_settings = BusinessSettings()
+        db.session.add(business_settings)
+        db.session.commit()
 
     # Initialize forms
     role_form = RoleForm()
@@ -274,18 +281,21 @@ def system_management():
     category_form = CategoryForm()
     department_form = DepartmentForm()
     setting_form = SystemSettingForm()
+    business_form = BusinessSettingsForm(obj=business_settings)
 
     return render_template('system_management.html',
                          roles=roles,
                          permissions=permissions,
                          categories=categories,
                          departments=departments,
-                         settings=settings,
+                         system_settings=system_settings,
+                         business_settings=business_settings,
                          role_form=role_form,
                          permission_form=permission_form,
                          category_form=category_form,
                          department_form=department_form,
-                         setting_form=setting_form)
+                         setting_form=setting_form,
+                         business_form=business_form)
 
 @app.route('/add_category', methods=['POST'])
 @login_required
@@ -425,6 +435,34 @@ def delete_role(role_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error deleting role: {str(e)}', 'danger')
+
+    return redirect(url_for('system_management'))
+
+@app.route('/update_business_settings', methods=['POST'])
+@login_required
+def update_business_settings_route():
+    if not current_user.can_access('system_management'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    business_settings = BusinessSettings.query.first()
+    if not business_settings:
+        business_settings = BusinessSettings()
+
+    form = BusinessSettingsForm()
+    if form.validate_on_submit():
+        try:
+            form.populate_obj(business_settings)
+            db.session.add(business_settings)
+            db.session.commit()
+            flash('Business settings updated successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating business settings: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
 
     return redirect(url_for('system_management'))
 
