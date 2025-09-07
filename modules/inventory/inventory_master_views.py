@@ -8,9 +8,9 @@ from flask_login import login_required, current_user
 from app import app, db
 from models import InventoryCategory, InventorySupplier
 
-@app.route('/inventory/master')
+@app.route('/inventory/master/crud')
 @login_required
-def inventory_master():
+def inventory_master_crud():
     """Main inventory master management page"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
@@ -408,4 +408,4 @@ def export_master_data():
 
     except Exception as e:
         flash(f'Error exporting data: {str(e)}', 'danger')
-        return redirect(url_for('inventory_master'))
+        return redirect(url_for('inventory_master_crud'))
