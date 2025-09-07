@@ -166,11 +166,11 @@
                                     </td>
                                     <td>{{ category.sort_order }}</td>
                                     <td>
-                                        <span class="badge bg-{{ 'success' if category.is_active else 'secondary' }}">
+                                        <span class="badge badge-status bg-{{ 'success' if category.is_active else 'secondary' }}">
                                             {{ 'Active' if category.is_active else 'Inactive' }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="action-buttons">
                                         <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory({{ category.id }})" data-bs-toggle="tooltip" title="Edit category details">
                                             <i class="fas fa-edit"></i>
                                         </button>
