@@ -251,7 +251,7 @@ def business_settings():
     if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get business settings
     business_settings = BusinessSettings.query.first()
     if not business_settings:
@@ -261,7 +261,7 @@ def business_settings():
 
     # Initialize form
     form = BusinessSettingsForm(obj=business_settings)
-    
+
     return render_template('business_settings.html', form=form, business_settings=business_settings)
 
 
@@ -278,13 +278,14 @@ def system_management():
     categories = Category.query.all()
     departments = Department.query.all()
     system_settings = SystemSetting.query.all()
-    
-    # Get business settings
-    business_settings = BusinessSettings.query.first()
-    if not business_settings:
-        business_settings = BusinessSettings()
-        db.session.add(business_settings)
-        db.session.commit()
+
+    # Get business settings - create a proper structure for system management
+    business_settings = {}
+
+    # Get existing business settings as key-value pairs
+    existing_settings = BusinessSettings.query.all()
+    for setting in existing_settings:
+        business_settings[setting.setting_key] = setting.setting_value
 
     # Initialize forms
     role_form = RoleForm()
