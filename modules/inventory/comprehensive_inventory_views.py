@@ -86,87 +86,11 @@ def comprehensive_inventory():
                          low_stock_products=low_stock_products,
                          stats=stats)
 
-# Category Management Routes
-@app.route('/inventory/category/add', methods=['POST'])
-@login_required
-def add_inventory_category():
-    """Add new inventory category"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
+# Category Management Routes - Removed duplicate route (handled by inventory_category_views.py)
 
-    try:
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        is_active = request.form.get('is_active') == 'on'
+# Removed edit_inventory_category route - handled by inventory_category_views.py
 
-        if not name:
-            return jsonify({'error': 'Category name is required'}), 400
-
-        if HanamanCategory:
-            category = HanamanCategory(
-                name=name,
-                description=description,
-                is_active=is_active,
-                created_by=current_user.id
-            )
-            db.session.add(category)
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Category added successfully'})
-        else:
-            return jsonify({'error': 'Category model not available'}), 500
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/inventory/category/edit/<int:category_id>', methods=['POST'])
-@login_required
-def edit_inventory_category(category_id):
-    """Edit inventory category"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        if not HanamanCategory:
-            return jsonify({'error': 'Category model not available'}), 500
-
-        category = HanamanCategory.query.get_or_404(category_id)
-        
-        category.name = request.form.get('name', '').strip()
-        category.description = request.form.get('description', '').strip()
-        category.is_active = request.form.get('is_active') == 'on'
-        category.updated_by = current_user.id
-        category.updated_at = datetime.utcnow()
-
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Category updated successfully'})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/inventory/category/delete/<int:category_id>', methods=['POST'])
-@login_required
-def delete_inventory_category(category_id):
-    """Delete inventory category"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        if not HanamanCategory:
-            return jsonify({'error': 'Category model not available'}), 500
-
-        category = HanamanCategory.query.get_or_404(category_id)
-        category.is_active = False  # Soft delete
-        category.updated_by = current_user.id
-        category.updated_at = datetime.utcnow()
-
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Category deleted successfully'})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+# Removed delete_inventory_category route - handled by inventory_category_views.py
 
 # Supplier Management Routes
 @app.route('/inventory/supplier/add', methods=['POST'])
