@@ -69,22 +69,23 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered" id="categoriesTable" width="100%" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Category Name</th>
-                            <th>Display Name</th>
-                            <th>Description</th>
-                            <th>Color/Icon</th>
-                            <th>Sort Order</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <div class="spa-table-container">
+                <div class="spa-table-responsive">
+                    <table class="spa-table" id="categoriesTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Category Name</th>
+                                <th>Display Name</th>
+                                <th>Description</th>
+                                <th>Color/Icon</th>
+                                <th>Sort Order</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                         {% for category in categories %}
                         <tr>
                             <td>{{ category.id }}</td>
@@ -123,8 +124,9 @@
                             </td>
                         </tr>
                         {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

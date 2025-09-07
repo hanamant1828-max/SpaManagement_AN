@@ -55,22 +55,23 @@
             <div class="card">
                 <div class="card-body">
                     {% if services %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Service Name</th>
-                                    <th>Category</th>
-                                    <th>Duration</th>
-                                    <th>Price</th>
-                                    <th>Description</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for service in services %}
-                                <tr>
+                    <div class="spa-table-container">
+                        <div class="spa-table-responsive">
+                            <table class="spa-table">
+                                <thead>
+                                    <tr>
+                                        <th>Service Name</th>
+                                        <th>Category</th>
+                                        <th>Duration</th>
+                                        <th>Price</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for service in services %}
+                                    <tr>
                                     <td>
                                         <strong>{{ service.name }}</strong>
                                         {% if service.category %}
@@ -108,15 +109,18 @@
                                         </button>
                                     </td>
                                 </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-spa fa-3x text-muted mb-3"></i>
-                        <h5>No services found</h5>
-                        <p class="text-muted">Create your first service to get started.</p>
+                    <div class="spa-table-container">
+                        <div class="spa-table-empty">
+                            <i class="fas fa-spa"></i>
+                            <h5>No services found</h5>
+                            <p class="text-muted">Create your first service to get started.</p>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
