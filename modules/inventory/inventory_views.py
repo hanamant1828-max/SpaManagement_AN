@@ -59,15 +59,23 @@ def inventory():
     from modules.inventory.inventory_queries import get_consumption_entries
     consumption_records = get_consumption_entries(days=7)
     
+    # Create stats dictionary for template
+    stats = {
+        'total_products': len(inventory_list),
+        'total_categories': len(categories),
+        'total_suppliers': 0,  # No suppliers data available
+        'low_stock_items': len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]),
+        'total_purchases': 0,  # No purchase data available
+        'total_transactions': len(consumption_records)
+    }
+    
     return render_template('inventory_management.html', 
                          products=inventory_list,
                          categories=categories,
                          suppliers=[],  
                          staff_members=staff_members,
                          consumption_records=consumption_records,
-                         total_products=len(inventory_list),
-                         total_stock_value=sum(getattr(item, 'cost_price', 0) * getattr(item, 'current_stock', 0) for item in inventory_list),
-                         low_stock_count=len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]))
+                         stats=stats)
 
 # NEW: Inventory Master Routes (Structured Approach)
 @app.route('/inventory/master')
