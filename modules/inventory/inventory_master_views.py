@@ -30,9 +30,9 @@ def inventory_master_crud():
                          active_suppliers=active_suppliers)
 
 # Category CRUD Operations
-@app.route('/inventory/category/add', methods=['POST'])
+@app.route('/inventory/master/category/add', methods=['POST'])
 @login_required
-def add_inventory_category():
+def add_inventory_master_category():
     """Add new inventory category"""
     if not current_user.can_access('inventory'):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
@@ -67,9 +67,9 @@ def add_inventory_category():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Error creating category: {str(e)}'})
 
-@app.route('/inventory/categories', methods=['GET'])
+@app.route('/inventory/master/categories', methods=['GET'])
 @login_required
-def get_inventory_categories():
+def get_inventory_master_categories():
     """Get all inventory categories"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
@@ -96,9 +96,9 @@ def get_inventory_categories():
     except Exception as e:
         return jsonify({'success': False, 'error': f'Error loading categories: {str(e)}'})
 
-@app.route('/inventory/category/update/<int:category_id>', methods=['POST'])
+@app.route('/inventory/master/category/update/<int:category_id>', methods=['POST'])
 @login_required
-def update_inventory_category(category_id):
+def update_inventory_master_category(category_id):
     """Update inventory category"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
@@ -141,9 +141,9 @@ def update_inventory_category(category_id):
 
     return redirect(url_for('inventory_master_crud'))
 
-@app.route('/inventory/category/delete/<int:category_id>', methods=['POST'])
+@app.route('/inventory/master/category/delete/<int:category_id>', methods=['POST'])
 @login_required
-def delete_inventory_category(category_id):
+def delete_inventory_master_category(category_id):
     """Delete inventory category"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
@@ -173,9 +173,9 @@ def delete_inventory_category(category_id):
     return redirect(url_for('inventory_master_crud'))
 
 # Supplier CRUD Operations
-@app.route('/supplier/add', methods=['POST'])
+@app.route('/inventory/master/supplier/add', methods=['POST'])
 @login_required
-def add_supplier():
+def add_inventory_master_supplier():
     """Add new supplier"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
@@ -225,9 +225,9 @@ def add_supplier():
 
     return redirect(url_for('inventory_master_crud'))
 
-@app.route('/supplier/update/<int:supplier_id>', methods=['POST'])
+@app.route('/inventory/master/supplier/update/<int:supplier_id>', methods=['POST'])
 @login_required
-def update_supplier(supplier_id):
+def update_inventory_master_supplier(supplier_id):
     """Update supplier"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
@@ -280,9 +280,9 @@ def update_supplier(supplier_id):
 
     return redirect(url_for('inventory_master_crud'))
 
-@app.route('/supplier/delete/<int:supplier_id>', methods=['POST'])
+@app.route('/inventory/master/supplier/delete/<int:supplier_id>', methods=['POST'])
 @login_required
-def delete_supplier(supplier_id):
+def delete_inventory_master_supplier(supplier_id):
     """Delete supplier"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
