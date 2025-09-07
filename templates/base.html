@@ -136,15 +136,7 @@
                     {% if current_user.can_access('services') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('services') }}">
-                            <i class="fas fa-spa me-2"></i><span>Services</span>
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    {% if current_user.can_access('services') %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('service_categories') }}">
-                            <i class="fas fa-tags me-2"></i><span>Service Categories</span>
+                            <i class="fas fa-spa me-2"></i><span>Services Management</span>
                         </a>
                     </li>
                     {% endif %}
