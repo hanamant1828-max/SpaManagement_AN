@@ -127,14 +127,8 @@
 
                     {% if current_user.can_access('inventory') %}
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('hanaman_inventory') }}">
-                            <i class="fas fa-boxes me-2"></i><span>Hanaman Inventory</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('hanaman_inventory_config') }}">
-                            <i class="fas fa-cogs me-2"></i><span>Inventory Configuration</span>
+                        <a class="nav-link text-white" href="{{ url_for('simple_inventory') }}">
+                            <i class="fas fa-boxes me-2"></i><span>Inventory Management</span>
                         </a>
                     </li>
                     {% endif %}
