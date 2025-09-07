@@ -158,6 +158,14 @@
                     </li>
                     {% endif %}
 
+                    {% if current_user.can_access('inventory') %}
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('inventory_categories') }}">
+                            <i class="fas fa-boxes me-2"></i><span>Inventory Management</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
                     {% if current_user.can_access('alerts') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('alerts') }}">
