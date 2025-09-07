@@ -125,31 +125,6 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('inventory') %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link text-white dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-boxes me-2"></i><span>Inventory Management</span>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('hanaman_inventory') }}">
-                                <i class="fas fa-warehouse me-2"></i>Main Inventory
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('professional_inventory') }}">
-                                <i class="fas fa-industry me-2"></i>Professional Inventory
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('inventory_categories') }}">
-                                <i class="fas fa-tags me-2"></i>Categories
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('hanaman_product_master') }}">
-                                <i class="fas fa-list me-2"></i>Product Master
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('hanaman_inventory_config') }}">
-                                <i class="fas fa-cog me-2"></i>Configuration
-                            </a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
 
                     {% if current_user.can_access('services') %}
                     <li class="nav-item">
