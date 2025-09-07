@@ -54,7 +54,7 @@ def after_request(response):
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
-    
+
     # CORS headers for webview compatibility
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
@@ -70,6 +70,21 @@ def load_user(user_id):
 with app.app_context():
     # Import models here so their tables will be created
     import models  # noqa: F401
+    # Import all modules
+    from modules.auth import auth_views
+    from modules.dashboard import dashboard_views
+    from modules.bookings import bookings_views
+    from modules.clients import clients_views
+    from modules.staff import staff_views
+    from modules.checkin import checkin_views
+    from modules.notifications import notifications_views
+    from modules.billing import billing_views, integrated_billing_views
+    from modules.services import services_views
+    from modules.packages import packages_views
+    from modules.reports import reports_views
+    from modules.expenses import expenses_views
+    from modules.inventory import inventory_views, inventory_category_views, professional_inventory_views, simple_inventory_views, inventory_master_views, comprehensive_inventory_views
+    from modules.settings import settings_views
 
     try:
         db.create_all()
