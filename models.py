@@ -639,10 +639,12 @@ class StockMovement(db.Model):
     unit = db.Column(db.String(20), default='pcs')
     reference_type = db.Column(db.String(50))
     reference_id = db.Column(db.Integer)
+    reason = db.Column(db.Text)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     inventory = db.relationship('InventoryProduct', backref='movements')
+    created_by_user = db.relationship('User', backref='stock_movements')
 
 class InventoryItem(db.Model):
     """Individual inventory items for container/lifecycle tracking"""
@@ -650,7 +652,7 @@ class InventoryItem(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     item_code = db.Column(db.String(50), unique=True, nullable=False)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=False)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
     remaining_quantity = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='available')  # available, issued, consumed
@@ -680,7 +682,7 @@ class ConsumptionEntry(db.Model):
     __tablename__ = 'consumption_entries'
     
     id = db.Column(db.Integer, primary_key=True)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=False)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'), nullable=False)
     entry_type = db.Column(db.String(20), nullable=False)  # open, consume, deduct, adjust
     quantity = db.Column(db.Float, nullable=False)
     unit = db.Column(db.String(20), nullable=False)
@@ -713,20 +715,7 @@ class ConsumptionEntry(db.Model):
     def __str__(self):
         return f"{self.inventory.name if self.inventory else 'Unknown'} - {self.quantity} {self.unit}"
 
-class UsageDuration(db.Model):
-    """Track usage duration for items"""
-    __tablename__ = 'usage_durations'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    inventory_item_id = db.Column(db.Integer, db.ForeignKey('inventory_items.id'), nullable=False)
-    started_at = db.Column(db.DateTime, nullable=False)
-    ended_at = db.Column(db.DateTime)
-    duration_hours = db.Column(db.Float)
-    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
-    # Relationships
-    inventory_item = db.relationship('InventoryItem', backref='usage_durations')
-    staff = db.relationship('User', backref='usage_durations')
+
 
 class ServiceInventoryItem(db.Model):
     """Link services to inventory items"""
@@ -738,15 +727,7 @@ class ServiceInventoryItem(db.Model):
     
     inventory_item = db.relationship('InventoryProduct', backref='service_items')
 
-class ConsumptionEntry(db.Model):
-    """Track inventory consumption"""
-    id = db.Column(db.Integer, primary_key=True)
-    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory_product.product_id'))
-    quantity_used = db.Column(db.Float, nullable=False)
-    used_date = db.Column(db.DateTime, default=datetime.utcnow)
-    notes = db.Column(db.Text)
-    
-    inventory_item = db.relationship('InventoryProduct', backref='consumption_entries')
+
 
 class UsageDuration(db.Model):
     """Track usage duration"""
