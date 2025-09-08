@@ -219,6 +219,36 @@ html, body {
     background-color: var(--professional-bg);
 }
 
+/* Login page specific styling */
+.card .card-title {
+    color: var(--professional-text) !important;
+    font-weight: 600;
+}
+
+.card .text-muted {
+    color: var(--professional-muted) !important;
+}
+
+.card .text-center h2 {
+    color: var(--professional-text) !important;
+}
+
+.card .text-center p {
+    color: var(--professional-muted) !important;
+}
+
+.card .fas, .card .fa {
+    color: var(--spa-primary) !important;
+}
+
+.card .small {
+    color: var(--professional-muted) !important;
+}
+
+.card .text-center.text-muted.small p {
+    color: var(--professional-muted) !important;
+}
+
 .card:hover {
     box-shadow: 0 4px 12px rgba(60, 64, 67, 0.15);
     transform: translateY(-2px);
