@@ -1233,6 +1233,26 @@ function viewConsumptionDetails(entryId) {
     alert('Consumption details feature will be implemented in the next update');
 }
 
+// Load categories for dropdown
+function loadCategoriesForDropdown() {
+    fetch('/api/inventory/categories')
+        .then(response => response.json())
+        .then(data => {
+            const dropdown = document.getElementById('productCategory');
+            dropdown.innerHTML = '<option value="">Select Category</option>';
+            
+            if (data.status === 'success' && data.categories) {
+                data.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.display_name;
+                    dropdown.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error('Error loading categories:', error));
+}
+
 // Form submission functions
 function submitAddProduct(event) {
     event.preventDefault();
@@ -1540,6 +1560,7 @@ function loadProducts() {
 document.addEventListener('DOMContentLoaded', function() {
     loadInventoryItems();
     loadConsumptionEntries();
+    loadCategoriesForDropdown(); // Load categories for product form dropdown
 });
 </script>
 {% endblock %}
