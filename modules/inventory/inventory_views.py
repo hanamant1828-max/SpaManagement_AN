@@ -67,12 +67,117 @@ def inventory():
         'total_transactions': len(consumption_records)
     }
     
-    return render_template('inventory_management.html', 
-                         products=inventory_list,
-                         categories=categories,
-                         staff_members=staff_members,
-                         consumption_records=consumption_records,
-                         stats=stats)
+    return render_template('inventory_management.html')
+
+# API endpoints for JavaScript data loading
+@app.route('/api/inventory/stats')
+@login_required
+def api_inventory_stats():
+    """Get inventory statistics for dashboard"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        inventory_list = get_all_inventory()
+        categories = get_inventory_categories()
+        
+        from modules.inventory.inventory_queries import get_consumption_entries
+        consumption_records = get_consumption_entries(days=7)
+        
+        stats = {
+            'total_products': len(inventory_list),
+            'total_categories': len(categories),
+            'low_stock_items': len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]),
+            'total_transactions': len(consumption_records)
+        }
+        
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/categories')
+@login_required  
+def api_inventory_categories():
+    """Get all inventory categories"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        categories = get_inventory_categories()
+        
+        categories_data = []
+        for category in categories:
+            categories_data.append({
+                'id': category.id,
+                'name': category.name,
+                'description': getattr(category, 'description', '') or '-',
+                'is_active': getattr(category, 'is_active', True),
+                'created_at': category.created_at.strftime('%Y-%m-%d') if hasattr(category, 'created_at') and category.created_at else '-'
+            })
+        
+        return jsonify(categories_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/products')
+@login_required
+def api_inventory_products():
+    """Get all inventory products"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        search_query = request.args.get('search', '')
+        filter_type = request.args.get('filter', 'all')
+        
+        if search_query:
+            inventory_list = search_inventory(search_query)
+        elif filter_type == 'low_stock':
+            inventory_list = get_low_stock_items()
+        elif filter_type == 'expiring':
+            inventory_list = get_expiring_items()
+        else:
+            inventory_list = get_all_inventory()
+        
+        products_data = []
+        for product in inventory_list:
+            products_data.append({
+                'id': product.id,
+                'name': getattr(product, 'product_name', None) or getattr(product, 'name', ''),
+                'category': product.category.name if hasattr(product, 'category') and product.category else '-',
+                'current_stock': getattr(product, 'current_stock', 0) or 0,
+                'unit': getattr(product, 'unit', '') or '-',
+                'min_stock': getattr(product, 'min_stock', None) or getattr(product, 'min_stock_level', 0) or 0,
+                'is_active': getattr(product, 'is_active', True)
+            })
+        
+        return jsonify(products_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/low-stock')
+@login_required
+def api_inventory_low_stock():
+    """Get products with low stock for reports"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        low_stock_items = get_low_stock_items()
+        
+        low_stock_data = []
+        for product in low_stock_items:
+            low_stock_data.append({
+                'id': product.id,
+                'name': getattr(product, 'name', '') or getattr(product, 'product_name', ''),
+                'current_stock': getattr(product, 'current_stock', 0),
+                'min_stock_level': getattr(product, 'min_stock_level', None) or getattr(product, 'min_stock', 0),
+                'status': 'Low Stock'
+            })
+        
+        return jsonify(low_stock_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # NEW: Inventory Master Routes (Structured Approach)
 @app.route('/inventory/master')
