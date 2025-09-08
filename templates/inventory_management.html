@@ -928,7 +928,7 @@ function editCategory(id) {
 
 function deleteCategory(id) {
     if (confirm('Are you sure you want to delete this category?')) {
-        fetch(`/api/inventory/category/${id}`, {
+        fetch(`/api/inventory/category/delete/${id}`, {
             method: 'DELETE'
         })
         .then(response => response.json())
@@ -1009,10 +1009,15 @@ function submitAddCategory(event) {
     event.preventDefault();
 
     const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+    data.is_active = formData.has('is_active');
 
-    fetch('/inventory/category/add', {
+    fetch('/api/inventory/category/add', {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {
@@ -1267,7 +1272,7 @@ function submitEditCategory(event) {
         is_active: document.getElementById('editCategoryActive').checked
     };
 
-    fetch(`/api/inventory/category/${id}`, {
+    fetch(`/api/inventory/category/edit/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
