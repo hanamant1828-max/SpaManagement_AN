@@ -174,30 +174,6 @@ def delete_inventory_master_category(category_id):
 
 # Supplier functionality removed as requested
 
-        # Create new supplier
-        supplier = InventorySupplier(
-            supplier_name=supplier_name,
-            contact_person=contact_person if contact_person else None,
-            phone=phone if phone else None,
-            email=email if email else None,
-            website=website if website else None,
-            address=address if address else None,
-            rating=rating,
-            is_active=is_active,
-            created_by=current_user.username if hasattr(current_user, 'username') else str(current_user.id)
-        )
-
-        db.session.add(supplier)
-        db.session.commit()
-
-        flash(f'Supplier "{supplier_name}" created successfully!', 'success')
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error creating supplier: {str(e)}', 'danger')
-
-    return redirect(url_for('inventory_master_crud'))
-
 @app.route('/inventory/master/supplier/update/<int:supplier_id>', methods=['POST'])
 @login_required
 def update_inventory_master_supplier(supplier_id):

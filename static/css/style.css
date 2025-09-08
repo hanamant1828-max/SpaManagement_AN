@@ -230,12 +230,19 @@ html, body {
         height: 26px;
         font-size: 1.15rem;
     }
-}\n\n#sidebar.minimized .offcanvas-header {\n    padding: 1rem 0.5rem;\n}\n\n#sidebar.minimized .offcanvas-title {\n    display: none;\n}
+}
 
-    body.sidebar-minimized {
-        padding-left: 80px;
-        transition: all 0.3s ease;
-    }
+#sidebar.minimized .offcanvas-header {
+    padding: 1rem 0.5rem;
+}
+
+#sidebar.minimized .offcanvas-title {
+    display: none;
+}
+
+body.sidebar-minimized {
+    padding-left: 80px;
+    transition: all 0.3s ease;
 }
 
 #sidebar .nav-link {
