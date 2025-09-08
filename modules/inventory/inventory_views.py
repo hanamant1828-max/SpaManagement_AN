@@ -280,12 +280,12 @@ def api_inventory_products():
         products_data = []
         for product in inventory_list:
             products_data.append({
-                'id': product.id,
-                'name': getattr(product, 'product_name', None) or getattr(product, 'name', ''),
-                'category': product.category.name if hasattr(product, 'category') and product.category else '-',
+                'id': getattr(product, 'product_id', None) or getattr(product, 'id', None),
+                'name': getattr(product, 'name', ''),
+                'category': product.category.display_name if hasattr(product, 'category') and product.category else '-',
                 'current_stock': getattr(product, 'current_stock', 0) or 0,
                 'unit': getattr(product, 'unit', '') or '-',
-                'min_stock': getattr(product, 'min_stock', None) or getattr(product, 'min_stock_level', 0) or 0,
+                'min_stock': getattr(product, 'reorder_level', 0) or getattr(product, 'min_stock_level', 0) or 0,
                 'is_active': getattr(product, 'is_active', True)
             })
 
@@ -360,8 +360,6 @@ def api_add_product():
                 'reorder_level': product.reorder_level
             }
         })
-        else:
-            return jsonify({'success': False, 'error': 'Error creating product'})
     
     except Exception as e:
         db.session.rollback()
