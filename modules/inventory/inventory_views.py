@@ -172,6 +172,35 @@ def api_add_category():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Error creating category: {str(e)}'})
 
+@app.route('/api/inventory/category/<int:category_id>', methods=['GET'])
+@login_required
+def api_get_category(category_id):
+    """Get single category for editing"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import Category
+        category = Category.query.filter_by(id=category_id, category_type='inventory').first()
+        
+        if not category:
+            return jsonify({'success': False, 'error': 'Category not found'}), 404
+            
+        return jsonify({
+            'success': True,
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'display_name': category.display_name,
+                'description': category.description or '',
+                'color': category.color or '#007bff',
+                'icon': category.icon or 'fas fa-boxes',
+                'is_active': category.is_active
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/inventory/category/edit/<int:category_id>', methods=['PUT'])
 @login_required
 def api_edit_category(category_id):
@@ -314,18 +343,23 @@ def api_add_product():
         if not product_data['name']:
             return jsonify({'success': False, 'error': 'Product name is required'})
         
-        product = create_inventory(product_data)
-        if product:
-            return jsonify({
-                'success': True,
-                'message': f'Product "{product.name}" created successfully!',
-                'product': {
-                    'id': product.id,
-                    'name': product.name,
-                    'current_stock': product.current_stock,
-                    'min_stock_level': product.min_stock_level
-                }
-            })
+        # Create product directly using the model
+        from models import InventoryProduct
+        
+        product = InventoryProduct(**product_data)
+        db.session.add(product)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Product "{product.name}" created successfully!',
+            'product': {
+                'id': product.product_id,
+                'name': product.name,
+                'current_stock': getattr(product, 'current_stock', 0),
+                'reorder_level': product.reorder_level
+            }
+        })
         else:
             return jsonify({'success': False, 'error': 'Error creating product'})
     
