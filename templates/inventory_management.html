@@ -276,28 +276,8 @@
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {% for category in categories %}
-                                        <tr>
-                                            <td>{{ category.id }}</td>
-                                            <td>{{ category.name }}</td>
-                                            <td>{{ category.description or '-' }}</td>
-                                            <td>
-                                                <span class="badge badge-status bg-{{ 'success' if category.is_active else 'danger' }}">
-                                                    {{ 'Active' if category.is_active else 'Inactive' }}
-                                                </span>
-                                            </td>
-                                            <td>{{ category.created_at.strftime('%Y-%m-%d') if category.created_at else '-' }}</td>
-                                            <td class="action-buttons">
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editCategory({{ category.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                                    <tbody id="categoriesTableBody">
+                                        <!-- Categories will be loaded by JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
@@ -333,33 +313,8 @@
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {% for product in products %}
-                                        <tr>
-                                            <td>{{ product.id }}</td>
-                                            <td>{{ product.product_name or product.name }}</td>
-                                            <td>{{ product.category.name if product.category else '-' }}</td>
-                                            <td>{{ product.current_stock or 0 }}</td>
-                                            <td>{{ product.unit or '-' }}</td>
-                                            <td>{{ product.min_stock or product.min_stock_level or 0 }}</td>
-                                            <td>
-                                                <span class="badge badge-status bg-{{ 'success' if product.is_active else 'danger' }}">
-                                                    {{ 'Active' if product.is_active else 'Inactive' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editProduct({{ product.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-warning" onclick="stockAdjustment({{ product.id }})">
-                                                    <i class="fas fa-adjust"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct({{ product.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                                    <tbody id="productsTableBody">
+                                        <!-- Products will be loaded by JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
@@ -532,21 +487,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for product in low_stock_products %}
-                                        <tr>
-                                            <td>{{ product.name }}</td>
-                                            <td>{{ product.current_stock }}</td>
-                                            <td>{{ product.min_stock_level or product.min_stock }}</td>
-                                            <td>
-                                                <span class="badge bg-warning">Low Stock</span>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="reorderProduct({{ product.id }})">
-                                                    <i class="fas fa-shopping-cart me-1"></i>Reorder
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                                        <!-- Low stock products will be loaded by JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
