@@ -1235,22 +1235,44 @@ function viewConsumptionDetails(entryId) {
 
 // Load categories for dropdown
 function loadCategoriesForDropdown() {
+    console.log('Loading categories for dropdown...');
     fetch('/api/inventory/categories')
         .then(response => response.json())
         .then(data => {
+            console.log('Categories API response for dropdown:', data);
             const dropdown = document.getElementById('productCategory');
+            if (!dropdown) {
+                console.error('Product category dropdown not found');
+                return;
+            }
+            
             dropdown.innerHTML = '<option value="">Select Category</option>';
             
-            if (data.status === 'success' && data.categories) {
+            if (data.status === 'success' && data.categories && data.categories.length > 0) {
+                console.log('Adding categories to dropdown:', data.categories.length);
                 data.categories.forEach(category => {
                     const option = document.createElement('option');
                     option.value = category.id;
-                    option.textContent = category.display_name;
+                    option.textContent = category.display_name || category.name;
                     dropdown.appendChild(option);
+                    console.log('Added category:', category.name);
                 });
+            } else {
+                console.log('No categories found or invalid response');
+                // Add a placeholder if no categories
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No categories available';
+                dropdown.appendChild(option);
             }
         })
-        .catch(error => console.error('Error loading categories:', error));
+        .catch(error => {
+            console.error('Error loading categories:', error);
+            const dropdown = document.getElementById('productCategory');
+            if (dropdown) {
+                dropdown.innerHTML = '<option value="">Error loading categories</option>';
+            }
+        });
 }
 
 // Form submission functions
@@ -1561,6 +1583,15 @@ document.addEventListener('DOMContentLoaded', function() {
     loadInventoryItems();
     loadConsumptionEntries();
     loadCategoriesForDropdown(); // Load categories for product form dropdown
+    
+    // Also load categories when the Add Product modal is shown
+    const addProductModal = document.getElementById('addProductModal');
+    if (addProductModal) {
+        addProductModal.addEventListener('shown.bs.modal', function() {
+            console.log('Add Product modal opened, loading categories...');
+            loadCategoriesForDropdown();
+        });
+    }
 });
 </script>
 {% endblock %}
