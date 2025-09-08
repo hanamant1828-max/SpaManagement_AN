@@ -1,7 +1,7 @@
 """
 Inventory-related database queries with comprehensive management features
 """
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from sqlalchemy import func, and_, or_, desc, asc, text
 from sqlalchemy.orm import joinedload
 from app import db
@@ -677,3 +677,51 @@ def get_staff_usage_report(staff_id=None, days=30):
         'total_cost_impact': float(result.total_cost or 0),
         'total_entries': result.total_entries
     } for result in results]
+
+def calculate_inventory_stats():
+    """Calculate comprehensive inventory statistics"""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Get all active inventory items
+        all_items = get_all_inventory()
+        total_items = len(all_items)
+        
+        # Calculate stock status counts
+        low_stock_items = get_low_stock_items()
+        out_of_stock = len([item for item in all_items if item.current_stock <= 0])
+        expiring_items = get_expiring_items(days=30)
+        
+        # Calculate inventory valuation
+        valuation = get_inventory_valuation()
+        total_value = float(valuation.total_cost_value or 0) if valuation else 0
+        
+        # Get recent movements (last 7 days)
+        recent_movements = get_stock_movements(days=7)
+        
+        # Calculate movement statistics
+        inbound_movements = len([m for m in recent_movements if m.quantity > 0])
+        outbound_movements = len([m for m in recent_movements if m.quantity < 0])
+        
+        return {
+            'total_items': total_items,
+            'low_stock_count': len(low_stock_items),
+            'out_of_stock_count': out_of_stock,
+            'expiring_count': len(expiring_items),
+            'total_value': total_value,
+            'recent_inbound': inbound_movements,
+            'recent_outbound': outbound_movements,
+            'total_movements': len(recent_movements)
+        }
+    except Exception as e:
+        print(f"Error calculating inventory stats: {e}")
+        return {
+            'total_items': 0,
+            'low_stock_count': 0,
+            'out_of_stock_count': 0,
+            'expiring_count': 0,
+            'total_value': 0,
+            'recent_inbound': 0,
+            'recent_outbound': 0,
+            'total_movements': 0
+        }
