@@ -115,6 +115,119 @@ def api_inventory_categories():
             'message': str(e)
         }), 500
 
+@app.route('/api/inventory/category/add', methods=['POST'])
+@login_required
+def api_add_category():
+    """Add new inventory category"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import InventoryCategory
+        
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        display_name = data.get('display_name', '').strip()
+        description = data.get('description', '').strip()
+        color = data.get('color', '#007bff')
+        icon = data.get('icon', 'fas fa-boxes')
+        is_active = data.get('is_active', True)
+        
+        if not name:
+            return jsonify({'success': False, 'error': 'Category name is required'})
+        
+        # Check if category already exists
+        existing = InventoryCategory.query.filter_by(name=name).first()
+        if existing:
+            return jsonify({'success': False, 'error': f'Category "{name}" already exists'})
+        
+        category = InventoryCategory(
+            name=name,
+            display_name=display_name or name,
+            description=description,
+            color=color,
+            icon=icon,
+            is_active=is_active,
+            created_by=current_user.username if hasattr(current_user, 'username') else str(current_user.id)
+        )
+        
+        db.session.add(category)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Category "{name}" created successfully!',
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'display_name': category.display_name,
+                'description': category.description,
+                'color': category.color,
+                'icon': category.icon,
+                'is_active': category.is_active
+            }
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Error creating category: {str(e)}'})
+
+@app.route('/api/inventory/category/edit/<int:category_id>', methods=['PUT'])
+@login_required
+def api_edit_category(category_id):
+    """Edit inventory category"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import InventoryCategory
+        
+        category = InventoryCategory.query.get_or_404(category_id)
+        data = request.get_json()
+        
+        category.name = data.get('name', category.name)
+        category.display_name = data.get('display_name', category.display_name)
+        category.description = data.get('description', category.description)
+        category.color = data.get('color', category.color)
+        category.icon = data.get('icon', category.icon)
+        category.is_active = data.get('is_active', category.is_active)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Category "{category.name}" updated successfully!'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Error updating category: {str(e)}'})
+
+@app.route('/api/inventory/category/delete/<int:category_id>', methods=['DELETE'])
+@login_required
+def api_delete_category(category_id):
+    """Delete inventory category"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import InventoryCategory
+        
+        category = InventoryCategory.query.get_or_404(category_id)
+        category_name = category.name
+        
+        db.session.delete(category)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Category "{category_name}" deleted successfully!'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Error deleting category: {str(e)}'})
+
 @app.route('/api/inventory/products')
 @login_required
 def api_inventory_products():
