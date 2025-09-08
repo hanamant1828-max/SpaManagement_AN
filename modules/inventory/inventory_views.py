@@ -288,6 +288,47 @@ def api_inventory_low_stock():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/product/add', methods=['POST'])
+@login_required
+def api_add_product():
+    """Add new inventory product"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        product_data = {
+            'name': data.get('name', '').strip(),
+            'description': data.get('description', '').strip(),
+            'category_id': int(data.get('category_id')) if data.get('category_id') else None,
+            'current_stock': float(data.get('current_stock', 0)),
+            'min_stock_level': float(data.get('min_stock_level', 5)),
+            'cost_price': float(data.get('cost_price', 0)),
+            'selling_price': float(data.get('selling_price', 0))
+        }
+        
+        if not product_data['name']:
+            return jsonify({'success': False, 'error': 'Product name is required'})
+        
+        product = create_inventory(product_data)
+        if product:
+            return jsonify({
+                'success': True,
+                'message': f'Product "{product.name}" created successfully!',
+                'product': {
+                    'id': product.id,
+                    'name': product.name,
+                    'current_stock': product.current_stock,
+                    'min_stock_level': product.min_stock_level
+                }
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Error creating product'})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Error creating product: {str(e)}'})
+
 # NEW: Inventory Master Routes (Structured Approach)
 @app.route('/inventory/master')
 @login_required
