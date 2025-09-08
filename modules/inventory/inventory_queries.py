@@ -6,8 +6,8 @@ from sqlalchemy import func, and_, or_, desc, asc, text
 from sqlalchemy.orm import joinedload
 from app import db
 from models import (
-    InventoryProduct, InventoryTransaction, Service, Appointment, 
-    InventoryCategory, User, InventoryItem, 
+    InventoryProduct, InventoryTransaction, Service, Appointment,
+    InventoryCategory, User, InventoryItem,
     ConsumptionEntry, UsageDuration, InventorySupplier,
     InventoryAlert, StockMovement
 )
@@ -202,8 +202,8 @@ def get_consumption_by_service(service_id=None, days=30):
         )
 
     return query.group_by(
-        StockMovement.inventory_id, 
-        Inventory.name, 
+        StockMovement.inventory_id,
+        Inventory.name,
         StockMovement.unit
     ).all()
 
@@ -216,6 +216,8 @@ def get_wastage_report(days=30):
 
 def get_supplier_performance():
     """Get supplier performance metrics"""
+    # Assuming Supplier and PurchaseOrder are defined in models and imported
+    from models import Supplier, PurchaseOrder
     return db.session.query(
         Supplier.id,
         Supplier.name,
@@ -445,10 +447,10 @@ def consume_inventory_item(item_id, reason, user_id):
         if duration_hours:
             usage_duration = UsageDuration(
                 inventory_item_id=item_id,
-                started_at=inventory_item.issued_at,
-                ended_at=datetime.utcnow(),
+                issued_at=inventory_item.issued_at,
+                consumed_at=datetime.utcnow(),
                 duration_hours=duration_hours,
-                staff_id=user_id
+                consumed_by=user_id
             )
             db.session.add(usage_duration)
 
@@ -564,35 +566,47 @@ def create_manual_adjustment(inventory_id, new_quantity, adjustment_type, reason
         print(f"Error creating manual adjustment: {e}")
         return None
 
-def get_consumption_entries(inventory_id=None, entry_type=None, staff_id=None, days=30):
-    """Get consumption entries with filtering using StockMovement table"""
-    from models import StockMovement, Inventory, User
-    from datetime import datetime, timedelta
+def get_consumption_entries(days=30):
+    """Get consumption entries for the specified number of days"""
+    try:
+        from datetime import datetime, timedelta
+        from models import ConsumptionEntry
 
-    query = StockMovement.query.join(Inventory)
+        # Calculate start date
+        start_date = datetime.utcnow() - timedelta(days=days)
 
-    if inventory_id:
-        query = query.filter(StockMovement.inventory_id == inventory_id)
+        # Query consumption entries
+        entries = ConsumptionEntry.query.filter(
+            ConsumptionEntry.created_at >= start_date
+        ).order_by(ConsumptionEntry.created_at.desc()).all()
 
-    if entry_type:
-        # Map entry types to movement types
-        movement_type_map = {
-            'open': 'service_use',
-            'consume': 'service_use', 
-            'deduct': 'service_use',
-            'adjust': 'adjustment'
-        }
-        movement_type = movement_type_map.get(entry_type, entry_type)
-        query = query.filter(StockMovement.movement_type == movement_type)
+        return entries
+    except Exception as e:
+        print(f"Error getting consumption entries: {e}")
+        return []
 
-    if staff_id:
-        query = query.filter(StockMovement.created_by == staff_id)
+def get_stock_transactions():
+    """Get stock transaction history"""
+    try:
+        from models import InventoryTransaction, StockMovement
 
-    # Filter by date range
-    start_date = datetime.utcnow() - timedelta(days=days)
-    query = query.filter(StockMovement.created_at >= start_date)
+        # Try to get transactions from InventoryTransaction first
+        transactions = InventoryTransaction.query.order_by(
+            InventoryTransaction.created_at.desc()
+        ).limit(100).all()
 
-    return query.order_by(StockMovement.created_at.desc()).limit(50).all()
+        # If no transactions found, try StockMovement
+        if not transactions:
+            movements = StockMovement.query.order_by(
+                StockMovement.created_at.desc()
+            ).limit(100).all()
+            return movements
+
+        return transactions
+    except Exception as e:
+        print(f"Error getting stock transactions: {e}")
+        return []
+
 
 def get_usage_duration_report(inventory_id=None, days=30):
     """Get usage duration report"""
@@ -613,8 +627,8 @@ def get_usage_duration_report(inventory_id=None, days=30):
 
     # Filter by date range
     start_date = datetime.utcnow() - timedelta(days=days)
-    query = query.filter(UsageDuration.opened_at >= start_date)
-    query = query.filter(UsageDuration.finished_at.isnot(None))
+    query = query.filter(UsageDuration.issued_at >= start_date)
+    query = query.filter(UsageDuration.consumed_at.isnot(None))
 
     results = query.group_by(Inventory.name).all()
 
@@ -651,7 +665,7 @@ def get_staff_usage_report(staff_id=None, days=30):
     query = query.filter(ConsumptionEntry.created_at >= start_date)
 
     results = query.group_by(
-        User.first_name, User.last_name, 
+        User.first_name, User.last_name,
         Inventory.name, ConsumptionEntry.entry_type
     ).all()
 

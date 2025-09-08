@@ -36,7 +36,7 @@ def inventory():
         categories = get_inventory_categories()
         print(f"Loaded {len(categories)} categories for inventory management")
 
-        products = get_inventory_products()
+        products = get_all_inventory()
         consumption_records = get_consumption_entries(days=7)
         transactions = get_stock_transactions()
 
@@ -930,7 +930,7 @@ def api_consumption_entries():
         days = request.args.get('days', 30, type=int)
 
         # Build query for stock movements (consumption tracking)
-        query = db.session.query(StockMovement).join(Inventory, StockMovement.inventory_id == Inventory.id)
+        query = db.session.query(StockMovement)
 
         if inventory_id:
             query = query.filter(StockMovement.inventory_id == inventory_id)
