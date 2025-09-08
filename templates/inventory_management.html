@@ -273,6 +273,7 @@
                                         <tr>
                                             <th>ID</th>
                                             <th>Category Name</th>
+                                            <th>Category Display</th>
                                             <th>Description</th>
                                             <th>Status</th>
                                             <th>Created Date</th>
@@ -523,9 +524,21 @@
                         <label for="categoryDescription" class="form-label">Description</label>
                         <textarea class="form-control" name="description" id="categoryDescription" rows="3"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label for="categoryDisplayName" class="form-label">Display Name</label>
+                        <input type="text" class="form-control" name="display_name" id="categoryDisplayName">
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" name="color" id="categoryColor" value="#007bff">
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryIcon" class="form-label">Icon (Font Awesome Class)</label>
+                        <input type="text" class="form-control" name="icon" id="categoryIcon" placeholder="e.g., fas fa-boxes">
+                    </div>
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" name="is_active" id="categoryActive" checked>
-                        <label class="form-check-label" for="categoryActive">Active</label>
+                        <label class="form-label" for="categoryActive">Active</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -686,9 +699,21 @@
                         <label for="editCategoryDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="editCategoryDescription" rows="3"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label for="editCategoryDisplayName" class="form-label">Display Name</label>
+                        <input type="text" class="form-control" id="editCategoryDisplayName">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="editCategoryColor" value="#007bff">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryIcon" class="form-label">Icon (Font Awesome Class)</label>
+                        <input type="text" class="form-control" id="editCategoryIcon" placeholder="e.g., fas fa-boxes">
+                    </div>
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="editCategoryActive">
-                        <label class="form-check-label" for="editCategoryActive">Active</label>
+                        <label class="form-label" for="editCategoryActive">Active</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -872,7 +897,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.warn('jQuery or DataTables not available, using basic tables');
     }
-    
+
     // Load initial data
     loadInventoryStats();
     loadCategories();
@@ -891,6 +916,9 @@ function editCategory(id) {
                 document.getElementById('editCategoryId').value = id;
                 document.getElementById('editCategoryName').value = data.category.name;
                 document.getElementById('editCategoryDescription').value = data.category.description || '';
+                document.getElementById('editCategoryDisplayName').value = data.category.display_name || '';
+                document.getElementById('editCategoryColor').value = data.category.color || '#007bff';
+                document.getElementById('editCategoryIcon').value = data.category.icon || 'fas fa-boxes';
                 document.getElementById('editCategoryActive').checked = data.category.is_active;
                 new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
             }
@@ -993,7 +1021,7 @@ function submitAddCategory(event) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
             modal.hide();
             document.getElementById('addCategoryForm').reset();
-            location.reload();
+            loadCategories();
         } else {
             alert(data.error || 'Error adding category');
         }
@@ -1150,7 +1178,7 @@ function recordPurchase() {
         body: new URLSearchParams(data)
     })
     .then(response => {
-        if (response.redirected) {
+        if (response.redirected || response.ok) {
             alert('Purchase recorded successfully!');
             document.getElementById('purchaseForm').reset();
             bootstrap.Modal.getInstance(document.getElementById('purchaseItemModal')).hide();
@@ -1233,6 +1261,9 @@ function submitEditCategory(event) {
     const formData = {
         name: document.getElementById('editCategoryName').value,
         description: document.getElementById('editCategoryDescription').value,
+        display_name: document.getElementById('editCategoryDisplayName').value,
+        color: document.getElementById('editCategoryColor').value,
+        icon: document.getElementById('editCategoryIcon').value,
         is_active: document.getElementById('editCategoryActive').checked
     };
 
@@ -1395,38 +1426,65 @@ function loadInventoryStats() {
         .catch(error => console.error('Error loading stats:', error));
 }
 
+function updateCategoriesTable(categories) {
+    const tbody = document.getElementById('categoriesTableBody');
+    tbody.innerHTML = ''; // Clear existing rows
+
+    if (categories.length === 0) {
+        const row = tbody.insertRow();
+        row.innerHTML = `<td colspan="7" class="text-center text-muted">No categories found. Add some categories to get started.</td>`;
+        return;
+    }
+
+    categories.forEach(category => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${category.id}</td>
+            <td>${category.name}</td>
+            <td>
+                <span class="badge" style="background-color: ${category.color || '#007bff'}">
+                    <i class="${category.icon || 'fas fa-boxes'}"></i> ${category.display_name}
+                </span>
+            </td>
+            <td>${category.description || '-'}</td>
+            <td>
+                <span class="badge ${category.is_active ? 'bg-success' : 'bg-secondary'}">
+                    ${category.is_active ? 'Active' : 'Inactive'}
+                </span>
+            </td>
+            <td>${category.created_at ? new Date(category.created_at).toLocaleDateString() : '-'}</td>
+            <td>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-info" onclick="editCategory(${category.id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteCategory(${category.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+    });
+}
+
 function loadCategories() {
+    console.log('Loading categories...');
     fetch('/api/inventory/categories')
         .then(response => response.json())
         .then(data => {
-            const tbody = document.getElementById('categoriesTableBody');
-            tbody.innerHTML = '';
-            
-            data.forEach(category => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${category.id}</td>
-                    <td>${category.name}</td>
-                    <td>${category.description}</td>
-                    <td>
-                        <span class="badge ${category.is_active ? 'bg-success' : 'bg-secondary'}">
-                            ${category.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                    </td>
-                    <td>${category.created_at}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="editCategory(${category.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${category.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-            });
+            console.log('Categories API response:', data);
+            if (data.status === 'success') {
+                console.log('Found categories:', data.categories.length);
+                updateCategoriesTable(data.categories);
+            } else {
+                console.error('Error loading categories:', data.message);
+            }
         })
-        .catch(error => console.error('Error loading categories:', error));
+        .catch(error => {
+            console.error('Error fetching categories:', error);
+        });
 }
+
 
 function loadProducts() {
     fetch('/api/inventory/products')
@@ -1434,7 +1492,7 @@ function loadProducts() {
         .then(data => {
             const tbody = document.getElementById('productsTableBody');
             tbody.innerHTML = '';
-            
+
             data.forEach(product => {
                 const row = tbody.insertRow();
                 const stockStatus = product.current_stock <= product.min_stock ? 'danger' : 'success';

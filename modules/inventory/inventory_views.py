@@ -17,57 +17,42 @@ from .inventory_queries import (
     get_items_by_status, get_stock_movements, get_consumption_by_service,
     get_wastage_report, get_supplier_performance, get_inventory_valuation,
     convert_units, auto_deduct_service_inventory, create_stock_adjustment,
-    generate_reorder_suggestions
+    generate_reorder_suggestions, get_consumption_entries, get_stock_transactions,
+    calculate_inventory_stats
 )
 from models import Inventory, InventoryMaster, InventoryTransaction, Category
 
 @app.route('/inventory')
 @login_required
 def inventory():
+    """Main comprehensive inventory management dashboard"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    search_query = request.args.get('search', '')
-    filter_type = request.args.get('filter', 'all')
-
-    if search_query:
-        inventory_list = search_inventory(search_query)
-    elif filter_type == 'low_stock':
-        inventory_list = get_low_stock_items()
-    elif filter_type == 'expiring':
-        inventory_list = get_expiring_items()
-    else:
-        inventory_list = get_all_inventory()
-
-    categories = get_inventory_categories()
-    form = InventoryForm()
-    form.category_id.choices = [(c.id, c.display_name) for c in categories]
-
-    # Get master items for the Inventory Master tab
     try:
-        master_items = InventoryMaster.query.filter_by(is_active=True).all()
-    except:
-        # Fallback: if InventoryMaster table doesn't exist, use regular inventory
-        master_items = inventory_list
+        # Get all inventory data with debug info
+        print("Loading inventory management page...")
+        categories = get_inventory_categories()
+        print(f"Loaded {len(categories)} categories for inventory management")
 
-    # Get staff members for consumption tracking
-    from models import User
-    staff_members = User.query.filter_by(is_active=True).all()
+        products = get_inventory_products()
+        consumption_records = get_consumption_entries(days=7)
+        transactions = get_stock_transactions()
 
-    # Get recent consumption entries
-    from modules.inventory.inventory_queries import get_consumption_entries
-    consumption_records = get_consumption_entries(days=7)
+        # Calculate statistics
+        stats = calculate_inventory_stats()
 
-    # Create stats dictionary for template
-    stats = {
-        'total_products': len(inventory_list),
-        'total_categories': len(categories),
-        'low_stock_items': len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]),
-        'total_transactions': len(consumption_records)
-    }
-
-    return render_template('inventory_management.html')
+        return render_template('inventory_management.html',
+                             categories=categories,
+                             products=products, 
+                             consumption_records=consumption_records,
+                             transactions=transactions,
+                             stats=stats)
+    except Exception as e:
+        print(f"Error in comprehensive_inventory_management: {e}")
+        flash(f'Error loading inventory data: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
 
 # API endpoints for JavaScript data loading
 @app.route('/api/inventory/stats')
@@ -81,7 +66,6 @@ def api_inventory_stats():
         inventory_list = get_all_inventory()
         categories = get_inventory_categories()
 
-        from modules.inventory.inventory_queries import get_consumption_entries
         consumption_records = get_consumption_entries(days=7)
 
         stats = {
@@ -98,26 +82,38 @@ def api_inventory_stats():
 @app.route('/api/inventory/categories')
 @login_required  
 def api_inventory_categories():
-    """Get all inventory categories"""
+    """API endpoint to get all inventory categories"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
         categories = get_inventory_categories()
+        print(f"API returning {len(categories)} categories")
 
         categories_data = []
         for category in categories:
             categories_data.append({
                 'id': category.id,
                 'name': category.name,
-                'description': getattr(category, 'description', '') or '-',
-                'is_active': getattr(category, 'is_active', True),
-                'created_at': category.created_at.strftime('%Y-%m-%d') if hasattr(category, 'created_at') and category.created_at else '-'
+                'display_name': category.display_name,
+                'description': category.description or '',
+                'color': category.color or '#007bff',
+                'icon': category.icon or 'fas fa-boxes',
+                'is_active': category.is_active,
+                'sort_order': category.sort_order or 0,
+                'created_at': category.created_at.strftime('%Y-%m-%d') if category.created_at else ''
             })
 
-        return jsonify(categories_data)
+        return jsonify({
+            'status': 'success',
+            'categories': categories_data
+        })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in categories API: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @app.route('/api/inventory/products')
 @login_required
