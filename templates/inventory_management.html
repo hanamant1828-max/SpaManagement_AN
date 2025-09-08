@@ -3,10 +3,9 @@
 {% block title %}Complete Inventory Management System{% endblock %}
 
 {% block extra_css %}
-<!-- Add jQuery for DataTables -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<!-- DataTables CSS and JS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <style>
 .inventory-card {
     border: none;
@@ -861,13 +860,18 @@ function switchTab(tabId) {
 }
 
 // Initialize DataTables and load data when document is ready
-$(document).ready(function() {
-    // Initialize DataTables
-    $('#categoriesTable, #productsTable, #consumptionTable, #transactionsTable').DataTable({
-        "pageLength": 25,
-        "responsive": true,
-        "order": [[ 0, "desc" ]]
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if jQuery is available
+    if (typeof $ !== 'undefined' && $.fn.DataTable) {
+        // Initialize DataTables
+        $('#categoriesTable, #productsTable, #consumptionTable, #transactionsTable').DataTable({
+            "pageLength": 25,
+            "responsive": true,
+            "order": [[ 0, "desc" ]]
+        });
+    } else {
+        console.warn('jQuery or DataTables not available, using basic tables');
+    }
     
     // Load initial data
     loadInventoryStats();
