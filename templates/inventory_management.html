@@ -646,15 +646,10 @@
                             <option value="">Select Category</option>
                         </select>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="productStock" class="form-label">Current Stock *</label>
-                            <input type="number" class="form-control" name="current_stock" id="productStock" step="0.01" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="productMinStock" class="form-label">Min Stock Level *</label>
-                            <input type="number" class="form-control" name="min_stock_level" id="productMinStock" step="0.01" required>
-                        </div>
+                    <div class="mb-3">
+                        <label for="productMinStock" class="form-label">Min Stock Level *</label>
+                        <input type="number" class="form-control" name="min_stock_level" id="productMinStock" step="0.01" required>
+                        <input type="hidden" name="current_stock" value="0">
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
