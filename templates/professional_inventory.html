@@ -1713,35 +1713,7 @@ function updateSupplier() {
             loadSuppliers();
             showAlert('Supplier updated successfully!', 'success');
         } else {
-            showAlert(data.error || 'Error updating supplier', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error updating supplier', 'danger');
-    });
-}
-
-function deleteSupplier(supplierId, supplierName) {
-    if (confirm(`Are you sure you want to delete supplier "${supplierName}"?`)) {
-        fetch(`/inventory_master/supplier/delete/${supplierId}`, {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                loadSuppliers();
-                showAlert('Supplier deleted successfully!', 'success');
-            } else {
-                showAlert(data.error || 'Error deleting supplier', 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('Error deleting supplier', 'danger');
-        });
-    }
-}
+            // Supplier functionality removed as requested
 
 function showAlert(message, type) {
     const alertDiv = document.createElement('div');

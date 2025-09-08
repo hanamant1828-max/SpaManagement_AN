@@ -28,20 +28,20 @@ class UserForm(FlaskForm):
 
 class CustomerForm(FlaskForm):
     first_name = StringField('First Name', validators=[
-        DataRequired(message="First name is required"), 
+        DataRequired(message="First name is required"),
         Length(min=2, max=50, message="First name must be between 2 and 50 characters")
     ])
     last_name = StringField('Last Name', validators=[
-        DataRequired(message="Last name is required"), 
-        Length(min=2, max=50, message="Last name must be between 2 and 50 characters")
+        DataRequired(message="Last name is required"),
+        Length(min=2, max=50, message="First name must be between 2 and 50 characters")
     ])
     email = StringField('Email', validators=[
-        Optional(), 
+        Optional(),
         Email(message="Please enter a valid email address"),
         Length(max=120, message="Email address is too long")
     ])
     phone = StringField('Phone', validators=[
-        DataRequired(message="Phone number is required"), 
+        DataRequired(message="Phone number is required"),
         Length(min=10, max=20, message="Phone number must be between 10 and 20 characters"),
         Regexp(r'^[\d\s\+\-\(\)]+$', message="Phone number can only contain digits, spaces, +, -, (, )")
     ])
@@ -53,29 +53,29 @@ class CustomerForm(FlaskForm):
         ('other', 'Other')
     ], validators=[Optional()])
     address = TextAreaField('Address', validators=[
-        Optional(), 
+        Optional(),
         Length(max=500, message="Address is too long")
     ])
     preferences = TextAreaField('Preferences', validators=[
-        Optional(), 
+        Optional(),
         Length(max=1000, message="Preferences text is too long")
     ])
     allergies = TextAreaField('Allergies', validators=[
-        Optional(), 
+        Optional(),
         Length(max=1000, message="Allergies text is too long")
     ])
     notes = TextAreaField('Notes', validators=[
-        Optional(), 
+        Optional(),
         Length(max=1000, message="Notes text is too long")
     ])
-    
+
     def validate_date_of_birth(self, field):
         if field.data:
             from datetime import date
             today = date.today()
             if field.data > today:
                 raise ValidationError("Date of birth cannot be in the future")
-            
+
             # Check if person is older than 120 years
             age = today.year - field.data.year - ((today.month, today.day) < (field.data.month, field.data.day))
             if age > 120:
@@ -94,7 +94,7 @@ class ServiceForm(FlaskForm):
         # Dynamically populate categories from database
         from models import Category
         self.category_id.choices = [(0, 'Select Category')] + [
-            (c.id, c.display_name) for c in 
+            (c.id, c.display_name) for c in
             Category.query.filter_by(category_type='service', is_active=True)
             .order_by(Category.sort_order, Category.display_name).all()
         ]
@@ -117,7 +117,6 @@ class InventoryForm(FlaskForm):
     cost_price = DecimalField('Cost Price', validators=[NumberRange(min=0)], places=2, default=0)
     selling_price = DecimalField('Selling Price', validators=[NumberRange(min=0)], places=2, default=0)
     expiry_date = DateField('Expiry Date', validators=[Optional()])
-    supplier = StringField('Supplier', validators=[Length(max=100)])
     submit = SubmitField('Save Item')
 
 class ExpenseForm(FlaskForm):
@@ -152,15 +151,15 @@ class PackageForm(FlaskForm):
         # Dynamically populate services from database
         from models import Service
         self.included_services.choices = [
-            (s.id, f"{s.name} (₹{s.price})") for s in 
+            (s.id, f"{s.name} (₹{s.price})") for s in
             Service.query.filter_by(is_active=True).order_by(Service.name).all()
         ]
 
 class EnhancedPackageForm(FlaskForm):
     """Professional package creation form with individual service discounts and complete management"""
-    name = StringField('Package Name', validators=[DataRequired(), Length(max=100)], 
+    name = StringField('Package Name', validators=[DataRequired(), Length(max=100)],
                       description='e.g., "Bridal Glow Package", "Monthly Wellness Package"')
-    description = TextAreaField('Package Description', validators=[Optional()], 
+    description = TextAreaField('Package Description', validators=[Optional()],
                                description='Short summary for clients and admin reference')
     package_type = SelectField('Package Type', choices=[
         ('regular', 'Regular Package'),
@@ -171,10 +170,10 @@ class EnhancedPackageForm(FlaskForm):
         ('kitty_party', 'Kitty Party'),
         ('yearly_membership', 'Yearly Membership')
     ], validators=[DataRequired()], default='regular')
-    validity_days = IntegerField('Validity Period (Days)', validators=[DataRequired(), NumberRange(min=1, max=365)], 
+    validity_days = IntegerField('Validity Period (Days)', validators=[DataRequired(), NumberRange(min=1, max=365)],
                                 default=90, description='Package activation time - how long package remains valid')
     total_price = FloatField('Total Package Price (₹)', validators=[DataRequired(), NumberRange(min=0.01)])
-    discount_percentage = FloatField('Overall Package Discount (%)', validators=[Optional(), NumberRange(min=0, max=100)], 
+    discount_percentage = FloatField('Overall Package Discount (%)', validators=[Optional(), NumberRange(min=0, max=100)],
                                    default=0.0, description='Additional discount applied to entire package')
     is_active = BooleanField('Package Status', default=True, description='Active packages can be assigned to clients')
 
@@ -402,7 +401,7 @@ class AdvancedUserForm(UserForm):
         ('management', 'Management')
     ], validators=[Optional()])
     hire_date = DateField('Hire Date', validators=[Optional()])
-    specialties = TextAreaField('Specialties', validators=[Optional()], 
+    specialties = TextAreaField('Specialties', validators=[Optional()],
                                description='List staff specialties and certifications')
 
 class QuickBookingForm(FlaskForm):
@@ -570,15 +569,15 @@ class ComprehensiveStaffForm(FlaskForm):
         try:
             from models import Role, Department, Service
             self.role_id.choices = [(0, 'Select Role')] + [
-                (r.id, r.display_name) for r in 
+                (r.id, r.display_name) for r in
                 Role.query.filter_by(is_active=True).order_by(Role.display_name).all()
             ]
             self.department_id.choices = [(0, 'Select Department')] + [
-                (d.id, d.display_name) for d in 
+                (d.id, d.display_name) for d in
                 Department.query.filter_by(is_active=True).order_by(Department.display_name).all()
             ]
             self.assigned_services.choices = [
-                (s.id, s.name) for s in 
+                (s.id, s.name) for s in
                 Service.query.filter_by(is_active=True).order_by(Service.name).all()
             ]
         except:

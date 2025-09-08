@@ -78,7 +78,6 @@ def comprehensive_inventory():
 
     return render_template('inventory_management.html',
                          categories=categories,
-                         suppliers=suppliers,
                          products=products,
                          purchases=purchases,
                          transactions=transactions,
@@ -92,44 +91,7 @@ def comprehensive_inventory():
 
 # Removed delete_inventory_category route - handled by inventory_category_views.py
 
-# Supplier Management Routes
-@app.route('/inventory/supplier/add', methods=['POST'])
-@login_required
-def add_inventory_supplier():
-    """Add new supplier"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        if not HanamanSupplier:
-            return jsonify({'error': 'Supplier model not available'}), 500
-
-        supplier_data = {
-            'name': request.form.get('name', '').strip(),
-            'contact_person': request.form.get('contact_person', '').strip(),
-            'phone': request.form.get('phone', '').strip(),
-            'email': request.form.get('email', '').strip(),
-            'address': request.form.get('address', '').strip(),
-            'city': request.form.get('city', '').strip(),
-            'state': request.form.get('state', '').strip(),
-            'pincode': request.form.get('pincode', '').strip(),
-            'gst_number': request.form.get('gst_number', '').strip(),
-            'payment_terms': request.form.get('payment_terms', '').strip(),
-            'is_active': request.form.get('is_active') == 'on',
-            'created_by': current_user.id
-        }
-
-        if not supplier_data['name']:
-            return jsonify({'error': 'Supplier name is required'}), 400
-
-        supplier = HanamanSupplier(**supplier_data)
-        db.session.add(supplier)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Supplier added successfully'})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+# Supplier functionality removed as requested
 
 # Product Master Routes
 @app.route('/inventory/product/add', methods=['POST'])

@@ -172,34 +172,7 @@ def delete_inventory_master_category(category_id):
 
     return redirect(url_for('inventory_master_crud'))
 
-# Supplier CRUD Operations
-@app.route('/inventory/master/supplier/add', methods=['POST'])
-@login_required
-def add_inventory_master_supplier():
-    """Add new supplier"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    try:
-        supplier_name = request.form.get('supplier_name', '').strip()
-        contact_person = request.form.get('contact_person', '').strip()
-        phone = request.form.get('phone', '').strip()
-        email = request.form.get('email', '').strip()
-        website = request.form.get('website', '').strip()
-        address = request.form.get('address', '').strip()
-        rating = int(request.form.get('rating', 3))
-        is_active = 'is_active' in request.form
-
-        if not supplier_name:
-            flash('Supplier name is required', 'danger')
-            return redirect(url_for('inventory_master_crud'))
-
-        # Check if supplier already exists
-        existing = InventorySupplier.query.filter_by(supplier_name=supplier_name).first()
-        if existing:
-            flash(f'Supplier "{supplier_name}" already exists', 'warning')
-            return redirect(url_for('inventory_master_crud'))
+# Supplier functionality removed as requested
 
         # Create new supplier
         supplier = InventorySupplier(

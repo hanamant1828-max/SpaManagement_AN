@@ -88,11 +88,6 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="suppliers-tab" data-bs-toggle="pill" data-bs-target="#suppliers" type="button" role="tab">
-                                <i class="fas fa-truck me-1"></i>Supplier Management
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="products-tab" data-bs-toggle="pill" data-bs-target="#products" type="button" role="tab">
                                 <i class="fas fa-cube me-1"></i>Product Master
                             </button>
@@ -162,22 +157,6 @@
                 </div>
 
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-info shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Suppliers</div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalSuppliers">{{ stats.total_suppliers or 0 }}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-truck fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card border-left-warning shadow h-100 py-2">
                         <div class="card-body">
                             <div class="row no-gutters align-items-center">
@@ -206,21 +185,6 @@
                             <p class="text-muted">Manage inventory categories and organizational structure.</p>
                             <button class="btn btn-primary" onclick="switchTab('categories-tab')">
                                 <i class="fas fa-cog me-1"></i>Manage Categories
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 mb-4">
-                    <div class="inventory-card card">
-                        <div class="card-body">
-                            <div class="inventory-icon text-success">
-                                <i class="fas fa-truck"></i>
-                            </div>
-                            <h5>Supplier Management</h5>
-                            <p class="text-muted">Manage suppliers and vendor relationships.</p>
-                            <button class="btn btn-success" onclick="switchTab('suppliers-tab')">
-                                <i class="fas fa-users me-1"></i>Manage Suppliers
                             </button>
                         </div>
                     </div>
@@ -343,63 +307,6 @@
             </div>
         </div>
 
-        <!-- Supplier Management Tab -->
-        <div class="tab-pane fade" id="suppliers" role="tabpanel">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card shadow">
-                        <div class="card-header py-3 d-flex justify-content-between">
-                            <h6 class="m-0 font-weight-bold text-primary">Supplier Management</h6>
-                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
-                                <i class="fas fa-plus me-1"></i>Add Supplier
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="spa-table-responsive">
-                                <table class="spa-table" id="suppliersTable">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Supplier Name</th>
-                                            <th>Contact Person</th>
-                                            <th>Phone</th>
-                                            <th>Email</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for supplier in suppliers %}
-                                        <tr>
-                                            <td>{{ supplier.id }}</td>
-                                            <td>{{ supplier.name }}</td>
-                                            <td>{{ supplier.contact_person or '-' }}</td>
-                                            <td>{{ supplier.phone or '-' }}</td>
-                                            <td>{{ supplier.email or '-' }}</td>
-                                            <td>
-                                                <span class="badge badge-status bg-{{ 'success' if supplier.is_active else 'danger' }}">
-                                                    {{ 'Active' if supplier.is_active else 'Inactive' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editSupplier({{ supplier.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSupplier({{ supplier.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Product Master Tab -->
         <div class="tab-pane fade" id="products" role="tabpanel">
             <div class="row">
@@ -419,7 +326,6 @@
                                             <th>ID</th>
                                             <th>Product Name</th>
                                             <th>Category</th>
-                                            <th>Supplier</th>
                                             <th>Current Stock</th>
                                             <th>Unit</th>
                                             <th>Min Stock</th>
@@ -433,7 +339,6 @@
                                             <td>{{ product.id }}</td>
                                             <td>{{ product.product_name or product.name }}</td>
                                             <td>{{ product.category.name if product.category else '-' }}</td>
-                                            <td>{{ product.supplier.name if product.supplier else '-' }}</td>
                                             <td>{{ product.current_stock or 0 }}</td>
                                             <td>{{ product.unit or '-' }}</td>
                                             <td>{{ product.min_stock or product.min_stock_level or 0 }}</td>
@@ -521,7 +426,6 @@
                                             <th>Quantity</th>
                                             <th>Unit Cost</th>
                                             <th>Total Cost</th>
-                                            <th>Supplier</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -837,7 +741,7 @@ function switchTab(tabId) {
 
 // Initialize DataTables for all tables
 $(document).ready(function() {
-    $('#categoriesTable, #suppliersTable, #productsTable, #consumptionTable, #purchasesTable, #transactionsTable').DataTable({
+    $('#categoriesTable, #productsTable, #consumptionTable, #transactionsTable').DataTable({
         "pageLength": 25,
         "responsive": true,
         "order": [[ 0, "desc" ]]
@@ -854,16 +758,6 @@ function deleteCategory(id) {
     if (confirm('Are you sure you want to delete this category?')) {
         // Implementation for deleting categories
         console.log('Delete category:', id);
-    }
-}
-
-function editSupplier(id) {
-    console.log('Edit supplier:', id);
-}
-
-function deleteSupplier(id) {
-    if (confirm('Are you sure you want to delete this supplier?')) {
-        console.log('Delete supplier:', id);
     }
 }
 
@@ -888,16 +782,6 @@ function editConsumption(id) {
 function deleteConsumption(id) {
     if (confirm('Are you sure you want to delete this consumption record?')) {
         console.log('Delete consumption:', id);
-    }
-}
-
-function editPurchase(id) {
-    console.log('Edit purchase:', id);
-}
-
-function receivePurchase(id) {
-    if (confirm('Mark this purchase as received?')) {
-        console.log('Receive purchase:', id);
     }
 }
 

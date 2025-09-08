@@ -229,33 +229,4 @@ def add_inventory_category():
     
     return redirect(url_for('professional_inventory'))
 
-@app.route('/inventory/supplier/add', methods=['POST'])
-@login_required
-def add_inventory_supplier():
-    """Add new inventory supplier"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-    
-    try:
-        from models import InventorySupplier
-        
-        supplier = InventorySupplier(
-            supplier_name=request.form.get('supplier_name'),
-            supplier_code=request.form.get('supplier_code'),
-            contact_person=request.form.get('contact_person'),
-            phone=request.form.get('phone'),
-            email=request.form.get('email'),
-            address=request.form.get('address'),
-            created_by=current_user.username
-        )
-        
-        db.session.add(supplier)
-        db.session.commit()
-        
-        flash('Supplier added successfully!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error adding supplier: {str(e)}', 'danger')
-        print(f"Error adding supplier: {e}")
-    
-    return redirect(url_for('professional_inventory'))
+# Supplier functionality removed as requestedentory'))

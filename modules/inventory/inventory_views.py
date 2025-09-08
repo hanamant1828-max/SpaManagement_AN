@@ -63,16 +63,13 @@ def inventory():
     stats = {
         'total_products': len(inventory_list),
         'total_categories': len(categories),
-        'total_suppliers': 0,  # No suppliers data available
         'low_stock_items': len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]),
-        'total_purchases': 0,  # No purchase data available
         'total_transactions': len(consumption_records)
     }
     
     return render_template('inventory_management.html', 
                          products=inventory_list,
                          categories=categories,
-                         suppliers=[],  
                          staff_members=staff_members,
                          consumption_records=consumption_records,
                          stats=stats)
@@ -426,7 +423,6 @@ def create_inventory_route():
                 'cost_price': float(form.cost_price.data or 0),
                 'selling_price': float(form.selling_price.data or 0),
                 'expiry_date': form.expiry_date.data,
-                'supplier_name': form.supplier.data.strip() if form.supplier.data else '',
                 'is_active': True
             }
 
@@ -489,8 +485,7 @@ def update_inventory_route(id):
             'min_stock_level': form.min_stock_level.data,
             'cost_price': form.cost_price.data,
             'selling_price': form.selling_price.data,
-            'expiry_date': form.expiry_date.data,
-            'supplier': form.supplier.data or ''
+            'expiry_date': form.expiry_date.data
         }
 
         update_inventory(id, inventory_data)
