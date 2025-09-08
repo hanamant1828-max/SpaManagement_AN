@@ -358,23 +358,25 @@ function submitAddCategory(event) {
 
 // Edit Category Function
 function editCategory(categoryId) {
-    fetch(`/inventory/categories`)
+    fetch(`/api/inventory/category/${categoryId}`)
     .then(response => response.json())
     .then(data => {
-        const category = data.categories.find(c => c.category_id === categoryId);
-        if (category) {
-            document.getElementById('edit_category_id').value = categoryId;
-            document.getElementById('edit_category_name').value = category.internal_name || category.category_name;
-            document.getElementById('edit_display_name').value = category.category_name;
-            document.getElementById('edit_description').value = category.description || '';
-            document.getElementById('edit_color').value = category.color || '#007bff';
-            document.getElementById('edit_icon').value = category.icon || 'fas fa-boxes';
-            document.getElementById('edit_sort_order').value = category.sort_order || 0;
-            document.getElementById('edit_is_active').checked = category.is_active;
-            
-            const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
-            modal.show();
+        if (data.error) {
+            showAlert(data.error, 'danger');
+            return;
         }
+        
+        document.getElementById('edit_category_id').value = categoryId;
+        document.getElementById('edit_category_name').value = data.name;
+        document.getElementById('edit_display_name').value = data.display_name;
+        document.getElementById('edit_description').value = data.description || '';
+        document.getElementById('edit_color').value = data.color || '#007bff';
+        document.getElementById('edit_icon').value = data.icon || 'fas fa-boxes';
+        document.getElementById('edit_sort_order').value = data.sort_order || 0;
+        document.getElementById('edit_is_active').checked = data.is_active;
+        
+        const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+        modal.show();
     })
     .catch(error => {
         console.error('Error loading category:', error);
@@ -389,8 +391,8 @@ function submitEditCategory(event) {
     const formData = new FormData(event.target);
     const categoryId = formData.get('category_id');
     
-    fetch(`/inventory/category/update/${categoryId}`, {
-        method: 'POST',
+    fetch(`/api/inventory/category/edit/${categoryId}`, {
+        method: 'PUT',
         body: formData
     })
     .then(response => response.json())
