@@ -104,12 +104,8 @@ with app.app_context():
 
     # Import additional inventory views
     try:
-        from modules.inventory.comprehensive_inventory_views import *
+        from modules.inventory import comprehensive_inventory_views
         print("Additional inventory views loaded successfully")
-
-        # Register consumption tracking routes
-        app.add_url_rule('/inventory/consumption/add', 'record_consumption', record_consumption, methods=['POST'])
-        app.add_url_rule('/inventory/consumption/report', 'consumption_report', consumption_report, methods=['GET'])
 
     except Exception as e:
         print(f"Error loading additional inventory views: {e}")
