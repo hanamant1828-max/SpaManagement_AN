@@ -43,7 +43,7 @@ def inventory():
     categories = get_inventory_categories()
     form = InventoryForm()
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
-    
+
     # Get master items for the Inventory Master tab
     try:
         master_items = InventoryMaster.query.filter_by(is_active=True).all()
@@ -54,11 +54,11 @@ def inventory():
     # Get staff members for consumption tracking
     from models import User
     staff_members = User.query.filter_by(is_active=True).all()
-    
+
     # Get recent consumption entries
     from modules.inventory.inventory_queries import get_consumption_entries
     consumption_records = get_consumption_entries(days=7)
-    
+
     # Create stats dictionary for template
     stats = {
         'total_products': len(inventory_list),
@@ -66,7 +66,7 @@ def inventory():
         'low_stock_items': len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]),
         'total_transactions': len(consumption_records)
     }
-    
+
     return render_template('inventory_management.html')
 
 # API endpoints for JavaScript data loading
@@ -76,21 +76,21 @@ def api_inventory_stats():
     """Get inventory statistics for dashboard"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         inventory_list = get_all_inventory()
         categories = get_inventory_categories()
-        
+
         from modules.inventory.inventory_queries import get_consumption_entries
         consumption_records = get_consumption_entries(days=7)
-        
+
         stats = {
             'total_products': len(inventory_list),
             'total_categories': len(categories),
             'low_stock_items': len([item for item in inventory_list if getattr(item, 'current_stock', 0) <= getattr(item, 'min_stock_level', 0)]),
             'total_transactions': len(consumption_records)
         }
-        
+
         return jsonify(stats)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -101,10 +101,10 @@ def api_inventory_categories():
     """Get all inventory categories"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         categories = get_inventory_categories()
-        
+
         categories_data = []
         for category in categories:
             categories_data.append({
@@ -114,7 +114,7 @@ def api_inventory_categories():
                 'is_active': getattr(category, 'is_active', True),
                 'created_at': category.created_at.strftime('%Y-%m-%d') if hasattr(category, 'created_at') and category.created_at else '-'
             })
-        
+
         return jsonify(categories_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -125,11 +125,11 @@ def api_inventory_products():
     """Get all inventory products"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         search_query = request.args.get('search', '')
         filter_type = request.args.get('filter', 'all')
-        
+
         if search_query:
             inventory_list = search_inventory(search_query)
         elif filter_type == 'low_stock':
@@ -138,7 +138,7 @@ def api_inventory_products():
             inventory_list = get_expiring_items()
         else:
             inventory_list = get_all_inventory()
-        
+
         products_data = []
         for product in inventory_list:
             products_data.append({
@@ -150,7 +150,7 @@ def api_inventory_products():
                 'min_stock': getattr(product, 'min_stock', None) or getattr(product, 'min_stock_level', 0) or 0,
                 'is_active': getattr(product, 'is_active', True)
             })
-        
+
         return jsonify(products_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -161,10 +161,10 @@ def api_inventory_low_stock():
     """Get products with low stock for reports"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         low_stock_items = get_low_stock_items()
-        
+
         low_stock_data = []
         for product in low_stock_items:
             low_stock_data.append({
@@ -174,7 +174,7 @@ def api_inventory_low_stock():
                 'min_stock_level': getattr(product, 'min_stock_level', None) or getattr(product, 'min_stock', 0),
                 'status': 'Low Stock'
             })
-        
+
         return jsonify(low_stock_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -187,14 +187,14 @@ def inventory_master():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     master_items = InventoryMaster.query.filter_by(is_active=True).all()
     categories = Category.query.all()
-    
+
     # Calculate stats
     low_stock_count = sum(1 for item in master_items if item.is_low_stock)
     active_items = len(master_items)
-    
+
     return render_template('inventory_master.html',
                          master_items=master_items,
                          categories=categories,
@@ -208,7 +208,7 @@ def inventory_master_add():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         # Create master item
         master_item = InventoryMaster(
@@ -221,16 +221,16 @@ def inventory_master_add():
             max_stock_level=float(request.form.get('max_stock_level', 100)),
             reorder_point=float(request.form.get('reorder_point', 10))
         )
-        
+
         db.session.add(master_item)
         db.session.commit()
-        
+
         flash(f'Product "{master_item.name}" added to catalog successfully!', 'success')
-        
+
     except Exception as e:
         db.session.rollback()
         flash(f'Error adding product: {str(e)}', 'error')
-    
+
     return redirect(url_for('inventory_master'))
 
 @app.route('/inventory/transactions')
@@ -240,9 +240,9 @@ def inventory_transactions():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     transactions = InventoryTransaction.query.order_by(InventoryTransaction.created_at.desc()).limit(100).all()
-    
+
     return render_template('inventory_transactions.html', transactions=transactions)
 
 @app.route('/inventory/bulk-import', methods=['GET', 'POST'])
@@ -251,40 +251,40 @@ def bulk_import_inventory():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'GET':
         return render_template('inventory_import.html')
-    
+
     # Handle file upload
     if 'inventory_file' not in request.files:
         flash('No file selected', 'error')
         return redirect(url_for('bulk_import_inventory'))
-    
+
     file = request.files['inventory_file']
     if file.filename == '':
         flash('No file selected', 'error')
         return redirect(url_for('bulk_import_inventory'))
-    
+
     if not file.filename.lower().endswith(('.xlsx', '.xls')):
         flash('Please upload an Excel file (.xlsx or .xls)', 'error')
         return redirect(url_for('bulk_import_inventory'))
-    
+
     try:
         # Read the Excel file
         df = pd.read_excel(file)
-        
+
         # Validate required columns
         required_columns = ['name', 'sku', 'category', 'current_stock', 'cost_price']
         missing_columns = [col for col in required_columns if col not in df.columns]
-        
+
         if missing_columns:
             flash(f'Missing required columns: {", ".join(missing_columns)}', 'error')
             return redirect(url_for('bulk_import_inventory'))
-        
+
         success_count = 0
         error_count = 0
         errors = []
-        
+
         # Process each row
         for index, row in df.iterrows():
             try:
@@ -294,7 +294,7 @@ def bulk_import_inventory():
                     errors.append(f"Row {index + 2}: SKU '{row['sku']}' already exists")
                     error_count += 1
                     continue
-                
+
                 # Get or create category
                 category = Category.query.filter_by(name=str(row['category']), category_type='inventory').first()
                 if not category:
@@ -306,7 +306,7 @@ def bulk_import_inventory():
                     )
                     db.session.add(category)
                     db.session.flush()  # Get the ID
-                
+
                 # Create inventory item
                 inventory_data = {
                     'name': str(row['name']).strip(),
@@ -337,7 +337,7 @@ def bulk_import_inventory():
                     'created_at': datetime.now(),
                     'updated_at': datetime.now()
                 }
-                
+
                 # Handle optional date fields
                 if pd.notna(row.get('expiry_date')):
                     try:
@@ -347,35 +347,35 @@ def bulk_import_inventory():
                             inventory_data['expiry_date'] = row['expiry_date'].date()
                     except:
                         pass
-                
+
                 # Calculate markup if selling price is provided
                 if inventory_data['cost_price'] > 0 and inventory_data['selling_price'] > 0:
                     inventory_data['markup_percentage'] = ((inventory_data['selling_price'] - inventory_data['cost_price']) / inventory_data['cost_price']) * 100
-                
+
                 # Create the inventory item
                 new_item = Inventory(**inventory_data)
                 db.session.add(new_item)
                 success_count += 1
-                
+
             except Exception as e:
                 errors.append(f"Row {index + 2}: {str(e)}")
                 error_count += 1
                 continue
-        
+
         # Commit changes
         db.session.commit()
-        
+
         # Show results
         if success_count > 0:
             flash(f'Successfully imported {success_count} inventory items', 'success')
-        
+
         if error_count > 0:
             flash(f'{error_count} items failed to import. Check errors below.', 'warning')
             for error in errors[:10]:  # Show only first 10 errors
                 flash(error, 'error')
-        
+
         return redirect(url_for('inventory'))
-        
+
     except Exception as e:
         flash(f'Error processing file: {str(e)}', 'error')
         return redirect(url_for('bulk_import_inventory'))
@@ -386,7 +386,7 @@ def download_inventory_template():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Create sample Excel template
     sample_data = {
         'name': ['Face Cream Premium', 'Hair Shampoo Organic', 'Massage Oil Lavender'],
@@ -414,19 +414,19 @@ def download_inventory_template():
         'enable_low_stock_alert': [True, True, True],
         'enable_expiry_alert': [True, True, False]
     }
-    
+
     df = pd.DataFrame(sample_data)
-    
+
     # Create Excel file in memory
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         # Write the data
         df.to_excel(writer, sheet_name='Inventory Template', index=False)
-        
+
         # Get the workbook and worksheet
         workbook = writer.book
         worksheet = writer.sheets['Inventory Template']
-        
+
         # Auto-adjust column widths
         for column in worksheet.columns:
             max_length = 0
@@ -439,7 +439,7 @@ def download_inventory_template():
                     pass
             adjusted_width = min(max_length + 2, 50)
             worksheet.column_dimensions[column_letter].width = adjusted_width
-        
+
         # Add instructions sheet
         instructions_data = {
             'Field': ['name', 'sku', 'description', 'category', 'current_stock', 'min_stock_level', 'max_stock_level', 
@@ -476,10 +476,10 @@ def download_inventory_template():
                 'True/False - enable expiry alerts'
             ]
         }
-        
+
         instructions_df = pd.DataFrame(instructions_data)
         instructions_df.to_excel(writer, sheet_name='Instructions', index=False)
-        
+
         # Auto-adjust instruction sheet columns
         instructions_ws = writer.sheets['Instructions']
         for column in instructions_ws.columns:
@@ -493,9 +493,9 @@ def download_inventory_template():
                     pass
             adjusted_width = min(max_length + 2, 80)
             instructions_ws.column_dimensions[column_letter].width = adjusted_width
-    
+
     output.seek(0)
-    
+
     return send_file(
         output,
         as_attachment=True,
@@ -650,14 +650,14 @@ def api_inventory_by_status(status):
 
     try:
         print(f"Loading inventory items with status: {status}")
-        
+
         if status == 'all':
             items = get_all_inventory()
         else:
             items = get_items_by_status(status)
-            
+
         print(f"Found {len(items)} inventory items")
-        
+
         items_data = []
 
         for item in items:
@@ -679,28 +679,28 @@ def api_inventory_by_status(status):
                     'requires_open_close': getattr(item, 'requires_open_close', False),
                     'supports_batches': getattr(item, 'supports_batches', False)
                 }
-                
+
                 items_data.append(item_data)
                 print(f"Added item: {item_data['name']} (Stock: {item_data['current_stock']})")
-                
+
             except Exception as e:
                 print(f"Error processing item {item.id}: {e}")
                 continue
 
         print(f"Successfully processed {len(items_data)} items")
-        
+
         return jsonify({
             'status': 'success',
             'items': items_data,
             'total': len(items_data),
             'message': f'Loaded {len(items_data)} inventory items'
         })
-        
+
     except Exception as e:
         print(f"Error in inventory status API: {e}")
         import traceback
         traceback.print_exc()
-        
+
         return jsonify({
             'status': 'error',
             'message': str(e),

@@ -3,6 +3,10 @@
 {% block title %}Complete Inventory Management System{% endblock %}
 
 {% block extra_css %}
+<!-- Add jQuery for DataTables -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
 <style>
 .inventory-card {
     border: none;
@@ -610,6 +614,182 @@
     </div>
 </div>
 
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addProductForm" onsubmit="submitAddProduct(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="productName" class="form-label">Product Name *</label>
+                        <input type="text" class="form-control" name="name" id="productName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productCategory" class="form-label">Category</label>
+                        <select class="form-select" name="category_id" id="productCategory">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="productStock" class="form-label">Current Stock *</label>
+                            <input type="number" class="form-control" name="current_stock" id="productStock" step="0.01" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="productMinStock" class="form-label">Min Stock Level *</label>
+                            <input type="number" class="form-control" name="min_stock_level" id="productMinStock" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="productCostPrice" class="form-label">Cost Price</label>
+                            <input type="number" class="form-control" name="cost_price" id="productCostPrice" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="productSellingPrice" class="form-label">Selling Price</label>
+                            <input type="number" class="form-control" name="selling_price" id="productSellingPrice" step="0.01">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productDescription" class="form-label">Description</label>
+                        <textarea class="form-control" name="description" id="productDescription" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCategoryForm" onsubmit="submitEditCategory(event)">
+                <input type="hidden" id="editCategoryId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editCategoryName" class="form-label">Category Name *</label>
+                        <input type="text" class="form-control" id="editCategoryName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoryDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editCategoryDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="editCategoryActive">
+                        <label class="form-check-label" for="editCategoryActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editProductForm" onsubmit="submitEditProduct(event)">
+                <input type="hidden" id="editProductId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editProductName" class="form-label">Product Name *</label>
+                        <input type="text" class="form-control" id="editProductName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editProductCategory" class="form-label">Category</label>
+                        <select class="form-select" id="editProductCategory">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editProductStock" class="form-label">Current Stock *</label>
+                            <input type="number" class="form-control" id="editProductStock" step="0.01" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editProductMinStock" class="form-label">Min Stock Level *</label>
+                            <input type="number" class="form-control" id="editProductMinStock" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editProductCostPrice" class="form-label">Cost Price</label>
+                            <input type="number" class="form-control" id="editProductCostPrice" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editProductSellingPrice" class="form-label">Selling Price</label>
+                            <input type="number" class="form-control" id="editProductSellingPrice" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Adjustment Modal -->
+<div class="modal fade" id="stockAdjustmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Stock Adjustment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="stockAdjustmentForm" onsubmit="submitStockAdjustment(event)">
+                <input type="hidden" id="stockAdjustmentProductId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="stockAdjustmentType" class="form-label">Adjustment Type</label>
+                        <select class="form-select" id="stockAdjustmentType" required>
+                            <option value="">Select Type</option>
+                            <option value="add">Add Stock</option>
+                            <option value="remove">Remove Stock</option>
+                            <option value="set">Set New Stock Level</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="stockAdjustmentQuantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="stockAdjustmentQuantity" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="stockAdjustmentReason" class="form-label">Reason</label>
+                        <textarea class="form-control" id="stockAdjustmentReason" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Adjust Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Purchase Item Modal -->
 <div class="modal fade" id="purchaseItemModal" tabindex="-1">
     <div class="modal-dialog">
@@ -680,39 +860,102 @@ function switchTab(tabId) {
     }
 }
 
-// Initialize DataTables for all tables
+// Initialize DataTables and load data when document is ready
 $(document).ready(function() {
+    // Initialize DataTables
     $('#categoriesTable, #productsTable, #consumptionTable, #transactionsTable').DataTable({
         "pageLength": 25,
         "responsive": true,
         "order": [[ 0, "desc" ]]
     });
+    
+    // Load initial data
+    loadInventoryStats();
+    loadCategories();
+    loadProducts();
+    loadInventoryItems();
+    loadConsumptionEntries();
 });
 
 // CRUD Functions
 function editCategory(id) {
-    // Implementation for editing categories
-    console.log('Edit category:', id);
+    // Fetch category data and populate edit modal
+    fetch(`/api/inventory/category/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('editCategoryId').value = id;
+                document.getElementById('editCategoryName').value = data.category.name;
+                document.getElementById('editCategoryDescription').value = data.category.description || '';
+                document.getElementById('editCategoryActive').checked = data.category.is_active;
+                new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+            }
+        })
+        .catch(error => console.error('Error fetching category:', error));
 }
 
 function deleteCategory(id) {
     if (confirm('Are you sure you want to delete this category?')) {
-        // Implementation for deleting categories
-        console.log('Delete category:', id);
+        fetch(`/api/inventory/category/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Category deleted successfully!');
+                loadCategories();
+            } else {
+                alert('Error deleting category: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting category');
+        });
     }
 }
 
 function editProduct(id) {
-    console.log('Edit product:', id);
+    // Fetch product data and populate edit modal
+    fetch(`/api/inventory/product/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('editProductId').value = id;
+                document.getElementById('editProductName').value = data.product.name;
+                document.getElementById('editProductCategory').value = data.product.category_id;
+                document.getElementById('editProductStock').value = data.product.current_stock;
+                document.getElementById('editProductMinStock').value = data.product.min_stock_level;
+                document.getElementById('editProductCostPrice').value = data.product.cost_price;
+                document.getElementById('editProductSellingPrice').value = data.product.selling_price;
+                new bootstrap.Modal(document.getElementById('editProductModal')).show();
+            }
+        })
+        .catch(error => console.error('Error fetching product:', error));
 }
 
 function stockAdjustment(id) {
-    console.log('Stock adjustment for product:', id);
+    document.getElementById('stockAdjustmentProductId').value = id;
+    new bootstrap.Modal(document.getElementById('stockAdjustmentModal')).show();
 }
 
 function deleteProduct(id) {
     if (confirm('Are you sure you want to delete this product?')) {
-        console.log('Delete product:', id);
+        fetch(`/inventory/delete/${id}`, {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Product deleted successfully!');
+                loadProducts();
+            } else {
+                alert('Error deleting product');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting product');
+        });
     }
 }
 
@@ -953,6 +1196,144 @@ function viewConsumptionDetails(entryId) {
     alert('Consumption details feature will be implemented in the next update');
 }
 
+// Form submission functions
+function submitAddProduct(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    fetch('/inventory/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('Product added successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+            modal.hide();
+            document.getElementById('addProductForm').reset();
+            loadProducts();
+            loadInventoryStats();
+        } else {
+            alert('Error adding product');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding product');
+    });
+}
+
+function submitEditCategory(event) {
+    event.preventDefault();
+    const id = document.getElementById('editCategoryId').value;
+    const formData = {
+        name: document.getElementById('editCategoryName').value,
+        description: document.getElementById('editCategoryDescription').value,
+        is_active: document.getElementById('editCategoryActive').checked
+    };
+
+    fetch(`/api/inventory/category/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Category updated successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCategoryModal'));
+            modal.hide();
+            loadCategories();
+        } else {
+            alert('Error updating category: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating category');
+    });
+}
+
+function submitEditProduct(event) {
+    event.preventDefault();
+    const id = document.getElementById('editProductId').value;
+    const formData = {
+        name: document.getElementById('editProductName').value,
+        category_id: document.getElementById('editProductCategory').value,
+        current_stock: parseFloat(document.getElementById('editProductStock').value),
+        min_stock_level: parseFloat(document.getElementById('editProductMinStock').value),
+        cost_price: parseFloat(document.getElementById('editProductCostPrice').value) || 0,
+        selling_price: parseFloat(document.getElementById('editProductSellingPrice').value) || 0
+    };
+
+    fetch(`/inventory/update/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('Product updated successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+            modal.hide();
+            loadProducts();
+        } else {
+            alert('Error updating product');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating product');
+    });
+}
+
+function submitStockAdjustment(event) {
+    event.preventDefault();
+    const id = document.getElementById('stockAdjustmentProductId').value;
+    const type = document.getElementById('stockAdjustmentType').value;
+    const quantity = parseFloat(document.getElementById('stockAdjustmentQuantity').value);
+    const reason = document.getElementById('stockAdjustmentReason').value;
+
+    let quantityChange = quantity;
+    if (type === 'remove') {
+        quantityChange = -quantity;
+    }
+
+    const formData = new URLSearchParams({
+        quantity_change: quantityChange,
+        movement_type: 'adjustment',
+        reason: reason
+    });
+
+    fetch(`/inventory/stock-update/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected || response.ok) {
+            alert('Stock adjusted successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('stockAdjustmentModal'));
+            modal.hide();
+            document.getElementById('stockAdjustmentForm').reset();
+            loadProducts();
+            loadInventoryItems();
+        } else {
+            alert('Error adjusting stock');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adjusting stock');
+    });
+}
+
 // Missing filter function
 function filterInventory() {
     const searchTerm = document.getElementById('inventorySearch')?.value.toLowerCase() || '';
@@ -996,6 +1377,92 @@ function showChart(chartType) {
     console.log('Showing chart:', chartType);
     // Chart functionality can be implemented later
     alert(`${chartType} chart will be implemented in the next update`);
+}
+
+// Data Loading Functions
+function loadInventoryStats() {
+    fetch('/api/inventory/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalProducts').textContent = data.total_products || 0;
+            document.getElementById('totalCategories').textContent = data.total_categories || 0;
+            document.getElementById('lowStockItems').textContent = data.low_stock_items || 0;
+        })
+        .catch(error => console.error('Error loading stats:', error));
+}
+
+function loadCategories() {
+    fetch('/api/inventory/categories')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('categoriesTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(category => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${category.id}</td>
+                    <td>${category.name}</td>
+                    <td>${category.description}</td>
+                    <td>
+                        <span class="badge ${category.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${category.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>${category.created_at}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="editCategory(${category.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${category.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+            });
+        })
+        .catch(error => console.error('Error loading categories:', error));
+}
+
+function loadProducts() {
+    fetch('/api/inventory/products')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(product => {
+                const row = tbody.insertRow();
+                const stockStatus = product.current_stock <= product.min_stock ? 'danger' : 'success';
+                row.innerHTML = `
+                    <td>${product.id}</td>
+                    <td>${product.name}</td>
+                    <td>${product.category}</td>
+                    <td>
+                        <span class="badge bg-${stockStatus}">${product.current_stock}</span>
+                    </td>
+                    <td>${product.unit}</td>
+                    <td>${product.min_stock}</td>
+                    <td>
+                        <span class="badge ${product.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${product.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="editProduct(${product.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="stockAdjustment(${product.id})">
+                            <i class="fas fa-plus-minus"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${product.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+            });
+        })
+        .catch(error => console.error('Error loading products:', error));
 }
 
 // Initialize when page loads
