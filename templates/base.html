@@ -169,11 +169,6 @@
                             <i class="fas fa-boxes me-2"></i><span>Inventory Management</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('inventory_categories') }}">
-                            <i class="fas fa-tags me-2"></i><span>Category Master</span>
-                        </a>
-                    </li>
                     {% endif %}
 
                     {% if current_user.can_access('alerts') %}
