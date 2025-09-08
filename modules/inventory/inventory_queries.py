@@ -64,21 +64,9 @@ def create_inventory(inventory_data):
     import uuid
 
     try:
-        # Generate SKU if not provided
-        if not inventory_data.get('sku'):
-            # Generate a unique SKU
-            sku_prefix = inventory_data.get('name', 'ITEM')[:3].upper().replace(' ', '')
-            sku_suffix = str(uuid.uuid4())[:8].upper()
-            inventory_data['sku'] = f"{sku_prefix}-{sku_suffix}"
-
-        # Set default values for required fields
-        inventory_data.setdefault('base_unit', 'pcs')
-        inventory_data.setdefault('selling_unit', 'pcs')
-        inventory_data.setdefault('conversion_factor', 1.0)
-        inventory_data.setdefault('item_type', 'consumable')
-        inventory_data.setdefault('is_service_item', True)
-        inventory_data.setdefault('is_retail_item', False)
-        inventory_data.setdefault('tracking_type', 'piece_wise')
+        # Set default values for required fields that exist in the model
+        inventory_data.setdefault('unit', 'pcs')
+        inventory_data.setdefault('is_active', True)
 
         # Set default stock levels
         current_stock = inventory_data.get('current_stock', 0)

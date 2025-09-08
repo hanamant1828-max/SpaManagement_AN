@@ -297,14 +297,18 @@ def api_add_product():
     
     try:
         data = request.get_json()
+        # Map the data to match InventoryProduct model fields
+        import uuid
         product_data = {
+            'product_code': f"PROD-{str(uuid.uuid4())[:8].upper()}",  # Generate unique product code
             'name': data.get('name', '').strip(),
             'description': data.get('description', '').strip(),
             'category_id': int(data.get('category_id')) if data.get('category_id') else None,
-            'current_stock': float(data.get('current_stock', 0)),
-            'min_stock_level': float(data.get('min_stock_level', 5)),
-            'cost_price': float(data.get('cost_price', 0)),
-            'selling_price': float(data.get('selling_price', 0))
+            'unit': data.get('unit', 'pcs'),
+            'unit_cost': float(data.get('cost_price', 0)),
+            'selling_price': float(data.get('selling_price', 0)),
+            'reorder_level': float(data.get('min_stock_level', 5)),
+            'is_active': True
         }
         
         if not product_data['name']:
