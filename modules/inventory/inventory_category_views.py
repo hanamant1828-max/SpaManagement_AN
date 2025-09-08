@@ -312,6 +312,31 @@ def delete_inventory_category_api(category_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/inventory/category/<int:category_id>', methods=['GET'])
+@login_required
+def get_inventory_category_api(category_id):
+    """Get single category for editing"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        category = get_inventory_category_by_id(category_id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+            
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'display_name': category.display_name,
+            'description': category.description or '',
+            'color': category.color or '#007bff',
+            'icon': category.icon or 'fas fa-boxes',
+            'is_active': category.is_active,
+            'sort_order': category.sort_order
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/inventory/categories', methods=['GET'])
 @login_required
 def get_categories_api():
@@ -339,7 +364,7 @@ def get_categories_api():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/inventory/category/update/<int:category_id>', methods=['POST'])
+@app.route('/api/inventory/category/edit/<int:category_id>', methods=['PUT', 'POST'])
 @login_required
 def update_inventory_category_api(category_id):
     """JSON API endpoint for updating inventory categories"""
