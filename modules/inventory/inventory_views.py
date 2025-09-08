@@ -93,14 +93,14 @@ def api_inventory_categories():
         categories_data = []
         for category in categories:
             categories_data.append({
-                'id': category.category_id,
-                'name': category.category_name,
-                'display_name': category.category_name,
+                'id': category.id,
+                'name': category.name,
+                'display_name': category.display_name,
                 'description': category.description or '',
-                'color': '#007bff',
-                'icon': 'fas fa-boxes',
+                'color': category.color or '#007bff',
+                'icon': category.icon or 'fas fa-boxes',
                 'is_active': category.is_active,
-                'sort_order': 0,
+                'sort_order': category.sort_order or 0,
                 'created_at': category.created_at.strftime('%Y-%m-%d') if category.created_at else ''
             })
 
@@ -123,26 +123,32 @@ def api_add_category():
         return jsonify({'error': 'Access denied'}), 403
     
     try:
-        from models import InventoryCategory
+        from models import Category
         
         data = request.get_json()
         name = data.get('name', '').strip()
         description = data.get('description', '').strip()
+        display_name = data.get('display_name', '').strip() or name
+        color = data.get('color', '#007bff')
+        icon = data.get('icon', 'fas fa-boxes')
         is_active = data.get('is_active', True)
         
         if not name:
             return jsonify({'success': False, 'error': 'Category name is required'})
         
         # Check if category already exists
-        existing = InventoryCategory.query.filter_by(category_name=name).first()
+        existing = Category.query.filter_by(name=name, category_type='inventory').first()
         if existing:
             return jsonify({'success': False, 'error': f'Category "{name}" already exists'})
         
-        category = InventoryCategory(
-            category_name=name,
+        category = Category(
+            name=name,
+            display_name=display_name,
             description=description,
-            is_active=is_active,
-            created_by=current_user.username if hasattr(current_user, 'username') else str(current_user.id)
+            category_type='inventory',
+            color=color,
+            icon=icon,
+            is_active=is_active
         )
         
         db.session.add(category)
@@ -152,9 +158,12 @@ def api_add_category():
             'success': True,
             'message': f'Category "{name}" created successfully!',
             'category': {
-                'id': category.category_id,
-                'name': category.category_name,
+                'id': category.id,
+                'name': category.name,
+                'display_name': category.display_name,
                 'description': category.description,
+                'color': category.color,
+                'icon': category.icon,
                 'is_active': category.is_active
             }
         })

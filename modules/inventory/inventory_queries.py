@@ -13,7 +13,7 @@ from models import (
 )
 # Alias for compatibility
 Inventory = InventoryProduct
-Category = InventoryCategory
+from models import Category
 
 def get_all_inventory():
     """Get all active inventory items"""
@@ -43,8 +43,9 @@ def get_expiring_items(days=30):
 def get_inventory_categories():
     """Get all active inventory categories"""
     return Category.query.filter(
-        Category.is_active == True
-    ).order_by(Category.category_name).all()
+        Category.is_active == True,
+        Category.category_type == 'inventory'
+    ).order_by(Category.name).all()
 
 def search_inventory(query):
     """Search inventory by name or description"""
