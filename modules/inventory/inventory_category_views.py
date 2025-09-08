@@ -212,27 +212,42 @@ def add_inventory_category_api():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
-        # Get form data
-        category_name = request.form.get('category_name', '').strip()
+        # Get form data - try both possible field names
+        category_name = request.form.get('category_name', '').strip() or request.form.get('name', '').strip()
+        display_name = request.form.get('display_name', '').strip() or category_name
         description = request.form.get('description', '').strip()
+        color = request.form.get('color', '#007bff').strip()
+        icon = request.form.get('icon', 'fas fa-boxes').strip()
+        sort_order = int(request.form.get('sort_order', 0) or 0)
+        is_active = request.form.get('is_active') == 'on' or 'is_active' in request.form
 
-        if not category_name:
+        print(f"Category creation - Name: '{category_name}', Display: '{display_name}'")
+        print(f"Form data received: {dict(request.form)}")
+
+        if not category_name and not display_name:
             return jsonify({'success': False, 'error': 'Category name is required'}), 400
+
+        # Use display_name as category_name if category_name is empty
+        if not category_name:
+            category_name = display_name
 
         # Create category
         category = create_inventory_category({
             'name': category_name.lower().replace(' ', '_'),
-            'display_name': category_name,
+            'display_name': display_name or category_name,
             'description': description,
-            'color': '#007bff',
-            'icon': 'fas fa-boxes',
-            'is_active': True,
-            'sort_order': 0
+            'color': color,
+            'icon': icon,
+            'is_active': is_active,
+            'sort_order': sort_order
         })
 
         return jsonify({'success': True, 'category_id': category.id, 'message': 'Category created successfully'})
 
     except Exception as e:
+        print(f"Error creating category: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/inventory_master/category/edit/<int:category_id>', methods=['POST'])

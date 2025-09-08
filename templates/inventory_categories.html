@@ -147,15 +147,16 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-3">
-                                <label for="category_name" class="form-label">Category Name *</label>
-                                <input type="text" class="form-control" name="category_name" id="category_name" required>
-                                <small class="form-text text-muted">Internal name (will be auto-generated from display name)</small>
+                                <label for="display_name" class="form-label">Display Name *</label>
+                                <input type="text" class="form-control" name="display_name" id="display_name" required>
+                                <small class="form-text text-muted">This is what users will see</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group mb-3">
-                                <label for="display_name" class="form-label">Display Name *</label>
-                                <input type="text" class="form-control" name="display_name" id="display_name" required>
+                                <label for="category_name" class="form-label">Category Name</label>
+                                <input type="text" class="form-control" name="category_name" id="category_name" readonly>
+                                <small class="form-text text-muted">Auto-generated from display name</small>
                             </div>
                         </div>
                     </div>
@@ -292,11 +293,46 @@ document.getElementById('display_name').addEventListener('input', function() {
     document.getElementById('category_name').value = categoryName;
 });
 
+// Initialize category name when modal opens
+document.getElementById('addCategoryModal').addEventListener('shown.bs.modal', function() {
+    // Clear the form
+    document.getElementById('addCategoryForm').reset();
+    document.getElementById('category_name').value = '';
+    document.getElementById('display_name').focus();
+});
+
 // Add Category Function
 function submitAddCategory(event) {
     event.preventDefault();
     
+    // Validate required fields
+    const displayName = document.getElementById('display_name').value.trim();
+    if (!displayName) {
+        showAlert('Display name is required', 'danger');
+        return;
+    }
+
+    // Ensure category_name is generated if empty
+    const categoryNameField = document.getElementById('category_name');
+    if (!categoryNameField.value.trim()) {
+        const categoryName = displayName.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '_')
+            .trim();
+        categoryNameField.value = categoryName;
+    }
+    
     const formData = new FormData(event.target);
+    
+    console.log('Submitting category with data:', {
+        display_name: formData.get('display_name'),
+        category_name: formData.get('category_name'),
+        description: formData.get('description'),
+        color: formData.get('color'),
+        icon: formData.get('icon'),
+        sort_order: formData.get('sort_order'),
+        is_active: formData.get('is_active')
+    });
     
     fetch('/inventory/category/add', {
         method: 'POST',
