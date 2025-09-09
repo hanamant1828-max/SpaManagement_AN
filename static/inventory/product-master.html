@@ -44,8 +44,8 @@
                             <th>Name</th>
                             <th>Category</th>
                             <th>Current Stock</th>
-                            <th>Min Stock</th>
                             <th>Status</th>
+                            <th>Locations</th>
                             <th>Cost Price</th>
                             <th>Actions</th>
                         </tr>
@@ -105,8 +105,32 @@
                             <input type="number" class="form-control" id="productMinStock" value="10" step="0.01" min="0">
                         </div>
                         <div class="col-md-4 mb-3">
+                            <label class="form-label">Reorder Level</label>
+                            <input type="number" class="form-control" id="productReorderLevel" value="0" step="0.01" min="0" placeholder="Alert threshold">
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Cost Price</label>
                             <input type="number" class="form-control" id="productCostPrice" value="0" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="productTrackBatches">
+                                <label class="form-check-label" for="productTrackBatches">
+                                    <i class="fas fa-calendar-alt me-1"></i>Track by Batches/Expiry
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="productTrackSerials">
+                                <label class="form-check-label" for="productTrackSerials">
+                                    <i class="fas fa-barcode me-1"></i>Track by Serial Numbers
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Primary Location</label>
+                            <select class="form-select" id="productPrimaryLocation">
+                                <option value="">Select primary location</option>
+                            </select>
                         </div>
                         <div class="col-12 mb-3">
                             <label class="form-label">Description</label>
@@ -136,6 +160,14 @@
     // Isolated scope for product master tab
     let editingProductId = null;
 
+    // Utility function to calculate total stock across all locations
+    function calculateTotalStock(product) {
+        if (product.locationStock) {
+            return Object.values(product.locationStock).reduce((total, stock) => total + (stock || 0), 0);
+        }
+        return product.currentStock || product.stock || 0;
+    }
+
     function loadProducts() {
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
@@ -153,11 +185,11 @@
             
             let matchesStatus = true;
             if (statusFilter) {
-                const stock = product.stock || 0;
-                const minStock = product.minStock || 10;
+                const stock = calculateTotalStock(product);
+                const reorderLevel = product.reorderLevel || product.minStock || 10;
                 if (statusFilter === 'out_of_stock') matchesStatus = stock <= 0;
-                else if (statusFilter === 'low_stock') matchesStatus = stock > 0 && stock <= minStock;
-                else if (statusFilter === 'in_stock') matchesStatus = stock > minStock;
+                else if (statusFilter === 'low_stock') matchesStatus = stock > 0 && stock <= reorderLevel;
+                else if (statusFilter === 'in_stock') matchesStatus = stock > reorderLevel;
             }
             
             return matchesSearch && matchesCategory && matchesStatus;
@@ -166,35 +198,75 @@
         tbody.innerHTML = '';
         filteredProducts.forEach(product => {
             const category = categories.find(c => c.id === product.categoryId);
-            const stock = product.stock || 0;
-            const minStock = product.minStock || 10;
+            const stock = calculateTotalStock(product);
+            const reorderLevel = product.reorderLevel || product.minStock || 10;
+            const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
             
             let statusBadge = 'success';
             let statusText = 'In Stock';
+            let warningIcons = '';
+            
             if (stock <= 0) {
                 statusBadge = 'danger';
                 statusText = 'Out of Stock';
-            } else if (stock <= minStock) {
+                warningIcons = '<i class="fas fa-times-circle text-danger me-1" title="Out of Stock"></i>';
+            } else if (stock <= reorderLevel) {
                 statusBadge = 'warning';
                 statusText = 'Low Stock';
+                warningIcons = '<i class="fas fa-exclamation-triangle text-warning me-1" title="Low Stock Alert"></i>';
             }
+            
+            // Check for expiring batches (if applicable)
+            if (product.trackBatches && product.batches) {
+                const expiringBatches = product.batches.filter(batch => {
+                    const daysUntilExpiry = Math.ceil((new Date(batch.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                    return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+                });
+                if (expiringBatches.length > 0) {
+                    warningIcons += '<i class="fas fa-clock text-info me-1" title="Has expiring batches"></i>';
+                }
+            }
+            
+            // Build location summary
+            let locationSummary = '-';
+            if (product.locationStock) {
+                const activeLocations = Object.keys(product.locationStock).filter(locId => product.locationStock[locId] > 0);
+                locationSummary = activeLocations.map(locId => {
+                    const location = locations.find(l => l.id === locId);
+                    const locationStock = product.locationStock[locId];
+                    return `${location?.name || 'Unknown'}: ${locationStock}`;
+                }).join('<br>') || '-';
+            }
+            
+            const trackingIcons = [
+                product.trackBatches ? '<i class="fas fa-calendar-alt text-primary" title="Batch Tracking"></i>' : '',
+                product.trackSerials ? '<i class="fas fa-barcode text-success" title="Serial Tracking"></i>' : ''
+            ].filter(icon => icon).join(' ');
             
             tbody.innerHTML += `
                 <tr>
-                    <td>${product.sku}</td>
-                    <td>${product.name}</td>
+                    <td><strong>${product.sku}</strong></td>
+                    <td>
+                        ${warningIcons}${product.name}
+                        ${trackingIcons ? `<br><small>${trackingIcons}</small>` : ''}
+                    </td>
                     <td>${category ? category.name : '-'}</td>
-                    <td>${stock} ${product.unit || 'pcs'}</td>
-                    <td>${minStock}</td>
+                    <td><strong>${stock}</strong> ${product.unit || 'pcs'}</td>
                     <td><span class="badge bg-${statusBadge}">${statusText}</span></td>
+                    <td><small>${locationSummary}</small></td>
                     <td>$${(product.costPrice || 0).toFixed(2)}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct('${product.id}')" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${product.id}')" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editProduct('${product.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${product.trackBatches ? `<button class="btn btn-sm btn-outline-info" onclick="manageBatches('${product.id}')" title="Manage Batches">
+                                <i class="fas fa-calendar-alt"></i>
+                            </button>` : ''}
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${product.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -220,11 +292,24 @@
         });
     }
 
+    function loadLocations() {
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        const productLocation = document.getElementById('productPrimaryLocation');
+        
+        productLocation.innerHTML = '<option value="">Select primary location</option>';
+        
+        locations.filter(loc => loc.status === 'active').forEach(location => {
+            productLocation.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+        });
+    }
+
     function addProduct() {
         editingProductId = null;
         document.getElementById('productModalTitle').textContent = 'Add Product';
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
+        loadCategories();
+        loadLocations();
         const modal = new bootstrap.Modal(document.getElementById('productModal'));
         modal.show();
     }
@@ -239,11 +324,19 @@
             document.getElementById('productId').value = product.id;
             document.getElementById('productSku').value = product.sku;
             document.getElementById('productName').value = product.name;
+            
+            loadCategories();
+            loadLocations();
+            
             document.getElementById('productCategory').value = product.categoryId || '';
             document.getElementById('productUnit').value = product.unit || 'pcs';
-            document.getElementById('productStock').value = product.stock || 0;
+            document.getElementById('productStock').value = calculateTotalStock(product);
             document.getElementById('productMinStock').value = product.minStock || 10;
+            document.getElementById('productReorderLevel').value = product.reorderLevel || 0;
             document.getElementById('productCostPrice').value = product.costPrice || 0;
+            document.getElementById('productTrackBatches').checked = product.trackBatches || false;
+            document.getElementById('productTrackSerials').checked = product.trackSerials || false;
+            document.getElementById('productPrimaryLocation').value = product.primaryLocation || '';
             document.getElementById('productDescription').value = product.description || '';
             document.getElementById('productLocation').value = product.location || '';
             document.getElementById('productBarcode').value = product.barcode || '';
@@ -263,8 +356,13 @@
             categoryId: document.getElementById('productCategory').value,
             unit: document.getElementById('productUnit').value,
             stock: parseFloat(document.getElementById('productStock').value) || 0,
+            currentStock: parseFloat(document.getElementById('productStock').value) || 0,
             minStock: parseFloat(document.getElementById('productMinStock').value) || 10,
+            reorderLevel: parseFloat(document.getElementById('productReorderLevel').value) || 0,
             costPrice: parseFloat(document.getElementById('productCostPrice').value) || 0,
+            trackBatches: document.getElementById('productTrackBatches').checked,
+            trackSerials: document.getElementById('productTrackSerials').checked,
+            primaryLocation: document.getElementById('productPrimaryLocation').value,
             description: document.getElementById('productDescription').value,
             location: document.getElementById('productLocation').value,
             barcode: document.getElementById('productBarcode').value,
@@ -272,12 +370,28 @@
             updatedAt: new Date().toISOString()
         };
         
+        // Preserve existing data when editing
         if (editingProductId) {
             const index = products.findIndex(p => p.id === editingProductId);
             if (index !== -1) {
-                products[index] = { ...products[index], ...productData };
+                const existingProduct = products[index];
+                productData.batches = existingProduct.batches || [];
+                productData.serials = existingProduct.serials || [];
+                productData.locationStock = existingProduct.locationStock || {};
+                productData.createdAt = existingProduct.createdAt;
+                products[index] = productData;
             }
         } else {
+            // Initialize new product data
+            productData.batches = [];
+            productData.serials = [];
+            productData.locationStock = {};
+            
+            // Set initial stock in primary location if specified
+            if (productData.primaryLocation) {
+                productData.locationStock[productData.primaryLocation] = productData.currentStock;
+            }
+            
             products.push(productData);
         }
         
@@ -303,6 +417,37 @@
         document.getElementById('categoryFilter').value = '';
         document.getElementById('statusFilter').value = '';
         loadProducts();
+    }
+
+    // Batch management function
+    window.manageBatches = function(productId) {
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const product = products.find(p => p.id === productId);
+        
+        if (!product) {
+            alert('Product not found');
+            return;
+        }
+        
+        if (!product.trackBatches) {
+            alert('Batch tracking is not enabled for this product. Edit the product to enable batch tracking first.');
+            return;
+        }
+        
+        // This would open a batch management modal - placeholder for now
+        alert(`Batch management for ${product.name} will be implemented in the next update.`);
+    }
+
+    // Show stock alert notifications when stock levels change
+    function checkStockAlerts(product) {
+        const currentStock = calculateTotalStock(product);
+        const reorderLevel = product.reorderLevel || product.minStock || 10;
+        
+        if (currentStock <= 0) {
+            window.showStockToast && window.showStockToast(`⚠️ ${product.name} (${product.sku}) is out of stock!`, 'error');
+        } else if (currentStock <= reorderLevel) {
+            window.showStockToast && window.showStockToast(`⚠️ ${product.name} (${product.sku}) is below reorder level (${currentStock} left)`, 'warning');
+        }
     }
 
     // Event listeners

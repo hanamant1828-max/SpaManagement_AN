@@ -120,12 +120,28 @@
         let totalValue = 0;
         
         products.forEach(product => {
-            if (product.stock <= 0) {
+            const currentStock = product.currentStock || product.stock || 0;
+            const reorderLevel = product.reorderLevel || product.minStock || 10;
+            
+            if (currentStock <= 0) {
                 outOfStockCount++;
-            } else if (product.stock <= (product.minStock || 10)) {
+                // Trigger toast notification for out of stock
+                if (currentStock === 0) {
+                    showStockAlert(`⚠️ ${product.name} (${product.sku}) is out of stock!`, 'error');
+                }
+            } else if (currentStock <= reorderLevel) {
                 lowStockCount++;
+                // Trigger toast notification for low stock
+                showStockAlert(`⚠️ ${product.name} (${product.sku}) is below reorder level (${currentStock} left)`, 'warning');
             }
-            totalValue += product.stock * (product.costPrice || 0);
+            
+            // Calculate total value using location-based stock if available
+            if (product.locationStock) {
+                const totalLocationStock = Object.values(product.locationStock).reduce((sum, stock) => sum + stock, 0);
+                totalValue += totalLocationStock * (product.costPrice || 0);
+            } else {
+                totalValue += currentStock * (product.costPrice || 0);
+            }
         });
         
         // Update dashboard cards
@@ -134,21 +150,32 @@
         document.getElementById('outOfStockCount').textContent = outOfStockCount;
         document.getElementById('totalValue').textContent = '$' + totalValue.toFixed(2);
         
-        // Show critical alerts
+        // Show critical alerts with product details
         if (outOfStockCount > 0 || lowStockCount > 0) {
             const alertsDiv = document.getElementById('criticalAlerts');
             const alertsList = document.getElementById('alertsList');
             alertsDiv.classList.remove('d-none');
             
             let alerts = [];
-            if (outOfStockCount > 0) {
-                alerts.push(`${outOfStockCount} products are out of stock`);
+            
+            // Get specific products with issues
+            const outOfStockProducts = products.filter(p => (p.currentStock || p.stock || 0) <= 0);
+            const lowStockProducts = products.filter(p => {
+                const stock = p.currentStock || p.stock || 0;
+                const reorderLevel = p.reorderLevel || p.minStock || 10;
+                return stock > 0 && stock <= reorderLevel;
+            });
+            
+            if (outOfStockProducts.length > 0) {
+                alerts.push(`<strong>Out of Stock (${outOfStockProducts.length}):</strong> ${outOfStockProducts.map(p => p.name).slice(0, 3).join(', ')}${outOfStockProducts.length > 3 ? '...' : ''}`);
             }
-            if (lowStockCount > 0) {
-                alerts.push(`${lowStockCount} products have low stock levels`);
+            if (lowStockProducts.length > 0) {
+                alerts.push(`<strong>Low Stock (${lowStockProducts.length}):</strong> ${lowStockProducts.map(p => `${p.name} (${p.currentStock || p.stock || 0} left)`).slice(0, 3).join(', ')}${lowStockProducts.length > 3 ? '...' : ''}`);
             }
             
-            alertsList.innerHTML = alerts.map(alert => `<div class="mb-1">${alert}</div>`).join('');
+            alertsList.innerHTML = alerts.map(alert => `<div class="mb-2">${alert}</div>`).join('');
+        } else {
+            document.getElementById('criticalAlerts').classList.add('d-none');
         }
         
         // Load recent movements (combine adjustments and consumptions)
@@ -198,6 +225,60 @@
         }
     }
     
+    // Stock alert notification system
+    function showStockAlert(message, type = 'warning') {
+        // Prevent duplicate alerts for the same product in short time
+        const alertKey = message.split('(')[1]?.split(')')[0]; // Extract SKU
+        const lastAlert = localStorage.getItem(`alert_${alertKey}`);
+        const now = Date.now();
+        
+        // Only show alert if not shown in last 5 minutes
+        if (!lastAlert || (now - parseInt(lastAlert)) > 5 * 60 * 1000) {
+            localStorage.setItem(`alert_${alertKey}`, now.toString());
+            showToast(message, type);
+        }
+    }
+
+    // Toast notification system
+    function showToast(message, type = 'info') {
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'success' ? 'bg-success' : 
+                       type === 'error' ? 'bg-danger' : 
+                       type === 'warning' ? 'bg-warning' : 'bg-info';
+        const textClass = type === 'warning' ? 'text-dark' : 'text-white';
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center ${textClass} ${bgClass} border-0" role="alert" data-bs-autohide="true" data-bs-delay="5000">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-exclamation-triangle me-2"></i>${message}
+                    </div>
+                    <button type="button" class="btn-close ${textClass === 'text-dark' ? '' : 'btn-close-white'} me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+        
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+    }
+
+    // Expose toast function globally for other modules
+    window.showStockToast = showToast;
+
     // Load dashboard when the script runs
     loadDashboardStats();
 })();
