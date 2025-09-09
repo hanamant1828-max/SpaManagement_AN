@@ -1,16 +1,15 @@
 """
-Comprehensive Inventory Management Views
-Stock tracking, supplier management, and order processing
+Inventory Management Views
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import login_required, current_user
 from datetime import datetime, date
 import csv
 import io
-from sqlalchemy import desc
+from sqlalchemy import desc, or_, func
 from app import app, db
 from .models import (
-    InventoryProduct, InventoryCategory, StockMovement, InventoryAlert
+    InventoryProduct, InventoryCategory, StockMovement, InventoryAlert, InventoryConsumption
 )
 from .queries import (
     get_all_products, get_product_by_id, create_product, update_product, delete_product,
@@ -579,7 +578,7 @@ def api_inventory_adjustments():
 
     try:
         data = request.get_json()
-        
+
         if not data:
             return jsonify({'error': 'No data provided. Please submit adjustment details.'}), 400
 
@@ -650,16 +649,16 @@ def api_inventory_adjustments():
             reason_parts = ["Manual stock adjustment"]
             if reference_no and reference_no.strip():
                 reason_parts.append(f"Ref: {reference_no.strip()}")
-            
+
             # Add date and user info
             reason_parts.append(adjustment_date.strftime('%Y-%m-%d'))
             reason_parts.append(current_user.username if current_user else 'System')
-            
+
             # Add notes if provided
             if notes and notes.strip():
                 clean_notes = ' '.join(notes.strip().split())  # Collapse whitespace
                 reason_parts.append(f"Notes: {clean_notes}")
-            
+
             reason = ' — '.join(reason_parts)
 
             updated_product = add_stock(
@@ -716,7 +715,7 @@ def api_get_adjustments():
             created_date = movement.created_at.date() if movement.created_at else date.today()
             created_by = movement.created_by if movement.created_by else 0
             reason = movement.reason if movement.reason else 'Manual adjustment'
-            
+
             key = f"{created_date}_{created_by}_{hash(reason)}"
             if key not in adjustment_groups:
                 adjustment_groups[key] = []
@@ -725,17 +724,17 @@ def api_get_adjustments():
         for key, movements in adjustment_groups.items():
             if not movements:
                 continue
-                
+
             first_movement = movements[0]
             total_value = sum(float(m.quantity or 0) * float(m.unit_cost or 0) for m in movements)
-            
+
             # Extract clean reference_id and remarks from reason field
             reference_id = ""
             remarks = ""
-            
+
             if first_movement.reason:
                 reason = first_movement.reason.strip()
-                
+
                 # Extract reference ID if present in new format
                 if ' — Ref: ' in reason:
                     try:
@@ -747,24 +746,24 @@ def api_get_adjustments():
                                 remarks = part[7:].strip()
                     except (IndexError, AttributeError):
                         pass
-                
+
                 # Extract reference ID if present in legacy format
                 elif ' - Ref: ' in reason:
                     try:
                         ref_part = reason.split(' - Ref: ')[1]
                         reference_id = ref_part.split(' - ')[0].strip()
-                        
+
                         # Extract remaining text as remarks
                         remaining_parts = ref_part.split(' - ')[1:]
                         if remaining_parts:
                             remarks = ' - '.join(remaining_parts).strip()
                     except (IndexError, AttributeError):
                         pass
-                
+
                 # If no structured format, use the whole reason as remarks
                 if not reference_id and not remarks:
                     remarks = reason
-            
+
             adjustments.append({
                 'id': first_movement.id,
                 'reference_id': reference_id if reference_id else "",
@@ -807,12 +806,12 @@ def api_get_adjustment(adjustment_id):
             unit_cost = float(mov.unit_cost or 0)
             line_total = quantity * unit_cost
             total_value += line_total
-            
+
             # Get current stock from product
             current_stock = 0
             if mov.product:
                 current_stock = float(mov.product.current_stock or 0)
-            
+
             items.append({
                 'product_id': mov.product_id,
                 'product_name': mov.product.name if mov.product else 'Unknown',
@@ -825,10 +824,10 @@ def api_get_adjustment(adjustment_id):
         # Extract clean reference_id and remarks from reason field
         reference_id = ""
         remarks = ""
-        
+
         if movement.reason:
             reason = movement.reason.strip()
-            
+
             # Extract reference ID if present in new format
             if ' — Ref: ' in reason:
                 try:
@@ -840,20 +839,20 @@ def api_get_adjustment(adjustment_id):
                             remarks = part[7:].strip()
                 except (IndexError, AttributeError):
                     pass
-            
+
             # Extract reference ID if present in legacy format
             elif ' - Ref: ' in reason:
                 try:
                     ref_part = reason.split(' - Ref: ')[1]
                     reference_id = ref_part.split(' - ')[0].strip()
-                    
+
                     # Extract remaining text as remarks
                     remaining_parts = ref_part.split(' - ')[1:]
                     if remaining_parts:
                         remarks = ' - '.join(remaining_parts).strip()
                 except (IndexError, AttributeError):
                     pass
-            
+
             # If no structured format, use the whole reason as remarks
             if not reference_id and not remarks:
                 remarks = reason
@@ -1140,13 +1139,13 @@ def api_edit_consumption(consumption_id):
 
         # Update the consumption record
         updated_consumption = update_consumption_record(consumption_id, consumption_data, current_user.id)
-        
+
         if updated_consumption:
             # Handle stock adjustment for the delta
             if delta != 0:
                 new_stock = float(product.current_stock) - delta  # Subtract delta (positive delta = more consumed = less stock)
                 reason = f"Consumption Edited - {'+' if delta > 0 else ''}{delta} {product.unit_of_measure}"
-                
+
                 update_stock(
                     product_id=product_id,
                     new_quantity=max(0, new_stock),  # Prevent negative stock
@@ -1287,21 +1286,21 @@ def api_edit_adjustment(adjustment_id):
             reason_parts = ["Manual stock adjustment"]
             if reference_id and reference_id.strip():
                 reason_parts.append(f"Ref: {reference_id.strip()}")
-            
+
             # Add date and user info
             reason_parts.append(adjustment_date.strftime('%Y-%m-%d'))
             reason_parts.append(current_user.username if current_user else 'System')
-            
+
             # Add remarks if provided
             if remarks and remarks.strip():
                 clean_remarks = ' '.join(remarks.strip().split())  # Collapse whitespace
                 reason_parts.append(f"Notes: {clean_remarks}")
-            
+
             reason = ' — '.join(reason_parts)
 
             # Get current stock before update
             stock_before = float(product.current_stock or 0)
-            
+
             # Calculate new stock after update
             stock_after = stock_before + quantity
 
@@ -1322,7 +1321,7 @@ def api_edit_adjustment(adjustment_id):
 
             # Update product stock
             product.current_stock = stock_after
-            
+
             db.session.add(new_movement)
             updated_products.append({
                 'product_name': product.name,
@@ -1534,7 +1533,7 @@ def api_add_consumption():
 
         # Create the consumption record
         consumption = create_consumption_record(consumption_data, current_user.id)
-        
+
         if consumption:
             return jsonify({
                 'success': True,
@@ -1669,7 +1668,7 @@ def api_get_all_consumption():
     try:
         # Get consumption records
         consumption_records = get_all_consumption_records()
-        
+
         records = []
         if hasattr(consumption_records, 'items'):
             # If paginated, get items

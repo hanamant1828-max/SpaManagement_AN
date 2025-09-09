@@ -285,19 +285,19 @@
                             <div class="row g-3">
                                 <div class="col-md-2">
                                     <label class="form-label">From Date</label>
-                                    <input type="date" class="form-control" id="adjustmentsFromDate">
+                                    <input type="date" class="form-control" id="adjustments-from-date">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">To Date</label>
-                                    <input type="date" class="form-control" id="adjustmentsToDate">
+                                    <input type="date" class="form-control" id="adjustments-to-date">
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Search</label>
-                                    <input type="text" class="form-control" id="adjustmentsSearch" placeholder="Search reference ID, remarks, created by">
+                                    <input type="text" class="form-control" id="adjustments-search" placeholder="Search reference ID, remarks, created by">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Page Size</label>
-                                    <select class="form-control" id="adjustmentsPageSize">
+                                    <select class="form-control" id="adjustments-page-size">
                                         <option value="10">10</option>
                                         <option value="25" selected>25</option>
                                         <option value="50">50</option>
@@ -380,19 +380,19 @@
                             <div class="row g-3">
                                 <div class="col-md-2">
                                     <label class="form-label">From Date</label>
-                                    <input type="date" class="form-control" id="consumptionFromDate">
+                                    <input type="date" class="form-control" id="consumption-from-date">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">To Date</label>
-                                    <input type="date" class="form-control" id="consumptionToDate">
+                                    <input type="date" class="form-control" id="consumption-to-date">
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Search</label>
-                                    <input type="text" class="form-control" id="consumptionSearch" placeholder="Search product, SKU, reference, notes, issued to">
+                                    <input type="text" class="form-control" id="consumption-search" placeholder="Search product, SKU, reference, notes, issued to">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Page Size</label>
-                                    <select class="form-control" id="consumptionPageSize">
+                                    <select class="form-control" id="consumption-page-size">
                                         <option value="10">10</option>
                                         <option value="25" selected>25</option>
                                         <option value="50">50</option>
@@ -1072,604 +1072,641 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <script>
+// Global variables for pagination and sorting
+let allConsumptionData = [];
+let filteredConsumptionData = [];
+let consumptionPageSize = 25;
+let consumptionCurrentPage = 1;
+let consumptionSortField = 'consumption_date';
+let consumptionSortOrder = 'asc';
+
+let allAdjustmentsData = [];
+let filteredAdjustmentsData = [];
+let adjustmentsPageSize = 25;
+let adjustmentsCurrentPage = 1;
+let adjustmentsSortField = 'adjustment_date';
+let adjustmentsSortOrder = 'asc';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard loaded successfully');
     console.log('Dashboard JavaScript loaded and ready');
 
-    // Initialize bootstrap components
-    console.log('Dashboard widgets initialized');
+    // Initialize date ranges and filters
+    initializeDateRanges();
+    initializeConsumptionFilters();
+    initializeAdjustmentsFilters();
 
-    // Set default date to today
+    // Load initial data
+    loadConsumptionData();
+    loadAdjustmentsData();
+    loadProducts(); // Load products for product master tab
+
+    // Set up event listeners for filters and sorting
+    setupFilterEventListeners();
+    setupSortEventListeners();
+
+    // Set up tab change listeners to load data on demand
+    setupTabChangeListeners();
+
+    // Set default date to today for input fields that require it
+    setDefaultDateValues();
+});
+
+function initializeDateRanges() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+        if (!input.value) {
+            input.value = today;
+        }
+    });
+}
+
+function setDefaultDateValues() {
+    const today = new Date().toISOString().split('T')[0];
     const adjustmentDateInput = document.querySelector('input[name="adjustment_date"]');
     const consumptionDateInput = document.querySelector('input[name="consumption_date"]');
 
-    if (adjustmentDateInput) {
-        adjustmentDateInput.value = new Date().toISOString().split('T')[0];
+    if (adjustmentDateInput && !adjustmentDateInput.value) {
+        adjustmentDateInput.value = today;
     }
-    if (consumptionDateInput) {
-        consumptionDateInput.value = new Date().toISOString().split('T')[0];
+    if (consumptionDateInput && !consumptionDateInput.value) {
+        consumptionDateInput.value = today;
+    }
+}
+
+function initializeConsumptionFilters() {
+    document.getElementById('consumption-from-date').value = '';
+    document.getElementById('consumption-to-date').value = '';
+    document.getElementById('consumption-search').value = '';
+    consumptionCurrentPage = 1; // Reset to first page
+    consumptionSortField = 'consumption_date';
+    consumptionSortOrder = 'asc';
+    // Reset sort icons
+    $('#consumptionTable .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
+}
+
+function initializeAdjustmentsFilters() {
+    document.getElementById('adjustments-from-date').value = '';
+    document.getElementById('adjustments-to-date').value = '';
+    document.getElementById('adjustments-search').value = '';
+    adjustmentsCurrentPage = 1; // Reset to first page
+    adjustmentsSortField = 'adjustment_date';
+    adjustmentsSortOrder = 'asc';
+    // Reset sort icons
+    $('#adjustmentsTable .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
+}
+
+function setupFilterEventListeners() {
+    // Consumption filters
+    const consumptionFromDate = document.getElementById('consumption-from-date');
+    const consumptionToDate = document.getElementById('consumption-to-date');
+    const consumptionSearch = document.getElementById('consumption-search');
+    const resetConsumptionFiltersBtn = document.getElementById('resetConsumptionFilters');
+
+    if (consumptionFromDate) consumptionFromDate.addEventListener('change', applyConsumptionFilters);
+    if (consumptionToDate) consumptionToDate.addEventListener('change', applyConsumptionFilters);
+    if (consumptionSearch) consumptionSearch.addEventListener('input', debounce(applyConsumptionFilters, 500));
+    if (resetConsumptionFiltersBtn) resetConsumptionFiltersBtn.addEventListener('click', resetAndApplyConsumptionFilters);
+
+    // Adjustments filters
+    const adjustmentsFromDate = document.getElementById('adjustments-from-date');
+    const adjustmentsToDate = document.getElementById('adjustments-to-date');
+    const adjustmentsSearch = document.getElementById('adjustments-search');
+    const resetAdjustmentsFiltersBtn = document.getElementById('resetAdjustmentsFilters');
+
+    if (adjustmentsFromDate) adjustmentsFromDate.addEventListener('change', applyAdjustmentsFilters);
+    if (adjustmentsToDate) adjustmentsToDate.addEventListener('change', applyAdjustmentsFilters);
+    if (adjustmentsSearch) adjustmentsSearch.addEventListener('input', debounce(applyAdjustmentsFilters, 500));
+    if (resetAdjustmentsFiltersBtn) resetAdjustmentsFiltersBtn.addEventListener('click', resetAndApplyAdjustmentsFilters);
+
+    // Page size selectors
+    const consumptionPageSizeSelect = document.getElementById('consumption-page-size');
+    const adjustmentsPageSizeSelect = document.getElementById('adjustments-page-size');
+
+    if (consumptionPageSizeSelect) consumptionPageSizeSelect.addEventListener('change', changeConsumptionPageSize);
+    if (adjustmentsPageSizeSelect) adjustmentsPageSizeSelect.addEventListener('change', changeAdjustmentsPageSize);
+}
+
+function setupSortEventListeners() {
+    // Add click listeners to sortable table headers
+    document.querySelectorAll('#consumptionTable .sortable').forEach(header => {
+        header.addEventListener('click', () => handleSort(header, 'consumption'));
+    });
+    document.querySelectorAll('#adjustmentsTable .sortable').forEach(header => {
+        header.addEventListener('click', () => handleSort(header, 'adjustments'));
+    });
+}
+
+function setupTabChangeListeners() {
+    // Listen for tab changes to load data only when a tab is shown
+    document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tabButton => {
+        tabButton.addEventListener('shown.bs.tab', function (e) {
+            const targetTabId = e.target.getAttribute('data-bs-target');
+            if (targetTabId === '#products') {
+                loadProducts();
+            } else if (targetTabId === '#consumption') {
+                loadConsumptionData();
+            } else if (targetTabId === '#adjustments') {
+                loadAdjustmentsData();
+            }
+        });
+    });
+}
+
+// Debounce function for search inputs
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Reset and apply filters for consumption
+function resetAndApplyConsumptionFilters() {
+    initializeConsumptionFilters();
+    applyConsumptionFilters();
+}
+
+// Reset and apply filters for adjustments
+function resetAndApplyAdjustmentsFilters() {
+    initializeAdjustmentsFilters();
+    applyAdjustmentsFilters();
+}
+
+// Change consumption page size
+function changeConsumptionPageSize(event) {
+    consumptionPageSize = parseInt(event.target.value);
+    consumptionCurrentPage = 1; // Reset to first page
+    renderConsumptionTable();
+    renderConsumptionPagination();
+}
+
+// Change adjustments page size
+function changeAdjustmentsPageSize(event) {
+    adjustmentsPageSize = parseInt(event.target.value);
+    adjustmentsCurrentPage = 1; // Reset to first page
+    renderAdjustmentsTable();
+    renderAdjustmentsPagination();
+}
+
+// Handle sorting
+function handleSort(header, tableType) {
+    const field = header.getAttribute('data-sort');
+    let currentField, currentOrder, setField, setOrder;
+    let iconElement;
+
+    if (tableType === 'consumption') {
+        currentField = consumptionSortField;
+        currentOrder = consumptionSortOrder;
+        iconElement = header.querySelector('.sort-icon');
+    } else { // adjustments
+        currentField = adjustmentsSortField;
+        currentOrder = adjustmentsSortOrder;
+        iconElement = header.querySelector('.sort-icon');
     }
 
-    // Load initial data
-    loadProducts();
-    loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
-    loadAdjustmentsData(); // Changed from loadAdjustments() to loadAdjustmentsData()
-});
+    if (currentField === field) {
+        // Toggle order if same field is clicked
+        setOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        // Reset order to asc if new field is clicked
+        setOrder = 'asc';
+    }
 
-function showToast(message, type = 'info') {
-    // Create toast element
-    const toastHtml = `
-        <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' || type === 'danger' ? 'danger' : 'info'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
+    setField = field;
+
+    // Update sort order state
+    if (tableType === 'consumption') {
+        consumptionSortField = setField;
+        consumptionSortOrder = setOrder;
+    } else {
+        adjustmentsSortField = setField;
+        adjustmentsSortOrder = setOrder;
+    }
+
+    // Update sort icons
+    document.querySelectorAll(`#${tableType}Table .sort-icon`).forEach(icon => {
+        icon.classList.remove('fa-sort-up', 'fa-sort-down');
+        icon.classList.add('fa-sort');
+    });
+    iconElement.classList.remove('fa-sort');
+    iconElement.classList.add(setOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+
+    // Re-apply filters to update sorting
+    applyFilters(tableType);
+}
+
+// Function to apply filters and re-render the table
+function applyFilters(tableType) {
+    let data, filterFunc, renderFunc, paginationFunc, sortField, sortOrder;
+
+    if (tableType === 'consumption') {
+        data = allConsumptionData;
+        filterFunc = applyConsumptionFilters;
+        renderFunc = renderConsumptionTable;
+        paginationFunc = renderConsumptionPagination;
+        sortField = consumptionSortField;
+        sortOrder = consumptionSortOrder;
+    } else { // adjustments
+        data = allAdjustmentsData;
+        filterFunc = applyAdjustmentsFilters;
+        renderFunc = renderAdjustmentsTable;
+        paginationFunc = renderAdjustmentsPagination;
+        sortField = adjustmentsSortField;
+        sortOrder = adjustmentsSortOrder;
+    }
+
+    // Apply filters first
+    filterFunc();
+    // Then sort the filtered data
+    sortData(tableType);
+    // Render the sorted and filtered data
+    renderFunc();
+    // Render pagination
+    paginationFunc();
+}
+
+// Sort data based on current sort field and order
+function sortData(tableType) {
+    let dataToSort;
+    let sortField;
+    let sortOrder;
+
+    if (tableType === 'consumption') {
+        dataToSort = filteredConsumptionData;
+        sortField = consumptionSortField;
+        sortOrder = consumptionSortOrder;
+    } else { // adjustments
+        dataToSort = filteredAdjustmentsData;
+        sortField = adjustmentsSortField;
+        sortOrder = adjustmentsSortOrder;
+    }
+
+    dataToSort.sort((a, b) => {
+        const valA = a[sortField];
+        const valB = b[sortField];
+
+        if (valA === null || valA === undefined) return sortOrder === 'asc' ? 1 : -1;
+        if (valB === null || valB === undefined) return sortOrder === 'asc' ? -1 : 1;
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+            return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else {
+            return sortOrder === 'asc' ? valA - valB : valB - valA;
+        }
+    });
+}
+
+// Function to apply consumption filters
+function applyConsumptionFilters() {
+    const fromDate = document.getElementById('consumption-from-date')?.value;
+    const toDate = document.getElementById('consumption-to-date')?.value;
+    const searchTerm = document.getElementById('consumption-search')?.value.toLowerCase().trim();
+
+    filteredConsumptionData = allConsumptionData.filter(record => {
+        const recordDate = new Date(record.consumption_date);
+        const matchDateRange = (!fromDate || recordDate >= new Date(fromDate)) &&
+                               (!toDate || recordDate <= new Date(toDate));
+
+        const matchSearch = !searchTerm ||
+                            (record.product_name && record.product_name.toLowerCase().includes(searchTerm)) ||
+                            (record.product_sku && record.product_sku.toLowerCase().includes(searchTerm)) ||
+                            (record.issued_to && record.issued_to.toLowerCase().includes(searchTerm)) ||
+                            (record.reference_doc_no && record.reference_doc_no.toLowerCase().includes(searchTerm)) ||
+                            (record.notes && record.notes.toLowerCase().includes(searchTerm));
+
+        return matchDateRange && matchSearch;
+    });
+
+    sortData('consumption'); // Sort after filtering
+    renderConsumptionTable();
+    renderConsumptionPagination();
+}
+
+// Function to render the consumption table
+function renderConsumptionTable() {
+    const tbody = document.getElementById('consumptionTable').querySelector('tbody');
+    tbody.innerHTML = ''; // Clear existing rows
+
+    const startIndex = (consumptionCurrentPage - 1) * consumptionPageSize;
+    const endIndex = startIndex + consumptionPageSize;
+    const paginatedData = filteredConsumptionData.slice(startIndex, endIndex);
+
+    if (paginatedData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No consumption records found.</td></tr>';
+        return;
+    }
+
+    paginatedData.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.consumption_date || 'N/A'}</td>
+            <td>${record.product_name || 'N/A'}</td>
+            <td>${record.quantity_used !== undefined ? parseFloat(record.quantity_used).toFixed(2) : '0.00'}</td>
+            <td>${record.unit_of_measure || 'pcs'}</td>
+            <td>${record.issued_to || 'N/A'}</td>
+            <td>${record.reference_doc_no || '—'}</td>
+            <td>${record.notes ? record.notes.substring(0, 50) + (record.notes.length > 50 ? '...' : '') : '—'}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="viewConsumption(${record.id})" title="View"><i class="fas fa-eye"></i></button>
+                    <button class="btn btn-outline-secondary" onclick="editConsumption(${record.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-outline-danger" onclick="deleteConsumption(${record.id})" title="Delete"><i class="fas fa-trash"></i></button>
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `;
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
 
-    // Add to toast container or body
-    let toastContainer = document.querySelector('.toast-container');
+    // Update table info
+    const tableInfo = document.getElementById('consumptionTableInfo');
+    const totalRecords = filteredConsumptionData.length;
+    const displayedCount = paginatedData.length;
+    const infoText = `Showing ${startIndex + 1} to ${startIndex + displayedCount} of ${totalRecords} entries`;
+    if (tableInfo) tableInfo.textContent = infoText;
+}
+
+// Function to render consumption pagination
+function renderConsumptionPagination() {
+    const paginationContainer = document.getElementById('consumptionPagination');
+    paginationContainer.innerHTML = ''; // Clear previous pagination
+
+    const totalPages = Math.ceil(filteredConsumptionData.length / consumptionPageSize);
+    const maxPagesToShow = 5; // Number of page buttons to show at once
+
+    if (totalPages <= 1) return; // No pagination needed if only one page
+
+    // Previous button
+    const prevButton = document.createElement('li');
+    prevButton.classList.add('page-item', consumptionCurrentPage === 1 ? 'disabled' : '');
+    prevButton.innerHTML = `<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>`;
+    prevButton.querySelector('a').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (consumptionCurrentPage > 1) {
+            consumptionCurrentPage--;
+            renderConsumptionTable();
+            renderConsumptionPagination();
+        }
+    });
+    paginationContainer.appendChild(prevButton);
+
+    // Page number buttons
+    let startPage = Math.max(1, consumptionCurrentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+    if (endPage - startPage + 1 < maxPagesToShow) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const pageButton = document.createElement('li');
+        pageButton.classList.add('page-item', i === consumptionCurrentPage ? 'active' : '');
+        pageButton.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        pageButton.querySelector('a').addEventListener('click', (e) => {
+            e.preventDefault();
+            consumptionCurrentPage = i;
+            renderConsumptionTable();
+            renderConsumptionPagination();
+        });
+        paginationContainer.appendChild(pageButton);
+    }
+
+    // Next button
+    const nextButton = document.createElement('li');
+    nextButton.classList.add('page-item', consumptionCurrentPage === totalPages ? 'disabled' : '');
+    nextButton.innerHTML = `<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>`;
+    nextButton.querySelector('a').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (consumptionCurrentPage < totalPages) {
+            consumptionCurrentPage++;
+            renderConsumptionTable();
+            renderConsumptionPagination();
+        }
+    });
+    paginationContainer.appendChild(nextButton);
+}
+
+// Function to apply adjustments filters
+function applyAdjustmentsFilters() {
+    const fromDate = document.getElementById('adjustments-from-date')?.value;
+    const toDate = document.getElementById('adjustments-to-date')?.value;
+    const searchTerm = document.getElementById('adjustments-search')?.value.toLowerCase().trim();
+
+    filteredAdjustmentsData = allAdjustmentsData.filter(record => {
+        const recordDate = new Date(record.adjustment_date);
+        const matchDateRange = (!fromDate || recordDate >= new Date(fromDate)) &&
+                               (!toDate || recordDate <= new Date(toDate));
+
+        const matchSearch = !searchTerm ||
+                            (record.reference_id && record.reference_id.toLowerCase().includes(searchTerm)) ||
+                            (record.remarks && record.remarks.toLowerCase().includes(searchTerm)) ||
+                            (record.created_by && record.created_by.toLowerCase().includes(searchTerm));
+
+        return matchDateRange && matchSearch;
+    });
+
+    sortData('adjustments'); // Sort after filtering
+    renderAdjustmentsTable();
+    renderAdjustmentsPagination();
+}
+
+// Function to render the adjustments table
+function renderAdjustmentsTable() {
+    const tbody = document.getElementById('adjustmentsTable').querySelector('tbody');
+    tbody.innerHTML = ''; // Clear existing rows
+
+    const startIndex = (adjustmentsCurrentPage - 1) * adjustmentsPageSize;
+    const endIndex = startIndex + adjustmentsPageSize;
+    const paginatedData = filteredAdjustmentsData.slice(startIndex, endIndex);
+
+    if (paginatedData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No inventory adjustments found.</td></tr>';
+        return;
+    }
+
+    paginatedData.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.reference_id || 'N/A'}</td>
+            <td>${record.adjustment_date || 'N/A'}</td>
+            <td>${record.items_count || 0}</td>
+            <td>$${parseFloat(record.subtotal || 0).toFixed(2)}</td>
+            <td>$${parseFloat(record.total_value || 0).toFixed(2)}</td>
+            <td>${record.remarks ? record.remarks.substring(0, 50) + (record.remarks.length > 50 ? '...' : '') : '—'}</td>
+            <td>${record.created_by || 'N/A'}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="viewAdjustment(${record.id})" title="View"><i class="fas fa-eye"></i></button>
+                    <button class="btn btn-outline-secondary" onclick="editAdjustment(${record.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-outline-danger" onclick="deleteAdjustment(${record.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Update table info
+    const tableInfo = document.getElementById('adjustmentsTableInfo');
+    const totalRecords = filteredAdjustmentsData.length;
+    const displayedCount = paginatedData.length;
+    const infoText = `Showing ${startIndex + 1} to ${startIndex + displayedCount} of ${totalRecords} entries`;
+    if (tableInfo) tableInfo.textContent = infoText;
+}
+
+// Function to render adjustments pagination
+function renderAdjustmentsPagination() {
+    const paginationContainer = document.getElementById('adjustmentsPagination');
+    paginationContainer.innerHTML = ''; // Clear previous pagination
+
+    const totalPages = Math.ceil(filteredAdjustmentsData.length / adjustmentsPageSize);
+    const maxPagesToShow = 5; // Number of page buttons to show at once
+
+    if (totalPages <= 1) return; // No pagination needed if only one page
+
+    // Previous button
+    const prevButton = document.createElement('li');
+    prevButton.classList.add('page-item', adjustmentsCurrentPage === 1 ? 'disabled' : '');
+    prevButton.innerHTML = `<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>`;
+    prevButton.querySelector('a').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (adjustmentsCurrentPage > 1) {
+            adjustmentsCurrentPage--;
+            renderAdjustmentsTable();
+            renderAdjustmentsPagination();
+        }
+    });
+    paginationContainer.appendChild(prevButton);
+
+    // Page number buttons
+    let startPage = Math.max(1, adjustmentsCurrentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+    if (endPage - startPage + 1 < maxPagesToShow) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const pageButton = document.createElement('li');
+        pageButton.classList.add('page-item', i === adjustmentsCurrentPage ? 'active' : '');
+        pageButton.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        pageButton.querySelector('a').addEventListener('click', (e) => {
+            e.preventDefault();
+            adjustmentsCurrentPage = i;
+            renderAdjustmentsTable();
+            renderAdjustmentsPagination();
+        });
+        paginationContainer.appendChild(pageButton);
+    }
+
+    // Next button
+    const nextButton = document.createElement('li');
+    nextButton.classList.add('page-item', adjustmentsCurrentPage === totalPages ? 'disabled' : '');
+    nextButton.innerHTML = `<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>`;
+    nextButton.querySelector('a').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (adjustmentsCurrentPage < totalPages) {
+            adjustmentsCurrentPage++;
+            renderAdjustmentsTable();
+            renderAdjustmentsPagination();
+        }
+    });
+    paginationContainer.appendChild(nextButton);
+}
+
+// Load initial dashboard data (example: statistics)
+function loadDashboardData() {
+    // This function would typically fetch data for the stats cards
+    // For now, we'll assume stats are passed from the backend template
+    console.log('Dashboard data loaded (or assumed to be loaded).');
+}
+
+// Utility functions for showing toasts
+function showToast(message, type = 'info') {
+    // Ensure toast container exists
+    let toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) {
         toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
         toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
         document.body.appendChild(toastContainer);
     }
 
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    // Create toast element
+    const toastElement = document.createElement('div');
+    toastElement.className = `toast align-items-center text-white bg-${type} border-0 show`;
+    toastElement.role = 'alert';
+    toastElement.ariaLive = 'assertive';
+    toastElement.ariaAtomic = 'true';
+    toastElement.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
 
-    // Show the toast
-    const toastElement = toastContainer.lastElementChild;
+    toastContainer.appendChild(toastElement);
+
+    // Bootstrap Toast initialization and show
     const toast = new bootstrap.Toast(toastElement);
     toast.show();
 
-    // Remove after hiding
+    // Clean up the element after it's hidden
     toastElement.addEventListener('hidden.bs.toast', () => {
         toastElement.remove();
     });
 }
 
-function openAddInventoryModal() {
-    const modal = new bootstrap.Modal(document.getElementById('addInventoryModal'));
-
-    // Load products and then show modal
-    loadProductsForAdjustment()
-    .then(() => {
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error opening modal:', error);
-        showToast('Error loading products. Please try again.', 'error');
-    });
-}
-
-function loadProductsForAdjustment() {
-    return new Promise((resolve, reject) => {
-        // First try localStorage if available, otherwise fetch from API
-        let productsPromise;
-
-        // Check localStorage first
-        const cachedProducts = localStorage.getItem('inventory.products');
-        if (cachedProducts) {
-            try {
-                const products = JSON.parse(cachedProducts);
-                productsPromise = Promise.resolve(products);
-            } catch (e) {
-                // If localStorage is corrupted, fall back to API
-                productsPromise = fetchProductsFromAPI();
-            }
-        } else {
-            // No cache, fetch from API
-            productsPromise = fetchProductsFromAPI();
-        }
-
-        productsPromise
-        .then(products => {
-            populateProductDropdowns(products);
-            resolve(products);
-        })
-        .catch(error => {
-            console.error('Error loading products:', error);
-            reject(error);
-        });
-    });
-}
-
-function fetchProductsFromAPI() {
-    return fetch('/api/inventory/products/master')
+// --- Product Master Functions ---
+function loadProducts() {
+    fetch('/api/inventory/products/master')
     .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to fetch products');
-        }
+        if (!response.ok) throw new Error('Failed to fetch products');
         return response.json();
     })
     .then(products => {
-        // Cache in localStorage for future use
-        try {
-            localStorage.setItem('inventory.products', JSON.stringify(products));
-        } catch (e) {
-            console.warn('Could not cache products in localStorage:', e);
-        }
-        return products;
-    });
-}
+        const tbody = document.getElementById('productsTableBody');
+        tbody.innerHTML = ''; // Clear existing rows
 
-function populateProductDropdowns(products) {
-    // Get all product select elements in the inventory modal
-    const selects = document.querySelectorAll('#addInventoryModal .product-select');
-
-    selects.forEach(select => {
-        // Store current selection to preserve it
-        const currentValue = select.value;
-
-        // Clear existing options
-        select.innerHTML = '<option value="">Select Product</option>';
-
-        // Handle empty state
-        if (!products || products.length === 0) {
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = 'No products found. Please add products in Product Master.';
-            emptyOption.disabled = true;
-            select.appendChild(emptyOption);
-
-            // Disable save button if no products
-            const saveButton = document.querySelector('#addInventoryModal .btn-primary');
-            if (saveButton) {
-                saveButton.disabled = true;
-                saveButton.title = 'No products available. Please add products first.';
-            }
+        if (products.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No products found. Please add products in the "Product Master" tab.</td></tr>';
             return;
         }
 
-        // Enable save button if products exist
-        const saveButton = document.querySelector('#addInventoryModal .btn-primary');
-        if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.title = '';
-        }
-
-        // Add products to dropdown
         products.forEach(product => {
-            const option = document.createElement('option');
-            option.value = product.id || '';
-            option.setAttribute('data-stock', product.current_stock || 0);
-            option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
-            option.setAttribute('data-cost', product.cost_price || 0);
-
-            // Format: Product Name (SKU) - Current: X units
-            const currentStock = product.current_stock || 0;
-            const unit = product.unit_of_measure || 'pcs';
-            const sku = product.sku || 'N/A';
-            const name = product.name || 'Unnamed Product';
-
-            option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
-            select.appendChild(option);
-        });
-
-        // Restore previous selection if valid
-        if (currentValue) {
-            select.value = currentValue;
-            // Trigger change event to update dependent fields
-            const event = new Event('change');
-            select.dispatchEvent(event);
-        }
-
-        // Add searchable functionality for large lists
-        if (products.length > 20) {
-            addSearchableFeature(select);
-        }
-    });
-}
-
-function addSearchableFeature(selectElement) {
-    // Simple searchable feature - add a search input above the select
-    const container = selectElement.closest('.input-group') || selectElement.parentElement;
-
-    // Check if search input already exists
-    if (container.querySelector('.product-search')) {
-        return;
-    }
-
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.className = 'form-control form-control-sm product-search mb-1';
-    searchInput.placeholder = 'Type to search products...';
-
-    // Store original options
-    const originalOptions = Array.from(selectElement.options).slice(1); // Skip first empty option
-
-    searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-
-        // Clear current options except the first one
-        selectElement.innerHTML = '<option value="">Select Product</option>';
-
-        // Filter and add matching options
-        originalOptions.forEach(option => {
-            if (option.textContent.toLowerCase().includes(searchTerm)) {
-                selectElement.appendChild(option.cloneNode(true));
-            }
-        });
-    });
-
-    container.insertBefore(searchInput, selectElement);
-}
-
-function refreshProductsDropdown(refreshButton) {
-    // Add loading state to refresh button
-    const originalContent = refreshButton.innerHTML;
-    refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    refreshButton.disabled = true;
-
-    // Clear localStorage cache
-    localStorage.removeItem('inventory.products');
-
-    // Fetch fresh data from API
-    fetchProductsFromAPI()
-    .then(products => {
-        populateProductDropdowns(products);
-        showToast('Products refreshed successfully', 'success');
-    })
-    .catch(error => {
-        console.error('Error refreshing products:', error);
-        showToast('Error refreshing products. Please try again.', 'error');
-    })
-    .finally(() => {
-        // Reset button state
-        refreshButton.innerHTML = originalContent;
-        refreshButton.disabled = false;
-    });
-}
-
-function openAddAdjustmentModal() {
-    openAddInventoryModal();
-}
-
-function updateCurrentStock(selectElement) {
-    const selectedOption = selectElement.selectedOptions[0];
-    const row = selectElement.closest('.inventory-item');
-    const currentStockInput = row.querySelector('.current-stock');
-    const unitCostInput = row.querySelector('.unit-cost');
-
-    // Defensive defaults - handle missing data gracefully
-    if (selectedOption && selectedOption.value) {
-        // Auto-fill current stock from product data
-        const currentStock = selectedOption.dataset.stock || '0';
-        const unitCost = selectedOption.dataset.cost || '0';
-
-        currentStockInput.value = parseFloat(currentStock).toFixed(2);
-
-        // Auto-fill unit cost if available and not already set
-        if (unitCostInput && (!unitCostInput.value || unitCostInput.value === '0')) {
-            unitCostInput.value = parseFloat(unitCost).toFixed(2);
-        }
-
-        // Clear any validation errors
-        selectElement.classList.remove('is-invalid');
-        const feedback = selectElement.closest('.col-md-3').querySelector('.invalid-feedback');
-        if (feedback) {
-            feedback.style.display = 'none';
-        }
-    } else {
-        // No product selected - clear dependent fields
-        currentStockInput.value = '0.00';
-        if (unitCostInput) {
-            unitCostInput.value = '0.00';
-        }
-    }
-
-    calculateLineTotal(selectElement);
-}
-
-function calculateLineTotal(element) {
-    const row = element.closest('.inventory-item');
-    const quantityInput = row.querySelector('.quantity-in');
-    const unitCostInput = row.querySelector('.unit-cost');
-    const lineTotalInput = row.querySelector('.line-total');
-
-    const quantity = parseFloat(quantityInput.value) || 0;
-    const unitCost = parseFloat(unitCostInput.value) || 0;
-    const lineTotal = quantity * unitCost;
-
-    lineTotalInput.value = lineTotal.toFixed(2);
-    calculateSubtotal();
-}
-
-function calculateSubtotal() {
-    let subtotal = 0;
-    document.querySelectorAll('.line-total').forEach(input => {
-        subtotal += parseFloat(input.value) || 0;
-    });
-
-    document.getElementById('modalSubtotal').textContent = `$${subtotal.toFixed(2)}`;
-    calculateGrandTotal();
-}
-
-function calculateGrandTotal() {
-    const subtotal = parseFloat(document.getElementById('modalSubtotal').textContent.replace('$', '')) || 0;
-    const tax = parseFloat(document.getElementById('modalTax').value) || 0;
-    const grandTotal = subtotal + tax;
-
-    document.getElementById('modalGrandTotal').textContent = `$${grandTotal.toFixed(2)}`;
-}
-
-function addInventoryItem() {
-    const container = document.getElementById('inventoryItems');
-    const newItem = container.firstElementChild.cloneNode(true);
-
-    // Clear values from inputs and selects
-    newItem.querySelectorAll('input, select').forEach(input => {
-        if (input.type !== 'button') {
-            input.value = '';
-        }
-        // Clear validation classes
-        input.classList.remove('is-invalid', 'is-valid');
-    });
-
-    // Clear any search inputs that might have been added for searchable dropdowns
-    const searchInputs = newItem.querySelectorAll('.product-search');
-    searchInputs.forEach(search => search.remove());
-
-    // Hide validation feedback
-    const feedbacks = newItem.querySelectorAll('.invalid-feedback');
-    feedbacks.forEach(feedback => feedback.style.display = 'none');
-
-    container.appendChild(newItem);
-
-    // Load products for the new dropdown
-    const newSelect = newItem.querySelector('.product-select');
-    if (newSelect) {
-        // Try to get cached products first
-        const cachedProducts = localStorage.getItem('inventory.products');
-        if (cachedProducts) {
-            try {
-                const products = JSON.parse(cachedProducts);
-                populateProductDropdown(newSelect, products);
-            } catch (e) {
-                // If cache is corrupted, fetch fresh data
-                fetchProductsFromAPI().then(products => {
-                    populateProductDropdown(newSelect, products);
-                });
-            }
-        } else {
-            // No cache, fetch from API
-            fetchProductsFromAPI().then(products => {
-                populateProductDropdown(newSelect, products);
-            });
-        }
-    }
-}
-
-function populateProductDropdown(selectElement, products, preselectedValue = '') {
-    // Clear existing options
-    selectElement.innerHTML = '<option value="">Select Product</option>';
-
-    // Handle empty state
-    if (!products || products.length === 0) {
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '';
-        emptyOption.textContent = 'No products found. Please add products in Product Master.';
-        emptyOption.disabled = true;
-        selectElement.appendChild(emptyOption);
-        return;
-    }
-
-    // Add products to dropdown
-    products.forEach(product => {
-        const option = document.createElement('option');
-        option.value = product.id || '';
-        option.setAttribute('data-stock', product.current_stock || 0);
-        option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
-        option.setAttribute('data-cost', product.cost_price || 0);
-
-        // Format: Product Name (SKU) - Current: X units
-        const currentStock = product.current_stock || 0;
-        const unit = product.unit_of_measure || 'pcs';
-        const sku = product.sku || 'N/A';
-        const name = product.name || 'Unnamed Product';
-
-        option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
-        selectElement.appendChild(option);
-    });
-
-    // Set pre-selected value if provided
-    if (preselectedValue) {
-        selectElement.value = preselectedValue;
-        // Trigger change event to update dependent fields
-        const event = new Event('change');
-        selectElement.dispatchEvent(event);
-    }
-
-    // Add searchable functionality for large lists
-    if (products.length > 20) {
-        addSearchableFeature(selectElement);
-    }
-}
-
-function removeInventoryItem(button) {
-    const items = document.querySelectorAll('.inventory-item');
-    if (items.length > 1) {
-        button.closest('.inventory-item').remove();
-    }
-}
-
-function saveInventoryItems() {
-    const form = document.getElementById('addInventoryForm');
-    const formData = new FormData(form);
-
-    // Get all items
-    const items = [];
-    const productIds = formData.getAll('product_id[]');
-    const quantities = formData.getAll('quantity_in[]');
-    const unitCosts = formData.getAll('unit_cost[]');
-
-    for (let i = 0; i < productIds.length; i++) {
-        if (productIds[i] && quantities[i]) {
-            const quantity = parseFloat(quantities[i]);
-            const unitCost = parseFloat(unitCosts[i]) || 0;
-
-            if (isNaN(quantity) || quantity <= 0) {
-                showToast('Please enter valid quantities greater than 0', 'error');
-                return;
-            }
-
-            items.push({
-                product_id: productIds[i],
-                quantity_in: quantity,
-                unit_cost: unitCost
-            });
-        }
-    }
-
-    if (items.length === 0) {
-        showToast('Please add at least one valid item', 'error');
-        return;
-    }
-
-    const data = {
-        adjustment_date: formData.get('adjustment_date') || new Date().toISOString().split('T')[0],
-        reference_no: formData.get('reference_no') || '',
-        notes: formData.get('notes') || '',
-        items: items
-    };
-
-    fetch('/api/inventory/adjustments', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            showToast(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('addInventoryModal')).hide();
-            form.reset();
-            loadProducts(); // Refresh product list
-            loadAdjustmentsData(); // Refresh adjustments list
-            // Reset form to default values
-            document.querySelector('input[name="adjustment_date"]').value = new Date().toISOString().split('T')[0];
-            document.getElementById('modalSubtotal').textContent = '$0.00';
-            document.getElementById('modalGrandTotal').textContent = '$0.00';
-            document.getElementById('modalTax').value = '0';
-        } else {
-            throw new Error(data.error || 'Failed to add inventory items');
-        }
-    })
-    .catch(error => {
-        console.error('Error adding inventory items:', error);
-        const errorMessage = error.error || error.message || 'Failed to add inventory items';
-        showToast(`Error: ${errorMessage}`, 'error');
-    });
-}
-
-function openAddProductModal() {
-    const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
-    modal.show();
-}
-
-function saveProduct() {
-    const form = document.getElementById('addProductForm');
-    const formData = new FormData(form);
-
-    fetch('/inventory/products/add', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
-            form.reset();
-            loadProducts(); // Refresh product list
-        } else {
-            throw new Error(data.error || 'Failed to add product');
-        }
-    })
-    .catch(error => {
-        console.error('Error adding product:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    });
-}
-
-function openAddCategoryModal() {
-    const modal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
-    modal.show();
-}
-
-function saveCategory() {
-    const form = document.getElementById('addCategoryForm');
-    const formData = new FormData(form);
-
-    fetch('/inventory/categories/add', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.redirected) {
-            // Handle redirect response
-            showToast('Category added successfully', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
-            form.reset();
-            location.reload(); // Refresh page to show new category
-        } else {
-            return response.json();
-        }
-    })
-    .then(data => {
-        if (data && data.error) {
-            throw new Error(data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error adding category:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    });
-}
-
-function loadProducts() {
-    fetch('/api/inventory/products/master')
-    .then(response => response.json())
-    .then(products => {
-        const tbody = document.getElementById('productsTableBody');
-        tbody.innerHTML = '';
-
-        products.forEach(product => {
-            const statusClass = product.status === 'out_of_stock' ? 'danger' : 
-                               product.status === 'low_stock' ? 'warning' : 
-                               product.status === 'reorder_needed' ? 'info' : 'success';
+            const statusBadgeClass = product.stock_status ?
+                (product.stock_status === 'low_stock' ? 'warning' :
+                 product.stock_status === 'out_of_stock' ? 'danger' : 'success') :
+                'secondary';
+            const statusText = (product.stock_status || 'in_stock').replace('_', ' ').toUpperCase();
 
             const row = `
                 <tr>
-                    <td>${product.sku}</td>
-                    <td>${product.name}</td>
-                    <td><span class="badge" style="background-color: ${product.category_color};">${product.category}</span></td>
-                    <td>${product.unit_of_measure}</td>
-                    <td>${product.current_stock}</td>
-                    <td>${product.reorder_level}</td>
-                    <td><span class="badge bg-${statusClass}">${product.status.replace('_', ' ').toUpperCase()}</span></td>
-                    <td>${product.location}</td>
+                    <td>${product.sku || 'N/A'}</td>
+                    <td>${product.name || 'N/A'}</td>
+                    <td><span class="badge" style="background-color: ${product.category_color || '#6c757d'};">${product.category || 'Uncategorized'}</span></td>
+                    <td>${product.unit_of_measure || 'pcs'}</td>
+                    <td>${product.current_stock !== undefined ? product.current_stock : 0}</td>
+                    <td>${product.reorder_point !== undefined ? product.reorder_point : 0}</td>
+                    <td><span class="badge bg-${statusBadgeClass}">${statusText}</span></td>
+                    <td>${product.location || 'N/A'}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" onclick="viewProduct(${product.id})" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-outline-secondary" onclick="editProduct(${product.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="deleteProduct(${product.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <button class="btn btn-outline-primary" onclick="viewProduct(${product.id})" title="View Product"><i class="fas fa-eye"></i></button>
+                            <button class="btn btn-outline-secondary" onclick="editProduct(${product.id})" title="Edit Product"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-outline-danger" onclick="deleteProduct(${product.id})" title="Delete Product"><i class="fas fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -1679,37 +1716,387 @@ function loadProducts() {
     })
     .catch(error => {
         console.error('Error loading products:', error);
-        showToast('Error loading products', 'error');
+        showToast(`Error loading products: ${error.message}`, 'error');
+        document.getElementById('productsTableBody').innerHTML = '<tr><td colspan="9" class="text-center text-danger">Failed to load products.</td></tr>';
     });
 }
 
+function viewProduct(id) {
+    fetch(`/api/inventory/product/${id}`)
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(product => {
+        document.getElementById('viewProductSKU').textContent = product.sku || 'N/A';
+        document.getElementById('viewProductName').textContent = product.name || 'N/A';
+        document.getElementById('viewProductDescription').textContent = product.description || 'No description';
+        document.getElementById('viewProductCategory').textContent = product.category || 'Uncategorized';
+        document.getElementById('viewProductUnit').textContent = product.unit_of_measure || 'pcs';
+        document.getElementById('viewProductCurrentStock').textContent = product.current_stock !== undefined ? product.current_stock : 0;
+        document.getElementById('viewProductReorderLevel').textContent = product.reorder_point !== undefined ? product.reorder_point : 0;
+        document.getElementById('viewProductMinStock').textContent = product.min_stock_level !== undefined ? product.min_stock_level : 0;
+        document.getElementById('viewProductMaxStock').textContent = product.max_stock_level !== undefined ? product.max_stock_level : 0;
+        document.getElementById('viewProductCostPrice').textContent = `$${(product.cost_price || 0).toFixed(2)}`;
+        document.getElementById('viewProductSellingPrice').textContent = `$${(product.selling_price || 0).toFixed(2)}`;
+        document.getElementById('viewProductBarcode').textContent = product.barcode || 'N/A';
+        document.getElementById('viewProductLocation').textContent = product.location || 'N/A';
+
+        const statusBadgeClass = product.stock_status ?
+            (product.stock_status === 'low_stock' ? 'warning' :
+             product.stock_status === 'out_of_stock' ? 'danger' : 'success') :
+            'secondary';
+        const statusText = (product.stock_status || 'in_stock').replace('_', ' ').toUpperCase();
+        document.getElementById('viewProductStatus').textContent = statusText;
+        document.getElementById('viewProductStatus').className = `mb-0 badge bg-${statusBadgeClass}`; // Update class for styling
+
+        document.getElementById('viewProductServiceItem').textContent = product.is_service_item ? 'Yes' : 'No';
+        document.getElementById('viewProductRetailItem').textContent = product.is_retail_item ? 'Yes' : 'No';
+
+        new bootstrap.Modal(document.getElementById('viewProductModal')).show();
+    })
+    .catch(error => {
+        console.error('Error viewing product:', error);
+        showToast(`Error viewing product: ${error.message}`, 'error');
+    });
+}
+
+function editProduct(id) {
+    fetch(`/api/inventory/product/${id}`)
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(product => {
+        document.getElementById('editProductId').value = product.id;
+        document.getElementById('editSku').value = product.sku || '';
+        document.getElementById('editName').value = product.name || '';
+        document.getElementById('editDescription').value = product.description || '';
+        document.getElementById('editCategory').value = product.category_id || '';
+        document.getElementById('editUnitOfMeasure').value = product.unit_of_measure || 'pcs';
+        document.getElementById('editCurrentStock').value = product.current_stock !== undefined ? product.current_stock : 0;
+        document.getElementById('editReorderLevel').value = product.reorder_point !== undefined ? product.reorder_point : 0;
+        document.getElementById('editMinStock').value = product.min_stock_level !== undefined ? product.min_stock_level : 0;
+        document.getElementById('editMaxStock').value = product.max_stock_level !== undefined ? product.max_stock_level : 0;
+        document.getElementById('editCostPrice').value = product.cost_price !== undefined ? product.cost_price : '';
+        document.getElementById('editSellingPrice').value = product.selling_price !== undefined ? product.selling_price : '';
+        document.getElementById('editBarcode').value = product.barcode || '';
+        document.getElementById('editLocation').value = product.location || '';
+        document.getElementById('editUsedInServices').checked = product.is_service_item || false;
+        document.getElementById('editRetailItem').checked = product.is_retail_item || false;
+
+        const statusTextElement = document.getElementById('editStatusText');
+        const statusInfoDiv = document.getElementById('editProductStatus');
+        if (product.stock_status) {
+            statusTextElement.textContent = product.stock_status.replace('_', ' ').toUpperCase();
+            statusInfoDiv.style.display = 'block';
+        } else {
+            statusInfoDiv.style.display = 'none';
+        }
+
+        new bootstrap.Modal(document.getElementById('editProductModal')).show();
+    })
+    .catch(error => {
+        console.error('Error editing product:', error);
+        showToast(`Error editing product: ${error.message}`, 'error');
+    });
+}
+
+function saveEditProduct() {
+    const form = document.getElementById('editProductForm');
+    const productId = document.getElementById('editProductId').value;
+    const formData = new FormData(form);
+
+    const saveButton = form.querySelector('button[onclick="saveEditProduct()"]');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+
+    fetch(`/inventory/products/${productId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
+            loadProducts(); // Refresh the product list
+        } else {
+            throw new Error(data.error || 'Failed to update product');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving product edit:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-1"></i>Update Product';
+    });
+}
+
+function deleteProduct(id) {
+    // First, try to get the product name for a more user-friendly confirmation
+    fetch(`/api/inventory/product/${id}`)
+    .then(response => response.ok ? response.json() : Promise.reject('Failed to fetch product details'))
+    .then(product => {
+        const productName = product.name || 'this product';
+        confirmDeleteProduct(id, productName);
+    })
+    .catch(error => {
+        console.warn('Could not fetch product name, using generic confirmation:', error);
+        confirmDeleteProduct(id, 'this product');
+    });
+}
+
+function confirmDeleteProduct(id, productName) {
+    Swal.fire({
+        title: 'Delete Product',
+        text: `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        focusCancel: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/api/inventory/products/${id}/delete`, { method: 'DELETE' })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showToast(`Product "${productName}" deleted successfully`, 'success');
+                    loadProducts(); // Refresh the list
+                } else {
+                    throw new Error(data.error || 'Failed to delete product');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting product:', error);
+                showToast(`Error deleting product: ${error.message}`, 'error');
+            });
+        }
+    });
+}
+
+// --- Category Functions ---
+function openAddCategoryModal() {
+    new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+}
+
+function saveCategory() {
+    const form = document.getElementById('addCategoryForm');
+    const formData = new FormData(form);
+
+    const saveButton = form.querySelector('button[onclick="saveCategory()"]');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
+
+    fetch('/inventory/categories/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+            form.reset();
+            location.reload(); // Refresh page to show new category
+        } else {
+            throw new Error(data.error || 'Failed to add category');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving category:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-1"></i>Add Category';
+    });
+}
+
+function viewCategory(id) {
+    fetch(`/api/inventory/categories/${id}`)
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(category => {
+        document.getElementById('viewCategoryName').textContent = category.name || 'N/A';
+        document.getElementById('viewCategoryDescription').textContent = category.description || 'No description';
+        document.getElementById('viewCategoryColor').textContent = category.color_code || '#000000';
+        const colorPreview = document.getElementById('viewCategoryColorPreview');
+        if(colorPreview) colorPreview.style.backgroundColor = category.color_code || '#000000';
+        document.getElementById('viewCategoryProductCount').textContent = category.product_count || 0;
+        document.getElementById('viewCategoryStatus').textContent = category.is_active ? 'Active' : 'Inactive';
+        document.getElementById('viewCategoryCreatedDate').textContent = category.created_at ? new Date(category.created_at).toLocaleDateString() : 'N/A';
+
+        new bootstrap.Modal(document.getElementById('viewCategoryModal')).show();
+    })
+    .catch(error => {
+        console.error('Error viewing category:', error);
+        showToast(`Error viewing category: ${error.message}`, 'error');
+    });
+}
+
+function editCategory(id) {
+    fetch(`/api/inventory/categories/${id}`)
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(category => {
+        document.getElementById('editCategoryId').value = category.id;
+        document.getElementById('editCategoryName').value = category.name || '';
+        document.getElementById('editCategoryDescription').value = category.description || '';
+        document.getElementById('editCategoryColor').value = category.color_code || '#007bff';
+        document.getElementById('editCategoryActive').checked = category.is_active || false;
+
+        new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+    })
+    .catch(error => {
+        console.error('Error editing category:', error);
+        showToast(`Error editing category: ${error.message}`, 'error');
+    });
+}
+
+function saveEditCategory() {
+    const form = document.getElementById('editCategoryForm');
+    const categoryId = document.getElementById('editCategoryId').value;
+    const formData = new FormData(form);
+
+    const saveButton = form.querySelector('button[onclick="saveEditCategory()"]');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+
+    fetch(`/api/inventory/categories/${categoryId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
+            location.reload(); // Refresh page to show changes
+        } else {
+            throw new Error(data.error || 'Failed to update category');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving category edit:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        saveButton.disabled = false;
+        saveButton.innerHTML = 'Save Changes';
+    });
+}
+
+function deleteCategory(id) {
+    // First, get category name for confirmation
+    fetch(`/api/inventory/categories/${id}`)
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(category => {
+        const categoryName = category.name || 'this category';
+        confirmDeleteCategory(id, categoryName);
+    })
+    .catch(error => {
+        console.warn('Could not fetch category name:', error);
+        confirmDeleteCategory(id, 'this category');
+    });
+}
+
+function confirmDeleteCategory(id, categoryName) {
+    Swal.fire({
+        title: 'Delete Category',
+        text: `Are you sure you want to delete "${categoryName}"? This action cannot be undone and may affect associated products.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        focusCancel: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/api/inventory/categories/${id}/delete`, { method: 'DELETE' })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showToast(`Category "${categoryName}" deleted successfully`, 'success');
+                    location.reload(); // Refresh page
+                } else {
+                    throw new Error(data.error || 'Failed to delete category');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting category:', error);
+                showToast(`Error deleting category: ${error.message}`, 'error');
+            });
+        }
+    });
+}
+
+// --- Consumption Functions ---
 function openAddConsumptionModal() {
-    // Load products for the form
+    // Load products for the dropdown in the modal
     fetch('/api/inventory/products/for-consumption')
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch products for consumption');
+        return response.json();
+    })
     .then(products => {
         const select = document.querySelector('#addConsumptionModal .consumption-product-select');
-        select.innerHTML = '<option value="">Select Product</option>';
+        select.innerHTML = '<option value="">Select Product</option>'; // Reset options
+
+        if (products.length === 0) {
+            select.add(Object.assign(document.createElement('option'), {
+                value: '',
+                textContent: 'No products available. Please add products first.',
+                disabled: true
+            }));
+            // Disable the save button if no products are available
+            document.querySelector('#addConsumptionModal .btn-primary').disabled = true;
+            return;
+        }
 
         products.forEach(product => {
             const option = document.createElement('option');
             option.value = product.id;
-            option.setAttribute('data-stock', product.current_stock);
-            option.setAttribute('data-unit', product.unit_of_measure);
-            option.textContent = `${product.name} (${product.sku}) - Available: ${product.current_stock} ${product.unit_of_measure}`;
+            option.setAttribute('data-stock', product.current_stock || 0);
+            option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
+            option.textContent = `${product.name} (${product.sku}) - Available: ${product.current_stock || 0} ${product.unit_of_measure || 'pcs'}`;
             select.appendChild(option);
         });
-
-        // Set default date to today
-        const dateInput = document.querySelector('#addConsumptionModal input[name="consumption_date"]');
-        dateInput.value = new Date().toISOString().split('T')[0];
-
-        const modal = new bootstrap.Modal(document.getElementById('addConsumptionModal'));
-        modal.show();
+        // Re-enable the save button
+        document.querySelector('#addConsumptionModal .btn-primary').disabled = false;
+        new bootstrap.Modal(document.getElementById('addConsumptionModal')).show();
     })
     .catch(error => {
-        console.error('Error loading products:', error);
-        showToast('Error loading products', 'error');
+        console.error('Error opening add consumption modal:', error);
+        showToast(`Error: ${error.message}`, 'error');
     });
 }
 
@@ -1722,11 +2109,187 @@ function updateAvailableStock(selectElement) {
         const unit = selectedOption.dataset.unit || 'pcs';
         availableStockInput.value = `${parseFloat(stock).toFixed(2)} ${unit}`;
 
-        // Clear validation errors
+        // Clear validation error if present
         selectElement.classList.remove('is-invalid');
     } else {
-        availableStockInput.value = '';
+        availableStockInput.value = ''; // Clear if no product selected
     }
+}
+
+function validateConsumptionForm(form) {
+    let isValid = true;
+    const requiredInputs = form.querySelectorAll('[required]');
+
+    requiredInputs.forEach(input => {
+        if (!input.value.trim()) {
+            input.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            input.classList.remove('is-invalid');
+        }
+    });
+
+    // Specific validation for quantity used
+    const quantityInput = form.querySelector('input[name="quantity_used"]');
+    if (quantityInput && quantityInput.value) {
+        const quantity = parseFloat(quantityInput.value);
+        if (isNaN(quantity) || quantity <= 0) {
+            quantityInput.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            // Check if quantity exceeds available stock
+            const productSelect = form.querySelector('select[name="product_id"]');
+            const selectedOption = productSelect.selectedOptions[0];
+            if (selectedOption && selectedOption.value) {
+                const availableStock = parseFloat(selectedOption.dataset.stock || 0);
+                if (quantity > availableStock) {
+                    quantityInput.classList.add('is-invalid');
+                    showToast(`Quantity (${quantity}) exceeds available stock (${availableStock}).`, 'error');
+                    isValid = false;
+                }
+            }
+        }
+    }
+
+    return isValid;
+}
+
+function saveConsumption() {
+    const form = document.getElementById('addConsumptionForm');
+    if (!validateConsumptionForm(form)) {
+        return;
+    }
+
+    const formData = new FormData(form);
+
+    // Ensure date is in YYYY-MM-DD format
+    const dateInput = form.querySelector('input[name="consumption_date"]');
+    if (dateInput && dateInput.value) {
+        const date = new Date(dateInput.value);
+        if (!isNaN(date.getTime())) {
+            formData.set('consumption_date', date.toISOString().slice(0, 10));
+        } else {
+            showToast('Invalid date selected.', 'error');
+            dateInput.classList.add('is-invalid');
+            return;
+        }
+    } else {
+        showToast('Consumption date is required.', 'error');
+        if(dateInput) dateInput.classList.add('is-invalid');
+        return;
+    }
+
+    const saveButton = form.querySelector('button[onclick="saveConsumption()"]');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+    fetch('/api/inventory/consumption/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message || 'Consumption record added successfully.', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal')).hide();
+            form.reset();
+            // Refresh data after a short delay to allow modal to close smoothly
+            setTimeout(() => {
+                loadConsumptionData();
+                loadProducts(); // Update product stock levels
+            }, 500);
+        } else {
+            throw new Error(data.error || 'Failed to add consumption record');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving consumption:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-1"></i>Add Consumption';
+    });
+}
+
+function viewConsumption(id) {
+    fetch(`/api/inventory/consumption/${id}`)
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(consumption => {
+        document.getElementById('viewConsumptionDate').textContent = consumption.consumption_date || 'N/A';
+        document.getElementById('viewConsumptionProduct').textContent = consumption.product_name || 'N/A';
+        document.getElementById('viewConsumptionSKU').textContent = consumption.product_sku || 'N/A';
+        document.getElementById('viewConsumptionQuantity').textContent = consumption.quantity_used !== undefined ? parseFloat(consumption.quantity_used).toFixed(2) : '0.00';
+        document.getElementById('viewConsumptionUnit').textContent = consumption.unit_of_measure || 'pcs';
+        document.getElementById('viewConsumptionIssuedTo').textContent = consumption.issued_to || 'N/A';
+        document.getElementById('viewConsumptionReference').textContent = consumption.reference_doc_no || '—';
+        document.getElementById('viewConsumptionNotes').textContent = consumption.notes || '—';
+        document.getElementById('viewConsumptionCreatedBy').textContent = consumption.created_by || '—';
+        document.getElementById('viewConsumptionCreatedDate').textContent = consumption.created_at ? new Date(consumption.created_at).toLocaleString() : '—';
+
+        new bootstrap.Modal(document.getElementById('viewConsumptionModal')).show();
+    })
+    .catch(error => {
+        console.error('Error viewing consumption:', error);
+        showToast(`Error viewing consumption: ${error.message}`, 'error');
+    });
+}
+
+function editConsumption(id) {
+    // Fetch both consumption details and available products
+    Promise.all([
+        fetch(`/api/inventory/consumption/${id}`),
+        fetch('/api/inventory/products/for-consumption')
+    ])
+    .then(responses => Promise.all(responses.map(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+    })))
+    .then(([consumption, products]) => {
+        const select = document.getElementById('editConsumptionProduct');
+        select.innerHTML = '<option value="">Select Product</option>'; // Reset options
+
+        if (products.length === 0) {
+            select.add(Object.assign(document.createElement('option'), {
+                value: '', textContent: 'No products available.', disabled: true
+            }));
+        } else {
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.setAttribute('data-stock', product.current_stock || 0);
+                option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
+                option.textContent = `${product.name} (${product.sku}) - Available: ${product.current_stock || 0} ${product.unit_of_measure || 'pcs'}`;
+                if (product.id == consumption.product_id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        document.getElementById('editConsumptionId').value = consumption.id;
+        document.getElementById('editOriginalQuantity').value = consumption.quantity_used; // Store original for calculation if needed
+        document.getElementById('editConsumptionDate').value = consumption.consumption_date || '';
+        document.getElementById('editConsumptionQuantity').value = consumption.quantity_used !== undefined ? consumption.quantity_used : '';
+        document.getElementById('editConsumptionIssuedTo').value = consumption.issued_to || '';
+        document.getElementById('editConsumptionReference').value = consumption.reference_doc_no || '';
+        document.getElementById('editConsumptionNotes').value = consumption.notes || '';
+
+        // Update the available stock display based on the pre-selected product
+        updateEditAvailableStock(select);
+
+        new bootstrap.Modal(document.getElementById('editConsumptionModal')).show();
+    })
+    .catch(error => {
+        console.error('Error editing consumption:', error);
+        showToast(`Error editing consumption: ${error.message}`, 'error');
+    });
 }
 
 function updateEditAvailableStock(selectElement) {
@@ -1737,613 +2300,79 @@ function updateEditAvailableStock(selectElement) {
         const stock = selectedOption.dataset.stock || '0';
         const unit = selectedOption.dataset.unit || 'pcs';
         availableStockInput.value = `${parseFloat(stock).toFixed(2)} ${unit}`;
-
-        // Clear validation errors
-        selectElement.classList.remove('is-invalid');
+        selectElement.classList.remove('is-invalid'); // Clear validation
     } else {
         availableStockInput.value = '';
     }
 }
 
-function validateConsumptionForm(form) {
-    let isValid = true;
-    const inputs = form.querySelectorAll('input[required], select[required]');
-
-    inputs.forEach(input => {
-        const value = input.value.trim();
-
-        if (!value) {
-            input.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            input.classList.remove('is-invalid');
-
-            // Additional validation for quantity
-            if (input.name === 'quantity_used') {
-                const qty = parseFloat(value);
-                if (isNaN(qty) || qty <= 0) {
-                    input.classList.add('is-invalid');
-                    isValid = false;
-                } else {
-                    // Check against available stock
-                    const productSelect = form.querySelector('select[name="product_id"]');
-                    const selectedOption = productSelect.selectedOptions[0];
-                    if (selectedOption) {
-                        const availableStock = parseFloat(selectedOption.dataset.stock || 0);
-                        if (qty > availableStock) {
-                            input.classList.add('is-invalid');
-                            showToast(`Quantity (${qty}) exceeds available stock (${availableStock})`, 'error');
-                            isValid = false;
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    return isValid;
-}
-
-function saveConsumption() {
-    const form = document.getElementById('addConsumptionForm');
-
-    // Validate form
-    if (!validateConsumptionForm(form)) {
-        return;
-    }
-
-    const formData = new FormData(form);
-
-    // Ensure date is in proper format
-    const dateInput = form.querySelector('input[name="consumption_date"]');
-    if (dateInput.value) {
-        // Convert to ISO format if needed
-        const date = new Date(dateInput.value);
-        if (isNaN(date.getTime())) {
-            showToast('Please select a valid date', 'error');
-            dateInput.classList.add('is-invalid');
-            return;
-        }
-        formData.set('consumption_date', date.toISOString().slice(0, 10));
-    } else {
-        showToast('Please select a consumption date', 'error');
-        dateInput.classList.add('is-invalid');
-        return;
-    }
-
-    // Add loading state
-    const saveButton = form.querySelector('.btn-primary');
-    const originalContent = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
-    saveButton.disabled = true;
-
-    fetch('/api/inventory/consumption/add', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(data.message || 'Consumption record added successfully', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal')).hide();
-            form.reset();
-
-            // Refresh data
-            setTimeout(() => {
-                loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
-                loadProducts(); // Refresh product stock levels
-            }, 500);
-        } else {
-            throw new Error(data.error || 'Failed to add consumption record');
-        }
-    })
-    .catch(error => {
-        console.error('Error adding consumption:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    })
-    .finally(() => {
-        // Reset button state
-        saveButton.innerHTML = originalContent;
-        saveButton.disabled = false;
-    });
-}
-
-function loadConsumptionData() { // Renamed from loadConsumption
-    $.get('/api/inventory/consumption', function(data) {
-        if (data.records) {
-            allConsumptionData = data.records;
-            applyConsumptionFilters(); // Use the new filter application function
-        }
-    }).fail(function(xhr) {
-        console.error('Error loading consumption data:', xhr.responseText);
-        showToast('Error loading consumption records', 'danger');
-    });
-}
-
-
-// Utility functions for formatting adjustment remarks
-function formatAdjustmentRemarks({ referenceId, dateISO, createdBy, userNotes, items }) {
-    let parts = ['Manual stock adjustment'];
-
-    // Add reference ID if provided
-    if (referenceId && referenceId.trim()) {
-        parts.push(`Ref: ${referenceId.trim()}`);
-    }
-
-    // Format date
-    if (dateISO) {
-        try {
-            const date = new Date(dateISO);
-            const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
-            parts.push(formattedDate);
-        } catch (e) {
-            // Fallback to original date string
-            parts.push(dateISO);
-        }
-    }
-
-    // Add created by if provided
-    if (createdBy && createdBy.trim()) {
-        parts.push(createdBy.trim());
-    }
-
-    // Add user notes if provided
-    if (userNotes && userNotes.trim()) {
-        // Clean up notes: trim whitespace, collapse multiple spaces
-        const cleanNotes = userNotes.trim().replace(/\s+/g, ' ');
-
-        // Limit to 120 characters total for the notes part
-        const maxNotesLength = 120 - parts.join(' — ').length - ' — Notes: '.length;
-        let notesText = cleanNotes;
-
-        if (cleanNotes.length > maxNotesLength && maxNotesLength > 0) {
-            notesText = cleanNotes.substring(0, maxNotesLength - 1) + '…';
-        }
-
-        parts.push(`Notes: ${notesText}`);
-    }
-
-    return parts.length > 1 ? parts.join(' — ') : '—';
-}
-
-function buildRemarksTooltip(items, fullRemarks) {
-    let tooltip = `<strong>Full Remarks:</strong><br>${fullRemarks || '—'}<br><br><strong>Items:</strong><br>`;
-
-    if (!items || items.length === 0) {
-        return tooltip + 'No items found';
-    }
-
-    const maxItems = 8;
-    const itemsToShow = items.slice(0, maxItems);
-
-    itemsToShow.forEach(item => {
-        const productName = item.product_name || 'Unknown Product';
-        const quantity = parseFloat(item.quantity_added || 0).toFixed(2);
-        const unitCost = parseFloat(item.unit_cost || 0).toFixed(2);
-        const lineTotal = parseFloat(item.line_total || 0).toFixed(2);
-        const unit = item.unit_of_measure || 'pcs';
-
-        tooltip += `• ${productName} — Added: ${quantity} ${unit} @ $${unitCost} → $${lineTotal}<br>`;
-    });
-
-    if (items.length > maxItems) {
-        const remaining = items.length - maxItems;
-        tooltip += `<em>+${remaining} more…</em>`;
-    }
-
-    return tooltip;
-}
-
-function loadAdjustmentsData() { // Renamed from loadAdjustments
-    $.get('/api/inventory/adjustments', function(data) {
-        if (data.records) {
-            allAdjustmentsData = data.records;
-            applyAdjustmentsFilters(); // Use the new filter application function
-        }
-    }).fail(function(xhr) {
-        console.error('Error loading adjustments data:', xhr.responseText);
-        showToast('Error loading adjustments records', 'danger');
-    });
-}
-
-// Product action functions
-function viewProduct(id) { 
-    showToast('View product functionality to be implemented', 'info'); 
-}
-
-function editProduct(id) {
-    // Fetch product data and open edit modal
-    fetch(`/api/inventory/product/${id}`)
-    .then(response => response.json())
-    .then(product => {
-        if (product.error) {
-            throw new Error(product.error);
-        }
-
-        // Populate the edit modal with product data
-        document.getElementById('editProductId').value = product.id;
-        document.getElementById('editSku').value = product.sku || '';
-        document.getElementById('editName').value = product.name || '';
-        document.getElementById('editDescription').value = product.description || '';
-        document.getElementById('editCategory').value = product.category_id || '';
-        document.getElementById('editUnitOfMeasure').value = product.unit_of_measure || 'pcs';
-        document.getElementById('editCurrentStock').value = product.current_stock || 0;
-        document.getElementById('editReorderLevel').value = product.reorder_point || 0;
-        document.getElementById('editMinStock').value = product.min_stock_level || 0;
-        document.getElementById('editMaxStock').value = product.max_stock_level || 0;
-        document.getElementById('editCostPrice').value = product.cost_price || 0;
-        document.getElementById('editSellingPrice').value = product.selling_price || 0;
-        document.getElementById('editBarcode').value = product.barcode || '';
-        document.getElementById('editLocation').value = product.location || '';
-        document.getElementById('editUsedInServices').checked = product.is_service_item || false;
-        document.getElementById('editRetailItem').checked = product.is_retail_item || false;
-
-        // Show status if available
-        if (product.stock_status) {
-            document.getElementById('editStatusText').textContent = product.stock_status.replace('_', ' ').toUpperCase();
-            document.getElementById('editProductStatus').style.display = 'block';
-        } else {
-            document.getElementById('editProductStatus').style.display = 'none';
-        }
-
-        // Show the modal
-        const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error loading product:', error);
-        showToast(`Error loading product: ${error.message}`, 'error');
-    });
-}
-
-function saveEditProduct() {
-    const form = document.getElementById('editProductForm');
-    const formData = new FormData(form);
-    const productId = document.getElementById('editProductId').value;
-
-    // Add loading state to button
-    const saveButton = document.querySelector('#editProductModal .btn-primary');
-    const originalContent = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
-    saveButton.disabled = true;
-
-    fetch(`/inventory/products/${productId}/edit`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
-            loadProducts(); // Refresh the product list
-        } else {
-            throw new Error(data.error || 'Failed to update product');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating product:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    })
-    .finally(() => {
-        // Reset button state
-        saveButton.innerHTML = originalContent;
-        saveButton.disabled = false;
-    });
-}
-
-function deleteProduct(id) {
-    // Find product name first
-    fetch(`/api/inventory/product/${id}`)
-    .then(response => response.json())
-    .then(product => {
-        const productName = product.name || 'Unknown Product';
-
-        Swal.fire({
-            title: 'Delete Product',
-            text: `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            focusCancel: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Proceed with deletion
-                fetch(`/api/inventory/products/${id}/delete`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(`Product "${productName}" deleted successfully`, 'success');
-                        loadProducts(); // Refresh table
-                    } else {
-                        throw new Error(data.error || 'Failed to delete product');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting product:', error);
-                    showToast(`Error: ${error.message}`, 'error');
-                });
-            }
-        });
-    })
-    .catch(error => {
-        console.error('Error fetching product details:', error);
-        // Fallback confirmation without product name
-        Swal.fire({
-            title: 'Delete Product',
-            text: 'Are you sure you want to delete this product? This action cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            focusCancel: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/api/inventory/products/${id}/delete`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('Product deleted successfully', 'success');
-                        loadProducts();
-                    } else {
-                        throw new Error(data.error || 'Failed to delete product');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting product:', error);
-                    showToast(`Error: ${error.message}`, 'error');
-                });
-            }
-        });
-    });
-}
-function viewCategory(id) {
-    fetch(`/api/inventory/categories/${id}`)
-    .then(response => response.json())
-    .then(category => {
-        if (category.error) {
-            throw new Error(category.error);
-        }
-
-        // Populate view modal
-        document.getElementById('viewCategoryName').textContent = category.name;
-        document.getElementById('viewCategoryDescription').textContent = category.description || 'No description';
-        document.getElementById('viewCategoryColor').textContent = category.color_code;
-        document.getElementById('viewCategoryColorPreview').style.backgroundColor = category.color_code;
-        document.getElementById('viewCategoryProductCount').textContent = category.product_count || 0;
-        document.getElementById('viewCategoryCreatedDate').textContent = category.created_at ? new Date(category.created_at).toLocaleDateString() : 'N/A';
-        document.getElementById('viewCategoryStatus').textContent = category.is_active ? 'Active' : 'Inactive';
-
-        const modal = new bootstrap.Modal(document.getElementById('viewCategoryModal'));
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error loading category:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    });
-}
-
-function editCategory(id) {
-    fetch(`/api/inventory/categories/${id}`)
-    .then(response => response.json())
-    .then(category => {
-        if (category.error) {
-            throw new Error(category.error);
-        }
-
-        // Populate edit modal
-        document.getElementById('editCategoryId').value = category.id;
-        document.getElementById('editCategoryName').value = category.name;
-        document.getElementById('editCategoryDescription').value = category.description || '';
-        document.getElementById('editCategoryColor').value = category.color_code;
-        document.getElementById('editCategoryActive').checked = category.is_active;
-
-        const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error loading category:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    });
-}
-
-function deleteCategory(id) {
-    fetch(`/api/inventory/categories/${id}`)
-    .then(response => response.json())
-    .then(category => {
-        const categoryName = category.name || 'Unknown Category';
-
-        Swal.fire({
-            title: 'Delete Category',
-            text: `Are you sure you want to delete "${categoryName}"? This will affect all products in this category.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            focusCancel: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/api/inventory/categories/${id}/delete`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(`Category "${categoryName}" deleted successfully`, 'success');
-                        location.reload(); // Refresh page since categories are server-rendered
-                    } else {
-                        throw new Error(data.error || 'Failed to delete category');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting category:', error);
-                    showToast(`Error: ${error.message}`, 'error');
-                });
-            }
-        });
-    })
-    .catch(error => {
-        console.error('Error fetching category details:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    });
-}
-function viewConsumption(id) {
-    fetch(`/api/inventory/consumption/${id}`)
-    .then(response => response.json())
-    .then(consumption => {
-        if (consumption.error) {
-            throw new Error(consumption.error);
-        }
-
-        // Populate view modal with raw data only
-        document.getElementById('viewConsumptionDate').textContent = consumption.consumption_date || 'N/A';
-        document.getElementById('viewConsumptionProduct').textContent = consumption.product_name || 'N/A';
-        document.getElementById('viewConsumptionSKU').textContent = consumption.product_sku || 'N/A';
-        document.getElementById('viewConsumptionQuantity').textContent = consumption.quantity_used || '0';
-        document.getElementById('viewConsumptionUnit').textContent = consumption.unit_of_measure || 'pcs';
-        document.getElementById('viewConsumptionIssuedTo').textContent = consumption.issued_to || 'N/A';
-        document.getElementById('viewConsumptionReference').textContent = consumption.reference_doc_no || '—';
-        document.getElementById('viewConsumptionNotes').textContent = consumption.notes || '—';
-        document.getElementById('viewConsumptionCreatedBy').textContent = consumption.created_by || '—';
-        document.getElementById('viewConsumptionCreatedDate').textContent = consumption.created_at ? new Date(consumption.created_at).toLocaleDateString() : '—';
-
-        const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error loading consumption:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    });
-}
-
-function editConsumption(id) {
-    // First load products for the dropdown
-    Promise.all([
-        fetch(`/api/inventory/consumption/${id}`),
-        fetch('/api/inventory/products/for-consumption')
-    ])
-    .then(responses => Promise.all(responses.map(r => r.json())))
-    .then(([consumption, products]) => {
-        if (consumption.error) {
-            throw new Error(consumption.error);
-        }
-
-        // Populate product dropdown
-        const select = document.getElementById('editConsumptionProduct');
-        select.innerHTML = '<option value="">Select Product</option>';
-
-        products.forEach(product => {
-            const option = document.createElement('option');
-            option.value = product.id;
-            option.setAttribute('data-stock', product.current_stock);
-            option.setAttribute('data-unit', product.unit_of_measure);
-            option.textContent = `${product.name} (${product.sku}) - Available: ${product.current_stock} ${product.unit_of_measure}`;
-
-            if (product.id == consumption.product_id) {
-                option.selected = true;
-            }
-
-            select.appendChild(option);
-        });
-
-        // Populate edit modal
-        document.getElementById('editConsumptionId').value = consumption.id;
-        document.getElementById('editOriginalQuantity').value = consumption.quantity_used;
-        document.getElementById('editConsumptionDate').value = consumption.consumption_date;
-        document.getElementById('editConsumptionQuantity').value = consumption.quantity_used;
-        document.getElementById('editConsumptionIssuedTo').value = consumption.issued_to || '';
-        document.getElementById('editConsumptionReference').value = consumption.reference_doc_no || '';
-        document.getElementById('editConsumptionNotes').value = consumption.notes || '';
-
-        // Update available stock display
-        updateEditAvailableStock(select);
-
-        const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error loading consumption:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    });
-}
-
 function saveEditConsumption() {
     const form = document.getElementById('editConsumptionForm');
-
-    // Validate form
-    if (!validateConsumptionForm(form)) {
+    if (!validateConsumptionForm(form)) { // Reuse validation logic
         return;
     }
 
-    const formData = new FormData(form);
     const consumptionId = document.getElementById('editConsumptionId').value;
+    const formData = new FormData(form);
 
-    // Ensure date is in proper format
+    // Ensure date is in YYYY-MM-DD format
     const dateInput = form.querySelector('input[name="consumption_date"]');
-    if (dateInput.value) {
+    if (dateInput && dateInput.value) {
         const date = new Date(dateInput.value);
-        if (isNaN(date.getTime())) {
-            showToast('Please select a valid date', 'error');
+        if (!isNaN(date.getTime())) {
+            formData.set('consumption_date', date.toISOString().slice(0, 10));
+        } else {
+            showToast('Invalid date selected.', 'error');
             dateInput.classList.add('is-invalid');
             return;
         }
-        formData.set('consumption_date', date.toISOString().slice(0, 10));
     } else {
-        showToast('Please select a consumption date', 'error');
-        dateInput.classList.add('is-invalid');
+        showToast('Consumption date is required.', 'error');
+        if(dateInput) dateInput.classList.add('is-invalid');
         return;
     }
 
-    // Add loading state
-    const saveButton = form.querySelector('.btn-primary');
-    const originalContent = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    const saveButton = form.querySelector('button[onclick="saveEditConsumption()"]');
     saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
 
     fetch(`/api/inventory/consumption/${consumptionId}/edit`, {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            showToast(data.message || 'Consumption record updated successfully', 'success');
+            showToast(data.message || 'Consumption record updated successfully.', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
-
-            // Refresh data
             setTimeout(() => {
-                loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
-                loadProducts(); // Refresh product stock levels
+                loadConsumptionData(); // Refresh table
+                loadProducts(); // Update product stock levels
             }, 500);
         } else {
             throw new Error(data.error || 'Failed to update consumption record');
         }
     })
     .catch(error => {
-        console.error('Error updating consumption:', error);
+        console.error('Error saving consumption edit:', error);
         showToast(`Error: ${error.message}`, 'error');
     })
     .finally(() => {
-        // Reset button state
-        saveButton.innerHTML = originalContent;
         saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-1"></i>Save Changes';
     });
 }
 
 function deleteConsumption(id) {
+    // Fetch consumption details to display in confirmation
     fetch(`/api/inventory/consumption/${id}`)
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
     .then(consumption => {
         const productName = consumption.product_name || 'Unknown Product';
         const quantity = consumption.quantity_used || 0;
@@ -2356,7 +2385,7 @@ function deleteConsumption(id) {
                    <strong>Product:</strong> ${productName}<br>
                    <strong>Quantity:</strong> ${quantity} ${unit}<br>
                    <strong>Date:</strong> ${date}<br><br>
-                   <em>This will restore ${quantity} ${unit} to the product stock.</em>`,
+                   <em>This action will restore ${quantity} ${unit} to the product's stock.</em>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
@@ -2366,18 +2395,17 @@ function deleteConsumption(id) {
             focusCancel: true
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch(`/api/inventory/consumption/${id}/delete`, {
-                    method: 'DELETE'
+                fetch(`/api/inventory/consumption/${id}/delete`, { method: 'DELETE' })
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
                 })
-                .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showToast(data.message || 'Consumption record deleted and stock restored successfully', 'success');
-
-                        // Refresh data
+                        showToast(data.message || 'Consumption record deleted and stock restored.', 'success');
                         setTimeout(() => {
-                            loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
-                            loadProducts(); // Refresh product stock levels
+                            loadConsumptionData(); // Refresh table
+                            loadProducts(); // Update product stock levels
                         }, 500);
                     } else {
                         throw new Error(data.error || 'Failed to delete consumption record');
@@ -2385,168 +2413,133 @@ function deleteConsumption(id) {
                 })
                 .catch(error => {
                     console.error('Error deleting consumption:', error);
-                    showToast(`Error: ${error.message}`, 'error');
+                    showToast(`Error deleting consumption: ${error.message}`, 'error');
                 });
             }
         });
     })
     .catch(error => {
-        console.error('Error fetching consumption details:', error);
+        console.error('Error fetching consumption details for deletion:', error);
         showToast(`Error: ${error.message}`, 'error');
     });
 }
 
-// Adjustment functions
+// --- Adjustment Functions ---
+function loadAdjustmentsData() {
+    fetch('/api/inventory/adjustments')
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch adjustments');
+        return response.json();
+    })
+    .then(data => {
+        if (data.records) {
+            allAdjustmentsData = data.records;
+            applyAdjustmentsFilters(); // Apply filters and render
+        } else {
+            throw new Error('Invalid data format received for adjustments');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading adjustments data:', error);
+        showToast(`Error loading adjustments: ${error.message}`, 'error');
+        document.getElementById('adjustmentsTable').querySelector('tbody').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load adjustments.</td></tr>';
+    });
+}
+
 function viewAdjustment(id) {
     fetch(`/api/inventory/adjustments/${id}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            throw new Error(data.error);
-        }
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(adjustment => {
+        document.getElementById('viewReferenceId').textContent = adjustment.reference_id || 'N/A';
+        document.getElementById('viewAdjustmentDate').textContent = adjustment.adjustment_date || 'N/A';
+        document.getElementById('viewCreatedBy').textContent = adjustment.created_by || '—';
+        document.getElementById('viewCreatedDate').textContent = adjustment.created_date ? new Date(adjustment.created_date).toLocaleString() : '—';
+        document.getElementById('viewRemarks').textContent = adjustment.remarks || 'No remarks';
 
-        // Populate view modal
-        document.getElementById('viewReferenceId').textContent = data.reference_id || 'N/A';
-        document.getElementById('viewAdjustmentDate').textContent = data.adjustment_date;
-        document.getElementById('viewCreatedBy').textContent = data.created_by;
-        document.getElementById('viewCreatedDate').textContent = data.created_date;
-        document.getElementById('viewRemarks').textContent = data.remarks || 'No remarks';
-
-        // Populate items table
         const tbody = document.getElementById('viewItemsTableBody');
-        tbody.innerHTML = '';
-        data.items.forEach(item => {
+        tbody.innerHTML = ''; // Clear previous rows
+        let subtotal = 0;
+        adjustment.items.forEach(item => {
+            const lineTotal = item.quantity_added * item.unit_cost;
+            subtotal += lineTotal;
             tbody.innerHTML += `
                 <tr>
-                    <td>${item.product_name}</td>
-                    <td>${item.quantity_added}</td>
-                    <td>$${item.unit_cost.toFixed(2)}</td>
-                    <td>$${item.line_total.toFixed(2)}</td>
+                    <td>${item.product_name || 'N/A'}</td>
+                    <td>${item.quantity_added !== undefined ? parseFloat(item.quantity_added).toFixed(2) : '0.00'}</td>
+                    <td>$${item.unit_cost !== undefined ? parseFloat(item.unit_cost).toFixed(2) : '0.00'}</td>
+                    <td>$${lineTotal.toFixed(2)}</td>
                 </tr>
             `;
         });
 
-        // Populate totals
-        document.getElementById('viewSubtotal').textContent = `$${data.subtotal.toFixed(2)}`;
-        document.getElementById('viewTax').textContent = `$${data.tax.toFixed(2)}`;
-        document.getElementById('viewGrandTotal').textContent = `$${data.total_value.toFixed(2)}`;
+        document.getElementById('viewSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+        document.getElementById('viewTax').textContent = `$${adjustment.tax !== undefined ? parseFloat(adjustment.tax).toFixed(2) : '0.00'}`;
+        document.getElementById('viewGrandTotal').textContent = `$${adjustment.total_value !== undefined ? parseFloat(adjustment.total_value).toFixed(2) : '0.00'}`;
 
-        const modal = new bootstrap.Modal(document.getElementById('viewAdjustmentModal'));
-        modal.show();
+        new bootstrap.Modal(document.getElementById('viewAdjustmentModal')).show();
     })
     .catch(error => {
-        console.error('Error loading adjustment:', error);
-        showToast(`Error: ${error.message}`, 'error');
+        console.error('Error viewing adjustment:', error);
+        showToast(`Error viewing adjustment: ${error.message}`, 'error');
     });
 }
 
 function editAdjustment(id) {
-    console.log('Loading adjustment for edit:', id);
-
     fetch(`/api/inventory/adjustments/${id}`)
     .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     })
     .then(adjustment => {
-        console.log('Adjustment data loaded:', adjustment);
-
-        if (adjustment.error) {
-            throw new Error(adjustment.error);
-        }
-
-        // Populate edit modal
         document.getElementById('editAdjustmentId').value = adjustment.id;
-        document.getElementById('editAdjustmentDate').value = adjustment.adjustment_date;
+        document.getElementById('editAdjustmentDate').value = adjustment.adjustment_date || '';
         document.getElementById('editReferenceNo').value = adjustment.reference_id || '';
         document.getElementById('editNotes').value = adjustment.remarks || '';
-        document.getElementById('editTax').value = adjustment.tax || 0;
+        document.getElementById('editTax').value = adjustment.tax !== undefined ? adjustment.tax : 0;
 
-        // Clear existing items container
-        const container = document.getElementById('editInventoryItems');
-        container.innerHTML = '';
+        loadEditAdjustmentItems(adjustment.items); // Function to load items into the edit modal
 
-        // Load and populate items for editing
-        loadEditAdjustmentItems(adjustment.items);
-
-        const modal = new bootstrap.Modal(document.getElementById('editAdjustmentModal'));
-        modal.show();
+        new bootstrap.Modal(document.getElementById('editAdjustmentModal')).show();
     })
     .catch(error => {
-        console.error('Error loading adjustment:', error);
-        showToast(`Error loading adjustment: ${error.message}`, 'error');
+        console.error('Error editing adjustment:', error);
+        showToast(`Error editing adjustment: ${error.message}`, 'error');
     });
 }
 
 function loadEditAdjustmentItems(items) {
     const container = document.getElementById('editInventoryItems');
-    container.innerHTML = ''; // Clear previous items
+    container.innerHTML = ''; // Clear existing items
 
     if (!items || items.length === 0) {
-        // Add a single empty item row if no items are present
+        // Add a single empty row if no items were loaded
         addEditInventoryItem();
         return;
     }
 
-    items.forEach((item, index) => {
-        const newItemRow = document.createElement('div');
-        newItemRow.classList.add('row', 'mb-2', 'inventory-item');
-        newItemRow.innerHTML = `
-            <div class="col-md-3">
-                <label class="form-label small">Select Product</label>
-                <div class="input-group">
-                    <select name="product_id[]" class="form-select product-select" required onchange="updateCurrentStock(this)">
-                        <option value="">Select Product</option>
-                    </select>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshProductsDropdown(this)" title="Refresh Products">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-                <div class="invalid-feedback" style="display: none;">Please select a product</div>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small">Current Stock</label>
-                <input type="number" name="current_stock[]" class="form-control current-stock" readonly>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small">Quantity to Add</label>
-                <input type="number" name="quantity_in[]" class="form-control quantity-in" step="0.01" required onchange="calculateEditLineTotal(this)">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small">Unit Cost</label>
-                <input type="number" name="unit_cost[]" class="form-control unit-cost" step="0.01" onchange="calculateEditLineTotal(this)">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small">Line Total</label>
-                <input type="number" name="line_total[]" class="form-control line-total" readonly>
-            </div>
-            <div class="col-md-1">
-                <label class="form-label small">&nbsp;</label>
-                <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeEditInventoryItem(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
+    items.forEach(item => {
+        const newItemRow = createInventoryItemRow(); // Use helper to create row HTML
         container.appendChild(newItemRow);
 
         const productSelect = newItemRow.querySelector('.product-select');
-        const currentStockInput = newItemRow.querySelector('.current-stock');
         const quantityInput = newItemRow.querySelector('.quantity-in');
         const unitCostInput = newItemRow.querySelector('.unit-cost');
         const lineTotalInput = newItemRow.querySelector('.line-total');
+        const currentStockInput = newItemRow.querySelector('.current-stock');
 
-        // Populate product dropdown and pre-select the correct product
+        // Populate product dropdown and pre-select the item's product
         loadProductsForEditAdjustment(productSelect, item.product_id);
 
-        // Fill item details
-        quantityInput.value = item.quantity_added; // Use quantity_added for edit
-        unitCostInput.value = parseFloat(item.unit_cost).toFixed(2);
-        lineTotalInput.value = parseFloat(item.line_total).toFixed(2);
-        currentStockInput.value = item.current_stock || '0.00'; // Pre-fill current stock
+        // Fill in item details
+        quantityInput.value = item.quantity_added !== undefined ? item.quantity_added : '';
+        unitCostInput.value = item.unit_cost !== undefined ? parseFloat(item.unit_cost).toFixed(2) : '';
+        lineTotalInput.value = item.line_total !== undefined ? parseFloat(item.line_total).toFixed(2) : '';
+        currentStockInput.value = item.current_stock !== undefined ? parseFloat(item.current_stock).toFixed(2) : '0.00';
 
-        // Set the 'data-stock' and 'data-cost' attributes for the selected product
+        // Set data attributes for the selected product option if available
         const productOption = Array.from(productSelect.options).find(opt => opt.value == item.product_id);
         if (productOption) {
             productOption.setAttribute('data-stock', item.current_stock || 0);
@@ -2554,12 +2547,10 @@ function loadEditAdjustmentItems(items) {
         }
     });
 
-    // Recalculate totals after loading items
-    calculateEditSubtotal();
+    calculateEditSubtotal(); // Recalculate totals after loading all items
 }
 
-function addEditInventoryItem() {
-    const container = document.getElementById('editInventoryItems');
+function createInventoryItemRow() {
     const newItemRow = document.createElement('div');
     newItemRow.classList.add('row', 'mb-2', 'inventory-item');
     newItemRow.innerHTML = `
@@ -2598,11 +2589,15 @@ function addEditInventoryItem() {
             </button>
         </div>
     `;
-    container.appendChild(newItemRow);
+    return newItemRow;
+}
 
-    // Load products for the new dropdown
-    const newSelect = newItemRow.querySelector('.product-select');
-    loadProductsForEditAdjustment(newSelect);
+function addEditInventoryItem() {
+    const container = document.getElementById('editInventoryItems');
+    const newItemRow = createInventoryItemRow();
+    container.appendChild(newItemRow);
+    // Load products for the newly added dropdown
+    loadProductsForEditAdjustment(newItemRow.querySelector('.product-select'));
 }
 
 function loadProductsForEditAdjustment(selectElement, preselectedValue = '') {
@@ -2614,19 +2609,18 @@ function loadProductsForEditAdjustment(selectElement, preselectedValue = '') {
             const products = JSON.parse(cachedProducts);
             productsPromise = Promise.resolve(products);
         } catch (e) {
+            console.warn('Could not parse cached products, fetching fresh data.', e);
             productsPromise = fetchProductsFromAPI();
         }
     } else {
         productsPromise = fetchProductsFromAPI();
     }
 
-    productsPromise
-    .then(products => {
+    productsPromise.then(products => {
         populateProductDropdown(selectElement, products, preselectedValue);
-    })
-    .catch(error => {
+    }).catch(error => {
         console.error('Error loading products for edit:', error);
-        showToast('Error loading products. Please try again.', 'error');
+        showToast(`Error loading products: ${error.message}`, 'error');
     });
 }
 
@@ -2634,9 +2628,9 @@ function removeEditInventoryItem(button) {
     const items = document.querySelectorAll('#editInventoryItems .inventory-item');
     if (items.length > 1) {
         button.closest('.inventory-item').remove();
-        calculateEditSubtotal(); // Recalculate totals after removal
+        calculateEditSubtotal(); // Recalculate totals
     } else {
-        // Optionally, clear the single item if it's the last one
+        // Clear the last item's fields instead of removing the row
         const itemRow = button.closest('.inventory-item');
         itemRow.querySelector('.product-select').value = '';
         itemRow.querySelector('.current-stock').value = '0.00';
@@ -2668,7 +2662,7 @@ function calculateEditSubtotal() {
     });
 
     document.getElementById('editSubtotal').textContent = `$${subtotal.toFixed(2)}`;
-    calculateEditGrandTotal();
+    calculateEditGrandTotal(); // Recalculate grand total as well
 }
 
 function calculateEditGrandTotal() {
@@ -2680,23 +2674,37 @@ function calculateEditGrandTotal() {
 }
 
 function saveEditedAdjustment() {
-    console.log('Saving edited adjustment...');
-
     const form = document.getElementById('editAdjustmentForm');
     const adjustmentId = document.getElementById('editAdjustmentId').value;
 
     if (!adjustmentId) {
-        showToast('Error: Adjustment ID not found', 'error');
+        showToast('Error: Adjustment ID not found.', 'error');
         return;
     }
 
-    // Get form data
-    const adjustmentDate = document.getElementById('editAdjustmentDate').value;
-    const referenceNo = document.getElementById('editReferenceNo').value || '';
-    const notes = document.getElementById('editNotes').value || '';
-    const tax = parseFloat(document.getElementById('editTax').value) || 0;
+    // Validate all items before submitting
+    let allItemsValid = true;
+    const itemRows = document.querySelectorAll('#editInventoryItems .inventory-item');
+    itemRows.forEach(row => {
+        const productSelect = row.querySelector('.product-select');
+        const quantityInput = row.querySelector('.quantity-in');
 
-    // Get all items
+        if (!productSelect || !productSelect.value) {
+            productSelect.classList.add('is-invalid');
+            allItemsValid = false;
+        }
+        if (!quantityInput || !quantityInput.value || parseFloat(quantityInput.value) <= 0) {
+            quantityInput.classList.add('is-invalid');
+            allItemsValid = false;
+        }
+    });
+
+    if (!allItemsValid) {
+        showToast('Please correct the errors in the item list.', 'error');
+        return;
+    }
+
+    // Collect item data
     const items = [];
     const productSelects = document.querySelectorAll('#editInventoryItems .product-select');
     const quantityInputs = document.querySelectorAll('#editInventoryItems .quantity-in');
@@ -2704,22 +2712,27 @@ function saveEditedAdjustment() {
 
     for (let i = 0; i < productSelects.length; i++) {
         const productId = productSelects[i].value;
-        const quantity = parseFloat(quantityInputs[i].value) || 0;
-        const unitCost = parseFloat(unitCostInputs[i].value) || 0;
+        const quantity = parseFloat(quantityInputs[i].value);
+        const unitCost = parseFloat(unitCostInputs[i].value);
 
-        if (productId && quantity > 0) {
+        if (productId && !isNaN(quantity) && quantity > 0) {
             items.push({
                 product_id: parseInt(productId),
                 quantity_added: quantity,
-                unit_cost: unitCost
+                unit_cost: isNaN(unitCost) ? 0 : unitCost
             });
         }
     }
 
     if (items.length === 0) {
-        showToast('Please add at least one valid item', 'error');
+        showToast('Please add at least one valid item to the adjustment.', 'error');
         return;
     }
+
+    const adjustmentDate = document.getElementById('editAdjustmentDate').value;
+    const referenceNo = document.getElementById('editReferenceNo').value || '';
+    const notes = document.getElementById('editNotes').value || '';
+    const tax = parseFloat(document.getElementById('editTax').value) || 0;
 
     const data = {
         adjustment_date: adjustmentDate,
@@ -2729,235 +2742,229 @@ function saveEditedAdjustment() {
         items: items
     };
 
-    console.log('Sending adjustment data:', data);
-
-    // Add loading state to button
-    const saveButton = document.querySelector('#editAdjustmentModal .btn-primary');
-    const originalContent = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    const saveButton = form.querySelector('button[onclick="saveEditedAdjustment()"]');
     saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
 
     fetch(`/api/inventory/adjustments/${adjustmentId}/edit`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     })
     .then(response => {
-        console.log('Edit response status:', response.status);
-        if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     })
     .then(data => {
-        console.log('Edit response data:', data);
         if (data.success) {
-            showToast(data.message || 'Adjustment updated successfully', 'success');
+            showToast(data.message || 'Adjustment updated successfully.', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editAdjustmentModal')).hide();
-
-            // Refresh all related data
             setTimeout(() => {
-                loadAdjustmentsData(); // Refresh adjustments table
-                loadProducts(); // Refresh product list to show updated stock
+                loadAdjustmentsData(); // Refresh adjustments list
+                loadProducts(); // Refresh product stock levels
             }, 500);
         } else {
             throw new Error(data.error || 'Failed to update adjustment');
         }
     })
     .catch(error => {
-        console.error('Error updating adjustment:', error);
-        const errorMessage = error.error || error.message || 'Failed to update adjustment';
-        showToast(`Error: ${errorMessage}`, 'error');
+        console.error('Error saving edited adjustment:', error);
+        showToast(`Error: ${error.message}`, 'error');
     })
     .finally(() => {
-        // Reset button state
-        saveButton.innerHTML = originalContent;
         saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-1"></i>Save Changes';
     });
 }
 
-// View Product Modal Functions
-function viewProduct(id) {
-    fetch(`/api/inventory/product/${id}`)
-    .then(response => response.json())
-    .then(product => {
-        if (product.error) {
-            throw new Error(product.error);
-        }
-
-        // Populate view modal
-        document.getElementById('viewProductSKU').textContent = product.sku || 'N/A';
-        document.getElementById('viewProductName').textContent = product.name || 'N/A';
-        document.getElementById('viewProductDescription').textContent = product.description || 'No description';
-        document.getElementById('viewProductCategory').textContent = product.category || 'Uncategorized';
-        document.getElementById('viewProductUnit').textContent = product.unit_of_measure || 'pcs';
-        document.getElementById('viewProductCurrentStock').textContent = product.current_stock || 0;
-        document.getElementById('viewProductReorderLevel').textContent = product.reorder_point || 0;
-        document.getElementById('viewProductMinStock').textContent = product.min_stock_level || 0;
-        document.getElementById('viewProductMaxStock').textContent = product.max_stock_level || 0;
-        document.getElementById('viewProductCostPrice').textContent = `$${(product.cost_price || 0).toFixed(2)}`;
-        document.getElementById('viewProductSellingPrice').textContent = `$${(product.selling_price || 0).toFixed(2)}`;
-        document.getElementById('viewProductBarcode').textContent = product.barcode || 'N/A';
-        document.getElementById('viewProductLocation').textContent = product.location || 'N/A';
-        document.getElementById('viewProductStatus').textContent = (product.stock_status || 'unknown').replace('_', ' ').toUpperCase();
-        document.getElementById('viewProductServiceItem').textContent = product.is_service_item ? 'Yes' : 'No';
-        document.getElementById('viewProductRetailItem').textContent = product.is_retail_item ? 'Yes' : 'No';
-
-        const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
-        modal.show();
+function deleteAdjustment(id) {
+    // Fetch adjustment details for confirmation
+    fetch(`/api/inventory/adjustments/${id}`)
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(adjustment => {
+        const refId = adjustment.reference_id || 'this adjustment';
+        Swal.fire({
+            title: 'Delete Inventory Adjustment',
+            html: `Are you sure you want to delete adjustment<strong> "${refId}"</strong>?<br>
+                   This action cannot be undone and will reverse the stock changes associated with it.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/inventory/adjustments/${id}/delete`, { method: 'DELETE' })
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Adjustment deleted successfully.', 'success');
+                        loadAdjustmentsData(); // Refresh table
+                        loadProducts(); // Refresh product stock levels
+                    } else {
+                        throw new Error(data.error || 'Failed to delete adjustment');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting adjustment:', error);
+                    showToast(`Error deleting adjustment: ${error.message}`, 'error');
+                });
+            }
+        });
     })
     .catch(error => {
-        console.error('Error loading product:', error);
+        console.error('Error fetching adjustment details for deletion:', error);
         showToast(`Error: ${error.message}`, 'error');
     });
 }
 
-// Save Category Functions
-function saveEditCategory() {
-    const form = document.getElementById('editCategoryForm');
-    const formData = new FormData(form);
-    const categoryId = document.getElementById('editCategoryId').value;
 
-    // Add loading state to button
-    const saveButton = document.querySelector('#editCategoryModal .btn-primary');
-    const originalContent = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
-    saveButton.disabled = true;
+// --- Excel Export Functions ---
+function exportToExcel(data, filename, columns) {
+    const wb = XLSX.utils.book_new();
+    const wsData = [columns.map(col => col.header)]; // Header row
 
-    fetch(`/api/inventory/categories/${categoryId}/edit`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
-            location.reload(); // Refresh page since categories are server-rendered
-        } else {
-            throw new Error(data.error || 'Failed to update category');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating category:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    })
-    .finally(() => {
-        // Reset button state
-        saveButton.innerHTML = originalContent;
-        saveButton.disabled = false;
+    data.forEach(row => {
+        const rowData = columns.map(col => {
+            let value = row[col.key];
+            // Basic formatting for currency and dates
+            if (col.format === 'currency') {
+                return parseFloat(value || 0).toFixed(2);
+            } else if (col.format === 'date') {
+                return value ? new Date(value).toISOString().slice(0, 10) : '';
+            }
+            return value === undefined || value === null ? '' : value;
+        });
+        wsData.push(rowData);
     });
-}
 
-// Save Consumption Functions
-function saveEditConsumption() {
-    const form = document.getElementById('editConsumptionForm');
-    const formData = new FormData(form);
-    const consumptionId = document.getElementById('editConsumptionId').value;
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // Add loading state to button
-    const saveButton = document.querySelector('#editConsumptionModal .btn-primary');
-    const originalContent = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
-    saveButton.disabled = true;
-
-    fetch(`/api/inventory/consumption/${consumptionId}/edit`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
-            loadConsumptionData(); // Refresh table
-        } else {
-            throw new Error(data.error || 'Failed to update consumption record');
+    // Auto-size columns (optional, but good for readability)
+    const colWidths = [];
+    for (let C = 0; C < columns.length; C++) {
+        let maxWidth = columns[C].header.length;
+        for (let R = 0; R < data.length; R++) {
+            const cellValue = wsData[R+1] ? wsData[R+1][C] : ''; // +1 because wsData[0] is header
+            if (cellValue !== undefined && cellValue !== null) {
+                maxWidth = Math.max(maxWidth, cellValue.toString().length);
+            }
         }
-    })
-    .catch(error => {
-        console.error('Error updating consumption:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    })
-    .finally(() => {
-        // Reset button state
-        saveButton.innerHTML = originalContent;
-        saveButton.disabled = false;
-    });
+        colWidths.push({ wch: Math.min(maxWidth + 2, 50) }); // Limit width to 50 characters
+    }
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, filename);
 }
 
-// This function was missing, so it's added here to complete the functionality.
-function addEditInventoryItem() {
-    const container = document.getElementById('editInventoryItems');
-    const newItemRow = document.createElement('div');
-    newItemRow.classList.add('row', 'mb-2', 'inventory-item');
-    newItemRow.innerHTML = `
-        <div class="col-md-3">
-            <label class="form-label small">Select Product</label>
-            <div class="input-group">
-                <select name="product_id[]" class="form-select product-select" required onchange="updateCurrentStock(this)">
-                    <option value="">Select Product</option>
-                </select>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshProductsDropdown(this)" title="Refresh Products">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-            <div class="invalid-feedback" style="display: none;">Please select a product</div>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Current Stock</label>
-            <input type="number" name="current_stock[]" class="form-control current-stock" readonly>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Quantity to Add</label>
-            <input type="number" name="quantity_in[]" class="form-control quantity-in" step="0.01" required onchange="calculateEditLineTotal(this)">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Unit Cost</label>
-            <input type="number" name="unit_cost[]" class="form-control unit-cost" step="0.01" onchange="calculateEditLineTotal(this)">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small">Line Total</label>
-            <input type="number" name="line_total[]" class="form-control line-total" readonly>
-        </div>
-        <div class="col-md-1">
-            <label class="form-label small">&nbsp;</label>
-            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeEditInventoryItem(this)">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
-    container.appendChild(newItemRow);
-
-    // Load products for the new dropdown
-    const newSelect = newItemRow.querySelector('.product-select');
-    loadProductsForEditAdjustment(newSelect);
+function exportConsumptionFiltered() {
+    if (filteredConsumptionData.length === 0) {
+        showToast('No consumption data to export.', 'warning');
+        return;
+    }
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+    const columns = [
+        {header: 'Date', key: 'consumption_date', format: 'date'},
+        {header: 'Product', key: 'product_name'},
+        {header: 'SKU', key: 'product_sku'},
+        {header: 'Qty Used', key: 'quantity_used'},
+        {header: 'Unit', key: 'unit_of_measure'},
+        {header: 'Issued To', key: 'issued_to'},
+        {header: 'Reference ID', key: 'reference_doc_no'},
+        {header: 'Notes', key: 'notes'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+    exportToExcel(filteredConsumptionData, `consumption_report_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${filteredConsumptionData.length} consumption records to Excel.`, 'success');
 }
 
-// Also ensure the populateProductDropdown handles pre-selection correctly for editing
+function exportConsumptionAll() {
+    if (allConsumptionData.length === 0) {
+        showToast('No consumption data to export.', 'warning');
+        return;
+    }
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+    const columns = [
+        {header: 'Date', key: 'consumption_date', format: 'date'},
+        {header: 'Product', key: 'product_name'},
+        {header: 'SKU', key: 'product_sku'},
+        {header: 'Qty Used', key: 'quantity_used'},
+        {header: 'Unit', key: 'unit_of_measure'},
+        {header: 'Issued To', key: 'issued_to'},
+        {header: 'Reference ID', key: 'reference_doc_no'},
+        {header: 'Notes', key: 'notes'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+    exportToExcel(allConsumptionData, `consumption_report_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${allConsumptionData.length} consumption records to Excel.`, 'success');
+}
+
+function exportAdjustmentsFiltered() {
+    if (filteredAdjustmentsData.length === 0) {
+        showToast('No adjustments data to export.', 'warning');
+        return;
+    }
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+    const columns = [
+        {header: 'Reference ID', key: 'reference_id'},
+        {header: 'Adjustment Date', key: 'adjustment_date', format: 'date'},
+        {header: 'Number of Items', key: 'items_count'},
+        {header: 'Subtotal Value', key: 'subtotal', format: 'currency'},
+        {header: 'Total Value', key: 'total_value', format: 'currency'},
+        {header: 'Remarks', key: 'remarks'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+    exportToExcel(filteredAdjustmentsData, `inventory_adjustments_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${filteredAdjustmentsData.length} adjustment records to Excel.`, 'success');
+}
+
+function exportAdjustmentsAll() {
+    if (allAdjustmentsData.length === 0) {
+        showToast('No adjustments data to export.', 'warning');
+        return;
+    }
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+    const columns = [
+        {header: 'Reference ID', key: 'reference_id'},
+        {header: 'Adjustment Date', key: 'adjustment_date', format: 'date'},
+        {header: 'Number of Items', key: 'items_count'},
+        {header: 'Subtotal Value', key: 'subtotal', format: 'currency'},
+        {header: 'Total Value', key: 'total_value', format: 'currency'},
+        {header: 'Remarks', key: 'remarks'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+    exportToExcel(allAdjustmentsData, `inventory_adjustments_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${allAdjustmentsData.length} adjustment records to Excel.`, 'success');
+}
+
+// --- Helper Functions ---
+
+// Populate product dropdown (used in modals for adding/editing items)
 function populateProductDropdown(selectElement, products, preselectedValue = '') {
-    // Clear existing options
-    selectElement.innerHTML = '<option value="">Select Product</option>';
+    selectElement.innerHTML = '<option value="">Select Product</option>'; // Clear existing and add default
 
-    // Handle empty state
     if (!products || products.length === 0) {
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '';
-        emptyOption.textContent = 'No products found. Please add products in Product Master.';
-        emptyOption.disabled = true;
-        selectElement.appendChild(emptyOption);
+        selectElement.add(Object.assign(document.createElement('option'), {
+            value: '', textContent: 'No products available.', disabled: true
+        }));
         return;
     }
 
-    // Add products to dropdown
     products.forEach(product => {
         const option = document.createElement('option');
         option.value = product.id || '';
         option.setAttribute('data-stock', product.current_stock || 0);
         option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
-        option.setAttribute('data-cost', product.cost_price || 0);
+        option.setAttribute('data-cost', product.cost_price || 0); // Assuming cost_price is available
 
         const currentStock = product.current_stock || 0;
         const unit = product.unit_of_measure || 'pcs';
@@ -2968,574 +2975,372 @@ function populateProductDropdown(selectElement, products, preselectedValue = '')
         selectElement.appendChild(option);
     });
 
-    // Set pre-selected value if provided
+    // Set pre-selected value if provided (used for editing)
     if (preselectedValue) {
         selectElement.value = preselectedValue;
-        // Trigger change event to update dependent fields
+        // Trigger change event to update dependent fields (like current stock)
         const event = new Event('change');
         selectElement.dispatchEvent(event);
     }
 
-    // Add searchable functionality for large lists
+    // Add search functionality if the list is large
     if (products.length > 20) {
         addSearchableFeature(selectElement);
     }
 }
 
-// Excel Export Functions
-function exportToExcel(data, filename, columns) {
-    const wb = XLSX.utils.book_new();
-    const wsData = [columns.map(col => col.header)];
+// Make a select dropdown searchable
+function addSearchableFeature(selectElement) {
+    const container = selectElement.closest('.input-group') || selectElement.parentElement;
 
-    data.forEach(row => {
-        wsData.push(columns.map(col => {
-            let value = row[col.key];
-            if (col.format === 'currency') {
-                value = parseFloat(value || 0);
-            } else if (col.format === 'date') {
-                value = value || '';
-            }
-            return value;
-        }));
-    });
-
-    // Add total row if applicable
-    if (filename.includes('consumption')) {
-        const totalRow = new Array(columns.length).fill('');
-        totalRow[0] = 'TOTAL';
-        const qtyIndex = columns.findIndex(col => col.key === 'quantity_used');
-        if (qtyIndex >= 0) {
-            totalRow[qtyIndex] = data.reduce((sum, row) => sum + parseFloat(row.quantity_used || 0), 0);
-        }
-        wsData.push(totalRow);
-    } else if (filename.includes('adjustments')) {
-        const totalRow = new Array(columns.length).fill('');
-        totalRow[0] = 'TOTAL';
-        const subtotalIndex = columns.findIndex(col => col.key === 'subtotal');
-        const totalIndex = columns.findIndex(col => col.key === 'total_value');
-        if (subtotalIndex >= 0) {
-            totalRow[subtotalIndex] = data.reduce((sum, row) => sum + parseFloat(row.subtotal || 0), 0);
-        }
-        if (totalIndex >= 0) {
-            totalRow[totalIndex] = data.reduce((sum, row) => sum + parseFloat(row.total_value || 0), 0);
-        }
-        wsData.push(totalRow);
+    // Prevent adding multiple search inputs if it already exists
+    if (container.querySelector('.product-search')) {
+        return;
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'form-control form-control-sm product-search mb-1'; // Adjust styling as needed
+    searchInput.placeholder = 'Type to search products...';
 
-    // Auto-size columns
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    const colWidths = [];
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-        let maxWidth = 10;
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
-            const cell = ws[cellAddress];
-            if (cell && cell.v) {
-                maxWidth = Math.max(maxWidth, cell.v.toString().length);
+    // Store original options to restore when search term is cleared
+    const originalOptions = Array.from(selectElement.options).slice(1); // Exclude the default "Select Product" option
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        selectElement.innerHTML = '<option value="">Select Product</option>'; // Reset options
+
+        originalOptions.forEach(option => {
+            if (option.textContent.toLowerCase().includes(searchTerm)) {
+                selectElement.appendChild(option.cloneNode(true)); // Append a copy of the option
             }
+        });
+    });
+
+    container.insertBefore(searchInput, selectElement);
+}
+
+// Refresh product list in dropdowns (used when adding new items or editing)
+function refreshProductsDropdown(refreshButton) {
+    const originalContent = refreshButton.innerHTML;
+    refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    refreshButton.disabled = true;
+
+    // Clear localStorage cache for products
+    localStorage.removeItem('inventory.products');
+
+    // Fetch fresh data from API
+    fetchProductsFromAPI()
+    .then(products => {
+        // Update all product dropdowns
+        document.querySelectorAll('.product-select').forEach(select => {
+            populateProductDropdown(select, products, select.value); // Keep current selection if possible
+        });
+        showToast('Products refreshed successfully', 'success');
+    })
+    .catch(error => {
+        console.error('Error refreshing products:', error);
+        showToast(`Error refreshing products: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        refreshButton.innerHTML = originalContent;
+        refreshButton.disabled = false;
+    });
+}
+
+// Fetch products from API and cache them in localStorage
+function fetchProductsFromAPI() {
+    return fetch('/api/inventory/products/master')
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(products => {
+        try {
+            localStorage.setItem('inventory.products', JSON.stringify(products));
+        } catch (e) {
+            console.warn('Could not cache products in localStorage:', e);
         }
-        colWidths.push({wch: Math.min(maxWidth + 2, 50)});
+        return products;
+    });
+}
+
+// Handle adding a new item row to the inventory adjustment form
+function addInventoryItem() {
+    const container = document.getElementById('inventoryItems');
+    const newItemRow = createInventoryItemRow(); // Use the same helper function
+    container.appendChild(newItemRow);
+    // Load products for the new dropdown
+    loadProductsForEditAdjustment(newItemRow.querySelector('.product-select'));
+}
+
+// Update current stock and line total when product or quantity changes
+function updateCurrentStock(selectElement) {
+    const row = selectElement.closest('.inventory-item');
+    const selectedOption = selectElement.selectedOptions[0];
+    const currentStockInput = row.querySelector('.current-stock');
+    const unitCostInput = row.querySelector('.unit-cost');
+    const quantityInput = row.querySelector('.quantity-in');
+
+    if (selectedOption && selectedOption.value) {
+        const stock = selectedOption.dataset.stock || '0';
+        const cost = selectedOption.dataset.cost || '0';
+
+        currentStockInput.value = parseFloat(stock).toFixed(2);
+        // Auto-fill unit cost if it's empty or zero
+        if (!unitCostInput.value || parseFloat(unitCostInput.value) === 0) {
+            unitCostInput.value = parseFloat(cost).toFixed(2);
+        }
+        // Trigger recalculation if quantity is already entered
+        if (quantityInput.value) {
+            calculateLineTotal(quantityInput);
+        }
+        selectElement.classList.remove('is-invalid'); // Clear validation
+    } else {
+        // Clear if no product is selected
+        currentStockInput.value = '0.00';
+        unitCostInput.value = '0.00';
+        row.querySelector('.line-total').value = '0.00';
+        calculateSubtotal();
     }
-    ws['!cols'] = colWidths;
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Data');
-    XLSX.writeFile(wb, filename);
 }
 
-function exportConsumptionFiltered() {
-    const now = new Date();
-    const timestamp = now.getFullYear().toString() +
-                    (now.getMonth() + 1).toString().padStart(2, '0') +
-                    now.getDate().toString().padStart(2, '0') + '_' +
-                    now.getHours().toString().padStart(2, '0') +
-                    now.getMinutes().toString().padStart(2, '0');
+// Calculate line total for a single item row
+function calculateLineTotal(element) {
+    const row = element.closest('.inventory-item');
+    const quantityInput = row.querySelector('.quantity-in');
+    const unitCostInput = row.querySelector('.unit-cost');
+    const lineTotalInput = row.querySelector('.line-total');
 
-    const columns = [
-        {header: 'Date', key: 'consumption_date', format: 'date'},
-        {header: 'Product', key: 'product_name'},
-        {header: 'SKU', key: 'product_sku'},
-        {header: 'Qty Used', key: 'quantity_used'},
-        {header: 'Unit', key: 'unit_of_measure'},
-        {header: 'Issued To', key: 'issued_to'},
-        {header: 'Reference ID', key: 'reference_doc_no'},
-        {header: 'Notes', key: 'notes'},
-        {header: 'Created By', key: 'created_by'}
-    ];
+    const quantity = parseFloat(quantityInput.value) || 0;
+    const unitCost = parseFloat(unitCostInput.value) || 0;
+    const lineTotal = quantity * unitCost;
 
-    exportToExcel(filteredConsumptionData, `consumption_report_${timestamp}.xlsx`, columns);
-    showToast(`Exported ${filteredConsumptionData.length} consumption records to Excel`, 'success');
+    lineTotalInput.value = lineTotal.toFixed(2);
+    calculateSubtotal(); // Recalculate the modal's subtotal
 }
 
-function exportConsumptionAll() {
-    const now = new Date();
-    const timestamp = now.getFullYear().toString() +
-                    (now.getMonth() + 1).toString().padStart(2, '0') +
-                    now.getDate().toString().padStart(2, '0') + '_' +
-                    now.getHours().toString().padStart(2, '0') +
-                    now.getMinutes().toString().padStart(2, '0');
-
-    const columns = [
-        {header: 'Date', key: 'consumption_date', format: 'date'},
-        {header: 'Product', key: 'product_name'},
-        {header: 'SKU', key: 'product_sku'},
-        {header: 'Qty Used', key: 'quantity_used'},
-        {header: 'Unit', key: 'unit_of_measure'},
-        {header: 'Issued To', key: 'issued_to'},
-        {header: 'Reference ID', key: 'reference_doc_no'},
-        {header: 'Notes', key: 'notes'},
-        {header: 'Created By', key: 'created_by'}
-    ];
-
-    exportToExcel(allConsumptionData, `consumption_report_${timestamp}.xlsx`, columns);
-    showToast(`Exported ${allConsumptionData.length} consumption records to Excel`, 'success');
-}
-
-function exportAdjustmentsFiltered() {
-    const now = new Date();
-    const timestamp = now.getFullYear().toString() +
-                    (now.getMonth() + 1).toString().padStart(2, '0') +
-                    now.getDate().toString().padStart(2, '0') + '_' +
-                    now.getHours().toString().padStart(2, '0') +
-                    now.getMinutes().toString().padStart(2, '0');
-
-    const columns = [
-        {header: 'Reference ID', key: 'reference_id'},
-        {header: 'Adjustment Date', key: 'adjustment_date', format: 'date'},
-        {header: 'Number of Items', key: 'items_count'},
-        {header: 'Subtotal Value', key: 'subtotal', format: 'currency'},
-        {header: 'Total Value', key: 'total_value', format: 'currency'},
-        {header: 'Remarks', key: 'remarks'},
-        {header: 'Created By', key: 'created_by'}
-    ];
-
-    exportToExcel(filteredAdjustmentsData, `inventory_adjustments_${timestamp}.xlsx`, columns);
-    showToast(`Exported ${filteredAdjustmentsData.length} adjustment records to Excel`, 'success');
-}
-
-function exportAdjustmentsAll() {
-    const now = new Date();
-    const timestamp = now.getFullYear().toString() +
-                    (now.getMonth() + 1).toString().padStart(2, '0') +
-                    now.getDate().toString().padStart(2, '0') + '_' +
-                    now.getHours().toString().padStart(2, '0') +
-                    now.getMinutes().toString().padStart(2, '0');
-
-    const columns = [
-        {header: 'Reference ID', key: 'reference_id'},
-        {header: 'Adjustment Date', key: 'adjustment_date', format: 'date'},
-        {header: 'Number of Items', key: 'items_count'},
-        {header: 'Subtotal Value', key: 'subtotal', format: 'currency'},
-        {header: 'Total Value', key: 'total_value', format: 'currency'},
-        {header: 'Remarks', key: 'remarks'},
-        {header: 'Created By', key: 'created_by'}
-    ];
-
-    exportToExcel(allAdjustmentsData, `inventory_adjustments_${timestamp}.xlsx`, columns);
-    showToast(`Exported ${allAdjustmentsData.length} adjustment records to Excel`, 'success');
-}
-
-// Initialize everything when document is ready
-$(document).ready(function() {
-    // Initialize dashboard
-    loadDashboardData();
-
-    // Initialize filters
-    initializeConsumptionFilters();
-    initializeAdjustmentsFilters();
-
-    // Set up filter event listeners
-    $('#consumptionFromDate, #consumptionToDate, #consumptionSearch').on('change keyup', applyConsumptionFilters);
-    $('#consumptionPageSize').on('change', function() {
-        consumptionPageSize = parseInt(this.value);
-        consumptionCurrentPage = 1;
-        renderConsumptionTable();
-        renderConsumptionPagination();
+// Calculate the subtotal for all items in the modal
+function calculateSubtotal() {
+    let subtotal = 0;
+    document.querySelectorAll('.inventory-item .line-total').forEach(input => {
+        subtotal += parseFloat(input.value) || 0;
     });
-    $('#resetConsumptionFilters').on('click', function() {
-        document.getElementById('consumptionSearch').value = '';
-        initializeConsumptionFilters();
-        applyConsumptionFilters();
-    });
+    document.getElementById('modalSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+    calculateGrandTotal(); // Update grand total as well
+}
 
-    $('#adjustmentsFromDate, #adjustmentsToDate, #adjustmentsSearch').on('change keyup', applyAdjustmentsFilters);
-    $('#adjustmentsPageSize').on('change', function() {
-        adjustmentsPageSize = parseInt(this.value);
-        adjustmentsCurrentPage = 1;
-        renderAdjustmentsTable();
-        renderAdjustmentsPagination();
-    });
-    $('#resetAdjustmentsFilters').on('click', function() {
-        document.getElementById('adjustmentsSearch').value = '';
-        initializeAdjustmentsFilters();
-        applyAdjustmentsFilters();
-    });
+// Calculate the grand total (subtotal + tax) for the modal
+function calculateGrandTotal() {
+    const subtotal = parseFloat(document.getElementById('modalSubtotal').textContent.replace('$', '')) || 0;
+    const tax = parseFloat(document.getElementById('modalTax').value) || 0;
+    const grandTotal = subtotal + tax;
+    document.getElementById('modalGrandTotal').textContent = `$${grandTotal.toFixed(2)}`;
+}
 
-    // Export event listeners
-    $('#exportConsumptionFiltered').on('click', exportConsumptionFiltered);
-    $('#exportConsumptionAll').on('click', exportConsumptionAll);
-    $('#exportAdjustmentsFiltered').on('click', exportAdjustmentsFiltered);
-    $('#exportAdjustmentsAll').on('click', exportAdjustmentsAll);
+// Remove an item row from the inventory adjustment form
+function removeInventoryItem(button) {
+    const items = document.querySelectorAll('.inventory-item');
+    if (items.length > 1) {
+        button.closest('.inventory-item').remove();
+        calculateSubtotal(); // Recalculate subtotal after removal
+    } else {
+        // If it's the last item, clear its fields instead of removing the row
+        const itemRow = button.closest('.inventory-item');
+        itemRow.querySelector('.product-select').value = '';
+        itemRow.querySelector('.current-stock').value = '0.00';
+        itemRow.querySelector('.quantity-in').value = '';
+        itemRow.querySelector('.unit-cost').value = '0.00';
+        itemRow.querySelector('.line-total').value = '0.00';
+        calculateSubtotal();
+    }
+}
 
-    // Sortable headers
-    $('.sortable').on('click', function() {
-        const field = $(this).data('sort');
-        const table = $(this).closest('table').attr('id');
+// Save the inventory adjustment (add items)
+function saveInventoryItems() {
+    const form = document.getElementById('addInventoryForm');
+    const items = [];
 
-        if (table === 'consumptionTable') {
-            if (consumptionSortField === field) {
-                consumptionSortOrder = consumptionSortOrder === 'asc' ? 'desc' : 'asc';
-            } else {
-                consumptionSortField = field;
-                consumptionSortOrder = 'asc';
-            }
+    // Validate and collect item data
+    let allItemsValid = true;
+    const itemRows = document.querySelectorAll('#inventoryItems .inventory-item');
+    itemRows.forEach(row => {
+        const productSelect = row.querySelector('.product-select');
+        const quantityInput = row.querySelector('.quantity-in');
+        const unitCostInput = row.querySelector('.unit-cost');
 
-            // Update sort icons
-            $('#consumptionTable .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
-            $(this).find('.sort-icon').removeClass('fa-sort').addClass(consumptionSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+        if (!productSelect || !productSelect.value) {
+            productSelect.classList.add('is-invalid');
+            allItemsValid = false;
+        }
+        if (!quantityInput || !quantityInput.value || parseFloat(quantityInput.value) <= 0) {
+            quantityInput.classList.add('is-invalid');
+            allItemsValid = false;
+        }
+        // Unit cost is optional, but if entered, should be valid
+        if (unitCostInput && unitCostInput.value && isNaN(parseFloat(unitCostInput.value))) {
+            unitCostInput.classList.add('is-invalid');
+            allItemsValid = false;
+        }
 
-            applyConsumptionFilters();
-        } else if (table === 'adjustmentsTable') {
-            if (adjustmentsSortField === field) {
-                adjustmentsSortOrder = adjustmentsSortOrder === 'asc' ? 'desc' : 'asc';
-            } else {
-                adjustmentsSortField = field;
-                adjustmentsSortOrder = 'asc';
-            }
-
-            // Update sort icons
-            $('#adjustmentsTable .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
-            $(this).find('.sort-icon').removeClass('fa-sort').addClass(adjustmentsSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
-
-            applyAdjustmentsFilters();
+        if (productSelect.value && quantityInput.value && parseFloat(quantityInput.value) > 0) {
+            items.push({
+                product_id: parseInt(productSelect.value),
+                quantity_in: parseFloat(quantityInput.value),
+                unit_cost: parseFloat(unitCostInput.value) || 0
+            });
         }
     });
 
-    // Set up tab change listeners
-    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-        const target = $(e.target).attr('data-bs-target');
-        if (target === '#products') { // Corrected ID to match the tab content div
-            loadProducts();
-        } else if (target === '#consumption') { // Corrected ID
-            loadConsumptionData();
-        } else if (target === '#adjustments') { // Corrected ID
-            loadAdjustmentsData();
-        }
-    });
+    if (items.length === 0) {
+        showToast('Please add at least one valid item to the adjustment.', 'error');
+        return;
+    }
+    if (!allItemsValid) {
+        showToast('Please correct the errors in the item list.', 'error');
+        return;
+    }
 
-    // Load initial data for visible tab
-    // This should be based on which tab is initially active, or default to the first one if none is active.
-    // Assuming 'dashboard' is the first tab and it's active by default.
-    // If another tab should be loaded initially, adjust this.
-    // For now, let's ensure the product tab is loaded if it's the first one that needs data.
-    // The current logic loads products, consumption, and adjustments when their respective tabs are shown.
-    // If the page loads with the products tab visible, loadProducts() is called.
-    // If the page loads with consumption or adjustments visible, those functions will be called on tab shown event.
-});
+    const formData = new FormData(form);
+    const adjustmentDate = formData.get('adjustment_date') || new Date().toISOString().slice(0, 10);
+    const referenceNo = formData.get('reference_no') || '';
+    const notes = formData.get('notes') || '';
+    const tax = parseFloat(formData.get('modalTax') || '0'); // Access tax value correctly
+
+    const data = {
+        adjustment_date: adjustmentDate,
+        reference_no: referenceNo,
+        remarks: notes,
+        tax: tax,
+        items: items
+    };
+
+    const saveButton = form.querySelector('button[onclick="saveInventoryItems()"]');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+    fetch('/api/inventory/adjustments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message || 'Inventory adjustment saved successfully.', 'success');
+            bootstrap.Modal.getInstance(form).hide();
+            form.reset(); // Reset the form
+            // Reset form-specific elements that reset() doesn't handle
+            document.getElementById('modalSubtotal').textContent = '$0.00';
+            document.getElementById('modalGrandTotal').textContent = '$0.00';
+            document.getElementById('modalTax').value = '0';
+            document.querySelector('input[name="adjustment_date"]').value = new Date().toISOString().slice(0, 10); // Reset date
+
+            setTimeout(() => {
+                loadAdjustmentsData(); // Refresh adjustments table
+                loadProducts(); // Refresh product list to show updated stock
+            }, 500);
+        } else {
+            throw new Error(data.error || 'Failed to save inventory adjustment');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving inventory items:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-1"></i>Save Changes';
+    });
+}
+
+
+// --- Product Master Modal Functions ---
+function openAddProductModal() {
+    // Clear and reset the form when opening the modal
+    const form = document.getElementById('addProductForm');
+    form.reset();
+    // Reset any custom validation states if necessary
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    form.querySelectorAll('.invalid-feedback').forEach(el => el.style.display = 'none');
+
+    new bootstrap.Modal(document.getElementById('addProductModal')).show();
+}
+
+function saveProduct() {
+    const form = document.getElementById('addProductForm');
+    // Basic form validation
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+
+    const formData = new FormData(form);
+    const saveButton = form.querySelector('button[onclick="saveProduct()"]');
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
+
+    fetch('/inventory/products/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+            loadProducts(); // Refresh the product list
+        } else {
+            throw new Error(data.error || 'Failed to add product');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving product:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        saveButton.disabled = false;
+        saveButton.innerHTML = '<i class="fas fa-save me-1"></i>Add Product';
+    });
+}
+
+// --- Category Modal Functions ---
+// (Already defined above, no changes needed here)
+
+
+// --- Consumption Modal Functions ---
+// (Already defined above, no changes needed here)
+
+
+// --- Adjustment Modal Functions ---
+// (Already defined above, no changes needed here)
+
+
+// --- Product Detail/Edit Modal Functions ---
+// (Already defined above, no changes needed here)
+
+
+// --- Category Detail/Edit Modal Functions ---
+// (Already defined above, no changes needed here)
+
+
+// --- Consumption Detail/Edit Modal Functions ---
+// (Already defined above, no changes needed here)
+
+
+// --- Adjustment Detail/Edit Modal Functions ---
+// (Already defined above, no changes needed here)
+
+
+// --- Initialization and Event Listeners ---
+// (Handled by the DOMContentLoaded listener and setup functions)
+
 
 </script>
-
-<!-- View Product Modal -->
-<div class="modal fade" id="viewProductModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Product Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>SKU:</strong>
-                        <p id="viewProductSKU" class="mb-0">N/A</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Product Name:</strong>
-                        <p id="viewProductName" class="mb-0">N/A</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <strong>Description:</strong>
-                        <p id="viewProductDescription" class="mb-0">No description</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Category:</strong>
-                        <p id="viewProductCategory" class="mb-0">Uncategorized</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Unit of Measure:</strong>
-                        <p id="viewProductUnit" class="mb-0">pcs</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <strong>Current Stock:</strong>
-                        <p id="viewProductCurrentStock" class="mb-0">0</p>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Reorder Level:</strong>
-                        <p id="viewProductReorderLevel" class="mb-0">0</p>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Status:</strong>
-                        <p id="viewProductStatus" class="mb-0">UNKNOWN</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Min Stock Level:</strong>
-                        <p id="viewProductMinStock" class="mb-0">0</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Max Stock Level:</strong>
-                        <p id="viewProductMaxStock" class="mb-0">0</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Cost Price:</strong>
-                        <p id="viewProductCostPrice" class="mb-0">$0.00</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Selling Price:</strong>
-                        <p id="viewProductSellingPrice" class="mb-0">$0.00</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Barcode:</strong>
-                        <p id="viewProductBarcode" class="mb-0">N/A</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Location:</strong>
-                        <p id="viewProductLocation" class="mb-0">N/A</p>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>Used in Services:</strong>
-                        <p id="viewProductServiceItem" class="mb-0">No</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Retail Item:</strong>
-                        <p id="viewProductRetailItem" class="mb-0">No</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- View Category Modal -->
-<div class="modal fade" id="viewCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Category Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <strong>Category Name:</strong>
-                    <p id="viewCategoryName" class="mb-0">N/A</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Description:</strong>
-                    <p id="viewCategoryDescription" class="mb-0">No description</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Color:</strong>
-                    <div class="d-flex align-items-center">
-                        <div id="viewCategoryColorPreview" class="color-preview me-2" style="width: 20px; height: 20px; border-radius: 3px; display: inline-block;"></div>
-                        <span id="viewCategoryColor">#000000</span>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <strong>Products Count:</strong>
-                    <p id="viewCategoryProductCount" class="mb-0">0</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Status:</strong>
-                    <p id="viewCategoryStatus" class="mb-0">Active</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Created Date:</strong>
-                    <p id="viewCategoryCreatedDate" class="mb-0">N/A</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Category Modal -->
-<div class="modal fade" id="editCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Category</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="editCategoryForm">
-                <div class="modal-body">
-                    <input type="hidden" id="editCategoryId" name="category_id">
-                    <div class="mb-3">
-                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" id="editCategoryName" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea id="editCategoryDescription" name="description" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Color</label>
-                        <input type="color" id="editCategoryColor" name="color_code" class="form-control form-control-color">
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input type="checkbox" id="editCategoryActive" name="is_active" class="form-check-input" checked>
-                            <label for="editCategoryActive" class="form-check-label">Active</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEditCategory()">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- View Consumption Modal -->
-<div class="modal fade" id="viewConsumptionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Consumption Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Date:</strong>
-                        <p id="viewConsumptionDate" class="mb-0">N/A</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Product:</strong>
-                        <p id="viewConsumptionProduct" class="mb-0">N/A</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>SKU:</strong>
-                        <p id="viewConsumptionSKU" class="mb-0">N/A</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Unit:</strong>
-                        <p id="viewConsumptionUnit" class="mb-0">N/A</p>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <strong>Quantity Used:</strong>
-                    <p id="viewConsumptionQuantity" class="mb-0">0</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Issued To:</strong>
-                    <p id="viewConsumptionIssuedTo" class="mb-0">N/A</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Reference:</strong>
-                    <p id="viewConsumptionReference" class="mb-0">N/A</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Notes:</strong>
-                    <p id="viewConsumptionNotes" class="mb-0">No notes</p>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>Created By:</strong>
-                        <p id="viewConsumptionCreatedBy" class="mb-0">N/A</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Created Date:</strong>
-                        <p id="viewConsumptionCreatedDate" class="mb-0">N/A</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Consumption Modal -->
-<div class="modal fade" id="editConsumptionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Consumption</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="editConsumptionForm">
-                <div class="modal-body">
-                    <input type="hidden" id="editConsumptionId" name="consumption_id">
-                    <input type="hidden" id="editOriginalQuantity" name="original_quantity">
-                    <div class="mb-3">
-                        <label class="form-label">Date <span class="text-danger">*</span></label>
-                        <input type="date" id="editConsumptionDate" name="consumption_date" class="form-control" required>
-                        <div class="invalid-feedback">Please select a date (YYYY-MM-DD format)</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Product <span class="text-danger">*</span></label>
-                        <select id="editConsumptionProduct" name="product_id" class="form-select" required onchange="updateEditAvailableStock(this)">
-                            <option value="">Select Product</option>
-                        </select>
-                        <div class="invalid-feedback">Please select a product</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Available Stock</label>
-                        <input type="text" id="editAvailableStock" class="form-control" readonly>
-                        <small class="text-muted">Current available stock for selected product</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Quantity Used <span class="text-danger">*</span></label>
-                        <input type="number" id="editConsumptionQuantity" name="quantity_used" class="form-control" step="0.01" min="0.01" required>
-                        <div class="invalid-feedback">Please enter a valid quantity greater than 0</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Issued To <span class="text-danger">*</span></label>
-                        <input type="text" id="editConsumptionIssuedTo" name="issued_to" class="form-control" required>
-                        <div class="invalid-feedback">Please specify who the items were issued to</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Reference Document</label>
-                        <input type="text" id="editConsumptionReference" name="reference_doc_no" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea id="editConsumptionNotes" name="notes" class="form-control" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEditConsumption()">
-                        <i class="fas fa-save me-1"></i>Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 {% endblock %}

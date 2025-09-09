@@ -47,20 +47,21 @@ def get_recent_appointments(limit=10):
 
 def get_low_stock_items(limit=5):
     """Get low stock items"""
-    return InventoryProduct.query.filter(
-        InventoryProduct.current_stock <= InventoryProduct.min_stock_level,
-        InventoryProduct.is_active == True
-    ).limit(limit).all()
+    try:
+        return InventoryProduct.query.filter(
+            InventoryProduct.current_stock <= InventoryProduct.min_stock_level,
+            InventoryProduct.is_active == True
+        ).limit(limit).all()
+    except Exception as e:
+        print(f"Error getting low stock items: {e}")
+        return []
 
 def get_expiring_items(limit=5):
     """Get items expiring soon"""
     try:
-        today = date.today()
-        # Use the new inventory model with different field names
-        return InventoryProduct.query.filter(
-            InventoryProduct.is_expiry_tracked == True,
-            InventoryProduct.is_active == True
-        ).limit(limit).all()
+        # Since the current model doesn't have expiry tracking, return empty list for now
+        # This can be implemented later when expiry date fields are added to the model
+        return []
     except Exception as e:
         print(f"Error getting expiring items: {e}")
         return []

@@ -2,10 +2,10 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeDashboard();
-    
+
     // Auto-refresh dashboard data every 5 minutes
     setInterval(refreshDashboardData, 300000);
-    
+
     // Setup button click handlers
     setupDashboardButtonHandlers();
 });
@@ -17,16 +17,16 @@ function setupDashboardButtonHandlers() {
         // Add click handler as backup
         button.addEventListener('click', function(e) {
             const action = this.getAttribute('data-action');
-            
+
             if (action && !this.onclick) {
                 e.preventDefault();
                 console.log('Using backup navigation for:', action);
-                
+
                 // Add loading state
                 const originalContent = this.innerHTML;
                 this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
                 this.disabled = true;
-                
+
                 // Navigate based on action
                 setTimeout(() => {
                     switch(action) {
@@ -48,7 +48,7 @@ function setupDashboardButtonHandlers() {
                             this.disabled = false;
                     }
                 }, 100);
-                
+
                 // Reset button after 3 seconds if navigation doesn't complete
                 setTimeout(() => {
                     if (this.innerHTML.includes('Loading...')) {
@@ -59,7 +59,7 @@ function setupDashboardButtonHandlers() {
             }
         });
     });
-    
+
     // Handle navigation links in the dashboard
     const dashboardLinks = document.querySelectorAll('a[href]');
     dashboardLinks.forEach(link => {
@@ -69,7 +69,7 @@ function setupDashboardButtonHandlers() {
                 // Add loading indicator for internal navigation
                 const originalText = this.innerHTML;
                 this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-                
+
                 // Reset after delay if navigation doesn't complete
                 setTimeout(() => {
                     if (this.innerHTML.includes('Loading...')) {
@@ -86,7 +86,7 @@ function initializeDashboard() {
     initializeCharts();
     updateDateTime();
     setupNotifications();
-    
+
     // Update time every minute
     setInterval(updateDateTime, 60000);
 }
@@ -97,13 +97,13 @@ function initializeCharts() {
     if (revenueCtx) {
         createRevenueTrendChart(revenueCtx);
     }
-    
+
     // Appointment status chart
     const statusCtx = document.getElementById('appointmentStatusChart');
     if (statusCtx) {
         createAppointmentStatusChart(statusCtx);
     }
-    
+
     // Service popularity chart
     const serviceCtx = document.getElementById('servicePopularityChart');
     if (serviceCtx) {
@@ -114,7 +114,7 @@ function initializeCharts() {
 function createRevenueTrendChart(ctx) {
     // Get last 7 days of revenue data
     const last7Days = getLast7Days();
-    
+
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -225,7 +225,7 @@ function createServicePopularityChart(ctx) {
 function updateDateTime() {
     const now = new Date();
     const dateTimeElement = document.getElementById('currentDateTime');
-    
+
     if (dateTimeElement) {
         const options = {
             weekday: 'long',
@@ -235,7 +235,7 @@ function updateDateTime() {
             hour: '2-digit',
             minute: '2-digit'
         };
-        
+
         dateTimeElement.textContent = now.toLocaleDateString('en-US', options);
     }
 }
@@ -267,7 +267,7 @@ function checkUpcomingAppointments() {
     // Check for appointments in the next hour
     const now = new Date();
     const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
-    
+
     // This would normally fetch from the server
     // For now, just show a sample notification
     setTimeout(() => {
@@ -282,11 +282,11 @@ function showNotification(title, message, type = 'info') {
         <strong>${title}:</strong> ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     const container = document.querySelector('.notification-container');
     if (container) {
         container.appendChild(notification);
-        
+
         // Auto-dismiss after 5 seconds
         setTimeout(() => {
             if (notification.parentNode) {
@@ -299,22 +299,22 @@ function showNotification(title, message, type = 'info') {
 function refreshDashboardData() {
     // Refresh dashboard statistics
     console.log('Refreshing dashboard data...');
-    
+
     // In a real implementation, this would fetch updated data from the server
     // and update the dashboard widgets
-    
+
     // Add loading indicator
     const statsCards = document.querySelectorAll('.card[data-stat]');
     statsCards.forEach(card => {
         card.classList.add('loading');
     });
-    
+
     // Simulate API call delay
     setTimeout(() => {
         statsCards.forEach(card => {
             card.classList.remove('loading');
         });
-        
+
         // Update last refresh time
         const lastRefresh = document.getElementById('lastRefresh');
         if (lastRefresh) {
@@ -340,81 +340,6 @@ function generateSampleRevenueData(days) {
         data.push(Math.floor(Math.random() * 1000) + 200);
     }
     return data;
-}
-
-// Quick action handlers
-function quickAddAppointment() {
-    try {
-        window.location.href = '/bookings';
-    } catch (error) {
-        console.error('Navigation error:', error);
-        handleNavigationError(error);
-    }
-}
-
-// Prevent multiple dashboard initializations
-let dashboardInitialized = false;
-
-function initializeDashboard() {
-    if (dashboardInitialized) {
-        return;
-    }
-    dashboardInitialized = true;
-    
-    console.log('Dashboard loaded successfully');
-    console.log('Dashboard JavaScript loaded and ready');
-    
-    // Initialize dashboard-specific functionality here
-    try {
-        // Initialize charts if they exist
-        if (typeof Chart !== 'undefined' && document.getElementById('revenueChart')) {
-            initializeCharts();
-        }
-        
-        // Initialize any dashboard widgets
-        initializeDashboardWidgets();
-        
-    } catch (error) {
-        console.error('Dashboard initialization error:', error);
-    }
-}
-
-function initializeCharts() {
-    try {
-        // Revenue chart
-        const revenueCtx = document.getElementById('revenueChart');
-        if (revenueCtx) {
-            // Chart initialization code here
-        }
-        
-        // Other charts
-        const appointmentCtx = document.getElementById('appointmentChart');
-        if (appointmentCtx) {
-            // Chart initialization code here
-        }
-        
-    } catch (error) {
-        console.error('Chart initialization error:', error);
-    }
-}
-
-function initializeDashboardWidgets() {
-    try {
-        // Initialize any dashboard-specific widgets
-        console.log('Dashboard widgets initialized');
-    } catch (error) {
-        console.error('Widget initialization error:', error);
-    }
-}
-
-function refreshDashboardData() {
-    try {
-        console.log('Refreshing dashboard data...');
-        // Refresh dashboard data without page reload
-        // Implementation would go here
-    } catch (error) {
-        console.error('Dashboard refresh error:', error);
-    }
 }
 
 // Navigation functions with proper error handling
@@ -477,9 +402,11 @@ function navigateToStaffManagement() {
 }
 
 function handleNavigationError(error) {
-    console.error('Navigation error:', error);
-    if (typeof showAlert === 'function') {
-        showAlert('Navigation error occurred. Please try again.', 'warning');
+    console.error('Navigation failed:', error);
+    if (typeof showNotification === 'function') {
+        showNotification('Navigation error occurred. Please try again.', 'error');
+    } else {
+        alert('Navigation error occurred. Please try again.');
     }
 }
 
@@ -499,67 +426,488 @@ window.quickAddClient = quickAddClient;
 window.quickViewReports = quickViewReports;
 window.quickCheckInventory = quickCheckInventory;
 window.refreshDashboardData = refreshDashboardData;
-function handleNavigationError(error) {
-    console.error('Navigation failed:', error);
-    if (typeof showNotification === 'function') {
-        showNotification('Navigation error occurred. Please try again.', 'error');
-    } else {
-        alert('Navigation error occurred. Please try again.');
-    }
-}
 
-// Export functions
-function exportDashboardData() {
-    // Simulate exporting dashboard data
-    const data = {
-        date: new Date().toISOString(),
-        stats: {
-            appointments: document.querySelector('[data-stat="appointments"]')?.textContent || '0',
-            revenue: document.querySelector('[data-stat="revenue"]')?.textContent || '$0',
-            clients: document.querySelector('[data-stat="clients"]')?.textContent || '0'
+// Global variables for dashboard functionality
+let inventoryState = {
+    consumption: {
+        currentPage: 1,
+        perPage: 10,
+        totalPages: 1,
+        data: [],
+        allData: [], // For export all functionality
+        filters: {
+            fromDate: '',
+            toDate: '',
+            search: ''
         },
-        alerts: {
-            lowStock: document.querySelector('[data-low-stock-count]')?.textContent || '0',
-            expiring: document.querySelector('[data-expiring-count]')?.textContent || '0'
+        sort: {
+            field: 'consumption_date',
+            direction: 'desc'
         }
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    },
+    adjustments: {
+        currentPage: 1,
+        perPage: 10,
+        totalPages: 1,
+        data: [],
+        allData: [], // For export all functionality
+        filters: {
+            fromDate: '',
+            toDate: '',
+            search: ''
+        },
+        sort: {
+            field: 'created_at',
+            direction: 'desc'
+        }
+    }
+};
+
+// Initialize default date range (current month)
+function initializeDateRanges() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const todayStr = today.toISOString().split('T')[0];
+    const firstDayStr = firstDay.toISOString().split('T')[0];
+
+    // Set consumption filters
+    inventoryState.consumption.filters.fromDate = firstDayStr;
+    inventoryState.consumption.filters.toDate = todayStr;
+
+    // Set adjustments filters  
+    inventoryState.adjustments.filters.fromDate = firstDayStr;
+    inventoryState.adjustments.filters.toDate = todayStr;
+
+    // Update form fields
+    document.getElementById('consumption-from-date').value = firstDayStr;
+    document.getElementById('consumption-to-date').value = todayStr;
+    document.getElementById('adjustments-from-date').value = firstDayStr;
+    document.getElementById('adjustments-to-date').value = todayStr;
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    // Alt + A for new appointment
-    if (e.altKey && e.key === 'a') {
-        e.preventDefault();
-        quickAddAppointment();
-    }
-    
-    // Alt + C for new client
-    if (e.altKey && e.key === 'c') {
-        e.preventDefault();
-        quickAddClient();
-    }
-    
-    // Alt + R for reports
-    if (e.altKey && e.key === 'r') {
-        e.preventDefault();
-        quickViewReports();
-    }
-});
+// Load consumption data
+async function loadConsumptionData(page = 1) {
+    try {
+        const params = new URLSearchParams({
+            page: page,
+            per_page: inventoryState.consumption.perPage,
+            from_date: inventoryState.consumption.filters.fromDate,
+            to_date: inventoryState.consumption.filters.toDate,
+            search: inventoryState.consumption.filters.search,
+            sort_by: inventoryState.consumption.sort.field,
+            sort_order: inventoryState.consumption.sort.direction
+        });
 
-// Widget resize handler
-window.addEventListener('resize', function() {
-    // Refresh charts on window resize
-    Chart.helpers.each(Chart.instances, function(instance) {
-        instance.resize();
+        const response = await fetch(`/api/inventory/consumption?${params}`);
+        const data = await response.json();
+
+        if (data.success) {
+            inventoryState.consumption.data = data.data;
+            inventoryState.consumption.currentPage = data.pagination.page;
+            inventoryState.consumption.totalPages = data.pagination.pages;
+            renderConsumptionTable();
+            renderConsumptionPagination();
+        } else {
+            console.error('Error loading consumption data:', data.error);
+            showAlert('Error loading consumption data', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading consumption data:', error);
+        showAlert('Error loading consumption data', 'error');
+    }
+}
+
+// Load adjustments data
+async function loadAdjustmentsData(page = 1) {
+    try {
+        const params = new URLSearchParams({
+            page: page,
+            per_page: inventoryState.adjustments.perPage,
+            from_date: inventoryState.adjustments.filters.fromDate,
+            to_date: inventoryState.adjustments.filters.toDate,
+            search: inventoryState.adjustments.filters.search,
+            sort_by: inventoryState.adjustments.sort.field,
+            sort_order: inventoryState.adjustments.sort.direction
+        });
+
+        const response = await fetch(`/api/inventory/adjustments?${params}`);
+        const data = await response.json();
+
+        if (data.success) {
+            inventoryState.adjustments.data = data.data;
+            inventoryState.adjustments.currentPage = data.pagination.page;
+            inventoryState.adjustments.totalPages = data.pagination.pages;
+            renderAdjustmentsTable();
+            renderAdjustmentsPagination();
+        } else {
+            console.error('Error loading adjustments data:', data.error);
+            showAlert('Error loading adjustments data', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading adjustments data:', error);
+        showAlert('Error loading adjustments data', 'error');
+    }
+}
+
+// Render consumption table
+function renderConsumptionTable() {
+    const tbody = document.getElementById('consumption-table-body');
+    if (!tbody) return;
+
+    if (inventoryState.consumption.data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-3"></i><br>
+                    No records match your filters.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = inventoryState.consumption.data.map(record => `
+        <tr>
+            <td>${record.consumption_date}</td>
+            <td>
+                <strong>${record.product_name}</strong><br>
+                <small class="text-muted">SKU: ${record.product_sku}</small>
+            </td>
+            <td>${record.quantity_used} ${record.unit_of_measure}</td>
+            <td>${record.unit_of_measure}</td>
+            <td>${record.issued_to}</td>
+            <td>${record.reference_doc_no}</td>
+            <td>
+                ${record.notes ? `<span class="text-truncate" style="max-width: 100px;" title="${record.notes}">${record.notes}</span>` : '-'}
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editConsumption(${record.id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteConsumption(${record.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Render adjustments table
+function renderAdjustmentsTable() {
+    const tbody = document.getElementById('adjustments-table-body');
+    if (!tbody) return;
+
+    if (inventoryState.adjustments.data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-3"></i><br>
+                    No records match your filters.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = inventoryState.adjustments.data.map(record => `
+        <tr>
+            <td>${record.reference_id}</td>
+            <td>${record.adjustment_date}</td>
+            <td>${record.quantity}</td>
+            <td>$${record.subtotal_value.toFixed(2)}</td>
+            <td>$${record.total_value.toFixed(2)}</td>
+            <td>
+                ${record.remarks ? `<span class="text-truncate" style="max-width: 100px;" title="${record.remarks}">${record.remarks}</span>` : '-'}
+            </td>
+            <td>${record.created_by}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editAdjustment(${record.id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteAdjustment(${record.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Render pagination
+function renderConsumptionPagination() {
+    const container = document.getElementById('consumption-pagination');
+    if (!container) return;
+
+    renderPagination(container, inventoryState.consumption.currentPage, 
+                    inventoryState.consumption.totalPages, 
+                    (page) => loadConsumptionData(page));
+}
+
+function renderAdjustmentsPagination() {
+    const container = document.getElementById('adjustments-pagination');
+    if (!container) return;
+
+    renderPagination(container, inventoryState.adjustments.currentPage, 
+                    inventoryState.adjustments.totalPages, 
+                    (page) => loadAdjustmentsData(page));
+}
+
+// Generic pagination renderer
+function renderPagination(container, currentPage, totalPages, onPageClick) {
+    let html = '';
+
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Previous button
+    html += `
+        <button class="btn btn-outline-secondary btn-sm me-1 ${currentPage === 1 ? 'disabled' : ''}" 
+                onclick="${currentPage > 1 ? `(${onPageClick})(${currentPage - 1})` : 'void(0)'}">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+    `;
+
+    // Page numbers
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `
+            <button class="btn ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'} btn-sm me-1"
+                    onclick="(${onPageClick})(${i})">
+                ${i}
+            </button>
+        `;
+    }
+
+    // Next button
+    html += `
+        <button class="btn btn-outline-secondary btn-sm ${currentPage === totalPages ? 'disabled' : ''}" 
+                onclick="${currentPage < totalPages ? `(${onPageClick})(${currentPage + 1})` : 'void(0)'}">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+
+    container.innerHTML = html;
+}
+
+// Filter functions
+function applyConsumptionFilters() {
+    inventoryState.consumption.filters.fromDate = document.getElementById('consumption-from-date').value;
+    inventoryState.consumption.filters.toDate = document.getElementById('consumption-to-date').value;
+    inventoryState.consumption.filters.search = document.getElementById('consumption-search').value;
+    inventoryState.consumption.currentPage = 1;
+    loadConsumptionData();
+}
+
+function applyAdjustmentsFilters() {
+    inventoryState.adjustments.filters.fromDate = document.getElementById('adjustments-from-date').value;
+    inventoryState.adjustments.filters.toDate = document.getElementById('adjustments-to-date').value;
+    inventoryState.adjustments.filters.search = document.getElementById('adjustments-search').value;
+    inventoryState.adjustments.currentPage = 1;
+    loadAdjustmentsData();
+}
+
+function resetConsumptionFilters() {
+    document.getElementById('consumption-from-date').value = '';
+    document.getElementById('consumption-to-date').value = '';
+    document.getElementById('consumption-search').value = '';
+    inventoryState.consumption.filters = { fromDate: '', toDate: '', search: '' };
+    inventoryState.consumption.currentPage = 1;
+    loadConsumptionData();
+}
+
+function resetAdjustmentsFilters() {
+    document.getElementById('adjustments-from-date').value = '';
+    document.getElementById('adjustments-to-date').value = '';
+    document.getElementById('adjustments-search').value = '';
+    inventoryState.adjustments.filters = { fromDate: '', toDate: '', search: '' };
+    inventoryState.adjustments.currentPage = 1;
+    loadAdjustmentsData();
+}
+
+// Sorting functions
+function sortConsumption(field) {
+    if (inventoryState.consumption.sort.field === field) {
+        inventoryState.consumption.sort.direction = 
+            inventoryState.consumption.sort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        inventoryState.consumption.sort.field = field;
+        inventoryState.consumption.sort.direction = 'desc';
+    }
+    loadConsumptionData();
+    updateSortIcons('consumption', field);
+}
+
+function sortAdjustments(field) {
+    if (inventoryState.adjustments.sort.field === field) {
+        inventoryState.adjustments.sort.direction = 
+            inventoryState.adjustments.sort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        inventoryState.adjustments.sort.field = field;
+        inventoryState.adjustments.sort.direction = 'desc';
+    }
+    loadAdjustmentsData();
+    updateSortIcons('adjustments', field);
+}
+
+function updateSortIcons(tableType, activeField) {
+    const headers = document.querySelectorAll(`#${tableType}-table th[data-sort]`);
+    headers.forEach(header => {
+        const icon = header.querySelector('i');
+        const field = header.dataset.sort;
+
+        if (field === activeField) {
+            const direction = inventoryState[tableType].sort.direction;
+            icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        } else {
+            icon.className = 'fas fa-sort text-muted';
+        }
     });
-});
+}
+
+// Page size change handlers
+function changeConsumptionPageSize() {
+    inventoryState.consumption.perPage = parseInt(document.getElementById('consumption-page-size').value);
+    inventoryState.consumption.currentPage = 1;
+    loadConsumptionData();
+}
+
+function changeAdjustmentsPageSize() {
+    inventoryState.adjustments.perPage = parseInt(document.getElementById('adjustments-page-size').value);
+    inventoryState.adjustments.currentPage = 1;
+    loadAdjustmentsData();
+}
+
+// Export functions using SheetJS
+async function exportToExcel(type, exportAll = false) {
+    try {
+        let data = [];
+        let filename = '';
+
+        if (type === 'consumption') {
+            if (exportAll) {
+                // Load all consumption data
+                const params = new URLSearchParams({
+                    per_page: 10000, // Large number to get all records
+                    from_date: '',
+                    to_date: '',
+                    search: ''
+                });
+                const response = await fetch(`/api/inventory/consumption?${params}`);
+                const result = await response.json();
+                data = result.success ? result.data : [];
+                filename = 'consumption-all-records.xlsx';
+            } else {
+                data = inventoryState.consumption.data;
+                filename = 'consumption-filtered-records.xlsx';
+            }
+
+            // Transform data for Excel
+            const excelData = data.map(record => ({
+                'Date': record.consumption_date,
+                'Product': record.product_name,
+                'SKU': record.product_sku,
+                'Qty Used': record.quantity_used,
+                'Unit': record.unit_of_measure,
+                'Issued To': record.issued_to,
+                'Reference ID': record.reference_doc_no,
+                'Notes': record.notes || ''
+            }));
+
+            exportToExcelFile(excelData, filename);
+
+        } else if (type === 'adjustments') {
+            if (exportAll) {
+                // Load all adjustments data
+                const params = new URLSearchParams({
+                    per_page: 10000, // Large number to get all records
+                    from_date: '',
+                    to_date: '',
+                    search: ''
+                });
+                const response = await fetch(`/api/inventory/adjustments?${params}`);
+                const result = await response.json();
+                data = result.success ? result.data : [];
+                filename = 'adjustments-all-records.xlsx';
+            } else {
+                data = inventoryState.adjustments.data;
+                filename = 'adjustments-filtered-records.xlsx';
+            }
+
+            // Transform data for Excel
+            const excelData = data.map(record => ({
+                'Reference ID': record.reference_id,
+                'Adjustment Date': record.adjustment_date,
+                'Product': record.product_name || '',
+                'Quantity': record.quantity,
+                'Subtotal Value': record.subtotal_value,
+                'Total Value': record.total_value,
+                'Remarks': record.remarks,
+                'Created By': record.created_by
+            }));
+
+            exportToExcelFile(excelData, filename);
+        }
+
+    } catch (error) {
+        console.error('Export error:', error);
+        showAlert('Error exporting data to Excel', 'error');
+    }
+}
+
+function exportToExcelFile(data, filename) {
+    // Create a new workbook and worksheet
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+    // Write the file
+    XLSX.writeFile(wb, filename);
+    showAlert('Data exported successfully!', 'success');
+}
+
+// Placeholder functions for CRUD operations
+function editConsumption(id) {
+    showAlert('Edit consumption functionality coming soon!', 'info');
+}
+
+function deleteConsumption(id) {
+    if (confirm('Are you sure you want to delete this consumption record?')) {
+        showAlert('Delete consumption functionality coming soon!', 'info');
+    }
+}
+
+function editAdjustment(id) {
+    showAlert('Edit adjustment functionality coming soon!', 'info');
+}
+
+function deleteAdjustment(id) {
+    if (confirm('Are you sure you want to delete this adjustment record?')) {
+        showAlert('Delete adjustment functionality coming soon!', 'info');
+    }
+}
+
+// Alert function
+function showAlert(message, type = 'info') {
+    const alertContainer = document.getElementById('alert-container') || document.body;
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    alertContainer.appendChild(alertDiv);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
