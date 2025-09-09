@@ -1451,39 +1451,95 @@
 
     // Handle product deletion
     function deleteProduct(id) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "You won't be able to revert this!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/inventory/products/${id}/delete`, {
-                    method: 'POST'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+        // First fetch product details to show the product name in confirmation
+        fetch(`/api/inventory/product/${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch product details');
+                }
+                return response.json();
+            })
+            .then(product => {
+                // Show confirmation dialog with product name
+                Swal.fire({
+                    title: 'Delete Product?',
+                    html: `Are you sure you want to delete <strong>"${product.name}"</strong>?<br><small class="text-muted">This action cannot be undone!</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Proceed with deletion
+                        fetch(`/inventory/products/${id}/delete`, {
+                            method: 'POST'
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                // Reload the products table to reflect changes
+                                loadProducts();
+                                // Show success message
+                                showToast(data.message || `Product "${product.name}" deleted successfully`, 'success');
+                            } else {
+                                showToast(data.error || 'Error deleting product', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deleting product:', error);
+                            showToast(`Error deleting product: ${error.message}`, 'danger');
+                        });
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        loadProducts();
-                        showToast(data.message || 'Product deleted successfully', 'success');
-                    } else {
-                        showToast(data.error || 'Error deleting product', 'danger');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast(`Error deleting product: ${error.message}`, 'danger');
                 });
-            }
-        });
+            })
+            .catch(error => {
+                console.error('Error fetching product details:', error);
+                // Fallback to simple confirmation if we can't get product details
+                Swal.fire({
+                    title: 'Delete Product?',
+                    text: 'Are you sure you want to delete this product? This action cannot be undone!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Proceed with deletion
+                        fetch(`/inventory/products/${id}/delete`, {
+                            method: 'POST'
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                loadProducts();
+                                showToast(data.message || 'Product deleted successfully', 'success');
+                            } else {
+                                showToast(data.error || 'Error deleting product', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deleting product:', error);
+                            showToast(`Error deleting product: ${error.message}`, 'danger');
+                        });
+                    }
+                });
+            });
     }
 
     // Load products for dropdowns (e.g., in consumption forms)
