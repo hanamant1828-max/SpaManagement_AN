@@ -852,6 +852,254 @@ def api_delete_adjustment(adjustment_id):
         db.session.rollback()
         return jsonify({'error': f'Error deleting adjustment: {str(e)}'}), 500
 
+# ============ PRODUCT API ENDPOINTS ============
+
+@app.route('/api/inventory/products/<int:product_id>/delete', methods=['DELETE'])
+@login_required
+def api_delete_product(product_id):
+    """Delete product"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Check if product has related records
+        product = get_product_by_id(product_id)
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+
+        # Check for related consumption records
+        consumption_count = InventoryConsumption.query.filter_by(product_id=product_id).count()
+        if consumption_count > 0:
+            return jsonify({'error': f'Cannot delete product with {consumption_count} consumption records. Please contact administrator.'}), 400
+
+        # Check for related stock movements
+        movement_count = StockMovement.query.filter_by(product_id=product_id).count()
+        if movement_count > 0:
+            return jsonify({'error': f'Cannot delete product with {movement_count} stock movements. Please contact administrator.'}), 400
+
+        if delete_product(product_id):
+            return jsonify({
+                'success': True,
+                'message': f'Product "{product.name}" deleted successfully'
+            })
+        else:
+            return jsonify({'error': 'Failed to delete product'}), 500
+
+    except Exception as e:
+        return jsonify({'error': f'Error deleting product: {str(e)}'}), 500
+
+# ============ CATEGORY API ENDPOINTS ============
+
+@app.route('/api/inventory/categories/<int:category_id>')
+@login_required
+def api_get_category(category_id):
+    """Get category details"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        category = get_category_by_id(category_id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+
+        # Count products in this category
+        product_count = InventoryProduct.query.filter_by(category_id=category_id).count()
+
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'description': category.description or '',
+            'color_code': category.color_code,
+            'is_active': category.is_active,
+            'product_count': product_count,
+            'created_at': category.created_at.isoformat() if category.created_at else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading category: {str(e)}'}), 500
+
+@app.route('/api/inventory/categories/<int:category_id>/edit', methods=['POST'])
+@login_required
+def api_edit_category(category_id):
+    """Update category"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        category_data = {
+            'name': request.form.get('name', '').strip(),
+            'description': request.form.get('description', '').strip(),
+            'color_code': request.form.get('color_code', '#007bff').strip(),
+            'is_active': request.form.get('is_active') == 'on'
+        }
+
+        if not category_data['name']:
+            return jsonify({'error': 'Category name is required'}), 400
+
+        updated_category = update_category(category_id, category_data)
+        if updated_category:
+            return jsonify({
+                'success': True,
+                'message': f'Category "{updated_category.name}" updated successfully'
+            })
+        else:
+            return jsonify({'error': 'Category not found'}), 404
+
+    except Exception as e:
+        return jsonify({'error': f'Error updating category: {str(e)}'}), 500
+
+@app.route('/api/inventory/categories/<int:category_id>/delete', methods=['DELETE'])
+@login_required
+def api_delete_category(category_id):
+    """Delete category (soft delete)"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        category = get_category_by_id(category_id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+
+        # Check for products in this category
+        product_count = InventoryProduct.query.filter_by(category_id=category_id).count()
+        if product_count > 0:
+            return jsonify({'error': f'Cannot delete category with {product_count} products. Please reassign products first.'}), 400
+
+        if delete_category(category_id):
+            return jsonify({
+                'success': True,
+                'message': f'Category "{category.name}" deleted successfully'
+            })
+        else:
+            return jsonify({'error': 'Failed to delete category'}), 500
+
+    except Exception as e:
+        return jsonify({'error': f'Error deleting category: {str(e)}'}), 500
+
+# ============ CONSUMPTION API ENDPOINTS ============
+
+@app.route('/api/inventory/consumption/<int:consumption_id>/edit', methods=['POST'])
+@login_required
+def api_edit_consumption(consumption_id):
+    """Update consumption record"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        consumption_data = {
+            'consumption_date': datetime.strptime(request.form.get('consumption_date'), '%Y-%m-%d').date(),
+            'product_id': int(request.form.get('product_id')),
+            'quantity_used': float(request.form.get('quantity_used')),
+            'issued_to': request.form.get('issued_to', '').strip(),
+            'reference_doc_no': request.form.get('reference_doc_no', '').strip(),
+            'notes': request.form.get('notes', '').strip()
+        }
+
+        # Validation
+        if not consumption_data['issued_to']:
+            return jsonify({'error': 'Issued to field is required'}), 400
+
+        if consumption_data['quantity_used'] <= 0:
+            return jsonify({'error': 'Quantity must be greater than 0'}), 400
+
+        updated_consumption = update_consumption_record(consumption_id, consumption_data, current_user.id)
+        if updated_consumption:
+            return jsonify({
+                'success': True,
+                'message': 'Consumption record updated successfully'
+            })
+        else:
+            return jsonify({'error': 'Consumption record not found'}), 404
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': f'Error updating consumption: {str(e)}'}), 500
+
+@app.route('/api/inventory/consumption/<int:consumption_id>/delete', methods=['DELETE'])
+@login_required
+def api_delete_consumption(consumption_id):
+    """Delete consumption record and restore stock"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        consumption = get_consumption_by_id(consumption_id)
+        if not consumption:
+            return jsonify({'error': 'Consumption record not found'}), 404
+
+        # Restore stock
+        product = get_product_by_id(consumption.product_id)
+        if product:
+            restored_stock = float(product.current_stock) + float(consumption.quantity_used)
+            update_stock(
+                product_id=consumption.product_id,
+                new_quantity=restored_stock,
+                movement_type='in',
+                reason=f"Consumption Deleted - Stock Restored",
+                reference_type='consumption_deletion',
+                reference_id=consumption_id,
+                user_id=current_user.id
+            )
+
+        # Delete the consumption record
+        if delete_consumption_record(consumption_id):
+            return jsonify({
+                'success': True,
+                'message': 'Consumption record deleted and stock restored successfully'
+            })
+        else:
+            return jsonify({'error': 'Failed to delete consumption record'}), 500
+
+    except Exception as e:
+        return jsonify({'error': f'Error deleting consumption: {str(e)}'}), 500
+
+# ============ ADJUSTMENT API ENDPOINTS ============
+
+@app.route('/api/inventory/adjustments/<int:adjustment_id>/edit', methods=['POST'])
+@login_required
+def api_edit_adjustment(adjustment_id):
+    """Update adjustment record"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # For now, only allow editing the reference and remarks
+        new_reference = request.form.get('reference_id', '').strip()
+        new_remarks = request.form.get('remarks', '').strip()
+
+        # Get the movement record and update reason
+        movement = StockMovement.query.get(adjustment_id)
+        if not movement:
+            return jsonify({'error': 'Adjustment not found'}), 404
+
+        # Update reason with new reference and remarks
+        base_reason = "Manual stock adjustment"
+        if new_reference:
+            base_reason += f" - Ref: {new_reference}"
+        if new_remarks:
+            base_reason += f" - {new_remarks}"
+
+        # Update all related movements (same original reason and date)
+        related_movements = StockMovement.query.filter(
+            StockMovement.reason == movement.reason,
+            StockMovement.created_at == movement.created_at,
+            StockMovement.created_by == movement.created_by
+        ).all()
+
+        for mov in related_movements:
+            mov.reason = base_reason
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Adjustment updated successfully'
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error updating adjustment: {str(e)}'}), 500
+
 # ============ API ENDPOINTS ============
 
 @app.route('/api/inventory/product/<int:product_id>')
