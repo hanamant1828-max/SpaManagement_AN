@@ -669,10 +669,10 @@ def api_inventory_adjustments():
                     'product_name': product.name,
                     'product_sku': product.sku,
                     'quantity_added': quantity_in,
-                    'new_stock_level': float(updated_product.current_stock),
+                    'new_stock_level': float(updated_product.current_stock or 0),
                     'unit_of_measure': product.unit_of_measure
                 })
-                total_value += quantity_in * unit_cost
+                total_value += float(quantity_in) * float(unit_cost)
 
         return jsonify({
             'success': True,

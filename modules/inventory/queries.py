@@ -135,7 +135,9 @@ def update_stock(product_id, new_quantity, movement_type, reason="", reference_t
         if not product:
             return None
 
-        old_stock = product.current_stock
+        # Convert to float to handle decimal/float type mixing
+        old_stock = float(product.current_stock or 0)
+        new_quantity = float(new_quantity)
         quantity_change = new_quantity - old_stock
 
         # Create stock movement record
@@ -171,7 +173,11 @@ def add_stock(product_id, quantity, reason="", reference_type=None, reference_id
     """Add stock to product"""
     product = get_product_by_id(product_id)
     if product:
-        new_quantity = product.current_stock + quantity
+        # Convert to float to handle decimal/float type mixing
+        current_stock = float(product.current_stock or 0)
+        quantity = float(quantity)
+        new_quantity = current_stock + quantity
+        
         updated_product = update_stock(product_id, new_quantity, 'in', reason, reference_type, reference_id, user_id)
         
         # Update the movement with unit cost if provided
@@ -181,7 +187,7 @@ def add_stock(product_id, quantity, reason="", reference_type=None, reference_id
                 created_by=user_id
             ).order_by(desc(StockMovement.created_at)).first()
             if latest_movement:
-                latest_movement.unit_cost = unit_cost
+                latest_movement.unit_cost = float(unit_cost)
                 db.session.commit()
         
         return updated_product
