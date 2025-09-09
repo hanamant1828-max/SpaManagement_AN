@@ -73,17 +73,26 @@ def create_customer_route():
             return redirect(url_for('customers'))
 
         customer_data = {
-            'first_name': form.first_name.data.strip().title(),
-            'last_name': form.last_name.data.strip().title(),
+            'first_name': (form.first_name.data or '').strip().title(),
+            'last_name': (form.last_name.data or '').strip().title(),
             'phone': phone_value,
             'email': email_value,
-            'address': form.address.data.strip() if form.address.data else '',
+            'address': (form.address.data or '').strip(),
             'date_of_birth': form.date_of_birth.data,
-            'gender': form.gender.data if form.gender.data else None,
-            'preferences': form.preferences.data.strip() if form.preferences.data else '',
-            'allergies': form.allergies.data.strip() if form.allergies.data else '',
-            'notes': form.notes.data.strip() if form.notes.data else ''
+            'gender': form.gender.data if form.gender.data and form.gender.data.strip() else None,
+            'preferences': (form.preferences.data or '').strip(),
+            'allergies': (form.allergies.data or '').strip(),
+            'notes': (form.notes.data or '').strip()
         }
+
+        # Additional validation
+        if not customer_data['first_name']:
+            flash('First name is required. Please enter the customer\'s first name.', 'danger')
+            return redirect(url_for('customers'))
+
+        if not customer_data['last_name']:
+            flash('Last name is required. Please enter the customer\'s last name.', 'danger')
+            return redirect(url_for('customers'))
 
         try:
             new_customer = create_customer(customer_data)
@@ -98,7 +107,7 @@ def create_customer_route():
 
     return redirect(url_for('customers'))
 
-@app.route('/clients/edit/<int:id>', methods=['GET'])
+@app.route('/clients/edit/<int:id>')
 @login_required
 def edit_client_route(id):
     if not current_user.can_access('clients'):
@@ -166,17 +175,26 @@ def update_client_route(id):
                 return redirect(url_for('customers'))
 
         customer_data = {
-            'first_name': form.first_name.data.strip().title(),
-            'last_name': form.last_name.data.strip().title(),
+            'first_name': (form.first_name.data or '').strip().title(),
+            'last_name': (form.last_name.data or '').strip().title(),
             'phone': phone_value,
             'email': email_value,
-            'address': form.address.data.strip() if form.address.data else '',
+            'address': (form.address.data or '').strip(),
             'date_of_birth': form.date_of_birth.data,
-            'gender': form.gender.data if form.gender.data else None,
-            'preferences': form.preferences.data.strip() if form.preferences.data else '',
-            'allergies': form.allergies.data.strip() if form.allergies.data else '',
-            'notes': form.notes.data.strip() if form.notes.data else ''
+            'gender': form.gender.data if form.gender.data and form.gender.data.strip() else None,
+            'preferences': (form.preferences.data or '').strip(),
+            'allergies': (form.allergies.data or '').strip(),
+            'notes': (form.notes.data or '').strip()
         }
+
+        # Additional validation
+        if not customer_data['first_name']:
+            flash('First name is required. Please enter the customer\'s first name.', 'danger')
+            return redirect(url_for('customers'))
+
+        if not customer_data['last_name']:
+            flash('Last name is required. Please enter the customer\'s last name.', 'danger')
+            return redirect(url_for('customers'))
 
         try:
             updated_customer = update_customer(id, customer_data)
@@ -375,4 +393,3 @@ def api_get_customers_with_faces():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-

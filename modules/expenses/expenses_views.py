@@ -66,12 +66,27 @@ def create_expense_route():
     form.category_id.choices = [(c.id, c.display_name) for c in categories]
     
     if form.validate_on_submit():
+        # Defensive coding for expense data with validation
+        try:
+            amount = float(form.amount.data or 0)
+            if amount <= 0:
+                flash('Expense amount must be greater than 0. Please enter a valid amount.', 'danger')
+                return redirect(url_for('expenses'))
+        except (ValueError, TypeError):
+            flash('Invalid expense amount. Please enter a valid number.', 'danger')
+            return redirect(url_for('expenses'))
+        
+        description = (form.description.data or '').strip()
+        if not description:
+            flash('Expense description is required. Please provide details about the expense.', 'danger')
+            return redirect(url_for('expenses'))
+        
         expense_data = {
-            'amount': form.amount.data,
-            'description': form.description.data,
-            'category_id': form.category_id.data,
-            'expense_date': form.expense_date.data,
-            'receipt_path': form.receipt_path.data or '',
+            'amount': amount,
+            'description': description,
+            'category_id': form.category_id.data if form.category_id.data else None,
+            'expense_date': form.expense_date.data or date.today(),
+            'receipt_path': (form.receipt_path.data or '').strip(),
             'created_by': current_user.id
         }
         

@@ -1,10 +1,9 @@
-
 """
 Flask-WTF forms for the Spa Management System
 """
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, IntegerField, FloatField, DateField, TimeField, DateTimeField, HiddenField
-from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange
+from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, ValidationError
 from wtforms.widgets import TextArea
 
 class LoginForm(FlaskForm):
@@ -26,15 +25,48 @@ class UserForm(FlaskForm):
     submit = SubmitField('Save User')
 
 class CustomerForm(FlaskForm):
-    """Customer form"""
-    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
-    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
-    email = StringField('Email', validators=[Optional(), Email()])
-    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
-    address = TextAreaField('Address', validators=[Optional()])
-    notes = TextAreaField('Notes', validators=[Optional()])
+    """Customer form with enhanced validation and defensive coding"""
+    first_name = StringField('First Name', validators=[
+        DataRequired(message='First name is required. Please enter the customer\'s first name.'), 
+        Length(max=50, message='First name must be less than 50 characters.')
+    ])
+    last_name = StringField('Last Name', validators=[
+        DataRequired(message='Last name is required. Please enter the customer\'s last name.'), 
+        Length(max=50, message='Last name must be less than 50 characters.')
+    ])
+    phone = StringField('Phone', validators=[
+        DataRequired(message='Phone number is required. Please enter a valid phone number.'), 
+        Length(min=10, max=20, message='Phone number must be between 10-20 characters.')
+    ])
+    email = StringField('Email', validators=[
+        Optional(), 
+        Email(message='Please enter a valid email address format.')
+    ])
+    address = TextAreaField('Address', validators=[
+        Optional(), 
+        Length(max=500, message='Address must be less than 500 characters.')
+    ])
+    notes = TextAreaField('Notes', validators=[
+        Optional(), 
+        Length(max=1000, message='Notes must be less than 1000 characters.')
+    ])
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Customer')
+
+    def validate_phone(self, field):
+        """Custom phone validation"""
+        if field.data:
+            import re
+            digits = re.sub(r'[^\d]', '', field.data)
+            if len(digits) < 10:
+                raise ValidationError('Phone number must contain at least 10 digits.')
+
+    def validate_date_of_birth(self, field):
+        """Custom date of birth validation"""
+        if field.data:
+            from datetime import date
+            if field.data > date.today():
+                raise ValidationError('Date of birth cannot be in the future.')
 
 class ServiceForm(FlaskForm):
     """Service form"""

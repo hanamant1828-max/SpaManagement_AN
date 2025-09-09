@@ -812,9 +812,22 @@ def appointments_book():
             
             print(f"Booking data: client_id={client_id}, service_id={service_id}, staff_id={staff_id}, date={appointment_date}, time={appointment_time}")
             
-            # Validate required fields
-            if not all([client_id, service_id, staff_id, appointment_date, appointment_time]):
-                error_msg = 'All fields are required'
+            # Defensive validation with specific error messages
+            validation_errors = []
+            
+            if not client_id:
+                validation_errors.append('Please select a client for the appointment.')
+            if not service_id:
+                validation_errors.append('Please select a service for the appointment.')
+            if not staff_id:
+                validation_errors.append('Please select a staff member for the appointment.')
+            if not appointment_date:
+                validation_errors.append('Please select an appointment date.')
+            if not appointment_time:
+                validation_errors.append('Please select an appointment time.')
+            
+            if validation_errors:
+                error_msg = ' '.join(validation_errors)
                 if request.is_json:
                     return jsonify({'error': error_msg}), 400
                 flash(error_msg, 'danger')

@@ -88,22 +88,50 @@ def create_service_route():
         return redirect(url_for('services'))
     
     try:
-        # Get form data directly from request
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        duration = int(request.form.get('duration', 60))
-        price = float(request.form.get('price', 0))
-        category_id = request.form.get('category_id')
-        commission_rate = float(request.form.get('commission_rate', 10))
-        is_active = 'is_active' in request.form
+        # Defensive coding - safe extraction with validation
+        name = (request.form.get('name') or '').strip()
+        description = (request.form.get('description') or '').strip()
         
-        # Basic validation
+        # Safe numeric conversions with validation
+        try:
+            duration = int(request.form.get('duration', 60))
+            if duration <= 0:
+                duration = 60  # Default to 60 minutes
+        except (ValueError, TypeError):
+            duration = 60
+            
+        try:
+            price = float(request.form.get('price', 0))
+            if price < 0:
+                price = 0.0
+        except (ValueError, TypeError):
+            price = 0.0
+            
+        try:
+            commission_rate = float(request.form.get('commission_rate', 10))
+            if commission_rate < 0 or commission_rate > 100:
+                commission_rate = 10.0
+        except (ValueError, TypeError):
+            commission_rate = 10.0
+        
+        category_id = request.form.get('category_id')
+        is_active = bool(request.form.get('is_active', False))
+        
+        # Enhanced validation with user-friendly messages
         if not name:
-            flash('Service name is required', 'danger')
+            flash('Service name is required. Please enter a descriptive service name.', 'danger')
+            return redirect(url_for('services'))
+            
+        if len(name) > 200:
+            flash('Service name must be less than 200 characters.', 'danger')
             return redirect(url_for('services'))
         
         if price <= 0:
-            flash('Price must be greater than 0', 'danger')
+            flash('Service price must be greater than 0. Please enter a valid price.', 'danger')
+            return redirect(url_for('services'))
+            
+        if duration < 15:
+            flash('Service duration must be at least 15 minutes.', 'danger')
             return redirect(url_for('services'))
         
         # Create service

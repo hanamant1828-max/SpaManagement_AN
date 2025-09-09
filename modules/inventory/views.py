@@ -107,50 +107,81 @@ def add_product():
         return redirect(url_for('inventory_products'))
 
     try:
-        # Safely get form data with proper null checking
-        sku = request.form.get('sku')
-        name = request.form.get('name')
-        description = request.form.get('description') or ''
+        # Defensive coding - safely get form data with proper null checking and defaults
+        sku = (request.form.get('sku') or '').strip()
+        name = (request.form.get('name') or '').strip()
+        description = (request.form.get('description') or '').strip()
         category_id = request.form.get('category_id')
-        unit_of_measure = request.form.get('unit_of_measure') or 'pcs'
-        barcode = request.form.get('barcode') or ''
-        location = request.form.get('location') or ''
+        unit_of_measure = (request.form.get('unit_of_measure') or 'pcs').strip()
+        barcode = (request.form.get('barcode') or '').strip()
+        location = (request.form.get('location') or '').strip()
 
-        # Validation first
-        if not sku or not sku.strip():
-            return jsonify({'error': 'SKU is required'}), 400
+        # Input validation with user-friendly messages
+        if not sku:
+            return jsonify({'error': 'Product SKU is required. Please enter a unique product identifier.'}), 400
 
-        if not name or not name.strip():
-            return jsonify({'error': 'Product name is required'}), 400
+        if not name:
+            return jsonify({'error': 'Product name is required. Please enter a descriptive product name.'}), 400
 
-        # Helper function to safely convert to float with default
-        def safe_float(value, default=0.0):
-            if value is None or value == '':
+        if len(name) > 200:
+            return jsonify({'error': 'Product name must be less than 200 characters.'}), 400
+
+        if len(sku) > 50:
+            return jsonify({'error': 'Product SKU must be less than 50 characters.'}), 400
+
+        # Enhanced helper functions for safe data conversion
+        def safe_float(value, default=0.0, field_name="field"):
+            """Safely convert value to float with validation"""
+            if value is None or value == '' or (isinstance(value, str) and value.strip() == ''):
                 return default
             try:
-                return float(value)
+                result = float(value)
+                if result < 0 and field_name in ['current_stock', 'min_stock_level', 'max_stock_level', 'cost_price', 'selling_price']:
+                    return default
+                return result
             except (ValueError, TypeError):
                 return default
 
+        def safe_int(value, default=0):
+            """Safely convert value to integer with validation"""
+            if value is None or value == '' or (isinstance(value, str) and value.strip() == ''):
+                return default
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return default
+
+        # Validate category_id if provided
+        parsed_category_id = None
+        if category_id and str(category_id).strip() and str(category_id).strip() != '0':
+            try:
+                parsed_category_id = int(category_id)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid category selected. Please choose a valid category.'}), 400
+
         product_data = {
-            'sku': sku.strip(),
-            'name': name.strip(),
-            'description': description.strip(),
-            'category_id': int(category_id) if category_id and category_id.strip() else None,
-            'current_stock': safe_float(request.form.get('current_stock'), 0.0),
+            'sku': sku,
+            'name': name,
+            'description': description,
+            'category_id': parsed_category_id,
+            'current_stock': safe_float(request.form.get('current_stock'), 0.0, 'current_stock'),
             'reserved_stock': 0.0,  # Initialize reserved stock
             'available_stock': 0.0,  # Will be calculated
-            'min_stock_level': safe_float(request.form.get('min_stock_level'), 10.0),
-            'max_stock_level': safe_float(request.form.get('max_stock_level'), 100.0),
-            'reorder_point': safe_float(request.form.get('reorder_point'), 20.0),
-            'cost_price': safe_float(request.form.get('cost_price'), 0.0),
-            'selling_price': safe_float(request.form.get('selling_price'), 0.0),
-            'unit_of_measure': unit_of_measure.strip(),
-            'barcode': barcode.strip(),
-            'location': location.strip(),
-            'is_service_item': 'is_service_item' in request.form,
-            'is_retail_item': 'is_retail_item' in request.form
+            'min_stock_level': safe_float(request.form.get('min_stock_level'), 10.0, 'min_stock_level'),
+            'max_stock_level': safe_float(request.form.get('max_stock_level'), 100.0, 'max_stock_level'),
+            'reorder_point': safe_float(request.form.get('reorder_point'), 20.0, 'reorder_point'),
+            'cost_price': safe_float(request.form.get('cost_price'), 0.0, 'cost_price'),
+            'selling_price': safe_float(request.form.get('selling_price'), 0.0, 'selling_price'),
+            'unit_of_measure': unit_of_measure,
+            'barcode': barcode,
+            'location': location,
+            'is_service_item': bool(request.form.get('is_service_item', False)),
+            'is_retail_item': bool(request.form.get('is_retail_item', False))
         }
+
+        # Business logic validation
+        if product_data['min_stock_level'] >= product_data['max_stock_level']:
+            return jsonify({'error': 'Minimum stock level must be less than maximum stock level.'}), 400
 
         product = create_product(product_data)
 
@@ -550,18 +581,20 @@ def api_inventory_adjustments():
         data = request.get_json()
         
         if not data:
-            return jsonify({'error': 'No data provided'}), 400
+            return jsonify({'error': 'No data provided. Please submit adjustment details.'}), 400
 
-        adjustment_date = data.get('adjustment_date')
-        reference_no = data.get('reference_no', '')
-        notes = data.get('notes', '')
-        items = data.get('items', [])
+        # Defensive coding with safe defaults
+        adjustment_date = (data.get('adjustment_date') or '').strip()
+        reference_no = (data.get('reference_no') or '').strip()
+        notes = (data.get('notes') or '').strip()  # Fixed: was referencing 'desc' 
+        items = data.get('items') or []
 
+        # Input validation with user-friendly messages
         if not adjustment_date:
-            return jsonify({'error': 'Adjustment date is required'}), 400
+            return jsonify({'error': 'Adjustment date is required. Please select a valid date.'}), 400
 
-        if not items:
-            return jsonify({'error': 'At least one item is required'}), 400
+        if not items or len(items) == 0:
+            return jsonify({'error': 'At least one inventory item is required for adjustment. Please add items to proceed.'}), 400
 
         # Parse the date
         try:
@@ -569,24 +602,45 @@ def api_inventory_adjustments():
         except ValueError:
             return jsonify({'error': 'Invalid date format'}), 400
 
-        # Process each item
+        # Process each item with defensive coding
         stock_updates = []
-        total_value = 0
+        total_value = 0.0
+        processed_items = 0
 
-        for item in items:
+        for index, item in enumerate(items):
+            # Safe extraction with defaults
             product_id = item.get('product_id')
             quantity_in = item.get('quantity_in')
-            unit_cost = float(item.get('unit_cost', 0))
+            unit_cost_str = item.get('unit_cost', '0')
 
-            if not product_id or not quantity_in:
+            # Skip empty items
+            if not product_id:
                 continue
+
+            # Validate product_id
+            try:
+                product_id = int(product_id)
+            except (ValueError, TypeError):
+                return jsonify({'error': f'Invalid product selected for item #{index + 1}. Please select a valid product.'}), 400
+
+            # Validate quantity with user-friendly messages
+            if not quantity_in:
+                return jsonify({'error': f'Quantity is required for item #{index + 1}. Please enter the quantity to add.'}), 400
 
             try:
                 quantity_in = float(quantity_in)
                 if quantity_in <= 0:
-                    return jsonify({'error': 'Quantity must be greater than 0'}), 400
+                    return jsonify({'error': f'Quantity must be greater than 0 for item #{index + 1}.'}), 400
             except (ValueError, TypeError):
-                return jsonify({'error': 'Invalid quantity value'}), 400
+                return jsonify({'error': f'Invalid quantity value for item #{index + 1}. Please enter a valid number.'}), 400
+
+            # Safe unit cost conversion
+            try:
+                unit_cost = float(unit_cost_str) if unit_cost_str else 0.0
+                if unit_cost < 0:
+                    unit_cost = 0.0
+            except (ValueError, TypeError):
+                unit_cost = 0.0
 
             product = get_product_by_id(product_id)
             if not product:

@@ -910,11 +910,19 @@ def api_create_staff():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['username', 'first_name', 'last_name', 'email', 'password']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
+        # Defensive coding - validate required fields with user-friendly messages
+        required_fields = {
+            'username': 'Username is required. Please enter a unique username.',
+            'first_name': 'First name is required. Please enter the staff member\'s first name.',
+            'last_name': 'Last name is required. Please enter the staff member\'s last name.',
+            'email': 'Email address is required. Please enter a valid email address.',
+            'password': 'Password is required. Please enter a secure password.'
+        }
+        
+        for field, message in required_fields.items():
+            field_value = (data.get(field) or '').strip() if isinstance(data.get(field), str) else data.get(field)
+            if not field_value:
+                return jsonify({'error': message}), 400
         
         # Check for duplicate username/email
         existing = User.query.filter(
@@ -923,29 +931,59 @@ def api_create_staff():
         if existing:
             return jsonify({'error': 'Username or email already exists'}), 400
         
-        # Prepare staff data
+        # Prepare staff data with defensive coding and safe defaults
+        def safe_float(value, default=0.0, min_val=0.0, max_val=100.0):
+            try:
+                result = float(value or default)
+                return max(min_val, min(max_val, result))
+            except (ValueError, TypeError):
+                return default
+        
+        def safe_date_parse(date_str, default=None):
+            if not date_str or not str(date_str).strip():
+                return default
+            try:
+                return datetime.strptime(str(date_str).strip(), '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                return default
+        
+        def safe_time_parse(time_str):
+            if not time_str or not str(time_str).strip():
+                return None
+            try:
+                return datetime.strptime(str(time_str).strip(), '%H:%M').time()
+            except (ValueError, TypeError):
+                return None
+
+        # Email validation
+        import re
+        email = data['email'].strip().lower()
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return jsonify({'error': 'Please enter a valid email address format.'}), 400
+
         staff_data = {
-            'username': data['username'],
-            'first_name': data['first_name'],
-            'last_name': data['last_name'],
-            'email': data['email'],
+            'username': data['username'].strip(),
+            'first_name': data['first_name'].strip().title(),
+            'last_name': data['last_name'].strip().title(),
+            'email': email,
             'password_hash': generate_password_hash(data['password']),
-            'phone': data.get('phone', ''),
-            'role': data.get('role', 'staff'),
-            'role_id': data.get('role_id'),
-            'department_id': data.get('department_id'),
-            'designation': data.get('designation', ''),
-            'commission_rate': float(data.get('commission_rate', 0)),
-            'hourly_rate': float(data.get('hourly_rate', 0)),
-            'gender': data.get('gender', ''),
-            'date_of_birth': datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date() if data.get('date_of_birth') else None,
-            'date_of_joining': datetime.strptime(data['date_of_joining'], '%Y-%m-%d').date() if data.get('date_of_joining') else date.today(),
-            'shift_start_time': datetime.strptime(data['shift_start_time'], '%H:%M').time() if data.get('shift_start_time') else None,
-            'shift_end_time': datetime.strptime(data['shift_end_time'], '%H:%M').time() if data.get('shift_end_time') else None,
-            'working_days': data.get('working_days', '1111100'),
+            'phone': (data.get('phone') or '').strip(),
+            'role': (data.get('role') or 'staff').strip(),
+            'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
+            'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
+            'designation': (data.get('designation') or '').strip(),
+            'commission_rate': safe_float(data.get('commission_rate'), 0.0, 0.0, 100.0),
+            'hourly_rate': safe_float(data.get('hourly_rate'), 0.0, 0.0, 1000.0),
+            'gender': (data.get('gender') or '').strip(),
+            'date_of_birth': safe_date_parse(data.get('date_of_birth')),
+            'date_of_joining': safe_date_parse(data.get('date_of_joining'), date.today()),
+            'shift_start_time': safe_time_parse(data.get('shift_start_time')),
+            'shift_end_time': safe_time_parse(data.get('shift_end_time')),
+            'working_days': (data.get('working_days') or '1111100').strip(),
             'verification_status': False,
-            'enable_face_checkin': data.get('enable_face_checkin', True),
-            'notes_bio': data.get('notes_bio', ''),
+            'enable_face_checkin': bool(data.get('enable_face_checkin', True)),
+            'notes_bio': (data.get('notes_bio') or '').strip(),
             'is_active': True
         }
         
