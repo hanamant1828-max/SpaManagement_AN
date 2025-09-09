@@ -6,7 +6,7 @@ from sqlalchemy import func, and_, or_, desc
 from app import db
 from .models import (
     InventoryProduct, InventoryCategory, Supplier, StockMovement, 
-    PurchaseOrder, PurchaseOrderItem, InventoryAlert
+    PurchaseOrder, PurchaseOrderItem, InventoryAlert, InventoryConsumption
 )
 
 # ============ PRODUCT MANAGEMENT ============
@@ -394,4 +394,203 @@ def get_inventory_dashboard_stats():
             'recent_movements': [],
             'pending_orders': 0,
             'active_alerts': 0
+        }
+
+# ============ CONSUMPTION MANAGEMENT ============
+
+def get_all_consumption_records(page=1, per_page=20, search_term=''):
+    """Get consumption records with pagination and search"""
+    try:
+        query = InventoryConsumption.query
+        
+        # Apply search filter
+        if search_term:
+            query = query.join(InventoryProduct).filter(
+                or_(
+                    InventoryProduct.name.ilike(f'%{search_term}%'),
+                    InventoryProduct.sku.ilike(f'%{search_term}%'),
+                    InventoryConsumption.issued_to.ilike(f'%{search_term}%'),
+                    InventoryConsumption.reference_doc_no.ilike(f'%{search_term}%')
+                )
+            )
+        
+        # Order by most recent first
+        query = query.order_by(desc(InventoryConsumption.consumption_date), desc(InventoryConsumption.created_at))
+        
+        # Get paginated results
+        if per_page:
+            return query.paginate(page=page, per_page=per_page, error_out=False)
+        else:
+            return query.all()
+    except Exception as e:
+        return []
+
+def get_consumption_by_id(consumption_id):
+    """Get consumption record by ID"""
+    return InventoryConsumption.query.get(consumption_id)
+
+def create_consumption_record(consumption_data, user_id=None):
+    """Create new consumption record and update stock levels"""
+    try:
+        # Create consumption record
+        consumption = InventoryConsumption(**consumption_data)
+        consumption.created_by = user_id
+        db.session.add(consumption)
+        db.session.flush()  # Get the ID
+        
+        # Update stock levels
+        product = get_product_by_id(consumption.product_id)
+        if product:
+            # Check if sufficient stock
+            if product.current_stock < consumption.quantity_used:
+                raise ValueError(f"Insufficient stock. Available: {product.current_stock}, Required: {consumption.quantity_used}")
+            
+            # Deduct from stock
+            new_stock = product.current_stock - consumption.quantity_used
+            update_stock(
+                product_id=consumption.product_id,
+                new_quantity=new_stock,
+                movement_type='out',
+                reason=f"Consumption - Issued to: {consumption.issued_to}",
+                reference_type='consumption',
+                reference_id=consumption.id,
+                user_id=user_id
+            )
+        
+        db.session.commit()
+        return consumption
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def update_consumption_record(consumption_id, consumption_data, user_id=None):
+    """Update existing consumption record and adjust stock levels"""
+    try:
+        consumption = get_consumption_by_id(consumption_id)
+        if not consumption:
+            return None
+        
+        old_quantity = consumption.quantity_used
+        old_product_id = consumption.product_id
+        
+        # Update consumption record
+        for key, value in consumption_data.items():
+            setattr(consumption, key, value)
+        consumption.updated_at = datetime.utcnow()
+        
+        # Handle stock adjustments if quantity or product changed
+        if old_product_id != consumption.product_id or old_quantity != consumption.quantity_used:
+            # Restore old stock
+            old_product = get_product_by_id(old_product_id)
+            if old_product:
+                old_stock_restored = old_product.current_stock + old_quantity
+                update_stock(
+                    product_id=old_product_id,
+                    new_quantity=old_stock_restored,
+                    movement_type='in',
+                    reason=f"Consumption adjustment - Restored stock",
+                    reference_type='consumption_adjustment',
+                    reference_id=consumption.id,
+                    user_id=user_id
+                )
+            
+            # Apply new consumption
+            new_product = get_product_by_id(consumption.product_id)
+            if new_product:
+                if new_product.current_stock < consumption.quantity_used:
+                    raise ValueError(f"Insufficient stock. Available: {new_product.current_stock}, Required: {consumption.quantity_used}")
+                
+                new_stock = new_product.current_stock - consumption.quantity_used
+                update_stock(
+                    product_id=consumption.product_id,
+                    new_quantity=new_stock,
+                    movement_type='out',
+                    reason=f"Consumption update - Issued to: {consumption.issued_to}",
+                    reference_type='consumption',
+                    reference_id=consumption.id,
+                    user_id=user_id
+                )
+        
+        db.session.commit()
+        return consumption
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def delete_consumption_record(consumption_id, user_id=None):
+    """Delete consumption record and restore stock levels"""
+    try:
+        consumption = get_consumption_by_id(consumption_id)
+        if not consumption:
+            return False
+        
+        # Restore stock levels
+        product = get_product_by_id(consumption.product_id)
+        if product:
+            restored_stock = product.current_stock + consumption.quantity_used
+            update_stock(
+                product_id=consumption.product_id,
+                new_quantity=restored_stock,
+                movement_type='in',
+                reason=f"Consumption deleted - Stock restored",
+                reference_type='consumption_deleted',
+                reference_id=consumption.id,
+                user_id=user_id
+            )
+        
+        db.session.delete(consumption)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def get_consumption_by_product(product_id, limit=None):
+    """Get consumption records for a specific product"""
+    query = InventoryConsumption.query.filter_by(product_id=product_id)
+    query = query.order_by(desc(InventoryConsumption.consumption_date))
+    
+    if limit:
+        return query.limit(limit).all()
+    return query.all()
+
+def get_consumption_by_date_range(start_date, end_date):
+    """Get consumption records within date range"""
+    return InventoryConsumption.query.filter(
+        and_(
+            InventoryConsumption.consumption_date >= start_date,
+            InventoryConsumption.consumption_date <= end_date
+        )
+    ).order_by(desc(InventoryConsumption.consumption_date)).all()
+
+def get_consumption_summary_stats():
+    """Get consumption summary statistics"""
+    try:
+        total_records = InventoryConsumption.query.count()
+        
+        # Get consumption for current month
+        today = date.today()
+        first_day = today.replace(day=1)
+        monthly_records = InventoryConsumption.query.filter(
+            InventoryConsumption.consumption_date >= first_day
+        ).count()
+        
+        # Get most consumed items
+        most_consumed = db.session.query(
+            InventoryProduct.name,
+            func.sum(InventoryConsumption.quantity_used).label('total_consumed')
+        ).join(InventoryConsumption).group_by(InventoryProduct.id, InventoryProduct.name).order_by(
+            desc('total_consumed')
+        ).limit(5).all()
+        
+        return {
+            'total_records': total_records,
+            'monthly_records': monthly_records,
+            'most_consumed': most_consumed
+        }
+    except Exception as e:
+        return {
+            'total_records': 0,
+            'monthly_records': 0,
+            'most_consumed': []
         }
