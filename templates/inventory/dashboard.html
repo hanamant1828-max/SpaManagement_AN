@@ -501,9 +501,15 @@
                             <div class="row mb-2 inventory-item">
                                 <div class="col-md-3">
                                     <label class="form-label small">Select Product</label>
-                                    <select name="product_id[]" class="form-select product-select" required onchange="updateCurrentStock(this)">
-                                        <option value="">Select Product</option>
-                                    </select>
+                                    <div class="input-group">
+                                        <select name="product_id[]" class="form-select product-select" required onchange="updateCurrentStock(this)">
+                                            <option value="">Select Product</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshProductsDropdown(this)" title="Refresh Products">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                    <div class="invalid-feedback" style="display: none;">Please select a product</div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small">Current Stock</label>
@@ -991,22 +997,195 @@ function showToast(message, type = 'info') {
 }
 
 function openAddInventoryModal() {
-    // Load products for the form
-    fetch('/api/inventory/products/for-consumption')
-    .then(response => response.json())
-    .then(products => {
-        const select = document.querySelector('#addInventoryModal select[name="product_id[]"]');
-        select.innerHTML = '<option value="">Select Product</option>';
-        products.forEach(product => {
-            select.innerHTML += `<option value="${product.id}" data-stock="${product.current_stock}" data-unit="${product.unit_of_measure}">${product.name} (${product.sku}) - Current: ${product.current_stock} ${product.unit_of_measure}</option>`;
-        });
-
-        const modal = new bootstrap.Modal(document.getElementById('addInventoryModal'));
+    const modal = new bootstrap.Modal(document.getElementById('addInventoryModal'));
+    
+    // Load products and then show modal
+    loadProductsForAdjustment()
+    .then(() => {
         modal.show();
     })
     .catch(error => {
-        console.error('Error loading products:', error);
-        showToast('Error loading products', 'error');
+        console.error('Error opening modal:', error);
+        showToast('Error loading products. Please try again.', 'error');
+    });
+}
+
+function loadProductsForAdjustment() {
+    return new Promise((resolve, reject) => {
+        // First try localStorage if available, otherwise fetch from API
+        let productsPromise;
+        
+        // Check localStorage first
+        const cachedProducts = localStorage.getItem('inventory.products');
+        if (cachedProducts) {
+            try {
+                const products = JSON.parse(cachedProducts);
+                productsPromise = Promise.resolve(products);
+            } catch (e) {
+                // If localStorage is corrupted, fall back to API
+                productsPromise = fetchProductsFromAPI();
+            }
+        } else {
+            // No cache, fetch from API
+            productsPromise = fetchProductsFromAPI();
+        }
+        
+        productsPromise
+        .then(products => {
+            populateProductDropdowns(products);
+            resolve(products);
+        })
+        .catch(error => {
+            console.error('Error loading products:', error);
+            reject(error);
+        });
+    });
+}
+
+function fetchProductsFromAPI() {
+    return fetch('/api/inventory/products/for-consumption')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to fetch products');
+        }
+        return response.json();
+    })
+    .then(products => {
+        // Cache in localStorage for future use
+        try {
+            localStorage.setItem('inventory.products', JSON.stringify(products));
+        } catch (e) {
+            console.warn('Could not cache products in localStorage:', e);
+        }
+        return products;
+    });
+}
+
+function populateProductDropdowns(products) {
+    // Get all product select elements in the inventory modal
+    const selects = document.querySelectorAll('#addInventoryModal .product-select');
+    
+    selects.forEach(select => {
+        // Store current selection to preserve it
+        const currentValue = select.value;
+        
+        // Clear existing options
+        select.innerHTML = '<option value="">Select Product</option>';
+        
+        // Handle empty state
+        if (!products || products.length === 0) {
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'No products found. Please add products in Product Master.';
+            emptyOption.disabled = true;
+            select.appendChild(emptyOption);
+            
+            // Disable save button if no products
+            const saveButton = document.querySelector('#addInventoryModal .btn-primary');
+            if (saveButton) {
+                saveButton.disabled = true;
+                saveButton.title = 'No products available. Please add products first.';
+            }
+            return;
+        }
+        
+        // Enable save button if products exist
+        const saveButton = document.querySelector('#addInventoryModal .btn-primary');
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.title = '';
+        }
+        
+        // Add products to dropdown
+        products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id || '';
+            option.setAttribute('data-stock', product.current_stock || 0);
+            option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
+            option.setAttribute('data-cost', product.cost_price || 0);
+            
+            // Format: Product Name (SKU) - Current: X units
+            const currentStock = product.current_stock || 0;
+            const unit = product.unit_of_measure || 'pcs';
+            const sku = product.sku || 'N/A';
+            const name = product.name || 'Unnamed Product';
+            
+            option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
+            select.appendChild(option);
+        });
+        
+        // Restore previous selection if valid
+        if (currentValue) {
+            select.value = currentValue;
+            // Trigger change event to update dependent fields
+            const event = new Event('change');
+            select.dispatchEvent(event);
+        }
+        
+        // Add searchable functionality for large lists
+        if (products.length > 20) {
+            addSearchableFeature(select);
+        }
+    });
+}
+
+function addSearchableFeature(selectElement) {
+    // Simple searchable feature - add a search input above the select
+    const container = selectElement.closest('.input-group') || selectElement.parentElement;
+    
+    // Check if search input already exists
+    if (container.querySelector('.product-search')) {
+        return;
+    }
+    
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'form-control form-control-sm product-search mb-1';
+    searchInput.placeholder = 'Type to search products...';
+    
+    // Store original options
+    const originalOptions = Array.from(selectElement.options).slice(1); // Skip first empty option
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        // Clear current options except the first one
+        selectElement.innerHTML = '<option value="">Select Product</option>';
+        
+        // Filter and add matching options
+        originalOptions.forEach(option => {
+            if (option.textContent.toLowerCase().includes(searchTerm)) {
+                selectElement.appendChild(option.cloneNode(true));
+            }
+        });
+    });
+    
+    container.insertBefore(searchInput, selectElement);
+}
+
+function refreshProductsDropdown(refreshButton) {
+    // Add loading state to refresh button
+    const originalContent = refreshButton.innerHTML;
+    refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    refreshButton.disabled = true;
+    
+    // Clear localStorage cache
+    localStorage.removeItem('inventory.products');
+    
+    // Fetch fresh data from API
+    fetchProductsFromAPI()
+    .then(products => {
+        populateProductDropdowns(products);
+        showToast('Products refreshed successfully', 'success');
+    })
+    .catch(error => {
+        console.error('Error refreshing products:', error);
+        showToast('Error refreshing products. Please try again.', 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        refreshButton.innerHTML = originalContent;
+        refreshButton.disabled = false;
     });
 }
 
@@ -1016,13 +1195,37 @@ function openAddAdjustmentModal() {
 
 function updateCurrentStock(selectElement) {
     const selectedOption = selectElement.selectedOptions[0];
-    const currentStockInput = selectElement.closest('.inventory-item').querySelector('.current-stock');
+    const row = selectElement.closest('.inventory-item');
+    const currentStockInput = row.querySelector('.current-stock');
+    const unitCostInput = row.querySelector('.unit-cost');
     
-    if (selectedOption && selectedOption.dataset.stock) {
-        currentStockInput.value = selectedOption.dataset.stock;
+    // Defensive defaults - handle missing data gracefully
+    if (selectedOption && selectedOption.value) {
+        // Auto-fill current stock from product data
+        const currentStock = selectedOption.dataset.stock || '0';
+        const unitCost = selectedOption.dataset.cost || '0';
+        
+        currentStockInput.value = parseFloat(currentStock).toFixed(2);
+        
+        // Auto-fill unit cost if available and not already set
+        if (unitCostInput && (!unitCostInput.value || unitCostInput.value === '0')) {
+            unitCostInput.value = parseFloat(unitCost).toFixed(2);
+        }
+        
+        // Clear any validation errors
+        selectElement.classList.remove('is-invalid');
+        const feedback = selectElement.closest('.col-md-3').querySelector('.invalid-feedback');
+        if (feedback) {
+            feedback.style.display = 'none';
+        }
     } else {
-        currentStockInput.value = '';
+        // No product selected - clear dependent fields
+        currentStockInput.value = '0.00';
+        if (unitCostInput) {
+            unitCostInput.value = '0.00';
+        }
     }
+    
     calculateLineTotal(selectElement);
 }
 
@@ -1062,14 +1265,85 @@ function addInventoryItem() {
     const container = document.getElementById('inventoryItems');
     const newItem = container.firstElementChild.cloneNode(true);
 
-    // Clear values
+    // Clear values from inputs and selects
     newItem.querySelectorAll('input, select').forEach(input => {
         if (input.type !== 'button') {
             input.value = '';
         }
+        // Clear validation classes
+        input.classList.remove('is-invalid', 'is-valid');
     });
 
+    // Clear any search inputs that might have been added for searchable dropdowns
+    const searchInputs = newItem.querySelectorAll('.product-search');
+    searchInputs.forEach(search => search.remove());
+
+    // Hide validation feedback
+    const feedbacks = newItem.querySelectorAll('.invalid-feedback');
+    feedbacks.forEach(feedback => feedback.style.display = 'none');
+
     container.appendChild(newItem);
+
+    // Load products for the new dropdown
+    const newSelect = newItem.querySelector('.product-select');
+    if (newSelect) {
+        // Try to get cached products first
+        const cachedProducts = localStorage.getItem('inventory.products');
+        if (cachedProducts) {
+            try {
+                const products = JSON.parse(cachedProducts);
+                populateProductDropdown(newSelect, products);
+            } catch (e) {
+                // If cache is corrupted, fetch fresh data
+                fetchProductsFromAPI().then(products => {
+                    populateProductDropdown(newSelect, products);
+                });
+            }
+        } else {
+            // No cache, fetch from API
+            fetchProductsFromAPI().then(products => {
+                populateProductDropdown(newSelect, products);
+            });
+        }
+    }
+}
+
+function populateProductDropdown(selectElement, products) {
+    // Clear existing options
+    selectElement.innerHTML = '<option value="">Select Product</option>';
+    
+    // Handle empty state
+    if (!products || products.length === 0) {
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = 'No products found. Please add products in Product Master.';
+        emptyOption.disabled = true;
+        selectElement.appendChild(emptyOption);
+        return;
+    }
+    
+    // Add products to dropdown
+    products.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id || '';
+        option.setAttribute('data-stock', product.current_stock || 0);
+        option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
+        option.setAttribute('data-cost', product.cost_price || 0);
+        
+        // Format: Product Name (SKU) - Current: X units
+        const currentStock = product.current_stock || 0;
+        const unit = product.unit_of_measure || 'pcs';
+        const sku = product.sku || 'N/A';
+        const name = product.name || 'Unnamed Product';
+        
+        option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
+        selectElement.appendChild(option);
+    });
+    
+    // Add searchable functionality for large lists
+    if (products.length > 20) {
+        addSearchableFeature(selectElement);
+    }
 }
 
 function removeInventoryItem(button) {
