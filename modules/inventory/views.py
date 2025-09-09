@@ -943,6 +943,44 @@ def api_delete_product(product_id):
     except Exception as e:
         return jsonify({'error': f'Error deleting product: {str(e)}'}), 500
 
+# ============ CATEGORY CLEANUP ============
+
+@app.route('/api/inventory/categories/cleanup', methods=['POST'])
+@login_required
+def api_cleanup_categories():
+    """Clean up dummy/test category data"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from .models import InventoryCategory
+        
+        # Find and delete dummy categories
+        dummy_categories = InventoryCategory.query.filter(
+            or_(
+                InventoryCategory.name.in_(['JBJ', 'TEST', 'DUMMY', 'TEMP']),
+                InventoryCategory.description.in_(['JHV', 'test', 'dummy', 'temp'])
+            )
+        ).all()
+
+        deleted_count = 0
+        for category in dummy_categories:
+            # Only delete if no products are assigned
+            if not category.products:
+                db.session.delete(category)
+                deleted_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Cleaned up {deleted_count} dummy categories successfully.'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error cleaning up categories: {str(e)}'}), 500
+
 # ============ CATEGORY API ENDPOINTS ============
 
 @app.route('/api/inventory/categories')
@@ -957,6 +995,10 @@ def api_get_categories():
         category_list = []
 
         for category in categories:
+            # Skip test/dummy data - filter out categories with invalid names
+            if not category.name or len(category.name.strip()) < 3 or category.name.strip().upper() in ['JBJ', 'TEST', 'DUMMY', 'TEMP']:
+                continue
+                
             # Count products in this category
             product_count = len([p for p in category.products if p.is_active])
 
