@@ -580,103 +580,140 @@
     }
 
     window.saveProduct = function() {
-        // Form validation
-        const sku = document.getElementById('productSku').value.trim();
-        const name = document.getElementById('productName').value.trim();
-        const categoryId = document.getElementById('productCategory').value;
-        const primaryLocation = document.getElementById('productPrimaryLocation').value;
+        console.log('Save Product function called');
         
-        if (!sku) {
-            alert('SKU is required');
-            return;
-        }
-        
-        if (!name) {
-            alert('Product name is required');
-            return;
-        }
-        
-        if (!categoryId) {
-            alert('Please select a category');
-            return;
-        }
-        
-        if (!primaryLocation) {
-            alert('Please select a primary location');
-            return;
-        }
-        
-        // Validation - check if categories and locations exist
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-        
-        const activeCategories = categories.filter(cat => cat.is_active !== false);
-        const activeLocations = locations.filter(loc => loc.status === 'active');
-        
-        if (activeCategories.length === 0) {
-            alert('Please create at least one category before adding products.');
-            return;
-        }
-        
-        if (activeLocations.length === 0) {
-            alert('Please create at least one location before adding products.');
-            return;
-        }
-        
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        
-        const productData = {
-            id: editingProductId || Date.now().toString(),
-            sku: sku,
-            name: name,
-            categoryId: document.getElementById('productCategory').value,
-            unit: document.getElementById('productUnit').value,
-            stock: parseFloat(document.getElementById('productStock').value) || 0,
-            currentStock: parseFloat(document.getElementById('productStock').value) || 0,
-            minStock: parseFloat(document.getElementById('productMinStock').value) || 10,
-            reorderLevel: parseFloat(document.getElementById('productReorderLevel').value) || 0,
-            costPrice: parseFloat(document.getElementById('productCostPrice').value) || 0,
-            trackBatches: document.getElementById('productTrackBatches').checked,
-            trackSerials: document.getElementById('productTrackSerials').checked,
-            primaryLocation: document.getElementById('productPrimaryLocation').value,
-            description: document.getElementById('productDescription').value,
-            location: document.getElementById('productLocation').value,
-            barcode: document.getElementById('productBarcode').value,
-            createdAt: editingProductId ? undefined : new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        // Preserve existing data when editing
-        if (editingProductId) {
-            const index = products.findIndex(p => p.id === editingProductId);
-            if (index !== -1) {
-                const existingProduct = products[index];
-                productData.batches = existingProduct.batches || [];
-                productData.serials = existingProduct.serials || [];
-                productData.locationStock = existingProduct.locationStock || {};
-                productData.createdAt = existingProduct.createdAt;
-                products[index] = productData;
-            }
-        } else {
-            // Initialize new product data
-            productData.batches = [];
-            productData.serials = [];
-            productData.locationStock = {};
+        try {
+            // Form validation
+            const sku = document.getElementById('productSku').value.trim();
+            const name = document.getElementById('productName').value.trim();
+            const categoryId = document.getElementById('productCategory').value;
+            const primaryLocation = document.getElementById('productPrimaryLocation').value;
+            const unit = document.getElementById('productUnit').value;
             
-            // Set initial stock in primary location if specified
-            if (productData.primaryLocation) {
-                productData.locationStock[productData.primaryLocation] = productData.currentStock;
+            // Validate required fields
+            if (!sku) {
+                alert('SKU is required');
+                document.getElementById('productSku').focus();
+                return;
             }
             
-            products.push(productData);
+            if (!name) {
+                alert('Product name is required');
+                document.getElementById('productName').focus();
+                return;
+            }
+            
+            if (!categoryId) {
+                alert('Please select a category');
+                document.getElementById('productCategory').focus();
+                return;
+            }
+            
+            if (!primaryLocation) {
+                alert('Please select a primary location');
+                document.getElementById('productPrimaryLocation').focus();
+                return;
+            }
+            
+            if (!unit) {
+                alert('Please select a unit of measure');
+                document.getElementById('productUnit').focus();
+                return;
+            }
+            
+            // Get existing products and check for duplicate SKU
+            const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+            
+            if (!editingProductId) {
+                // Check for duplicate SKU when adding new product
+                const existingProduct = products.find(p => p.sku.toLowerCase() === sku.toLowerCase());
+                if (existingProduct) {
+                    alert(`SKU "${sku}" already exists. Please use a different SKU.`);
+                    document.getElementById('productSku').focus();
+                    return;
+                }
+            } else {
+                // Check for duplicate SKU when editing (exclude current product)
+                const existingProduct = products.find(p => p.sku.toLowerCase() === sku.toLowerCase() && p.id !== editingProductId);
+                if (existingProduct) {
+                    alert(`SKU "${sku}" already exists. Please use a different SKU.`);
+                    document.getElementById('productSku').focus();
+                    return;
+                }
+            }
+        
+            // Create product data object
+            const productData = {
+                id: editingProductId || Date.now().toString(),
+                sku: sku,
+                name: name,
+                categoryId: categoryId,
+                unit: unit,
+                stock: parseFloat(document.getElementById('productStock').value) || 0,
+                currentStock: parseFloat(document.getElementById('productStock').value) || 0,
+                minStock: parseFloat(document.getElementById('productMinStock').value) || 10,
+                reorderLevel: parseFloat(document.getElementById('productReorderLevel').value) || 0,
+                costPrice: parseFloat(document.getElementById('productCostPrice').value) || 0,
+                trackBatches: document.getElementById('productTrackBatches').checked || false,
+                trackSerials: document.getElementById('productTrackSerials').checked || false,
+                primaryLocation: primaryLocation,
+                description: document.getElementById('productDescription').value || '',
+                location: document.getElementById('productLocation').value || '',
+                barcode: document.getElementById('productBarcode').value || '',
+                createdAt: editingProductId ? undefined : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            console.log('Product data to save:', productData);
+            
+            // Preserve existing data when editing
+            if (editingProductId) {
+                const index = products.findIndex(p => p.id === editingProductId);
+                if (index !== -1) {
+                    const existingProduct = products[index];
+                    productData.batches = existingProduct.batches || [];
+                    productData.serials = existingProduct.serials || [];
+                    productData.locationStock = existingProduct.locationStock || {};
+                    productData.createdAt = existingProduct.createdAt;
+                    products[index] = productData;
+                    console.log('Product updated:', productData.name);
+                }
+            } else {
+                // Initialize new product data
+                productData.batches = [];
+                productData.serials = [];
+                productData.locationStock = {};
+                
+                // Set initial stock in primary location if specified
+                if (productData.primaryLocation && productData.currentStock > 0) {
+                    productData.locationStock[productData.primaryLocation] = productData.currentStock;
+                }
+                
+                products.push(productData);
+                console.log('New product added:', productData.name);
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('inventory.products', JSON.stringify(products));
+            
+            // Close modal
+            const modalElement = document.getElementById('productModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Refresh the products table
+            loadProducts();
+            
+            // Show success message
+            const action = editingProductId ? 'updated' : 'added';
+            alert(`Product "${productData.name}" ${action} successfully!`);
+            
+        } catch (error) {
+            console.error('Error saving product:', error);
+            alert('Error saving product. Please try again.');
         }
-        
-        localStorage.setItem('inventory.products', JSON.stringify(products));
-        
-        const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
-        modal.hide();
-        
-        loadProducts();
     }
 
     window.deleteProduct = function(productId) {
