@@ -278,29 +278,116 @@
     }
 
     function loadCategories() {
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+        console.log('Loading categories for product master...');
+        
+        // First try to load from API
+        fetch('/api/inventory/categories')
+            .then(response => response.json())
+            .then(data => {
+                if (data.categories) {
+                    const categories = data.categories;
+                    localStorage.setItem('inventory.categories', JSON.stringify(categories));
+                    populateCategoryDropdowns(categories);
+                } else {
+                    throw new Error('No categories data received');
+                }
+            })
+            .catch(error => {
+                console.warn('API failed, using localStorage:', error);
+                // Fallback to localStorage
+                const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+                populateCategoryDropdowns(categories);
+            });
+    }
+
+    function populateCategoryDropdowns(categories) {
         const categoryFilter = document.getElementById('categoryFilter');
         const productCategory = document.getElementById('productCategory');
         
-        // Update filter dropdown
-        categoryFilter.innerHTML = '<option value="">All Categories</option>';
-        productCategory.innerHTML = '<option value="">Select category</option>';
+        if (categoryFilter) {
+            categoryFilter.innerHTML = '<option value="">All Categories</option>';
+            categories.filter(cat => cat.is_active !== false).forEach(category => {
+                categoryFilter.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+            });
+        }
         
-        categories.forEach(category => {
-            categoryFilter.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-            productCategory.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-        });
+        if (productCategory) {
+            productCategory.innerHTML = '<option value="">Select category</option>';
+            categories.filter(cat => cat.is_active !== false).forEach(category => {
+                productCategory.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+            });
+        }
+        
+        console.log('Categories loaded successfully:', categories.length);
     }
 
     function loadLocations() {
-        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        console.log('Loading locations for product master...');
+        
+        // First try to load from API
+        fetch('/api/inventory/locations')
+            .then(response => response.json())
+            .then(data => {
+                if (data.locations) {
+                    const locations = data.locations;
+                    localStorage.setItem('inventory.locations', JSON.stringify(locations));
+                    populateLocationDropdowns(locations);
+                } else {
+                    throw new Error('No locations data received');
+                }
+            })
+            .catch(error => {
+                console.warn('API failed, using localStorage:', error);
+                // Fallback to localStorage
+                const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+                populateLocationDropdowns(locations);
+            });
+    }
+
+    function populateLocationDropdowns(locations) {
         const productLocation = document.getElementById('productPrimaryLocation');
         
-        productLocation.innerHTML = '<option value="">Select primary location</option>';
+        if (productLocation) {
+            productLocation.innerHTML = '<option value="">Select primary location</option>';
+            locations.filter(loc => loc.status === 'active').forEach(location => {
+                productLocation.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+            });
+        }
         
-        locations.filter(loc => loc.status === 'active').forEach(location => {
-            productLocation.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+        console.log('Locations loaded successfully:', locations.length);
+    }
+
+    // Utility functions for dropdown loading
+    function loadCategoriesIntoDropdown(dropdownId, selectedId = null) {
+        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        
+        dropdown.innerHTML = '<option value="">Select category</option>';
+        categories.filter(cat => cat.is_active !== false).forEach(category => {
+            const selected = category.id === selectedId ? 'selected' : '';
+            dropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
         });
+        
+        if (categories.length === 0) {
+            dropdown.innerHTML = '<option value="" disabled>No categories available - Please add categories first</option>';
+        }
+    }
+
+    function loadLocationsIntoDropdown(dropdownId, selectedId = null) {
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        
+        dropdown.innerHTML = '<option value="">Select location</option>';
+        locations.filter(loc => loc.status === 'active').forEach(location => {
+            const selected = location.id === selectedId ? 'selected' : '';
+            dropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
+        });
+        
+        if (locations.filter(loc => loc.status === 'active').length === 0) {
+            dropdown.innerHTML = '<option value="" disabled>No locations available - Please add locations first</option>';
+        }
     }
 
     function addProduct() {
@@ -308,8 +395,17 @@
         document.getElementById('productModalTitle').textContent = 'Add Product';
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
+        
+        // Load fresh data and populate dropdowns
         loadCategories();
         loadLocations();
+        
+        // Small delay to ensure data is loaded
+        setTimeout(() => {
+            loadCategoriesIntoDropdown('productCategory');
+            loadLocationsIntoDropdown('productPrimaryLocation');
+        }, 100);
+        
         const modal = new bootstrap.Modal(document.getElementById('productModal'));
         modal.show();
     }
@@ -325,10 +421,11 @@
             document.getElementById('productSku').value = product.sku;
             document.getElementById('productName').value = product.name;
             
+            // Load fresh data first
             loadCategories();
             loadLocations();
             
-            document.getElementById('productCategory').value = product.categoryId || '';
+            // Populate form fields
             document.getElementById('productUnit').value = product.unit || 'pcs';
             document.getElementById('productStock').value = calculateTotalStock(product);
             document.getElementById('productMinStock').value = product.minStock || 10;
@@ -336,10 +433,15 @@
             document.getElementById('productCostPrice').value = product.costPrice || 0;
             document.getElementById('productTrackBatches').checked = product.trackBatches || false;
             document.getElementById('productTrackSerials').checked = product.trackSerials || false;
-            document.getElementById('productPrimaryLocation').value = product.primaryLocation || '';
             document.getElementById('productDescription').value = product.description || '';
             document.getElementById('productLocation').value = product.location || '';
             document.getElementById('productBarcode').value = product.barcode || '';
+            
+            // Load dropdowns with selected values after a small delay
+            setTimeout(() => {
+                loadCategoriesIntoDropdown('productCategory', product.categoryId);
+                loadLocationsIntoDropdown('productPrimaryLocation', product.primaryLocation);
+            }, 100);
             
             const modal = new bootstrap.Modal(document.getElementById('productModal'));
             modal.show();
@@ -347,12 +449,40 @@
     }
 
     window.saveProduct = function() {
+        // Validation first
+        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        
+        if (categories.length === 0) {
+            alert('Please create at least one category before adding products.');
+            return;
+        }
+        
+        if (locations.filter(loc => loc.status === 'active').length === 0) {
+            alert('Please create at least one location before adding products.');
+            return;
+        }
+        
+        // Form validation
+        const sku = document.getElementById('productSku').value.trim();
+        const name = document.getElementById('productName').value.trim();
+        
+        if (!sku) {
+            alert('SKU is required');
+            return;
+        }
+        
+        if (!name) {
+            alert('Product name is required');
+            return;
+        }
+        
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         
         const productData = {
             id: editingProductId || Date.now().toString(),
-            sku: document.getElementById('productSku').value,
-            name: document.getElementById('productName').value,
+            sku: sku,
+            name: name,
             categoryId: document.getElementById('productCategory').value,
             unit: document.getElementById('productUnit').value,
             stock: parseFloat(document.getElementById('productStock').value) || 0,

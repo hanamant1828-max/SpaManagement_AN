@@ -230,12 +230,23 @@
         const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
         if (categories.length === 0) {
             const defaultCategories = [
-                { id: 'cat1', name: 'Skincare Products', description: 'Facial and body care products', color: '#ff6b6b', isActive: true, createdAt: new Date().toISOString() },
-                { id: 'cat2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color: '#4ecdc4', isActive: true, createdAt: new Date().toISOString() },
-                { id: 'cat3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color: '#45b7d1', isActive: true, createdAt: new Date().toISOString() },
-                { id: 'cat4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color: '#f9ca24', isActive: true, createdAt: new Date().toISOString() }
+                { id: 'cat1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true, created_at: new Date().toISOString() },
+                { id: 'cat2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true, created_at: new Date().toISOString() },
+                { id: 'cat3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true, created_at: new Date().toISOString() },
+                { id: 'cat4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true, created_at: new Date().toISOString() }
             ];
             localStorage.setItem('inventory.categories', JSON.stringify(defaultCategories));
+            
+            // Also create some default locations
+            const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+            if (locations.length === 0) {
+                const defaultLocations = [
+                    { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active', address: 'Main location', created_at: new Date().toISOString() },
+                    { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active', address: 'Back storage area', created_at: new Date().toISOString() },
+                    { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active', address: 'First treatment room', created_at: new Date().toISOString() }
+                ];
+                localStorage.setItem('inventory.locations', JSON.stringify(defaultLocations));
+            }
         }
     }
 
