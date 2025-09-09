@@ -1,0 +1,583 @@
+<div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="fas fa-exchange-alt me-2"></i>Stock Transfers</h3>
+        <button id="btnAddTransfer" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>New Transfer
+        </button>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="transferSearch" placeholder="Search transfers...">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control" id="dateFrom" placeholder="From Date">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control" id="dateTo" placeholder="To Date">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-secondary w-100" onclick="clearTransferFilters()">Clear</button>
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-success w-100" onclick="exportTransfers()" title="Export to Excel">
+                        <i class="fas fa-file-excel"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfers Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped" id="transferTable">
+                    <thead>
+                        <tr>
+                            <th>Transfer ID</th>
+                            <th>Date</th>
+                            <th>From Location</th>
+                            <th>To Location</th>
+                            <th>Items</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transferTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Transfer Modal -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transferModalTitle">New Stock Transfer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transferForm">
+                    <input type="hidden" id="transferId">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">From Location *</label>
+                            <select class="form-select" id="fromLocation" required>
+                                <option value="">Select Source Location</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">To Location *</label>
+                            <select class="form-select" id="toLocation" required>
+                                <option value="">Select Destination Location</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Reference/Notes</label>
+                        <input type="text" class="form-control" id="transferReference" placeholder="Optional reference or notes">
+                    </div>
+
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6>Transfer Items</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addTransferItem()">
+                            <i class="fas fa-plus me-1"></i>Add Item
+                        </button>
+                    </div>
+
+                    <div id="transferItems">
+                        <!-- Transfer items will be added here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTransfer()">Create Transfer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transfer Details Modal -->
+<div class="modal fade" id="transferDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Transfer Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="transferDetailsBody">
+                <!-- Transfer details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div id="transferActions">
+                    <!-- Action buttons will be added here based on transfer status -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Isolated scope for transfers tab
+    let editingTransferId = null;
+    let transferItemCounter = 0;
+
+    function loadTransfers() {
+        const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        const search = document.getElementById('transferSearch').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+
+        let filteredTransfers = transfers.filter(transfer => {
+            const matchesSearch = transfer.id.toLowerCase().includes(search) ||
+                                transfer.reference?.toLowerCase().includes(search);
+            const matchesStatus = !statusFilter || transfer.status === statusFilter;
+            
+            let matchesDate = true;
+            if (dateFrom || dateTo) {
+                const transferDate = new Date(transfer.date).toISOString().split('T')[0];
+                if (dateFrom && transferDate < dateFrom) matchesDate = false;
+                if (dateTo && transferDate > dateTo) matchesDate = false;
+            }
+            
+            return matchesSearch && matchesStatus && matchesDate;
+        });
+
+        // Sort by date (newest first)
+        filteredTransfers.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const tbody = document.getElementById('transferTableBody');
+        tbody.innerHTML = '';
+
+        if (filteredTransfers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No transfers found</td></tr>';
+            return;
+        }
+
+        filteredTransfers.forEach(transfer => {
+            const fromLocation = locations.find(l => l.id === transfer.fromLocation)?.name || 'Unknown';
+            const toLocation = locations.find(l => l.id === transfer.toLocation)?.name || 'Unknown';
+            const statusBadge = getStatusBadge(transfer.status);
+            const itemsCount = transfer.items.length;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${transfer.id}</strong></td>
+                    <td>${new Date(transfer.date).toLocaleDateString()}</td>
+                    <td>${fromLocation}</td>
+                    <td>${toLocation}</td>
+                    <td>${itemsCount} item${itemsCount !== 1 ? 's' : ''}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-info" onclick="viewTransfer('${transfer.id}')" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${transfer.status === 'pending' ? `
+                                <button class="btn btn-sm btn-outline-success" onclick="completeTransfer('${transfer.id}')" title="Complete">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="cancelTransfer('${transfer.id}')" title="Cancel">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function getStatusBadge(status) {
+        const badges = {
+            'pending': '<span class="badge bg-warning">Pending</span>',
+            'completed': '<span class="badge bg-success">Completed</span>',
+            'cancelled': '<span class="badge bg-danger">Cancelled</span>'
+        };
+        return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+    }
+
+    function loadLocations() {
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        const activeLocations = locations.filter(l => l.status === 'active');
+        
+        const fromSelect = document.getElementById('fromLocation');
+        const toSelect = document.getElementById('toLocation');
+        
+        fromSelect.innerHTML = '<option value="">Select Source Location</option>';
+        toSelect.innerHTML = '<option value="">Select Destination Location</option>';
+        
+        activeLocations.forEach(location => {
+            const option = `<option value="${location.id}">${location.name}</option>`;
+            fromSelect.innerHTML += option;
+            toSelect.innerHTML += option;
+        });
+    }
+
+    // Add event listener for add transfer button
+    document.getElementById('btnAddTransfer').addEventListener('click', function() {
+        editingTransferId = null;
+        transferItemCounter = 0;
+        document.getElementById('transferModalTitle').textContent = 'New Stock Transfer';
+        document.getElementById('transferForm').reset();
+        document.getElementById('transferItems').innerHTML = '';
+        
+        loadLocations();
+        addTransferItem(); // Add one item by default
+        
+        const modal = new bootstrap.Modal(document.getElementById('transferModal'));
+        modal.show();
+    });
+
+    window.addTransferItem = function() {
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const fromLocationId = document.getElementById('fromLocation').value;
+        
+        transferItemCounter++;
+        const itemHtml = `
+            <div class="card mb-2" id="transferItem${transferItemCounter}">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Product *</label>
+                            <select class="form-select transfer-product" data-item="${transferItemCounter}" required>
+                                <option value="">Select Product</option>
+                                ${products.map(p => `<option value="${p.id}" data-stock="${p.locationStock?.[fromLocationId] || 0}">${p.name} (${p.sku})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Available Stock</label>
+                            <input type="text" class="form-control stock-info" id="stockInfo${transferItemCounter}" readonly>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Quantity *</label>
+                            <input type="number" class="form-control transfer-qty" id="transferQty${transferItemCounter}" min="1" required>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-danger w-100" onclick="removeTransferItem(${transferItemCounter})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('transferItems').insertAdjacentHTML('beforeend', itemHtml);
+        
+        // Add event listener for product selection
+        document.querySelector(`[data-item="${transferItemCounter}"]`).addEventListener('change', function() {
+            updateStockInfo(transferItemCounter, this.value);
+        });
+    }
+
+    function updateStockInfo(itemCounter, productId) {
+        const fromLocationId = document.getElementById('fromLocation').value;
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const product = products.find(p => p.id === productId);
+        
+        if (product && fromLocationId) {
+            const stock = product.locationStock?.[fromLocationId] || 0;
+            document.getElementById(`stockInfo${itemCounter}`).value = `${stock} available`;
+            document.getElementById(`transferQty${itemCounter}`).max = stock;
+        } else {
+            document.getElementById(`stockInfo${itemCounter}`).value = '';
+            document.getElementById(`transferQty${itemCounter}`).max = '';
+        }
+    }
+
+    window.removeTransferItem = function(itemCounter) {
+        document.getElementById(`transferItem${itemCounter}`).remove();
+    }
+
+    // Update stock info when from location changes
+    document.getElementById('fromLocation').addEventListener('change', function() {
+        document.querySelectorAll('.transfer-product').forEach((select, index) => {
+            if (select.value) {
+                updateStockInfo(select.dataset.item, select.value);
+            }
+        });
+    });
+
+    window.saveTransfer = function() {
+        const transferData = {
+            id: 'TXN-' + Date.now(),
+            date: new Date().toISOString(),
+            fromLocation: document.getElementById('fromLocation').value,
+            toLocation: document.getElementById('toLocation').value,
+            reference: document.getElementById('transferReference').value,
+            status: 'pending',
+            items: [],
+            createdAt: new Date().toISOString()
+        };
+
+        // Validation
+        if (!transferData.fromLocation || !transferData.toLocation) {
+            alert('Please select both source and destination locations.');
+            return;
+        }
+
+        if (transferData.fromLocation === transferData.toLocation) {
+            alert('Source and destination locations cannot be the same.');
+            return;
+        }
+
+        // Collect transfer items
+        const transferItems = document.querySelectorAll('.transfer-product');
+        for (let i = 0; i < transferItems.length; i++) {
+            const select = transferItems[i];
+            const itemCounter = select.dataset.item;
+            const productId = select.value;
+            const qty = parseInt(document.getElementById(`transferQty${itemCounter}`).value);
+
+            if (productId && qty > 0) {
+                transferData.items.push({
+                    productId: productId,
+                    quantity: qty
+                });
+            }
+        }
+
+        if (transferData.items.length === 0) {
+            alert('Please add at least one item to transfer.');
+            return;
+        }
+
+        // Validate stock availability
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        for (const item of transferData.items) {
+            const product = products.find(p => p.id === item.productId);
+            const availableStock = product?.locationStock?.[transferData.fromLocation] || 0;
+            
+            if (item.quantity > availableStock) {
+                const productName = product?.name || 'Unknown Product';
+                alert(`Insufficient stock for ${productName}. Available: ${availableStock}, Requested: ${item.quantity}`);
+                return;
+            }
+        }
+
+        // Save transfer
+        const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
+        transfers.push(transferData);
+        localStorage.setItem('inventory.transfers', JSON.stringify(transfers));
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('transferModal'));
+        modal.hide();
+        
+        loadTransfers();
+        showToast('Transfer created successfully!', 'success');
+    }
+
+    window.viewTransfer = function(transferId) {
+        const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
+        const transfer = transfers.find(t => t.id === transferId);
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        
+        if (!transfer) return;
+
+        const fromLocation = locations.find(l => l.id === transfer.fromLocation)?.name || 'Unknown';
+        const toLocation = locations.find(l => l.id === transfer.toLocation)?.name || 'Unknown';
+        
+        let itemsHtml = transfer.items.map(item => {
+            const product = products.find(p => p.id === item.productId);
+            return `
+                <tr>
+                    <td>${product?.name || 'Unknown Product'}</td>
+                    <td>${product?.sku || '-'}</td>
+                    <td>${item.quantity}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const detailsHtml = `
+            <div class="row mb-3">
+                <div class="col-md-6"><strong>Transfer ID:</strong> ${transfer.id}</div>
+                <div class="col-md-6"><strong>Status:</strong> ${getStatusBadge(transfer.status)}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6"><strong>From Location:</strong> ${fromLocation}</div>
+                <div class="col-md-6"><strong>To Location:</strong> ${toLocation}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6"><strong>Date:</strong> ${new Date(transfer.date).toLocaleString()}</div>
+                <div class="col-md-6"><strong>Reference:</strong> ${transfer.reference || '-'}</div>
+            </div>
+            
+            <h6>Items to Transfer:</h6>
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>Product</th><th>SKU</th><th>Quantity</th></tr>
+                </thead>
+                <tbody>${itemsHtml}</tbody>
+            </table>
+        `;
+
+        document.getElementById('transferDetailsBody').innerHTML = detailsHtml;
+        
+        // Add action buttons
+        const actionsHtml = transfer.status === 'pending' ? `
+            <button class="btn btn-success me-2" onclick="completeTransfer('${transfer.id}')">Complete Transfer</button>
+            <button class="btn btn-danger" onclick="cancelTransfer('${transfer.id}')">Cancel Transfer</button>
+        ` : '';
+        
+        document.getElementById('transferActions').innerHTML = actionsHtml;
+        
+        const modal = new bootstrap.Modal(document.getElementById('transferDetailsModal'));
+        modal.show();
+    }
+
+    window.completeTransfer = function(transferId) {
+        if (!confirm('Are you sure you want to complete this transfer? This action cannot be undone.')) {
+            return;
+        }
+
+        const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
+        const transfer = transfers.find(t => t.id === transferId);
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        
+        if (!transfer || transfer.status !== 'pending') {
+            alert('Transfer not found or already processed.');
+            return;
+        }
+
+        // Update stock levels
+        transfer.items.forEach(item => {
+            const productIndex = products.findIndex(p => p.id === item.productId);
+            if (productIndex !== -1) {
+                const product = products[productIndex];
+                
+                // Initialize locationStock if not exists
+                if (!product.locationStock) {
+                    product.locationStock = {};
+                }
+                
+                // Deduct from source location
+                product.locationStock[transfer.fromLocation] = (product.locationStock[transfer.fromLocation] || 0) - item.quantity;
+                
+                // Add to destination location
+                product.locationStock[transfer.toLocation] = (product.locationStock[transfer.toLocation] || 0) + item.quantity;
+                
+                // Update total stock
+                product.currentStock = Object.values(product.locationStock).reduce((sum, stock) => sum + stock, 0);
+            }
+        });
+
+        // Update transfer status
+        transfer.status = 'completed';
+        transfer.completedAt = new Date().toISOString();
+
+        localStorage.setItem('inventory.transfers', JSON.stringify(transfers));
+        localStorage.setItem('inventory.products', JSON.stringify(products));
+
+        // Close details modal if open
+        const detailsModal = bootstrap.Modal.getInstance(document.getElementById('transferDetailsModal'));
+        if (detailsModal) detailsModal.hide();
+        
+        loadTransfers();
+        showToast('Transfer completed successfully!', 'success');
+    }
+
+    window.cancelTransfer = function(transferId) {
+        if (!confirm('Are you sure you want to cancel this transfer?')) {
+            return;
+        }
+
+        const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
+        const transferIndex = transfers.findIndex(t => t.id === transferId);
+        
+        if (transferIndex !== -1) {
+            transfers[transferIndex].status = 'cancelled';
+            transfers[transferIndex].cancelledAt = new Date().toISOString();
+            localStorage.setItem('inventory.transfers', JSON.stringify(transfers));
+            
+            // Close details modal if open
+            const detailsModal = bootstrap.Modal.getInstance(document.getElementById('transferDetailsModal'));
+            if (detailsModal) detailsModal.hide();
+            
+            loadTransfers();
+            showToast('Transfer cancelled successfully!', 'success');
+        }
+    }
+
+    window.clearTransferFilters = function() {
+        document.getElementById('transferSearch').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        loadTransfers();
+    }
+
+    window.exportTransfers = function() {
+        // This would implement Excel export - placeholder for now
+        alert('Excel export functionality will be implemented.');
+    }
+
+    function showToast(message, type = 'success') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+        
+        // Remove toast element after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+    }
+
+    // Add event listeners
+    document.getElementById('transferSearch').addEventListener('input', loadTransfers);
+    document.getElementById('statusFilter').addEventListener('change', loadTransfers);
+    document.getElementById('dateFrom').addEventListener('change', loadTransfers);
+    document.getElementById('dateTo').addEventListener('change', loadTransfers);
+
+    // Initialize
+    loadTransfers();
+})();
+</script>
