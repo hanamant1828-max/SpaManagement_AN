@@ -1,0 +1,93 @@
+Add Comprehensive Search, Sort, Date Range Filter, and Excel Report
+
+Modules: Consumption and Add Inventory Items (Inventory Adjustments)
+
+Goal: In each tab’s table, add powerful filtering (From/To date), free-text search, sortable columns, and a Report panel with Export to Excel (.xlsx) for all records or filtered records.
+
+UI
+
+Above the table, add a filter bar:
+
+From Date (type=date)
+
+To Date (type=date)
+
+Search (placeholder: “Search product, SKU, reference, notes, issued to”)
+
+Reset button (clears filters)
+
+Report / Export dropdown with:
+
+Export Filtered to Excel
+
+Export All to Excel
+
+Keep pagination + page size selector (10/25/50/100).
+
+Table (both modules)
+
+Consumption columns: Date, Product, Qty Used, Unit, Issued To, Reference ID, Notes, Actions.
+
+Adjustments columns: Reference ID, Adjustment Date, Number of Items, Subtotal Value, Total Value, Remarks, Created By, Actions.
+
+Sorting: Clickable headers for Date, Product, Qty/Items, Total/Subtotal (toggle asc/desc).
+
+Default range: current month (From = first day of month, To = today).
+
+Empty state: “No records match your filters.”
+
+Filtering & Search Logic
+
+Records must pass all active filters:
+
+Date range: from <= record.date <= to (inclusive). Guard against empty from/to.
+
+Text search (case-insensitive):
+
+Consumption: productName, sku, issuedTo, referenceId, notes.
+
+Adjustments: referenceId, remarks, createdBy.
+
+Preserve filters and sort in memory (and URL query string if SPA routing is used).
+
+Export to Excel
+
+Use SheetJS (xlsx) on the client.
+
+Two options:
+
+Export Filtered to Excel → export current filtered + sorted rows.
+
+Export All to Excel → export all rows from storage/API ignoring UI filters.
+
+Filename pattern:
+
+Consumption: consumption_report_YYYYMMDD_HHMM.xlsx
+
+Adjustments: inventory_adjustments_YYYYMMDD_HHMM.xlsx
+
+Columns in the sheet must match the table, plus a final Total Row where relevant.
+
+Auto-size columns; format Date as YYYY-MM-DD, currency fields with currency format.
+
+Data Layer
+
+Read from existing stores/APIs:
+
+inventory.consumptions, inventory.adjustments, inventory.products
+
+Defensive parsing; never crash on missing fields. Dates stored/compared as YYYY-MM-DD.
+
+Acceptance Criteria
+
+From/To + Search filter the table instantly (no page reload).
+
+Sorting works together with filters and pagination.
+
+“Reset” clears filters and returns to default month.
+
+“Export Filtered” downloads exactly what’s on screen (respecting filters/sort).
+
+“Export All” downloads all records from the module.
+
+No console errors; robust handling of empty dates and null fields.
