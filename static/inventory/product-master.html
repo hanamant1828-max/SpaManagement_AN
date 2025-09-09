@@ -489,46 +489,123 @@
     }
 
     function addProduct() {
-        console.log('Add Product button clicked');
+        console.log('🔵 Add Product function called - START');
+        console.log('🔵 Current time:', new Date().toISOString());
         
-        // Reset editing state
-        editingProductId = null;
-        
-        // Set modal title
-        document.getElementById('productModalTitle').textContent = 'Add Product';
-        
-        // Reset form
-        document.getElementById('productForm').reset();
-        document.getElementById('productId').value = '';
-        
-        // Set default values for new product
-        document.getElementById('productStock').value = '0';
-        document.getElementById('productMinStock').value = '10';
-        document.getElementById('productReorderLevel').value = '0';
-        document.getElementById('productCostPrice').value = '0';
-        document.getElementById('productUnit').value = 'pcs';
-        
-        // Enable SKU field for new product
-        document.getElementById('productSku').readOnly = false;
-        
-        // Populate dropdowns with fresh data
-        populateProductDropdowns();
-        
-        // Show modal
         try {
+            // Reset editing state
+            console.log('🔵 Resetting editing state...');
+            editingProductId = null;
+            
+            // Check if modal exists
+            console.log('🔵 Checking for modal element...');
             const modalElement = document.getElementById('productModal');
-            if (modalElement) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-                console.log('Modal opened successfully');
-            } else {
-                console.error('Modal element not found');
-                alert('Error: Modal not found. Please refresh the page.');
+            if (!modalElement) {
+                console.error('❌ CRITICAL: Modal element #productModal not found in DOM');
+                alert('Error: Product form not found. Please refresh the page.');
+                return;
             }
+            console.log('✅ Modal element found:', modalElement);
+            
+            // Set modal title
+            console.log('🔵 Setting modal title...');
+            const titleElement = document.getElementById('productModalTitle');
+            if (titleElement) {
+                titleElement.textContent = 'Add Product';
+                console.log('✅ Modal title set successfully');
+            } else {
+                console.warn('⚠️ Modal title element not found');
+            }
+            
+            // Reset form
+            console.log('🔵 Resetting form...');
+            const formElement = document.getElementById('productForm');
+            if (formElement) {
+                formElement.reset();
+                console.log('✅ Form reset successfully');
+            } else {
+                console.warn('⚠️ Form element not found');
+            }
+            
+            // Clear product ID
+            const productIdField = document.getElementById('productId');
+            if (productIdField) {
+                productIdField.value = '';
+                console.log('✅ Product ID cleared');
+            }
+            
+            // Set default values for new product
+            console.log('🔵 Setting default values...');
+            const defaultValues = [
+                { id: 'productStock', value: '0' },
+                { id: 'productMinStock', value: '10' },
+                { id: 'productReorderLevel', value: '0' },
+                { id: 'productCostPrice', value: '0' },
+                { id: 'productUnit', value: 'pcs' }
+            ];
+            
+            defaultValues.forEach(item => {
+                const element = document.getElementById(item.id);
+                if (element) {
+                    element.value = item.value;
+                    console.log(`✅ ${item.id} set to: ${item.value}`);
+                } else {
+                    console.warn(`⚠️ Element ${item.id} not found`);
+                }
+            });
+            
+            // Enable SKU field for new product
+            console.log('🔵 Enabling SKU field...');
+            const skuField = document.getElementById('productSku');
+            if (skuField) {
+                skuField.readOnly = false;
+                console.log('✅ SKU field enabled');
+            } else {
+                console.warn('⚠️ SKU field not found');
+            }
+            
+            // Populate dropdowns with fresh data
+            console.log('🔵 Populating dropdowns...');
+            populateProductDropdowns();
+            
+            // Show modal
+            console.log('🔵 Opening modal...');
+            try {
+                if (typeof bootstrap === 'undefined') {
+                    console.error('❌ CRITICAL: Bootstrap is not loaded');
+                    alert('Error: Bootstrap not loaded. Please refresh the page.');
+                    return;
+                }
+                
+                const modal = new bootstrap.Modal(modalElement);
+                console.log('✅ Bootstrap Modal instance created:', modal);
+                
+                modal.show();
+                console.log('✅ Modal.show() called successfully');
+                
+                // Check if modal is actually visible after a delay
+                setTimeout(() => {
+                    const isVisible = modalElement.classList.contains('show');
+                    console.log('🔵 Modal visibility check after 500ms:', isVisible);
+                    if (!isVisible) {
+                        console.error('❌ Modal is not visible after show() call');
+                    }
+                }, 500);
+                
+            } catch (modalError) {
+                console.error('❌ Error creating/showing modal:', modalError);
+                console.error('❌ Modal error stack:', modalError.stack);
+                alert('Error opening product form: ' + modalError.message);
+                return;
+            }
+            
         } catch (error) {
-            console.error('Error opening modal:', error);
-            alert('Error opening product form. Please refresh the page.');
+            console.error('❌ CRITICAL ERROR in addProduct function:', error);
+            console.error('❌ Error stack:', error.stack);
+            alert('Critical error in Add Product function. Check console for details.');
         }
+        
+        console.log('🔵 Add Product function - END');
     }
 
     window.editProduct = function(productId) {
@@ -771,7 +848,29 @@
         const statusFilter = document.getElementById('statusFilter');
         const productModal = document.getElementById('productModal');
         
-        if (btnAddProduct) btnAddProduct.addEventListener('click', addProduct);
+        console.log('🔧 Event listeners setup starting...');
+        console.log('🔧 Add Product Button Element:', btnAddProduct);
+        console.log('🔧 Button exists:', !!btnAddProduct);
+        console.log('🔧 Button innerHTML:', btnAddProduct ? btnAddProduct.innerHTML : 'N/A');
+        console.log('🔧 Button ID:', btnAddProduct ? btnAddProduct.id : 'N/A');
+        
+        if (btnAddProduct) {
+            console.log('🔧 Attaching click event listener to Add Product button...');
+            btnAddProduct.addEventListener('click', function(event) {
+                console.log('🎯 ADD PRODUCT BUTTON CLICKED!');
+                console.log('🎯 Click event:', event);
+                console.log('🎯 Event target:', event.target);
+                console.log('🎯 Calling addProduct function...');
+                addProduct();
+            });
+            console.log('✅ Event listener attached successfully');
+        } else {
+            console.error('❌ CRITICAL: Add Product button not found!');
+            console.error('❌ Available buttons on page:');
+            document.querySelectorAll('button').forEach((btn, index) => {
+                console.log(`  Button ${index}: ID="${btn.id}", Class="${btn.className}", Text="${btn.textContent.trim()}"`);
+            });
+        }
         if (productSearch) productSearch.addEventListener('input', loadProducts);
         if (categoryFilter) categoryFilter.addEventListener('change', loadProducts);
         if (statusFilter) statusFilter.addEventListener('change', loadProducts);
