@@ -176,18 +176,20 @@ def add_product():
 def edit_product(product_id):
     """Edit existing product"""
     if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+        if request.method == 'GET':
+            flash('Access denied', 'danger')
+            return redirect(url_for('dashboard'))
+        return jsonify({'error': 'Access denied'}), 403
     
     product = get_product_by_id(product_id)
     if not product:
-        flash('Product not found', 'danger')
-        return redirect(url_for('inventory_products'))
+        if request.method == 'GET':
+            flash('Product not found', 'danger')
+            return redirect(url_for('inventory_products'))
+        return jsonify({'error': 'Product not found'}), 404
     
     if request.method == 'POST':
         try:
-            old_stock = product.current_stock
-            
             # Helper function to safely convert to float with default
             def safe_float(value, default=0.0):
                 if value is None or value == '':
@@ -200,8 +202,7 @@ def edit_product(product_id):
             # Validation first
             name = request.form.get('name')
             if not name or not name.strip():
-                flash('Product name is required', 'danger')
-                return redirect(request.url)
+                return jsonify({'error': 'Product name is required'}), 400
 
             product_data = {
                 'name': name.strip(),
@@ -222,16 +223,16 @@ def edit_product(product_id):
             
             updated_product = update_product(product_id, product_data)
             if updated_product:
-                flash(f'Product "{updated_product.name}" updated successfully!', 'success')
-                return redirect(url_for('inventory_products'))
+                return jsonify({'success': True, 'message': f'Product "{updated_product.name}" updated successfully!'})
             else:
-                flash('Error updating product', 'danger')
+                return jsonify({'error': 'Error updating product'}), 500
                 
         except ValueError:
-            flash('Invalid input values. Please check your data.', 'danger')
+            return jsonify({'error': 'Invalid input values. Please check your data.'}), 400
         except Exception as e:
-            flash(f'Error updating product: {str(e)}', 'danger')
+            return jsonify({'error': f'Error updating product: {str(e)}'}), 500
     
+    # GET request - render form
     categories = get_all_categories()
     return render_template('inventory/product_form.html',
                          product=product,
