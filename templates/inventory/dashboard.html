@@ -2933,7 +2933,7 @@ function savePurchaseOrder() {
             showToast('Purchase order created and items received successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('addPurchaseModal')).hide();
             loadPurchaseOrders();
-            loadProducts(); // Refresh product list
+            loadProducts(); // Load products again to show updated stock
         } else {
             throw new Error('Failed to create purchase order');
         }
@@ -3180,7 +3180,6 @@ window.calculateInventoryLineTotal = calculateInventoryLineTotal;
 window.removeInventoryRow = removeInventoryRow;
 window.addInventoryItemRow = addInventoryItemRow; // Make this available if needed for external calls
 window.loadInventoryProducts = loadInventoryProducts; // Make this available if needed for external calls
-
 </script>
 
 {% endblock %}
