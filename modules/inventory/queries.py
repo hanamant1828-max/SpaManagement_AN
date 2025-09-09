@@ -418,6 +418,111 @@ def initialize_default_locations():
     """Initialize default locations if none exist"""
     try:
         from .models import InventoryLocation
+        
+        # Check if locations already exist
+        if InventoryLocation.query.count() > 0:
+            return True
+            
+        # Create default locations
+        default_locations = [
+            {
+                'id': 'main-spa',
+                'name': 'Main Spa',
+                'type': 'branch',
+                'address': 'Main Building',
+                'status': 'active'
+            },
+            {
+                'id': 'storage-room',
+                'name': 'Storage Room',
+                'type': 'warehouse',
+                'address': 'Back Storage Area',
+                'status': 'active'
+            },
+            {
+                'id': 'reception',
+                'name': 'Reception Area',
+                'type': 'room',
+                'address': 'Front Desk',
+                'status': 'active'
+            }
+        ]
+        
+        for location_data in default_locations:
+            location = InventoryLocation(**location_data)
+            db.session.add(location)
+            
+        db.session.commit()
+        return True
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating default locations: {e}")
+        return False
+
+def get_all_locations(include_inactive=False):
+    """Get all inventory locations"""
+    from .models import InventoryLocation
+    query = InventoryLocation.query
+    if not include_inactive:
+        query = query.filter(InventoryLocation.status == 'active')
+    return query.order_by(InventoryLocation.name).all()
+
+def get_location_by_id(location_id):
+    """Get location by ID"""
+    from .models import InventoryLocation
+    return InventoryLocation.query.get(location_id)
+
+def create_location(location_data):
+    """Create new location"""
+    try:
+        from .models import InventoryLocation
+        location = InventoryLocation(**location_data)
+        db.session.add(location)
+        db.session.commit()
+        return location
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def update_location(location_id, location_data):
+    """Update existing location"""
+    try:
+        from .models import InventoryLocation
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return None
+
+        for key, value in location_data.items():
+            if hasattr(location, key):
+                setattr(location, key, value)
+
+        location.updated_at = datetime.utcnow()
+        db.session.commit()
+        return location
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def delete_location(location_id):
+    """Delete location"""
+    try:
+        from .models import InventoryLocation
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return False
+
+        db.session.delete(location)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def initialize_default_locations():
+    """Initialize default locations if none exist"""
+    try:
+        from .models import InventoryLocation
         if InventoryLocation.query.count() == 0:
             default_locations = [
                 {

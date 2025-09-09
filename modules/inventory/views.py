@@ -1748,6 +1748,38 @@ def api_products_master():
 
 # ============ LOCATION MANAGEMENT API ENDPOINTS ============
 
+@app.route('/api/inventory/locations/<string:location_id>')
+@login_required
+def api_get_location(location_id):
+    """Get specific location data"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from .models import InventoryLocation
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+
+        # Count products in this location
+        products_count = len([p for p in InventoryProduct.query.filter_by(location=location.name).all() if (p.current_stock or 0) > 0])
+
+        return jsonify({
+            'id': location.id,
+            'name': location.name,
+            'type': location.type,
+            'address': location.address or '',
+            'contact_person': location.contact_person or '',
+            'phone': location.phone or '',
+            'status': location.status,
+            'products_count': products_count,
+            'total_stock_value': location.total_stock_value,
+            'created_at': location.created_at.isoformat() if location.created_at else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading location: {str(e)}'}), 500
+
 @app.route('/api/inventory/locations')
 @login_required
 def api_get_locations():

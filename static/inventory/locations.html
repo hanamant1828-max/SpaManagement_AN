@@ -1,3 +1,4 @@
+
 <div>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3><i class="fas fa-map-marker-alt me-2"></i>Location Management</h3>
@@ -45,6 +46,7 @@
                             <th>Name</th>
                             <th>Type</th>
                             <th>Address</th>
+                            <th>Contact</th>
                             <th>Products Count</th>
                             <th>Total Stock Value</th>
                             <th>Status</th>
@@ -52,6 +54,14 @@
                         </tr>
                     </thead>
                     <tbody id="locationTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Loading locations...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -114,80 +124,99 @@
 
 <script>
 (function() {
-    // Isolated scope for locations tab
+    // Isolated scope for locations tab to prevent variable conflicts
     let editingLocationId = null;
+    let locationsCache = [];
 
     function loadLocations() {
+        const tbody = document.getElementById('locationTableBody');
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div> Loading locations...</td></tr>';
+        
         fetch('/api/inventory/locations')
             .then(response => response.json())
             .then(data => {
-                const locations = data.locations || [];
-                const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-                const search = document.getElementById('locationSearch').value.toLowerCase();
-                const typeFilter = document.getElementById('typeFilter').value;
-                const statusFilter = document.getElementById('statusFilter').value;
-
-                let filteredLocations = locations.filter(location => {
-                    const matchesSearch = (location.name.toLowerCase().includes(search) ||
-                                        (location.address && location.address.toLowerCase().includes(search)));
-                    const matchesType = !typeFilter || location.type === typeFilter;
-                    const matchesStatus = !statusFilter || location.status === statusFilter;
-
-                    return matchesSearch && matchesType && matchesStatus;
-                });
-
-                const tbody = document.getElementById('locationTableBody');
-                tbody.innerHTML = '';
-
-                if (filteredLocations.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No locations found</td></tr>';
-                    return;
+                if (data.error) {
+                    throw new Error(data.error);
                 }
-
-                filteredLocations.forEach(location => {
-                    // Calculate product count and total value for this location
-                    const locationProducts = products.filter(p => p.locationStock && p.locationStock[location.id]);
-                    const productCount = locationProducts.length;
-                    let totalValue = 0;
-
-                    locationProducts.forEach(product => {
-                        const stock = product.locationStock[location.id] || 0;
-                        totalValue += stock * (product.costPrice || 0);
-                    });
-
-                    const statusBadge = location.status === 'active'
-                        ? '<span class="badge bg-success">Active</span>'
-                        : '<span class="badge bg-secondary">Inactive</span>';
-
-                    const typeBadge = getTypeBadge(location.type);
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${location.name}</strong></td>
-                            <td>${typeBadge}</td>
-                            <td>${location.address || '-'}</td>
-                            <td>${productCount} products</td>
-                            <td>$${totalValue.toFixed(2)}</td>
-                            <td>${statusBadge}</td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="editLocation('${location.id}')" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteLocation('${location.id}')" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
+                
+                locationsCache = data.locations || [];
+                // Save to localStorage for persistence
+                localStorage.setItem('inventory.locations', JSON.stringify(locationsCache));
+                
+                displayLocations();
             })
             .catch(error => {
                 console.error('Error loading locations:', error);
-                const tbody = document.getElementById('locationTableBody');
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load locations</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load locations. Please try again.</td></tr>';
+                
+                // Try to load from localStorage as fallback
+                const cached = localStorage.getItem('inventory.locations');
+                if (cached) {
+                    try {
+                        locationsCache = JSON.parse(cached);
+                        displayLocations();
+                    } catch (e) {
+                        console.error('Error parsing cached locations:', e);
+                    }
+                }
             });
+    }
+
+    function displayLocations() {
+        const search = document.getElementById('locationSearch').value.toLowerCase();
+        const typeFilter = document.getElementById('typeFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        let filteredLocations = locationsCache.filter(location => {
+            const matchesSearch = (location.name.toLowerCase().includes(search) ||
+                                (location.address && location.address.toLowerCase().includes(search)) ||
+                                (location.contact_person && location.contact_person.toLowerCase().includes(search)));
+            const matchesType = !typeFilter || location.type === typeFilter;
+            const matchesStatus = !statusFilter || location.status === statusFilter;
+
+            return matchesSearch && matchesType && matchesStatus;
+        });
+
+        const tbody = document.getElementById('locationTableBody');
+        tbody.innerHTML = '';
+
+        if (filteredLocations.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No locations found</td></tr>';
+            return;
+        }
+
+        filteredLocations.forEach(location => {
+            const statusBadge = location.status === 'active'
+                ? '<span class="badge bg-success">Active</span>'
+                : '<span class="badge bg-secondary">Inactive</span>';
+
+            const typeBadge = getTypeBadge(location.type);
+            const contactInfo = location.contact_person || location.phone ? 
+                `${location.contact_person || 'N/A'}<br><small class="text-muted">${location.phone || ''}</small>` : 
+                '-';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${location.name}</strong></td>
+                    <td>${typeBadge}</td>
+                    <td>${location.address || '-'}</td>
+                    <td>${contactInfo}</td>
+                    <td><span class="badge bg-info">${location.total_products || 0}</span></td>
+                    <td>$${(location.total_stock_value || 0).toFixed(2)}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editLocation('${location.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteLocation('${location.id}', '${location.name}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
     }
 
     function getTypeBadge(type) {
@@ -199,50 +228,62 @@
         return badges[type] || '<span class="badge bg-light text-dark">Unknown</span>';
     }
 
-    function initializeDefaultLocations() {
-        // This function might be used to seed data if the API doesn't return anything initially
-        // For now, we rely on the backend to manage initial data.
-    }
-
-    // Add event listener for add location button
-    document.getElementById('btnAddLocation').addEventListener('click', function() {
-        editingLocationId = null;
-        document.getElementById('locationModalTitle').textContent = 'Add Location';
+    function showLocationModal(isEdit = false, locationData = null) {
+        editingLocationId = locationData ? locationData.id : null;
+        document.getElementById('locationModalTitle').textContent = isEdit ? 'Edit Location' : 'Add Location';
+        
+        // Reset form
         document.getElementById('locationForm').reset();
-        document.getElementById('locationStatus').value = 'active'; // Default to active
+        document.getElementById('locationId').value = editingLocationId || '';
+        
+        if (locationData) {
+            document.getElementById('locationName').value = locationData.name || '';
+            document.getElementById('locationType').value = locationData.type || '';
+            document.getElementById('locationAddress').value = locationData.address || '';
+            document.getElementById('locationContact').value = locationData.contact_person || '';
+            document.getElementById('locationPhone').value = locationData.phone || '';
+            document.getElementById('locationStatus').value = locationData.status || 'active';
+        } else {
+            document.getElementById('locationStatus').value = 'active';
+        }
 
         const modal = new bootstrap.Modal(document.getElementById('locationModal'));
         modal.show();
-    });
+    }
 
+    // Global functions
     window.editLocation = function(locationId) {
-        fetch(`/api/inventory/locations/${locationId}`)
-            .then(response => response.json())
-            .then(location => {
-                if (location.error) {
-                    throw new Error(location.error);
-                }
-
-                editingLocationId = locationId;
-                document.getElementById('locationModalTitle').textContent = 'Edit Location';
-                document.getElementById('locationName').value = location.name;
-                document.getElementById('locationType').value = location.type;
-                document.getElementById('locationAddress').value = location.address || '';
-                document.getElementById('locationContact').value = location.contact_person || '';
-                document.getElementById('locationPhone').value = location.phone || '';
-                document.getElementById('locationStatus').value = location.status;
-
-                const modal = new bootstrap.Modal(document.getElementById('locationModal'));
-                modal.show();
-            })
-            .catch(error => {
-                console.error('Error loading location:', error);
-                showToast(`Error loading location: ${error.message}`, 'error');
-            });
+        // First try from cache
+        let location = locationsCache.find(loc => loc.id === locationId);
+        
+        if (location) {
+            showLocationModal(true, location);
+        } else {
+            // Fetch from API if not in cache
+            fetch(`/api/inventory/locations/${locationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    showLocationModal(true, data);
+                })
+                .catch(error => {
+                    console.error('Error loading location:', error);
+                    showToast(`Error loading location: ${error.message}`, 'error');
+                });
+        }
     }
 
     window.saveLocation = function() {
-        const locationId = editingLocationId;
+        const form = document.getElementById('locationForm');
+        
+        // Basic form validation
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
         const locationData = {
             name: document.getElementById('locationName').value.trim(),
             type: document.getElementById('locationType').value.trim(),
@@ -252,14 +293,20 @@
             status: document.getElementById('locationStatus').value
         };
 
-        // Basic Validation
+        // Additional validation
         if (!locationData.name || !locationData.type) {
-            alert('Location Name and Type are required.');
+            showToast('Location Name and Type are required.', 'error');
             return;
         }
 
-        const url = locationId ? `/api/inventory/locations/${locationId}` : '/api/inventory/locations';
-        const method = locationId ? 'PUT' : 'POST';
+        const url = editingLocationId ? `/api/inventory/locations/${editingLocationId}` : '/api/inventory/locations';
+        const method = editingLocationId ? 'PUT' : 'POST';
+
+        // Disable save button during request
+        const saveBtn = document.querySelector('#locationModal .btn-primary');
+        const originalText = saveBtn.textContent;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
 
         fetch(url, {
             method: method,
@@ -273,77 +320,59 @@
             if (data.success) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('locationModal'));
                 modal.hide();
-                loadLocations();
+                loadLocations(); // Reload to get fresh data
                 showToast(data.message, 'success');
             } else {
-                alert(data.error || 'Failed to save location. Please check your input.');
+                showToast(data.error || 'Failed to save location. Please check your input.', 'error');
             }
         })
         .catch(error => {
             console.error('Error saving location:', error);
             showToast('Error saving location. Please try again.', 'error');
-        });
-    }ontent-Type': 'application/json',
-            },
-            body: JSON.stringify(locationData)
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('locationModal'));
-                modal.hide();
-                loadLocations();
-                showToast(data.message, 'success');
-            } else {
-                alert(data.error || 'Failed to save location. Please check your input.');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving location:', error);
-            showToast('Error saving location. Please try again.', 'error');
+        .finally(() => {
+            // Re-enable save button
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
         });
     }
 
-    window.deleteLocation = function(locationId) {
-        if (confirm('Are you sure you want to delete this location?')) {
-            fetch(`/api/inventory/locations/${locationId}`, {
-                method: 'DELETE'
-            })
-            .then(response => {
-                // Check if the response is OK. If it's a 204 No Content, it's successful deletion without returning JSON.
-                if (response.ok || response.status === 204) {
-                    return { success: true, message: 'Location deleted successfully!' };
-                }
-                // If not OK, try to parse JSON for error message
-                return response.json().then(data => {
-                    if (data && data.error) {
-                        throw new Error(data.error);
-                    }
-                    throw new Error('Unknown error deleting location.');
-                });
-            })
-            .then(data => {
-                if (data.success) {
-                    loadLocations();
-                    showToast(data.message, 'success');
-                } else {
-                    // This path might not be reached if an error is thrown above, but as a fallback:
-                    alert(data.message || 'Error deleting location');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting location:', error);
-                alert(`Error deleting location: ${error.message}`);
-                showToast(`Error deleting location: ${error.message}`, 'error');
-            });
+    window.deleteLocation = function(locationId, locationName) {
+        if (!confirm(`Are you sure you want to delete location "${locationName}"?\n\nThis action cannot be undone.`)) {
+            return;
         }
+
+        fetch(`/api/inventory/locations/${locationId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (response.ok || response.status === 204) {
+                return { success: true, message: `Location "${locationName}" deleted successfully!` };
+            }
+            return response.json().then(data => {
+                if (data && data.error) {
+                    throw new Error(data.error);
+                }
+                throw new Error('Unknown error deleting location.');
+            });
+        })
+        .then(data => {
+            if (data.success) {
+                loadLocations(); // Reload the list
+                showToast(data.message, 'success');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting location:', error);
+            showToast(`Error deleting location: ${error.message}`, 'error');
+        });
     }
 
     window.clearLocationFilters = function() {
         document.getElementById('locationSearch').value = '';
         document.getElementById('typeFilter').value = '';
         document.getElementById('statusFilter').value = '';
-        loadLocations();
+        displayLocations(); // Just filter the cached data
     }
 
     function showToast(message, type = 'success') {
@@ -352,7 +381,7 @@
         if (!toastContainer) {
             toastContainer = document.createElement('div');
             toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-            toastContainer.style.zIndex = '1055'; // Ensure toast is above modals
+            toastContainer.style.zIndex = '1055';
             document.body.appendChild(toastContainer);
         }
 
@@ -370,7 +399,7 @@
 
         toastContainer.insertAdjacentHTML('beforeend', toastHtml);
         const toastElement = document.getElementById(toastId);
-        const toast = new bootstrap.Toast(toastElement);
+        const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
         toast.show();
 
         // Remove toast element after it's hidden
@@ -380,21 +409,36 @@
     }
 
     // Initialize event listeners
-    document.getElementById('btnAddLocation').addEventListener('click', function() {
-        editingLocationId = null;
-        document.getElementById('locationId').value = ''; // Clear hidden ID for new location
-        document.getElementById('locationModalTitle').textContent = 'Add Location';
-        document.getElementById('locationForm').reset();
-        document.getElementById('locationStatus').value = 'active'; // Set default status
-        const modal = new bootstrap.Modal(document.getElementById('locationModal'));
-        modal.show();
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add location button
+        const addBtn = document.getElementById('btnAddLocation');
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                showLocationModal(false);
+            });
+        }
+
+        // Filter event listeners
+        const searchInput = document.getElementById('locationSearch');
+        const typeFilter = document.getElementById('typeFilter');
+        const statusFilter = document.getElementById('statusFilter');
+
+        if (searchInput) searchInput.addEventListener('input', displayLocations);
+        if (typeFilter) typeFilter.addEventListener('change', displayLocations);
+        if (statusFilter) statusFilter.addEventListener('change', displayLocations);
+
+        // Initial load of locations
+        loadLocations();
     });
 
-    document.getElementById('locationSearch').addEventListener('input', loadLocations);
-    document.getElementById('typeFilter').addEventListener('change', loadLocations);
-    document.getElementById('statusFilter').addEventListener('change', loadLocations);
+    // If DOM is already loaded, initialize immediately
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLocations();
+        });
+    } else {
+        loadLocations();
+    }
 
-    // Initial load of locations
-    loadLocations();
 })();
 </script>
