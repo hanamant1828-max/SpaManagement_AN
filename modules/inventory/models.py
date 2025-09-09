@@ -243,3 +243,33 @@ class InventoryAlert(db.Model):
     # Relationships
     product = db.relationship('InventoryProduct', backref='alerts')
     resolver = db.relationship('User', backref='resolved_alerts')
+
+class InventoryConsumption(db.Model):
+    """Track item usage and issuance for inventory consumption"""
+    __tablename__ = 'inventory_consumption'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
+    
+    # Consumption details
+    consumption_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    quantity_used = db.Column(db.Numeric(10, 2), nullable=False)
+    
+    # Issuance information
+    issued_to = db.Column(db.String(200), nullable=False)  # department/project/person
+    reference_doc_no = db.Column(db.String(100))  # Reference or document number
+    notes = db.Column(db.Text)
+    
+    # Tracking
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    product = db.relationship('InventoryProduct', backref='consumption_records')
+    user = db.relationship('User', backref='consumption_records')
+    
+    @property
+    def unit_of_measure(self):
+        """Get unit of measure from the product"""
+        return self.product.unit_of_measure if self.product else 'pcs'
