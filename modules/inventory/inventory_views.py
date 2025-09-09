@@ -1,0 +1,1 @@
+transactions = InventoryTransaction.query.order_by(InventoryTransaction.transaction_date.desc()).limit(100).all()

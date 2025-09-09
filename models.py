@@ -554,7 +554,6 @@ class InventoryTransaction(db.Model):
     expiry_date = db.Column(db.Date)
     reference_document = db.Column(db.String(100))
     transaction_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)  # Added for compatibility
     notes = db.Column(db.Text)
     location_from = db.Column(db.String(100))
     location_to = db.Column(db.String(100))
