@@ -6,7 +6,13 @@ def format_currency(amount):
     """Format amount as currency"""
     if amount is None:
         return "$0.00"
-    return f"${amount:.2f}"
+    # Handle Jinja2 Undefined objects
+    if hasattr(amount, '_undefined_hint'):
+        return "$0.00"
+    try:
+        return f"${float(amount):.2f}"
+    except (ValueError, TypeError):
+        return "$0.00"
 
 def format_datetime(dt):
     """Format datetime for display"""
