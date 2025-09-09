@@ -26,13 +26,12 @@ from .queries import (
 @app.route('/inventory')
 @login_required
 def inventory_dashboard():
-    """Redirect to new modular inventory system"""
+    """Main inventory management dashboard"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Redirect to the new modular inventory system
-    return redirect('/static/inventory/index.html')
+    return render_template('inventory_dashboard.html')
 
 # ============ PRODUCT MANAGEMENT ============
 

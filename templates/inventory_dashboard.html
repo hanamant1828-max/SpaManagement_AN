@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-boxes me-2"></i>Inventory Management</h2>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-4" id="inventoryTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button">
+                <i class="fas fa-chart-line me-1"></i>Dashboard
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="product-master-tab" data-bs-toggle="tab" data-bs-target="#product-master" type="button">
+                <i class="fas fa-box me-1"></i>Product Master
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button">
+                <i class="fas fa-tags me-1"></i>Categories
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="locations-tab" data-bs-toggle="tab" data-bs-target="#locations" type="button">
+                <i class="fas fa-map-marker-alt me-1"></i>Locations
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="adjustments-tab" data-bs-toggle="tab" data-bs-target="#adjustments" type="button">
+                <i class="fas fa-exchange-alt me-1"></i>Adjustments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="consumption-tab" data-bs-toggle="tab" data-bs-target="#consumption" type="button">
+                <i class="fas fa-minus-circle me-1"></i>Consumption
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="transfers-tab" data-bs-toggle="tab" data-bs-target="#transfers" type="button">
+                <i class="fas fa-exchange-alt me-1"></i>Transfers
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="inventoryTabContent">
+        <!-- Dashboard Tab -->
+        <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+            <div id="dashboard-content">Loading dashboard...</div>
+        </div>
+
+        <!-- Product Master Tab -->
+        <div class="tab-pane fade" id="product-master" role="tabpanel">
+            <div id="product-master-content">Loading products...</div>
+        </div>
+
+        <!-- Categories Tab -->
+        <div class="tab-pane fade" id="categories" role="tabpanel">
+            <div id="categories-content">Loading categories...</div>
+        </div>
+
+        <!-- Locations Tab -->
+        <div class="tab-pane fade" id="locations" role="tabpanel">
+            <div id="locations-content">Loading locations...</div>
+        </div>
+
+        <!-- Adjustments Tab -->
+        <div class="tab-pane fade" id="adjustments" role="tabpanel">
+            <div id="adjustments-content">Loading adjustments...</div>
+        </div>
+
+        <!-- Consumption Tab -->
+        <div class="tab-pane fade" id="consumption" role="tabpanel">
+            <div id="consumption-content">Loading consumption records...</div>
+        </div>
+
+        <!-- Transfers Tab -->
+        <div class="tab-pane fade" id="transfers" role="tabpanel">
+            <div id="transfers-content">Loading transfers...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inventory Management System Loading...');
+    
+    // Function to load content from static files
+    function loadTabContent(tabName, contentId) {
+        fetch(`/static/inventory/${tabName}.html`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${tabName}: ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                document.getElementById(contentId).innerHTML = html;
+                
+                // Execute any scripts in the loaded content
+                const scripts = document.getElementById(contentId).querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    if (script.src) {
+                        newScript.src = script.src;
+                    } else {
+                        newScript.textContent = script.textContent;
+                    }
+                    document.head.appendChild(newScript);
+                });
+                
+                console.log(`${tabName} content loaded successfully`);
+            })
+            .catch(error => {
+                console.error(`Error loading ${tabName}:`, error);
+                document.getElementById(contentId).innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5>Error Loading ${tabName}</h5>
+                        <p>Failed to load the ${tabName} content. Please try refreshing the page.</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Load dashboard content immediately
+    loadTabContent('dashboard', 'dashboard-content');
+    
+    // Add event listeners for tab switching
+    const tabTriggerList = [].slice.call(document.querySelectorAll('#inventoryTabs button'));
+    tabTriggerList.forEach(function (tabTrigger) {
+        tabTrigger.addEventListener('shown.bs.tab', function (event) {
+            const target = event.target.getAttribute('data-bs-target');
+            const tabName = target.replace('#', '').replace('-', '_');
+            const contentId = target.replace('#', '') + '-content';
+            
+            // Only load content if it hasn't been loaded yet
+            const content = document.getElementById(contentId);
+            if (content && content.innerHTML.includes('Loading')) {
+                // Map tab names to file names
+                const fileMap = {
+                    'product_master': 'product-master',
+                    'dashboard': 'dashboard',
+                    'categories': 'categories',
+                    'locations': 'locations',
+                    'adjustments': 'adjustments',
+                    'consumption': 'consumption',
+                    'transfers': 'transfers'
+                };
+                
+                const fileName = fileMap[tabName] || tabName.replace('_', '-');
+                loadTabContent(fileName, contentId);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
