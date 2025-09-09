@@ -435,15 +435,81 @@
         console.log(`Locations loaded into ${dropdownId}:`, locations.length);
     }
 
+    // Comprehensive function to populate all product modal dropdowns
+    function populateProductDropdowns(selectedCategoryId = null, selectedLocationId = null) {
+        console.log('Populating product modal dropdowns...');
+        
+        // Load categories
+        let categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+        if (categories.length === 0) {
+            categories = [
+                { id: 'cat1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true },
+                { id: 'cat2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true },
+                { id: 'cat3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true },
+                { id: 'cat4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true }
+            ];
+            localStorage.setItem('inventory.categories', JSON.stringify(categories));
+        }
+        
+        // Populate category dropdown
+        const categoryDropdown = document.getElementById('productCategory');
+        if (categoryDropdown) {
+            categoryDropdown.innerHTML = '<option value="">Select category</option>';
+            categories.filter(cat => cat.is_active !== false).forEach(category => {
+                const selected = (category.id == selectedCategoryId) ? 'selected' : '';
+                categoryDropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
+            });
+        }
+        
+        // Load locations
+        let locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        if (locations.length === 0) {
+            locations = [
+                { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active', address: 'Main location' },
+                { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active', address: 'Back storage area' },
+                { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active', address: 'First treatment room' }
+            ];
+            localStorage.setItem('inventory.locations', JSON.stringify(locations));
+        }
+        
+        // Populate location dropdown
+        const locationDropdown = document.getElementById('productPrimaryLocation');
+        if (locationDropdown) {
+            locationDropdown.innerHTML = '<option value="">Select primary location</option>';
+            locations.filter(loc => loc.status === 'active').forEach(location => {
+                const selected = (location.id == selectedLocationId) ? 'selected' : '';
+                locationDropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
+            });
+        }
+        
+        console.log(`Dropdowns populated - Categories: ${categories.length}, Locations: ${locations.length}`);
+    }
+
     function addProduct() {
+        // Validation first - check if categories and locations exist
+        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        
+        const activeCategories = categories.filter(cat => cat.is_active !== false);
+        const activeLocations = locations.filter(loc => loc.status === 'active');
+        
+        if (activeCategories.length === 0) {
+            alert('Please create at least one category before adding products.');
+            return;
+        }
+        
+        if (activeLocations.length === 0) {
+            alert('Please create at least one location before adding products.');
+            return;
+        }
+        
         editingProductId = null;
         document.getElementById('productModalTitle').textContent = 'Add Product';
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
         
-        // Ensure dropdowns are populated immediately
-        loadCategoriesIntoDropdown('productCategory');
-        loadLocationsIntoDropdown('productPrimaryLocation');
+        // Populate dropdowns with fresh data
+        populateProductDropdowns();
         
         const modal = new bootstrap.Modal(document.getElementById('productModal'));
         modal.show();
@@ -454,15 +520,28 @@
         const product = products.find(p => p.id === productId);
         
         if (product) {
+            // Validation first - check if categories and locations exist
+            const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+            const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+            
+            const activeCategories = categories.filter(cat => cat.is_active !== false);
+            const activeLocations = locations.filter(loc => loc.status === 'active');
+            
+            if (activeCategories.length === 0) {
+                alert('Please create at least one category before editing products.');
+                return;
+            }
+            
+            if (activeLocations.length === 0) {
+                alert('Please create at least one location before editing products.');
+                return;
+            }
+            
             editingProductId = productId;
             document.getElementById('productModalTitle').textContent = 'Edit Product';
             document.getElementById('productId').value = product.id;
             document.getElementById('productSku').value = product.sku;
             document.getElementById('productName').value = product.name;
-            
-            // Load fresh data first
-            loadCategories();
-            loadLocations();
             
             // Populate form fields
             document.getElementById('productUnit').value = product.unit || 'pcs';
@@ -476,11 +555,8 @@
             document.getElementById('productLocation').value = product.location || '';
             document.getElementById('productBarcode').value = product.barcode || '';
             
-            // Load dropdowns with selected values after a small delay
-            setTimeout(() => {
-                loadCategoriesIntoDropdown('productCategory', product.categoryId);
-                loadLocationsIntoDropdown('productPrimaryLocation', product.primaryLocation);
-            }, 100);
+            // Populate dropdowns with selected values immediately
+            populateProductDropdowns(product.categoryId, product.primaryLocation);
             
             const modal = new bootstrap.Modal(document.getElementById('productModal'));
             modal.show();
@@ -488,23 +564,11 @@
     }
 
     window.saveProduct = function() {
-        // Validation first
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-        
-        if (categories.length === 0) {
-            alert('Please create at least one category before adding products.');
-            return;
-        }
-        
-        if (locations.filter(loc => loc.status === 'active').length === 0) {
-            alert('Please create at least one location before adding products.');
-            return;
-        }
-        
         // Form validation
         const sku = document.getElementById('productSku').value.trim();
         const name = document.getElementById('productName').value.trim();
+        const categoryId = document.getElementById('productCategory').value;
+        const primaryLocation = document.getElementById('productPrimaryLocation').value;
         
         if (!sku) {
             alert('SKU is required');
@@ -513,6 +577,33 @@
         
         if (!name) {
             alert('Product name is required');
+            return;
+        }
+        
+        if (!categoryId) {
+            alert('Please select a category');
+            return;
+        }
+        
+        if (!primaryLocation) {
+            alert('Please select a primary location');
+            return;
+        }
+        
+        // Validation - check if categories and locations exist
+        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        
+        const activeCategories = categories.filter(cat => cat.is_active !== false);
+        const activeLocations = locations.filter(loc => loc.status === 'active');
+        
+        if (activeCategories.length === 0) {
+            alert('Please create at least one category before adding products.');
+            return;
+        }
+        
+        if (activeLocations.length === 0) {
+            alert('Please create at least one location before adding products.');
             return;
         }
         
@@ -625,11 +716,26 @@
         const productSearch = document.getElementById('productSearch');
         const categoryFilter = document.getElementById('categoryFilter');
         const statusFilter = document.getElementById('statusFilter');
+        const productModal = document.getElementById('productModal');
         
         if (btnAddProduct) btnAddProduct.addEventListener('click', addProduct);
         if (productSearch) productSearch.addEventListener('input', loadProducts);
         if (categoryFilter) categoryFilter.addEventListener('change', loadProducts);
         if (statusFilter) statusFilter.addEventListener('change', loadProducts);
+        
+        // Ensure dropdowns are populated whenever modal is shown
+        if (productModal) {
+            productModal.addEventListener('show.bs.modal', function () {
+                // Small delay to ensure modal is fully rendered
+                setTimeout(() => {
+                    if (!editingProductId) {
+                        // For add product, populate with no selection
+                        populateProductDropdowns();
+                    }
+                    // For edit product, populateProductDropdowns is called in editProduct function
+                }, 50);
+            });
+        }
         
         // Initialize
         loadCategories();
