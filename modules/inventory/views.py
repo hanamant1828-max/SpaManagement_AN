@@ -646,12 +646,23 @@ def api_inventory_adjustments():
             if not product:
                 return jsonify({'error': f'Product with ID {product_id} not found'}), 400
 
-            # Build reason with proper handling of optional fields
-            reason = "Manual stock adjustment"
+            # Build clean reason using the new format
+            reason_parts = ["Manual stock adjustment"]
             if reference_no and reference_no.strip():
-                reason += f" - Ref: {reference_no.strip()}"
+                reason_parts.append(f"Ref: {reference_no.strip()}")
+            
+            # Add date and user info
+            reason_parts.append(adjustment_date.strftime('%Y-%m-%d'))
+            reason_parts.append(current_user.username if current_user else 'System')
+            
+            # Add notes if provided
             if notes and notes.strip():
-                reason += f" - {notes.strip()}"
+                clean_notes = ' '.join(notes.strip().split())  # Collapse whitespace
+                if len(clean_notes) > 100:  # Reasonable limit for storage
+                    clean_notes = clean_notes[:97] + '…'
+                reason_parts.append(f"Notes: {clean_notes}")
+            
+            reason = ' — '.join(reason_parts)
 
             updated_product = add_stock(
                 product_id=product_id,
@@ -720,13 +731,50 @@ def api_get_adjustments():
             first_movement = movements[0]
             total_value = sum(float(m.quantity or 0) * float(m.unit_cost or 0) for m in movements)
             
-            # Extract reference ID from reason if it exists
+            # Parse the structured reason to extract components
             reference_id = None
-            if first_movement.reason and " - Ref: " in first_movement.reason:
+            user_notes = ""
+            original_remarks = first_movement.reason or 'Manual adjustment'
+            
+            if first_movement.reason and ' — ' in first_movement.reason:
                 try:
-                    reference_id = first_movement.reason.split(" - Ref: ")[1].split(" - ")[0]
+                    parts = first_movement.reason.split(' — ')
+                    
+                    # Extract reference ID if present
+                    for part in parts:
+                        if part.startswith('Ref: '):
+                            reference_id = part[5:]  # Remove 'Ref: ' prefix
+                        elif part.startswith('Notes: '):
+                            user_notes = part[7:]  # Remove 'Notes: ' prefix
+                            
                 except (IndexError, AttributeError):
                     reference_id = None
+                    user_notes = ""
+            elif first_movement.reason and " - Ref: " in first_movement.reason:
+                # Legacy format support
+                try:
+                    reference_id = first_movement.reason.split(" - Ref: ")[1].split(" - ")[0]
+                    
+                    # Extract notes from legacy format
+                    parts = first_movement.reason.split(" - Ref: ")
+                    if len(parts) > 1 and len(parts[1].split(" - ")) > 1:
+                        remaining_parts = parts[1].split(" - ")[1:]
+                        user_notes = " - ".join(remaining_parts)
+                        
+                except (IndexError, AttributeError):
+                    reference_id = None
+            
+            # Get item details for tooltip
+            items_for_tooltip = []
+            for mov in movements:
+                if mov.product:
+                    items_for_tooltip.append({
+                        'product_name': mov.product.name,
+                        'quantity_added': float(mov.quantity or 0),
+                        'unit_cost': float(mov.unit_cost or 0),
+                        'line_total': float(mov.quantity or 0) * float(mov.unit_cost or 0),
+                        'unit_of_measure': mov.product.unit_of_measure or 'pcs'
+                    })
             
             adjustments.append({
                 'id': first_movement.id,  # Use first movement ID as reference
@@ -735,7 +783,10 @@ def api_get_adjustments():
                 'items_count': len(movements),
                 'subtotal': float(total_value),
                 'total_value': float(total_value),
-                'remarks': first_movement.reason or 'Manual adjustment',
+                'remarks': original_remarks,  # For display
+                'user_notes': user_notes,  # Clean user notes
+                'original_remarks': original_remarks,  # Full original for tooltip
+                'items': items_for_tooltip,  # For tooltip content
                 'created_by': first_movement.user.username if first_movement.user else 'System',
                 'created_date': first_movement.created_at.strftime('%Y-%m-%d %H:%M:%S') if first_movement.created_at else 'Unknown'
             })
@@ -786,18 +837,36 @@ def api_get_adjustment(adjustment_id):
                 'line_total': float(line_total)
             })
 
-        # Extract reference ID from reason if it exists
+        # Parse the structured reason to extract components
         reference_id = ""
-        remarks = movement.reason or 'Manual adjustment'
-        if movement.reason and " - Ref: " in movement.reason:
+        user_notes = ""
+        original_remarks = movement.reason or 'Manual adjustment'
+        
+        if movement.reason and ' — ' in movement.reason:
+            try:
+                parts = movement.reason.split(' — ')
+                
+                # Extract reference ID if present
+                for part in parts:
+                    if part.startswith('Ref: '):
+                        reference_id = part[5:]  # Remove 'Ref: ' prefix
+                    elif part.startswith('Notes: '):
+                        user_notes = part[7:]  # Remove 'Notes: ' prefix
+                        
+            except (IndexError, AttributeError):
+                reference_id = ""
+                user_notes = ""
+        elif movement.reason and " - Ref: " in movement.reason:
+            # Legacy format support
             try:
                 parts = movement.reason.split(" - Ref: ")
                 reference_id = parts[1].split(" - ")[0] if len(parts) > 1 else ""
-                # Clean up remarks by removing reference part
+                
+                # Extract notes from legacy format
                 if len(parts) > 1 and len(parts[1].split(" - ")) > 1:
-                    remarks = parts[0] + " - " + " - ".join(parts[1].split(" - ")[1:])
-                else:
-                    remarks = parts[0]
+                    remaining_parts = parts[1].split(" - ")[1:]
+                    user_notes = " - ".join(remaining_parts)
+                    
             except (IndexError, AttributeError):
                 reference_id = ""
 
@@ -807,7 +876,9 @@ def api_get_adjustment(adjustment_id):
             'adjustment_date': movement.created_at.strftime('%Y-%m-%d') if movement.created_at else date.today().strftime('%Y-%m-%d'),
             'created_by': movement.user.username if movement.user else 'System',
             'created_date': movement.created_at.strftime('%Y-%m-%d %H:%M:%S') if movement.created_at else 'Unknown',
-            'remarks': remarks,
+            'remarks': user_notes,  # Clean user notes for editing
+            'original_remarks': original_remarks,  # Full original string for display
+            'user_notes': user_notes,  # Separate field for user notes
             'items': items,
             'subtotal': float(total_value),
             'tax': 0.0,  # No tax calculation for now
@@ -1140,12 +1211,23 @@ def api_edit_adjustment(adjustment_id):
             if not product:
                 return jsonify({'error': f'Product with ID {product_id} not found'}), 400
 
-            # Build new reason
-            reason = "Manual stock adjustment (Updated)"
-            if reference_id:
-                reason += f" - Ref: {reference_id}"
-            if remarks:
-                reason += f" - {remarks}"
+            # Build clean reason using the new format (no duplication)
+            reason_parts = ["Manual stock adjustment"]
+            if reference_id and reference_id.strip():
+                reason_parts.append(f"Ref: {reference_id.strip()}")
+            
+            # Add date and user info
+            reason_parts.append(adjustment_date.strftime('%Y-%m-%d'))
+            reason_parts.append(current_user.username if current_user else 'System')
+            
+            # Add remarks if provided
+            if remarks and remarks.strip():
+                clean_remarks = ' '.join(remarks.strip().split())  # Collapse whitespace
+                if len(clean_remarks) > 100:  # Reasonable limit for storage
+                    clean_remarks = clean_remarks[:97] + '…'
+                reason_parts.append(f"Notes: {clean_remarks}")
+            
+            reason = ' — '.join(reason_parts)
 
             # Get current stock before update
             stock_before = float(product.current_stock or 0)

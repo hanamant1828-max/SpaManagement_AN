@@ -1633,6 +1633,79 @@ function loadConsumption() {
     });
 }
 
+// Utility functions for formatting adjustment remarks
+function formatAdjustmentRemarks({ referenceId, dateISO, createdBy, userNotes, items }) {
+    let parts = ['Manual stock adjustment'];
+    
+    // Add reference ID if provided
+    if (referenceId && referenceId.trim()) {
+        parts.push(`Ref: ${referenceId.trim()}`);
+    }
+    
+    // Format date
+    if (dateISO) {
+        try {
+            const date = new Date(dateISO);
+            const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+            parts.push(formattedDate);
+        } catch (e) {
+            // Fallback to original date string
+            parts.push(dateISO);
+        }
+    }
+    
+    // Add created by if provided
+    if (createdBy && createdBy.trim()) {
+        parts.push(createdBy.trim());
+    }
+    
+    // Add user notes if provided
+    if (userNotes && userNotes.trim()) {
+        // Clean up notes: trim whitespace, collapse multiple spaces
+        const cleanNotes = userNotes.trim().replace(/\s+/g, ' ');
+        
+        // Limit to 120 characters total for the notes part
+        const maxNotesLength = 120 - parts.join(' — ').length - ' — Notes: '.length;
+        let notesText = cleanNotes;
+        
+        if (cleanNotes.length > maxNotesLength && maxNotesLength > 0) {
+            notesText = cleanNotes.substring(0, maxNotesLength - 1) + '…';
+        }
+        
+        parts.push(`Notes: ${notesText}`);
+    }
+    
+    return parts.length > 1 ? parts.join(' — ') : '—';
+}
+
+function buildRemarksTooltip(items, fullRemarks) {
+    let tooltip = `<strong>Full Remarks:</strong><br>${fullRemarks || '—'}<br><br><strong>Items:</strong><br>`;
+    
+    if (!items || items.length === 0) {
+        return tooltip + 'No items found';
+    }
+    
+    const maxItems = 8;
+    const itemsToShow = items.slice(0, maxItems);
+    
+    itemsToShow.forEach(item => {
+        const productName = item.product_name || 'Unknown Product';
+        const quantity = parseFloat(item.quantity_added || 0).toFixed(2);
+        const unitCost = parseFloat(item.unit_cost || 0).toFixed(2);
+        const lineTotal = parseFloat(item.line_total || 0).toFixed(2);
+        const unit = item.unit_of_measure || 'pcs';
+        
+        tooltip += `• ${productName} — Added: ${quantity} ${unit} @ $${unitCost} → $${lineTotal}<br>`;
+    });
+    
+    if (items.length > maxItems) {
+        const remaining = items.length - maxItems;
+        tooltip += `<em>+${remaining} more…</em>`;
+    }
+    
+    return tooltip;
+}
+
 function loadAdjustments() {
     fetch('/api/inventory/adjustments')
     .then(response => response.json())
@@ -1641,14 +1714,35 @@ function loadAdjustments() {
         tbody.innerHTML = '';
 
         data.records.forEach(record => {
+            // Format the remarks using the utility function
+            const formattedRemarks = formatAdjustmentRemarks({
+                referenceId: record.reference_id,
+                dateISO: record.adjustment_date,
+                createdBy: record.created_by,
+                userNotes: record.user_notes, // This will be added from the API
+                items: record.items || []
+            });
+            
+            // Create tooltip content
+            const tooltipContent = buildRemarksTooltip(record.items || [], record.original_remarks || formattedRemarks);
+            
             const row = `
                 <tr>
-                    <td>${record.reference_id || 'N/A'}</td>
+                    <td>${record.reference_id || '—'}</td>
                     <td>${record.adjustment_date}</td>
                     <td>${record.items_count}</td>
                     <td>$${record.subtotal.toFixed(2)}</td>
                     <td>$${record.total_value.toFixed(2)}</td>
-                    <td>${record.remarks || 'N/A'}</td>
+                    <td>
+                        <span class="remarks-cell" 
+                              data-bs-toggle="tooltip" 
+                              data-bs-placement="top" 
+                              data-bs-html="true" 
+                              title="${tooltipContent.replace(/"/g, '&quot;')}"
+                              style="cursor: help; border-bottom: 1px dotted #999;">
+                            ${formattedRemarks}
+                        </span>
+                    </td>
                     <td>${record.created_by}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
@@ -1666,6 +1760,12 @@ function loadAdjustments() {
                 </tr>
             `;
             tbody.innerHTML += row;
+        });
+        
+        // Initialize Bootstrap tooltips for the new elements
+        const tooltipTriggerList = document.querySelectorAll('.remarks-cell[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(tooltipTriggerEl => {
+            new bootstrap.Tooltip(tooltipTriggerEl);
         });
     })
     .catch(error => {
