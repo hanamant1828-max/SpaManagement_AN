@@ -204,21 +204,11 @@
                         const script = document.createElement('script');
                         script.type = 'text/javascript';
                         
-                        // Wrap script content in IIFE to prevent variable conflicts
+                        // Get script content
                         const scriptContent = originalScript.textContent || originalScript.innerText;
                         if (scriptContent.trim()) {
-                            // Create isolated scope for each tab's scripts
-                            script.textContent = `
-                                (function() {
-                                    'use strict';
-                                    try {
-                                        ${scriptContent}
-                                    } catch (error) {
-                                        console.error('Error in ${tabName} script ${index}:', error);
-                                    }
-                                })();
-                            `;
-                            
+                            // Simply execute the script content directly to avoid scope issues
+                            script.textContent = scriptContent;
                             document.head.appendChild(script);
                             newScripts.push(script);
                         }
