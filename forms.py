@@ -253,3 +253,20 @@ class SystemSettingForm(FlaskForm):
     value = TextAreaField('Value', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[Optional()])
     submit = SubmitField('Save Setting')
+
+class ComprehensiveStaffForm(FlaskForm):
+    """Comprehensive staff form with all fields"""
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
+    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
+    role = SelectField('Role', choices=[('staff', 'Staff'), ('manager', 'Manager'), ('admin', 'Admin')])
+    department = StringField('Department', validators=[Optional(), Length(max=50)])
+    hire_date = DateField('Hire Date', validators=[Optional()])
+    salary = FloatField('Salary', validators=[Optional(), NumberRange(min=0)])
+    commission_rate = FloatField('Commission Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)])
+    specialties = TextAreaField('Specialties', validators=[Optional()])
+    certifications = TextAreaField('Certifications', validators=[Optional()])
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save Staff Member')
