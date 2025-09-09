@@ -14,7 +14,7 @@ from .models import (
 )
 from .queries import (
     get_all_products, get_product_by_id, create_product, update_product, delete_product,
-    get_all_categories, get_category_by_id, create_category,
+    get_all_categories, get_category_by_id, create_category, update_category, delete_category,
     get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier,
     get_low_stock_products, get_out_of_stock_products, get_products_needing_reorder,
     search_products, update_stock, add_stock, remove_stock, get_stock_movements,
@@ -223,6 +223,116 @@ def view_product(product_id):
     return render_template('inventory/product_details.html',
                          product=product,
                          movements=movements)
+
+# ============ CATEGORY MANAGEMENT ============
+
+@app.route('/inventory/categories')
+@login_required
+def inventory_categories():
+    """Category management with table view"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    categories = get_all_categories()
+    return render_template('inventory/categories.html', categories=categories)
+
+@app.route('/inventory/categories/add', methods=['GET', 'POST'])
+@login_required
+def add_inventory_category():
+    """Add new category"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        try:
+            category_data = {
+                'name': request.form.get('name', '').strip(),
+                'description': request.form.get('description', '').strip(),
+                'color_code': request.form.get('color_code', '#007bff').strip()
+            }
+            
+            if not category_data['name']:
+                flash('Category name is required', 'danger')
+                return redirect(request.url)
+            
+            category = create_category(category_data)
+            flash(f'Category "{category.name}" added successfully!', 'success')
+            return redirect(url_for('inventory_categories'))
+            
+        except Exception as e:
+            flash(f'Error adding category: {str(e)}', 'danger')
+    
+    return render_template('inventory/category_form.html', action='add')
+
+@app.route('/inventory/categories/<int:category_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_inventory_category(category_id):
+    """Edit existing category"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    category = get_category_by_id(category_id)
+    if not category:
+        flash('Category not found', 'danger')
+        return redirect(url_for('inventory_categories'))
+    
+    if request.method == 'POST':
+        try:
+            category_data = {
+                'name': request.form.get('name', '').strip(),
+                'description': request.form.get('description', '').strip(),
+                'color_code': request.form.get('color_code', '#007bff').strip()
+            }
+            
+            if not category_data['name']:
+                flash('Category name is required', 'danger')
+                return redirect(request.url)
+            
+            updated_category = update_category(category_id, category_data)
+            if updated_category:
+                flash(f'Category "{updated_category.name}" updated successfully!', 'success')
+                return redirect(url_for('inventory_categories'))
+            else:
+                flash('Error updating category', 'danger')
+                
+        except Exception as e:
+            flash(f'Error updating category: {str(e)}', 'danger')
+    
+    return render_template('inventory/category_form.html', 
+                         category=category, 
+                         action='edit')
+
+@app.route('/inventory/categories/<int:category_id>/delete', methods=['POST'])
+@login_required
+def delete_category_route(category_id):
+    """Delete category"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    category = get_category_by_id(category_id)
+    if not category:
+        flash('Category not found', 'danger')
+        return redirect(url_for('inventory_categories'))
+    
+    try:
+        # Check if category has products
+        if category.products:
+            flash(f'Cannot delete category "{category.name}" because it has {len(category.products)} associated products', 'danger')
+            return redirect(url_for('inventory_categories'))
+        
+        if delete_category(category_id):
+            flash(f'Category "{category.name}" deleted successfully!', 'success')
+        else:
+            flash('Error deleting category', 'danger')
+            
+    except Exception as e:
+        flash(f'Error deleting category: {str(e)}', 'danger')
+    
+    return redirect(url_for('inventory_categories'))
 
 # ============ STOCK MANAGEMENT ============
 
