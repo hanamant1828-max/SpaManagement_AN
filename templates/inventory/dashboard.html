@@ -2060,6 +2060,275 @@
         });
     }
 
+    // View Product Function
+    function viewProduct(id) {
+        fetch(`/api/inventory/product/${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch product details');
+                }
+                return response.json();
+            })
+            .then(product => {
+                // Populate the view modal with product details
+                document.getElementById('viewProductSku').textContent = product.sku || '-';
+                document.getElementById('viewProductName').textContent = product.name || '-';
+                document.getElementById('viewProductDescription').textContent = product.description || 'No description';
+                document.getElementById('viewProductCategory').textContent = product.category_name || 'No category';
+                document.getElementById('viewProductUnit').textContent = product.unit_of_measure || '-';
+                document.getElementById('viewProductBarcode').textContent = product.barcode || '-';
+                document.getElementById('viewProductCurrentStock').textContent = product.current_stock + ' ' + (product.unit_of_measure || '');
+                document.getElementById('viewProductMinStock').textContent = product.min_stock_level || '-';
+                document.getElementById('viewProductMaxStock').textContent = product.max_stock_level || '-';
+                document.getElementById('viewProductReorderPoint').textContent = product.reorder_point || '-';
+                document.getElementById('viewProductCostPrice').textContent = product.cost_price ? '$' + parseFloat(product.cost_price).toFixed(2) : '-';
+                document.getElementById('viewProductSellingPrice').textContent = product.selling_price ? '$' + parseFloat(product.selling_price).toFixed(2) : '-';
+                document.getElementById('viewProductLocation').textContent = product.location || '-';
+                document.getElementById('viewProductStatus').innerHTML = getStockStatusBadge(product.stock_status);
+                
+                // Product type
+                let productType = [];
+                if (product.is_service_item) productType.push('Service Item');
+                if (product.is_retail_item) productType.push('Retail Item');
+                document.getElementById('viewProductType').textContent = productType.length > 0 ? productType.join(', ') : 'Standard Product';
+
+                // Show the modal
+                const viewModal = new bootstrap.Modal(document.getElementById('viewProductModal'));
+                viewModal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching product details:', error);
+                showToast(`Error loading product details: ${error.message}`, 'danger');
+            });
+    }
+
+    // View Category Function
+    function viewCategory(id, name, description, colorCode, productCount, isActive, createdAt) {
+        // Populate the view modal with category details
+        document.getElementById('viewCategoryName').textContent = name || '-';
+        document.getElementById('viewCategoryDescription').textContent = description || 'No description';
+        document.getElementById('viewCategoryColor').textContent = colorCode || '-';
+        document.getElementById('viewCategoryColorBadge').style.backgroundColor = colorCode || '#007bff';
+        document.getElementById('viewCategoryProductCount').textContent = productCount + ' products';
+        document.getElementById('viewCategoryStatus').innerHTML = isActive ? 
+            '<span class="badge bg-success">Active</span>' : 
+            '<span class="badge bg-secondary">Inactive</span>';
+        document.getElementById('viewCategoryCreated').textContent = createdAt || '-';
+
+        // Show the modal
+        const viewModal = new bootstrap.Modal(document.getElementById('viewCategoryModal'));
+        viewModal.show();
+    }
+
+    // View Consumption Function
+    function viewConsumption(record) {
+        // Populate the view modal with consumption details
+        document.getElementById('viewConsumptionDate').textContent = record.consumption_date || '-';
+        document.getElementById('viewConsumptionProductName').textContent = record.product_name || '-';
+        document.getElementById('viewConsumptionProductSku').textContent = record.product_sku || '-';
+        document.getElementById('viewConsumptionQuantity').textContent = record.quantity_used || '-';
+        document.getElementById('viewConsumptionUnit').textContent = record.unit_of_measure || '-';
+        document.getElementById('viewConsumptionIssuedTo').textContent = record.issued_to || '-';
+        document.getElementById('viewConsumptionReference').textContent = record.reference_doc_no || 'Not specified';
+        document.getElementById('viewConsumptionNotes').textContent = record.notes || 'No notes';
+
+        // Show the modal
+        const viewModal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
+        viewModal.show();
+    }
+
+    // Helper function to get stock status badge
+    function getStockStatusBadge(status) {
+        const badges = {
+            'in_stock': '<span class="badge bg-success">In Stock</span>',
+            'low_stock': '<span class="badge bg-warning">Low Stock</span>',
+            'out_of_stock': '<span class="badge bg-danger">Out of Stock</span>',
+            'reorder_needed': '<span class="badge bg-info">Reorder Needed</span>'
+        };
+        return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+    }
+
 
 </script>
+
+<!-- View Product Modal -->
+<div class="modal fade" id="viewProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">View Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">SKU</label>
+                            <p class="mb-0" id="viewProductSku">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Product Name</label>
+                            <p class="mb-0" id="viewProductName">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Description</label>
+                            <p class="mb-0" id="viewProductDescription">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Category</label>
+                            <p class="mb-0" id="viewProductCategory">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Unit of Measure</label>
+                            <p class="mb-0" id="viewProductUnit">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Barcode</label>
+                            <p class="mb-0" id="viewProductBarcode">-</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Current Stock</label>
+                            <p class="mb-0" id="viewProductCurrentStock">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Min Stock Level</label>
+                            <p class="mb-0" id="viewProductMinStock">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Max Stock Level</label>
+                            <p class="mb-0" id="viewProductMaxStock">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Reorder Point</label>
+                            <p class="mb-0" id="viewProductReorderPoint">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Cost Price</label>
+                            <p class="mb-0" id="viewProductCostPrice">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Selling Price</label>
+                            <p class="mb-0" id="viewProductSellingPrice">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Location</label>
+                            <p class="mb-0" id="viewProductLocation">-</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Stock Status</label>
+                            <p class="mb-0" id="viewProductStatus">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted">Product Type</label>
+                            <p class="mb-0" id="viewProductType">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Category Modal -->
+<div class="modal fade" id="viewCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">View Category Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Color</label>
+                    <div class="d-flex align-items-center">
+                        <span class="badge rounded-pill me-2" id="viewCategoryColorBadge" style="width: 25px; height: 25px;">&nbsp;</span>
+                        <span id="viewCategoryColor">-</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Category Name</label>
+                    <p class="mb-0" id="viewCategoryName">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Description</label>
+                    <p class="mb-0" id="viewCategoryDescription">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Product Count</label>
+                    <p class="mb-0" id="viewCategoryProductCount">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Status</label>
+                    <p class="mb-0" id="viewCategoryStatus">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Created Date</label>
+                    <p class="mb-0" id="viewCategoryCreated">-</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Consumption Modal -->
+<div class="modal fade" id="viewConsumptionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">View Consumption Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Consumption Date</label>
+                    <p class="mb-0" id="viewConsumptionDate">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Product Name</label>
+                    <p class="mb-0" id="viewConsumptionProductName">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Product SKU</label>
+                    <p class="mb-0" id="viewConsumptionProductSku">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Quantity Used</label>
+                    <p class="mb-0" id="viewConsumptionQuantity">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Unit of Measure</label>
+                    <p class="mb-0" id="viewConsumptionUnit">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Issued To</label>
+                    <p class="mb-0" id="viewConsumptionIssuedTo">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Reference Document No.</label>
+                    <p class="mb-0" id="viewConsumptionReference">-</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Notes</label>
+                    <p class="mb-0" id="viewConsumptionNotes">-</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
