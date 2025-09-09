@@ -123,6 +123,16 @@ def create_default_data():
     except Exception as e:
         print(f"Error setting up permissions: {e}")
 
+    # Initialize inventory default data
+    print("Initializing inventory default data...")
+    try:
+        from modules.inventory.queries import initialize_default_locations, initialize_default_categories
+        initialize_default_locations()
+        initialize_default_categories()
+        print("Inventory defaults initialized!")
+    except Exception as e:
+        print(f"Error initializing inventory defaults: {e}")
+    
     print("Comprehensive default data created successfully")
 
 # Root route

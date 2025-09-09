@@ -555,6 +555,44 @@ def initialize_default_locations():
         db.session.rollback()
         return False
 
+def initialize_default_categories():
+    """Initialize default inventory categories if none exist"""
+    try:
+        from .models import InventoryCategory
+        if InventoryCategory.query.count() == 0:
+            default_categories = [
+                {
+                    'name': 'Skincare Products',
+                    'description': 'Facial and body care products',
+                    'color_code': '#ff6b6b'
+                },
+                {
+                    'name': 'Hair Care Products',
+                    'description': 'Shampoos, conditioners, and styling products',
+                    'color_code': '#4ecdc4'
+                },
+                {
+                    'name': 'Spa Supplies',
+                    'description': 'Towels, robes, and spa accessories',
+                    'color_code': '#45b7d1'
+                },
+                {
+                    'name': 'Wellness Products',
+                    'description': 'Essential oils, aromatherapy products',
+                    'color_code': '#f9ca24'
+                }
+            ]
+            
+            for category_data in default_categories:
+                category = InventoryCategory(**category_data)
+                db.session.add(category)
+            
+            db.session.commit()
+            return True
+    except Exception as e:
+        db.session.rollback()
+        return False
+
 # ============ CONSUMPTION MANAGEMENT ============
 
 def get_all_consumption_records(page=1, per_page=20, search_term=''):
