@@ -2074,9 +2074,18 @@ function viewAdjustment(id) {
 }
 
 function editAdjustment(id) {
+    console.log('Loading adjustment for edit:', id);
+    
     fetch(`/api/inventory/adjustments/${id}`)
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(adjustment => {
+        console.log('Adjustment data loaded:', adjustment);
+        
         if (adjustment.error) {
             throw new Error(adjustment.error);
         }
@@ -2086,8 +2095,13 @@ function editAdjustment(id) {
         document.getElementById('editAdjustmentDate').value = adjustment.adjustment_date;
         document.getElementById('editReferenceNo').value = adjustment.reference_id || '';
         document.getElementById('editNotes').value = adjustment.remarks || '';
+        document.getElementById('editTax').value = adjustment.tax || 0;
 
-        // Dynamically load and populate items for editing
+        // Clear existing items container
+        const container = document.getElementById('editInventoryItems');
+        container.innerHTML = '';
+
+        // Load and populate items for editing
         loadEditAdjustmentItems(adjustment.items);
 
         const modal = new bootstrap.Modal(document.getElementById('editAdjustmentModal'));
@@ -2095,7 +2109,7 @@ function editAdjustment(id) {
     })
     .catch(error => {
         console.error('Error loading adjustment:', error);
-        showToast(`Error: ${error.message}`, 'error');
+        showToast(`Error loading adjustment: ${error.message}`, 'error');
     });
 }
 
@@ -2299,45 +2313,56 @@ function calculateEditGrandTotal() {
 }
 
 function saveEditedAdjustment() {
+    console.log('Saving edited adjustment...');
+    
     const form = document.getElementById('editAdjustmentForm');
-    const formData = new FormData(form);
     const adjustmentId = document.getElementById('editAdjustmentId').value;
+
+    if (!adjustmentId) {
+        showToast('Error: Adjustment ID not found', 'error');
+        return;
+    }
+
+    // Get form data
+    const adjustmentDate = document.getElementById('editAdjustmentDate').value;
+    const referenceNo = document.getElementById('editReferenceNo').value || '';
+    const notes = document.getElementById('editNotes').value || '';
+    const tax = parseFloat(document.getElementById('editTax').value) || 0;
 
     // Get all items
     const items = [];
-    const productIds = formData.getAll('product_id[]');
-    const quantities = formData.getAll('quantity_in[]');
-    const unitCosts = formData.getAll('unit_cost[]');
+    const productSelects = document.querySelectorAll('#editInventoryItems .product-select');
+    const quantityInputs = document.querySelectorAll('#editInventoryItems .quantity-in');
+    const unitCostInputs = document.querySelectorAll('#editInventoryItems .unit-cost');
 
-    for (let i = 0; i < productIds.length; i++) {
-        if (productIds[i] && quantities[i]) {
-            const quantity = parseFloat(quantities[i]);
-            const unitCost = parseFloat(unitCosts[i]) || 0;
+    for (let i = 0; i < productSelects.length; i++) {
+        const productId = productSelects[i].value;
+        const quantity = parseFloat(quantityInputs[i].value) || 0;
+        const unitCost = parseFloat(unitCostInputs[i].value) || 0;
 
-            if (isNaN(quantity) || quantity < 0) { // Allow 0 quantity for removal if needed, though adjustment should usually be positive
-                showToast('Please enter valid quantities', 'error');
-                return;
-            }
-
+        if (productId && quantity > 0) {
             items.push({
-                product_id: productIds[i],
-                quantity_added: quantity, // Use quantity_added for saving
+                product_id: parseInt(productId),
+                quantity_added: quantity,
                 unit_cost: unitCost
             });
         }
     }
 
     if (items.length === 0) {
-        showToast('Please add at least one item', 'error');
+        showToast('Please add at least one valid item', 'error');
         return;
     }
 
     const data = {
-        adjustment_date: formData.get('adjustment_date') || new Date().toISOString().split('T')[0],
-        reference_id: formData.get('reference_no') || '',
-        remarks: formData.get('notes') || '',
+        adjustment_date: adjustmentDate,
+        reference_id: referenceNo,
+        remarks: notes,
+        tax: tax,
         items: items
     };
+
+    console.log('Sending adjustment data:', data);
 
     // Add loading state to button
     const saveButton = document.querySelector('#editAdjustmentModal .btn-primary');
@@ -2353,17 +2378,23 @@ function saveEditedAdjustment() {
         body: JSON.stringify(data)
     })
     .then(response => {
+        console.log('Edit response status:', response.status);
         if (!response.ok) {
             return response.json().then(err => Promise.reject(err));
         }
         return response.json();
     })
     .then(data => {
+        console.log('Edit response data:', data);
         if (data.success) {
-            showToast(data.message, 'success');
+            showToast(data.message || 'Adjustment updated successfully', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editAdjustmentModal')).hide();
-            loadAdjustments(); // Refresh table
-            loadProducts(); // Refresh product list to show updated stock
+            
+            // Refresh all related data
+            setTimeout(() => {
+                loadAdjustments(); // Refresh adjustments table
+                loadProducts(); // Refresh product list to show updated stock
+            }, 500);
         } else {
             throw new Error(data.error || 'Failed to update adjustment');
         }

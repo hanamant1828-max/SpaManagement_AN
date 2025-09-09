@@ -1079,40 +1079,107 @@ def api_edit_adjustment(adjustment_id):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # For now, only allow editing the reference and remarks
-        new_reference = request.form.get('reference_id', '').strip()
-        new_remarks = request.form.get('remarks', '').strip()
+        # Get JSON data from request
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
 
-        # Get the movement record and update reason
-        movement = StockMovement.query.get(adjustment_id)
-        if not movement:
+        # Get the original movement record
+        original_movement = StockMovement.query.get(adjustment_id)
+        if not original_movement:
             return jsonify({'error': 'Adjustment not found'}), 404
 
-        # Update reason with new reference and remarks
-        base_reason = "Manual stock adjustment"
-        if new_reference:
-            base_reason += f" - Ref: {new_reference}"
-        if new_remarks:
-            base_reason += f" - {new_remarks}"
+        # Extract data with defaults
+        adjustment_date_str = data.get('adjustment_date', '')
+        reference_id = data.get('reference_id', '').strip()
+        remarks = data.get('remarks', '').strip()
+        items = data.get('items', [])
 
-        # Update all related movements (same original reason and date)
+        if not adjustment_date_str:
+            return jsonify({'error': 'Adjustment date is required'}), 400
+
+        if not items:
+            return jsonify({'error': 'At least one item is required'}), 400
+
+        # Parse date
+        try:
+            adjustment_date = datetime.strptime(adjustment_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format'}), 400
+
+        # Get all related movements (same original reason and created_at)
         related_movements = StockMovement.query.filter(
-            StockMovement.reason == movement.reason,
-            StockMovement.created_at == movement.created_at,
-            StockMovement.created_by == movement.created_by
+            StockMovement.reason == original_movement.reason,
+            StockMovement.created_at == original_movement.created_at,
+            StockMovement.created_by == original_movement.created_by
         ).all()
 
-        for mov in related_movements:
-            mov.reason = base_reason
+        # Reverse original stock changes
+        for movement in related_movements:
+            if movement.product:
+                product = movement.product
+                # Subtract the original quantity that was added
+                new_stock = float(product.current_stock) - float(movement.quantity)
+                product.current_stock = max(0, new_stock)
+
+        # Delete original movement records
+        for movement in related_movements:
+            db.session.delete(movement)
+
+        # Create new movements for updated items
+        updated_products = []
+        for item in items:
+            product_id = item.get('product_id')
+            quantity = float(item.get('quantity_added', 0))
+            unit_cost = float(item.get('unit_cost', 0))
+
+            if not product_id or quantity <= 0:
+                continue
+
+            product = get_product_by_id(product_id)
+            if not product:
+                return jsonify({'error': f'Product with ID {product_id} not found'}), 400
+
+            # Build new reason
+            reason = "Manual stock adjustment (Updated)"
+            if reference_id:
+                reason += f" - Ref: {reference_id}"
+            if remarks:
+                reason += f" - {remarks}"
+
+            # Create new stock movement
+            new_movement = StockMovement(
+                product_id=product_id,
+                movement_type='in',
+                quantity=quantity,
+                unit_cost=unit_cost,
+                reason=reason,
+                reference_type='manual',
+                reference_id=None,
+                created_by=current_user.id,
+                created_at=datetime.now()
+            )
+
+            # Update product stock
+            product.current_stock = float(product.current_stock) + quantity
+            
+            db.session.add(new_movement)
+            updated_products.append({
+                'product_name': product.name,
+                'quantity_added': quantity,
+                'new_stock': float(product.current_stock)
+            })
 
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Adjustment updated successfully'
+            'message': f'Adjustment updated successfully. {len(updated_products)} items updated.',
+            'updated_products': updated_products
         })
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': f'Error updating adjustment: {str(e)}'}), 500
 
 # ============ API ENDPOINTS ============
