@@ -209,9 +209,12 @@ def api_edit_category(category_id):
         return jsonify({'error': 'Access denied'}), 403
     
     try:
-        from models import InventoryCategory
+        from models import Category
         
-        category = InventoryCategory.query.get_or_404(category_id)
+        category = Category.query.filter_by(id=category_id, category_type='inventory').first()
+        if not category:
+            return jsonify({'success': False, 'error': 'Category not found'}), 404
+            
         data = request.get_json()
         
         category.name = data.get('name', category.name)
@@ -240,9 +243,12 @@ def api_delete_category(category_id):
         return jsonify({'error': 'Access denied'}), 403
     
     try:
-        from models import InventoryCategory
+        from models import Category
         
-        category = InventoryCategory.query.get_or_404(category_id)
+        category = Category.query.filter_by(id=category_id, category_type='inventory').first()
+        if not category:
+            return jsonify({'success': False, 'error': 'Category not found'}), 404
+            
         category_name = category.name
         
         db.session.delete(category)
@@ -364,6 +370,103 @@ def api_add_product():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Error creating product: {str(e)}'})
+
+@app.route('/api/inventory/product/<int:product_id>', methods=['GET'])
+@login_required
+def api_get_product(product_id):
+    """Get single product for editing"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import InventoryProduct
+        product = InventoryProduct.query.get(product_id)
+        
+        if not product:
+            return jsonify({'success': False, 'error': 'Product not found'}), 404
+            
+        return jsonify({
+            'success': True,
+            'product': {
+                'id': product.product_id,
+                'name': product.name,
+                'description': product.description or '',
+                'category_id': product.category_id,
+                'unit': product.unit,
+                'unit_cost': product.unit_cost,
+                'selling_price': product.selling_price,
+                'reorder_level': product.reorder_level,
+                'current_stock': product.current_stock,
+                'is_active': product.is_active
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/inventory/product/edit/<int:product_id>', methods=['PUT'])
+@login_required
+def api_edit_product(product_id):
+    """Edit inventory product"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import InventoryProduct
+        
+        product = InventoryProduct.query.get(product_id)
+        if not product:
+            return jsonify({'success': False, 'error': 'Product not found'}), 404
+            
+        data = request.get_json()
+        
+        product.name = data.get('name', product.name)
+        product.description = data.get('description', product.description)
+        product.category_id = int(data.get('category_id')) if data.get('category_id') else product.category_id
+        product.unit = data.get('unit', product.unit)
+        product.unit_cost = float(data.get('cost_price', product.unit_cost))
+        product.selling_price = float(data.get('selling_price', product.selling_price))
+        product.reorder_level = float(data.get('min_stock_level', product.reorder_level))
+        product.is_active = data.get('is_active', product.is_active)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Product "{product.name}" updated successfully!'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Error updating product: {str(e)}'})
+
+@app.route('/api/inventory/product/delete/<int:product_id>', methods=['DELETE'])
+@login_required
+def api_delete_product(product_id):
+    """Delete inventory product"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import InventoryProduct
+        
+        product = InventoryProduct.query.get(product_id)
+        if not product:
+            return jsonify({'success': False, 'error': 'Product not found'}), 404
+            
+        product_name = product.name
+        
+        # Soft delete - just mark as inactive
+        product.is_active = False
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Product "{product_name}" deleted successfully!'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Error deleting product: {str(e)}'})
 
 # NEW: Inventory Master Routes (Structured Approach)
 @app.route('/inventory/master')
