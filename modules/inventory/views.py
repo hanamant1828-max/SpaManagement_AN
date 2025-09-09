@@ -599,6 +599,8 @@ def purchase_orders():
 def create_order():
     """Create new purchase order"""
     if not current_user.can_access('inventory'):
+        if request.method == 'POST':
+            return jsonify({'error': 'Access denied'}), 403
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -632,25 +634,35 @@ def create_order():
                     })
 
             if not items_data:
-                flash('At least one item is required', 'danger')
-                return redirect(request.url)
+                return jsonify({'error': 'At least one item is required'}), 400
 
             po = create_purchase_order(po_data, items_data)
-            flash(f'Purchase Order {po.po_number} created successfully!', 'success')
-            return redirect(url_for('purchase_orders'))
+            
+            # Auto-receive the items to update stock immediately
+            received_items = []
+            for item in po.items:
+                received_items.append({
+                    'item_id': item.id,
+                    'quantity_received': item.quantity_ordered
+                })
+            
+            # Receive the purchase order
+            receive_result = receive_purchase_order(po.id, received_items, current_user.id)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Purchase Order {po.po_number} created and items received successfully!',
+                'po_number': po.po_number,
+                'stock_updates': receive_result.get('stock_updates', [])
+            })
 
-        except ValueError:
-            flash('Invalid input values. Please check your data.', 'danger')
+        except ValueError as e:
+            return jsonify({'error': f'Invalid input values: {str(e)}'}), 400
         except Exception as e:
-            flash(f'Error creating purchase order: {str(e)}', 'danger')
+            return jsonify({'error': f'Error creating purchase order: {str(e)}'}), 500
 
-    suppliers = get_all_suppliers()
-    products = get_all_products()
-
-    return render_template('inventory/order_form.html',
-                         suppliers=suppliers,
-                         products=products,
-                         action='create')
+    # GET request - redirect to inventory dashboard
+    return redirect(url_for('inventory_dashboard'))
 
 @app.route('/api/inventory/purchase-order/<int:po_id>/receive', methods=['POST'])
 @login_required
@@ -864,6 +876,92 @@ def export_products():
         mimetype='text/csv',
         headers={"Content-disposition": f"attachment; filename=inventory_products_{date.today().strftime('%Y%m%d')}.csv"}
     )
+
+# ============ INVENTORY ADJUSTMENTS API ============
+
+@app.route('/api/inventory/adjustments', methods=['POST'])
+@login_required
+def api_inventory_adjustments():
+    """API endpoint to add inventory items (stock adjustments)"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        adjustment_date = data.get('adjustment_date')
+        reference_no = data.get('reference_no', '')
+        notes = data.get('notes', '')
+        items = data.get('items', [])
+
+        if not adjustment_date:
+            return jsonify({'error': 'Adjustment date is required'}), 400
+
+        if not items:
+            return jsonify({'error': 'At least one item is required'}), 400
+
+        # Parse the date
+        try:
+            adjustment_date = datetime.strptime(adjustment_date, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format'}), 400
+
+        # Process each item
+        stock_updates = []
+        total_value = 0
+
+        for item in items:
+            product_id = item.get('product_id')
+            quantity_in = item.get('quantity_in')
+            unit_cost = item.get('unit_cost', 0)
+
+            if not product_id or not quantity_in:
+                continue
+
+            product = get_product_by_id(product_id)
+            if not product:
+                return jsonify({'error': f'Product with ID {product_id} not found'}), 400
+
+            # Add stock
+            reason = f"Manual stock adjustment"
+            if reference_no:
+                reason += f" - Ref: {reference_no}"
+            if notes:
+                reason += f" - {notes}"
+
+            updated_product = add_stock(
+                product_id=product_id,
+                quantity=quantity_in,
+                reason=reason,
+                movement_type='manual',
+                reference_id=None,
+                cost_per_unit=unit_cost,
+                user_id=current_user.id
+            )
+
+            if updated_product:
+                stock_updates.append({
+                    'product_id': product.id,
+                    'product_name': product.name,
+                    'product_sku': product.sku,
+                    'quantity_added': quantity_in,
+                    'new_stock_level': updated_product.current_stock,
+                    'unit_of_measure': product.unit_of_measure
+                })
+                total_value += quantity_in * unit_cost
+
+        return jsonify({
+            'success': True,
+            'message': f'Stock adjustment completed successfully. {len(stock_updates)} items updated.',
+            'stock_updates': stock_updates,
+            'total_value': total_value
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error processing stock adjustment: {str(e)}'}), 500
 
 # ============ API ENDPOINTS ============
 

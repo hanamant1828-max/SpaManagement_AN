@@ -2901,25 +2901,63 @@ function savePurchaseOrder() {
         return;
     }
 
+    // Validate quantities and unit costs
+    const quantities = formData.getAll('quantity[]');
+    const unitCosts = formData.getAll('unit_cost[]');
+    
+    for (let i = 0; i < productIds.length; i++) {
+        if (!quantities[i] || parseFloat(quantities[i]) <= 0) {
+            showToast('Please enter valid quantities for all items', 'warning');
+            return;
+        }
+        if (!unitCosts[i] || parseFloat(unitCosts[i]) < 0) {
+            showToast('Please enter valid unit costs for all items', 'warning');
+            return;
+        }
+    }
+
+    const submitBtn = document.querySelector('#addPurchaseModal .btn-primary');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+
     // Submit form
     fetch('/inventory/orders/create', {
         method: 'POST',
         body: formData
     })
     .then(response => {
-        if (response.redirected) {
-            // Success - refresh and close modal
-            showToast('Purchase order created and items received successfully!', 'success');
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message || 'Purchase order created and items received successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('addPurchaseModal')).hide();
+            form.reset(); // Clear the form
+            
+            // Remove extra item rows, keep only one
+            const container = document.getElementById('purchaseItemsContainer');
+            const items = container.querySelectorAll('.purchase-item');
+            for (let i = 1; i < items.length; i++) {
+                items[i].remove();
+            }
+            
             loadPurchaseOrders();
             loadProducts(); // Load products again to show updated stock
         } else {
-            throw new Error('Failed to create purchase order');
+            throw new Error(data.error || 'Failed to create purchase order');
         }
     })
     .catch(error => {
         console.error('Error creating purchase order:', error);
-        showToast('Error creating purchase order', 'danger');
+        showToast(`Error creating purchase order: ${error.message}`, 'danger');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
     });
 }
 
