@@ -1800,16 +1800,16 @@ def api_products_master():
     products = get_all_products()
     return jsonify([{
         'id': product.id,
-        'sku': product.sku,
-        'name': product.name,
+        'sku': product.sku or '',
+        'name': product.name or '',
         'category': product.category.name if product.category else '',
         'category_color': product.category.color_code if product.category else '#6c757d',
-        'unit_of_measure': product.unit_of_measure,
-        'current_stock': float(product.current_stock),
-        'reorder_level': float(product.reorder_point),
+        'unit_of_measure': product.unit_of_measure or 'pcs',
+        'current_stock': float(product.current_stock or 0),
+        'reorder_level': float(product.reorder_point or 0),
         'status': product.stock_status,
         'location': product.location or '',
-        'cost_price': float(product.cost_price or 0)  # Added for inventory adjustments
+        'cost_price': float(product.cost_price or 0)
     } for product in products])
 
 @app.route('/api/inventory/products', methods=['POST'])
@@ -1881,12 +1881,12 @@ def api_get_all_products():
         for product in products:
             product_list.append({
                 'id': product.id,
-                'sku': product.sku,
-                'name': product.name,
+                'sku': product.sku or '',
+                'name': product.name or '',
                 'category': product.category.name if product.category else '',
                 'categoryId': product.category_id,
                 'current_stock': float(product.current_stock or 0),
-                'unit': product.unit_of_measure,
+                'unit': product.unit_of_measure or 'pcs',
                 'status': product.stock_status,
                 'location': product.location or '',
                 'cost_price': float(product.cost_price or 0)
