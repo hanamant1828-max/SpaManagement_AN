@@ -1714,17 +1714,8 @@ function loadAdjustments() {
         tbody.innerHTML = '';
 
         data.records.forEach(record => {
-            // Format the remarks using the utility function
-            const formattedRemarks = formatAdjustmentRemarks({
-                referenceId: record.reference_id,
-                dateISO: record.adjustment_date,
-                createdBy: record.created_by,
-                userNotes: record.user_notes, // This will be added from the API
-                items: record.items || []
-            });
-            
-            // Create tooltip content
-            const tooltipContent = buildRemarksTooltip(record.items || [], record.original_remarks || formattedRemarks);
+            // Show only the raw remarks data as stored
+            const rawRemarks = record.remarks || '—';
             
             const row = `
                 <tr>
@@ -1733,16 +1724,7 @@ function loadAdjustments() {
                     <td>${record.items_count}</td>
                     <td>$${record.subtotal.toFixed(2)}</td>
                     <td>$${record.total_value.toFixed(2)}</td>
-                    <td>
-                        <span class="remarks-cell" 
-                              data-bs-toggle="tooltip" 
-                              data-bs-placement="top" 
-                              data-bs-html="true" 
-                              title="${tooltipContent.replace(/"/g, '&quot;')}"
-                              style="cursor: help; border-bottom: 1px dotted #999;">
-                            ${formattedRemarks}
-                        </span>
-                    </td>
+                    <td>${rawRemarks}</td>
                     <td>${record.created_by}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
@@ -1760,12 +1742,6 @@ function loadAdjustments() {
                 </tr>
             `;
             tbody.innerHTML += row;
-        });
-        
-        // Initialize Bootstrap tooltips for the new elements
-        const tooltipTriggerList = document.querySelectorAll('.remarks-cell[data-bs-toggle="tooltip"]');
-        tooltipTriggerList.forEach(tooltipTriggerEl => {
-            new bootstrap.Tooltip(tooltipTriggerEl);
         });
     })
     .catch(error => {
