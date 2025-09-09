@@ -1,0 +1,155 @@
+Enhance the Inventory Management system with advanced stock control features. Integrate these into the existing /inventory module without breaking current CRUD operations. Keep UI consistent with Bootstrap modals, tables, and toasts.”
+
+1. Stock Alerts & Notifications
+
+UI:
+
+Show warning badges in Product Master (Low Stock, Out of Stock).
+
+Dashboard KPIs: count Low Stock + Out of Stock items.
+
+Logic:
+
+Auto-trigger toast notification when stock ≤ reorderLevel or stock = 0.
+
+Provide hooks for sending optional email/WhatsApp/SMS later (stub functions).
+
+Example toast:
+
+“⚠️ Shampoo (SKU-001) is below reorder level (5 left).”
+
+2. Batch & Expiry Management
+
+Data model:
+
+Each product can have multiple batches:
+
+batches: [{ id, lotNo, mfgDate, expiryDate, qty, costPrice }]
+
+
+UI:
+
+Product Master → Add/Edit Product modal: add a Batches sub-section (table).
+
+Add/Consume Inventory → batch selector (dropdown).
+
+Expiry Alerts: highlight items expiring in ≤30 days.
+
+Logic:
+
+FEFO (First Expire First Out) default consumption rule.
+
+Block negative qty; prevent using expired batches unless override.
+
+3. Serial Number Tracking
+
+Data model:
+
+Product flag isSerialized: true/false.
+
+Serialized items tracked individually:
+
+serials: [{ serialNo, status: 'in_stock'|'consumed'|'transferred', locationId, batchId? }]
+
+
+UI:
+
+Add Product → toggle “Track by Serial Number”.
+
+Add Inventory Items → allow entering multiple serials.
+
+Consumption → require picking specific serials.
+
+Logic:
+
+Adding stock = create serial records.
+
+Consumption = mark serials as consumed.
+
+Transfer = update serial location.
+
+4. Multi-Location Inventory
+
+Data model:
+
+New locations collection:
+
+locations: [{ id, name, type: 'branch'|'warehouse'|'room' }]
+
+
+Products track stock per location.
+
+UI:
+
+Add tab Locations for CRUD.
+
+All inventory transactions (Add/Consume/Transfer) require a Location selection.
+
+Reports filterable by location.
+
+Logic:
+
+Stock KPIs recomputed per location + globally.
+
+5. Stock Transfers
+
+Data model:
+
+New transfers collection:
+
+transfers: [{ id, date, fromLocation, toLocation, items: [{ productId, qty|serialNos[], batchId? }], status }]
+
+
+UI:
+
+New Stock Transfers tab.
+
+Table with: Transfer ID, From, To, Date, Items Count, Status, Actions.
+
+Modal for creating transfers: pick source location, destination, products, qty/serials/batch.
+
+Logic:
+
+Completing transfer decreases stock in fromLocation, increases in toLocation.
+
+Movements logged as Transfer Out + Transfer In.
+
+Validation: prevent negative stock, disallow same From/To.
+
+6. General Requirements
+
+All new features must:
+
+Use Bootstrap 5 modals, tables, and toasts.
+
+Update localStorage/API:
+
+inventory.products
+
+inventory.batches
+
+inventory.serials
+
+inventory.locations
+
+inventory.transfers
+
+Refresh Dashboard KPIs and tables in real time.
+
+Be defensive: null-safe parsing, default empty arrays, no crashes.
+
+Provide Excel export (via SheetJS) for Batches, Serials, Locations, and Transfers.
+
+Acceptance Criteria
+
+Stock Alerts show correctly on dashboard and toasts.
+
+Batch & Expiry tracked per product; expiring/expired flagged automatically.
+
+Serial numbers enforced for serialized items.
+
+Multi-location stock is maintained accurately.
+
+Transfers reconcile both locations and appear in a Transfer log.
+
+All CRUD actions work with no console errors.
