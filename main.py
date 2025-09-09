@@ -27,13 +27,7 @@ def initialize_app():
             except Exception as restore_error:
                 print(f"Note: Could not restore from Replit DB: {restore_error}")
             
-            # Import additional inventory views
-            try:
-                import modules.inventory.inventory_category_views  # noqa: F401
-                import modules.inventory.inventory_views  # noqa: F401
-                print("Additional inventory views loaded successfully")
-            except ImportError as e:
-                print(f"Warning: Could not load additional inventory views: {e}")
+            # Professional inventory views removed
                 
     except Exception as e:
         print(f"Warning: Could not initialize default data: {e}")

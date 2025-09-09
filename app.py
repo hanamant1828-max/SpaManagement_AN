@@ -102,10 +102,4 @@ with app.app_context():
             logging.error(f"Database initialization retry failed: {migration_error}")
             logging.warning("Application starting with limited functionality")
 
-    # Import additional inventory views
-    try:
-        from modules.inventory import comprehensive_inventory_views
-        print("Additional inventory views loaded successfully")
-
-    except Exception as e:
-        print(f"Error loading additional inventory views: {e}")
+    # Professional inventory views removed

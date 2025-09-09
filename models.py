@@ -424,8 +424,7 @@ class CustomerPackageSession(db.Model):
     # Relationships
     service = db.relationship('Service', backref='customer_sessions')
 
-# 📦 Professional Inventory Management System
-# Built from scratch following the comprehensive plan
+# Basic Inventory Management Systemlan
 
 class InventoryCategory(db.Model):
     """Enhanced category master with full audit trail"""

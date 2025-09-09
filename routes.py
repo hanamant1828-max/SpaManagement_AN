@@ -21,7 +21,6 @@ try:
     from modules.clients import clients_views
     from modules.services import services_views
     from modules.inventory import inventory_views
-    from modules.inventory import simple_inventory_views
     from modules.billing import billing_views
     from modules.expenses import expenses_views
     from modules.reports import reports_views
