@@ -189,6 +189,33 @@ def create_category(category_data):
         db.session.rollback()
         raise e
 
+def update_category(category_id, category_data):
+    """Update existing category"""
+    try:
+        category = get_category_by_id(category_id)
+        if category:
+            for key, value in category_data.items():
+                setattr(category, key, value)
+            db.session.commit()
+            return category
+    except Exception as e:
+        db.session.rollback()
+        raise e
+    return None
+
+def delete_category(category_id):
+    """Soft delete category (mark as inactive)"""
+    try:
+        category = get_category_by_id(category_id)
+        if category:
+            category.is_active = False
+            db.session.commit()
+            return True
+    except Exception as e:
+        db.session.rollback()
+        raise e
+    return False
+
 # ============ SUPPLIER MANAGEMENT ============
 
 def get_all_suppliers(include_inactive=False):
