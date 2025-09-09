@@ -74,6 +74,10 @@
 </div>
 
 <script>
+    // Clear any existing variables to avoid conflicts
+    if (typeof window.editingCategoryId !== 'undefined') {
+        delete window.editingCategoryId;
+    }
     let editingCategoryId = null;
 
     function loadCategories() {

@@ -132,6 +132,10 @@
 </div>
 
 <script>
+    // Clear any existing variables to avoid conflicts
+    if (typeof window.editingProductId !== 'undefined') {
+        delete window.editingProductId;
+    }
     let editingProductId = null;
 
     function loadProducts() {

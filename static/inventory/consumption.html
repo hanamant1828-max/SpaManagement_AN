@@ -140,6 +140,11 @@
 </div>
 
 <script>
+    // Clear any existing variables to avoid conflicts
+    if (typeof window.consumptionCurrentPage !== 'undefined') {
+        delete window.consumptionCurrentPage;
+        delete window.consumptionPageSize;
+    }
     let currentPage = 1;
     let pageSize = 25;
 
