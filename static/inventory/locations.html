@@ -408,12 +408,14 @@
         });
     }
 
-    // Initialize event listeners
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize event listeners immediately
+    function initializeLocationHandlers() {
         // Add location button
         const addBtn = document.getElementById('btnAddLocation');
         if (addBtn) {
-            addBtn.addEventListener('click', function() {
+            addBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Add location button clicked');
                 showLocationModal(false);
             });
         }
@@ -426,19 +428,13 @@
         if (searchInput) searchInput.addEventListener('input', displayLocations);
         if (typeFilter) typeFilter.addEventListener('change', displayLocations);
         if (statusFilter) statusFilter.addEventListener('change', displayLocations);
-
-        // Initial load of locations
-        loadLocations();
-    });
-
-    // If DOM is already loaded, initialize immediately
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            loadLocations();
-        });
-    } else {
-        loadLocations();
     }
+
+    // Initialize when content is loaded
+    setTimeout(() => {
+        initializeLocationHandlers();
+        loadLocations();
+    }, 100);
 
 })();
 </script>

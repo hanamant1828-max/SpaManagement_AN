@@ -1,171 +1,305 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Management</title>
+    <title>Inventory Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .nav-tabs .nav-link {
-            color: #6c757d;
-            border-color: transparent;
-        }
-        .nav-tabs .nav-link.active {
-            color: #0d6efd;
-            background-color: #fff;
-            border-color: #dee2e6 #dee2e6 #fff;
-        }
-        .nav-tabs .nav-link:hover {
-            border-color: #e9ecef #e9ecef #dee2e6;
-            isolation: isolate;
-        }
         .tab-content {
-            min-height: 500px;
+            min-height: 600px;
         }
-        #tabContent {
-            background: #fff;
-            border: 1px solid #dee2e6;
-            border-top: none;
-            border-radius: 0 0 0.375rem 0.375rem;
-            padding: 1rem;
+        .loading-spinner {
+            text-align: center;
+            padding: 50px;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1055;
+        }
+        .nav-pills .nav-link {
+            color: #6c757d;
+            border-radius: 8px;
+            margin: 2px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
         }
     </style>
 </head>
-<body class="bg-light">
+<body>
     <div class="container-fluid py-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="fas fa-boxes me-2"></i>Inventory Management</h2>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-primary" onclick="openAddInventoryModal()">
-                            <i class="fas fa-plus me-1"></i>Add Inventory Items
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" onclick="openAddProductModal()">
-                            <i class="fas fa-box me-1"></i>Add Product
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" onclick="openAddCategoryModal()">
-                            <i class="fas fa-tags me-1"></i>Add Category
-                        </button>
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-warehouse me-2"></i>Inventory Management</h2>
+            <a href="/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4" id="inventoryTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="pill" data-bs-target="#dashboard" type="button" role="tab">
+                    <i class="fas fa-chart-dashboard me-1"></i>Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="products-tab" data-bs-toggle="pill" data-bs-target="#products" type="button" role="tab">
+                    <i class="fas fa-box me-1"></i>Product Master
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="categories-tab" data-bs-toggle="pill" data-bs-target="#categories" type="button" role="tab">
+                    <i class="fas fa-tags me-1"></i>Categories
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="locations-tab" data-bs-toggle="pill" data-bs-target="#locations" type="button" role="tab">
+                    <i class="fas fa-map-marker-alt me-1"></i>Locations
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="adjustments-tab" data-bs-toggle="pill" data-bs-target="#adjustments" type="button" role="tab">
+                    <i class="fas fa-plus-circle me-1"></i>Add Inventory
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="consumption-tab" data-bs-toggle="pill" data-bs-target="#consumption" type="button" role="tab">
+                    <i class="fas fa-minus-circle me-1"></i>Consumption
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="transfers-tab" data-bs-toggle="pill" data-bs-target="#transfers" type="button" role="tab">
+                    <i class="fas fa-exchange-alt me-1"></i>Stock Transfers
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="inventoryTabContent">
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
+                    <p class="mt-2">Loading dashboard...</p>
                 </div>
-
-                <!-- Navigation Tabs -->
-                <ul class="nav nav-tabs" id="inventoryTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="dashboard-tab" onclick="loadTab('dashboard.html', this)" type="button">
-                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="products-tab" onclick="loadTab('product-master.html', this)" type="button">
-                            <i class="fas fa-box me-1"></i>Product Master
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="categories-tab" onclick="loadTab('categories.html', this)" type="button">
-                            <i class="fas fa-tags me-1"></i>Categories
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="adjustments-tab" onclick="loadTab('adjustments.html', this)" type="button">
-                            <i class="fas fa-plus-circle me-1"></i>Add Inventory Items
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="consumption-tab" onclick="loadTab('consumption.html', this)" type="button">
-                            <i class="fas fa-minus-circle me-1"></i>Consumption
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="locations-tab" onclick="loadTab('locations.html', this)" type="button">
-                            <i class="fas fa-map-marker-alt me-1"></i>Locations
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="transfers-tab" onclick="loadTab('transfers.html', this)" type="button">
-                            <i class="fas fa-exchange-alt me-1"></i>Stock Transfers
-                        </button>
-                    </li>
-                </ul>
-
-                <!-- Tab Content -->
-                <div id="tabContent" class="mt-0">
-                    <!-- Content will be loaded here -->
+            </div>
+            <div class="tab-pane fade" id="products" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading products...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="categories" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading categories...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="locations" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading locations...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="adjustments" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading adjustments...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="consumption" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading consumption...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="transfers" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading transfers...</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        // Tab management
-        async function loadTab(file, tabButton) {
-            try {
-                // Remove active class from all tabs
-                document.querySelectorAll('.nav-link').forEach(tab => {
-                    tab.classList.remove('active');
-                });
+        // Global variables and functions
+        window.inventoryGlobals = {
+            loadedTabs: new Set(),
+            activeScripts: new Map()
+        };
 
-                // Add active class to clicked tab
-                if (tabButton) {
-                    tabButton.classList.add('active');
-                }
+        // Enhanced tab loading system
+        function loadTab(tabName) {
+            const tabPane = document.getElementById(tabName);
+            if (!tabPane) return;
 
-                // Load content
-                const response = await fetch(`/static/inventory/${file}`);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const html = await response.text();
-                const tabContentElement = document.getElementById('tabContent');
-                tabContentElement.innerHTML = html;
-
-                // Execute any scripts in the loaded content
-                const scripts = tabContentElement.querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    if (script.src) {
-                        newScript.src = script.src;
-                    } else {
-                        // Wrap script content in IIFE to avoid variable conflicts
-                        newScript.textContent = `(function() { ${script.textContent} })();`;
-                    }
-                    // Append script to head to avoid potential issues with DOM parsing
-                    document.head.appendChild(newScript);
-                });
-
-            } catch (error) {
-                console.error('Error loading tab:', error);
-                document.getElementById('tabContent').innerHTML = `
-                    <div class="alert alert-danger">
-                        <h5>Error Loading Content</h5>
-                        <p>Failed to load ${file}. Please try again.</p>
-                        <small>Error: ${error.message}</small>
-                    </div>
-                `;
+            // Prevent duplicate loading
+            if (window.inventoryGlobals.loadedTabs.has(tabName)) {
+                return;
             }
+
+            console.log(`Loading ${tabName} tab...`);
+            
+            fetch(`/static/inventory/${tabName}.html`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to load ${tabName}: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // Clean up any existing scripts for this tab
+                    if (window.inventoryGlobals.activeScripts.has(tabName)) {
+                        const oldScripts = window.inventoryGlobals.activeScripts.get(tabName);
+                        oldScripts.forEach(script => {
+                            if (script.parentNode) {
+                                script.parentNode.removeChild(script);
+                            }
+                        });
+                    }
+
+                    // Parse HTML and separate content from scripts
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Extract content (everything except scripts)
+                    const contentElement = doc.body || doc.documentElement;
+                    const scripts = Array.from(contentElement.getElementsByTagName('script'));
+                    
+                    // Remove scripts from content
+                    scripts.forEach(script => script.remove());
+                    
+                    // Set the content
+                    tabPane.innerHTML = contentElement.innerHTML;
+
+                    // Execute scripts in isolated context
+                    const newScripts = [];
+                    scripts.forEach((originalScript, index) => {
+                        const script = document.createElement('script');
+                        script.type = 'text/javascript';
+                        
+                        // Wrap script content in IIFE to prevent variable conflicts
+                        const scriptContent = originalScript.textContent || originalScript.innerText;
+                        if (scriptContent.trim()) {
+                            // Create isolated scope for each tab's scripts
+                            script.textContent = `
+                                (function() {
+                                    'use strict';
+                                    try {
+                                        ${scriptContent}
+                                    } catch (error) {
+                                        console.error('Error in ${tabName} script ${index}:', error);
+                                    }
+                                })();
+                            `;
+                            
+                            document.head.appendChild(script);
+                            newScripts.push(script);
+                        }
+                    });
+
+                    // Store script references for cleanup
+                    window.inventoryGlobals.activeScripts.set(tabName, newScripts);
+                    
+                    // Mark as loaded
+                    window.inventoryGlobals.loadedTabs.add(tabName);
+                    
+                    console.log(`${tabName} tab loaded successfully`);
+                })
+                .catch(error => {
+                    console.error(`Error loading ${tabName}:`, error);
+                    tabPane.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <h4 class="alert-heading">Error Loading ${tabName}</h4>
+                            <p>Failed to load the ${tabName} content. Please try refreshing the page.</p>
+                            <hr>
+                            <p class="mb-0">Error: ${error.message}</p>
+                        </div>
+                    `;
+                });
         }
 
-        // Global modal functions (for backwards compatibility)
-        function openAddInventoryModal() {
-            alert('Add Inventory Modal would open here');
-        }
+        // Global toast function
+        window.showToast = function(message, type = 'success') {
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '1055';
+                document.body.appendChild(toastContainer);
+            }
 
-        function openAddProductModal() {
-            alert('Add Product Modal would open here');
-        }
+            const toastId = 'toast-' + Date.now();
+            const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
 
-        function openAddCategoryModal() {
-            alert('Add Category Modal would open here');
-        }
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
 
-        // Load default tab on page load
-        document.addEventListener("DOMContentLoaded", () => {
-            loadTab('dashboard.html', document.getElementById('dashboard-tab'));
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
+            toast.show();
+
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        };
+
+        // Initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Bootstrap loaded successfully');
+            
+            // Initialize Bootstrap components
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            console.log('Bootstrap components initialized successfully');
+
+            // Load dashboard tab initially
+            loadTab('dashboard');
+
+            // Handle tab changes
+            const tabElements = document.querySelectorAll('#inventoryTabs button[data-bs-toggle="pill"]');
+            tabElements.forEach(tabElement => {
+                tabElement.addEventListener('shown.bs.tab', function(event) {
+                    const targetId = event.target.getAttribute('data-bs-target').substring(1);
+                    loadTab(targetId);
+                });
+            });
         });
     </script>
 </body>
