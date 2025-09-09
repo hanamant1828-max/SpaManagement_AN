@@ -1044,6 +1044,35 @@
             }
         });
 
+        // Reset edit modal when hidden
+        const editProductModal = document.getElementById('editProductModal');
+        if (editProductModal) {
+            editProductModal.addEventListener('hidden.bs.modal', function() {
+                const editForm = document.getElementById('editProductForm');
+                const submitButton = editForm.querySelector('button[type="submit"]');
+                
+                // Reset form state
+                editForm.classList.remove('was-validated');
+                editForm.reset();
+                
+                // Reset button state
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = 'Update Product';
+                    delete submitButton.dataset.originalText;
+                }
+                
+                // Clear validation feedback
+                const inputs = editForm.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    input.classList.remove('is-invalid', 'is-valid');
+                });
+                
+                const invalidFeedbacks = editForm.querySelectorAll('.invalid-feedback');
+                invalidFeedbacks.forEach(feedback => feedback.style.display = 'none');
+            });
+        }
+
         // Add product form submission handler
         const addProductForm = document.getElementById('addProductForm');
         if (addProductForm) {
@@ -1103,6 +1132,13 @@
             editProductForm.addEventListener('submit', function(e) {
                 e.preventDefault();
 
+                const submitButton = this.querySelector('button[type="submit"]');
+
+                // Prevent double submission
+                if (submitButton && submitButton.disabled) {
+                    return;
+                }
+
                 // Bootstrap validation
                 if (!this.checkValidity()) {
                     e.stopPropagation();
@@ -1112,6 +1148,13 @@
 
                 const formData = new FormData(this);
                 const productId = document.getElementById('editProductId').value;
+
+                // Show loading state
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.dataset.originalText = submitButton.innerHTML;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+                }
 
                 // Ensure numeric fields have valid values
                 const numericFields = ['min_stock_level', 'max_stock_level', 'reorder_point', 'cost_price', 'selling_price'];
@@ -1152,6 +1195,18 @@
                 .catch(error => {
                     console.error('Error:', error);
                     showToast(`Error updating product: ${error.message}`, 'danger');
+                })
+                .finally(() => {
+                    // Reset button state regardless of success or failure
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        if (submitButton.dataset.originalText) {
+                            submitButton.innerHTML = submitButton.dataset.originalText;
+                            delete submitButton.dataset.originalText;
+                        } else {
+                            submitButton.innerHTML = 'Update Product';
+                        }
+                    }
                 });
             });
         }
@@ -1345,6 +1400,32 @@
                     throw new Error(product.error);
                 }
 
+                // Get the form and submit button
+                const editForm = document.getElementById('editProductForm');
+                const submitButton = editForm.querySelector('button[type="submit"]');
+
+                // Reset form validation state completely
+                editForm.classList.remove('was-validated');
+                editForm.reset(); // Clear all form data first
+
+                // Reset submit button state
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = 'Update Product';
+                    delete submitButton.dataset.originalText;
+                }
+
+                // Clear any existing validation feedback
+                const invalidFeedbacks = editForm.querySelectorAll('.invalid-feedback');
+                invalidFeedbacks.forEach(feedback => feedback.style.display = 'none');
+
+                // Remove validation classes from all inputs
+                const inputs = editForm.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    input.classList.remove('is-invalid', 'is-valid');
+                });
+
+                // Now populate with product data
                 document.getElementById('editProductId').value = product.id || '';
                 document.getElementById('editSku').value = product.sku || '';
                 document.getElementById('editName').value = product.name || '';
@@ -1360,10 +1441,6 @@
                 document.getElementById('editLocation').value = product.location || '';
                 document.getElementById('editIsServiceItem').checked = product.is_service_item || false;
                 document.getElementById('editIsRetailItem').checked = product.is_retail_item || false;
-
-                // Reset validation state for the form
-                const editForm = document.getElementById('editProductForm');
-                editForm.classList.remove('was-validated');
 
                 const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
                 editModal.show();
