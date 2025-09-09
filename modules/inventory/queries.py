@@ -5,8 +5,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, desc
 from app import db
 from .models import (
-    InventoryProduct, InventoryCategory, Supplier, StockMovement,
-    PurchaseOrder, PurchaseOrderItem, InventoryAlert, InventoryConsumption
+    InventoryProduct, InventoryCategory, StockMovement, InventoryAlert, InventoryConsumption
 )
 
 # ============ PRODUCT MANAGEMENT ============
@@ -242,161 +241,7 @@ def delete_category(category_id):
         raise e
     return False
 
-# ============ SUPPLIER MANAGEMENT ============
 
-def get_all_suppliers(include_inactive=False):
-    """Get all suppliers"""
-    query = Supplier.query
-    if not include_inactive:
-        query = query.filter(Supplier.is_active == True)
-    return query.order_by(Supplier.name).all()
-
-def get_supplier_by_id(supplier_id):
-    """Get supplier by ID"""
-    return Supplier.query.get(supplier_id)
-
-def create_supplier(supplier_data):
-    """Create new supplier"""
-    try:
-        supplier = Supplier(**supplier_data)
-        db.session.add(supplier)
-        db.session.commit()
-        return supplier
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-def update_supplier(supplier_id, supplier_data):
-    """Update existing supplier"""
-    try:
-        supplier = get_supplier_by_id(supplier_id)
-        if supplier:
-            for key, value in supplier_data.items():
-                setattr(supplier, key, value)
-            supplier.updated_at = datetime.utcnow()
-            db.session.commit()
-            return supplier
-    except Exception as e:
-        db.session.rollback()
-        raise e
-    return None
-
-# ============ PURCHASE ORDER MANAGEMENT ============
-
-def create_purchase_order(po_data, items_data):
-    """Create purchase order with items"""
-    try:
-        # Generate PO number if not provided
-        if 'po_number' not in po_data:
-            po_data['po_number'] = generate_po_number()
-
-        po = PurchaseOrder(**po_data)
-        db.session.add(po)
-        db.session.flush()  # Get PO ID
-
-        # Add items
-        for item_data in items_data:
-            item_data['purchase_order_id'] = po.id
-            item = PurchaseOrderItem(**item_data)
-            db.session.add(item)
-
-        db.session.commit()
-        po.calculate_totals()
-        db.session.commit()
-
-        return po
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-def get_purchase_orders(status=None):
-    """Get purchase orders with optional status filter"""
-    query = PurchaseOrder.query
-    if status:
-        query = query.filter_by(status=status)
-    return query.order_by(desc(PurchaseOrder.created_at)).all()
-
-def get_purchase_order_by_id(po_id):
-    """Get purchase order by ID"""
-    return PurchaseOrder.query.get(po_id)
-
-def generate_po_number():
-    """Generate unique PO number"""
-    today = date.today()
-    count = PurchaseOrder.query.filter(
-        func.date(PurchaseOrder.created_at) == today
-    ).count() + 1
-    return f"PO-{today.strftime('%Y%m%d')}-{count:03d}"
-
-def receive_purchase_order(po_id, received_items, user_id=None):
-    """Receive purchase order items and update stock levels"""
-    try:
-        po = get_purchase_order_by_id(po_id)
-        if not po:
-            raise ValueError("Purchase order not found")
-
-        stock_updates = []
-        missing_products = []
-
-        for item_data in received_items:
-            item_id = item_data.get('item_id')
-            quantity_received = float(item_data.get('quantity_received', 0))
-
-            # Get the purchase order item
-            po_item = PurchaseOrderItem.query.get(item_id)
-            if not po_item:
-                continue
-
-            # Check if product exists
-            product = get_product_by_id(po_item.product_id)
-            if not product:
-                missing_products.append(po_item.product_id)
-                continue
-
-            # Update purchase order item
-            po_item.quantity_received += quantity_received
-            po_item.received_date = date.today()
-            po_item.is_fully_received = (po_item.quantity_received >= po_item.quantity_ordered)
-
-            # Update product stock
-            if quantity_received > 0:
-                reason = f"Purchase Order {po.po_number} - Received {quantity_received} {product.unit_of_measure}"
-                updated_product = add_stock(
-                    product_id=po_item.product_id,
-                    quantity=quantity_received,
-                    reason=reason,
-                    reference_type="purchase_order",
-                    reference_id=po.id,
-                    user_id=user_id
-                )
-
-                if updated_product:
-                    stock_updates.append({
-                        'product_id': product.id,
-                        'product_name': product.name,
-                        'product_sku': product.sku,
-                        'quantity_added': quantity_received,
-                        'new_stock_level': updated_product.current_stock,
-                        'unit_of_measure': product.unit_of_measure
-                    })
-
-        # Update purchase order status if all items are fully received
-        all_received = all(item.is_fully_received for item in po.items)
-        if all_received:
-            po.status = 'received'
-
-        db.session.commit()
-
-        return {
-            'success': True,
-            'stock_updates': stock_updates,
-            'missing_products': missing_products,
-            'po_status': po.status
-        }
-
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
 # ============ ALERT MANAGEMENT ============
 
@@ -466,9 +311,6 @@ def get_inventory_dashboard_stats():
         # Recent movements
         recent_movements = get_stock_movements(limit=10)
 
-        # Pending orders
-        pending_orders = len(get_purchase_orders('sent'))
-
         # Active alerts
         active_alerts = len(get_active_alerts())
 
@@ -478,7 +320,6 @@ def get_inventory_dashboard_stats():
             'out_of_stock_count': out_of_stock_count,
             'total_value': float(total_value),
             'recent_movements': recent_movements,
-            'pending_orders': pending_orders,
             'active_alerts': active_alerts
         }
     except Exception as e:
@@ -488,7 +329,6 @@ def get_inventory_dashboard_stats():
             'out_of_stock_count': 0,
             'total_value': 0,
             'recent_movements': [],
-            'pending_orders': 0,
             'active_alerts': 0
         }
 

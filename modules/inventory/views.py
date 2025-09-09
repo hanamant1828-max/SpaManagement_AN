@@ -9,16 +9,13 @@ import csv
 import io
 from app import app, db
 from .models import (
-    InventoryProduct, InventoryCategory, Supplier, StockMovement,
-    PurchaseOrder, PurchaseOrderItem, InventoryAlert
+    InventoryProduct, InventoryCategory, StockMovement, InventoryAlert
 )
 from .queries import (
     get_all_products, get_product_by_id, create_product, update_product, delete_product,
     get_all_categories, get_category_by_id, create_category, update_category, delete_category,
-    get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier,
     get_low_stock_products, get_out_of_stock_products, get_products_needing_reorder,
     search_products, update_stock, add_stock, remove_stock, get_stock_movements,
-    create_purchase_order, get_purchase_orders, get_purchase_order_by_id, receive_purchase_order,
     get_inventory_dashboard_stats, get_active_alerts, check_stock_alerts,
     get_all_consumption_records, get_consumption_by_id, create_consumption_record,
     update_consumption_record, delete_consumption_record, get_consumption_summary_stats
@@ -45,14 +42,12 @@ def inventory_dashboard():
 
     # Get data for all tabs
     categories = get_all_categories()
-    purchase_orders = get_purchase_orders()
 
     return render_template('inventory/dashboard.html',
                          stats=stats,
                          critical_alerts=critical_alerts,
                          recent_movements=recent_movements,
-                         categories=categories,
-                         purchase_orders=purchase_orders)
+                         categories=categories)
 
 # ============ PRODUCT MANAGEMENT ============
 
@@ -141,7 +136,6 @@ def add_product():
             'name': name.strip(),
             'description': description.strip(),
             'category_id': int(category_id) if category_id and category_id.strip() else None,
-            'supplier_id': None,  # Remove supplier requirement
             'current_stock': safe_float(request.form.get('current_stock'), 0.0),
             'reserved_stock': 0.0,  # Initialize reserved stock
             'available_stock': 0.0,  # Will be calculated
@@ -208,7 +202,6 @@ def edit_product(product_id):
                 'name': name.strip(),
                 'description': request.form.get('description', '').strip(),
                 'category_id': int(request.form.get('category_id')) if request.form.get('category_id') and request.form.get('category_id').strip() else None,
-                'supplier_id': None,  # Remove supplier requirement
                 'min_stock_level': safe_float(request.form.get('min_stock_level'), 10.0),
                 'max_stock_level': safe_float(request.form.get('max_stock_level'), 100.0),
                 'reorder_point': safe_float(request.form.get('reorder_point'), 20.0),
@@ -274,10 +267,6 @@ def delete_product_route(product_id):
         # Check if product has stock movements
         if hasattr(product, 'stock_movements') and product.stock_movements:
             return jsonify({'error': f'Cannot delete product "{product.name}" because it has stock movement history. Please consider deactivating it instead.'}), 400
-
-        # Check if product is in purchase orders
-        if hasattr(product, 'order_items') and product.order_items:
-            return jsonify({'error': f'Cannot delete product "{product.name}" because it has associated purchase orders. Please consider deactivating it instead.'}), 400
 
         # Check if product has current stock
         if product.current_stock and product.current_stock > 0:
@@ -472,338 +461,9 @@ def stock_movements():
                          products=products,
                          current_product_id=product_id)
 
-# ============ SUPPLIER MANAGEMENT ============
 
-@app.route('/inventory/suppliers')
-@login_required
-def suppliers():
-    """Supplier management"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
 
-    suppliers = get_all_suppliers()
-    return render_template('inventory/suppliers.html', suppliers=suppliers)
 
-@app.route('/inventory/suppliers/add', methods=['GET', 'POST'])
-@login_required
-def add_supplier():
-    """Add new supplier"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    if request.method == 'POST':
-        try:
-            supplier_data = {
-                'name': request.form.get('name').strip(),
-                'contact_person': request.form.get('contact_person', '').strip(),
-                'email': request.form.get('email', '').strip(),
-                'phone': request.form.get('phone', '').strip(),
-                'address': request.form.get('address', '').strip(),
-                'city': request.form.get('city', '').strip(),
-                'state': request.form.get('state', '').strip(),
-                'postal_code': request.form.get('postal_code', '').strip(),
-                'country': request.form.get('country', 'United States').strip(),
-                'tax_id': request.form.get('tax_id', '').strip(),
-                'payment_terms': request.form.get('payment_terms', 'Net 30').strip(),
-                'credit_limit': float(request.form.get('credit_limit', 0)),
-                'rating': int(request.form.get('rating', 5))
-            }
-
-            if not supplier_data['name']:
-                flash('Supplier name is required', 'danger')
-                return redirect(request.url)
-
-            supplier = create_supplier(supplier_data)
-            flash(f'Supplier "{supplier.name}" added successfully!', 'success')
-            return redirect(url_for('suppliers'))
-
-        except ValueError:
-            flash('Invalid input values. Please check your data.', 'danger')
-        except Exception as e:
-            flash(f'Error adding supplier: {str(e)}', 'danger')
-
-    return render_template('inventory/supplier_form.html', action='add')
-
-@app.route('/inventory/suppliers/<int:supplier_id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_supplier(supplier_id):
-    """Edit existing supplier"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    supplier = get_supplier_by_id(supplier_id)
-    if not supplier:
-        flash('Supplier not found', 'danger')
-        return redirect(url_for('suppliers'))
-
-    if request.method == 'POST':
-        try:
-            supplier_data = {
-                'name': request.form.get('name').strip(),
-                'contact_person': request.form.get('contact_person', '').strip(),
-                'email': request.form.get('email', '').strip(),
-                'phone': request.form.get('phone', '').strip(),
-                'address': request.form.get('address', '').strip(),
-                'city': request.form.get('city', '').strip(),
-                'state': request.form.get('state', '').strip(),
-                'postal_code': request.form.get('postal_code', '').strip(),
-                'country': request.form.get('country', 'United States').strip(),
-                'tax_id': request.form.get('tax_id', '').strip(),
-                'payment_terms': request.form.get('payment_terms', 'Net 30').strip(),
-                'credit_limit': float(request.form.get('credit_limit', 0)),
-                'rating': int(request.form.get('rating', 5))
-            }
-
-            updated_supplier = update_supplier(supplier_id, supplier_data)
-            if updated_supplier:
-                flash(f'Supplier "{updated_supplier.name}" updated successfully!', 'success')
-                return redirect(url_for('suppliers'))
-            else:
-                flash('Error updating supplier', 'danger')
-
-        except ValueError:
-            flash('Invalid input values. Please check your data.', 'danger')
-        except Exception as e:
-            flash(f'Error updating supplier: {str(e)}', 'danger')
-
-    return render_template('inventory/supplier_form.html',
-                         supplier=supplier,
-                         action='edit')
-
-# ============ PURCHASE ORDER MANAGEMENT ============
-
-@app.route('/inventory/orders')
-@login_required
-def purchase_orders():
-    """Purchase order management"""
-    if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    status_filter = request.args.get('status', 'all')
-
-    if status_filter != 'all':
-        orders = get_purchase_orders(status_filter)
-    else:
-        orders = get_purchase_orders()
-
-    return render_template('inventory/purchase_orders.html',
-                         orders=orders,
-                         current_status=status_filter)
-
-@app.route('/inventory/orders/create', methods=['GET', 'POST'])
-@login_required
-def create_order():
-    """Create new purchase order"""
-    if not current_user.can_access('inventory'):
-        if request.method == 'POST':
-            return jsonify({'error': 'Access denied'}), 403
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    if request.method == 'POST':
-        try:
-            # Prepare purchase order data
-            po_data = {
-                'supplier_id': request.form.get('supplier_id') if request.form.get('supplier_id') else None,
-                'expected_delivery': datetime.strptime(request.form.get('expected_delivery'), '%Y-%m-%d').date() if request.form.get('expected_delivery') else None,
-                'delivery_address': request.form.get('delivery_address', '').strip(),
-                'notes': request.form.get('notes', '').strip(),
-                'terms_and_conditions': request.form.get('terms_and_conditions', '').strip(),
-                'created_by': current_user.id
-            }
-
-            # Get items data
-            items_data = []
-            product_ids = request.form.getlist('product_id[]')
-            quantities = request.form.getlist('quantity[]')
-            unit_costs = request.form.getlist('unit_cost[]')
-
-            for i, product_id in enumerate(product_ids):
-                if product_id and quantities[i] and unit_costs[i]:
-                    quantity = float(quantities[i])
-                    unit_cost = float(unit_costs[i])
-                    items_data.append({
-                        'product_id': int(product_id),
-                        'quantity_ordered': quantity,
-                        'unit_cost': unit_cost,
-                        'total_cost': quantity * unit_cost
-                    })
-
-            if not items_data:
-                return jsonify({'error': 'At least one item is required'}), 400
-
-            po = create_purchase_order(po_data, items_data)
-            
-            # Auto-receive the items to update stock immediately
-            received_items = []
-            for item in po.items:
-                received_items.append({
-                    'item_id': item.id,
-                    'quantity_received': item.quantity_ordered
-                })
-            
-            # Receive the purchase order
-            receive_result = receive_purchase_order(po.id, received_items, current_user.id)
-            
-            return jsonify({
-                'success': True,
-                'message': f'Purchase Order {po.po_number} created and items received successfully!',
-                'po_number': po.po_number,
-                'stock_updates': receive_result.get('stock_updates', [])
-            })
-
-        except ValueError as e:
-            return jsonify({'error': f'Invalid input values: {str(e)}'}), 400
-        except Exception as e:
-            return jsonify({'error': f'Error creating purchase order: {str(e)}'}), 500
-
-    # GET request - redirect to inventory dashboard
-    return redirect(url_for('inventory_dashboard'))
-
-@app.route('/api/inventory/purchase-order/<int:po_id>/receive', methods=['POST'])
-@login_required
-def receive_purchase_api(po_id):
-    """API endpoint to receive purchase order items and update stock"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        data = request.get_json()
-        received_items = data.get('items', [])
-
-        if not received_items:
-            return jsonify({'error': 'No items provided for receiving'}), 400
-
-        # Validate items data
-        for item in received_items:
-            if not item.get('item_id') or not item.get('quantity_received'):
-                return jsonify({'error': 'Invalid item data provided'}), 400
-
-        # Process the purchase order receipt
-        result = receive_purchase_order(po_id, received_items, current_user.id)
-
-        if result['missing_products']:
-            return jsonify({
-                'error': 'Some products do not exist in the system',
-                'missing_products': result['missing_products'],
-                'message': 'Please add the missing products to the Product Master before receiving this order.'
-            }), 400
-
-        return jsonify({
-            'success': True,
-            'message': f'Purchase order received successfully! Stock updated for {len(result["stock_updates"])} products.',
-            'stock_updates': result['stock_updates'],
-            'po_status': result['po_status']
-        })
-
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'error': f'Error receiving purchase order: {str(e)}'}), 500
-
-@app.route('/api/inventory/purchase-orders')
-@login_required
-def get_purchase_orders_api():
-    """API endpoint to get all purchase orders"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        orders = get_purchase_orders()
-        orders_data = []
-
-        for order in orders:
-            orders_data.append({
-                'id': order.id,
-                'po_number': order.po_number,
-                'supplier_name': order.supplier.name if order.supplier else 'Unknown',
-                'items_count': len(order.items),
-                'total_amount': float(order.total_amount) if order.total_amount else 0,
-                'status': order.status,
-                'order_date': order.order_date.strftime('%Y-%m-%d') if order.order_date else None,
-                'created_at': order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else None
-            })
-
-        return jsonify(orders_data)
-
-    except Exception as e:
-        return jsonify({'error': f'Error fetching purchase orders: {str(e)}'}), 500
-
-@app.route('/api/inventory/purchase-order/<int:po_id>')
-@login_required
-def get_purchase_order_details_api(po_id):
-    """API endpoint to get purchase order details"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        order = get_purchase_order_by_id(po_id)
-        if not order:
-            return jsonify({'error': 'Purchase order not found'}), 404
-
-        items_data = []
-        for item in order.items:
-            items_data.append({
-                'id': item.id,
-                'product_id': item.product_id,
-                'product_name': item.product.name if item.product else 'Unknown Product',
-                'product_sku': item.product.sku if item.product else 'N/A',
-                'unit_of_measure': item.product.unit_of_measure if item.product else 'pcs',
-                'quantity_ordered': float(item.quantity_ordered),
-                'quantity_received': float(item.quantity_received),
-                'unit_cost': float(item.unit_cost),
-                'total_cost': float(item.total_cost),
-                'is_fully_received': item.is_fully_received
-            })
-
-        order_data = {
-            'id': order.id,
-            'po_number': order.po_number,
-            'supplier_name': order.supplier.name if order.supplier else 'Unknown',
-            'supplier_id': order.supplier_id,
-            'status': order.status,
-            'order_date': order.order_date.strftime('%Y-%m-%d') if order.order_date else None,
-            'expected_delivery': order.expected_delivery.strftime('%Y-%m-%d') if order.expected_delivery else None,
-            'delivery_address': order.delivery_address,
-            'notes': order.notes,
-            'total_amount': float(order.total_amount) if order.total_amount else 0,
-            'items': items_data
-        }
-
-        return jsonify(order_data)
-
-    except Exception as e:
-        return jsonify({'error': f'Error fetching purchase order: {str(e)}'}), 500
-
-@app.route('/api/inventory/suppliers')
-@login_required
-def get_suppliers_api():
-    """API endpoint to get all suppliers"""
-    if not current_user.can_access('inventory'):
-        return jsonify({'error': 'Access denied'}), 403
-
-    try:
-        suppliers = get_all_suppliers()
-        suppliers_data = []
-
-        for supplier in suppliers:
-            suppliers_data.append({
-                'id': supplier.id,
-                'name': supplier.name,
-                'contact_person': supplier.contact_person,
-                'email': supplier.email,
-                'phone': supplier.phone,
-                'is_active': supplier.is_active
-            })
-
-        return jsonify(suppliers_data)
-
-    except Exception as e:
-        return jsonify({'error': f'Error fetching suppliers: {str(e)}'}), 500
 
 # ============ ALERTS AND REPORTING ============
 
@@ -845,7 +505,7 @@ def export_products():
 
     # Write header
     writer.writerow([
-        'SKU', 'Name', 'Category', 'Supplier', 'Current Stock', 'Min Level',
+        'SKU', 'Name', 'Category', 'Current Stock', 'Min Level',
         'Max Level', 'Reorder Point', 'Cost Price', 'Selling Price', 'Unit',
         'Location', 'Status', 'Stock Value'
     ])
@@ -856,7 +516,6 @@ def export_products():
             product.sku,
             product.name,
             product.category.name if product.category else '',
-            product.supplier.name if product.supplier else '',
             product.current_stock,
             product.min_stock_level,
             product.max_stock_level,
