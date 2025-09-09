@@ -26,28 +26,13 @@ from .queries import (
 @app.route('/inventory')
 @login_required
 def inventory_dashboard():
-    """Main inventory dashboard with comprehensive overview"""
+    """Redirect to new modular inventory system"""
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Get dashboard statistics
-    stats = get_inventory_dashboard_stats()
-
-    # Get critical alerts
-    critical_alerts = [alert for alert in get_active_alerts() if alert.severity == 'critical']
-
-    # Recent activities
-    recent_movements = get_stock_movements(limit=5)
-
-    # Get data for all tabs
-    categories = get_all_categories()
-
-    return render_template('inventory/dashboard.html',
-                         stats=stats,
-                         critical_alerts=critical_alerts,
-                         recent_movements=recent_movements,
-                         categories=categories)
+    # Redirect to the new modular inventory system
+    return redirect('/static/inventory/index.html')
 
 # ============ PRODUCT MANAGEMENT ============
 
