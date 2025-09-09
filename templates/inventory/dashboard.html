@@ -966,24 +966,32 @@ function saveInventoryItems() {
     const unitCosts = formData.getAll('unit_cost[]');
 
     for (let i = 0; i < productIds.length; i++) {
-        if (productIds[i] && quantities[i] && unitCosts[i]) {
+        if (productIds[i] && quantities[i]) {
+            const quantity = parseFloat(quantities[i]);
+            const unitCost = parseFloat(unitCosts[i]) || 0;
+            
+            if (isNaN(quantity) || quantity <= 0) {
+                showToast('Please enter valid quantities greater than 0', 'error');
+                return;
+            }
+            
             items.push({
                 product_id: productIds[i],
-                quantity_in: parseFloat(quantities[i]),
-                unit_cost: parseFloat(unitCosts[i])
+                quantity_in: quantity,
+                unit_cost: unitCost
             });
         }
     }
 
     if (items.length === 0) {
-        showToast('Please add at least one item', 'error');
+        showToast('Please add at least one valid item', 'error');
         return;
     }
 
     const data = {
-        adjustment_date: formData.get('adjustment_date'),
-        reference_no: formData.get('reference_no'),
-        notes: formData.get('notes'),
+        adjustment_date: formData.get('adjustment_date') || new Date().toISOString().split('T')[0],
+        reference_no: formData.get('reference_no') || '',
+        notes: formData.get('notes') || '',
         items: items
     };
 
@@ -994,20 +1002,32 @@ function saveInventoryItems() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showToast(data.message, 'success');
             bootstrap.Modal.getInstance(document.getElementById('addInventoryModal')).hide();
             form.reset();
             loadProducts(); // Refresh product list
+            loadAdjustments(); // Refresh adjustments list
+            // Reset form to default values
+            document.querySelector('input[name="adjustment_date"]').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modalSubtotal').textContent = '$0.00';
+            document.getElementById('modalGrandTotal').textContent = '$0.00';
+            document.getElementById('modalTax').value = '0';
         } else {
             throw new Error(data.error || 'Failed to add inventory items');
         }
     })
     .catch(error => {
         console.error('Error adding inventory items:', error);
-        showToast(`Error: ${error.message}`, 'error');
+        const errorMessage = error.error || error.message || 'Failed to add inventory items';
+        showToast(`Error: ${errorMessage}`, 'error');
     });
 }
 

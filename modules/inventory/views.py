@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, date
 import csv
 import io
+from sqlalchemy import desc
 from app import app, db
 from .models import (
     InventoryProduct, InventoryCategory, StockMovement, InventoryAlert
@@ -575,21 +576,28 @@ def api_inventory_adjustments():
         for item in items:
             product_id = item.get('product_id')
             quantity_in = item.get('quantity_in')
-            unit_cost = item.get('unit_cost', 0)
+            unit_cost = float(item.get('unit_cost', 0))
 
             if not product_id or not quantity_in:
                 continue
+
+            try:
+                quantity_in = float(quantity_in)
+                if quantity_in <= 0:
+                    return jsonify({'error': 'Quantity must be greater than 0'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid quantity value'}), 400
 
             product = get_product_by_id(product_id)
             if not product:
                 return jsonify({'error': f'Product with ID {product_id} not found'}), 400
 
-            # Add stock
-            reason = f"Manual stock adjustment"
-            if reference_no:
-                reason += f" - Ref: {reference_no}"
-            if notes:
-                reason += f" - {notes}"
+            # Build reason with proper handling of optional fields
+            reason = "Manual stock adjustment"
+            if reference_no and reference_no.strip():
+                reason += f" - Ref: {reference_no.strip()}"
+            if notes and notes.strip():
+                reason += f" - {notes.strip()}"
 
             updated_product = add_stock(
                 product_id=product_id,
@@ -597,17 +605,9 @@ def api_inventory_adjustments():
                 reason=reason,
                 reference_type='manual',
                 reference_id=None,
+                unit_cost=unit_cost,
                 user_id=current_user.id
             )
-            
-            # Update the stock movement with unit cost
-            if updated_product:
-                latest_movement = StockMovement.query.filter_by(
-                    product_id=product_id,
-                    created_by=current_user.id
-                ).order_by(desc(StockMovement.created_at)).first()
-                if latest_movement:
-                    latest_movement.unit_cost = unit_cost
 
             if updated_product:
                 stock_updates.append({
@@ -615,7 +615,7 @@ def api_inventory_adjustments():
                     'product_name': product.name,
                     'product_sku': product.sku,
                     'quantity_added': quantity_in,
-                    'new_stock_level': updated_product.current_stock,
+                    'new_stock_level': float(updated_product.current_stock),
                     'unit_of_measure': product.unit_of_measure
                 })
                 total_value += quantity_in * unit_cost
@@ -649,7 +649,12 @@ def api_get_adjustments():
         # Group movements by reference_id and created_at (same adjustment)
         adjustment_groups = {}
         for movement in adjustment_movements:
-            key = f"{movement.created_at.date()}_{movement.created_by}_{movement.reason}"
+            # Create a safer key that handles None values
+            created_date = movement.created_at.date() if movement.created_at else date.today()
+            created_by = movement.created_by if movement.created_by else 0
+            reason = movement.reason if movement.reason else 'Manual adjustment'
+            
+            key = f"{created_date}_{created_by}_{hash(reason)}"
             if key not in adjustment_groups:
                 adjustment_groups[key] = []
             adjustment_groups[key].append(movement)
@@ -659,18 +664,26 @@ def api_get_adjustments():
                 continue
                 
             first_movement = movements[0]
-            total_value = sum(m.quantity * (m.unit_cost or 0) for m in movements)
+            total_value = sum(float(m.quantity or 0) * float(m.unit_cost or 0) for m in movements)
+            
+            # Extract reference ID from reason if it exists
+            reference_id = None
+            if first_movement.reason and " - Ref: " in first_movement.reason:
+                try:
+                    reference_id = first_movement.reason.split(" - Ref: ")[1].split(" - ")[0]
+                except (IndexError, AttributeError):
+                    reference_id = None
             
             adjustments.append({
                 'id': first_movement.id,  # Use first movement ID as reference
-                'reference_id': key.split('_')[2] if len(key.split('_')) > 2 else None,
-                'adjustment_date': first_movement.created_at.strftime('%Y-%m-%d'),
+                'reference_id': reference_id,
+                'adjustment_date': first_movement.created_at.strftime('%Y-%m-%d') if first_movement.created_at else date.today().strftime('%Y-%m-%d'),
                 'items_count': len(movements),
-                'subtotal': total_value,
-                'total_value': total_value,
-                'remarks': first_movement.reason,
+                'subtotal': float(total_value),
+                'total_value': float(total_value),
+                'remarks': first_movement.reason or 'Manual adjustment',
                 'created_by': first_movement.user.username if first_movement.user else 'System',
-                'created_date': first_movement.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                'created_date': first_movement.created_at.strftime('%Y-%m-%d %H:%M:%S') if first_movement.created_at else 'Unknown'
             })
 
         return jsonify({'records': adjustments})
@@ -700,26 +713,36 @@ def api_get_adjustment(adjustment_id):
         items = []
         total_value = 0
         for mov in related_movements:
-            line_total = mov.quantity * (mov.unit_cost or 0)
+            quantity = float(mov.quantity or 0)
+            unit_cost = float(mov.unit_cost or 0)
+            line_total = quantity * unit_cost
             total_value += line_total
             items.append({
                 'product_name': mov.product.name if mov.product else 'Unknown',
-                'quantity_added': float(mov.quantity),
-                'unit_cost': float(mov.unit_cost or 0),
-                'line_total': line_total
+                'quantity_added': quantity,
+                'unit_cost': unit_cost,
+                'line_total': float(line_total)
             })
+
+        # Extract reference ID from reason if it exists
+        reference_id = None
+        if movement.reason and " - Ref: " in movement.reason:
+            try:
+                reference_id = movement.reason.split(" - Ref: ")[1].split(" - ")[0]
+            except (IndexError, AttributeError):
+                reference_id = None
 
         return jsonify({
             'id': adjustment_id,
-            'reference_id': movement.reason.split(' - ')[1] if ' - ' in movement.reason else None,
-            'adjustment_date': movement.created_at.strftime('%Y-%m-%d'),
+            'reference_id': reference_id,
+            'adjustment_date': movement.created_at.strftime('%Y-%m-%d') if movement.created_at else date.today().strftime('%Y-%m-%d'),
             'created_by': movement.user.username if movement.user else 'System',
-            'created_date': movement.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'remarks': movement.reason,
+            'created_date': movement.created_at.strftime('%Y-%m-%d %H:%M:%S') if movement.created_at else 'Unknown',
+            'remarks': movement.reason or 'Manual adjustment',
             'items': items,
-            'subtotal': total_value,
-            'tax': 0,  # No tax calculation for now
-            'total_value': total_value
+            'subtotal': float(total_value),
+            'tax': 0.0,  # No tax calculation for now
+            'total_value': float(total_value)
         })
     except Exception as e:
         return jsonify({'error': f'Error loading adjustment: {str(e)}'}), 500
