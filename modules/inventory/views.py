@@ -1147,12 +1147,20 @@ def api_edit_adjustment(adjustment_id):
             if remarks:
                 reason += f" - {remarks}"
 
-            # Create new stock movement
+            # Get current stock before update
+            stock_before = float(product.current_stock or 0)
+            
+            # Calculate new stock after update
+            stock_after = stock_before + quantity
+
+            # Create new stock movement with required fields
             new_movement = StockMovement(
                 product_id=product_id,
                 movement_type='in',
                 quantity=quantity,
                 unit_cost=unit_cost,
+                stock_before=stock_before,
+                stock_after=stock_after,
                 reason=reason,
                 reference_type='manual',
                 reference_id=None,
@@ -1161,7 +1169,7 @@ def api_edit_adjustment(adjustment_id):
             )
 
             # Update product stock
-            product.current_stock = float(product.current_stock) + quantity
+            product.current_stock = stock_after
             
             db.session.add(new_movement)
             updated_products.append({
