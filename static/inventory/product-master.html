@@ -174,24 +174,52 @@
     }
 
     function loadProducts() {
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+        console.log('Loading products from API...');
+        
+        // Show loading state
         const tbody = document.getElementById('productTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading products...</td></tr>';
+        }
+        
+        // Fetch products from API
+        fetch('/api/inventory/products')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(products => {
+                console.log('Products loaded from API:', products.length);
+                renderProductsTable(products);
+            })
+            .catch(error => {
+                console.error('Error loading products:', error);
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading products. Please refresh the page.</td></tr>';
+                }
+            });
+    }
+    
+    function renderProductsTable(products) {
+        const tbody = document.getElementById('productTableBody');
+        if (!tbody) return;
         
         // Apply filters
-        const searchTerm = document.getElementById('productSearch').value.toLowerCase();
-        const categoryFilter = document.getElementById('categoryFilter').value;
-        const statusFilter = document.getElementById('statusFilter').value;
+        const searchTerm = document.getElementById('productSearch') ? document.getElementById('productSearch').value.toLowerCase() : '';
+        const categoryFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : '';
+        const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
         
         let filteredProducts = products.filter(product => {
             const matchesSearch = product.name.toLowerCase().includes(searchTerm) || 
                                 product.sku.toLowerCase().includes(searchTerm);
-            const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
+            const matchesCategory = !categoryFilter || product.categoryId == categoryFilter;
             
             let matchesStatus = true;
             if (statusFilter) {
-                const stock = calculateTotalStock(product);
-                const reorderLevel = product.reorderLevel || product.minStock || 10;
+                const stock = product.current_stock || 0;
+                const reorderLevel = product.reorder_level || 10;
                 if (statusFilter === 'out_of_stock') matchesStatus = stock <= 0;
                 else if (statusFilter === 'low_stock') matchesStatus = stock > 0 && stock <= reorderLevel;
                 else if (statusFilter === 'in_stock') matchesStatus = stock > reorderLevel;
@@ -202,10 +230,8 @@
         
         tbody.innerHTML = '';
         filteredProducts.forEach(product => {
-            const category = categories.find(c => c.id === product.categoryId);
-            const stock = calculateTotalStock(product);
-            const reorderLevel = product.reorderLevel || product.minStock || 10;
-            const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+            const stock = product.current_stock || 0;
+            const reorderLevel = product.reorder_level || 10;
             
             let statusBadge = 'success';
             let statusText = 'In Stock';
@@ -221,53 +247,22 @@
                 warningIcons = '<i class="fas fa-exclamation-triangle text-warning me-1" title="Low Stock Alert"></i>';
             }
             
-            // Check for expiring batches (if applicable)
-            if (product.trackBatches && product.batches) {
-                const expiringBatches = product.batches.filter(batch => {
-                    const daysUntilExpiry = Math.ceil((new Date(batch.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
-                    return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-                });
-                if (expiringBatches.length > 0) {
-                    warningIcons += '<i class="fas fa-clock text-info me-1" title="Has expiring batches"></i>';
-                }
-            }
-            
-            // Build location summary
-            let locationSummary = '-';
-            if (product.locationStock) {
-                const activeLocations = Object.keys(product.locationStock).filter(locId => product.locationStock[locId] > 0);
-                locationSummary = activeLocations.map(locId => {
-                    const location = locations.find(l => l.id === locId);
-                    const locationStock = product.locationStock[locId];
-                    return `${location?.name || 'Unknown'}: ${locationStock}`;
-                }).join('<br>') || '-';
-            }
-            
-            const trackingIcons = [
-                product.trackBatches ? '<i class="fas fa-calendar-alt text-primary" title="Batch Tracking"></i>' : '',
-                product.trackSerials ? '<i class="fas fa-barcode text-success" title="Serial Tracking"></i>' : ''
-            ].filter(icon => icon).join(' ');
-            
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${product.sku}</strong></td>
                     <td>
                         ${warningIcons}${product.name}
-                        ${trackingIcons ? `<br><small>${trackingIcons}</small>` : ''}
                     </td>
-                    <td>${category ? category.name : '-'}</td>
+                    <td>${product.category || '-'}</td>
                     <td><strong>${stock}</strong> ${product.unit || 'pcs'}</td>
                     <td><span class="badge bg-${statusBadge}">${statusText}</span></td>
-                    <td><small>${locationSummary}</small></td>
-                    <td>$${(product.costPrice || 0).toFixed(2)}</td>
+                    <td><small>${product.location || '-'}</small></td>
+                    <td>$${(product.cost_price || 0).toFixed(2)}</td>
                     <td>
                         <div class="btn-group" role="group">
                             <button class="btn btn-sm btn-outline-primary" onclick="editProduct('${product.id}')" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            ${product.trackBatches ? `<button class="btn btn-sm btn-outline-info" onclick="manageBatches('${product.id}')" title="Manage Batches">
-                                <i class="fas fa-calendar-alt"></i>
-                            </button>` : ''}
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${product.id}')" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -444,53 +439,73 @@
     function populateProductDropdowns(selectedCategoryId = null, selectedLocationId = null) {
         console.log('Populating product modal dropdowns...');
         
-        // Initialize default categories with both localStorage and database-compatible format
-        let categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        if (categories.length === 0) {
-            categories = [
-                { id: '1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true },
-                { id: '2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true },
-                { id: '3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true },
-                { id: '4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true }
-            ];
-            localStorage.setItem('inventory.categories', JSON.stringify(categories));
-        }
-        
-        // Populate category dropdown
-        const categoryDropdown = document.getElementById('productCategory');
-        if (categoryDropdown) {
-            categoryDropdown.innerHTML = '<option value="">Select category</option>';
-            const activeCategories = categories.filter(cat => cat.is_active !== false);
-            activeCategories.forEach(category => {
-                const selected = (category.id == selectedCategoryId) ? 'selected' : '';
-                categoryDropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
+        // Load categories from API
+        fetch('/api/inventory/categories')
+            .then(response => response.json())
+            .then(data => {
+                const categories = data.categories || [];
+                const categoryDropdown = document.getElementById('productCategory');
+                if (categoryDropdown) {
+                    categoryDropdown.innerHTML = '<option value="">Select category</option>';
+                    const activeCategories = categories.filter(cat => cat.is_active !== false);
+                    activeCategories.forEach(category => {
+                        const selected = (category.id == selectedCategoryId) ? 'selected' : '';
+                        categoryDropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
+                    });
+                    console.log(`Categories populated: ${activeCategories.length} active categories`);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading categories:', error);
+                // Fallback to default categories
+                const categoryDropdown = document.getElementById('productCategory');
+                if (categoryDropdown) {
+                    categoryDropdown.innerHTML = '<option value="">Select category</option>';
+                    const defaultCategories = [
+                        { id: '1', name: 'Skincare Products' },
+                        { id: '2', name: 'Hair Care Products' },
+                        { id: '3', name: 'Spa Supplies' },
+                        { id: '4', name: 'Wellness Products' }
+                    ];
+                    defaultCategories.forEach(category => {
+                        const selected = (category.id == selectedCategoryId) ? 'selected' : '';
+                        categoryDropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
+                    });
+                }
             });
-            console.log(`Categories populated: ${activeCategories.length} active categories`);
-        }
         
-        // Initialize default locations with database-compatible format  
-        let locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-        if (locations.length === 0) {
-            locations = [
-                { id: 'main-branch', name: 'Main Branch', type: 'branch', status: 'active', address: 'Main Street, Downtown' },
-                { id: 'storage-room', name: 'Storage Room', type: 'room', status: 'active', address: 'Back Office Area' }
-            ];
-            localStorage.setItem('inventory.locations', JSON.stringify(locations));
-        }
-        
-        // Populate location dropdown
-        const locationDropdown = document.getElementById('productPrimaryLocation');
-        if (locationDropdown) {
-            locationDropdown.innerHTML = '<option value="">Select primary location</option>';
-            const activeLocations = locations.filter(loc => loc.status === 'active');
-            activeLocations.forEach(location => {
-                const selected = (location.id == selectedLocationId) ? 'selected' : '';
-                locationDropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
+        // Load locations from API
+        fetch('/api/inventory/locations')
+            .then(response => response.json())
+            .then(data => {
+                const locations = data.locations || [];
+                const locationDropdown = document.getElementById('productPrimaryLocation');
+                if (locationDropdown) {
+                    locationDropdown.innerHTML = '<option value="">Select primary location</option>';
+                    const activeLocations = locations.filter(loc => loc.status === 'active');
+                    activeLocations.forEach(location => {
+                        const selected = (location.id == selectedLocationId) ? 'selected' : '';
+                        locationDropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
+                    });
+                    console.log(`Locations populated: ${activeLocations.length} active locations`);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading locations:', error);
+                // Fallback to default locations
+                const locationDropdown = document.getElementById('productPrimaryLocation');
+                if (locationDropdown) {
+                    locationDropdown.innerHTML = '<option value="">Select primary location</option>';
+                    const defaultLocations = [
+                        { id: 'main-branch', name: 'Main Branch' },
+                        { id: 'storage-room', name: 'Storage Room' }
+                    ];
+                    defaultLocations.forEach(location => {
+                        const selected = (location.id == selectedLocationId) ? 'selected' : '';
+                        locationDropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
+                    });
+                }
             });
-            console.log(`Locations populated: ${activeLocations.length} active locations`);
-        }
-        
-        console.log(`Dropdowns populated successfully - Categories: ${categories.length}, Locations: ${locations.length}`);
     }
 
     function addProduct() {
@@ -703,36 +718,13 @@
                 return;
             }
             
-            // Get existing products and check for duplicate SKU
-            const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-            
-            if (!editingProductId) {
-                // Check for duplicate SKU when adding new product
-                const existingProduct = products.find(p => p.sku.toLowerCase() === sku.toLowerCase());
-                if (existingProduct) {
-                    alert(`SKU "${sku}" already exists. Please use a different SKU.`);
-                    document.getElementById('productSku').focus();
-                    return;
-                }
-            } else {
-                // Check for duplicate SKU when editing (exclude current product)
-                const existingProduct = products.find(p => p.sku.toLowerCase() === sku.toLowerCase() && p.id !== editingProductId);
-                if (existingProduct) {
-                    alert(`SKU "${sku}" already exists. Please use a different SKU.`);
-                    document.getElementById('productSku').focus();
-                    return;
-                }
-            }
-        
             // Create product data object
             const productData = {
-                id: editingProductId || Date.now().toString(),
                 sku: sku,
                 name: name,
                 categoryId: categoryId,
                 unit: unit,
                 stock: parseFloat(document.getElementById('productStock').value) || 0,
-                currentStock: parseFloat(document.getElementById('productStock').value) || 0,
                 minStock: parseFloat(document.getElementById('productMinStock').value) || 10,
                 reorderLevel: parseFloat(document.getElementById('productReorderLevel').value) || 0,
                 costPrice: parseFloat(document.getElementById('productCostPrice').value) || 0,
@@ -741,56 +733,62 @@
                 primaryLocation: primaryLocation,
                 description: document.getElementById('productDescription').value || '',
                 location: document.getElementById('productLocation').value || '',
-                barcode: document.getElementById('productBarcode').value || '',
-                createdAt: editingProductId ? undefined : new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                barcode: document.getElementById('productBarcode').value || ''
             };
             
-            console.log('Product data to save:', productData);
+            console.log('Sending product data to API:', productData);
             
-            // Preserve existing data when editing
-            if (editingProductId) {
-                const index = products.findIndex(p => p.id === editingProductId);
-                if (index !== -1) {
-                    const existingProduct = products[index];
-                    productData.batches = existingProduct.batches || [];
-                    productData.serials = existingProduct.serials || [];
-                    productData.locationStock = existingProduct.locationStock || {};
-                    productData.createdAt = existingProduct.createdAt;
-                    products[index] = productData;
-                    console.log('Product updated:', productData.name);
-                }
-            } else {
-                // Initialize new product data
-                productData.batches = [];
-                productData.serials = [];
-                productData.locationStock = {};
-                
-                // Set initial stock in primary location if specified
-                if (productData.primaryLocation && productData.currentStock > 0) {
-                    productData.locationStock[productData.primaryLocation] = productData.currentStock;
-                }
-                
-                products.push(productData);
-                console.log('New product added:', productData.name);
+            // Show loading state
+            const saveBtn = document.querySelector('#productModal .btn-primary');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
             }
             
-            // Save to localStorage
-            localStorage.setItem('inventory.products', JSON.stringify(products));
+            // Send to API
+            const url = editingProductId ? `/api/inventory/products/${editingProductId}` : '/api/inventory/products';
+            const method = editingProductId ? 'PUT' : 'POST';
             
-            // Close modal
-            const modalElement = document.getElementById('productModal');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
-            }
-            
-            // Refresh the products table
-            loadProducts();
-            
-            // Show success message
-            const action = editingProductId ? 'updated' : 'added';
-            alert(`Product "${productData.name}" ${action} successfully!`);
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal
+                    const modalElement = document.getElementById('productModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    // Refresh the products table
+                    loadProducts();
+                    
+                    // Show success message
+                    alert(data.message);
+                    
+                    // Reset editing state
+                    editingProductId = null;
+                } else {
+                    alert(data.error || 'Error saving product');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving product:', error);
+                alert('Error saving product. Please try again.');
+            })
+            .finally(() => {
+                // Reset button state
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = 'Save Product';
+                }
+            });
             
         } catch (error) {
             console.error('Error saving product:', error);
@@ -855,27 +853,27 @@
         
         console.log('🔧 Event listeners setup starting...');
         console.log('🔧 Add Product Button Element:', btnAddProduct);
-        console.log('🔧 Button exists:', !!btnAddProduct);
-        console.log('🔧 Button innerHTML:', btnAddProduct ? btnAddProduct.innerHTML : 'N/A');
-        console.log('🔧 Button ID:', btnAddProduct ? btnAddProduct.id : 'N/A');
         
         if (btnAddProduct) {
             console.log('🔧 Attaching click event listener to Add Product button...');
             btnAddProduct.addEventListener('click', function(event) {
+                event.preventDefault();
                 console.log('🎯 ADD PRODUCT BUTTON CLICKED!');
-                console.log('🎯 Click event:', event);
-                console.log('🎯 Event target:', event.target);
-                console.log('🎯 Calling addProduct function...');
                 addProduct();
             });
             console.log('✅ Event listener attached successfully');
         } else {
             console.error('❌ CRITICAL: Add Product button not found!');
-            console.error('❌ Available buttons on page:');
-            document.querySelectorAll('button').forEach((btn, index) => {
-                console.log(`  Button ${index}: ID="${btn.id}", Class="${btn.className}", Text="${btn.textContent.trim()}"`);
-            });
         }
+
+        // Global click handler for the add product button
+        document.addEventListener('click', function(event) {
+            if (event.target && event.target.id === 'btnAddProduct') {
+                event.preventDefault();
+                console.log('🎯 Global handler: ADD PRODUCT BUTTON CLICKED!');
+                addProduct();
+            }
+        });
         if (productSearch) productSearch.addEventListener('input', loadProducts);
         if (categoryFilter) categoryFilter.addEventListener('change', loadProducts);
         if (statusFilter) statusFilter.addEventListener('change', loadProducts);

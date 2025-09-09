@@ -1812,6 +1812,91 @@ def api_products_master():
         'cost_price': float(product.cost_price or 0)  # Added for inventory adjustments
     } for product in products])
 
+@app.route('/api/inventory/products', methods=['POST'])
+@login_required
+def api_add_product():
+    """Add new product via API"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Validate required fields
+        required_fields = ['sku', 'name', 'categoryId', 'primaryLocation', 'unit']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+
+        # Check for duplicate SKU
+        existing_product = InventoryProduct.query.filter_by(sku=data['sku']).first()
+        if existing_product:
+            return jsonify({'error': f'SKU "{data["sku"]}" already exists'}), 400
+
+        # Create product data
+        product_data = {
+            'sku': data['sku'],
+            'name': data['name'],
+            'description': data.get('description', ''),
+            'category_id': int(data['categoryId']),
+            'unit_of_measure': data['unit'],
+            'current_stock': float(data.get('stock', 0)),
+            'min_stock_level': float(data.get('minStock', 10)),
+            'reorder_point': float(data.get('reorderLevel', 0)),
+            'cost_price': float(data.get('costPrice', 0)),
+            'location': data.get('location', ''),
+            'barcode': data.get('barcode', ''),
+            'is_service_item': data.get('trackBatches', False),
+            'is_retail_item': data.get('trackSerials', False)
+        }
+
+        product = create_product(product_data)
+
+        return jsonify({
+            'success': True,
+            'message': f'Product "{product.name}" added successfully!',
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error adding product: {str(e)}'}), 500
+
+@app.route('/api/inventory/products', methods=['GET'])
+@login_required
+def api_get_all_products():
+    """Get all products as JSON"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        products = get_all_products()
+        product_list = []
+
+        for product in products:
+            product_list.append({
+                'id': product.id,
+                'sku': product.sku,
+                'name': product.name,
+                'category': product.category.name if product.category else '',
+                'categoryId': product.category_id,
+                'current_stock': float(product.current_stock or 0),
+                'unit': product.unit_of_measure,
+                'status': product.stock_status,
+                'location': product.location or '',
+                'cost_price': float(product.cost_price or 0)
+            })
+
+        return jsonify(product_list)
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading products: {str(e)}'}), 500
+
 # ============ LOCATION MANAGEMENT API ENDPOINTS ============
 
 @app.route('/api/inventory/locations/<string:location_id>')
