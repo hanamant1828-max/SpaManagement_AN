@@ -604,9 +604,9 @@ def create_order():
 
     if request.method == 'POST':
         try:
-            # Get order data
+            # Prepare purchase order data
             po_data = {
-                'supplier_id': int(request.form.get('supplier_id')),
+                'supplier_id': request.form.get('supplier_id') if request.form.get('supplier_id') else None,
                 'expected_delivery': datetime.strptime(request.form.get('expected_delivery'), '%Y-%m-%d').date() if request.form.get('expected_delivery') else None,
                 'delivery_address': request.form.get('delivery_address', '').strip(),
                 'notes': request.form.get('notes', '').strip(),

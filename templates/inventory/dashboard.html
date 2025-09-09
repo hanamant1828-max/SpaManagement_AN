@@ -891,12 +891,6 @@
                 <form id="addPurchaseForm">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Supplier <span class="text-danger">*</span></label>
-                            <select name="supplier_id" id="purchaseSupplier" class="form-select" required>
-                                <option value="">Select Supplier</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
                             <label class="form-label">Expected Delivery</label>
                             <input type="date" name="expected_delivery" class="form-control">
                         </div>
@@ -2855,19 +2849,10 @@ document.getElementById('receivePurchaseForm').addEventListener('submit', functi
 });
 
 function openAddPurchaseModal() {
-    // Load suppliers and products for the form
-    Promise.all([
-        fetch('/api/inventory/suppliers').then(r => r.json()),
-        fetch('/api/inventory/products/for-consumption').then(r => r.json())
-    ])
-    .then(([suppliers, products]) => {
-        // Populate suppliers
-        const supplierSelect = document.getElementById('purchaseSupplier');
-        supplierSelect.innerHTML = '<option value="">Select Supplier</option>';
-        suppliers.forEach(supplier => {
-            supplierSelect.innerHTML += `<option value="${supplier.id}">${supplier.name}</option>`;
-        });
-
+    // Load products for the form
+    fetch('/api/inventory/products/for-consumption')
+    .then(response => response.json())
+    .then(products => {
         // Populate products in all product selects
         const productSelects = document.querySelectorAll('#addPurchaseModal select[name="product_id[]"]');
         productSelects.forEach(select => {
@@ -2908,12 +2893,6 @@ function removePurchaseItem(button) {
 function savePurchaseOrder() {
     const form = document.getElementById('addPurchaseForm');
     const formData = new FormData(form);
-
-    // Validate form
-    if (!formData.get('supplier_id')) {
-        showToast('Please select a supplier', 'warning');
-        return;
-    }
 
     // Check if at least one item is added
     const productIds = formData.getAll('product_id[]').filter(id => id);
