@@ -1161,5 +1161,6 @@ def api_products_master():
         'current_stock': float(product.current_stock),
         'reorder_level': float(product.reorder_point),
         'status': product.stock_status,
-        'location': product.location or ''
+        'location': product.location or '',
+        'cost_price': float(product.cost_price or 0)  # Added for inventory adjustments
     } for product in products])

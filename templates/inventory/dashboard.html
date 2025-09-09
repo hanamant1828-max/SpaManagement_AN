@@ -1043,7 +1043,7 @@ function loadProductsForAdjustment() {
 }
 
 function fetchProductsFromAPI() {
-    return fetch('/api/inventory/products/for-consumption')
+    return fetch('/api/inventory/products/master')
     .then(response => {
         if (!response.ok) {
             throw new Error('Failed to fetch products');
