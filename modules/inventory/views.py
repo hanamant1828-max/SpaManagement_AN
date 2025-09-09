@@ -19,7 +19,9 @@ from .queries import (
     get_low_stock_products, get_out_of_stock_products, get_products_needing_reorder,
     search_products, update_stock, add_stock, remove_stock, get_stock_movements,
     create_purchase_order, get_purchase_orders, get_purchase_order_by_id,
-    get_inventory_dashboard_stats, get_active_alerts, check_stock_alerts
+    get_inventory_dashboard_stats, get_active_alerts, check_stock_alerts,
+    get_all_consumption_records, get_consumption_by_id, create_consumption_record,
+    update_consumption_record, delete_consumption_record, get_consumption_summary_stats
 )
 
 # ============ MAIN INVENTORY DASHBOARD ============
@@ -692,3 +694,220 @@ def api_dashboard_stats():
     
     stats = get_inventory_dashboard_stats()
     return jsonify(stats)
+
+# ============ CONSUMPTION MANAGEMENT ============
+
+@app.route('/inventory/consumption')
+@login_required
+def consumption_records():
+    """List consumption records with search and pagination"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    page = request.args.get('page', 1, type=int)
+    search_term = request.args.get('search', '')
+    per_page = 20
+    
+    # Get paginated consumption records
+    consumption_pagination = get_all_consumption_records(page=page, per_page=per_page, search_term=search_term)
+    
+    return jsonify({
+        'records': [{
+            'id': record.id,
+            'product_name': record.product.name,
+            'product_sku': record.product.sku,
+            'consumption_date': record.consumption_date.strftime('%Y-%m-%d'),
+            'quantity_used': float(record.quantity_used),
+            'unit_of_measure': record.unit_of_measure,
+            'issued_to': record.issued_to,
+            'reference_doc_no': record.reference_doc_no or '',
+            'notes': record.notes or ''
+        } for record in consumption_pagination.items],
+        'pagination': {
+            'page': page,
+            'pages': consumption_pagination.pages,
+            'total': consumption_pagination.total,
+            'has_prev': consumption_pagination.has_prev,
+            'has_next': consumption_pagination.has_next
+        }
+    })
+
+@app.route('/inventory/consumption/add', methods=['POST'])
+@login_required
+def add_consumption():
+    """Add new consumption record"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        consumption_data = {
+            'product_id': int(request.form.get('product_id')),
+            'consumption_date': datetime.strptime(request.form.get('consumption_date'), '%Y-%m-%d').date(),
+            'quantity_used': float(request.form.get('quantity_used')),
+            'issued_to': request.form.get('issued_to').strip(),
+            'reference_doc_no': request.form.get('reference_doc_no', '').strip(),
+            'notes': request.form.get('notes', '').strip()
+        }
+        
+        # Validation
+        if not consumption_data['issued_to']:
+            return jsonify({'error': 'Issued to field is required'}), 400
+        
+        if consumption_data['quantity_used'] <= 0:
+            return jsonify({'error': 'Quantity must be greater than 0'}), 400
+        
+        consumption = create_consumption_record(consumption_data, current_user.id)
+        return jsonify({
+            'success': True,
+            'message': 'Consumption record created successfully',
+            'id': consumption.id
+        })
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': 'Failed to create consumption record'}), 500
+
+@app.route('/inventory/consumption/<int:consumption_id>/edit', methods=['POST'])
+@login_required
+def edit_consumption(consumption_id):
+    """Edit existing consumption record"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        consumption_data = {
+            'product_id': int(request.form.get('product_id')),
+            'consumption_date': datetime.strptime(request.form.get('consumption_date'), '%Y-%m-%d').date(),
+            'quantity_used': float(request.form.get('quantity_used')),
+            'issued_to': request.form.get('issued_to').strip(),
+            'reference_doc_no': request.form.get('reference_doc_no', '').strip(),
+            'notes': request.form.get('notes', '').strip()
+        }
+        
+        # Validation
+        if not consumption_data['issued_to']:
+            return jsonify({'error': 'Issued to field is required'}), 400
+        
+        if consumption_data['quantity_used'] <= 0:
+            return jsonify({'error': 'Quantity must be greater than 0'}), 400
+        
+        consumption = update_consumption_record(consumption_id, consumption_data, current_user.id)
+        if consumption:
+            return jsonify({
+                'success': True,
+                'message': 'Consumption record updated successfully'
+            })
+        else:
+            return jsonify({'error': 'Consumption record not found'}), 404
+            
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': 'Failed to update consumption record'}), 500
+
+@app.route('/inventory/consumption/<int:consumption_id>/delete', methods=['POST'])
+@login_required
+def delete_consumption(consumption_id):
+    """Delete consumption record"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        success = delete_consumption_record(consumption_id, current_user.id)
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Consumption record deleted successfully'
+            })
+        else:
+            return jsonify({'error': 'Consumption record not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': 'Failed to delete consumption record'}), 500
+
+@app.route('/inventory/consumption/export')
+@login_required
+def export_consumption_csv():
+    """Export consumption records to CSV"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    search_term = request.args.get('search', '')
+    
+    # Get all consumption records (no pagination for export)
+    consumption_records = get_all_consumption_records(per_page=None, search_term=search_term)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    writer.writerow([
+        'Date', 'Item', 'SKU', 'Quantity Used', 'Unit', 
+        'Issued To', 'Reference/Doc No.', 'Notes', 'Created By', 'Created At'
+    ])
+    
+    # Data rows
+    for record in consumption_records:
+        writer.writerow([
+            record.consumption_date.strftime('%Y-%m-%d'),
+            record.product.name,
+            record.product.sku,
+            record.quantity_used,
+            record.unit_of_measure,
+            record.issued_to,
+            record.reference_doc_no or '',
+            record.notes or '',
+            record.user.username if record.user else '',
+            record.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        ])
+    
+    output.seek(0)
+    
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={"Content-disposition": f"attachment; filename=consumption_records_{date.today().strftime('%Y%m%d')}.csv"}
+    )
+
+# ============ CONSUMPTION API ENDPOINTS ============
+
+@app.route('/api/inventory/consumption/<int:consumption_id>')
+@login_required
+def api_get_consumption(consumption_id):
+    """Get consumption record as JSON"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    consumption = get_consumption_by_id(consumption_id)
+    if consumption:
+        return jsonify({
+            'id': consumption.id,
+            'product_id': consumption.product_id,
+            'product_name': consumption.product.name,
+            'consumption_date': consumption.consumption_date.strftime('%Y-%m-%d'),
+            'quantity_used': float(consumption.quantity_used),
+            'unit_of_measure': consumption.unit_of_measure,
+            'issued_to': consumption.issued_to,
+            'reference_doc_no': consumption.reference_doc_no or '',
+            'notes': consumption.notes or ''
+        })
+    return jsonify({'error': 'Consumption record not found'}), 404
+
+@app.route('/api/inventory/products/for-consumption')
+@login_required
+def api_products_for_consumption():
+    """Get products available for consumption"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    products = get_all_products()
+    return jsonify([{
+        'id': product.id,
+        'name': product.name,
+        'sku': product.sku,
+        'current_stock': float(product.current_stock),
+        'unit_of_measure': product.unit_of_measure
+    } for product in products if product.current_stock > 0])
