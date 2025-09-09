@@ -86,77 +86,63 @@ def inventory_products():
         products = [p for p in products if str(p.category_id) == category_filter]
     
     categories = get_all_categories()
-    suppliers = get_all_suppliers()
     
     return render_template('inventory/products.html',
                          products=products,
                          categories=categories,
-                         suppliers=suppliers,
                          current_filters={
                              'category': category_filter,
                              'status': status_filter,
                              'search': search_term
                          })
 
-@app.route('/inventory/products/add', methods=['GET', 'POST'])
+@app.route('/inventory/products/add', methods=['POST'])
 @login_required
 def add_product():
     """Add new product"""
     if not current_user.can_access('inventory'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+        return jsonify({'error': 'Access denied'}), 403
     
-    if request.method == 'POST':
-        try:
-            product_data = {
-                'sku': request.form.get('sku').strip(),
-                'name': request.form.get('name').strip(),
-                'description': request.form.get('description', '').strip(),
-                'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
-                'supplier_id': int(request.form.get('supplier_id')) if request.form.get('supplier_id') else None,
-                'current_stock': float(request.form.get('current_stock', 0)),
-                'min_stock_level': float(request.form.get('min_stock_level', 10)),
-                'max_stock_level': float(request.form.get('max_stock_level', 100)),
-                'reorder_point': float(request.form.get('reorder_point', 20)),
-                'cost_price': float(request.form.get('cost_price', 0)),
-                'selling_price': float(request.form.get('selling_price', 0)),
-                'unit_of_measure': request.form.get('unit_of_measure', 'pcs').strip(),
-                'barcode': request.form.get('barcode', '').strip(),
-                'location': request.form.get('location', '').strip(),
-                'is_service_item': 'is_service_item' in request.form,
-                'is_retail_item': 'is_retail_item' in request.form
-            }
-            
-            # Validation
-            if not product_data['name']:
-                flash('Product name is required', 'danger')
-                return redirect(request.url)
-            
-            if not product_data['sku']:
-                flash('SKU is required', 'danger')
-                return redirect(request.url)
-            
-            product = create_product(product_data)
-            
-            # Create initial stock movement if stock > 0
-            if product.current_stock > 0:
-                update_stock(product.id, product.current_stock, 'in', 
-                           'Initial stock', 'manual', None, current_user.id)
-            
-            flash(f'Product "{product.name}" added successfully!', 'success')
-            return redirect(url_for('inventory_products'))
-            
-        except ValueError:
-            flash('Invalid input values. Please check your data.', 'danger')
-        except Exception as e:
-            flash(f'Error adding product: {str(e)}', 'danger')
-    
-    categories = get_all_categories()
-    suppliers = get_all_suppliers()
-    return render_template('inventory/product_form.html',
-                         categories=categories,
-                         suppliers=suppliers,
-                         action='add')
+    try:
+        product_data = {
+            'sku': request.form.get('sku').strip(),
+            'name': request.form.get('name').strip(),
+            'description': request.form.get('description', '').strip(),
+            'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
+            'supplier_id': None,  # Remove supplier requirement
+            'current_stock': float(request.form.get('current_stock', 0)),
+            'min_stock_level': float(request.form.get('min_stock_level', 10)),
+            'max_stock_level': float(request.form.get('max_stock_level', 100)),
+            'reorder_point': float(request.form.get('reorder_point', 20)),
+            'cost_price': float(request.form.get('cost_price', 0)),
+            'selling_price': float(request.form.get('selling_price', 0)),
+            'unit_of_measure': request.form.get('unit_of_measure', 'pcs').strip(),
+            'barcode': request.form.get('barcode', '').strip(),
+            'location': request.form.get('location', '').strip(),
+            'is_service_item': 'is_service_item' in request.form,
+            'is_retail_item': 'is_retail_item' in request.form
+        }
+        
+        # Validation
+        if not product_data['name']:
+            return jsonify({'error': 'Product name is required'}), 400
+        
+        if not product_data['sku']:
+            return jsonify({'error': 'SKU is required'}), 400
+        
+        product = create_product(product_data)
+        
+        # Create initial stock movement if stock > 0
+        if product.current_stock > 0:
+            update_stock(product.id, product.current_stock, 'in', 
+                       'Initial stock', 'manual', None, current_user.id)
+        
+        return jsonify({'success': True, 'message': f'Product "{product.name}" added successfully!'})
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid input values. Please check your data.'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Error adding product: {str(e)}'}), 500
 
 @app.route('/inventory/products/<int:product_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -179,7 +165,7 @@ def edit_product(product_id):
                 'name': request.form.get('name').strip(),
                 'description': request.form.get('description', '').strip(),
                 'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
-                'supplier_id': int(request.form.get('supplier_id')) if request.form.get('supplier_id') else None,
+                'supplier_id': None,  # Remove supplier requirement
                 'min_stock_level': float(request.form.get('min_stock_level', 10)),
                 'max_stock_level': float(request.form.get('max_stock_level', 100)),
                 'reorder_point': float(request.form.get('reorder_point', 20)),
@@ -205,11 +191,9 @@ def edit_product(product_id):
             flash(f'Error updating product: {str(e)}', 'danger')
     
     categories = get_all_categories()
-    suppliers = get_all_suppliers()
     return render_template('inventory/product_form.html',
                          product=product,
                          categories=categories,
-                         suppliers=suppliers,
                          action='edit')
 
 @app.route('/inventory/products/<int:product_id>/view')
