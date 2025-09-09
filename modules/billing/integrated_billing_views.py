@@ -12,7 +12,7 @@ import json
 
 # Import enhanced billing models from main models file
 from models import EnhancedInvoice, InvoiceItem, InvoicePayment
-from billing_engine import BillingEngine
+# from billing_engine import BillingEngine  # Temporarily disabled
 
 @app.route('/integrated-billing')
 @login_required
