@@ -167,12 +167,24 @@ def update_stock(product_id, new_quantity, movement_type, reason="", reference_t
         db.session.rollback()
         raise e
 
-def add_stock(product_id, quantity, reason="", reference_type=None, reference_id=None, user_id=None):
+def add_stock(product_id, quantity, reason="", reference_type=None, reference_id=None, unit_cost=0, user_id=None):
     """Add stock to product"""
     product = get_product_by_id(product_id)
     if product:
         new_quantity = product.current_stock + quantity
-        return update_stock(product_id, new_quantity, 'in', reason, reference_type, reference_id, user_id)
+        updated_product = update_stock(product_id, new_quantity, 'in', reason, reference_type, reference_id, user_id)
+        
+        # Update the movement with unit cost if provided
+        if updated_product and unit_cost:
+            latest_movement = StockMovement.query.filter_by(
+                product_id=product_id,
+                created_by=user_id
+            ).order_by(desc(StockMovement.created_at)).first()
+            if latest_movement:
+                latest_movement.unit_cost = unit_cost
+                db.session.commit()
+        
+        return updated_product
     return None
 
 def remove_stock(product_id, quantity, reason="", reference_type=None, reference_id=None, user_id=None):

@@ -595,11 +595,19 @@ def api_inventory_adjustments():
                 product_id=product_id,
                 quantity=quantity_in,
                 reason=reason,
-                movement_type='manual',
+                reference_type='manual',
                 reference_id=None,
-                cost_per_unit=unit_cost,
                 user_id=current_user.id
             )
+            
+            # Update the stock movement with unit cost
+            if updated_product:
+                latest_movement = StockMovement.query.filter_by(
+                    product_id=product_id,
+                    created_by=current_user.id
+                ).order_by(desc(StockMovement.created_at)).first()
+                if latest_movement:
+                    latest_movement.unit_cost = unit_cost
 
             if updated_product:
                 stock_updates.append({
@@ -621,6 +629,151 @@ def api_inventory_adjustments():
 
     except Exception as e:
         return jsonify({'error': f'Error processing stock adjustment: {str(e)}'}), 500
+
+# ============ INVENTORY ADJUSTMENTS API ============
+
+@app.route('/api/inventory/adjustments')
+@login_required
+def api_get_adjustments():
+    """Get all inventory adjustments"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get all adjustment records from stock movements
+        adjustments = []
+        adjustment_movements = db.session.query(StockMovement).filter(
+            StockMovement.reference_type == 'manual'
+        ).order_by(desc(StockMovement.created_at)).all()
+
+        # Group movements by reference_id and created_at (same adjustment)
+        adjustment_groups = {}
+        for movement in adjustment_movements:
+            key = f"{movement.created_at.date()}_{movement.created_by}_{movement.reason}"
+            if key not in adjustment_groups:
+                adjustment_groups[key] = []
+            adjustment_groups[key].append(movement)
+
+        for key, movements in adjustment_groups.items():
+            if not movements:
+                continue
+                
+            first_movement = movements[0]
+            total_value = sum(m.quantity * (m.unit_cost or 0) for m in movements)
+            
+            adjustments.append({
+                'id': first_movement.id,  # Use first movement ID as reference
+                'reference_id': key.split('_')[2] if len(key.split('_')) > 2 else None,
+                'adjustment_date': first_movement.created_at.strftime('%Y-%m-%d'),
+                'items_count': len(movements),
+                'subtotal': total_value,
+                'total_value': total_value,
+                'remarks': first_movement.reason,
+                'created_by': first_movement.user.username if first_movement.user else 'System',
+                'created_date': first_movement.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        return jsonify({'records': adjustments})
+    except Exception as e:
+        return jsonify({'error': f'Error loading adjustments: {str(e)}'}), 500
+
+@app.route('/api/inventory/adjustments/<int:adjustment_id>')
+@login_required
+def api_get_adjustment(adjustment_id):
+    """Get specific adjustment details"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get the movement record
+        movement = StockMovement.query.get(adjustment_id)
+        if not movement:
+            return jsonify({'error': 'Adjustment not found'}), 404
+
+        # Get all related movements (same reason and date)
+        related_movements = StockMovement.query.filter(
+            StockMovement.reason == movement.reason,
+            StockMovement.created_at == movement.created_at,
+            StockMovement.created_by == movement.created_by
+        ).all()
+
+        items = []
+        total_value = 0
+        for mov in related_movements:
+            line_total = mov.quantity * (mov.unit_cost or 0)
+            total_value += line_total
+            items.append({
+                'product_name': mov.product.name if mov.product else 'Unknown',
+                'quantity_added': float(mov.quantity),
+                'unit_cost': float(mov.unit_cost or 0),
+                'line_total': line_total
+            })
+
+        return jsonify({
+            'id': adjustment_id,
+            'reference_id': movement.reason.split(' - ')[1] if ' - ' in movement.reason else None,
+            'adjustment_date': movement.created_at.strftime('%Y-%m-%d'),
+            'created_by': movement.user.username if movement.user else 'System',
+            'created_date': movement.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'remarks': movement.reason,
+            'items': items,
+            'subtotal': total_value,
+            'tax': 0,  # No tax calculation for now
+            'total_value': total_value
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error loading adjustment: {str(e)}'}), 500
+
+@app.route('/api/inventory/adjustments/<int:adjustment_id>', methods=['DELETE'])
+@login_required
+def api_delete_adjustment(adjustment_id):
+    """Delete adjustment and reverse stock changes"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get the movement record
+        movement = StockMovement.query.get(adjustment_id)
+        if not movement:
+            return jsonify({'error': 'Adjustment not found'}), 404
+
+        # Get all related movements (same reason and date)
+        related_movements = StockMovement.query.filter(
+            StockMovement.reason == movement.reason,
+            StockMovement.created_at == movement.created_at,
+            StockMovement.created_by == movement.created_by
+        ).all()
+
+        # Reverse each movement
+        for mov in related_movements:
+            product = get_product_by_id(mov.product_id)
+            if product:
+                # Subtract the quantity that was originally added
+                new_stock = product.current_stock - mov.quantity
+                update_stock(
+                    product_id=mov.product_id,
+                    new_quantity=new_stock,
+                    movement_type='adjustment_reversal',
+                    reason=f"Adjustment deleted - Reversed: {mov.reason}",
+                    reference_type='adjustment_deleted',
+                    reference_id=mov.id,
+                    user_id=current_user.id
+                )
+
+        # Delete the original movement records
+        for mov in related_movements:
+            db.session.delete(mov)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Adjustment deleted successfully. Stock levels have been reversed for {len(related_movements)} items.'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error deleting adjustment: {str(e)}'}), 500
 
 # ============ API ENDPOINTS ============
 
