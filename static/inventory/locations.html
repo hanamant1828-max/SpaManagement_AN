@@ -242,13 +242,13 @@
     }
 
     window.saveLocation = function() {
-        const locationId = document.getElementById('locationId').value;
+        const locationId = editingLocationId;
         const locationData = {
-            name: document.getElementById('locationName').value,
-            type: document.getElementById('locationType').value,
-            address: document.getElementById('locationAddress').value,
-            contact_person: document.getElementById('locationContact').value,
-            phone: document.getElementById('locationPhone').value,
+            name: document.getElementById('locationName').value.trim(),
+            type: document.getElementById('locationType').value.trim(),
+            address: document.getElementById('locationAddress').value.trim(),
+            contact_person: document.getElementById('locationContact').value.trim(),
+            phone: document.getElementById('locationPhone').value.trim(),
             status: document.getElementById('locationStatus').value
         };
 
@@ -265,6 +265,25 @@
             method: method,
             headers: {
                 'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(locationData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('locationModal'));
+                modal.hide();
+                loadLocations();
+                showToast(data.message, 'success');
+            } else {
+                alert(data.error || 'Failed to save location. Please check your input.');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving location:', error);
+            showToast('Error saving location. Please try again.', 'error');
+        });
+    }ontent-Type': 'application/json',
             },
             body: JSON.stringify(locationData)
         })

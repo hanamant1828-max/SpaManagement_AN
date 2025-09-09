@@ -24,24 +24,20 @@ class InventoryLocation(db.Model):
     @property
     def total_products(self):
         """Get total number of products with stock in this location"""
-        products = InventoryProduct.query.all()
-        count = 0
-        for product in products:
-            if product.location_stock and self.id in product.location_stock:
-                if product.location_stock[self.id] > 0:
-                    count += 1
-        return count
+        # Use the location field instead of location_stock for now
+        products_in_location = InventoryProduct.query.filter_by(location=self.name).all()
+        return len([p for p in products_in_location if (p.current_stock or 0) > 0])
     
     @property
     def total_stock_value(self):
         """Calculate total stock value for this location"""
-        products = InventoryProduct.query.all()
+        # Use the location field instead of location_stock for now
+        products_in_location = InventoryProduct.query.filter_by(location=self.name).all()
         total_value = 0
-        for product in products:
-            if product.location_stock and self.id in product.location_stock:
-                stock = product.location_stock[self.id] or 0
-                cost = product.cost_price or 0
-                total_value += float(stock) * float(cost)
+        for product in products_in_location:
+            stock = float(product.current_stock or 0)
+            cost = float(product.cost_price or 0)
+            total_value += stock * cost
         return total_value
 
 
@@ -92,8 +88,8 @@ class InventoryProduct(db.Model):
     barcode = db.Column(db.String(50))
     location = db.Column(db.String(100))  # Storage location in spa
     
-    # Location-based stock tracking (JSON field)
-    location_stock = db.Column(db.JSON, default=dict)  # {"location_id": quantity}
+    # Location-based stock tracking (JSON field) - Temporarily removed for database compatibility
+    # location_stock = db.Column(db.JSON, default=dict)  # {"location_id": quantity}
     
     # Status tracking
     is_active = db.Column(db.Boolean, default=True)

@@ -1761,6 +1761,18 @@ def api_get_locations():
 
         location_list = []
         for location in locations:
+            # Safe calculation of totals without location_stock dependency
+            total_products = 0
+            total_stock_value = 0.0
+            
+            # Get products in this location (using the 'location' field instead of location_stock)
+            products_in_location = InventoryProduct.query.filter_by(location=location.name).all()
+            total_products = len(products_in_location)
+            
+            for product in products_in_location:
+                if product.current_stock and product.cost_price:
+                    total_stock_value += float(product.current_stock) * float(product.cost_price)
+            
             location_list.append({
                 'id': location.id,
                 'name': location.name,
@@ -1769,13 +1781,14 @@ def api_get_locations():
                 'contact_person': location.contact_person or '',
                 'phone': location.phone or '',
                 'status': location.status,
-                'total_products': location.total_products,
-                'total_stock_value': location.total_stock_value,
+                'total_products': total_products,
+                'total_stock_value': total_stock_value,
                 'created_at': location.created_at.isoformat() if location.created_at else None
             })
 
         return jsonify({'locations': location_list})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': f'Error loading locations: {str(e)}'}), 500
 
 @app.route('/api/inventory/locations', methods=['POST'])
@@ -1793,8 +1806,8 @@ def api_add_location():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
-        # Generate unique ID
-        location_id = data.get('id') or str(uuid.uuid4())[:8]
+        # Generate unique ID if not provided
+        location_id = data.get('id') or f"loc-{str(uuid.uuid4())[:8]}"
 
         # Validation
         if not data.get('name', '').strip():
@@ -1808,13 +1821,18 @@ def api_add_location():
         if existing:
             return jsonify({'error': 'Location with this name already exists'}), 400
 
+        # Check for duplicate ID
+        existing_id = InventoryLocation.query.filter_by(id=location_id).first()
+        if existing_id:
+            location_id = f"loc-{str(uuid.uuid4())[:8]}"  # Generate new ID if collision
+
         location = InventoryLocation(
             id=location_id,
             name=data['name'].strip(),
             type=data['type'].strip(),
-            address=data.get('address', '').strip(),
-            contact_person=data.get('contact_person', '').strip(),
-            phone=data.get('phone', '').strip(),
+            address=data.get('address', '').strip() or None,
+            contact_person=data.get('contact_person', '').strip() or None,
+            phone=data.get('phone', '').strip() or None,
             status=data.get('status', 'active')
         )
 
