@@ -286,7 +286,7 @@
                                                     <th>Actions</th>
                                                 </tr>
                                             </thead>
-                                            <tbody id="productsTableBody">
+                                            <tbody id="productMasterTableBody">
                                                 <!-- Products will be loaded via JavaScript -->
                                             </tbody>
                                         </table>
@@ -1013,6 +1013,8 @@
 let allProducts = [];
 let currentPage = 1;
 let currentSearch = '';
+let editingConsumptionId = null; // Variable to store the ID of the consumption record being edited
+let deletingConsumptionId = null; // Variable to store the ID of the consumption record being deleted
 
 // Initialize Product Master functionality
 document.addEventListener('DOMContentLoaded', function() {
@@ -1023,33 +1025,52 @@ document.addEventListener('DOMContentLoaded', function() {
         loadProducts();
     });
 
-    // Add product form handler
-    document.getElementById('addProductForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    // Add product form handler for Product Master
+    const addProductForm = document.getElementById('addProductForm');
+    if (addProductForm) {
+        addProductForm.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        const formData = new FormData(this);
+            const formData = new FormData(this);
 
-        fetch('/inventory/products/add', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-                modal.hide();
-                loadProducts();
-                alert(data.message);
-                this.reset();
-            } else {
-                alert(data.error || 'Error adding product');
+            // Validate required fields
+            const sku = formData.get('sku');
+            const name = formData.get('name');
+
+            if (!sku || !sku.trim()) {
+                alert('SKU is required');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error adding product');
+
+            if (!name || !name.trim()) {
+                alert('Product name is required');
+                return;
+            }
+
+            fetch('/inventory/products/add', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                    modal.hide();
+                    // Clear form
+                    this.reset();
+                    // Reload the Product Master table
+                    loadProducts();
+                    alert(data.message || 'Product added successfully');
+                } else {
+                    alert(data.error || 'Error adding product');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding product. Please try again.');
+            });
         });
-    });
+    }
 
     // Edit product form handler
     document.getElementById('editProductForm').addEventListener('submit', function(e) {
@@ -1112,99 +1133,70 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function loadProducts() {
-    // Get products from the existing inventory_products route with AJAX
-    fetch('/inventory/products')
-        .then(response => response.text())
-        .then(html => {
-            // Parse the HTML to extract product data
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const productRows = doc.querySelectorAll('tbody tr');
+// Load products for Product Master tab
+    function loadProducts() {
+        fetch('/api/inventory/products/master')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('productMasterTableBody');
+                tbody.innerHTML = '';
 
-            allProducts = [];
-            productRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length > 1) {
-                    const nameCell = cells[0];
-                    const categoryCell = cells[1];
-                    const stockCell = cells[2];
-                    const statusCell = cells[3];
-                    const costCell = cells[4];
-                    const locationCell = cells[6];
+                data.forEach(product => {
+                    const statusBadgeClass = getStatusClass(product.status);
+                    const statusText = getStatusText(product.status);
+                    const categoryDisplay = product.category ? 
+                        `<span class="badge" style="background-color: ${product.category_color};">${product.category}</span>` : 
+                        '-';
 
-                    const nameDiv = nameCell.querySelector('div');
-                    const skuSmall = nameDiv ? nameDiv.querySelector('small') : null;
-
-                    allProducts.push({
-                        name: nameDiv ? nameDiv.querySelector('.fw-medium').textContent.trim() : '',
-                        sku: skuSmall ? skuSmall.textContent.replace('SKU: ', '') : '',
-                        category: categoryCell.querySelector('span') ? categoryCell.querySelector('span').textContent.trim() : '-',
-                        stock: stockCell.querySelector('strong').textContent.trim(),
-                        status: statusCell.querySelector('span').textContent.trim(),
-                        cost: costCell.textContent.trim(),
-                        location: locationCell.textContent.trim(),
-                        actions: cells[7].innerHTML
-                    });
-                }
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${product.sku}</td>
+                        <td>${product.name}</td>
+                        <td>${categoryDisplay}</td>
+                        <td>${product.unit_of_measure}</td>
+                        <td>${product.current_stock}</td>
+                        <td>${product.reorder_level}</td>
+                        <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-warning" onclick="editProduct(${product.id})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteProduct(${product.id})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading products:', error);
+                const tbody = document.getElementById('productMasterTableBody');
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Error loading products</td></tr>';
             });
-
-            displayProducts(allProducts);
-        })
-        .catch(error => {
-            console.error('Error loading products:', error);
-        });
-}
-
-function displayProducts(products) {
-    const tbody = document.getElementById('productsTableBody');
-    tbody.innerHTML = '';
-
-    if (products.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="text-center text-muted py-4">
-                    <i class="fas fa-boxes fa-2x mb-2 opacity-50"></i><br>
-                    No products found
-                </td>
-            </tr>
-        `;
-        return;
     }
 
-    products.forEach((product, index) => {
-        const row = document.createElement('tr');
+function getStatusClass(status) {
+        switch(status) {
+            case 'out_of_stock': return 'bg-danger';
+            case 'low_stock': return 'bg-warning';
+            case 'reorder_needed': return 'bg-info';
+            case 'in_stock': return 'bg-success';
+            default: return 'bg-secondary';
+        }
+    }
 
-        // Extract unit of measure from stock text
-        const stockParts = product.stock.split(' ');
-        const stockValue = stockParts[0];
-        const unitOfMeasure = stockParts.slice(1).join(' ');
-
-        // Extract reorder level from the original data (we'll need to get this from API)
-        const reorderLevel = '20'; // Default for now
-
-        row.innerHTML = `
-            <td><code>${product.sku}</code></td>
-            <td><strong>${product.name}</strong></td>
-            <td>${product.category}</td>
-            <td>${unitOfMeasure}</td>
-            <td>${stockValue}</td>
-            <td>${reorderLevel}</td>
-            <td>${getStatusBadge(product.status)}</td>
-            <td>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-warning" onclick="editProduct('${product.sku}')" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline-danger" onclick="deleteProduct('${product.sku}')" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-}
+    function getStatusText(status) {
+        switch(status) {
+            case 'out_of_stock': return 'Out of Stock';
+            case 'low_stock': return 'Low Stock';
+            case 'reorder_needed': return 'Reorder';
+            case 'in_stock': return 'In Stock';
+            default: return 'Unknown';
+        }
+    }
 
 function getStatusBadge(status) {
     const statusMap = {
@@ -1240,9 +1232,9 @@ function clearFilters() {
     displayProducts(allProducts);
 }
 
-function editProduct(sku) {
-    // Find product by SKU and populate edit modal
-    fetch(`/api/inventory/product/sku/${sku}`)
+function editProduct(id) {
+    // Find product by ID and populate edit modal
+    fetch(`/api/inventory/products/${id}`)
         .then(response => response.json())
         .then(product => {
             document.getElementById('editProductId').value = product.id;
@@ -1270,30 +1262,24 @@ function editProduct(sku) {
         });
 }
 
-function deleteProduct(sku) {
+function deleteProduct(id) {
     if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-        // First get the product ID by SKU
-        fetch(`/api/inventory/product/sku/${sku}`)
-            .then(response => response.json())
-            .then(product => {
-                // Now delete the product
-                return fetch(`/inventory/products/${product.id}/delete`, {
-                    method: 'POST'
-                });
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadProducts();
-                    alert(data.message);
-                } else {
-                    alert(data.error || 'Error deleting product');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error deleting product');
-            });
+        fetch(`/inventory/products/${id}/delete`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadProducts();
+                alert(data.message);
+            } else {
+                alert(data.error || 'Error deleting product');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting product');
+        });
     }
 }
 
@@ -1370,28 +1356,68 @@ function loadProductsForConsumption() {
 }
 
 function editConsumption(id) {
-    alert('Edit consumption functionality to be implemented');
+    editingConsumptionId = id; // Store the ID of the consumption record to edit
+
+    fetch(`/api/inventory/consumption/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('editConsumptionProduct').value = data.product_id;
+            document.getElementById('editConsumptionDate').value = data.consumption_date;
+            document.getElementById('editConsumptionQuantity').value = data.quantity_used;
+            document.getElementById('editConsumptionIssuedTo').value = data.issued_to;
+            document.getElementById('editConsumptionReference').value = data.reference_doc_no;
+            document.getElementById('editConsumptionNotes').value = data.notes;
+
+            const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error loading consumption record:', error);
+            alert('Error loading consumption record');
+        });
 }
 
 function deleteConsumption(id) {
-    if (confirm('Are you sure you want to delete this consumption record?')) {
-        fetch(`/inventory/consumption/${id}/delete`, {
-            method: 'POST'
-        })
+    deletingConsumptionId = id; // Store the ID of the consumption record to delete
+    
+    // Fetch product details to display in the confirmation modal
+    fetch(`/api/inventory/consumption/${id}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                loadConsumptionData();
-                alert(data.message);
-            } else {
-                alert(data.error || 'Error deleting consumption record');
-            }
+            const productName = data.product_name;
+            const date = data.consumption_date;
+            document.getElementById('deleteConsumptionDetails').textContent = `${productName} on ${date}`;
+            const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
+            modal.show();
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting consumption record');
+            console.error('Error fetching consumption details for deletion:', error);
+            // If fetching fails, proceed with a generic message
+            document.getElementById('deleteConsumptionDetails').textContent = 'this record';
+            const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
+            modal.show();
         });
-    }
+}
+
+// Placeholder for confirmDeleteConsumption function if it needs to be defined globally
+function confirmDeleteConsumption() {
+    fetch(`/inventory/consumption/${deletingConsumptionId}/delete`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('deleteConsumptionModal')).hide();
+            loadConsumptionRecords(currentPage, currentSearch); // Reload current view
+            alert('Consumption record deleted successfully');
+        } else {
+            alert(data.error || 'Error deleting consumption record');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting consumption record:', error);
+        alert('Error deleting consumption record');
+    });
 }
 
 // Consumption management pagination and search
@@ -1466,7 +1492,7 @@ function renderConsumptionTable(records) {
                         <i class="fas fa-edit"></i>
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-danger" 
-                            onclick="deleteConsumption(${record.id}, '${record.product_name}', '${record.consumption_date}')" 
+                            onclick="deleteConsumption(${record.id})" 
                             title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -1606,7 +1632,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData(this);
 
-            fetch(`/inventory/consumption/${editingConsumptionId}/edit`, { // Assuming editingConsumptionId is set in editConsumption
+            fetch(`/inventory/consumption/${editingConsumptionId}/edit`, { 
                 method: 'POST',
                 body: formData
             })
@@ -1638,59 +1664,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-// Placeholder for editConsumption function if it needs to be defined globally
-function editConsumption(id) {
-    editingConsumptionId = id; // Store the ID of the consumption record to edit
-
-    fetch(`/api/inventory/consumption/${id}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('editConsumptionProduct').value = data.product_id;
-            document.getElementById('editConsumptionDate').value = data.consumption_date;
-            document.getElementById('editConsumptionQuantity').value = data.quantity_used;
-            document.getElementById('editConsumptionIssuedTo').value = data.issued_to;
-            document.getElementById('editConsumptionReference').value = data.reference_doc_no;
-            document.getElementById('editConsumptionNotes').value = data.notes;
-
-            const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
-            modal.show();
-        })
-        .catch(error => {
-            console.error('Error loading consumption record:', error);
-            alert('Error loading consumption record');
-        });
-}
-
-// Placeholder for deleteConsumption function if it needs to be defined globally
-function deleteConsumption(id, productName, date) {
-    deletingConsumptionId = id; // Store the ID of the consumption record to delete
-    document.getElementById('deleteConsumptionDetails').textContent = `${productName} - ${date}`;
-
-    const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
-    modal.show();
-}
-
-// Placeholder for confirmDeleteConsumption function if it needs to be defined globally
-function confirmDeleteConsumption() {
-    fetch(`/inventory/consumption/${deletingConsumptionId}/delete`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('deleteConsumptionModal')).hide();
-            loadConsumptionRecords(currentPage, currentSearch); // Reload current view
-            alert('Consumption record deleted successfully');
-        } else {
-            alert(data.error || 'Error deleting consumption record');
-        }
-    })
-    .catch(error => {
-        console.error('Error deleting consumption record:', error);
-        alert('Error deleting consumption record');
-    });
-}
 
 </script>
 {% endblock %}

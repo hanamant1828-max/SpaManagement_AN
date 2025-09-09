@@ -111,11 +111,27 @@ def add_product():
         return redirect(url_for('inventory_products'))
     
     try:
+        # Safely get form data with proper null checking
+        sku = request.form.get('sku')
+        name = request.form.get('name')
+        description = request.form.get('description') or ''
+        category_id = request.form.get('category_id')
+        unit_of_measure = request.form.get('unit_of_measure') or 'pcs'
+        barcode = request.form.get('barcode') or ''
+        location = request.form.get('location') or ''
+        
+        # Validation first
+        if not sku or not sku.strip():
+            return jsonify({'error': 'SKU is required'}), 400
+        
+        if not name or not name.strip():
+            return jsonify({'error': 'Product name is required'}), 400
+        
         product_data = {
-            'sku': request.form.get('sku').strip(),
-            'name': request.form.get('name').strip(),
-            'description': request.form.get('description', '').strip(),
-            'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
+            'sku': sku.strip(),
+            'name': name.strip(),
+            'description': description.strip(),
+            'category_id': int(category_id) if category_id and category_id.strip() else None,
             'supplier_id': None,  # Remove supplier requirement
             'current_stock': float(request.form.get('current_stock', 0)),
             'min_stock_level': float(request.form.get('min_stock_level', 10)),
@@ -123,19 +139,12 @@ def add_product():
             'reorder_point': float(request.form.get('reorder_point', 20)),
             'cost_price': float(request.form.get('cost_price', 0)),
             'selling_price': float(request.form.get('selling_price', 0)),
-            'unit_of_measure': request.form.get('unit_of_measure', 'pcs').strip(),
-            'barcode': request.form.get('barcode', '').strip(),
-            'location': request.form.get('location', '').strip(),
+            'unit_of_measure': unit_of_measure.strip(),
+            'barcode': barcode.strip(),
+            'location': location.strip(),
             'is_service_item': 'is_service_item' in request.form,
             'is_retail_item': 'is_retail_item' in request.form
         }
-        
-        # Validation
-        if not product_data['name']:
-            return jsonify({'error': 'Product name is required'}), 400
-        
-        if not product_data['sku']:
-            return jsonify({'error': 'SKU is required'}), 400
         
         product = create_product(product_data)
         
@@ -962,3 +971,24 @@ def api_products_for_consumption():
         'current_stock': float(product.current_stock),
         'unit_of_measure': product.unit_of_measure
     } for product in products if product.current_stock > 0])
+
+@app.route('/api/inventory/products/master')
+@login_required
+def api_products_master():
+    """Get all products for Product Master table"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    products = get_all_products()
+    return jsonify([{
+        'id': product.id,
+        'sku': product.sku,
+        'name': product.name,
+        'category': product.category.name if product.category else '',
+        'category_color': product.category.color_code if product.category else '#6c757d',
+        'unit_of_measure': product.unit_of_measure,
+        'current_stock': float(product.current_stock),
+        'reorder_level': float(product.reorder_point),
+        'status': product.stock_status,
+        'location': product.location or ''
+    } for product in products])
