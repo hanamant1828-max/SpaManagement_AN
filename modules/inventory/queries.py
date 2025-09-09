@@ -197,7 +197,10 @@ def remove_stock(product_id, quantity, reason="", reference_type=None, reference
     """Remove stock from product"""
     product = get_product_by_id(product_id)
     if product:
-        new_quantity = max(0, product.current_stock - quantity)
+        # Convert to float to handle decimal/float type mixing
+        current_stock = float(product.current_stock or 0)
+        quantity = float(quantity)
+        new_quantity = max(0, current_stock - quantity)
         return update_stock(product_id, new_quantity, 'out', reason, reference_type, reference_id, user_id)
     return None
 
