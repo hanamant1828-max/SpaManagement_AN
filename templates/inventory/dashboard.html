@@ -471,13 +471,17 @@
                         <!-- Orders Tab -->
                         <div class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">Order Management</h5>
+                                <h5 class="mb-0">Purchase Order Management</h5>
                                 <div>
-                                    <button type="button" class="btn btn-outline-secondary me-2">
-                                        <i class="fas fa-filter me-1"></i>Filter
-                                    </button>
-                                    <button type="button" class="btn btn-primary">
-                                        <i class="fas fa-plus me-1"></i>New Order
+                                    <select class="form-select me-2" id="orderStatusFilter" onchange="filterPurchaseOrders()" style="width: auto; display: inline-block;">
+                                        <option value="all">All Orders</option>
+                                        <option value="draft">Draft</option>
+                                        <option value="sent">Sent</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="received">Received</option>
+                                    </select>
+                                    <button type="button" class="btn btn-primary" onclick="openAddPurchaseModal()">
+                                        <i class="fas fa-plus me-1"></i>New Purchase Order
                                     </button>
                                 </div>
                             </div>
@@ -486,20 +490,20 @@
                                 <table class="table table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Order ID</th>
-                                            <th>Customer</th>
+                                            <th>PO Number</th>
+                                            <th>Supplier</th>
                                             <th>Items</th>
-                                            <th>Total</th>
+                                            <th>Total Amount</th>
                                             <th>Status</th>
-                                            <th>Date</th>
+                                            <th>Order Date</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="purchaseOrderTableBody">
                                         <tr>
                                             <td colspan="7" class="text-center py-4 text-muted">
-                                                <i class="fas fa-clipboard-list fa-2x mb-3 opacity-50"></i>
-                                                <p class="mb-0">Order management coming soon</p>
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                <span class="ms-2">Loading purchase orders...</span>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -2344,5 +2348,416 @@
         </div>
     </div>
 </div>
+
+<!-- Receive Purchase Order Modal -->
+<div class="modal fade" id="receivePurchaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Receive Purchase Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="receivePurchaseForm">
+                <div class="modal-body">
+                    <input type="hidden" id="receivePurchaseOrderId">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Receiving items will automatically update stock levels in your inventory.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Purchase Order: <span id="receivePONumber"></span></h6>
+                        <p class="text-muted mb-0">Supplier: <span id="receiveSupplierName"></span></p>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Ordered</th>
+                                    <th>Previously Received</th>
+                                    <th>Receive Now</th>
+                                    <th>Remaining</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receiveItemsTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Receive Items & Update Stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Purchase Order Modal -->
+<div class="modal fade" id="addPurchaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Purchase Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This is a simplified purchase order creation. Use this to quickly add items that you've received.
+                </div>
+                <form id="addPurchaseForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                            <select name="supplier_id" id="purchaseSupplier" class="form-select" required>
+                                <option value="">Select Supplier</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Expected Delivery</label>
+                            <input type="date" name="expected_delivery" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Order notes or reference"></textarea>
+                    </div>
+                    
+                    <hr>
+                    <h6>Items</h6>
+                    <div id="purchaseItemsContainer">
+                        <div class="row mb-2 purchase-item">
+                            <div class="col-md-5">
+                                <select name="product_id[]" class="form-select" required>
+                                    <option value="">Select Product</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" name="quantity[]" class="form-control" placeholder="Quantity" step="0.01" required>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="unit_cost[]" class="form-control" placeholder="Unit Cost" step="0.01" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removePurchaseItem(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addPurchaseItem()">
+                        <i class="fas fa-plus me-1"></i>Add Item
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePurchaseOrder()">
+                    <i class="fas fa-save me-1"></i>Create & Receive Immediately
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Purchase Order Management Functions
+let allPurchaseOrders = [];
+
+// Load purchase orders when the tab is activated
+document.getElementById('orders-tab').addEventListener('click', function() {
+    if (this.classList.contains('active')) return; // Already loaded
+    loadPurchaseOrders();
+});
+
+function loadPurchaseOrders() {
+    fetch('/api/inventory/purchase-orders')
+        .then(response => response.json())
+        .then(data => {
+            allPurchaseOrders = data;
+            displayPurchaseOrders(data);
+        })
+        .catch(error => {
+            console.error('Error loading purchase orders:', error);
+            const tbody = document.getElementById('purchaseOrderTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Error loading purchase orders. Please try again later.</td></tr>';
+        });
+}
+
+function displayPurchaseOrders(orders) {
+    const tbody = document.getElementById('purchaseOrderTableBody');
+    tbody.innerHTML = '';
+
+    if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No purchase orders found.</td></tr>';
+        return;
+    }
+
+    orders.forEach(order => {
+        const statusBadgeClass = getOrderStatusClass(order.status);
+        const statusText = getOrderStatusText(order.status);
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${order.po_number}</strong></td>
+            <td>${order.supplier_name || 'Unknown'}</td>
+            <td>${order.items_count || 0} items</td>
+            <td>$${parseFloat(order.total_amount || 0).toFixed(2)}</td>
+            <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
+            <td>${order.order_date || '-'}</td>
+            <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-info" onclick="viewPurchaseOrder(${order.id})" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${order.status !== 'received' ? `
+                        <button class="btn btn-outline-success" onclick="receivePurchaseOrder(${order.id})" title="Receive Items">
+                            <i class="fas fa-truck-loading"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getOrderStatusClass(status) {
+    switch(status) {
+        case 'draft': return 'bg-secondary';
+        case 'sent': return 'bg-info';
+        case 'confirmed': return 'bg-warning';
+        case 'received': return 'bg-success';
+        default: return 'bg-secondary';
+    }
+}
+
+function getOrderStatusText(status) {
+    switch(status) {
+        case 'draft': return 'Draft';
+        case 'sent': return 'Sent';
+        case 'confirmed': return 'Confirmed';
+        case 'received': return 'Received';
+        default: return status;
+    }
+}
+
+function filterPurchaseOrders() {
+    const filterValue = document.getElementById('orderStatusFilter').value;
+    let filteredOrders = allPurchaseOrders;
+    
+    if (filterValue !== 'all') {
+        filteredOrders = allPurchaseOrders.filter(order => order.status === filterValue);
+    }
+    
+    displayPurchaseOrders(filteredOrders);
+}
+
+function receivePurchaseOrder(poId) {
+    fetch(`/api/inventory/purchase-order/${poId}`)
+        .then(response => response.json())
+        .then(order => {
+            if (order.error) {
+                throw new Error(order.error);
+            }
+            
+            // Populate the receive modal
+            document.getElementById('receivePurchaseOrderId').value = poId;
+            document.getElementById('receivePONumber').textContent = order.po_number;
+            document.getElementById('receiveSupplierName').textContent = order.supplier_name;
+            
+            const tableBody = document.getElementById('receiveItemsTable');
+            tableBody.innerHTML = '';
+            
+            order.items.forEach(item => {
+                const remaining = item.quantity_ordered - item.quantity_received;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div>${item.product_name}</div>
+                        <small class="text-muted">SKU: ${item.product_sku}</small>
+                        <input type="hidden" name="item_id[]" value="${item.id}">
+                    </td>
+                    <td>${item.quantity_ordered} ${item.unit_of_measure}</td>
+                    <td>${item.quantity_received} ${item.unit_of_measure}</td>
+                    <td>
+                        <input type="number" name="quantity_received[]" class="form-control form-control-sm" 
+                               value="${remaining}" max="${remaining}" min="0" step="0.01">
+                    </td>
+                    <td class="remaining-qty">${remaining} ${item.unit_of_measure}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('receivePurchaseModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error loading purchase order:', error);
+            showToast(`Error loading purchase order: ${error.message}`, 'danger');
+        });
+}
+
+// Handle receive purchase form submission
+document.getElementById('receivePurchaseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const poId = document.getElementById('receivePurchaseOrderId').value;
+    const formData = new FormData(this);
+    
+    // Build items data
+    const items = [];
+    const itemIds = formData.getAll('item_id[]');
+    const quantities = formData.getAll('quantity_received[]');
+    
+    for (let i = 0; i < itemIds.length; i++) {
+        if (quantities[i] && parseFloat(quantities[i]) > 0) {
+            items.push({
+                item_id: parseInt(itemIds[i]),
+                quantity_received: parseFloat(quantities[i])
+            });
+        }
+    }
+    
+    if (items.length === 0) {
+        showToast('Please enter quantities to receive', 'warning');
+        return;
+    }
+    
+    // Submit to API
+    fetch(`/api/inventory/purchase-order/${poId}/receive`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: items })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message with stock updates
+            let message = data.message;
+            if (data.stock_updates && data.stock_updates.length > 0) {
+                message += '\n\nStock Updated:';
+                data.stock_updates.forEach(update => {
+                    message += `\n• ${update.product_name}: +${update.quantity_added} ${update.unit_of_measure} (New Stock: ${update.new_stock_level})`;
+                });
+            }
+            
+            showToast(message, 'success');
+            
+            // Close modal and refresh data
+            bootstrap.Modal.getInstance(document.getElementById('receivePurchaseModal')).hide();
+            loadPurchaseOrders();
+            loadProducts(); // Refresh product list
+            
+        } else {
+            throw new Error(data.error || 'Failed to receive purchase order');
+        }
+    })
+    .catch(error => {
+        console.error('Error receiving purchase order:', error);
+        showToast(`Error: ${error.message}`, 'danger');
+    });
+});
+
+function openAddPurchaseModal() {
+    // Load suppliers and products for the form
+    Promise.all([
+        fetch('/api/inventory/suppliers').then(r => r.json()),
+        fetch('/api/inventory/products/for-consumption').then(r => r.json())
+    ])
+    .then(([suppliers, products]) => {
+        // Populate suppliers
+        const supplierSelect = document.getElementById('purchaseSupplier');
+        supplierSelect.innerHTML = '<option value="">Select Supplier</option>';
+        suppliers.forEach(supplier => {
+            supplierSelect.innerHTML += `<option value="${supplier.id}">${supplier.name}</option>`;
+        });
+        
+        // Populate products in all product selects
+        const productSelects = document.querySelectorAll('#addPurchaseModal select[name="product_id[]"]');
+        productSelects.forEach(select => {
+            select.innerHTML = '<option value="">Select Product</option>';
+            products.forEach(product => {
+                select.innerHTML += `<option value="${product.id}">${product.name} (${product.sku})</option>`;
+            });
+        });
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('addPurchaseModal'));
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error loading form data:', error);
+        showToast('Error loading form data', 'danger');
+    });
+}
+
+function addPurchaseItem() {
+    const container = document.getElementById('purchaseItemsContainer');
+    const newItem = container.querySelector('.purchase-item').cloneNode(true);
+    
+    // Clear values and update selects
+    newItem.querySelectorAll('input').forEach(input => input.value = '');
+    newItem.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+    
+    container.appendChild(newItem);
+}
+
+function removePurchaseItem(button) {
+    const container = document.getElementById('purchaseItemsContainer');
+    if (container.children.length > 1) {
+        button.closest('.purchase-item').remove();
+    }
+}
+
+function savePurchaseOrder() {
+    const form = document.getElementById('addPurchaseForm');
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!formData.get('supplier_id')) {
+        showToast('Please select a supplier', 'warning');
+        return;
+    }
+    
+    // Check if at least one item is added
+    const productIds = formData.getAll('product_id[]').filter(id => id);
+    if (productIds.length === 0) {
+        showToast('Please add at least one item', 'warning');
+        return;
+    }
+    
+    // Submit form
+    fetch('/inventory/orders/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            // Success - refresh and close modal
+            showToast('Purchase order created and items received successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addPurchaseModal')).hide();
+            loadPurchaseOrders();
+            loadProducts(); // Refresh product list
+        } else {
+            throw new Error('Failed to create purchase order');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating purchase order:', error);
+        showToast('Error creating purchase order', 'danger');
+    });
+}
+
+</script>
 
 {% endblock %}

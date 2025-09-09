@@ -693,6 +693,106 @@ def receive_purchase_api(po_id):
     except Exception as e:
         return jsonify({'error': f'Error receiving purchase order: {str(e)}'}), 500
 
+@app.route('/api/inventory/purchase-orders')
+@login_required
+def get_purchase_orders_api():
+    """API endpoint to get all purchase orders"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        orders = get_purchase_orders()
+        orders_data = []
+        
+        for order in orders:
+            orders_data.append({
+                'id': order.id,
+                'po_number': order.po_number,
+                'supplier_name': order.supplier.name if order.supplier else 'Unknown',
+                'items_count': len(order.items),
+                'total_amount': float(order.total_amount) if order.total_amount else 0,
+                'status': order.status,
+                'order_date': order.order_date.strftime('%Y-%m-%d') if order.order_date else None,
+                'created_at': order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else None
+            })
+        
+        return jsonify(orders_data)
+        
+    except Exception as e:
+        return jsonify({'error': f'Error fetching purchase orders: {str(e)}'}), 500
+
+@app.route('/api/inventory/purchase-order/<int:po_id>')
+@login_required
+def get_purchase_order_details_api(po_id):
+    """API endpoint to get purchase order details"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        order = get_purchase_order_by_id(po_id)
+        if not order:
+            return jsonify({'error': 'Purchase order not found'}), 404
+        
+        items_data = []
+        for item in order.items:
+            items_data.append({
+                'id': item.id,
+                'product_id': item.product_id,
+                'product_name': item.product.name if item.product else 'Unknown Product',
+                'product_sku': item.product.sku if item.product else 'N/A',
+                'unit_of_measure': item.product.unit_of_measure if item.product else 'pcs',
+                'quantity_ordered': float(item.quantity_ordered),
+                'quantity_received': float(item.quantity_received),
+                'unit_cost': float(item.unit_cost),
+                'total_cost': float(item.total_cost),
+                'is_fully_received': item.is_fully_received
+            })
+        
+        order_data = {
+            'id': order.id,
+            'po_number': order.po_number,
+            'supplier_name': order.supplier.name if order.supplier else 'Unknown',
+            'supplier_id': order.supplier_id,
+            'status': order.status,
+            'order_date': order.order_date.strftime('%Y-%m-%d') if order.order_date else None,
+            'expected_delivery': order.expected_delivery.strftime('%Y-%m-%d') if order.expected_delivery else None,
+            'delivery_address': order.delivery_address,
+            'notes': order.notes,
+            'total_amount': float(order.total_amount) if order.total_amount else 0,
+            'items': items_data
+        }
+        
+        return jsonify(order_data)
+        
+    except Exception as e:
+        return jsonify({'error': f'Error fetching purchase order: {str(e)}'}), 500
+
+@app.route('/api/inventory/suppliers')
+@login_required
+def get_suppliers_api():
+    """API endpoint to get all suppliers"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        suppliers = get_all_suppliers()
+        suppliers_data = []
+        
+        for supplier in suppliers:
+            suppliers_data.append({
+                'id': supplier.id,
+                'name': supplier.name,
+                'contact_person': supplier.contact_person,
+                'email': supplier.email,
+                'phone': supplier.phone,
+                'is_active': supplier.is_active
+            })
+        
+        return jsonify(suppliers_data)
+        
+    except Exception as e:
+        return jsonify({'error': f'Error fetching suppliers: {str(e)}'}), 500
+
 # ============ ALERTS AND REPORTING ============
 
 @app.route('/inventory/alerts')
