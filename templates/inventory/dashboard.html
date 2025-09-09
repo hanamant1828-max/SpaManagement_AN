@@ -58,36 +58,36 @@
                 <div class="card-header bg-transparent border-0 pb-0">
                     <ul class="nav nav-tabs border-0" id="inventoryTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="stock-levels-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#stock-levels" type="button" role="tab" 
+                            <button class="nav-link active" id="stock-levels-tab" data-bs-toggle="tab"
+                                    data-bs-target="#stock-levels" type="button" role="tab"
                                     aria-controls="stock-levels" aria-selected="true">
                                 <i class="fas fa-chart-bar me-2"></i>Stock Levels
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="product-master-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#product-master" type="button" role="tab" 
+                            <button class="nav-link" id="product-master-tab" data-bs-toggle="tab"
+                                    data-bs-target="#product-master" type="button" role="tab"
                                     aria-controls="product-master" aria-selected="false">
                                 <i class="fas fa-boxes me-1"></i>Product Master
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="categories-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#categories" type="button" role="tab" 
+                            <button class="nav-link" id="categories-tab" data-bs-toggle="tab"
+                                    data-bs-target="#categories" type="button" role="tab"
                                     aria-controls="categories" aria-selected="false">
                                 <i class="fas fa-tags me-2"></i>Category Management
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="orders-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#orders" type="button" role="tab" 
+                            <button class="nav-link" id="orders-tab" data-bs-toggle="tab"
+                                    data-bs-target="#orders" type="button" role="tab"
                                     aria-controls="orders" aria-selected="false">
                                 <i class="fas fa-shopping-cart me-2"></i>Purchase Orders
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="consumption-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#consumption" type="button" role="tab" 
+                            <button class="nav-link" id="consumption-tab" data-bs-toggle="tab"
+                                    data-bs-target="#consumption" type="button" role="tab"
                                     aria-controls="consumption" aria-selected="false">
                                 <i class="fas fa-minus-circle me-2"></i>Consumption
                             </button>
@@ -207,7 +207,7 @@
                                                         <div class="flex-grow-1 ms-3">
                                                             <div class="fw-medium">{{ movement.product.name }}</div>
                                                             <small class="text-muted">
-                                                                {{ movement.reason or 'Stock movement' }} • 
+                                                                {{ movement.reason or 'Stock movement' }} •
                                                                 {{ movement.created_at.strftime('%m/%d/%H:%M') }}
                                                             </small>
                                                         </div>
@@ -323,7 +323,7 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <span class="badge rounded-pill me-2" 
+                                                    <span class="badge rounded-pill me-2"
                                                           style="background-color: {{ category.color_code }}; width: 20px; height: 20px;">&nbsp;</span>
                                                 </div>
                                             </td>
@@ -350,19 +350,19 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-end gap-1">
-                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    <button type="button" class="btn btn-sm btn-outline-primary"
                                                             onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}', '{{ category.color_code }}')"
                                                             title="Edit Category">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                     {% if category.products|length == 0 %}
-                                                    <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                            onclick="deleteCategory({{ category.id }}, '{{ category.name }}')" 
+                                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                                            onclick="deleteCategory({{ category.id }}, '{{ category.name }}')"
                                                             title="Delete Category">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                     {% else %}
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled 
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled
                                                             title="Cannot delete - has associated products">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -436,12 +436,12 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-end gap-1">
-                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    <button type="button" class="btn btn-sm btn-outline-primary"
                                                             title="View Details">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
                                                     {% if order.status == 'pending' %}
-                                                    <button type="button" class="btn btn-sm btn-outline-success" 
+                                                    <button type="button" class="btn btn-sm btn-outline-success"
                                                             title="Mark as Sent">
                                                         <i class="fas fa-paper-plane"></i>
                                                     </button>
@@ -855,9 +855,7 @@
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" id="deleteCategoryForm" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Delete Category</button>
-                </form>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteCategory()">Delete Category</button>
             </div>
         </div>
     </div>
@@ -1050,24 +1048,24 @@
             editProductModal.addEventListener('hidden.bs.modal', function() {
                 const editForm = document.getElementById('editProductForm');
                 const submitButton = editForm.querySelector('button[type="submit"]');
-                
+
                 // Reset form state
                 editForm.classList.remove('was-validated');
                 editForm.reset();
-                
+
                 // Reset button state
                 if (submitButton) {
                     submitButton.disabled = false;
                     submitButton.innerHTML = 'Update Product';
                     delete submitButton.dataset.originalText;
                 }
-                
+
                 // Clear validation feedback
                 const inputs = editForm.querySelectorAll('input, select, textarea');
                 inputs.forEach(input => {
                     input.classList.remove('is-invalid', 'is-valid');
                 });
-                
+
                 const invalidFeedbacks = editForm.querySelectorAll('.invalid-feedback');
                 invalidFeedbacks.forEach(feedback => feedback.style.display = 'none');
             });
@@ -1315,11 +1313,11 @@
                 <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
                 <td>
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" onclick="editProduct(${product.id})" 
+                        <button class="btn btn-outline-primary" onclick="editProduct(${product.id})"
                                 title="Edit Product" data-bs-toggle="tooltip">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-outline-danger" onclick="deleteProduct(${product.id})" 
+                        <button class="btn btn-outline-danger" onclick="deleteProduct(${product.id})"
                                 title="Delete Product" data-bs-toggle="tooltip">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -1674,13 +1672,13 @@
                 </td>
                 <td>
                     <div class="d-flex justify-content-end gap-1">
-                        <button type="button" class="btn btn-sm btn-outline-primary" 
-                                onclick="editConsumption(${record.id})" 
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="editConsumption(${record.id})"
                                 title="Edit Consumption Record" data-bs-toggle="tooltip">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" 
-                                onclick="deleteConsumption(${record.id})" 
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="deleteConsumption(${record.id})"
                                 title="Delete Consumption Record" data-bs-toggle="tooltip">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -1950,6 +1948,61 @@
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
     });
+
+
+    // Category management functions
+    function editCategory(id, name, description, colorCode) {
+        document.getElementById('editCategoryName').value = name;
+        document.getElementById('editCategoryDescription').value = description;
+        document.getElementById('editCategoryColor').value = colorCode;
+        document.getElementById('editCategoryForm').action = `/inventory/categories/${id}/edit`;
+
+        const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+        modal.show();
+    }
+
+    function deleteCategory(id, name) {
+        document.getElementById('deleteCategoryName').textContent = name;
+        document.getElementById('deleteCategoryForm').dataset.categoryId = id;
+
+        const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
+        modal.show();
+    }
+
+    // Handle category deletion
+    function confirmDeleteCategory() {
+        const categoryId = document.getElementById('deleteCategoryForm').dataset.categoryId;
+        const submitButton = document.querySelector('#deleteCategoryModal .btn-danger');
+        const originalText = submitButton.innerHTML;
+
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+
+        fetch(`/inventory/categories/${categoryId}/delete`, {
+            method: 'POST'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to delete category');
+            }
+            return response.text(); // Categories endpoint returns redirect, not JSON
+        })
+        .then(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCategoryModal'));
+            modal.hide();
+            location.reload(); // Reload page to refresh categories table
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error deleting category', 'danger');
+        })
+        .finally(() => {
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        });
+    }
 
 
 </script>

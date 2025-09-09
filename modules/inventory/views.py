@@ -272,19 +272,27 @@ def delete_product_route(product_id):
     
     try:
         # Check if product has stock movements
-        if product.stock_movements:
-            return jsonify({'error': f'Cannot delete product "{product.name}" because it has stock movement history'}), 400
+        if hasattr(product, 'stock_movements') and product.stock_movements:
+            return jsonify({'error': f'Cannot delete product "{product.name}" because it has stock movement history. Please consider deactivating it instead.'}), 400
         
         # Check if product is in purchase orders
-        if product.order_items:
-            return jsonify({'error': f'Cannot delete product "{product.name}" because it has associated purchase orders'}), 400
+        if hasattr(product, 'order_items') and product.order_items:
+            return jsonify({'error': f'Cannot delete product "{product.name}" because it has associated purchase orders. Please consider deactivating it instead.'}), 400
+        
+        # Check if product has current stock
+        if product.current_stock and product.current_stock > 0:
+            return jsonify({'error': f'Cannot delete product "{product.name}" because it has current stock ({product.current_stock} {product.unit_of_measure}). Please remove all stock first.'}), 400
+        
+        # Store product name for success message
+        product_name = product.name
         
         if delete_product(product_id):
-            return jsonify({'success': True, 'message': f'Product "{product.name}" deleted successfully'})
+            return jsonify({'success': True, 'message': f'Product "{product_name}" deleted successfully'})
         else:
             return jsonify({'error': 'Error deleting product'}), 500
             
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': f'Error deleting product: {str(e)}'}), 500
 
 # ============ CATEGORY MANAGEMENT ============
