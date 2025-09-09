@@ -8,7 +8,7 @@ from .dashboard import dashboard_views
 from .bookings import bookings_views
 from .clients import clients_views
 from .staff import staff_views
-from .inventory import inventory_views
+# from .inventory import inventory_views  # Removed - no inventory module
 from .services import services_views
 
 # Import remaining modules

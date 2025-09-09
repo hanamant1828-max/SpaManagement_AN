@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import app, db
 from models import User, Customer, Service, Appointment, Expense, Invoice, Package, StaffSchedule, CustomerPackage, PackageService, Review, Communication, Commission, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings, Role, Permission, RolePermission, Category, Department, SystemSetting
-from forms import LoginForm, UserForm, CustomerForm, ServiceForm, AppointmentForm, InventoryForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedCustomerForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
+from forms import LoginForm, UserForm, CustomerForm, ServiceForm, AppointmentForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedCustomerForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
 import utils
 import base64
 import os
@@ -20,7 +20,7 @@ try:
     from modules.bookings import bookings_views
     from modules.clients import clients_views
     from modules.services import services_views
-    from modules.inventory import inventory_views
+    # from modules.inventory import inventory_views  # Removed - no inventory module
     from modules.billing import billing_views
     from modules.expenses import expenses_views
     from modules.reports import reports_views

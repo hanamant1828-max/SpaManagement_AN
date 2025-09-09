@@ -61,18 +61,7 @@ class AppointmentForm(FlaskForm):
     notes = TextAreaField('Notes', validators=[Optional()])
     submit = SubmitField('Save Appointment')
 
-class InventoryForm(FlaskForm):
-    """Inventory form"""
-    name = StringField('Product Name', validators=[DataRequired(), Length(max=100)])
-    description = TextAreaField('Description', validators=[Optional()])
-    category_id = SelectField('Category', coerce=int, validators=[Optional()])
-    sku = StringField('SKU', validators=[Optional(), Length(max=50)])
-    price = FloatField('Price', validators=[Optional(), NumberRange(min=0)])
-    cost = FloatField('Cost', validators=[Optional(), NumberRange(min=0)])
-    stock_quantity = IntegerField('Stock Quantity', validators=[Optional(), NumberRange(min=0)])
-    min_stock_level = IntegerField('Minimum Stock Level', validators=[Optional(), NumberRange(min=0)])
-    is_active = BooleanField('Active', default=True)
-    submit = SubmitField('Save Product')
+# InventoryForm removed - no inventory functionality
 
 class ExpenseForm(FlaskForm):
     """Expense form"""

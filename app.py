@@ -83,7 +83,7 @@ with app.app_context():
     from modules.packages import packages_views
     from modules.reports import reports_views
     from modules.expenses import expenses_views
-    from modules.inventory import inventory_views
+    # from modules.inventory import inventory_views  # Removed - no inventory module
     from modules.settings import settings_views
 
     try:
