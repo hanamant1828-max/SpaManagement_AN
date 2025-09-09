@@ -361,33 +361,48 @@
     function loadCategoriesIntoDropdown(dropdownId, selectedId = null) {
         const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
         const dropdown = document.getElementById(dropdownId);
-        if (!dropdown) return;
+        if (!dropdown) {
+            console.warn('Category dropdown not found:', dropdownId);
+            return;
+        }
         
         dropdown.innerHTML = '<option value="">Select category</option>';
-        categories.filter(cat => cat.is_active !== false).forEach(category => {
-            const selected = category.id === selectedId ? 'selected' : '';
+        
+        // Handle both old and new data formats
+        categories.filter(cat => {
+            return cat.is_active !== false && cat.isActive !== false;
+        }).forEach(category => {
+            const selected = (category.id == selectedId) ? 'selected' : '';
             dropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
         });
         
         if (categories.length === 0) {
             dropdown.innerHTML = '<option value="" disabled>No categories available - Please add categories first</option>';
         }
+        
+        console.log(`Categories loaded into ${dropdownId}:`, categories.length);
     }
 
     function loadLocationsIntoDropdown(dropdownId, selectedId = null) {
         const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
         const dropdown = document.getElementById(dropdownId);
-        if (!dropdown) return;
+        if (!dropdown) {
+            console.warn('Location dropdown not found:', dropdownId);
+            return;
+        }
         
         dropdown.innerHTML = '<option value="">Select location</option>';
+        
         locations.filter(loc => loc.status === 'active').forEach(location => {
-            const selected = location.id === selectedId ? 'selected' : '';
+            const selected = (location.id == selectedId) ? 'selected' : '';
             dropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
         });
         
         if (locations.filter(loc => loc.status === 'active').length === 0) {
             dropdown.innerHTML = '<option value="" disabled>No locations available - Please add locations first</option>';
         }
+        
+        console.log(`Locations loaded into ${dropdownId}:`, locations.length);
     }
 
     function addProduct() {
@@ -396,15 +411,28 @@
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
         
-        // Load fresh data and populate dropdowns
-        loadCategories();
-        loadLocations();
-        
-        // Small delay to ensure data is loaded
-        setTimeout(() => {
+        // Load fresh data first
+        Promise.all([
+            fetch('/api/inventory/categories').then(r => r.json()),
+            fetch('/api/inventory/locations').then(r => r.json())
+        ]).then(([categoriesData, locationsData]) => {
+            // Store data
+            if (categoriesData.categories) {
+                localStorage.setItem('inventory.categories', JSON.stringify(categoriesData.categories));
+            }
+            if (locationsData.locations) {
+                localStorage.setItem('inventory.locations', JSON.stringify(locationsData.locations));
+            }
+            
+            // Populate dropdowns
             loadCategoriesIntoDropdown('productCategory');
             loadLocationsIntoDropdown('productPrimaryLocation');
-        }, 100);
+        }).catch(error => {
+            console.warn('API failed, using localStorage:', error);
+            // Fallback to localStorage
+            loadCategoriesIntoDropdown('productCategory');
+            loadLocationsIntoDropdown('productPrimaryLocation');
+        });
         
         const modal = new bootstrap.Modal(document.getElementById('productModal'));
         modal.show();
@@ -588,6 +616,7 @@
 
     // Initialize
     loadCategories();
+    loadLocations();
     loadProducts();
 })();
 </script>

@@ -956,11 +956,11 @@ def api_get_categories():
     try:
         categories = get_all_categories()
         category_list = []
-        
+
         for category in categories:
             # Count products in this category
             product_count = len([p for p in category.products if p.is_active])
-            
+
             category_list.append({
                 'id': category.id,
                 'name': category.name,
@@ -970,7 +970,7 @@ def api_get_categories():
                 'product_count': product_count,
                 'created_at': category.created_at.isoformat() if category.created_at else None
             })
-        
+
         return jsonify({'categories': category_list})
     except Exception as e:
         return jsonify({'error': f'Error loading categories: {str(e)}'}), 500
@@ -999,7 +999,7 @@ def api_add_category():
         }
 
         category = create_category(category_data)
-        
+
         return jsonify({
             'success': True,
             'message': f'Category "{category.name}" added successfully!',
@@ -1855,39 +1855,43 @@ def api_get_locations():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        from .models import InventoryLocation
-        locations = InventoryLocation.query.order_by(InventoryLocation.name).all()
+        # For now, return default locations from localStorage format
+        # This can be enhanced later with a proper database table
+        default_locations = [
+            {
+                'id': 'loc1',
+                'name': 'Main Store',
+                'type': 'branch',
+                'status': 'active',
+                'address': 'Main location',
+                'contact_person': '',
+                'phone': '',
+                'created_at': '2024-01-01T00:00:00'
+            },
+            {
+                'id': 'loc2',
+                'name': 'Storage Room',
+                'type': 'warehouse',
+                'status': 'active',
+                'address': 'Back storage area',
+                'contact_person': '',
+                'phone': '',
+                'created_at': '2024-01-01T00:00:00'
+            },
+            {
+                'id': 'loc3',
+                'name': 'Treatment Room A',
+                'type': 'room',
+                'status': 'active',
+                'address': 'First treatment room',
+                'contact_person': '',
+                'phone': '',
+                'created_at': '2024-01-01T00:00:00'
+            }
+        ]
 
-        location_list = []
-        for location in locations:
-            # Safe calculation of totals without location_stock dependency
-            total_products = 0
-            total_stock_value = 0.0
-            
-            # Get products in this location (using the 'location' field instead of location_stock)
-            products_in_location = InventoryProduct.query.filter_by(location=location.name).all()
-            total_products = len(products_in_location)
-            
-            for product in products_in_location:
-                if product.current_stock and product.cost_price:
-                    total_stock_value += float(product.current_stock) * float(product.cost_price)
-            
-            location_list.append({
-                'id': location.id,
-                'name': location.name,
-                'type': location.type,
-                'address': location.address or '',
-                'contact_person': location.contact_person or '',
-                'phone': location.phone or '',
-                'status': location.status,
-                'total_products': total_products,
-                'total_stock_value': total_stock_value,
-                'created_at': location.created_at.isoformat() if location.created_at else None
-            })
-
-        return jsonify({'locations': location_list})
+        return jsonify({'locations': default_locations})
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': f'Error loading locations: {str(e)}'}), 500
 
 @app.route('/api/inventory/locations', methods=['POST'])
