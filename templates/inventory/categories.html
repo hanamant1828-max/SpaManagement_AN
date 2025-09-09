@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Category Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-tags me-2"></i>Category Management</h2>
+                    <p class="text-muted mb-0">Organize your inventory with categories</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('inventory_dashboard') }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Inventory
+                    </a>
+                    <a href="{{ url_for('add_inventory_category') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Add Category
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="mb-0">Inventory Categories</h5>
+                </div>
+                <div class="card-body">
+                    {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Color</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Products</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge rounded-pill me-2" 
+                                                  style="background-color: {{ category.color_code }}; width: 20px; height: 20px;">&nbsp;</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ category.name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">{{ category.description or 'No description' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ category.products|length }} products
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if category.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ category.created_at.strftime('%m/%d/%Y') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <a href="{{ url_for('edit_inventory_category', category_id=category.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Edit Category">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% if category.products|length == 0 %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal{{ category.id }}" 
+                                                    title="Delete Category">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled 
+                                                    title="Cannot delete - has associated products">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Categories Found</h5>
+                        <p class="text-muted">Start organizing your inventory by creating categories.</p>
+                        <a href="{{ url_for('add_inventory_category') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Create First Category
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modals -->
+{% for category in categories %}
+{% if category.products|length == 0 %}
+<div class="modal fade" id="deleteModal{{ category.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Delete Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                    <h6>Are you sure you want to delete this category?</h6>
+                    <p class="text-muted">
+                        <strong>"{{ category.name }}"</strong><br>
+                        This action cannot be undone.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('delete_category_route', category_id=category.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Category</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}

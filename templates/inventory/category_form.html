@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if action == 'edit' %}Edit Category{% else %}Add Category{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        <i class="fas fa-tag me-2"></i>
+                        {% if action == 'edit' %}Edit Category{% else %}Add New Category{% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if action == 'edit' %}
+                        Update category information
+                        {% else %}
+                        Create a new category to organize your inventory
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('inventory_categories') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Categories
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="mb-0">Category Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <!-- Category Name -->
+                            <div class="col-md-8 mb-3">
+                                <label for="name" class="form-label">
+                                    Category Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="name" 
+                                       name="name" 
+                                       value="{{ category.name if category else '' }}" 
+                                       required
+                                       placeholder="e.g., Skincare Products, Massage Oils">
+                                <div class="form-text">Enter a descriptive name for this category</div>
+                            </div>
+
+                            <!-- Color Code -->
+                            <div class="col-md-4 mb-3">
+                                <label for="color_code" class="form-label">Color</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" 
+                                           class="form-control form-control-color" 
+                                           id="color_code" 
+                                           name="color_code" 
+                                           value="{{ category.color_code if category else '#007bff' }}" 
+                                           title="Choose a color for this category">
+                                    <span class="text-muted small">For visual identification</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      name="description" 
+                                      rows="3" 
+                                      placeholder="Optional description of what products belong in this category">{{ category.description if category else '' }}</textarea>
+                            <div class="form-text">Provide additional details about this category (optional)</div>
+                        </div>
+
+                        <!-- Category Preview -->
+                        <div class="mb-4">
+                            <label class="form-label">Preview</label>
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="d-flex align-items-center">
+                                    <span id="colorPreview" 
+                                          class="badge rounded-pill me-2" 
+                                          style="background-color: {{ category.color_code if category else '#007bff' }}; width: 20px; height: 20px;">&nbsp;</span>
+                                    <span id="namePreview" class="fw-medium">
+                                        {{ category.name if category else 'Category Name' }}
+                                    </span>
+                                </div>
+                                <small class="text-muted" id="descriptionPreview">
+                                    {{ category.description if category and category.description else 'Category description will appear here' }}
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('inventory_categories') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if action == 'edit' %}
+                                <i class="fas fa-save me-1"></i>Update Category
+                                {% else %}
+                                <i class="fas fa-plus me-1"></i>Create Category
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('name');
+    const colorInput = document.getElementById('color_code');
+    const descriptionInput = document.getElementById('description');
+    const namePreview = document.getElementById('namePreview');
+    const colorPreview = document.getElementById('colorPreview');
+    const descriptionPreview = document.getElementById('descriptionPreview');
+
+    // Update preview as user types
+    nameInput.addEventListener('input', function() {
+        namePreview.textContent = this.value || 'Category Name';
+    });
+
+    colorInput.addEventListener('input', function() {
+        colorPreview.style.backgroundColor = this.value;
+    });
+
+    descriptionInput.addEventListener('input', function() {
+        descriptionPreview.textContent = this.value || 'Category description will appear here';
+    });
+});
+</script>
+{% endblock %}
