@@ -771,20 +771,35 @@ def api_get_adjustment(adjustment_id):
             unit_cost = float(mov.unit_cost or 0)
             line_total = quantity * unit_cost
             total_value += line_total
+            
+            # Get current stock from product
+            current_stock = 0
+            if mov.product:
+                current_stock = float(mov.product.current_stock or 0)
+            
             items.append({
+                'product_id': mov.product_id,
                 'product_name': mov.product.name if mov.product else 'Unknown',
+                'current_stock': current_stock,
                 'quantity_added': quantity,
                 'unit_cost': unit_cost,
                 'line_total': float(line_total)
             })
 
         # Extract reference ID from reason if it exists
-        reference_id = None
+        reference_id = ""
+        remarks = movement.reason or 'Manual adjustment'
         if movement.reason and " - Ref: " in movement.reason:
             try:
-                reference_id = movement.reason.split(" - Ref: ")[1].split(" - ")[0]
+                parts = movement.reason.split(" - Ref: ")
+                reference_id = parts[1].split(" - ")[0] if len(parts) > 1 else ""
+                # Clean up remarks by removing reference part
+                if len(parts) > 1 and len(parts[1].split(" - ")) > 1:
+                    remarks = parts[0] + " - " + " - ".join(parts[1].split(" - ")[1:])
+                else:
+                    remarks = parts[0]
             except (IndexError, AttributeError):
-                reference_id = None
+                reference_id = ""
 
         return jsonify({
             'id': adjustment_id,
@@ -792,7 +807,7 @@ def api_get_adjustment(adjustment_id):
             'adjustment_date': movement.created_at.strftime('%Y-%m-%d') if movement.created_at else date.today().strftime('%Y-%m-%d'),
             'created_by': movement.user.username if movement.user else 'System',
             'created_date': movement.created_at.strftime('%Y-%m-%d %H:%M:%S') if movement.created_at else 'Unknown',
-            'remarks': movement.reason or 'Manual adjustment',
+            'remarks': remarks,
             'items': items,
             'subtotal': float(total_value),
             'tax': 0.0,  # No tax calculation for now

@@ -36,8 +36,10 @@ function setupGlobalEventListeners() {
     document.addEventListener('show.bs.modal', handleModalShow);
     document.addEventListener('hidden.bs.modal', handleModalHidden);
 
-    // Initialize face capture functionality
-    initializeFaceCapture();
+    // Initialize face capture functionality only on pages that need it
+    if (window.location.pathname.includes('/staff') || window.location.pathname.includes('/face')) {
+        initializeFaceCapture();
+    }
 
     // Handle form submissions
     document.addEventListener('submit', handleFormSubmit);
@@ -65,7 +67,7 @@ function setupGlobalEventListeners() {
     window.addEventListener('offline', handleOfflineStatus);
 }
 
-// Face Capture Functionality
+// Face Capture Functionality - only initialize when needed
 function initializeFaceCapture() {
     console.log('Initializing face capture functionality...');
 
@@ -86,6 +88,13 @@ let currentStaffId = null;
 let faceStream = null;
 
 function setupCameraButtons() {
+    // Only run on pages that actually have camera buttons
+    if (!document.getElementById('startCameraBtn') && 
+        !document.getElementById('startRecognitionBtn') && 
+        !document.getElementById('startFaceCamera')) {
+        return; // No camera buttons found, skip setup
+    }
+    
     console.log('Setting up camera buttons...');
     
     // Wait for DOM to be ready
@@ -94,12 +103,6 @@ function setupCameraButtons() {
         const startCameraBtn = document.getElementById('startCameraBtn');
         const startRecognitionBtn = document.getElementById('startRecognitionBtn');
         const startFaceCameraBtn = document.getElementById('startFaceCamera');
-
-        console.log('Found buttons:', {
-            startCameraBtn: !!startCameraBtn,
-            startRecognitionBtn: !!startRecognitionBtn,
-            startFaceCameraBtn: !!startFaceCameraBtn
-        });
 
         if (startCameraBtn) {
             startCameraBtn.addEventListener('click', function() {

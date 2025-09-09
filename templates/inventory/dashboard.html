@@ -953,8 +953,15 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard widgets initialized');
 
     // Set default date to today
-    document.querySelector('input[name="adjustment_date"]').value = new Date().toISOString().split('T')[0];
-    document.querySelector('input[name="consumption_date"]').value = new Date().toISOString().split('T')[0];
+    const adjustmentDateInput = document.querySelector('input[name="adjustment_date"]');
+    const consumptionDateInput = document.querySelector('input[name="consumption_date"]');
+
+    if (adjustmentDateInput) {
+        adjustmentDateInput.value = new Date().toISOString().split('T')[0];
+    }
+    if (consumptionDateInput) {
+        consumptionDateInput.value = new Date().toISOString().split('T')[0];
+    }
 
     // Load initial data
     loadProducts();
@@ -998,7 +1005,7 @@ function showToast(message, type = 'info') {
 
 function openAddInventoryModal() {
     const modal = new bootstrap.Modal(document.getElementById('addInventoryModal'));
-    
+
     // Load products and then show modal
     loadProductsForAdjustment()
     .then(() => {
@@ -1014,7 +1021,7 @@ function loadProductsForAdjustment() {
     return new Promise((resolve, reject) => {
         // First try localStorage if available, otherwise fetch from API
         let productsPromise;
-        
+
         // Check localStorage first
         const cachedProducts = localStorage.getItem('inventory.products');
         if (cachedProducts) {
@@ -1029,7 +1036,7 @@ function loadProductsForAdjustment() {
             // No cache, fetch from API
             productsPromise = fetchProductsFromAPI();
         }
-        
+
         productsPromise
         .then(products => {
             populateProductDropdowns(products);
@@ -1064,14 +1071,14 @@ function fetchProductsFromAPI() {
 function populateProductDropdowns(products) {
     // Get all product select elements in the inventory modal
     const selects = document.querySelectorAll('#addInventoryModal .product-select');
-    
+
     selects.forEach(select => {
         // Store current selection to preserve it
         const currentValue = select.value;
-        
+
         // Clear existing options
         select.innerHTML = '<option value="">Select Product</option>';
-        
+
         // Handle empty state
         if (!products || products.length === 0) {
             const emptyOption = document.createElement('option');
@@ -1079,7 +1086,7 @@ function populateProductDropdowns(products) {
             emptyOption.textContent = 'No products found. Please add products in Product Master.';
             emptyOption.disabled = true;
             select.appendChild(emptyOption);
-            
+
             // Disable save button if no products
             const saveButton = document.querySelector('#addInventoryModal .btn-primary');
             if (saveButton) {
@@ -1088,14 +1095,14 @@ function populateProductDropdowns(products) {
             }
             return;
         }
-        
+
         // Enable save button if products exist
         const saveButton = document.querySelector('#addInventoryModal .btn-primary');
         if (saveButton) {
             saveButton.disabled = false;
             saveButton.title = '';
         }
-        
+
         // Add products to dropdown
         products.forEach(product => {
             const option = document.createElement('option');
@@ -1103,17 +1110,17 @@ function populateProductDropdowns(products) {
             option.setAttribute('data-stock', product.current_stock || 0);
             option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
             option.setAttribute('data-cost', product.cost_price || 0);
-            
+
             // Format: Product Name (SKU) - Current: X units
             const currentStock = product.current_stock || 0;
             const unit = product.unit_of_measure || 'pcs';
             const sku = product.sku || 'N/A';
             const name = product.name || 'Unnamed Product';
-            
+
             option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
             select.appendChild(option);
         });
-        
+
         // Restore previous selection if valid
         if (currentValue) {
             select.value = currentValue;
@@ -1121,7 +1128,7 @@ function populateProductDropdowns(products) {
             const event = new Event('change');
             select.dispatchEvent(event);
         }
-        
+
         // Add searchable functionality for large lists
         if (products.length > 20) {
             addSearchableFeature(select);
@@ -1132,26 +1139,26 @@ function populateProductDropdowns(products) {
 function addSearchableFeature(selectElement) {
     // Simple searchable feature - add a search input above the select
     const container = selectElement.closest('.input-group') || selectElement.parentElement;
-    
+
     // Check if search input already exists
     if (container.querySelector('.product-search')) {
         return;
     }
-    
+
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.className = 'form-control form-control-sm product-search mb-1';
     searchInput.placeholder = 'Type to search products...';
-    
+
     // Store original options
     const originalOptions = Array.from(selectElement.options).slice(1); // Skip first empty option
-    
+
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
-        
+
         // Clear current options except the first one
         selectElement.innerHTML = '<option value="">Select Product</option>';
-        
+
         // Filter and add matching options
         originalOptions.forEach(option => {
             if (option.textContent.toLowerCase().includes(searchTerm)) {
@@ -1159,7 +1166,7 @@ function addSearchableFeature(selectElement) {
             }
         });
     });
-    
+
     container.insertBefore(searchInput, selectElement);
 }
 
@@ -1168,10 +1175,10 @@ function refreshProductsDropdown(refreshButton) {
     const originalContent = refreshButton.innerHTML;
     refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     refreshButton.disabled = true;
-    
+
     // Clear localStorage cache
     localStorage.removeItem('inventory.products');
-    
+
     // Fetch fresh data from API
     fetchProductsFromAPI()
     .then(products => {
@@ -1198,20 +1205,20 @@ function updateCurrentStock(selectElement) {
     const row = selectElement.closest('.inventory-item');
     const currentStockInput = row.querySelector('.current-stock');
     const unitCostInput = row.querySelector('.unit-cost');
-    
+
     // Defensive defaults - handle missing data gracefully
     if (selectedOption && selectedOption.value) {
         // Auto-fill current stock from product data
         const currentStock = selectedOption.dataset.stock || '0';
         const unitCost = selectedOption.dataset.cost || '0';
-        
+
         currentStockInput.value = parseFloat(currentStock).toFixed(2);
-        
+
         // Auto-fill unit cost if available and not already set
         if (unitCostInput && (!unitCostInput.value || unitCostInput.value === '0')) {
             unitCostInput.value = parseFloat(unitCost).toFixed(2);
         }
-        
+
         // Clear any validation errors
         selectElement.classList.remove('is-invalid');
         const feedback = selectElement.closest('.col-md-3').querySelector('.invalid-feedback');
@@ -1225,7 +1232,7 @@ function updateCurrentStock(selectElement) {
             unitCostInput.value = '0.00';
         }
     }
-    
+
     calculateLineTotal(selectElement);
 }
 
@@ -1234,11 +1241,11 @@ function calculateLineTotal(element) {
     const quantityInput = row.querySelector('.quantity-in');
     const unitCostInput = row.querySelector('.unit-cost');
     const lineTotalInput = row.querySelector('.line-total');
-    
+
     const quantity = parseFloat(quantityInput.value) || 0;
     const unitCost = parseFloat(unitCostInput.value) || 0;
     const lineTotal = quantity * unitCost;
-    
+
     lineTotalInput.value = lineTotal.toFixed(2);
     calculateSubtotal();
 }
@@ -1248,7 +1255,7 @@ function calculateSubtotal() {
     document.querySelectorAll('.line-total').forEach(input => {
         subtotal += parseFloat(input.value) || 0;
     });
-    
+
     document.getElementById('modalSubtotal').textContent = `$${subtotal.toFixed(2)}`;
     calculateGrandTotal();
 }
@@ -1257,7 +1264,7 @@ function calculateGrandTotal() {
     const subtotal = parseFloat(document.getElementById('modalSubtotal').textContent.replace('$', '')) || 0;
     const tax = parseFloat(document.getElementById('modalTax').value) || 0;
     const grandTotal = subtotal + tax;
-    
+
     document.getElementById('modalGrandTotal').textContent = `$${grandTotal.toFixed(2)}`;
 }
 
@@ -1311,7 +1318,7 @@ function addInventoryItem() {
 function populateProductDropdown(selectElement, products) {
     // Clear existing options
     selectElement.innerHTML = '<option value="">Select Product</option>';
-    
+
     // Handle empty state
     if (!products || products.length === 0) {
         const emptyOption = document.createElement('option');
@@ -1321,7 +1328,7 @@ function populateProductDropdown(selectElement, products) {
         selectElement.appendChild(emptyOption);
         return;
     }
-    
+
     // Add products to dropdown
     products.forEach(product => {
         const option = document.createElement('option');
@@ -1329,17 +1336,17 @@ function populateProductDropdown(selectElement, products) {
         option.setAttribute('data-stock', product.current_stock || 0);
         option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
         option.setAttribute('data-cost', product.cost_price || 0);
-        
+
         // Format: Product Name (SKU) - Current: X units
         const currentStock = product.current_stock || 0;
         const unit = product.unit_of_measure || 'pcs';
         const sku = product.sku || 'N/A';
         const name = product.name || 'Unnamed Product';
-        
+
         option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
         selectElement.appendChild(option);
     });
-    
+
     // Add searchable functionality for large lists
     if (products.length > 20) {
         addSearchableFeature(selectElement);
@@ -1367,12 +1374,12 @@ function saveInventoryItems() {
         if (productIds[i] && quantities[i]) {
             const quantity = parseFloat(quantities[i]);
             const unitCost = parseFloat(unitCosts[i]) || 0;
-            
+
             if (isNaN(quantity) || quantity <= 0) {
                 showToast('Please enter valid quantities greater than 0', 'error');
                 return;
             }
-            
+
             items.push({
                 product_id: productIds[i],
                 quantity_in: quantity,
@@ -1680,7 +1687,7 @@ function editProduct(id) {
         if (product.error) {
             throw new Error(product.error);
         }
-        
+
         // Populate the edit modal with product data
         document.getElementById('editProductId').value = product.id;
         document.getElementById('editSku').value = product.sku || '';
@@ -1698,7 +1705,7 @@ function editProduct(id) {
         document.getElementById('editLocation').value = product.location || '';
         document.getElementById('editUsedInServices').checked = product.is_service_item || false;
         document.getElementById('editRetailItem').checked = product.is_retail_item || false;
-        
+
         // Show status if available
         if (product.stock_status) {
             document.getElementById('editStatusText').textContent = product.stock_status.replace('_', ' ').toUpperCase();
@@ -1706,7 +1713,7 @@ function editProduct(id) {
         } else {
             document.getElementById('editProductStatus').style.display = 'none';
         }
-        
+
         // Show the modal
         const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
         modal.show();
@@ -1721,13 +1728,13 @@ function saveEditProduct() {
     const form = document.getElementById('editProductForm');
     const formData = new FormData(form);
     const productId = document.getElementById('editProductId').value;
-    
+
     // Add loading state to button
     const saveButton = document.querySelector('#editProductModal .btn-primary');
     const originalContent = saveButton.innerHTML;
     saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
     saveButton.disabled = true;
-    
+
     fetch(`/inventory/products/${productId}/edit`, {
         method: 'POST',
         body: formData
@@ -1759,7 +1766,7 @@ function deleteProduct(id) {
     .then(response => response.json())
     .then(product => {
         const productName = product.name || 'Unknown Product';
-        
+
         Swal.fire({
             title: 'Delete Product',
             text: `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
@@ -1834,7 +1841,7 @@ function viewCategory(id) {
         if (category.error) {
             throw new Error(category.error);
         }
-        
+
         // Populate view modal
         document.getElementById('viewCategoryName').textContent = category.name;
         document.getElementById('viewCategoryDescription').textContent = category.description || 'No description';
@@ -1843,7 +1850,7 @@ function viewCategory(id) {
         document.getElementById('viewCategoryProductCount').textContent = category.product_count || 0;
         document.getElementById('viewCategoryCreatedDate').textContent = category.created_at ? new Date(category.created_at).toLocaleDateString() : 'N/A';
         document.getElementById('viewCategoryStatus').textContent = category.is_active ? 'Active' : 'Inactive';
-        
+
         const modal = new bootstrap.Modal(document.getElementById('viewCategoryModal'));
         modal.show();
     })
@@ -1860,14 +1867,14 @@ function editCategory(id) {
         if (category.error) {
             throw new Error(category.error);
         }
-        
+
         // Populate edit modal
         document.getElementById('editCategoryId').value = category.id;
         document.getElementById('editCategoryName').value = category.name;
         document.getElementById('editCategoryDescription').value = category.description || '';
         document.getElementById('editCategoryColor').value = category.color_code;
         document.getElementById('editCategoryActive').checked = category.is_active;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
         modal.show();
     })
@@ -1882,7 +1889,7 @@ function deleteCategory(id) {
     .then(response => response.json())
     .then(category => {
         const categoryName = category.name || 'Unknown Category';
-        
+
         Swal.fire({
             title: 'Delete Category',
             text: `Are you sure you want to delete "${categoryName}"? This will affect all products in this category.`,
@@ -1926,7 +1933,7 @@ function viewConsumption(id) {
         if (consumption.error) {
             throw new Error(consumption.error);
         }
-        
+
         // Populate view modal
         document.getElementById('viewConsumptionDate').textContent = consumption.consumption_date;
         document.getElementById('viewConsumptionProduct').textContent = consumption.product_name;
@@ -1938,7 +1945,7 @@ function viewConsumption(id) {
         document.getElementById('viewConsumptionNotes').textContent = consumption.notes || 'No notes';
         document.getElementById('viewConsumptionCreatedBy').textContent = consumption.created_by || 'N/A';
         document.getElementById('viewConsumptionCreatedDate').textContent = consumption.created_at ? new Date(consumption.created_at).toLocaleDateString() : 'N/A';
-        
+
         const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
         modal.show();
     })
@@ -1955,7 +1962,7 @@ function editConsumption(id) {
         if (consumption.error) {
             throw new Error(consumption.error);
         }
-        
+
         // Populate edit modal
         document.getElementById('editConsumptionId').value = consumption.id;
         document.getElementById('editConsumptionDate').value = consumption.consumption_date;
@@ -1964,7 +1971,7 @@ function editConsumption(id) {
         document.getElementById('editConsumptionIssuedTo').value = consumption.issued_to;
         document.getElementById('editConsumptionReference').value = consumption.reference_doc_no || '';
         document.getElementById('editConsumptionNotes').value = consumption.notes || '';
-        
+
         const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
         modal.show();
     })
@@ -1979,7 +1986,7 @@ function deleteConsumption(id) {
     .then(response => response.json())
     .then(consumption => {
         const productName = consumption.product_name || 'Unknown Product';
-        
+
         Swal.fire({
             title: 'Delete Consumption Record',
             html: `Are you sure you want to delete this consumption record?<br><br>
@@ -2002,7 +2009,7 @@ function deleteConsumption(id) {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showToast(`Consumption record deleted and stock restored`, 'success');
+                        showToast('Consumption record deleted and stock restored', 'success');
                         loadConsumption(); // Refresh table
                         loadProducts(); // Refresh product table if visible
                     } else {
@@ -2030,14 +2037,14 @@ function viewAdjustment(id) {
         if (data.error) {
             throw new Error(data.error);
         }
-        
+
         // Populate view modal
         document.getElementById('viewReferenceId').textContent = data.reference_id || 'N/A';
         document.getElementById('viewAdjustmentDate').textContent = data.adjustment_date;
         document.getElementById('viewCreatedBy').textContent = data.created_by;
         document.getElementById('viewCreatedDate').textContent = data.created_date;
         document.getElementById('viewRemarks').textContent = data.remarks || 'No remarks';
-        
+
         // Populate items table
         const tbody = document.getElementById('viewItemsTableBody');
         tbody.innerHTML = '';
@@ -2051,12 +2058,12 @@ function viewAdjustment(id) {
                 </tr>
             `;
         });
-        
+
         // Populate totals
         document.getElementById('viewSubtotal').textContent = `$${data.subtotal.toFixed(2)}`;
         document.getElementById('viewTax').textContent = `$${data.tax.toFixed(2)}`;
         document.getElementById('viewGrandTotal').textContent = `$${data.total_value.toFixed(2)}`;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('viewAdjustmentModal'));
         modal.show();
     })
@@ -2073,13 +2080,16 @@ function editAdjustment(id) {
         if (adjustment.error) {
             throw new Error(adjustment.error);
         }
-        
+
         // Populate edit modal
         document.getElementById('editAdjustmentId').value = adjustment.id;
         document.getElementById('editAdjustmentDate').value = adjustment.adjustment_date;
-        document.getElementById('editAdjustmentReference').value = adjustment.reference_id || '';
-        document.getElementById('editAdjustmentRemarks').value = adjustment.remarks || '';
-        
+        document.getElementById('editReferenceNo').value = adjustment.reference_id || '';
+        document.getElementById('editNotes').value = adjustment.remarks || '';
+
+        // Dynamically load and populate items for editing
+        loadEditAdjustmentItems(adjustment.items);
+
         const modal = new bootstrap.Modal(document.getElementById('editAdjustmentModal'));
         modal.show();
     })
@@ -2089,51 +2099,284 @@ function editAdjustment(id) {
     });
 }
 
-function deleteAdjustment(id) {
-    fetch(`/api/inventory/adjustments/${id}`)
-    .then(response => response.json())
-    .then(adjustment => {
-        const referenceId = adjustment.reference_id || 'N/A';
-        
-        Swal.fire({
-            title: 'Delete Adjustment',
-            html: `Are you sure you want to delete this inventory adjustment?<br><br>
-                   <strong>Reference ID:</strong> ${referenceId}<br>
-                   <strong>Date:</strong> ${adjustment.adjustment_date}<br>
-                   <strong>Items:</strong> ${adjustment.items_count || 0}<br><br>
-                   <em>This will reverse all stock changes and create reversal movements.</em>`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            focusCancel: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/api/inventory/adjustments/${id}`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('Adjustment deleted and stock reversed successfully', 'success');
-                        loadAdjustments();
-                        loadProducts(); // Refresh product list to show updated stock
-                    } else {
-                        throw new Error(data.error || 'Failed to delete adjustment');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting adjustment:', error);
-                    showToast(`Error: ${error.message}`, 'error');
-                });
-            }
-        });
+function loadEditAdjustmentItems(items) {
+    const container = document.getElementById('editInventoryItems');
+    container.innerHTML = ''; // Clear previous items
+
+    if (!items || items.length === 0) {
+        // Add a single empty item row if no items are present
+        addEditInventoryItem();
+        return;
+    }
+
+    items.forEach((item, index) => {
+        const newItemRow = document.createElement('div');
+        newItemRow.classList.add('row', 'mb-2', 'inventory-item');
+        newItemRow.innerHTML = `
+            <div class="col-md-3">
+                <label class="form-label small">Select Product</label>
+                <div class="input-group">
+                    <select name="product_id[]" class="form-select product-select" required onchange="updateCurrentStock(this)">
+                        <option value="">Select Product</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshProductsDropdown(this)" title="Refresh Products">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="invalid-feedback" style="display: none;">Please select a product</div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Current Stock</label>
+                <input type="number" name="current_stock[]" class="form-control current-stock" readonly>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Quantity to Add</label>
+                <input type="number" name="quantity_in[]" class="form-control quantity-in" step="0.01" required onchange="calculateEditLineTotal(this)">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Unit Cost</label>
+                <input type="number" name="unit_cost[]" class="form-control unit-cost" step="0.01" onchange="calculateEditLineTotal(this)">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Line Total</label>
+                <input type="number" name="line_total[]" class="form-control line-total" readonly>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small">&nbsp;</label>
+                <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeEditInventoryItem(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(newItemRow);
+
+        const productSelect = newItemRow.querySelector('.product-select');
+        const currentStockInput = newItemRow.querySelector('.current-stock');
+        const quantityInput = newItemRow.querySelector('.quantity-in');
+        const unitCostInput = newItemRow.querySelector('.unit-cost');
+        const lineTotalInput = newItemRow.querySelector('.line-total');
+
+        // Populate product dropdown and pre-select the correct product
+        loadProductsForEditAdjustment(productSelect, item.product_id);
+
+        // Fill item details
+        quantityInput.value = item.quantity_added; // Use quantity_added for edit
+        unitCostInput.value = parseFloat(item.unit_cost).toFixed(2);
+        lineTotalInput.value = parseFloat(item.line_total).toFixed(2);
+        currentStockInput.value = item.current_stock || '0.00'; // Pre-fill current stock
+
+        // Set the 'data-stock' and 'data-cost' attributes for the selected product
+        const productOption = Array.from(productSelect.options).find(opt => opt.value == item.product_id);
+        if (productOption) {
+            productOption.setAttribute('data-stock', item.current_stock || 0);
+            productOption.setAttribute('data-cost', item.unit_cost || 0);
+        }
+    });
+
+    // Recalculate totals after loading items
+    calculateEditSubtotal();
+}
+
+function addEditInventoryItem() {
+    const container = document.getElementById('editInventoryItems');
+    const newItemRow = document.createElement('div');
+    newItemRow.classList.add('row', 'mb-2', 'inventory-item');
+    newItemRow.innerHTML = `
+        <div class="col-md-3">
+            <label class="form-label small">Select Product</label>
+            <div class="input-group">
+                <select name="product_id[]" class="form-select product-select" required onchange="updateCurrentStock(this)">
+                    <option value="">Select Product</option>
+                </select>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshProductsDropdown(this)" title="Refresh Products">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="invalid-feedback" style="display: none;">Please select a product</div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Current Stock</label>
+            <input type="number" name="current_stock[]" class="form-control current-stock" readonly>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Quantity to Add</label>
+            <input type="number" name="quantity_in[]" class="form-control quantity-in" step="0.01" required onchange="calculateEditLineTotal(this)">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Unit Cost</label>
+            <input type="number" name="unit_cost[]" class="form-control unit-cost" step="0.01" onchange="calculateEditLineTotal(this)">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Line Total</label>
+            <input type="number" name="line_total[]" class="form-control line-total" readonly>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small">&nbsp;</label>
+            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeEditInventoryItem(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(newItemRow);
+
+    // Load products for the new dropdown
+    const newSelect = newItemRow.querySelector('.product-select');
+    loadProductsForEditAdjustment(newSelect);
+}
+
+function loadProductsForEditAdjustment(selectElement, preselectedValue = '') {
+    const cachedProducts = localStorage.getItem('inventory.products');
+    let productsPromise;
+
+    if (cachedProducts) {
+        try {
+            const products = JSON.parse(cachedProducts);
+            productsPromise = Promise.resolve(products);
+        } catch (e) {
+            productsPromise = fetchProductsFromAPI();
+        }
+    } else {
+        productsPromise = fetchProductsFromAPI();
+    }
+
+    productsPromise
+    .then(products => {
+        populateProductDropdown(selectElement, products, preselectedValue);
     })
     .catch(error => {
-        console.error('Error fetching adjustment details:', error);
-        showToast(`Error: ${error.message}`, 'error');
+        console.error('Error loading products for edit:', error);
+        showToast('Error loading products. Please try again.', 'error');
+    });
+}
+
+function removeEditInventoryItem(button) {
+    const items = document.querySelectorAll('#editInventoryItems .inventory-item');
+    if (items.length > 1) {
+        button.closest('.inventory-item').remove();
+        calculateEditSubtotal(); // Recalculate totals after removal
+    } else {
+        // Optionally, clear the single item if it's the last one
+        const itemRow = button.closest('.inventory-item');
+        itemRow.querySelector('.product-select').value = '';
+        itemRow.querySelector('.current-stock').value = '0.00';
+        itemRow.querySelector('.quantity-in').value = '';
+        itemRow.querySelector('.unit-cost').value = '0.00';
+        itemRow.querySelector('.line-total').value = '0.00';
+        calculateEditSubtotal();
+    }
+}
+
+function calculateEditLineTotal(element) {
+    const row = element.closest('.inventory-item');
+    const quantityInput = row.querySelector('.quantity-in');
+    const unitCostInput = row.querySelector('.unit-cost');
+    const lineTotalInput = row.querySelector('.line-total');
+
+    const quantity = parseFloat(quantityInput.value) || 0;
+    const unitCost = parseFloat(unitCostInput.value) || 0;
+    const lineTotal = quantity * unitCost;
+
+    lineTotalInput.value = lineTotal.toFixed(2);
+    calculateEditSubtotal();
+}
+
+function calculateEditSubtotal() {
+    let subtotal = 0;
+    document.querySelectorAll('#editInventoryItems .line-total').forEach(input => {
+        subtotal += parseFloat(input.value) || 0;
+    });
+
+    document.getElementById('editSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+    calculateEditGrandTotal();
+}
+
+function calculateEditGrandTotal() {
+    const subtotal = parseFloat(document.getElementById('editSubtotal').textContent.replace('$', '')) || 0;
+    const tax = parseFloat(document.getElementById('editTax').value) || 0;
+    const grandTotal = subtotal + tax;
+
+    document.getElementById('editGrandTotal').textContent = `$${grandTotal.toFixed(2)}`;
+}
+
+function saveEditedAdjustment() {
+    const form = document.getElementById('editAdjustmentForm');
+    const formData = new FormData(form);
+    const adjustmentId = document.getElementById('editAdjustmentId').value;
+
+    // Get all items
+    const items = [];
+    const productIds = formData.getAll('product_id[]');
+    const quantities = formData.getAll('quantity_in[]');
+    const unitCosts = formData.getAll('unit_cost[]');
+
+    for (let i = 0; i < productIds.length; i++) {
+        if (productIds[i] && quantities[i]) {
+            const quantity = parseFloat(quantities[i]);
+            const unitCost = parseFloat(unitCosts[i]) || 0;
+
+            if (isNaN(quantity) || quantity < 0) { // Allow 0 quantity for removal if needed, though adjustment should usually be positive
+                showToast('Please enter valid quantities', 'error');
+                return;
+            }
+
+            items.push({
+                product_id: productIds[i],
+                quantity_added: quantity, // Use quantity_added for saving
+                unit_cost: unitCost
+            });
+        }
+    }
+
+    if (items.length === 0) {
+        showToast('Please add at least one item', 'error');
+        return;
+    }
+
+    const data = {
+        adjustment_date: formData.get('adjustment_date') || new Date().toISOString().split('T')[0],
+        reference_id: formData.get('reference_no') || '',
+        remarks: formData.get('notes') || '',
+        items: items
+    };
+
+    // Add loading state to button
+    const saveButton = document.querySelector('#editAdjustmentModal .btn-primary');
+    const originalContent = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    saveButton.disabled = true;
+
+    fetch(`/api/inventory/adjustments/${adjustmentId}/edit`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editAdjustmentModal')).hide();
+            loadAdjustments(); // Refresh table
+            loadProducts(); // Refresh product list to show updated stock
+        } else {
+            throw new Error(data.error || 'Failed to update adjustment');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating adjustment:', error);
+        const errorMessage = error.error || error.message || 'Failed to update adjustment';
+        showToast(`Error: ${errorMessage}`, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
     });
 }
 
@@ -2145,7 +2388,7 @@ function viewProduct(id) {
         if (product.error) {
             throw new Error(product.error);
         }
-        
+
         // Populate view modal
         document.getElementById('viewProductSKU').textContent = product.sku || 'N/A';
         document.getElementById('viewProductName').textContent = product.name || 'N/A';
@@ -2163,7 +2406,7 @@ function viewProduct(id) {
         document.getElementById('viewProductStatus').textContent = (product.stock_status || 'unknown').replace('_', ' ').toUpperCase();
         document.getElementById('viewProductServiceItem').textContent = product.is_service_item ? 'Yes' : 'No';
         document.getElementById('viewProductRetailItem').textContent = product.is_retail_item ? 'Yes' : 'No';
-        
+
         const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
         modal.show();
     })
@@ -2178,13 +2421,13 @@ function saveEditCategory() {
     const form = document.getElementById('editCategoryForm');
     const formData = new FormData(form);
     const categoryId = document.getElementById('editCategoryId').value;
-    
+
     // Add loading state to button
     const saveButton = document.querySelector('#editCategoryModal .btn-primary');
     const originalContent = saveButton.innerHTML;
     saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
     saveButton.disabled = true;
-    
+
     fetch(`/api/inventory/categories/${categoryId}/edit`, {
         method: 'POST',
         body: formData
@@ -2214,13 +2457,13 @@ function saveEditConsumption() {
     const form = document.getElementById('editConsumptionForm');
     const formData = new FormData(form);
     const consumptionId = document.getElementById('editConsumptionId').value;
-    
+
     // Add loading state to button
     const saveButton = document.querySelector('#editConsumptionModal .btn-primary');
     const originalContent = saveButton.innerHTML;
     saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
     saveButton.disabled = true;
-    
+
     fetch(`/api/inventory/consumption/${consumptionId}/edit`, {
         method: 'POST',
         body: formData
@@ -2246,41 +2489,100 @@ function saveEditConsumption() {
     });
 }
 
-function saveEditAdjustment() {
-    const form = document.getElementById('editAdjustmentForm');
-    const formData = new FormData(form);
-    const adjustmentId = document.getElementById('editAdjustmentId').value;
-    
-    // Add loading state to button
-    const saveButton = document.querySelector('#editAdjustmentModal .btn-primary');
-    const originalContent = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
-    saveButton.disabled = true;
-    
-    fetch(`/api/inventory/adjustments/${adjustmentId}/edit`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('editAdjustmentModal')).hide();
-            loadAdjustments(); // Refresh table
-        } else {
-            throw new Error(data.error || 'Failed to update adjustment');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating adjustment:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    })
-    .finally(() => {
-        // Reset button state
-        saveButton.innerHTML = originalContent;
-        saveButton.disabled = false;
-    });
+// This function was missing, so it's added here to complete the functionality.
+function addEditInventoryItem() {
+    const container = document.getElementById('editInventoryItems');
+    const newItemRow = document.createElement('div');
+    newItemRow.classList.add('row', 'mb-2', 'inventory-item');
+    newItemRow.innerHTML = `
+        <div class="col-md-3">
+            <label class="form-label small">Select Product</label>
+            <div class="input-group">
+                <select name="product_id[]" class="form-select product-select" required onchange="updateCurrentStock(this)">
+                    <option value="">Select Product</option>
+                </select>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshProductsDropdown(this)" title="Refresh Products">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="invalid-feedback" style="display: none;">Please select a product</div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Current Stock</label>
+            <input type="number" name="current_stock[]" class="form-control current-stock" readonly>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Quantity to Add</label>
+            <input type="number" name="quantity_in[]" class="form-control quantity-in" step="0.01" required onchange="calculateEditLineTotal(this)">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Unit Cost</label>
+            <input type="number" name="unit_cost[]" class="form-control unit-cost" step="0.01" onchange="calculateEditLineTotal(this)">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Line Total</label>
+            <input type="number" name="line_total[]" class="form-control line-total" readonly>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small">&nbsp;</label>
+            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeEditInventoryItem(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(newItemRow);
+
+    // Load products for the new dropdown
+    const newSelect = newItemRow.querySelector('.product-select');
+    loadProductsForEditAdjustment(newSelect);
 }
+
+// Also ensure the populateProductDropdown handles pre-selection correctly for editing
+function populateProductDropdown(selectElement, products, preselectedValue = '') {
+    // Clear existing options
+    selectElement.innerHTML = '<option value="">Select Product</option>';
+
+    // Handle empty state
+    if (!products || products.length === 0) {
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = 'No products found. Please add products in Product Master.';
+        emptyOption.disabled = true;
+        selectElement.appendChild(emptyOption);
+        return;
+    }
+
+    // Add products to dropdown
+    products.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id || '';
+        option.setAttribute('data-stock', product.current_stock || 0);
+        option.setAttribute('data-unit', product.unit_of_measure || 'pcs');
+        option.setAttribute('data-cost', product.cost_price || 0);
+
+        const currentStock = product.current_stock || 0;
+        const unit = product.unit_of_measure || 'pcs';
+        const sku = product.sku || 'N/A';
+        const name = product.name || 'Unnamed Product';
+
+        option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
+        selectElement.appendChild(option);
+    });
+
+    // Set pre-selected value if provided
+    if (preselectedValue) {
+        selectElement.value = preselectedValue;
+        // Trigger change event to update dependent fields
+        const event = new Event('change');
+        selectElement.dispatchEvent(event);
+    }
+
+    // Add searchable functionality for large lists
+    if (products.length > 20) {
+        addSearchableFeature(selectElement);
+    }
+}
+
 </script>
 
 <!-- View Product Modal -->
