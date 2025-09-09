@@ -237,10 +237,15 @@
                             <div class="row">
                                 <div class="col-12">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5>Product Master</h5>
-                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                                            <i class="fas fa-plus me-1"></i>Add Product
-                                        </button>
+                                        <h6 class="mb-0">Product Master</h6>
+                                        <div>
+                                            <button class="btn btn-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                                                <i class="fas fa-plus-circle me-1"></i>Add Inventory Items
+                                            </button>
+                                            <button type="button" class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                                <i class="fas fa-plus me-1"></i>Add Product
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <!-- Filters -->
@@ -872,21 +877,218 @@
 
 <!-- Add Purchase Order Modal -->
 <div class="modal fade" id="addPurchaseModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title">Create Purchase Order</h5>
+            <div class="modal-header">
+                <h5 class="modal-title">New Purchase Order</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="text-center py-4 text-muted">
-                    <i class="fas fa-shopping-cart fa-3x mb-3 opacity-50"></i>
-                    <p class="mb-0">Purchase order creation form coming soon</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This is a simplified purchase order creation. Use this to quickly add items that you've received.
                 </div>
+                <form id="addPurchaseForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                            <select name="supplier_id" id="purchaseSupplier" class="form-select" required>
+                                <option value="">Select Supplier</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Expected Delivery</label>
+                            <input type="date" name="expected_delivery" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Order notes or reference"></textarea>
+                    </div>
+
+                    <hr>
+                    <h6>Items</h6>
+                    <div id="purchaseItemsContainer">
+                        <div class="row mb-2 purchase-item">
+                            <div class="col-md-5">
+                                <select name="product_id[]" class="form-select" required>
+                                    <option value="">Select Product</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" name="quantity[]" class="form-control" placeholder="Quantity" step="0.01" required>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" name="unit_cost[]" class="form-control" placeholder="Unit Cost" step="0.01" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removePurchaseItem(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addPurchaseItem()">
+                        <i class="fas fa-plus me-1"></i>Add Item
+                    </button>
+                </form>
             </div>
-            <div class="modal-footer border-0">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="savePurchaseOrder()">
+                    <i class="fas fa-save me-1"></i>Create & Receive Immediately
+                </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Inventory Items Modal -->
+<div class="modal fade" id="addInventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>Add Inventory Items
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addInventoryForm">
+                <div class="modal-body">
+                    <!-- Header Information -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Adjustment Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Adjustment Date <span class="text-danger">*</span></label>
+                                    <input type="date" name="adjustment_date" class="form-control" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Reference/Doc No.</label>
+                                    <input type="text" name="reference_no" class="form-control" placeholder="Optional reference number">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Notes</label>
+                                    <input type="text" name="notes" class="form-control" placeholder="Optional notes">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Items to Add</h6>
+                            <button type="button" class="btn btn-primary btn-sm" id="addItemRow">
+                                <i class="fas fa-plus me-1"></i>Add Item
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="inventoryItemsTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="30%">Product <span class="text-danger">*</span></th>
+                                            <th width="15%">Current Stock</th>
+                                            <th width="15%">Quantity In <span class="text-danger">*</span></th>
+                                            <th width="15%">Unit Cost</th>
+                                            <th width="15%">Line Total</th>
+                                            <th width="10%">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventoryItemsBody">
+                                        <!-- Items will be added here dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="alert alert-info mt-3" id="noItemsAlert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Click "Add Item" to start adding inventory items.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <div class="row justify-content-end">
+                                <div class="col-md-4">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Subtotal:</strong></td>
+                                            <td class="text-end"><span id="inventorySubtotal">$0.00</span></td>
+                                        </tr>
+                                        <tr class="table-primary">
+                                            <td><strong>Grand Total:</strong></td>
+                                            <td class="text-end"><strong><span id="inventoryGrandTotal">$0.00</span></strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="saveInventoryBtn">
+                        <i class="fas fa-save me-1"></i>Save & Update Stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Receive Purchase Order Modal -->
+<div class="modal fade" id="receivePurchaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Receive Purchase Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="receivePurchaseForm">
+                <div class="modal-body">
+                    <input type="hidden" id="receivePurchaseOrderId">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Receiving items will automatically update stock levels in your inventory.
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Purchase Order: <span id="receivePONumber"></span></h6>
+                        <p class="text-muted mb-0">Supplier: <span id="receiveSupplierName"></span></p>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Ordered</th>
+                                    <th>Previously Received</th>
+                                    <th>Receive Now</th>
+                                    <th>Remaining</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receiveItemsTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Receive Items & Update Stock
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -2103,7 +2305,7 @@
                 document.getElementById('viewProductSellingPrice').textContent = product.selling_price ? '$' + parseFloat(product.selling_price).toFixed(2) : '-';
                 document.getElementById('viewProductLocation').textContent = product.location || '-';
                 document.getElementById('viewProductStatus').innerHTML = getStockStatusBadge(product.stock_status);
-                
+
                 // Product type
                 let productType = [];
                 if (product.is_service_item) productType.push('Service Item');
@@ -2349,119 +2551,103 @@
     </div>
 </div>
 
-<!-- Receive Purchase Order Modal -->
-<div class="modal fade" id="receivePurchaseModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<!-- Add Inventory Items Modal -->
+<div class="modal fade" id="addInventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Receive Purchase Order</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>Add Inventory Items
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="receivePurchaseForm">
+            <form id="addInventoryForm">
                 <div class="modal-body">
-                    <input type="hidden" id="receivePurchaseOrderId">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Receiving items will automatically update stock levels in your inventory.
+                    <!-- Header Information -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Adjustment Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Adjustment Date <span class="text-danger">*</span></label>
+                                    <input type="date" name="adjustment_date" class="form-control" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Reference/Doc No.</label>
+                                    <input type="text" name="reference_no" class="form-control" placeholder="Optional reference number">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Notes</label>
+                                    <input type="text" name="notes" class="form-control" placeholder="Optional notes">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <h6>Purchase Order: <span id="receivePONumber"></span></h6>
-                        <p class="text-muted mb-0">Supplier: <span id="receiveSupplierName"></span></p>
+
+                    <!-- Items Table -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Items to Add</h6>
+                            <button type="button" class="btn btn-primary btn-sm" id="addItemRow">
+                                <i class="fas fa-plus me-1"></i>Add Item
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="inventoryItemsTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="30%">Product <span class="text-danger">*</span></th>
+                                            <th width="15%">Current Stock</th>
+                                            <th width="15%">Quantity In <span class="text-danger">*</span></th>
+                                            <th width="15%">Unit Cost</th>
+                                            <th width="15%">Line Total</th>
+                                            <th width="10%">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventoryItemsBody">
+                                        <!-- Items will be added here dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="alert alert-info mt-3" id="noItemsAlert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Click "Add Item" to start adding inventory items.
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Ordered</th>
-                                    <th>Previously Received</th>
-                                    <th>Receive Now</th>
-                                    <th>Remaining</th>
-                                </tr>
-                            </thead>
-                            <tbody id="receiveItemsTable">
-                            </tbody>
-                        </table>
+
+                    <!-- Totals -->
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <div class="row justify-content-end">
+                                <div class="col-md-4">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Subtotal:</strong></td>
+                                            <td class="text-end"><span id="inventorySubtotal">$0.00</span></td>
+                                        </tr>
+                                        <tr class="table-primary">
+                                            <td><strong>Grand Total:</strong></td>
+                                            <td class="text-end"><strong><span id="inventoryGrandTotal">$0.00</span></strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-check me-1"></i>Receive Items & Update Stock
+                    <button type="submit" class="btn btn-success" id="saveInventoryBtn">
+                        <i class="fas fa-save me-1"></i>Save & Update Stock
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add Purchase Order Modal -->
-<div class="modal fade" id="addPurchaseModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">New Purchase Order</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    This is a simplified purchase order creation. Use this to quickly add items that you've received.
-                </div>
-                <form id="addPurchaseForm">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Supplier <span class="text-danger">*</span></label>
-                            <select name="supplier_id" id="purchaseSupplier" class="form-select" required>
-                                <option value="">Select Supplier</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Expected Delivery</label>
-                            <input type="date" name="expected_delivery" class="form-control">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Order notes or reference"></textarea>
-                    </div>
-                    
-                    <hr>
-                    <h6>Items</h6>
-                    <div id="purchaseItemsContainer">
-                        <div class="row mb-2 purchase-item">
-                            <div class="col-md-5">
-                                <select name="product_id[]" class="form-select" required>
-                                    <option value="">Select Product</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <input type="number" name="quantity[]" class="form-control" placeholder="Quantity" step="0.01" required>
-                            </div>
-                            <div class="col-md-3">
-                                <input type="number" name="unit_cost[]" class="form-control" placeholder="Unit Cost" step="0.01" required>
-                            </div>
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removePurchaseItem(this)">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addPurchaseItem()">
-                        <i class="fas fa-plus me-1"></i>Add Item
-                    </button>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="savePurchaseOrder()">
-                    <i class="fas fa-save me-1"></i>Create & Receive Immediately
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -2502,7 +2688,7 @@ function displayPurchaseOrders(orders) {
     orders.forEach(order => {
         const statusBadgeClass = getOrderStatusClass(order.status);
         const statusText = getOrderStatusText(order.status);
-        
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><strong>${order.po_number}</strong></td>
@@ -2551,11 +2737,11 @@ function getOrderStatusText(status) {
 function filterPurchaseOrders() {
     const filterValue = document.getElementById('orderStatusFilter').value;
     let filteredOrders = allPurchaseOrders;
-    
+
     if (filterValue !== 'all') {
         filteredOrders = allPurchaseOrders.filter(order => order.status === filterValue);
     }
-    
+
     displayPurchaseOrders(filteredOrders);
 }
 
@@ -2566,15 +2752,15 @@ function receivePurchaseOrder(poId) {
             if (order.error) {
                 throw new Error(order.error);
             }
-            
+
             // Populate the receive modal
             document.getElementById('receivePurchaseOrderId').value = poId;
             document.getElementById('receivePONumber').textContent = order.po_number;
             document.getElementById('receiveSupplierName').textContent = order.supplier_name;
-            
+
             const tableBody = document.getElementById('receiveItemsTable');
             tableBody.innerHTML = '';
-            
+
             order.items.forEach(item => {
                 const remaining = item.quantity_ordered - item.quantity_received;
                 const row = document.createElement('tr');
@@ -2594,7 +2780,7 @@ function receivePurchaseOrder(poId) {
                 `;
                 tableBody.appendChild(row);
             });
-            
+
             // Show the modal
             const modal = new bootstrap.Modal(document.getElementById('receivePurchaseModal'));
             modal.show();
@@ -2608,15 +2794,15 @@ function receivePurchaseOrder(poId) {
 // Handle receive purchase form submission
 document.getElementById('receivePurchaseForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const poId = document.getElementById('receivePurchaseOrderId').value;
     const formData = new FormData(this);
-    
+
     // Build items data
     const items = [];
     const itemIds = formData.getAll('item_id[]');
     const quantities = formData.getAll('quantity_received[]');
-    
+
     for (let i = 0; i < itemIds.length; i++) {
         if (quantities[i] && parseFloat(quantities[i]) > 0) {
             items.push({
@@ -2625,12 +2811,12 @@ document.getElementById('receivePurchaseForm').addEventListener('submit', functi
             });
         }
     }
-    
+
     if (items.length === 0) {
         showToast('Please enter quantities to receive', 'warning');
         return;
     }
-    
+
     // Submit to API
     fetch(`/api/inventory/purchase-order/${poId}/receive`, {
         method: 'POST',
@@ -2650,14 +2836,14 @@ document.getElementById('receivePurchaseForm').addEventListener('submit', functi
                     message += `\n• ${update.product_name}: +${update.quantity_added} ${update.unit_of_measure} (New Stock: ${update.new_stock_level})`;
                 });
             }
-            
+
             showToast(message, 'success');
-            
+
             // Close modal and refresh data
             bootstrap.Modal.getInstance(document.getElementById('receivePurchaseModal')).hide();
             loadPurchaseOrders();
             loadProducts(); // Refresh product list
-            
+
         } else {
             throw new Error(data.error || 'Failed to receive purchase order');
         }
@@ -2681,7 +2867,7 @@ function openAddPurchaseModal() {
         suppliers.forEach(supplier => {
             supplierSelect.innerHTML += `<option value="${supplier.id}">${supplier.name}</option>`;
         });
-        
+
         // Populate products in all product selects
         const productSelects = document.querySelectorAll('#addPurchaseModal select[name="product_id[]"]');
         productSelects.forEach(select => {
@@ -2690,7 +2876,7 @@ function openAddPurchaseModal() {
                 select.innerHTML += `<option value="${product.id}">${product.name} (${product.sku})</option>`;
             });
         });
-        
+
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('addPurchaseModal'));
         modal.show();
@@ -2704,11 +2890,11 @@ function openAddPurchaseModal() {
 function addPurchaseItem() {
     const container = document.getElementById('purchaseItemsContainer');
     const newItem = container.querySelector('.purchase-item').cloneNode(true);
-    
+
     // Clear values and update selects
     newItem.querySelectorAll('input').forEach(input => input.value = '');
     newItem.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
-    
+
     container.appendChild(newItem);
 }
 
@@ -2722,20 +2908,20 @@ function removePurchaseItem(button) {
 function savePurchaseOrder() {
     const form = document.getElementById('addPurchaseForm');
     const formData = new FormData(form);
-    
+
     // Validate form
     if (!formData.get('supplier_id')) {
         showToast('Please select a supplier', 'warning');
         return;
     }
-    
+
     // Check if at least one item is added
     const productIds = formData.getAll('product_id[]').filter(id => id);
     if (productIds.length === 0) {
         showToast('Please add at least one item', 'warning');
         return;
     }
-    
+
     // Submit form
     fetch('/inventory/orders/create', {
         method: 'POST',
@@ -2757,6 +2943,243 @@ function savePurchaseOrder() {
         showToast('Error creating purchase order', 'danger');
     });
 }
+
+
+// Add Inventory Items Modal functionality
+let inventoryRowCounter = 0;
+let availableProducts = [];
+
+// Load products for dropdown
+function loadInventoryProducts() {
+    fetch('/api/inventory/products/master')
+        .then(response => response.json())
+        .then(data => {
+            availableProducts = data;
+            // Populate the product dropdowns in the modal
+            const productSelects = document.querySelectorAll('#addInventoryModal .product-select');
+            productSelects.forEach(select => {
+                select.innerHTML = '<option value="">Select Product...</option>'; // Clear existing options
+                availableProducts.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.dataset.stock = product.current_stock;
+                    option.dataset.uom = product.unit_of_measure;
+                    option.textContent = `${product.name} (${product.sku})`;
+                    select.appendChild(option);
+                });
+            });
+        })
+        .catch(error => console.error('Error loading products for inventory modal:', error));
+}
+
+// Set default date and load products when modal is shown
+const addInventoryModal = document.getElementById('addInventoryModal');
+addInventoryModal.addEventListener('show.bs.modal', function () {
+    const dateInput = document.querySelector('#addInventoryModal input[name="adjustment_date"]');
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    loadInventoryProducts(); // Ensure products are loaded before adding rows
+});
+
+// Add item row
+document.getElementById('addItemRow').addEventListener('click', function() {
+    addInventoryItemRow();
+});
+
+function addInventoryItemRow() {
+    inventoryRowCounter++;
+    const tbody = document.getElementById('inventoryItemsBody');
+    const row = document.createElement('tr');
+    row.id = `inventoryRow_${inventoryRowCounter}`;
+
+    row.innerHTML = `
+        <td>
+            <select name="product_id[]" class="form-select product-select" required onchange="updateInventoryCurrentStock(this, ${inventoryRowCounter})">
+                <option value="">Select Product...</option>
+                ${availableProducts.map(product => 
+                    `<option value="${product.id}" data-stock="${product.current_stock}" data-uom="${product.unit_of_measure}">${product.name} (${product.sku})</option>`
+                ).join('')}
+            </select>
+        </td>
+        <td>
+            <input type="text" class="form-control current-stock-display" id="currentStock_${inventoryRowCounter}" readonly placeholder="0.00">
+        </td>
+        <td>
+            <input type="number" name="quantity_in[]" class="form-control quantity-in" step="0.01" min="0.01" required onchange="calculateInventoryLineTotal(${inventoryRowCounter})">
+        </td>
+        <td>
+            <input type="number" name="unit_cost[]" class="form-control unit-cost" step="0.01" min="0" value="0" onchange="calculateInventoryLineTotal(${inventoryRowCounter})">
+        </td>
+        <td>
+            <input type="text" class="form-control line-total" id="lineTotal_${inventoryRowCounter}" readonly value="$0.00">
+        </td>
+        <td>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeInventoryRow(${inventoryRowCounter})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+
+    tbody.appendChild(row);
+    document.getElementById('noItemsAlert').style.display = 'none';
+    updateInventoryTotals();
+}
+
+function updateInventoryCurrentStock(selectElement, rowId) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const currentStockInput = document.getElementById(`currentStock_${rowId}`);
+
+    if (selectedOption.value) {
+        const stock = selectedOption.dataset.stock || '0';
+        const uom = selectedOption.dataset.uom || 'pcs';
+        currentStockInput.value = `${stock} ${uom}`;
+    } else {
+        currentStockInput.value = '';
+    }
+    calculateInventoryLineTotal(rowId);
+}
+
+function calculateInventoryLineTotal(rowId) {
+    const quantityInput = document.querySelector(`#inventoryRow_${rowId} .quantity-in`);
+    const unitCostInput = document.querySelector(`#inventoryRow_${rowId} .unit-cost`);
+    const lineTotalInput = document.getElementById(`lineTotal_${rowId}`);
+
+    const quantity = parseFloat(quantityInput.value) || 0;
+    const unitCost = parseFloat(unitCostInput.value) || 0;
+    const lineTotal = quantity * unitCost;
+
+    lineTotalInput.value = `$${lineTotal.toFixed(2)}`;
+    updateInventoryTotals();
+}
+
+function updateInventoryTotals() {
+    const lineTotals = document.querySelectorAll('#inventoryItemsTable .line-total');
+    let subtotal = 0;
+
+    lineTotals.forEach(input => {
+        const value = input.value.replace('$', '');
+        subtotal += parseFloat(value) || 0;
+    });
+
+    document.getElementById('inventorySubtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('inventoryGrandTotal').textContent = `$${subtotal.toFixed(2)}`;
+}
+
+function removeInventoryRow(rowId) {
+    const row = document.getElementById(`inventoryRow_${rowId}`);
+    if (row) {
+        row.remove();
+        updateInventoryTotals();
+
+        // Show no items alert if no rows left
+        const remainingRows = document.querySelectorAll('#inventoryItemsBody tr');
+        if (remainingRows.length === 0) {
+            document.getElementById('noItemsAlert').style.display = 'block';
+        }
+    }
+}
+
+// Form submission for Add Inventory Items
+document.getElementById('addInventoryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const items = [];
+
+    // Validate at least one item
+    const productSelects = document.querySelectorAll('select[name="product_id[]"]');
+    if (productSelects.length === 0 || !Array.from(productSelects).some(select => select.value)) {
+        showToast('Please add at least one item', 'error'); // Use showToast for consistency
+        return;
+    }
+
+    // Collect items data
+    productSelects.forEach((select, index) => {
+        if (select.value) {
+            const quantityInput = document.querySelectorAll('input[name="quantity_in[]"]')[index];
+            const unitCostInput = document.querySelectorAll('input[name="unit_cost[]"]')[index];
+
+            const quantity = parseFloat(quantityInput.value);
+            const unitCost = parseFloat(unitCostInput.value) || 0;
+
+            if (quantity > 0) {
+                items.push({
+                    product_id: parseInt(select.value),
+                    quantity_in: quantity,
+                    unit_cost: unitCost,
+                    line_total: quantity * unitCost
+                });
+            }
+        }
+    });
+
+    if (items.length === 0) {
+        showToast('Please add valid items with quantity > 0', 'error');
+        return;
+    }
+
+    const requestData = {
+        adjustment_date: formData.get('adjustment_date'),
+        reference_no: formData.get('reference_no') || '',
+        notes: formData.get('notes') || '',
+        items: items
+    };
+
+    const submitBtn = document.getElementById('saveInventoryBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    submitBtn.disabled = true;
+
+    fetch('/api/inventory/adjustments', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+
+            // Close modal and reset form
+            bootstrap.Modal.getInstance(addInventoryModal).hide();
+            document.getElementById('addInventoryForm').reset();
+            document.getElementById('inventoryItemsBody').innerHTML = '';
+            document.getElementById('noItemsAlert').style.display = 'block';
+            inventoryRowCounter = 0;
+            updateInventoryTotals();
+
+            // Refresh dashboard data
+            // Assuming a function like refreshDashboardData() exists or is added
+            // refreshDashboardData(); 
+            // For now, we can reload the product list and potentially other parts if needed
+            loadProducts(); // Reload product master to reflect stock changes
+            // If dashboard KPIs are updated via AJAX, a separate function call would be needed here.
+            // For a full page reload for simplicity, uncomment the line below
+            // location.reload(); 
+
+        } else {
+            showToast(data.error || 'Error saving inventory adjustment', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error saving inventory adjustment', 'error');
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Make functions globally available if needed by inline HTML attributes
+window.updateInventoryCurrentStock = updateInventoryCurrentStock;
+window.calculateInventoryLineTotal = calculateInventoryLineTotal;
+window.removeInventoryRow = removeInventoryRow;
+window.addInventoryItemRow = addInventoryItemRow; // Make this available if needed for external calls
+window.loadInventoryProducts = loadInventoryProducts; // Make this available if needed for external calls
 
 </script>
 

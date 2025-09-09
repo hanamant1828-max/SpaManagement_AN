@@ -33,20 +33,20 @@ def inventory_dashboard():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get dashboard statistics
     stats = get_inventory_dashboard_stats()
-    
+
     # Get critical alerts
     critical_alerts = [alert for alert in get_active_alerts() if alert.severity == 'critical']
-    
+
     # Recent activities
     recent_movements = get_stock_movements(limit=5)
-    
+
     # Get data for all tabs
     categories = get_all_categories()
     purchase_orders = get_purchase_orders()
-    
+
     return render_template('inventory/dashboard.html',
                          stats=stats,
                          critical_alerts=critical_alerts,
@@ -63,12 +63,12 @@ def inventory_products():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get filter parameters
     category_filter = request.args.get('category')
     status_filter = request.args.get('status', 'all')
     search_term = request.args.get('search', '')
-    
+
     # Apply filters
     if search_term:
         products = search_products(search_term)
@@ -80,13 +80,13 @@ def inventory_products():
         products = get_products_needing_reorder()
     else:
         products = get_all_products()
-    
+
     # Apply category filter
     if category_filter and category_filter != 'all':
         products = [p for p in products if str(p.category_id) == category_filter]
-    
+
     categories = get_all_categories()
-    
+
     return render_template('inventory/products.html',
                          products=products,
                          categories=categories,
@@ -105,11 +105,11 @@ def add_product():
             flash('Access denied', 'danger')
             return redirect(url_for('dashboard'))
         return jsonify({'error': 'Access denied'}), 403
-    
+
     if request.method == 'GET':
         # Redirect GET requests to the products page
         return redirect(url_for('inventory_products'))
-    
+
     try:
         # Safely get form data with proper null checking
         sku = request.form.get('sku')
@@ -119,14 +119,14 @@ def add_product():
         unit_of_measure = request.form.get('unit_of_measure') or 'pcs'
         barcode = request.form.get('barcode') or ''
         location = request.form.get('location') or ''
-        
+
         # Validation first
         if not sku or not sku.strip():
             return jsonify({'error': 'SKU is required'}), 400
-        
+
         if not name or not name.strip():
             return jsonify({'error': 'Product name is required'}), 400
-        
+
         # Helper function to safely convert to float with default
         def safe_float(value, default=0.0):
             if value is None or value == '':
@@ -156,16 +156,16 @@ def add_product():
             'is_service_item': 'is_service_item' in request.form,
             'is_retail_item': 'is_retail_item' in request.form
         }
-        
+
         product = create_product(product_data)
-        
+
         # Create initial stock movement if stock > 0
         if product.current_stock > 0:
             update_stock(product.id, product.current_stock, 'in', 
-                       'Initial stock', 'manual', None, current_user.id)
-        
+                         'Initial stock', 'manual', None, current_user.id)
+
         return jsonify({'success': True, 'message': f'Product "{product.name}" added successfully!'})
-        
+
     except ValueError:
         return jsonify({'error': 'Invalid input values. Please check your data.'}), 400
     except Exception as e:
@@ -180,14 +180,14 @@ def edit_product(product_id):
             flash('Access denied', 'danger')
             return redirect(url_for('dashboard'))
         return jsonify({'error': 'Access denied'}), 403
-    
+
     product = get_product_by_id(product_id)
     if not product:
         if request.method == 'GET':
             flash('Product not found', 'danger')
             return redirect(url_for('inventory_products'))
         return jsonify({'error': 'Product not found'}), 404
-    
+
     if request.method == 'POST':
         try:
             # Helper function to safely convert to float with default
@@ -198,7 +198,7 @@ def edit_product(product_id):
                     return float(value)
                 except (ValueError, TypeError):
                     return default
-                    
+
             # Validation first
             name = request.form.get('name')
             if not name or not name.strip():
@@ -220,18 +220,18 @@ def edit_product(product_id):
                 'is_service_item': 'is_service_item' in request.form,
                 'is_retail_item': 'is_retail_item' in request.form
             }
-            
+
             updated_product = update_product(product_id, product_data)
             if updated_product:
                 return jsonify({'success': True, 'message': f'Product "{updated_product.name}" updated successfully!'})
             else:
                 return jsonify({'error': 'Error updating product'}), 500
-                
+
         except ValueError:
             return jsonify({'error': 'Invalid input values. Please check your data.'}), 400
         except Exception as e:
             return jsonify({'error': f'Error updating product: {str(e)}'}), 500
-    
+
     # GET request - render form
     categories = get_all_categories()
     return render_template('inventory/product_form.html',
@@ -246,15 +246,15 @@ def view_product(product_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     product = get_product_by_id(product_id)
     if not product:
         flash('Product not found', 'danger')
         return redirect(url_for('inventory_products'))
-    
+
     # Get stock movement history
     movements = get_stock_movements(product_id, limit=20)
-    
+
     return render_template('inventory/product_details.html',
                          product=product,
                          movements=movements)
@@ -265,32 +265,32 @@ def delete_product_route(product_id):
     """Delete product"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     product = get_product_by_id(product_id)
     if not product:
         return jsonify({'error': 'Product not found'}), 404
-    
+
     try:
         # Check if product has stock movements
         if hasattr(product, 'stock_movements') and product.stock_movements:
             return jsonify({'error': f'Cannot delete product "{product.name}" because it has stock movement history. Please consider deactivating it instead.'}), 400
-        
+
         # Check if product is in purchase orders
         if hasattr(product, 'order_items') and product.order_items:
             return jsonify({'error': f'Cannot delete product "{product.name}" because it has associated purchase orders. Please consider deactivating it instead.'}), 400
-        
+
         # Check if product has current stock
         if product.current_stock and product.current_stock > 0:
             return jsonify({'error': f'Cannot delete product "{product.name}" because it has current stock ({product.current_stock} {product.unit_of_measure}). Please remove all stock first.'}), 400
-        
+
         # Store product name for success message
         product_name = product.name
-        
+
         if delete_product(product_id):
             return jsonify({'success': True, 'message': f'Product "{product_name}" deleted successfully'})
         else:
             return jsonify({'error': 'Error deleting product'}), 500
-            
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Error deleting product: {str(e)}'}), 500
@@ -304,7 +304,7 @@ def inventory_categories():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     categories = get_all_categories()
     return render_template('inventory/categories.html', categories=categories)
 
@@ -315,7 +315,7 @@ def add_inventory_category():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         try:
             category_data = {
@@ -323,18 +323,18 @@ def add_inventory_category():
                 'description': request.form.get('description', '').strip(),
                 'color_code': request.form.get('color_code', '#007bff').strip()
             }
-            
+
             if not category_data['name']:
                 flash('Category name is required', 'danger')
                 return redirect(request.url)
-            
+
             category = create_category(category_data)
             flash(f'Category "{category.name}" added successfully!', 'success')
             return redirect(url_for('inventory_categories'))
-            
+
         except Exception as e:
             flash(f'Error adding category: {str(e)}', 'danger')
-    
+
     return render_template('inventory/category_form.html', action='add')
 
 @app.route('/inventory/categories/<int:category_id>/edit', methods=['GET', 'POST'])
@@ -344,12 +344,12 @@ def edit_inventory_category(category_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     category = get_category_by_id(category_id)
     if not category:
         flash('Category not found', 'danger')
         return redirect(url_for('inventory_categories'))
-    
+
     if request.method == 'POST':
         try:
             category_data = {
@@ -357,21 +357,21 @@ def edit_inventory_category(category_id):
                 'description': request.form.get('description', '').strip(),
                 'color_code': request.form.get('color_code', '#007bff').strip()
             }
-            
+
             if not category_data['name']:
                 flash('Category name is required', 'danger')
                 return redirect(request.url)
-            
+
             updated_category = update_category(category_id, category_data)
             if updated_category:
                 flash(f'Category "{updated_category.name}" updated successfully!', 'success')
                 return redirect(url_for('inventory_categories'))
             else:
                 flash('Error updating category', 'danger')
-                
+
         except Exception as e:
             flash(f'Error updating category: {str(e)}', 'danger')
-    
+
     return render_template('inventory/category_form.html', 
                          category=category, 
                          action='edit')
@@ -383,26 +383,26 @@ def delete_category_route(category_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     category = get_category_by_id(category_id)
     if not category:
         flash('Category not found', 'danger')
         return redirect(url_for('inventory_categories'))
-    
+
     try:
         # Check if category has products
         if category.products:
             flash(f'Cannot delete category "{category.name}" because it has {len(category.products)} associated products', 'danger')
             return redirect(url_for('inventory_categories'))
-        
+
         if delete_category(category_id):
             flash(f'Category "{category.name}" deleted successfully!', 'success')
         else:
             flash('Error deleting category', 'danger')
-            
+
     except Exception as e:
         flash(f'Error deleting category: {str(e)}', 'danger')
-    
+
     return redirect(url_for('inventory_categories'))
 
 # ============ STOCK MANAGEMENT ============
@@ -414,17 +414,17 @@ def adjust_stock(product_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     product = get_product_by_id(product_id)
     if not product:
         flash('Product not found', 'danger')
         return redirect(url_for('inventory_products'))
-    
+
     try:
         adjustment_type = request.form.get('adjustment_type')  # set, add, remove
         quantity = float(request.form.get('quantity', 0))
         reason = request.form.get('reason', 'Stock adjustment').strip()
-        
+
         if adjustment_type == 'set':
             updated_product = update_stock(product_id, quantity, 'adjustment', 
                                          reason, 'manual', None, current_user.id)
@@ -440,17 +440,17 @@ def adjust_stock(product_id):
         else:
             flash('Invalid adjustment type', 'danger')
             return redirect(request.referrer or url_for('inventory_products'))
-        
+
         if updated_product:
             flash(f'{product.name}: {action_msg}. New stock: {updated_product.current_stock}', 'success')
         else:
             flash('Error adjusting stock', 'danger')
-            
+
     except ValueError:
         flash('Invalid quantity value', 'danger')
     except Exception as e:
         flash(f'Error adjusting stock: {str(e)}', 'danger')
-    
+
     return redirect(request.referrer or url_for('inventory_products'))
 
 @app.route('/inventory/stock-movements')
@@ -460,13 +460,13 @@ def stock_movements():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     product_id = request.args.get('product_id', type=int)
     limit = request.args.get('limit', 50, type=int)
-    
+
     movements = get_stock_movements(product_id, limit)
     products = get_all_products()  # For filter dropdown
-    
+
     return render_template('inventory/stock_movements.html',
                          movements=movements,
                          products=products,
@@ -481,7 +481,7 @@ def suppliers():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     suppliers = get_all_suppliers()
     return render_template('inventory/suppliers.html', suppliers=suppliers)
 
@@ -492,7 +492,7 @@ def add_supplier():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         try:
             supplier_data = {
@@ -510,20 +510,20 @@ def add_supplier():
                 'credit_limit': float(request.form.get('credit_limit', 0)),
                 'rating': int(request.form.get('rating', 5))
             }
-            
+
             if not supplier_data['name']:
                 flash('Supplier name is required', 'danger')
                 return redirect(request.url)
-            
+
             supplier = create_supplier(supplier_data)
             flash(f'Supplier "{supplier.name}" added successfully!', 'success')
             return redirect(url_for('suppliers'))
-            
+
         except ValueError:
             flash('Invalid input values. Please check your data.', 'danger')
         except Exception as e:
             flash(f'Error adding supplier: {str(e)}', 'danger')
-    
+
     return render_template('inventory/supplier_form.html', action='add')
 
 @app.route('/inventory/suppliers/<int:supplier_id>/edit', methods=['GET', 'POST'])
@@ -533,12 +533,12 @@ def edit_supplier(supplier_id):
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     supplier = get_supplier_by_id(supplier_id)
     if not supplier:
         flash('Supplier not found', 'danger')
         return redirect(url_for('suppliers'))
-    
+
     if request.method == 'POST':
         try:
             supplier_data = {
@@ -556,19 +556,19 @@ def edit_supplier(supplier_id):
                 'credit_limit': float(request.form.get('credit_limit', 0)),
                 'rating': int(request.form.get('rating', 5))
             }
-            
+
             updated_supplier = update_supplier(supplier_id, supplier_data)
             if updated_supplier:
                 flash(f'Supplier "{updated_supplier.name}" updated successfully!', 'success')
                 return redirect(url_for('suppliers'))
             else:
                 flash('Error updating supplier', 'danger')
-                
+
         except ValueError:
             flash('Invalid input values. Please check your data.', 'danger')
         except Exception as e:
             flash(f'Error updating supplier: {str(e)}', 'danger')
-    
+
     return render_template('inventory/supplier_form.html',
                          supplier=supplier,
                          action='edit')
@@ -582,14 +582,14 @@ def purchase_orders():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     status_filter = request.args.get('status', 'all')
-    
+
     if status_filter != 'all':
         orders = get_purchase_orders(status_filter)
     else:
         orders = get_purchase_orders()
-    
+
     return render_template('inventory/purchase_orders.html',
                          orders=orders,
                          current_status=status_filter)
@@ -601,7 +601,7 @@ def create_order():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         try:
             # Get order data
@@ -613,13 +613,13 @@ def create_order():
                 'terms_and_conditions': request.form.get('terms_and_conditions', '').strip(),
                 'created_by': current_user.id
             }
-            
+
             # Get items data
             items_data = []
             product_ids = request.form.getlist('product_id[]')
             quantities = request.form.getlist('quantity[]')
             unit_costs = request.form.getlist('unit_cost[]')
-            
+
             for i, product_id in enumerate(product_ids):
                 if product_id and quantities[i] and unit_costs[i]:
                     quantity = float(quantities[i])
@@ -630,23 +630,23 @@ def create_order():
                         'unit_cost': unit_cost,
                         'total_cost': quantity * unit_cost
                     })
-            
+
             if not items_data:
                 flash('At least one item is required', 'danger')
                 return redirect(request.url)
-            
+
             po = create_purchase_order(po_data, items_data)
             flash(f'Purchase Order {po.po_number} created successfully!', 'success')
             return redirect(url_for('purchase_orders'))
-            
+
         except ValueError:
             flash('Invalid input values. Please check your data.', 'danger')
         except Exception as e:
             flash(f'Error creating purchase order: {str(e)}', 'danger')
-    
+
     suppliers = get_all_suppliers()
     products = get_all_products()
-    
+
     return render_template('inventory/order_form.html',
                          suppliers=suppliers,
                          products=products,
@@ -658,36 +658,36 @@ def receive_purchase_api(po_id):
     """API endpoint to receive purchase order items and update stock"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         data = request.get_json()
         received_items = data.get('items', [])
-        
+
         if not received_items:
             return jsonify({'error': 'No items provided for receiving'}), 400
-        
+
         # Validate items data
         for item in received_items:
             if not item.get('item_id') or not item.get('quantity_received'):
                 return jsonify({'error': 'Invalid item data provided'}), 400
-                
+
         # Process the purchase order receipt
         result = receive_purchase_order(po_id, received_items, current_user.id)
-        
+
         if result['missing_products']:
             return jsonify({
                 'error': 'Some products do not exist in the system',
                 'missing_products': result['missing_products'],
                 'message': 'Please add the missing products to the Product Master before receiving this order.'
             }), 400
-        
+
         return jsonify({
             'success': True,
             'message': f'Purchase order received successfully! Stock updated for {len(result["stock_updates"])} products.',
             'stock_updates': result['stock_updates'],
             'po_status': result['po_status']
         })
-        
+
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
@@ -699,11 +699,11 @@ def get_purchase_orders_api():
     """API endpoint to get all purchase orders"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         orders = get_purchase_orders()
         orders_data = []
-        
+
         for order in orders:
             orders_data.append({
                 'id': order.id,
@@ -715,9 +715,9 @@ def get_purchase_orders_api():
                 'order_date': order.order_date.strftime('%Y-%m-%d') if order.order_date else None,
                 'created_at': order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else None
             })
-        
+
         return jsonify(orders_data)
-        
+
     except Exception as e:
         return jsonify({'error': f'Error fetching purchase orders: {str(e)}'}), 500
 
@@ -727,12 +727,12 @@ def get_purchase_order_details_api(po_id):
     """API endpoint to get purchase order details"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         order = get_purchase_order_by_id(po_id)
         if not order:
             return jsonify({'error': 'Purchase order not found'}), 404
-        
+
         items_data = []
         for item in order.items:
             items_data.append({
@@ -747,7 +747,7 @@ def get_purchase_order_details_api(po_id):
                 'total_cost': float(item.total_cost),
                 'is_fully_received': item.is_fully_received
             })
-        
+
         order_data = {
             'id': order.id,
             'po_number': order.po_number,
@@ -761,9 +761,9 @@ def get_purchase_order_details_api(po_id):
             'total_amount': float(order.total_amount) if order.total_amount else 0,
             'items': items_data
         }
-        
+
         return jsonify(order_data)
-        
+
     except Exception as e:
         return jsonify({'error': f'Error fetching purchase order: {str(e)}'}), 500
 
@@ -773,11 +773,11 @@ def get_suppliers_api():
     """API endpoint to get all suppliers"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         suppliers = get_all_suppliers()
         suppliers_data = []
-        
+
         for supplier in suppliers:
             suppliers_data.append({
                 'id': supplier.id,
@@ -787,9 +787,9 @@ def get_suppliers_api():
                 'phone': supplier.phone,
                 'is_active': supplier.is_active
             })
-        
+
         return jsonify(suppliers_data)
-        
+
     except Exception as e:
         return jsonify({'error': f'Error fetching suppliers: {str(e)}'}), 500
 
@@ -802,7 +802,7 @@ def inventory_alerts():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     alerts = get_active_alerts()
     return render_template('inventory/alerts.html', alerts=alerts)
 
@@ -813,9 +813,9 @@ def inventory_reports():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     stats = get_inventory_dashboard_stats()
-    
+
     return render_template('inventory/reports.html', stats=stats)
 
 @app.route('/inventory/export/products')
@@ -825,19 +825,19 @@ def export_products():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     products = get_all_products()
-    
+
     output = io.StringIO()
     writer = csv.writer(output)
-    
+
     # Write header
     writer.writerow([
         'SKU', 'Name', 'Category', 'Supplier', 'Current Stock', 'Min Level',
         'Max Level', 'Reorder Point', 'Cost Price', 'Selling Price', 'Unit',
         'Location', 'Status', 'Stock Value'
     ])
-    
+
     # Write data
     for product in products:
         writer.writerow([
@@ -856,9 +856,9 @@ def export_products():
             product.stock_status,
             product.stock_value
         ])
-    
+
     output.seek(0)
-    
+
     return Response(
         output.getvalue(),
         mimetype='text/csv',
@@ -873,7 +873,7 @@ def api_get_product(product_id):
     """Get product data as JSON"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     product = get_product_by_id(product_id)
     if product:
         return jsonify({
@@ -903,10 +903,10 @@ def api_get_product_by_sku(sku):
     """Get product data by SKU as JSON"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     products = get_all_products()
     product = next((p for p in products if p.sku == sku), None)
-    
+
     if product:
         return jsonify({
             'id': product.id,
@@ -935,7 +935,7 @@ def api_dashboard_stats():
     """Get dashboard statistics as JSON"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     stats = get_inventory_dashboard_stats()
     return jsonify(stats)
 
@@ -948,14 +948,14 @@ def consumption_records():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     page = request.args.get('page', 1, type=int)
     search_term = request.args.get('search', '')
     per_page = 20
-    
+
     # Get paginated consumption records
     consumption_pagination = get_all_consumption_records(page=page, per_page=per_page, search_term=search_term)
-    
+
     return jsonify({
         'records': [{
             'id': record.id,
@@ -983,7 +983,7 @@ def add_consumption():
     """Add new consumption record"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         consumption_data = {
             'product_id': int(request.form.get('product_id')),
@@ -993,21 +993,21 @@ def add_consumption():
             'reference_doc_no': request.form.get('reference_doc_no', '').strip(),
             'notes': request.form.get('notes', '').strip()
         }
-        
+
         # Validation
         if not consumption_data['issued_to']:
             return jsonify({'error': 'Issued to field is required'}), 400
-        
+
         if consumption_data['quantity_used'] <= 0:
             return jsonify({'error': 'Quantity must be greater than 0'}), 400
-        
+
         consumption = create_consumption_record(consumption_data, current_user.id)
         return jsonify({
             'success': True,
             'message': 'Consumption record created successfully',
             'id': consumption.id
         })
-        
+
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
@@ -1019,7 +1019,7 @@ def edit_consumption(consumption_id):
     """Edit existing consumption record"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         consumption_data = {
             'product_id': int(request.form.get('product_id')),
@@ -1029,14 +1029,14 @@ def edit_consumption(consumption_id):
             'reference_doc_no': request.form.get('reference_doc_no', '').strip(),
             'notes': request.form.get('notes', '').strip()
         }
-        
+
         # Validation
         if not consumption_data['issued_to']:
             return jsonify({'error': 'Issued to field is required'}), 400
-        
+
         if consumption_data['quantity_used'] <= 0:
             return jsonify({'error': 'Quantity must be greater than 0'}), 400
-        
+
         consumption = update_consumption_record(consumption_id, consumption_data, current_user.id)
         if consumption:
             return jsonify({
@@ -1045,7 +1045,7 @@ def edit_consumption(consumption_id):
             })
         else:
             return jsonify({'error': 'Consumption record not found'}), 404
-            
+
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
@@ -1057,7 +1057,7 @@ def delete_consumption(consumption_id):
     """Delete consumption record"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         success = delete_consumption_record(consumption_id, current_user.id)
         if success:
@@ -1067,7 +1067,7 @@ def delete_consumption(consumption_id):
             })
         else:
             return jsonify({'error': 'Consumption record not found'}), 404
-            
+
     except Exception as e:
         return jsonify({'error': 'Failed to delete consumption record'}), 500
 
@@ -1078,21 +1078,21 @@ def export_consumption_csv():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     search_term = request.args.get('search', '')
-    
+
     # Get all consumption records (no pagination for export)
     consumption_records = get_all_consumption_records(per_page=None, search_term=search_term)
-    
+
     output = io.StringIO()
     writer = csv.writer(output)
-    
+
     # Headers
     writer.writerow([
         'Date', 'Item', 'SKU', 'Quantity Used', 'Unit', 
         'Issued To', 'Reference/Doc No.', 'Notes', 'Created By', 'Created At'
     ])
-    
+
     # Data rows
     for record in consumption_records:
         writer.writerow([
@@ -1107,9 +1107,9 @@ def export_consumption_csv():
             record.user.username if record.user else '',
             record.created_at.strftime('%Y-%m-%d %H:%M:%S')
         ])
-    
+
     output.seek(0)
-    
+
     return Response(
         output.getvalue(),
         mimetype='text/csv',
@@ -1124,7 +1124,7 @@ def api_get_consumption(consumption_id):
     """Get consumption record as JSON"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     consumption = get_consumption_by_id(consumption_id)
     if consumption:
         return jsonify({
@@ -1146,7 +1146,7 @@ def api_products_for_consumption():
     """Get products available for consumption"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     products = get_all_products()
     return jsonify([{
         'id': product.id,
@@ -1162,7 +1162,7 @@ def api_products_master():
     """Get all products for Product Master table"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     products = get_all_products()
     return jsonify([{
         'id': product.id,
