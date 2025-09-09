@@ -1714,9 +1714,6 @@ function loadAdjustments() {
         tbody.innerHTML = '';
 
         data.records.forEach(record => {
-            // Show only the raw remarks data as stored
-            const rawRemarks = record.remarks || '—';
-            
             const row = `
                 <tr>
                     <td>${record.reference_id || '—'}</td>
@@ -1724,7 +1721,7 @@ function loadAdjustments() {
                     <td>${record.items_count}</td>
                     <td>$${record.subtotal.toFixed(2)}</td>
                     <td>$${record.total_value.toFixed(2)}</td>
-                    <td>${rawRemarks}</td>
+                    <td>${record.remarks || '—'}</td>
                     <td>${record.created_by}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
