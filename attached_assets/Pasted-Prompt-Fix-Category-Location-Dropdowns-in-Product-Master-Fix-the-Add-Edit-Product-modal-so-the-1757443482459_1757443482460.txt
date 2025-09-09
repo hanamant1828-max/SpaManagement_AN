@@ -1,0 +1,75 @@
+Prompt — Fix Category & Location Dropdowns in Product Master
+
+“Fix the Add/Edit Product modal so the Category and Location dropdowns are populated correctly from storage. Ensure both dropdowns refresh dynamically and support Add/Edit workflows.”
+
+1. Data Sources
+
+Categories stored in: inventory.categories
+
+{ id, name, description, color, status }
+
+
+Locations stored in: inventory.locations
+
+{ id, name, type, description, status }
+
+2. UI Requirements
+
+In Add Product Modal:
+
+Category dropdown: label = “Select Category” → options = all Active categories by name.
+
+Location dropdown: label = “Select Location” → options = all Active locations by name.
+
+In Edit Product Modal:
+
+Category and Location dropdowns must pre-select the current product’s values.
+
+3. Implementation
+
+Create utility functions:
+
+function loadCategoriesIntoDropdown(dropdownId, selectedId) {
+  const cats = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
+  const ddl = document.getElementById(dropdownId);
+  ddl.innerHTML = '<option value="">Select Category</option>';
+  cats.filter(c => c.status === 'Active').forEach(c => {
+    ddl.innerHTML += `<option value="${c.id}" ${c.id===selectedId?'selected':''}>${c.name}</option>`;
+  });
+}
+
+function loadLocationsIntoDropdown(dropdownId, selectedId) {
+  const locs = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+  const ddl = document.getElementById(dropdownId);
+  ddl.innerHTML = '<option value="">Select Location</option>';
+  locs.filter(l => l.status === 'Active').forEach(l => {
+    ddl.innerHTML += `<option value="${l.id}" ${l.id===selectedId?'selected':''}>${l.name}</option>`;
+  });
+}
+
+
+Call these when opening Add/Edit modal:
+
+loadCategoriesIntoDropdown('productCategory', product?.categoryId);
+loadLocationsIntoDropdown('productLocation', product?.locationId);
+
+4. Validation
+
+Category and Location required for Save.
+
+If no categories or locations exist → block save with message:
+“Please create at least one category and one location before adding products.”
+
+5. Acceptance Criteria
+
+Category dropdown loads all active categories.
+
+Location dropdown loads all active locations.
+
+Both fields pre-select correctly in Edit mode.
+
+Adding/Editing a product works without errors.
+
+Toast message shown if no categories/locations exist.
+
+No console errors.
