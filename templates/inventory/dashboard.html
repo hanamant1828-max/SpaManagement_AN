@@ -252,7 +252,7 @@
                                             <select class="form-select" id="filterCategory">
                                                 <option value="">All Categories</option>
                                                 {% for category in categories %}
-                                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                                <option value="{{ category.name }}">{{ category.name }}</option>
                                                 {% endfor %}
                                             </select>
                                         </div>
@@ -577,10 +577,12 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">SKU <span class="text-danger">*</span></label>
                             <input type="text" name="sku" class="form-control" required>
+                            <div class="invalid-feedback">SKU is required.</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Product Name <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control" required>
+                            <div class="invalid-feedback">Product name is required.</div>
                         </div>
                         <div class="col-12 mb-3">
                             <label class="form-label">Description</label>
@@ -685,6 +687,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Product Name <span class="text-danger">*</span></label>
                             <input type="text" name="name" id="editName" class="form-control" required>
+                            <div class="invalid-feedback">Product name is required.</div>
                         </div>
                         <div class="col-12 mb-3">
                             <label class="form-label">Description</label>
@@ -779,6 +782,7 @@
                     <div class="mb-3">
                         <label for="categoryName" class="form-label">Category Name</label>
                         <input type="text" class="form-control" id="categoryName" name="name" required>
+                        <div class="invalid-feedback">Category name is required.</div>
                     </div>
                     <div class="mb-3">
                         <label for="categoryDescription" class="form-label">Description</label>
@@ -811,6 +815,7 @@
                     <div class="mb-3">
                         <label for="editCategoryName" class="form-label">Category Name</label>
                         <input type="text" class="form-control" id="editCategoryName" name="name" required>
+                        <div class="invalid-feedback">Category name is required.</div>
                     </div>
                     <div class="mb-3">
                         <label for="editCategoryDescription" class="form-label">Description</label>
@@ -894,24 +899,28 @@
                         <select class="form-select" id="consumptionProduct" name="product_id" required>
                             <option value="">Select Product...</option>
                         </select>
+                        <div class="invalid-feedback">Please select a product.</div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="consumptionDate" class="form-label">Date</label>
                                 <input type="date" class="form-control" id="consumptionDate" name="consumption_date" required>
+                                <div class="invalid-feedback">Please enter the consumption date.</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="consumptionQuantity" class="form-label">Quantity Used</label>
                                 <input type="number" step="0.01" min="0.01" class="form-control" id="consumptionQuantity" name="quantity_used" required>
+                                <div class="invalid-feedback">Please enter a valid quantity.</div>
                             </div>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label for="consumptionIssuedTo" class="form-label">Issued To</label>
                         <input type="text" class="form-control" id="consumptionIssuedTo" name="issued_to" placeholder="Department/Project/Person" required>
+                        <div class="invalid-feedback">Please specify who the item was issued to.</div>
                     </div>
                     <div class="mb-3">
                         <label for="consumptionReference" class="form-label">Reference/Doc No.</label>
@@ -941,29 +950,34 @@
             </div>
             <form id="editConsumptionForm">
                 <div class="modal-body">
+                    <input type="hidden" name="consumption_id" id="editConsumptionId">
                     <div class="mb-3">
                         <label for="editConsumptionProduct" class="form-label">Product</label>
                         <select class="form-select" id="editConsumptionProduct" name="product_id" required>
                             <option value="">Select Product...</option>
                         </select>
+                        <div class="invalid-feedback">Please select a product.</div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="editConsumptionDate" class="form-label">Date</label>
                                 <input type="date" class="form-control" id="editConsumptionDate" name="consumption_date" required>
+                                <div class="invalid-feedback">Please enter the consumption date.</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="editConsumptionQuantity" class="form-label">Quantity Used</label>
                                 <input type="number" step="0.01" min="0.01" class="form-control" id="editConsumptionQuantity" name="quantity_used" required>
+                                <div class="invalid-feedback">Please enter a valid quantity.</div>
                             </div>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label for="editConsumptionIssuedTo" class="form-label">Issued To</label>
                         <input type="text" class="form-control" id="editConsumptionIssuedTo" name="issued_to" placeholder="Department/Project/Person" required>
+                        <div class="invalid-feedback">Please specify who the item was issued to.</div>
                     </div>
                     <div class="mb-3">
                         <label for="editConsumptionReference" class="form-label">Reference/Doc No.</label>
@@ -1010,209 +1024,265 @@
 </div>
 
 <script>
-let allProducts = [];
-let currentPage = 1;
-let currentSearch = '';
-let editingConsumptionId = null; // Variable to store the ID of the consumption record being edited
-let deletingConsumptionId = null; // Variable to store the ID of the consumption record being deleted
+    let allProducts = [];
+    let currentPage = 1;
+    let currentSearch = '';
+    let editingConsumptionId = null; // Variable to store the ID of the consumption record being edited
+    let deletingConsumptionId = null; // Variable to store the ID of the consumption record being deleted
 
-// Initialize Product Master functionality
-document.addEventListener('DOMContentLoaded', function() {
-    loadProductsForConsumption();
+    // Initialize Product Master functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load products for consumption dropdown on initial load
+        loadProductsForConsumption();
 
-    // Load products when Product Master tab is shown
-    document.getElementById('product-master-tab').addEventListener('shown.bs.tab', function() {
-        loadProducts();
-    });
-
-    // Add product form handler for Product Master
-    const addProductForm = document.getElementById('addProductForm');
-    if (addProductForm) {
-        addProductForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-
-            // Validate required fields
-            const sku = formData.get('sku');
-            const name = formData.get('name');
-
-            if (!sku || !sku.trim()) {
-                alert('SKU is required');
-                return;
+        // Handle Product Master tab showing to load products if not already loaded
+        document.getElementById('product-master-tab').addEventListener('shown.bs.tab', function() {
+            // Check if products are already loaded to avoid redundant fetches
+            const tbody = document.getElementById('productMasterTableBody');
+            if (tbody && tbody.children.length === 0) {
+                loadProducts();
             }
-
-            if (!name || !name.trim()) {
-                alert('Product name is required');
-                return;
-            }
-
-            // Ensure numeric fields have default values
-            const numericFields = ['current_stock', 'min_stock_level', 'max_stock_level', 'reorder_point', 'cost_price', 'selling_price'];
-            numericFields.forEach(field => {
-                const value = formData.get(field);
-                if (!value || value === '' || isNaN(value)) {
-                    formData.set(field, '0');
-                }
-            });
-
-            fetch('/inventory/products/add', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-                    modal.hide();
-                    // Clear form
-                    this.reset();
-                    // Reload the Product Master table
-                    loadProducts();
-                    alert(data.message || 'Product added successfully');
-                } else {
-                    alert(data.error || 'Error adding product');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error adding product. Please try again.');
-            });
         });
-    }
 
-    // Edit product form handler
-    document.getElementById('editProductForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+        // Add product form submission handler
+        const addProductForm = document.getElementById('addProductForm');
+        if (addProductForm) {
+            addProductForm.addEventListener('submit', function(e) {
+                e.preventDefault();
 
-        const formData = new FormData(this);
-        const productId = document.getElementById('editProductId').value;
-        
-        // Validate required fields
-        const name = formData.get('name');
-        if (!name || !name.trim()) {
-            alert('Product name is required');
-            return;
+                // Bootstrap validation
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                // Ensure numeric fields are not empty, default to 0 if they are
+                const numericFields = ['current_stock', 'min_stock_level', 'max_stock_level', 'reorder_point', 'cost_price', 'selling_price'];
+                numericFields.forEach(field => {
+                    const value = formData.get(field);
+                    if (value === '' || isNaN(value)) {
+                        formData.set(field, '0');
+                    }
+                });
+
+                fetch('/inventory/products/add', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                        modal.hide();
+                        this.reset(); // Clear form
+                        this.classList.remove('was-validated'); // Reset validation state
+                        loadProducts(); // Reload the Product Master table
+                        showToast(data.message || 'Product added successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Error adding product', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(`Error adding product: ${error.message}`, 'danger');
+                });
+            });
         }
 
-        // Ensure numeric fields have valid values
-        const numericFields = ['min_stock_level', 'max_stock_level', 'reorder_point', 'cost_price', 'selling_price'];
-        numericFields.forEach(field => {
-            const value = formData.get(field);
-            if (!value || value === '' || isNaN(value)) {
-                const defaultValues = {
-                    'min_stock_level': '10',
-                    'max_stock_level': '100', 
-                    'reorder_point': '20',
-                    'cost_price': '0',
-                    'selling_price': '0'
-                };
-                formData.set(field, defaultValues[field]);
-            }
-        });
+        // Edit product form submission handler
+        const editProductForm = document.getElementById('editProductForm');
+        if (editProductForm) {
+            editProductForm.addEventListener('submit', function(e) {
+                e.preventDefault();
 
-        fetch(`/inventory/products/${productId}/edit`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (response.ok) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
-                modal.hide();
-                loadProducts();
-                alert('Product updated successfully');
-            } else {
-                return response.text().then(text => {
-                    throw new Error(text || 'Error updating product');
+                // Bootstrap validation
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(this);
+                const productId = document.getElementById('editProductId').value;
+
+                // Ensure numeric fields have valid values
+                const numericFields = ['min_stock_level', 'max_stock_level', 'reorder_point', 'cost_price', 'selling_price'];
+                numericFields.forEach(field => {
+                    const value = formData.get(field);
+                    if (value === '' || isNaN(value)) {
+                        const defaultValues = {
+                            'min_stock_level': '10',
+                            'max_stock_level': '100',
+                            'reorder_point': '20',
+                            'cost_price': '0',
+                            'selling_price': '0'
+                        };
+                        formData.set(field, defaultValues[field]);
+                    }
                 });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error updating product: ' + error.message);
+
+                fetch(`/inventory/products/${productId}/edit`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text || 'Server error'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                        modal.hide();
+                        loadProducts();
+                        showToast(data.message || 'Product updated successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Error updating product', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(`Error updating product: ${error.message}`, 'danger');
+                });
+            });
+        }
+
+        // Search and filter handlers for Product Master
+        document.getElementById('searchProducts').addEventListener('input', filterProducts);
+        document.getElementById('filterCategory').addEventListener('change', filterProducts);
+        document.getElementById('filterStatus').addEventListener('change', filterProducts);
+
+        // Add consumption form submission handler
+        const addConsumptionForm = document.getElementById('addConsumptionForm');
+        if (addConsumptionForm) {
+            addConsumptionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                fetch('/inventory/consumption/add', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal'));
+                        modal.hide();
+                        this.reset(); // Clear form
+                        this.classList.remove('was-validated'); // Reset validation state
+                        document.getElementById('consumptionDate').value = new Date().toISOString().split('T')[0]; // Reset date
+                        loadConsumptionRecords(currentPage, currentSearch); // Reload current view
+                        showToast(data.message || 'Consumption recorded successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Error adding consumption record', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(`Error adding consumption record: ${error.message}`, 'danger');
+                });
+            });
+        }
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
         });
     });
 
-    // Search and filter handlers
-    document.getElementById('searchProducts').addEventListener('input', filterProducts);
-    document.getElementById('filterCategory').addEventListener('change', filterProducts);
-    document.getElementById('filterStatus').addEventListener('change', filterProducts);
-
-    // Add consumption form handler
-    document.getElementById('addConsumptionForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const formData = new FormData(this);
-
-        fetch('/inventory/consumption/add', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal'));
-                modal.hide();
-                loadConsumptionData();
-                alert(data.message);
-                this.reset();
-            } else {
-                alert(data.error || 'Error adding consumption record');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error adding consumption record');
-        });
-    });
-});
-
-// Load products for Product Master tab
+    // Load products for the Product Master table
     function loadProducts() {
         fetch('/api/inventory/products/master')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                const tbody = document.getElementById('productMasterTableBody');
-                tbody.innerHTML = '';
-
-                data.forEach(product => {
-                    const statusBadgeClass = getStatusClass(product.status);
-                    const statusText = getStatusText(product.status);
-                    const categoryDisplay = product.category ? 
-                        `<span class="badge" style="background-color: ${product.category_color};">${product.category}</span>` : 
-                        '-';
-
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${product.sku}</td>
-                        <td>${product.name}</td>
-                        <td>${categoryDisplay}</td>
-                        <td>${product.unit_of_measure}</td>
-                        <td>${product.current_stock}</td>
-                        <td>${product.reorder_level}</td>
-                        <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-warning" onclick="editProduct(${product.id})" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="deleteProduct(${product.id})" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
+                allProducts = data; // Store all products for filtering
+                displayProducts(data);
             })
             .catch(error => {
                 console.error('Error loading products:', error);
                 const tbody = document.getElementById('productMasterTableBody');
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Error loading products</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Error loading products. Please try again later.</td></tr>';
             });
     }
 
-function getStatusClass(status) {
+    // Display products in the table, applying filters
+    function displayProducts(products) {
+        const tbody = document.getElementById('productMasterTableBody');
+        tbody.innerHTML = '';
+
+        if (products.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No products found.</td></tr>';
+            return;
+        }
+
+        products.forEach(product => {
+            const statusBadgeClass = getStatusClass(product.status);
+            const statusText = getStatusText(product.status);
+            const categoryDisplay = product.category ?
+                `<span class="badge" style="background-color: ${product.category_color};">${product.category}</span>` :
+                '<span class="text-muted">-</span>';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${product.sku}</td>
+                <td>${product.name}</td>
+                <td>${categoryDisplay}</td>
+                <td>${product.unit_of_measure}</td>
+                <td>${product.current_stock}</td>
+                <td>${product.reorder_level}</td>
+                <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="editProduct(${product.id})" 
+                                title="Edit Product" data-bs-toggle="tooltip">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="deleteProduct(${product.id})" 
+                                title="Delete Product" data-bs-toggle="tooltip">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Re-initialize tooltips after updating table content
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    }
+
+    // Helper function to get status badge class
+    function getStatusClass(status) {
         switch(status) {
             case 'out_of_stock': return 'bg-danger';
             case 'low_stock': return 'bg-warning';
@@ -1222,492 +1292,588 @@ function getStatusClass(status) {
         }
     }
 
+    // Helper function to get status text
     function getStatusText(status) {
         switch(status) {
             case 'out_of_stock': return 'Out of Stock';
             case 'low_stock': return 'Low Stock';
             case 'reorder_needed': return 'Reorder';
             case 'in_stock': return 'In Stock';
-            default: return 'Unknown';
+            default: return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
         }
     }
 
-function getStatusBadge(status) {
-    const statusMap = {
-        'Out of Stock': '<span class="badge bg-danger">Out of Stock</span>',
-        'Low Stock': '<span class="badge bg-warning">Low Stock</span>',
-        'Reorder': '<span class="badge bg-info">Reorder</span>',
-        'In Stock': '<span class="badge bg-success">In Stock</span>'
-    };
-    return statusMap[status] || `<span class="badge bg-secondary">${status}</span>`;
-}
+    // Filter products based on search term and dropdown selections
+    function filterProducts() {
+        const searchTerm = document.getElementById('searchProducts').value.toLowerCase().trim();
+        const categoryFilter = document.getElementById('filterCategory').value;
+        const statusFilter = document.getElementById('filterStatus').value;
 
-function filterProducts() {
-    const searchTerm = document.getElementById('searchProducts').value.toLowerCase();
-    const categoryFilter = document.getElementById('filterCategory').value;
-    const statusFilter = document.getElementById('filterStatus').value;
+        let filteredProducts = allProducts.filter(product => {
+            const matchesSearch = product.name.toLowerCase().includes(searchTerm) ||
+                                product.sku.toLowerCase().includes(searchTerm);
+            // Ensure category comparison is case-insensitive and handles empty filter
+            const matchesCategory = !categoryFilter || (product.category && product.category.toLowerCase() === categoryFilter.toLowerCase());
+            // Ensure status comparison matches the filter value directly
+            const matchesStatus = !statusFilter || product.status === statusFilter;
 
-    let filteredProducts = allProducts.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm) || 
-                            product.sku.toLowerCase().includes(searchTerm);
-        const matchesCategory = !categoryFilter || product.category === categoryFilter;
-        const matchesStatus = !statusFilter || product.status.toLowerCase().includes(statusFilter.replace('_', ' '));
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
 
-        return matchesSearch && matchesCategory && matchesStatus;
-    });
+        displayProducts(filteredProducts);
+    }
 
-    displayProducts(filteredProducts);
-}
+    // Clear search and filter inputs
+    function clearFilters() {
+        document.getElementById('searchProducts').value = '';
+        document.getElementById('filterCategory').value = '';
+        document.getElementById('filterStatus').value = '';
+        loadProducts(); // Reload with original unfiltered data
+    }
 
-function clearFilters() {
-    document.getElementById('searchProducts').value = '';
-    document.getElementById('filterCategory').value = '';
-    document.getElementById('filterStatus').value = '';
-    displayProducts(allProducts);
-}
+    // Populate edit product modal with product details
+    function editProduct(id) {
+        fetch(`/api/inventory/product/${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(product => {
+                if (product.error) {
+                    throw new Error(product.error);
+                }
 
-function editProduct(id) {
-    // Find product by ID and populate edit modal
-    fetch(`/api/inventory/product/${id}`)
+                document.getElementById('editProductId').value = product.id || '';
+                document.getElementById('editSku').value = product.sku || '';
+                document.getElementById('editName').value = product.name || '';
+                document.getElementById('editDescription').value = product.description || '';
+                document.getElementById('editCategoryId').value = product.category_id || '';
+                document.getElementById('editUnitOfMeasure').value = product.unit_of_measure || 'pcs';
+                document.getElementById('editReorderPoint').value = product.reorder_point !== undefined ? product.reorder_point : 20;
+                document.getElementById('editMinStockLevel').value = product.min_stock_level !== undefined ? product.min_stock_level : 10;
+                document.getElementById('editMaxStockLevel').value = product.max_stock_level !== undefined ? product.max_stock_level : 100;
+                document.getElementById('editCostPrice').value = product.cost_price !== undefined ? product.cost_price : 0;
+                document.getElementById('editSellingPrice').value = product.selling_price !== undefined ? product.selling_price : 0;
+                document.getElementById('editBarcode').value = product.barcode || '';
+                document.getElementById('editLocation').value = product.location || '';
+                document.getElementById('editIsServiceItem').checked = product.is_service_item || false;
+                document.getElementById('editIsRetailItem').checked = product.is_retail_item || false;
+
+                // Reset validation state for the form
+                const editForm = document.getElementById('editProductForm');
+                editForm.classList.remove('was-validated');
+
+                const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                editModal.show();
+            })
+            .catch(error => {
+                console.error('Error loading product:', error);
+                showToast(`Error loading product details: ${error.message}`, 'danger');
+            });
+    }
+
+    // Handle product deletion
+    function deleteProduct(id) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/inventory/products/${id}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        loadProducts();
+                        showToast(data.message || 'Product deleted successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Error deleting product', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(`Error deleting product: ${error.message}`, 'danger');
+                });
+            }
+        });
+    }
+
+    // Load products for dropdowns (e.g., in consumption forms)
+    function loadProductsForConsumption() {
+        fetch('/api/inventory/products/for-consumption')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(products => {
+                const select = document.getElementById('consumptionProduct');
+                select.innerHTML = '<option value="">Select a product</option>'; // Reset options
+
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = `${product.name} (${product.sku}) - ${product.current_stock} ${product.unit_of_measure}`;
+                    option.dataset.unitOfMeasure = product.unit_of_measure; // Store unit for potential use
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading products for consumption:', error);
+                showToast('Failed to load products for consumption.', 'danger');
+            });
+    }
+
+    // Populate edit consumption modal
+    function editConsumption(id) {
+        editingConsumptionId = id; // Store the ID of the consumption record to edit
+
+        fetch(`/api/inventory/consumption/${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('editConsumptionId').value = data.id || '';
+                document.getElementById('editConsumptionProduct').value = data.product_id || '';
+                document.getElementById('editConsumptionDate').value = data.consumption_date || '';
+                document.getElementById('editConsumptionQuantity').value = data.quantity_used || '';
+                document.getElementById('editConsumptionIssuedTo').value = data.issued_to || '';
+                document.getElementById('editConsumptionReference').value = data.reference_doc_no || '';
+                document.getElementById('editConsumptionNotes').value = data.notes || '';
+
+                // Reset validation state for the form
+                const editForm = document.getElementById('editConsumptionForm');
+                editForm.classList.remove('was-validated');
+
+                const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading consumption record:', error);
+                showToast('Error loading consumption record', 'danger');
+            });
+    }
+
+    // Show delete confirmation modal for consumption record
+    function deleteConsumption(id) {
+        deletingConsumptionId = id; // Store the ID of the consumption record to delete
+
+        // Fetch product details to display in the confirmation modal
+        fetch(`/api/inventory/consumption/${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const productName = data.product_name || 'the record';
+                const date = data.consumption_date ? new Date(data.consumption_date).toLocaleDateString() : '';
+                document.getElementById('deleteConsumptionDetails').textContent = `${productName}${date ? ' on ' + date : ''}`;
+                const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching consumption details for deletion:', error);
+                // If fetching fails, proceed with a generic message
+                document.getElementById('deleteConsumptionDetails').textContent = 'this record';
+                const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
+                modal.show();
+            });
+    }
+
+    // Confirm and execute deletion of a consumption record
+    function confirmDeleteConsumption() {
+        fetch(`/inventory/consumption/${deletingConsumptionId}/delete`, {
+            method: 'POST'
+        })
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json().then(err => { throw new Error(err.error || 'Server error'); });
             }
             return response.json();
         })
-        .then(product => {
-            if (product.error) {
-                throw new Error(product.error);
-            }
-            
-            // Safely populate form fields with fallback values
-            document.getElementById('editProductId').value = product.id || '';
-            document.getElementById('editSku').value = product.sku || '';
-            document.getElementById('editName').value = product.name || '';
-            document.getElementById('editDescription').value = product.description || '';
-            document.getElementById('editCategoryId').value = product.category_id || '';
-            document.getElementById('editUnitOfMeasure').value = product.unit_of_measure || 'pcs';
-            document.getElementById('editReorderPoint').value = product.reorder_point || 20;
-            document.getElementById('editMinStockLevel').value = product.min_stock_level || 10;
-            document.getElementById('editMaxStockLevel').value = product.max_stock_level || 100;
-            document.getElementById('editCostPrice').value = product.cost_price || 0;
-            document.getElementById('editSellingPrice').value = product.selling_price || 0;
-            document.getElementById('editBarcode').value = product.barcode || '';
-            document.getElementById('editLocation').value = product.location || '';
-            document.getElementById('editIsServiceItem').checked = product.is_service_item || false;
-            document.getElementById('editIsRetailItem').checked = product.is_retail_item || false;
-
-            const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
-            editModal.show();
-        })
-        .catch(error => {
-            console.error('Error loading product:', error);
-            alert('Error loading product details: ' + error.message);
-        });
-}
-
-function deleteProduct(id) {
-    if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-        fetch(`/inventory/products/${id}/delete`, {
-            method: 'POST'
-        })
-        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                loadProducts();
-                alert(data.message);
+                bootstrap.Modal.getInstance(document.getElementById('deleteConsumptionModal')).hide();
+                loadConsumptionRecords(currentPage, currentSearch); // Reload current view
+                showToast('Consumption record deleted successfully', 'success');
             } else {
-                alert(data.error || 'Error deleting product');
+                showToast(data.error || 'Error deleting consumption record', 'danger');
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting product');
+            console.error('Error deleting consumption record:', error);
+            showToast(`Error deleting consumption record: ${error.message}`, 'danger');
         });
     }
-}
 
-// Consumption tracking functionality
-function loadConsumptionData() {
-    fetch('/inventory/consumption')
-        .then(response => response.json())
-        .then(data => {
-            const tbody = document.getElementById('consumptionTableBody');
-            tbody.innerHTML = '';
+    // Load consumption records with pagination and search
+    function loadConsumptionRecords(page = 1, search = '') {
+        currentPage = page;
+        currentSearch = search;
 
-            if (data.records && data.records.length > 0) {
-                data.records.forEach(record => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${record.consumption_date}</td>
-                        <td>
-                            <div>
-                                <strong>${record.product_name}</strong><br>
-                                <small class="text-muted">SKU: ${record.product_sku}</small>
-                            </div>
-                        </td>
-                        <td>${record.quantity_used} ${record.unit_of_measure}</td>
-                        <td>${record.issued_to}</td>
-                        <td>${record.reference_doc_no || '-'}</td>
-                        <td>${record.notes || '-'}</td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-warning" onclick="editConsumption(${record.id})" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="deleteConsumption(${record.id})" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } else {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
-                            <i class="fas fa-inbox fa-2x mb-2 opacity-50"></i><br>
-                            No consumption records found
-                        </td>
-                    </tr>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading consumption data:', error);
-        });
-}
-
-function loadProductsForConsumption() {
-    fetch('/api/inventory/products/for-consumption')
-        .then(response => response.json())
-        .then(products => {
-            const select = document.getElementById('consumptionProduct');
-            select.innerHTML = '<option value="">Select a product</option>';
-
-            products.forEach(product => {
-                const option = document.createElement('option');
-                option.value = product.id;
-                option.textContent = `${product.name} (${product.sku}) - ${product.current_stock} ${product.unit_of_measure}`;
-                option.dataset.unitOfMeasure = product.unit_of_measure;
-                select.appendChild(option);
-            });
-        })
-        .catch(error => {
-            console.error('Error loading products:', error);
-        });
-}
-
-function editConsumption(id) {
-    editingConsumptionId = id; // Store the ID of the consumption record to edit
-
-    fetch(`/api/inventory/consumption/${id}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('editConsumptionProduct').value = data.product_id;
-            document.getElementById('editConsumptionDate').value = data.consumption_date;
-            document.getElementById('editConsumptionQuantity').value = data.quantity_used;
-            document.getElementById('editConsumptionIssuedTo').value = data.issued_to;
-            document.getElementById('editConsumptionReference').value = data.reference_doc_no;
-            document.getElementById('editConsumptionNotes').value = data.notes;
-
-            const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
-            modal.show();
-        })
-        .catch(error => {
-            console.error('Error loading consumption record:', error);
-            alert('Error loading consumption record');
-        });
-}
-
-function deleteConsumption(id) {
-    deletingConsumptionId = id; // Store the ID of the consumption record to delete
-    
-    // Fetch product details to display in the confirmation modal
-    fetch(`/api/inventory/consumption/${id}`)
-        .then(response => response.json())
-        .then(data => {
-            const productName = data.product_name;
-            const date = data.consumption_date;
-            document.getElementById('deleteConsumptionDetails').textContent = `${productName} on ${date}`;
-            const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
-            modal.show();
-        })
-        .catch(error => {
-            console.error('Error fetching consumption details for deletion:', error);
-            // If fetching fails, proceed with a generic message
-            document.getElementById('deleteConsumptionDetails').textContent = 'this record';
-            const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
-            modal.show();
-        });
-}
-
-// Placeholder for confirmDeleteConsumption function if it needs to be defined globally
-function confirmDeleteConsumption() {
-    fetch(`/inventory/consumption/${deletingConsumptionId}/delete`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('deleteConsumptionModal')).hide();
-            loadConsumptionRecords(currentPage, currentSearch); // Reload current view
-            alert('Consumption record deleted successfully');
-        } else {
-            alert(data.error || 'Error deleting consumption record');
-        }
-    })
-    .catch(error => {
-        console.error('Error deleting consumption record:', error);
-        alert('Error deleting consumption record');
-    });
-}
-
-// Consumption management pagination and search
-function loadConsumptionRecords(page = 1, search = '') {
-    currentPage = page;
-    currentSearch = search;
-
-    const tbody = document.getElementById('consumptionTableBody');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="8" class="text-center py-4 text-muted">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mb-0 mt-2">Loading consumption records...</p>
-            </td>
-        </tr>
-    `;
-
-    fetch(`/inventory/consumption?page=${page}&search=${encodeURIComponent(search)}`)
-        .then(response => response.json())
-        .then(data => {
-            renderConsumptionTable(data.records);
-            renderConsumptionPagination(data.pagination);
-        })
-        .catch(error => {
-            console.error('Error loading consumption records:', error);
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center py-4 text-muted">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-3 opacity-50"></i>
-                        <p class="mb-0">Error loading consumption records</p>
-                    </td>
-                </tr>
-            `;
-        });
-}
-
-function renderConsumptionTable(records) {
-    const tbody = document.getElementById('consumptionTableBody');
-
-    if (records.length === 0) {
+        const tbody = document.getElementById('consumptionTableBody');
+        // Display loading indicator
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="text-center py-4 text-muted">
-                    <i class="fas fa-minus-circle fa-2x mb-3 opacity-50"></i>
-                    <p class="mb-0">No consumption records found</p>
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <span class="ms-2">Loading consumption records...</span>
                 </td>
             </tr>
         `;
-        return;
+
+        fetch(`/inventory/consumption?page=${page}&search=${encodeURIComponent(search)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderConsumptionTable(data.records);
+                renderConsumptionPagination(data.pagination);
+            })
+            .catch(error => {
+                console.error('Error loading consumption records:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3 opacity-50"></i>
+                            <p class="mb-0">Error loading consumption records. Please try again.</p>
+                        </td>
+                    </tr>
+                `;
+            });
     }
 
-    tbody.innerHTML = records.map(record => `
-        <tr>
-            <td>${record.consumption_date}</td>
-            <td>
-                <div class="fw-medium">${record.product_name}</div>
-                <small class="text-muted">${record.product_sku}</small>
-            </td>
-            <td>${record.quantity_used}</td>
-            <td>${record.unit_of_measure}</td>
-            <td>${record.issued_to}</td>
-            <td>${record.reference_doc_no || '-'}</td>
-            <td>
-                <span class="text-muted">${record.notes ? (record.notes.length > 30 ? record.notes.substring(0, 30) + '...' : record.notes) : '-'}</span>
-            </td>
-            <td>
-                <div class="d-flex justify-content-end gap-1">
-                    <button type="button" class="btn btn-sm btn-outline-primary" 
-                            onclick="editConsumption(${record.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" 
-                            onclick="deleteConsumption(${record.id})" 
-                            title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-}
+    // Render the consumption data table
+    function renderConsumptionTable(records) {
+        const tbody = document.getElementById('consumptionTableBody');
 
-function renderConsumptionPagination(pagination) {
-    const paginationEl = document.getElementById('consumptionPagination');
-
-    if (pagination.pages <= 1) {
-        paginationEl.innerHTML = '';
-        return;
-    }
-
-    let paginationHTML = '';
-
-    // Previous button
-    if (pagination.has_prev) {
-        paginationHTML += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="loadConsumptionRecords(${pagination.page - 1}, '${currentSearch}')">Previous</a>
-            </li>
-        `;
-    }
-
-    // Page numbers
-    const startPage = Math.max(1, pagination.page - 2);
-    const endPage = Math.min(pagination.pages, pagination.page + 2);
-
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHTML += `
-            <li class="page-item ${i === pagination.page ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="loadConsumptionRecords(${i}, '${currentSearch}')">${i}</a>
-            </li>
-        `;
-    }
-
-    // Next button
-    if (pagination.has_next) {
-        paginationHTML += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="loadConsumptionRecords(${pagination.page + 1}, '${currentSearch}')">Next</a>
-            </li>
-        `;
-    }
-
-    paginationEl.innerHTML = paginationHTML;
-}
-
-function searchConsumption() {
-    const searchTerm = document.getElementById('consumptionSearch').value;
-    loadConsumptionRecords(1, searchTerm);
-}
-
-function exportConsumption() {
-    const search = document.getElementById('consumptionSearch').value;
-    window.open(`/inventory/consumption/export?search=${encodeURIComponent(search)}`, '_blank');
-}
-
-
-// Tab persistence and initialization
-document.addEventListener('DOMContentLoaded', function() {
-    // Set today's date as default for consumption form
-    const today = new Date().toISOString().split('T')[0];
-    if (document.getElementById('consumptionDate')) {
-        document.getElementById('consumptionDate').value = today;
-    }
-
-    // Load products for dropdowns
-    loadProductsForConsumption();
-
-    // Get the active tab from URL hash or localStorage
-    const activeTab = window.location.hash || localStorage.getItem('inventoryActiveTab') || '#stock-levels';
-
-    if (activeTab && activeTab !== '#stock-levels') {
-        const tabButton = document.querySelector(`[data-bs-target="${activeTab}"]`);
-        if (tabButton) {
-            bootstrap.Tab.getOrCreateInstance(tabButton).show();
+        if (records.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                        <i class="fas fa-database fa-2x mb-2 opacity-50"></i>
+                        <p class="mb-0">No consumption records found.</p>
+                    </td>
+                </tr>
+            `;
+            return;
         }
-    }
 
-    // Load consumption records when consumption tab is shown
-    const consumptionTabButton = document.getElementById('consumption-tab');
-    if (consumptionTabButton) {
-        consumptionTabButton.addEventListener('shown.bs.tab', function() {
-            loadConsumptionRecords(); // Load with default page and search
+        tbody.innerHTML = records.map(record => `
+            <tr>
+                <td>${record.consumption_date}</td>
+                <td>
+                    <div class="fw-medium">${record.product_name}</div>
+                    <small class="text-muted">SKU: ${record.product_sku}</small>
+                </td>
+                <td>${record.quantity_used}</td>
+                <td>${record.unit_of_measure}</td>
+                <td>${record.issued_to}</td>
+                <td>${record.reference_doc_no || '-'}</td>
+                <td>
+                    <span class="text-muted">${record.notes ? (record.notes.length > 30 ? record.notes.substring(0, 30) + '...' : record.notes) : '-'}</span>
+                </td>
+                <td>
+                    <div class="d-flex justify-content-end gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                onclick="editConsumption(${record.id})" 
+                                title="Edit Consumption Record" data-bs-toggle="tooltip">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="deleteConsumption(${record.id})" 
+                                title="Delete Consumption Record" data-bs-toggle="tooltip">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+
+        // Re-initialize tooltips after updating table content
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
         });
     }
 
-    // Save active tab to localStorage when tab changes
-    document.querySelectorAll('#inventoryTabs button[data-bs-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', function(e) {
-            const target = e.target.getAttribute('data-bs-target');
-            localStorage.setItem('inventoryActiveTab', target);
-            window.location.hash = target;
+    // Render pagination links for consumption records
+    function renderConsumptionPagination(pagination) {
+        const paginationEl = document.getElementById('consumptionPagination');
+
+        if (pagination.pages <= 1) {
+            paginationEl.innerHTML = ''; // Hide pagination if only one page
+            return;
+        }
+
+        let paginationHTML = '';
+
+        // Previous button
+        if (pagination.has_prev) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="loadConsumptionRecords(${pagination.page - 1}, '${currentSearch}')">Previous</a>
+                </li>
+            `;
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, pagination.page - 2);
+        const endPage = Math.min(pagination.pages, pagination.page + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `
+                <li class="page-item ${i === pagination.page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadConsumptionRecords(${i}, '${currentSearch}')">${i}</a>
+                </li>
+            `;
+        }
+
+        // Next button
+        if (pagination.has_next) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="loadConsumptionRecords(${pagination.page + 1}, '${currentSearch}')">Next</a>
+                </li>
+            `;
+        }
+
+        paginationEl.innerHTML = paginationHTML;
+    }
+
+    // Trigger search for consumption records
+    function searchConsumption() {
+        const searchTerm = document.getElementById('consumptionSearch').value;
+        loadConsumptionRecords(1, searchTerm); // Reload from the first page with the new search term
+    }
+
+    // Export consumption data to CSV
+    function exportConsumption() {
+        const search = document.getElementById('consumptionSearch').value;
+        window.open(`/inventory/consumption/export?search=${encodeURIComponent(search)}`, '_blank');
+    }
+
+
+    // Tab persistence and initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set today's date as default for consumption form
+        const today = new Date().toISOString().split('T')[0];
+        if (document.getElementById('consumptionDate')) {
+            document.getElementById('consumptionDate').value = today;
+        }
+
+        // Load products for dropdowns
+        loadProductsForConsumption();
+
+        // Get the active tab from URL hash or localStorage, default to stock-levels
+        const activeTabHash = window.location.hash || localStorage.getItem('inventoryActiveTab');
+        const defaultTab = '#stock-levels';
+        const targetTab = activeTabHash || defaultTab;
+
+        // Show the correct tab if it's not the default one
+        if (targetTab && targetTab !== defaultTab) {
+            const tabButton = document.querySelector(`button[data-bs-target="${targetTab}"]`);
+            if (tabButton) {
+                bootstrap.Tab.getOrCreateInstance(tabButton).show();
+            } else {
+                // If the hash is invalid or button not found, fall back to default
+                localStorage.setItem('inventoryActiveTab', defaultTab);
+                window.location.hash = defaultTab;
+            }
+        } else if (!activeTabHash) {
+            // If no hash is present, ensure the default tab is marked as active in localStorage
+            localStorage.setItem('inventoryActiveTab', defaultTab);
+        }
+
+
+        // Load consumption records when the consumption tab is shown
+        const consumptionTabButton = document.getElementById('consumption-tab');
+        if (consumptionTabButton) {
+            consumptionTabButton.addEventListener('shown.bs.tab', function() {
+                // Load records only if the table is empty, to avoid re-fetching on every switch
+                const tbody = document.getElementById('consumptionTableBody');
+                if (tbody && tbody.children.length === 0) {
+                    loadConsumptionRecords(); // Load with default page and search
+                }
+            });
+        }
+
+        // Save active tab to localStorage and update URL hash when tab changes
+        document.querySelectorAll('#inventoryTabs button[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(e) {
+                const target = e.target.getAttribute('data-bs-target'); // e.g., '#product-master'
+                localStorage.setItem('inventoryActiveTab', target);
+                // Update URL hash to reflect the active tab
+                if (window.location.hash !== target) {
+                    window.location.hash = target;
+                }
+            });
+        });
+
+        // Handle form submission for adding a new consumption record
+        const addConsumptionForm = document.getElementById('addConsumptionForm');
+        if (addConsumptionForm) {
+            addConsumptionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                fetch('/inventory/consumption/add', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal'));
+                        modal.hide();
+                        this.reset(); // Clear form fields
+                        this.classList.remove('was-validated'); // Reset validation state
+                        document.getElementById('consumptionDate').value = today; // Reset date to today
+                        loadConsumptionRecords(currentPage, currentSearch); // Reload consumption records
+                        showToast('Consumption recorded successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Error recording consumption', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding consumption:', error);
+                    showToast(`Error recording consumption: ${error.message}`, 'danger');
+                });
+            });
+        }
+
+        // Handle form submission for editing a consumption record
+        const editConsumptionForm = document.getElementById('editConsumptionForm');
+        if (editConsumptionForm) {
+            editConsumptionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                fetch(`/inventory/consumption/${editingConsumptionId}/edit`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal'));
+                        modal.hide();
+                        loadConsumptionRecords(currentPage, currentSearch); // Reload current view
+                        showToast('Consumption updated successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Error updating consumption', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating consumption:', error);
+                    showToast(`Error updating consumption: ${error.message}`, 'danger');
+                });
+            });
+        }
+
+        // Allow searching consumption records by pressing Enter key
+        const consumptionSearchInput = document.getElementById('consumptionSearch');
+        if (consumptionSearchInput) {
+            consumptionSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchConsumption();
+                }
+            });
+        }
+    });
+
+    // Helper function to display Bootstrap toasts
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+        const toastId = `toast-${Date.now()}`;
+        const toastHTML = `
+            <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+        const toastEl = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+
+        // Clean up toast element after it's hidden
+        toastEl.addEventListener('hidden.bs.toast', function() {
+            toastEl.remove();
+        });
+    }
+
+    // Helper function to create a toast container if it doesn't exist
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.id = 'toastContainer';
+        // Position toasts at the top-right corner
+        container.style.position = 'fixed';
+        container.style.top = '1rem';
+        container.style.right = '1rem';
+        container.style.zIndex = '1050'; // Ensure toasts are above most other content
+        document.body.appendChild(container);
+        return container;
+    }
+
+    // Initialize tooltips on page load
+    document.addEventListener('ready', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
         });
     });
 
-    // Form submissions for consumption
-    const addConsumptionForm = document.getElementById('addConsumptionForm');
-    if (addConsumptionForm) {
-        addConsumptionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-
-            fetch('/inventory/consumption/add', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal')).hide();
-                    this.reset();
-                    document.getElementById('consumptionDate').value = today; // Reset date
-                    loadConsumptionRecords(currentPage, currentSearch); // Reload current view
-                    alert('Consumption recorded successfully');
-                } else {
-                    alert(data.error || 'Error recording consumption');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding consumption:', error);
-                alert('Error recording consumption');
-            });
-        });
-    }
-
-    const editConsumptionForm = document.getElementById('editConsumptionForm');
-    if (editConsumptionForm) {
-        editConsumptionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-
-            fetch(`/inventory/consumption/${editingConsumptionId}/edit`, { 
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
-                    loadConsumptionRecords(currentPage, currentSearch); // Reload current view
-                    alert('Consumption updated successfully');
-                } else {
-                    alert(data.error || 'Error updating consumption');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating consumption:', error);
-                alert('Error updating consumption');
-            });
-        });
-    }
-
-
-    // Enter key search for consumption
-    const consumptionSearchInput = document.getElementById('consumptionSearch');
-    if (consumptionSearchInput) {
-        consumptionSearchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchConsumption();
-            }
-        });
-    }
-});
 
 </script>
 {% endblock %}
