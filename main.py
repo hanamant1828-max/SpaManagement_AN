@@ -15,7 +15,7 @@ def initialize_app():
             print("Initializing default data...")
             from routes import create_default_data
             create_default_data()
-            
+
             # Try to restore data from Replit DB if available
             try:
                 from replit import db as replit_db
@@ -26,12 +26,28 @@ def initialize_app():
                     print("✅ Data restored from Replit DB")
             except Exception as restore_error:
                 print(f"Note: Could not restore from Replit DB: {restore_error}")
-            
+
             # Professional inventory views removed
-                
+
     except Exception as e:
         print(f"Warning: Could not initialize default data: {e}")
         print("Application will start with limited functionality")
+
+# CRUD Management Route
+@app.route('/crud-management')
+@login_required
+def crud_management():
+    """Main CRUD management page"""
+    if not current_user.can_access('admin'):
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('crud_management.html')
+
+# Error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
 
 if __name__ == "__main__":
     print("Starting Spa Management System...")
