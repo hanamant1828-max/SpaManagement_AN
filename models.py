@@ -490,7 +490,7 @@ class InventoryProduct(db.Model):
     product_code = db.Column(db.String(50), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    category_id = db.Column(db.Integer, db.ForeignKey('inventory_category.category_id'), index=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), index=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('inventory_supplier.supplier_id'), index=True)
     unit = db.Column(db.String(20), default='pcs')
     unit_cost = db.Column(db.Float, default=0.0)
@@ -513,9 +513,12 @@ class InventoryProduct(db.Model):
     current_stock = db.Column(db.Float, default=0.0)  # For existing code compatibility
     min_stock_level = db.Column(db.Float, default=0.0)  # Alias for reorder_level
     cost_price = db.Column(db.Float, default=0.0)  # Alias for unit_cost
+    expiry_date = db.Column(db.Date)  # Added for compatibility with queries
+    has_expiry = db.Column(db.Boolean, default=False)  # Added for compatibility
+    base_unit = db.Column(db.String(20), default='pcs')  # Added for compatibility
     
     # Relationships
-    category = db.relationship('InventoryCategory', backref='products')
+    category = db.relationship('Category', backref='inventory_products', foreign_keys=[category_id])
     supplier = db.relationship('InventorySupplier', backref='products')
     
     @property
@@ -552,6 +555,7 @@ class InventoryTransaction(db.Model):
     expiry_date = db.Column(db.Date)
     reference_document = db.Column(db.String(100))
     transaction_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)  # Added for compatibility
     notes = db.Column(db.Text)
     location_from = db.Column(db.String(100))
     location_to = db.Column(db.String(100))
