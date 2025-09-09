@@ -157,6 +157,11 @@
 
 <script>
 (function() {
+    console.log('🚀 Product Master Script Loading - START');
+    console.log('🚀 Current URL:', window.location.href);
+    console.log('🚀 DOM Ready State:', document.readyState);
+    console.log('🚀 Bootstrap available:', typeof bootstrap !== 'undefined');
+    
     // Isolated scope for product master tab
     let editingProductId = null;
 
@@ -890,9 +895,19 @@
         }
         
         // Initialize
+        console.log('🔧 Initializing product master components...');
         loadCategories();
         loadLocations();
         loadProducts();
+        
+        // Final status check
+        setTimeout(() => {
+            console.log('🔧 Post-initialization status check:');
+            console.log('🔧 Add Product button after init:', document.getElementById('btnAddProduct'));
+            console.log('🔧 Modal element after init:', document.getElementById('productModal'));
+        }, 1000);
     });
+    
+    console.log('🚀 Product Master Script Loading - END');
 })();
 </script>
