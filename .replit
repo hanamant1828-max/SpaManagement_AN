@@ -63,10 +63,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Frontend Server"
+args = "Spa Management System"
 
 [[workflows.workflow]]
-name = "Frontend Server"
+name = "Spa Management System"
 author = "agent"
 
 [[workflows.workflow.tasks]]
