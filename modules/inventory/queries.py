@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, desc
 from app import db
 from .models import (
-    InventoryProduct, InventoryCategory, Supplier, StockMovement, 
+    InventoryProduct, InventoryCategory, Supplier, StockMovement,
     PurchaseOrder, PurchaseOrderItem, InventoryAlert, InventoryConsumption
 )
 
@@ -76,30 +76,39 @@ def create_product(product_data):
 def update_product(product_id, product_data):
     """Update existing product"""
     try:
-        product = get_product_by_id(product_id)
-        if product:
-            for key, value in product_data.items():
+        product = InventoryProduct.query.get(product_id)
+        if not product:
+            return None
+
+        # Update fields
+        for key, value in product_data.items():
+            if hasattr(product, key):
                 setattr(product, key, value)
-            product.update_available_stock()
-            db.session.commit()
-            return product
+
+        product.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return product
+
     except Exception as e:
         db.session.rollback()
         raise e
-    return None
 
 def delete_product(product_id):
-    """Soft delete product (mark as inactive)"""
+    """Delete product"""
     try:
-        product = get_product_by_id(product_id)
-        if product:
-            product.is_active = False
-            db.session.commit()
-            return True
+        product = InventoryProduct.query.get(product_id)
+        if not product:
+            return False
+
+        db.session.delete(product)
+        db.session.commit()
+
+        return True
+
     except Exception as e:
         db.session.rollback()
         raise e
-    return False
 
 # ============ STOCK MANAGEMENT ============
 
@@ -109,10 +118,10 @@ def update_stock(product_id, new_quantity, movement_type, reason="", reference_t
         product = get_product_by_id(product_id)
         if not product:
             return None
-            
+
         old_stock = product.current_stock
         quantity_change = new_quantity - old_stock
-        
+
         # Create stock movement record
         movement = StockMovement(
             product_id=product_id,
@@ -125,24 +134,24 @@ def update_stock(product_id, new_quantity, movement_type, reason="", reference_t
             reason=reason,
             created_by=user_id
         )
-        
+
         # Update product stock
         product.current_stock = new_quantity
         product.update_available_stock()
         product.updated_at = datetime.utcnow()
-        
+
         db.session.add(movement)
         db.session.commit()
-        
+
         # Check for alerts
         check_stock_alerts(product)
-        
+
         return product
     except Exception as e:
         db.session.rollback()
         raise e
 
-def add_stock(product_id, quantity, reason="", reference_type=None, reference_id=None, unit_cost=0, user_id=None):
+def add_stock(product_id, quantity, reason="", reference_type=None, reference_id=None, user_id=None):
     """Add stock to product"""
     product = get_product_by_id(product_id)
     if product:
@@ -263,21 +272,21 @@ def create_purchase_order(po_data, items_data):
         # Generate PO number if not provided
         if 'po_number' not in po_data:
             po_data['po_number'] = generate_po_number()
-        
+
         po = PurchaseOrder(**po_data)
         db.session.add(po)
         db.session.flush()  # Get PO ID
-        
+
         # Add items
         for item_data in items_data:
             item_data['purchase_order_id'] = po.id
             item = PurchaseOrderItem(**item_data)
             db.session.add(item)
-        
+
         db.session.commit()
         po.calculate_totals()
         db.session.commit()
-        
+
         return po
     except Exception as e:
         db.session.rollback()
@@ -309,12 +318,12 @@ def check_stock_alerts(product):
     try:
         # Clear existing unresolved alerts for this product
         InventoryAlert.query.filter_by(
-            product_id=product.id, 
+            product_id=product.id,
             is_resolved=False
         ).delete()
-        
+
         alerts_to_create = []
-        
+
         if product.current_stock <= 0:
             alerts_to_create.append({
                 'alert_type': 'out_of_stock',
@@ -333,13 +342,13 @@ def check_stock_alerts(product):
                 'message': f'{product.name} needs to be reordered',
                 'severity': 'medium'
             })
-        
+
         # Create alerts
         for alert_data in alerts_to_create:
             alert_data['product_id'] = product.id
             alert = InventoryAlert(**alert_data)
             db.session.add(alert)
-        
+
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -361,21 +370,21 @@ def get_inventory_dashboard_stats():
         total_products = InventoryProduct.query.filter_by(is_active=True).count()
         low_stock_count = len(get_low_stock_products())
         out_of_stock_count = len(get_out_of_stock_products())
-        
+
         # Total inventory value
         total_value = db.session.query(
             func.sum(InventoryProduct.current_stock * InventoryProduct.cost_price)
         ).filter(InventoryProduct.is_active == True).scalar() or 0
-        
+
         # Recent movements
         recent_movements = get_stock_movements(limit=10)
-        
+
         # Pending orders
         pending_orders = len(get_purchase_orders('sent'))
-        
+
         # Active alerts
         active_alerts = len(get_active_alerts())
-        
+
         return {
             'total_products': total_products,
             'low_stock_count': low_stock_count,
@@ -402,7 +411,7 @@ def get_all_consumption_records(page=1, per_page=20, search_term=''):
     """Get consumption records with pagination and search"""
     try:
         query = InventoryConsumption.query
-        
+
         # Apply search filter
         if search_term:
             query = query.join(InventoryProduct).filter(
@@ -413,10 +422,10 @@ def get_all_consumption_records(page=1, per_page=20, search_term=''):
                     InventoryConsumption.reference_doc_no.ilike(f'%{search_term}%')
                 )
             )
-        
+
         # Order by most recent first
         query = query.order_by(desc(InventoryConsumption.consumption_date), desc(InventoryConsumption.created_at))
-        
+
         # Get paginated results
         if per_page:
             return query.paginate(page=page, per_page=per_page, error_out=False)
@@ -437,14 +446,14 @@ def create_consumption_record(consumption_data, user_id=None):
         consumption.created_by = user_id
         db.session.add(consumption)
         db.session.flush()  # Get the ID
-        
+
         # Update stock levels
         product = get_product_by_id(consumption.product_id)
         if product:
             # Check if sufficient stock
             if product.current_stock < consumption.quantity_used:
                 raise ValueError(f"Insufficient stock. Available: {product.current_stock}, Required: {consumption.quantity_used}")
-            
+
             # Deduct from stock
             new_stock = product.current_stock - consumption.quantity_used
             update_stock(
@@ -456,7 +465,7 @@ def create_consumption_record(consumption_data, user_id=None):
                 reference_id=consumption.id,
                 user_id=user_id
             )
-        
+
         db.session.commit()
         return consumption
     except Exception as e:
@@ -469,15 +478,15 @@ def update_consumption_record(consumption_id, consumption_data, user_id=None):
         consumption = get_consumption_by_id(consumption_id)
         if not consumption:
             return None
-        
+
         old_quantity = consumption.quantity_used
         old_product_id = consumption.product_id
-        
+
         # Update consumption record
         for key, value in consumption_data.items():
             setattr(consumption, key, value)
         consumption.updated_at = datetime.utcnow()
-        
+
         # Handle stock adjustments if quantity or product changed
         if old_product_id != consumption.product_id or old_quantity != consumption.quantity_used:
             # Restore old stock
@@ -493,13 +502,13 @@ def update_consumption_record(consumption_id, consumption_data, user_id=None):
                     reference_id=consumption.id,
                     user_id=user_id
                 )
-            
+
             # Apply new consumption
             new_product = get_product_by_id(consumption.product_id)
             if new_product:
                 if new_product.current_stock < consumption.quantity_used:
                     raise ValueError(f"Insufficient stock. Available: {new_product.current_stock}, Required: {consumption.quantity_used}")
-                
+
                 new_stock = new_product.current_stock - consumption.quantity_used
                 update_stock(
                     product_id=consumption.product_id,
@@ -510,7 +519,7 @@ def update_consumption_record(consumption_id, consumption_data, user_id=None):
                     reference_id=consumption.id,
                     user_id=user_id
                 )
-        
+
         db.session.commit()
         return consumption
     except Exception as e:
@@ -523,7 +532,7 @@ def delete_consumption_record(consumption_id, user_id=None):
         consumption = get_consumption_by_id(consumption_id)
         if not consumption:
             return False
-        
+
         # Restore stock levels
         product = get_product_by_id(consumption.product_id)
         if product:
@@ -537,7 +546,7 @@ def delete_consumption_record(consumption_id, user_id=None):
                 reference_id=consumption.id,
                 user_id=user_id
             )
-        
+
         db.session.delete(consumption)
         db.session.commit()
         return True
@@ -549,7 +558,7 @@ def get_consumption_by_product(product_id, limit=None):
     """Get consumption records for a specific product"""
     query = InventoryConsumption.query.filter_by(product_id=product_id)
     query = query.order_by(desc(InventoryConsumption.consumption_date))
-    
+
     if limit:
         return query.limit(limit).all()
     return query.all()
@@ -567,14 +576,14 @@ def get_consumption_summary_stats():
     """Get consumption summary statistics"""
     try:
         total_records = InventoryConsumption.query.count()
-        
+
         # Get consumption for current month
         today = date.today()
         first_day = today.replace(day=1)
         monthly_records = InventoryConsumption.query.filter(
             InventoryConsumption.consumption_date >= first_day
         ).count()
-        
+
         # Get most consumed items
         most_consumed = db.session.query(
             InventoryProduct.name,
@@ -582,7 +591,7 @@ def get_consumption_summary_stats():
         ).join(InventoryConsumption).group_by(InventoryProduct.id, InventoryProduct.name).order_by(
             desc('total_consumed')
         ).limit(5).all()
-        
+
         return {
             'total_records': total_records,
             'monthly_records': monthly_records,

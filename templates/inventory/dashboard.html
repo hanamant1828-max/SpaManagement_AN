@@ -13,11 +13,8 @@
                     <p class="text-muted mb-0">Comprehensive inventory control with stock tracking and order management</p>
                 </div>
                 <div>
-                    <a href="{{ url_for('add_product') }}" class="btn btn-primary me-2">
-                        <i class="fas fa-plus me-1"></i>Add Product
-                    </a>
-                    <a href="{{ url_for('create_order') }}" class="btn btn-success">
-                        <i class="fas fa-shopping-cart me-1"></i>New Order
+                    <a href="{{ url_for('export_products') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download me-1"></i>Export
                     </a>
                 </div>
             </div>
@@ -68,6 +65,13 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="product-master-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#product-master" type="button" role="tab" 
+                                    aria-controls="product-master" aria-selected="false">
+                                <i class="fas fa-boxes me-1"></i>Product Master
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="categories-tab" data-bs-toggle="tab" 
                                     data-bs-target="#categories" type="button" role="tab" 
                                     aria-controls="categories" aria-selected="false">
@@ -75,17 +79,10 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="purchase-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#purchase" type="button" role="tab" 
-                                    aria-controls="purchase" aria-selected="false">
-                                <i class="fas fa-shopping-cart me-2"></i>Purchase Management
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="orders-tab" data-bs-toggle="tab" 
                                     data-bs-target="#orders" type="button" role="tab" 
                                     aria-controls="orders" aria-selected="false">
-                                <i class="fas fa-clipboard-list me-2"></i>Orders
+                                <i class="fas fa-shopping-cart me-2"></i>Purchase Orders
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -101,10 +98,10 @@
                 <!-- Tab Content -->
                 <div class="card-body">
                     <div class="tab-content" id="inventoryTabContent">
-                        
+
                         <!-- Stock Levels Tab -->
                         <div class="tab-pane fade show active" id="stock-levels" role="tabpanel" aria-labelledby="stock-levels-tab">
-                            
+
                             <!-- Statistics Cards -->
                             <div class="row mb-4">
                                 <div class="col-lg-3 col-md-6 mb-3">
@@ -124,7 +121,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-lg-3 col-md-6 mb-3">
                                     <div class="card border-0 shadow-sm h-100">
                                         <div class="card-body">
@@ -142,7 +139,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-lg-3 col-md-6 mb-3">
                                     <div class="card border-0 shadow-sm h-100">
                                         <div class="card-body">
@@ -160,7 +157,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-lg-3 col-md-6 mb-3">
                                     <div class="card border-0 shadow-sm h-100">
                                         <div class="card-body">
@@ -211,7 +208,7 @@
                                                             <div class="fw-medium">{{ movement.product.name }}</div>
                                                             <small class="text-muted">
                                                                 {{ movement.reason or 'Stock movement' }} • 
-                                                                {{ movement.created_at.strftime('%m/%d %H:%M') }}
+                                                                {{ movement.created_at.strftime('%m/%d/%H:%M') }}
                                                             </small>
                                                         </div>
                                                         <div class="flex-shrink-0">
@@ -235,6 +232,69 @@
                             </div>
                         </div>
 
+                        <!-- Product Master Tab -->
+                        <div class="tab-pane fade" id="product-master" role="tabpanel">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5>Product Master</h5>
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                            <i class="fas fa-plus me-1"></i>Add Product
+                                        </button>
+                                    </div>
+
+                                    <!-- Filters -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control" id="searchProducts" placeholder="Search products...">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select class="form-select" id="filterCategory">
+                                                <option value="">All Categories</option>
+                                                {% for category in categories %}
+                                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select class="form-select" id="filterStatus">
+                                                <option value="">All Status</option>
+                                                <option value="in_stock">In Stock</option>
+                                                <option value="low_stock">Low Stock</option>
+                                                <option value="out_of_stock">Out of Stock</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                                <i class="fas fa-undo me-1"></i>Clear
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Products Table -->
+                                    <div class="table-responsive">
+                                        <table class="table table-hover" id="productsTable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>SKU</th>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Unit of Measure</th>
+                                                    <th>Stock</th>
+                                                    <th>Reorder Level</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="productsTableBody">
+                                                <!-- Products will be loaded via JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Category Management Tab -->
                         <div class="tab-pane fade" id="categories" role="tabpanel" aria-labelledby="categories-tab">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -243,7 +303,7 @@
                                     <i class="fas fa-plus me-1"></i>Add Category
                                 </button>
                             </div>
-                            
+
                             {% if categories %}
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
@@ -334,7 +394,7 @@
                                     <i class="fas fa-plus me-1"></i>Create Purchase Order
                                 </button>
                             </div>
-                            
+
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
                                     <thead class="table-light">
@@ -416,7 +476,7 @@
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
                                     <thead class="table-light">
@@ -461,7 +521,7 @@
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle" id="consumptionTable">
                                     <thead class="table-light">
@@ -488,7 +548,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             <!-- Pagination -->
                             <nav aria-label="Consumption pagination">
                                 <ul class="pagination justify-content-center" id="consumptionPagination">
@@ -499,6 +559,209 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addProductForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SKU <span class="text-danger">*</span></label>
+                            <input type="text" name="sku" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Product Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category</label>
+                            <select name="category_id" class="form-select">
+                                <option value="">Select category</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Unit of Measure</label>
+                            <select name="unit_of_measure" class="form-select">
+                                <option value="pcs">Pieces</option>
+                                <option value="kg">Kilograms</option>
+                                <option value="g">Grams</option>
+                                <option value="l">Liters</option>
+                                <option value="ml">Milliliters</option>
+                                <option value="box">Boxes</option>
+                                <option value="bottle">Bottles</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Initial Stock</label>
+                            <input type="number" name="current_stock" class="form-control" value="0" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Reorder Level</label>
+                            <input type="number" name="reorder_point" class="form-control" value="20" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Min Stock Level</label>
+                            <input type="number" name="min_stock_level" class="form-control" value="10" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Max Stock Level</label>
+                            <input type="number" name="max_stock_level" class="form-control" value="100" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cost Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="cost_price" class="form-control" value="0" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Selling Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="selling_price" class="form-control" value="0" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Barcode</label>
+                            <input type="text" name="barcode" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Storage Location</label>
+                            <input type="text" name="location" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_service_item" id="isServiceItem">
+                                <label class="form-check-label" for="isServiceItem">Used in Services</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_retail_item" id="isRetailItem">
+                                <label class="form-check-label" for="isRetailItem">Retail Product</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editProductForm">
+                <div class="modal-body">
+                    <input type="hidden" name="product_id" id="editProductId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SKU</label>
+                            <input type="text" name="sku" id="editSku" class="form-control" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Product Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="editName" class="form-control" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" id="editDescription" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category</label>
+                            <select name="category_id" id="editCategoryId" class="form-select">
+                                <option value="">Select category</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Unit of Measure</label>
+                            <select name="unit_of_measure" id="editUnitOfMeasure" class="form-select">
+                                <option value="pcs">Pieces</option>
+                                <option value="kg">Kilograms</option>
+                                <option value="g">Grams</option>
+                                <option value="l">Liters</option>
+                                <option value="ml">Milliliters</option>
+                                <option value="box">Boxes</option>
+                                <option value="bottle">Bottles</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Reorder Level</label>
+                            <input type="number" name="reorder_point" id="editReorderPoint" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Min Stock Level</label>
+                            <input type="number" name="min_stock_level" id="editMinStockLevel" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Max Stock Level</label>
+                            <input type="number" name="max_stock_level" id="editMaxStockLevel" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cost Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="cost_price" id="editCostPrice" class="form-control" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Selling Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="selling_price" id="editSellingPrice" class="form-control" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Barcode</label>
+                            <input type="text" name="barcode" id="editBarcode" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Storage Location</label>
+                            <input type="text" name="location" id="editLocation" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_service_item" id="editIsServiceItem">
+                                <label class="form-check-label" for="editIsServiceItem">Used in Services</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_retail_item" id="editIsRetailItem">
+                                <label class="form-check-label" for="editIsRetailItem">Retail Product</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Product</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -747,36 +1010,395 @@
 </div>
 
 <script>
-// Category Management Functions
-function editCategory(id, name, description, color) {
-    document.getElementById('editCategoryName').value = name;
-    document.getElementById('editCategoryDescription').value = description;
-    document.getElementById('editCategoryColor').value = color;
-    document.getElementById('editCategoryForm').action = `/inventory/categories/${id}/edit`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
-    modal.show();
-}
-
-function deleteCategory(id, name) {
-    document.getElementById('deleteCategoryName').textContent = name;
-    document.getElementById('deleteCategoryForm').action = `/inventory/categories/${id}/delete`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
-    modal.show();
-}
-
-// Global variables for consumption management
+let allProducts = [];
 let currentPage = 1;
 let currentSearch = '';
-let editingConsumptionId = null;
-let deletingConsumptionId = null;
 
-// Consumption Management Functions
+// Initialize Product Master functionality
+document.addEventListener('DOMContentLoaded', function() {
+    loadProductsForConsumption();
+
+    // Load products when Product Master tab is shown
+    document.getElementById('product-master-tab').addEventListener('shown.bs.tab', function() {
+        loadProducts();
+    });
+
+    // Add product form handler
+    document.getElementById('addProductForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('/inventory/products/add', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                modal.hide();
+                loadProducts();
+                alert(data.message);
+                this.reset();
+            } else {
+                alert(data.error || 'Error adding product');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding product');
+        });
+    });
+
+    // Edit product form handler
+    document.getElementById('editProductForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const productId = document.getElementById('editProductId').value;
+
+        fetch(`/inventory/products/${productId}/edit`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                modal.hide();
+                loadProducts();
+                alert('Product updated successfully');
+            } else {
+                alert('Error updating product');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating product');
+        });
+    });
+
+    // Search and filter handlers
+    document.getElementById('searchProducts').addEventListener('input', filterProducts);
+    document.getElementById('filterCategory').addEventListener('change', filterProducts);
+    document.getElementById('filterStatus').addEventListener('change', filterProducts);
+
+    // Add consumption form handler
+    document.getElementById('addConsumptionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('/inventory/consumption/add', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal'));
+                modal.hide();
+                loadConsumptionData();
+                alert(data.message);
+                this.reset();
+            } else {
+                alert(data.error || 'Error adding consumption record');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding consumption record');
+        });
+    });
+});
+
+function loadProducts() {
+    // Get products from the existing inventory_products route with AJAX
+    fetch('/inventory/products')
+        .then(response => response.text())
+        .then(html => {
+            // Parse the HTML to extract product data
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const productRows = doc.querySelectorAll('tbody tr');
+
+            allProducts = [];
+            productRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 1) {
+                    const nameCell = cells[0];
+                    const categoryCell = cells[1];
+                    const stockCell = cells[2];
+                    const statusCell = cells[3];
+                    const costCell = cells[4];
+                    const locationCell = cells[6];
+
+                    const nameDiv = nameCell.querySelector('div');
+                    const skuSmall = nameDiv ? nameDiv.querySelector('small') : null;
+
+                    allProducts.push({
+                        name: nameDiv ? nameDiv.querySelector('.fw-medium').textContent.trim() : '',
+                        sku: skuSmall ? skuSmall.textContent.replace('SKU: ', '') : '',
+                        category: categoryCell.querySelector('span') ? categoryCell.querySelector('span').textContent.trim() : '-',
+                        stock: stockCell.querySelector('strong').textContent.trim(),
+                        status: statusCell.querySelector('span').textContent.trim(),
+                        cost: costCell.textContent.trim(),
+                        location: locationCell.textContent.trim(),
+                        actions: cells[7].innerHTML
+                    });
+                }
+            });
+
+            displayProducts(allProducts);
+        })
+        .catch(error => {
+            console.error('Error loading products:', error);
+        });
+}
+
+function displayProducts(products) {
+    const tbody = document.getElementById('productsTableBody');
+    tbody.innerHTML = '';
+
+    if (products.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                    <i class="fas fa-boxes fa-2x mb-2 opacity-50"></i><br>
+                    No products found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    products.forEach((product, index) => {
+        const row = document.createElement('tr');
+
+        // Extract unit of measure from stock text
+        const stockParts = product.stock.split(' ');
+        const stockValue = stockParts[0];
+        const unitOfMeasure = stockParts.slice(1).join(' ');
+
+        // Extract reorder level from the original data (we'll need to get this from API)
+        const reorderLevel = '20'; // Default for now
+
+        row.innerHTML = `
+            <td><code>${product.sku}</code></td>
+            <td><strong>${product.name}</strong></td>
+            <td>${product.category}</td>
+            <td>${unitOfMeasure}</td>
+            <td>${stockValue}</td>
+            <td>${reorderLevel}</td>
+            <td>${getStatusBadge(product.status)}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-warning" onclick="editProduct('${product.sku}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="deleteProduct('${product.sku}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getStatusBadge(status) {
+    const statusMap = {
+        'Out of Stock': '<span class="badge bg-danger">Out of Stock</span>',
+        'Low Stock': '<span class="badge bg-warning">Low Stock</span>',
+        'Reorder': '<span class="badge bg-info">Reorder</span>',
+        'In Stock': '<span class="badge bg-success">In Stock</span>'
+    };
+    return statusMap[status] || `<span class="badge bg-secondary">${status}</span>`;
+}
+
+function filterProducts() {
+    const searchTerm = document.getElementById('searchProducts').value.toLowerCase();
+    const categoryFilter = document.getElementById('filterCategory').value;
+    const statusFilter = document.getElementById('filterStatus').value;
+
+    let filteredProducts = allProducts.filter(product => {
+        const matchesSearch = product.name.toLowerCase().includes(searchTerm) || 
+                            product.sku.toLowerCase().includes(searchTerm);
+        const matchesCategory = !categoryFilter || product.category === categoryFilter;
+        const matchesStatus = !statusFilter || product.status.toLowerCase().includes(statusFilter.replace('_', ' '));
+
+        return matchesSearch && matchesCategory && matchesStatus;
+    });
+
+    displayProducts(filteredProducts);
+}
+
+function clearFilters() {
+    document.getElementById('searchProducts').value = '';
+    document.getElementById('filterCategory').value = '';
+    document.getElementById('filterStatus').value = '';
+    displayProducts(allProducts);
+}
+
+function editProduct(sku) {
+    // Find product by SKU and populate edit modal
+    fetch(`/api/inventory/product/sku/${sku}`)
+        .then(response => response.json())
+        .then(product => {
+            document.getElementById('editProductId').value = product.id;
+            document.getElementById('editSku').value = product.sku;
+            document.getElementById('editName').value = product.name;
+            document.getElementById('editDescription').value = product.description || '';
+            document.getElementById('editCategoryId').value = product.category_id || '';
+            document.getElementById('editUnitOfMeasure').value = product.unit_of_measure;
+            document.getElementById('editReorderPoint').value = product.reorder_point;
+            document.getElementById('editMinStockLevel').value = product.min_stock_level;
+            document.getElementById('editMaxStockLevel').value = product.max_stock_level;
+            document.getElementById('editCostPrice').value = product.cost_price;
+            document.getElementById('editSellingPrice').value = product.selling_price;
+            document.getElementById('editBarcode').value = product.barcode || '';
+            document.getElementById('editLocation').value = product.location || '';
+            document.getElementById('editIsServiceItem').checked = product.is_service_item;
+            document.getElementById('editIsRetailItem').checked = product.is_retail_item;
+
+            const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+            editModal.show();
+        })
+        .catch(error => {
+            console.error('Error loading product:', error);
+            alert('Error loading product details');
+        });
+}
+
+function deleteProduct(sku) {
+    if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+        // First get the product ID by SKU
+        fetch(`/api/inventory/product/sku/${sku}`)
+            .then(response => response.json())
+            .then(product => {
+                // Now delete the product
+                return fetch(`/inventory/products/${product.id}/delete`, {
+                    method: 'POST'
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadProducts();
+                    alert(data.message);
+                } else {
+                    alert(data.error || 'Error deleting product');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting product');
+            });
+    }
+}
+
+// Consumption tracking functionality
+function loadConsumptionData() {
+    fetch('/inventory/consumption')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('consumptionTableBody');
+            tbody.innerHTML = '';
+
+            if (data.records && data.records.length > 0) {
+                data.records.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${record.consumption_date}</td>
+                        <td>
+                            <div>
+                                <strong>${record.product_name}</strong><br>
+                                <small class="text-muted">SKU: ${record.product_sku}</small>
+                            </div>
+                        </td>
+                        <td>${record.quantity_used} ${record.unit_of_measure}</td>
+                        <td>${record.issued_to}</td>
+                        <td>${record.reference_doc_no || '-'}</td>
+                        <td>${record.notes || '-'}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-warning" onclick="editConsumption(${record.id})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteConsumption(${record.id})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2 opacity-50"></i><br>
+                            No consumption records found
+                        </td>
+                    </tr>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading consumption data:', error);
+        });
+}
+
+function loadProductsForConsumption() {
+    fetch('/api/inventory/products/for-consumption')
+        .then(response => response.json())
+        .then(products => {
+            const select = document.getElementById('consumptionProduct');
+            select.innerHTML = '<option value="">Select a product</option>';
+
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = `${product.name} (${product.sku}) - ${product.current_stock} ${product.unit_of_measure}`;
+                option.dataset.unitOfMeasure = product.unit_of_measure;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading products:', error);
+        });
+}
+
+function editConsumption(id) {
+    alert('Edit consumption functionality to be implemented');
+}
+
+function deleteConsumption(id) {
+    if (confirm('Are you sure you want to delete this consumption record?')) {
+        fetch(`/inventory/consumption/${id}/delete`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadConsumptionData();
+                alert(data.message);
+            } else {
+                alert(data.error || 'Error deleting consumption record');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting consumption record');
+        });
+    }
+}
+
+// Consumption management pagination and search
 function loadConsumptionRecords(page = 1, search = '') {
     currentPage = page;
     currentSearch = search;
-    
+
     const tbody = document.getElementById('consumptionTableBody');
     tbody.innerHTML = `
         <tr>
@@ -788,7 +1410,7 @@ function loadConsumptionRecords(page = 1, search = '') {
             </td>
         </tr>
     `;
-    
+
     fetch(`/inventory/consumption?page=${page}&search=${encodeURIComponent(search)}`)
         .then(response => response.json())
         .then(data => {
@@ -810,7 +1432,7 @@ function loadConsumptionRecords(page = 1, search = '') {
 
 function renderConsumptionTable(records) {
     const tbody = document.getElementById('consumptionTableBody');
-    
+
     if (records.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -822,7 +1444,7 @@ function renderConsumptionTable(records) {
         `;
         return;
     }
-    
+
     tbody.innerHTML = records.map(record => `
         <tr>
             <td>${record.consumption_date}</td>
@@ -856,14 +1478,14 @@ function renderConsumptionTable(records) {
 
 function renderConsumptionPagination(pagination) {
     const paginationEl = document.getElementById('consumptionPagination');
-    
+
     if (pagination.pages <= 1) {
         paginationEl.innerHTML = '';
         return;
     }
-    
+
     let paginationHTML = '';
-    
+
     // Previous button
     if (pagination.has_prev) {
         paginationHTML += `
@@ -872,11 +1494,11 @@ function renderConsumptionPagination(pagination) {
             </li>
         `;
     }
-    
+
     // Page numbers
     const startPage = Math.max(1, pagination.page - 2);
     const endPage = Math.min(pagination.pages, pagination.page + 2);
-    
+
     for (let i = startPage; i <= endPage; i++) {
         paginationHTML += `
             <li class="page-item ${i === pagination.page ? 'active' : ''}">
@@ -884,7 +1506,7 @@ function renderConsumptionPagination(pagination) {
             </li>
         `;
     }
-    
+
     // Next button
     if (pagination.has_next) {
         paginationHTML += `
@@ -893,7 +1515,7 @@ function renderConsumptionPagination(pagination) {
             </li>
         `;
     }
-    
+
     paginationEl.innerHTML = paginationHTML;
 }
 
@@ -902,28 +1524,125 @@ function searchConsumption() {
     loadConsumptionRecords(1, searchTerm);
 }
 
-function loadProductsForConsumption() {
-    fetch('/api/inventory/products/for-consumption')
-        .then(response => response.json())
-        .then(products => {
-            const addSelect = document.getElementById('consumptionProduct');
-            const editSelect = document.getElementById('editConsumptionProduct');
-            
-            const options = products.map(product => 
-                `<option value="${product.id}">${product.name} (${product.sku}) - ${product.current_stock} ${product.unit_of_measure}</option>`
-            ).join('');
-            
-            addSelect.innerHTML = '<option value="">Select Product...</option>' + options;
-            editSelect.innerHTML = '<option value="">Select Product...</option>' + options;
-        })
-        .catch(error => {
-            console.error('Error loading products:', error);
-        });
+function exportConsumption() {
+    const search = document.getElementById('consumptionSearch').value;
+    window.open(`/inventory/consumption/export?search=${encodeURIComponent(search)}`, '_blank');
 }
 
+
+// Tab persistence and initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date as default for consumption form
+    const today = new Date().toISOString().split('T')[0];
+    if (document.getElementById('consumptionDate')) {
+        document.getElementById('consumptionDate').value = today;
+    }
+
+    // Load products for dropdowns
+    loadProductsForConsumption();
+
+    // Get the active tab from URL hash or localStorage
+    const activeTab = window.location.hash || localStorage.getItem('inventoryActiveTab') || '#stock-levels';
+
+    if (activeTab && activeTab !== '#stock-levels') {
+        const tabButton = document.querySelector(`[data-bs-target="${activeTab}"]`);
+        if (tabButton) {
+            bootstrap.Tab.getOrCreateInstance(tabButton).show();
+        }
+    }
+
+    // Load consumption records when consumption tab is shown
+    const consumptionTabButton = document.getElementById('consumption-tab');
+    if (consumptionTabButton) {
+        consumptionTabButton.addEventListener('shown.bs.tab', function() {
+            loadConsumptionRecords(); // Load with default page and search
+        });
+    }
+
+    // Save active tab to localStorage when tab changes
+    document.querySelectorAll('#inventoryTabs button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(e) {
+            const target = e.target.getAttribute('data-bs-target');
+            localStorage.setItem('inventoryActiveTab', target);
+            window.location.hash = target;
+        });
+    });
+
+    // Form submissions for consumption
+    const addConsumptionForm = document.getElementById('addConsumptionForm');
+    if (addConsumptionForm) {
+        addConsumptionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            fetch('/inventory/consumption/add', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal')).hide();
+                    this.reset();
+                    document.getElementById('consumptionDate').value = today; // Reset date
+                    loadConsumptionRecords(currentPage, currentSearch); // Reload current view
+                    alert('Consumption recorded successfully');
+                } else {
+                    alert(data.error || 'Error recording consumption');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding consumption:', error);
+                alert('Error recording consumption');
+            });
+        });
+    }
+
+    const editConsumptionForm = document.getElementById('editConsumptionForm');
+    if (editConsumptionForm) {
+        editConsumptionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            fetch(`/inventory/consumption/${editingConsumptionId}/edit`, { // Assuming editingConsumptionId is set in editConsumption
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
+                    loadConsumptionRecords(currentPage, currentSearch); // Reload current view
+                    alert('Consumption updated successfully');
+                } else {
+                    alert(data.error || 'Error updating consumption');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating consumption:', error);
+                alert('Error updating consumption');
+            });
+        });
+    }
+
+
+    // Enter key search for consumption
+    const consumptionSearchInput = document.getElementById('consumptionSearch');
+    if (consumptionSearchInput) {
+        consumptionSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchConsumption();
+            }
+        });
+    }
+});
+
+// Placeholder for editConsumption function if it needs to be defined globally
 function editConsumption(id) {
-    editingConsumptionId = id;
-    
+    editingConsumptionId = id; // Store the ID of the consumption record to edit
+
     fetch(`/api/inventory/consumption/${id}`)
         .then(response => response.json())
         .then(data => {
@@ -933,7 +1652,7 @@ function editConsumption(id) {
             document.getElementById('editConsumptionIssuedTo').value = data.issued_to;
             document.getElementById('editConsumptionReference').value = data.reference_doc_no;
             document.getElementById('editConsumptionNotes').value = data.notes;
-            
+
             const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
             modal.show();
         })
@@ -943,14 +1662,16 @@ function editConsumption(id) {
         });
 }
 
+// Placeholder for deleteConsumption function if it needs to be defined globally
 function deleteConsumption(id, productName, date) {
-    deletingConsumptionId = id;
+    deletingConsumptionId = id; // Store the ID of the consumption record to delete
     document.getElementById('deleteConsumptionDetails').textContent = `${productName} - ${date}`;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('deleteConsumptionModal'));
     modal.show();
 }
 
+// Placeholder for confirmDeleteConsumption function if it needs to be defined globally
 function confirmDeleteConsumption() {
     fetch(`/inventory/consumption/${deletingConsumptionId}/delete`, {
         method: 'POST'
@@ -959,7 +1680,7 @@ function confirmDeleteConsumption() {
     .then(data => {
         if (data.success) {
             bootstrap.Modal.getInstance(document.getElementById('deleteConsumptionModal')).hide();
-            loadConsumptionRecords(currentPage, currentSearch);
+            loadConsumptionRecords(currentPage, currentSearch); // Reload current view
             alert('Consumption record deleted successfully');
         } else {
             alert(data.error || 'Error deleting consumption record');
@@ -971,103 +1692,5 @@ function confirmDeleteConsumption() {
     });
 }
 
-function exportConsumption() {
-    const search = document.getElementById('consumptionSearch').value;
-    window.open(`/inventory/consumption/export?search=${encodeURIComponent(search)}`, '_blank');
-}
-
-// Tab persistence and initialization
-document.addEventListener('DOMContentLoaded', function() {
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('consumptionDate').value = today;
-    
-    // Load products for dropdowns
-    loadProductsForConsumption();
-    
-    // Get the active tab from URL hash or localStorage
-    const activeTab = window.location.hash || localStorage.getItem('inventoryActiveTab') || '#stock-levels';
-    
-    if (activeTab && activeTab !== '#stock-levels') {
-        const tabButton = document.querySelector(`[data-bs-target="${activeTab}"]`);
-        if (tabButton) {
-            bootstrap.Tab.getOrCreateInstance(tabButton).show();
-        }
-    }
-    
-    // Load consumption records when consumption tab is shown
-    document.getElementById('consumption-tab').addEventListener('shown.bs.tab', function() {
-        loadConsumptionRecords();
-    });
-    
-    // Save active tab to localStorage when tab changes
-    document.querySelectorAll('#inventoryTabs button[data-bs-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', function(e) {
-            const target = e.target.getAttribute('data-bs-target');
-            localStorage.setItem('inventoryActiveTab', target);
-            window.location.hash = target;
-        });
-    });
-    
-    // Form submissions
-    document.getElementById('addConsumptionForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        
-        fetch('/inventory/consumption/add', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal')).hide();
-                this.reset();
-                document.getElementById('consumptionDate').value = today;
-                loadConsumptionRecords(currentPage, currentSearch);
-                alert('Consumption recorded successfully');
-            } else {
-                alert(data.error || 'Error recording consumption');
-            }
-        })
-        .catch(error => {
-            console.error('Error adding consumption:', error);
-            alert('Error recording consumption');
-        });
-    });
-    
-    document.getElementById('editConsumptionForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        
-        fetch(`/inventory/consumption/${editingConsumptionId}/edit`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
-                loadConsumptionRecords(currentPage, currentSearch);
-                alert('Consumption updated successfully');
-            } else {
-                alert(data.error || 'Error updating consumption');
-            }
-        })
-        .catch(error => {
-            console.error('Error updating consumption:', error);
-            alert('Error updating consumption');
-        });
-    });
-    
-    // Enter key search
-    document.getElementById('consumptionSearch').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            searchConsumption();
-        }
-    });
-});
 </script>
 {% endblock %}

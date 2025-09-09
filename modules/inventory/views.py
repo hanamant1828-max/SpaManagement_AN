@@ -223,6 +223,34 @@ def view_product(product_id):
                          product=product,
                          movements=movements)
 
+@app.route('/inventory/products/<int:product_id>/delete', methods=['POST'])
+@login_required
+def delete_product_route(product_id):
+    """Delete product"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    product = get_product_by_id(product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+    
+    try:
+        # Check if product has stock movements
+        if product.stock_movements:
+            return jsonify({'error': f'Cannot delete product "{product.name}" because it has stock movement history'}), 400
+        
+        # Check if product is in purchase orders
+        if product.order_items:
+            return jsonify({'error': f'Cannot delete product "{product.name}" because it has associated purchase orders'}), 400
+        
+        if delete_product(product_id):
+            return jsonify({'success': True, 'message': f'Product "{product.name}" deleted successfully'})
+        else:
+            return jsonify({'error': 'Error deleting product'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Error deleting product: {str(e)}'}), 500
+
 # ============ CATEGORY MANAGEMENT ============
 
 @app.route('/inventory/categories')
@@ -672,6 +700,38 @@ def api_get_product(product_id):
             'cost_price': float(product.cost_price),
             'selling_price': float(product.selling_price),
             'unit_of_measure': product.unit_of_measure,
+            'stock_status': product.stock_status
+        })
+    return jsonify({'error': 'Product not found'}), 404
+
+@app.route('/api/inventory/product/sku/<string:sku>')
+@login_required
+def api_get_product_by_sku(sku):
+    """Get product data by SKU as JSON"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    products = get_all_products()
+    product = next((p for p in products if p.sku == sku), None)
+    
+    if product:
+        return jsonify({
+            'id': product.id,
+            'sku': product.sku,
+            'name': product.name,
+            'description': product.description,
+            'category_id': product.category_id,
+            'current_stock': float(product.current_stock),
+            'min_stock_level': float(product.min_stock_level),
+            'max_stock_level': float(product.max_stock_level),
+            'reorder_point': float(product.reorder_point),
+            'cost_price': float(product.cost_price),
+            'selling_price': float(product.selling_price),
+            'unit_of_measure': product.unit_of_measure,
+            'barcode': product.barcode,
+            'location': product.location,
+            'is_service_item': product.is_service_item,
+            'is_retail_item': product.is_retail_item,
             'stock_status': product.stock_status
         })
     return jsonify({'error': 'Product not found'}), 404
