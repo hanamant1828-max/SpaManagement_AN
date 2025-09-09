@@ -1091,9 +1091,12 @@ def api_edit_consumption(consumption_id):
             return jsonify({'error': 'Invalid product selected'}), 400
 
         try:
-            new_quantity_used = float(quantity_used_str)
+            from decimal import Decimal
+            new_quantity_used = Decimal(str(quantity_used_str))
             if new_quantity_used <= 0:
                 return jsonify({'error': 'Quantity must be greater than 0'}), 400
+            # Convert back to float for consistency with existing code
+            new_quantity_used = float(new_quantity_used)
         except (ValueError, TypeError):
             return jsonify({'error': 'Invalid quantity value'}), 400
 
@@ -1113,13 +1116,15 @@ def api_edit_consumption(consumption_id):
         if not product:
             return jsonify({'error': 'Selected product not found'}), 404
 
-        # Calculate delta (difference between new and old quantity)
-        original_quantity = float(original_consumption.quantity_used or 0)
-        delta = new_quantity_used - original_quantity
+        # Calculate delta (difference between new and old quantity) using Decimal
+        from decimal import Decimal
+        original_quantity = Decimal(str(original_consumption.quantity_used or 0))
+        new_quantity_decimal = Decimal(str(new_quantity_used))
+        delta = new_quantity_decimal - original_quantity
 
         # If delta is positive (increase), check if we have enough stock
         if delta > 0:
-            current_stock = float(product.current_stock or 0)
+            current_stock = Decimal(str(product.current_stock or 0))
             if current_stock < delta:
                 return jsonify({'error': f'Insufficient stock for increase. Available: {current_stock} {product.unit_of_measure}, Additional required: {delta}'}), 400
 
@@ -1485,9 +1490,12 @@ def api_add_consumption():
             return jsonify({'error': 'Invalid product selected'}), 400
 
         try:
-            quantity_used = float(quantity_used_str)
+            from decimal import Decimal
+            quantity_used = Decimal(str(quantity_used_str))
             if quantity_used <= 0:
                 return jsonify({'error': 'Quantity must be greater than 0'}), 400
+            # Convert back to float for JSON serialization compatibility
+            quantity_used = float(quantity_used)
         except (ValueError, TypeError):
             return jsonify({'error': 'Invalid quantity value'}), 400
 

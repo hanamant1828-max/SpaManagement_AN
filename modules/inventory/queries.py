@@ -389,6 +389,12 @@ def get_consumption_by_id(consumption_id):
 def create_consumption_record(consumption_data, user_id=None):
     """Create new consumption record and update stock levels"""
     try:
+        from decimal import Decimal
+        
+        # Ensure quantity_used is Decimal for consistency
+        if 'quantity_used' in consumption_data:
+            consumption_data['quantity_used'] = Decimal(str(consumption_data['quantity_used']))
+        
         # Create consumption record
         consumption = InventoryConsumption(**consumption_data)
         consumption.created_by = user_id
@@ -398,15 +404,19 @@ def create_consumption_record(consumption_data, user_id=None):
         # Update stock levels
         product = get_product_by_id(consumption.product_id)
         if product:
+            # Convert to Decimal for consistent arithmetic
+            current_stock = Decimal(str(product.current_stock or 0))
+            quantity_used = Decimal(str(consumption.quantity_used or 0))
+            
             # Check if sufficient stock
-            if product.current_stock < consumption.quantity_used:
-                raise ValueError(f"Insufficient stock. Available: {product.current_stock}, Required: {consumption.quantity_used}")
+            if current_stock < quantity_used:
+                raise ValueError(f"Insufficient stock. Available: {current_stock}, Required: {quantity_used}")
 
-            # Deduct from stock
-            new_stock = product.current_stock - consumption.quantity_used
+            # Deduct from stock - now both are Decimal types
+            new_stock = current_stock - quantity_used
             update_stock(
                 product_id=consumption.product_id,
-                new_quantity=new_stock,
+                new_quantity=float(new_stock),  # Convert to float for update_stock
                 movement_type='out',
                 reason=f"Consumption - Issued to: {consumption.issued_to}",
                 reference_type='consumption',
@@ -423,27 +433,38 @@ def create_consumption_record(consumption_data, user_id=None):
 def update_consumption_record(consumption_id, consumption_data, user_id=None):
     """Update existing consumption record and adjust stock levels"""
     try:
+        from decimal import Decimal
+        
         consumption = get_consumption_by_id(consumption_id)
         if not consumption:
             return None
 
-        old_quantity = consumption.quantity_used
+        # Convert to Decimal for consistent arithmetic
+        old_quantity = Decimal(str(consumption.quantity_used or 0))
         old_product_id = consumption.product_id
+
+        # Ensure quantity_used is Decimal if being updated
+        if 'quantity_used' in consumption_data:
+            consumption_data['quantity_used'] = Decimal(str(consumption_data['quantity_used']))
 
         # Update consumption record
         for key, value in consumption_data.items():
             setattr(consumption, key, value)
         consumption.updated_at = datetime.utcnow()
 
+        # Convert new quantity to Decimal
+        new_quantity = Decimal(str(consumption.quantity_used or 0))
+
         # Handle stock adjustments if quantity or product changed
-        if old_product_id != consumption.product_id or old_quantity != consumption.quantity_used:
+        if old_product_id != consumption.product_id or old_quantity != new_quantity:
             # Restore old stock
             old_product = get_product_by_id(old_product_id)
             if old_product:
-                old_stock_restored = old_product.current_stock + old_quantity
+                old_current_stock = Decimal(str(old_product.current_stock or 0))
+                old_stock_restored = old_current_stock + old_quantity
                 update_stock(
                     product_id=old_product_id,
-                    new_quantity=old_stock_restored,
+                    new_quantity=float(old_stock_restored),
                     movement_type='in',
                     reason=f"Consumption adjustment - Restored stock",
                     reference_type='consumption_adjustment',
@@ -454,13 +475,15 @@ def update_consumption_record(consumption_id, consumption_data, user_id=None):
             # Apply new consumption
             new_product = get_product_by_id(consumption.product_id)
             if new_product:
-                if new_product.current_stock < consumption.quantity_used:
-                    raise ValueError(f"Insufficient stock. Available: {new_product.current_stock}, Required: {consumption.quantity_used}")
+                new_current_stock = Decimal(str(new_product.current_stock or 0))
+                
+                if new_current_stock < new_quantity:
+                    raise ValueError(f"Insufficient stock. Available: {new_current_stock}, Required: {new_quantity}")
 
-                new_stock = new_product.current_stock - consumption.quantity_used
+                final_stock = new_current_stock - new_quantity
                 update_stock(
                     product_id=consumption.product_id,
-                    new_quantity=new_stock,
+                    new_quantity=float(final_stock),
                     movement_type='out',
                     reason=f"Consumption update - Issued to: {consumption.issued_to}",
                     reference_type='consumption',
@@ -477,6 +500,8 @@ def update_consumption_record(consumption_id, consumption_data, user_id=None):
 def delete_consumption_record(consumption_id, user_id=None):
     """Delete consumption record and restore stock levels"""
     try:
+        from decimal import Decimal
+        
         consumption = get_consumption_by_id(consumption_id)
         if not consumption:
             return False
@@ -484,10 +509,14 @@ def delete_consumption_record(consumption_id, user_id=None):
         # Restore stock levels
         product = get_product_by_id(consumption.product_id)
         if product:
-            restored_stock = product.current_stock + consumption.quantity_used
+            # Convert to Decimal for consistent arithmetic
+            current_stock = Decimal(str(product.current_stock or 0))
+            quantity_to_restore = Decimal(str(consumption.quantity_used or 0))
+            restored_stock = current_stock + quantity_to_restore
+            
             update_stock(
                 product_id=consumption.product_id,
-                new_quantity=restored_stock,
+                new_quantity=float(restored_stock),
                 movement_type='in',
                 reason=f"Consumption deleted - Stock restored",
                 reference_type='consumption_deleted',
