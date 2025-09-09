@@ -75,12 +75,12 @@ def create_product(product_data):
             'cost_price': 0.0,
             'selling_price': 0.0
         }
-        
+
         # Apply defaults for missing numeric fields
         for key, default_value in defaults.items():
             if key not in product_data or product_data[key] is None:
                 product_data[key] = default_value
-        
+
         product = InventoryProduct(**product_data)
         product.update_available_stock()
         db.session.add(product)
@@ -334,30 +334,30 @@ def receive_purchase_order(po_id, received_items, user_id=None):
         po = get_purchase_order_by_id(po_id)
         if not po:
             raise ValueError("Purchase order not found")
-        
+
         stock_updates = []
         missing_products = []
-        
+
         for item_data in received_items:
             item_id = item_data.get('item_id')
             quantity_received = float(item_data.get('quantity_received', 0))
-            
+
             # Get the purchase order item
             po_item = PurchaseOrderItem.query.get(item_id)
             if not po_item:
                 continue
-                
+
             # Check if product exists
             product = get_product_by_id(po_item.product_id)
             if not product:
                 missing_products.append(po_item.product_id)
                 continue
-            
+
             # Update purchase order item
             po_item.quantity_received += quantity_received
             po_item.received_date = date.today()
             po_item.is_fully_received = (po_item.quantity_received >= po_item.quantity_ordered)
-            
+
             # Update product stock
             if quantity_received > 0:
                 reason = f"Purchase Order {po.po_number} - Received {quantity_received} {product.unit_of_measure}"
@@ -369,7 +369,7 @@ def receive_purchase_order(po_id, received_items, user_id=None):
                     reference_id=po.id,
                     user_id=user_id
                 )
-                
+
                 if updated_product:
                     stock_updates.append({
                         'product_id': product.id,
@@ -379,21 +379,21 @@ def receive_purchase_order(po_id, received_items, user_id=None):
                         'new_stock_level': updated_product.current_stock,
                         'unit_of_measure': product.unit_of_measure
                     })
-        
+
         # Update purchase order status if all items are fully received
         all_received = all(item.is_fully_received for item in po.items)
         if all_received:
             po.status = 'received'
-        
+
         db.session.commit()
-        
+
         return {
             'success': True,
             'stock_updates': stock_updates,
             'missing_products': missing_products,
             'po_status': po.status
         }
-        
+
     except Exception as e:
         db.session.rollback()
         raise e

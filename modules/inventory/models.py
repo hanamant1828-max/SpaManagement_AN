@@ -166,7 +166,7 @@ class PurchaseOrder(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     po_number = db.Column(db.String(50), unique=True, nullable=False)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     
     # Order details
     order_date = db.Column(db.Date, default=datetime.utcnow)
