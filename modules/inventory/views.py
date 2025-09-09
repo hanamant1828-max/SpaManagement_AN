@@ -18,7 +18,7 @@ from .queries import (
     get_all_suppliers, get_supplier_by_id, create_supplier, update_supplier,
     get_low_stock_products, get_out_of_stock_products, get_products_needing_reorder,
     search_products, update_stock, add_stock, remove_stock, get_stock_movements,
-    create_purchase_order, get_purchase_orders, get_purchase_order_by_id,
+    create_purchase_order, get_purchase_orders, get_purchase_order_by_id, receive_purchase_order,
     get_inventory_dashboard_stats, get_active_alerts, check_stock_alerts,
     get_all_consumption_records, get_consumption_by_id, create_consumption_record,
     update_consumption_record, delete_consumption_record, get_consumption_summary_stats
@@ -651,6 +651,47 @@ def create_order():
                          suppliers=suppliers,
                          products=products,
                          action='create')
+
+@app.route('/api/inventory/purchase-order/<int:po_id>/receive', methods=['POST'])
+@login_required
+def receive_purchase_api(po_id):
+    """API endpoint to receive purchase order items and update stock"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        received_items = data.get('items', [])
+        
+        if not received_items:
+            return jsonify({'error': 'No items provided for receiving'}), 400
+        
+        # Validate items data
+        for item in received_items:
+            if not item.get('item_id') or not item.get('quantity_received'):
+                return jsonify({'error': 'Invalid item data provided'}), 400
+                
+        # Process the purchase order receipt
+        result = receive_purchase_order(po_id, received_items, current_user.id)
+        
+        if result['missing_products']:
+            return jsonify({
+                'error': 'Some products do not exist in the system',
+                'missing_products': result['missing_products'],
+                'message': 'Please add the missing products to the Product Master before receiving this order.'
+            }), 400
+        
+        return jsonify({
+            'success': True,
+            'message': f'Purchase order received successfully! Stock updated for {len(result["stock_updates"])} products.',
+            'stock_updates': result['stock_updates'],
+            'po_status': result['po_status']
+        })
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': f'Error receiving purchase order: {str(e)}'}), 500
 
 # ============ ALERTS AND REPORTING ============
 
