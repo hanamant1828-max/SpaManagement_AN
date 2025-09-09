@@ -946,6 +946,73 @@ def api_delete_product(product_id):
 
 # ============ CATEGORY API ENDPOINTS ============
 
+@app.route('/api/inventory/categories')
+@login_required
+def api_get_categories():
+    """Get all categories as JSON"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        categories = get_all_categories()
+        category_list = []
+        
+        for category in categories:
+            # Count products in this category
+            product_count = len([p for p in category.products if p.is_active])
+            
+            category_list.append({
+                'id': category.id,
+                'name': category.name,
+                'description': category.description or '',
+                'color_code': category.color_code,
+                'is_active': category.is_active,
+                'product_count': product_count,
+                'created_at': category.created_at.isoformat() if category.created_at else None
+            })
+        
+        return jsonify({'categories': category_list})
+    except Exception as e:
+        return jsonify({'error': f'Error loading categories: {str(e)}'}), 500
+
+@app.route('/api/inventory/categories', methods=['POST'])
+@login_required
+def api_add_category():
+    """Add new category"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Validation
+        if not data.get('name', '').strip():
+            return jsonify({'error': 'Category name is required'}), 400
+
+        category_data = {
+            'name': data['name'].strip(),
+            'description': data.get('description', '').strip(),
+            'color_code': data.get('color_code', '#007bff').strip(),
+            'is_active': data.get('is_active', True)
+        }
+
+        category = create_category(category_data)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Category "{category.name}" added successfully!',
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'color_code': category.color_code
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error adding category: {str(e)}'}), 500
+
 @app.route('/api/inventory/categories/<int:category_id>')
 @login_required
 def api_get_category(category_id):
