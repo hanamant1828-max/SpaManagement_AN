@@ -90,9 +90,9 @@ class InventoryProduct(db.Model):
     
     def update_available_stock(self):
         """Update available stock calculation"""
-        # Ensure values are not None
-        current = self.current_stock if self.current_stock is not None else 0
-        reserved = self.reserved_stock if self.reserved_stock is not None else 0
+        # Ensure values are not None and convert to float to handle decimal/float type mixing
+        current = float(self.current_stock if self.current_stock is not None else 0)
+        reserved = float(self.reserved_stock if self.reserved_stock is not None else 0)
         self.available_stock = current - reserved
 
 class StockMovement(db.Model):
