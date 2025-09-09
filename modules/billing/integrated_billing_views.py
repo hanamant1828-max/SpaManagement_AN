@@ -5,8 +5,9 @@ Supports services, packages, subscriptions, and inventory items
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from models import (Customer, Service, Appointment, InventoryProduct, 
+from models import (Customer, Service, Appointment, 
                    Package, CustomerPackage, CustomerPackageSession)
+from modules.inventory.models import InventoryProduct
 from datetime import datetime
 import json
 

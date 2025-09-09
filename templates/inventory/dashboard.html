@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-boxes me-2"></i>Inventory Management</h2>
+                    <p class="text-muted mb-0">Monitor stock levels, manage suppliers, and track orders</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('add_product') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-plus me-1"></i>Add Product
+                    </a>
+                    <a href="{{ url_for('create_order') }}" class="btn btn-success">
+                        <i class="fas fa-shopping-cart me-1"></i>New Order
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Critical Alerts -->
+    {% if critical_alerts %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger border-0 shadow-sm">
+                <h5 class="alert-heading mb-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Critical Alerts
+                </h5>
+                <div class="row">
+                    {% for alert in critical_alerts %}
+                    <div class="col-md-6 mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-circle text-danger me-2" style="font-size: 8px;"></i>
+                            <strong>{{ alert.product.name }}:</strong>
+                            <span class="ms-1">{{ alert.message }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('inventory_alerts') }}" class="btn btn-sm btn-outline-danger">
+                        View All Alerts
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-cube text-primary fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-1 small">Total Products</p>
+                            <h3 class="mb-0">{{ stats.total_products }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-exclamation-triangle text-warning fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-1 small">Low Stock Items</p>
+                            <h3 class="mb-0 text-warning">{{ stats.low_stock_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-danger bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-times-circle text-danger fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-1 small">Out of Stock</p>
+                            <h3 class="mb-0 text-danger">{{ stats.out_of_stock_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 rounded-3 p-3">
+                                <i class="fas fa-dollar-sign text-success fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-1 small">Total Value</p>
+                            <h3 class="mb-0 text-success">${{ "%.2f"|format(stats.total_value) }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Quick Actions -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <a href="{{ url_for('inventory_products') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-boxes d-block mb-2 fa-2x"></i>
+                                <span>Manage Products</span>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="{{ url_for('suppliers') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-truck d-block mb-2 fa-2x"></i>
+                                <span>Manage Suppliers</span>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="{{ url_for('purchase_orders') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-shopping-cart d-block mb-2 fa-2x"></i>
+                                <span>Purchase Orders</span>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="{{ url_for('inventory_reports') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-chart-bar d-block mb-2 fa-2x"></i>
+                                <span>Reports</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Stock Movements</h5>
+                        <a href="{{ url_for('stock_movements') }}" class="btn btn-sm btn-outline-secondary">
+                            View All
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if recent_movements %}
+                    <div class="list-group list-group-flush">
+                        {% for movement in recent_movements %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    {% if movement.movement_type == 'in' %}
+                                    <i class="fas fa-arrow-up text-success"></i>
+                                    {% elif movement.movement_type == 'out' %}
+                                    <i class="fas fa-arrow-down text-danger"></i>
+                                    {% else %}
+                                    <i class="fas fa-edit text-warning"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="fw-medium">{{ movement.product.name }}</div>
+                                    <small class="text-muted">
+                                        {{ movement.reason or 'Stock movement' }} • 
+                                        {{ movement.created_at.strftime('%m/%d %H:%M') }}
+                                    </small>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <span class="badge bg-light text-dark">
+                                        {% if movement.movement_type == 'in' %}+{% elif movement.movement_type == 'out' %}-{% endif %}{{ movement.quantity }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-history fa-2x mb-3 opacity-50"></i>
+                        <p class="mb-0">No recent stock movements</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

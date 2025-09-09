@@ -4,7 +4,8 @@ Reports related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, extract
 from app import db
-from models import Appointment, Invoice, Expense, Customer, User, Inventory
+from models import Appointment, Invoice, Expense, Customer, User
+from modules.inventory.models import InventoryProduct as Inventory
 
 def get_revenue_report(start_date, end_date):
     """Get revenue report for date range"""

@@ -4,7 +4,8 @@ Dashboard-related database queries
 from datetime import date, datetime, timedelta
 from sqlalchemy import func
 from app import db
-from models import Appointment, Customer, InventoryProduct, User, Service
+from models import Appointment, Customer, User, Service
+from modules.inventory.models import InventoryProduct
 
 def get_dashboard_stats():
     """Get dashboard statistics"""
