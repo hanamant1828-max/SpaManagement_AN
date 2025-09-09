@@ -1745,3 +1745,185 @@ def api_products_master():
         'location': product.location or '',
         'cost_price': float(product.cost_price or 0)  # Added for inventory adjustments
     } for product in products])
+
+# ============ LOCATION MANAGEMENT API ENDPOINTS ============
+
+@app.route('/api/inventory/locations')
+@login_required
+def api_get_locations():
+    """Get all inventory locations"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from .models import InventoryLocation
+        locations = InventoryLocation.query.order_by(InventoryLocation.name).all()
+
+        location_list = []
+        for location in locations:
+            location_list.append({
+                'id': location.id,
+                'name': location.name,
+                'type': location.type,
+                'address': location.address or '',
+                'contact_person': location.contact_person or '',
+                'phone': location.phone or '',
+                'status': location.status,
+                'total_products': location.total_products,
+                'total_stock_value': location.total_stock_value,
+                'created_at': location.created_at.isoformat() if location.created_at else None
+            })
+
+        return jsonify({'locations': location_list})
+    except Exception as e:
+        return jsonify({'error': f'Error loading locations: {str(e)}'}), 500
+
+@app.route('/api/inventory/locations', methods=['POST'])
+@login_required
+def api_add_location():
+    """Add new inventory location"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from .models import InventoryLocation
+        import uuid
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Generate unique ID
+        location_id = data.get('id') or str(uuid.uuid4())[:8]
+
+        # Validation
+        if not data.get('name', '').strip():
+            return jsonify({'error': 'Location name is required'}), 400
+
+        if not data.get('type', '').strip():
+            return jsonify({'error': 'Location type is required'}), 400
+
+        # Check for duplicate name
+        existing = InventoryLocation.query.filter_by(name=data['name'].strip()).first()
+        if existing:
+            return jsonify({'error': 'Location with this name already exists'}), 400
+
+        location = InventoryLocation(
+            id=location_id,
+            name=data['name'].strip(),
+            type=data['type'].strip(),
+            address=data.get('address', '').strip(),
+            contact_person=data.get('contact_person', '').strip(),
+            phone=data.get('phone', '').strip(),
+            status=data.get('status', 'active')
+        )
+
+        db.session.add(location)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Location "{location.name}" added successfully!',
+            'location': {
+                'id': location.id,
+                'name': location.name,
+                'type': location.type
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error adding location: {str(e)}'}), 500
+
+@app.route('/api/inventory/locations/<string:location_id>', methods=['PUT'])
+@login_required
+def api_update_location(location_id):
+    """Update inventory location"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from .models import InventoryLocation
+
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Validation
+        if not data.get('name', '').strip():
+            return jsonify({'error': 'Location name is required'}), 400
+
+        # Check for duplicate name (excluding current location)
+        existing = InventoryLocation.query.filter(
+            InventoryLocation.name == data['name'].strip(),
+            InventoryLocation.id != location_id
+        ).first()
+        if existing:
+            return jsonify({'error': 'Location with this name already exists'}), 400
+
+        # Update location
+        location.name = data['name'].strip()
+        location.type = data.get('type', location.type).strip()
+        location.address = data.get('address', '').strip()
+        location.contact_person = data.get('contact_person', '').strip()
+        location.phone = data.get('phone', '').strip()
+        location.status = data.get('status', location.status)
+        location.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Location "{location.name}" updated successfully!'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error updating location: {str(e)}'}), 500
+
+@app.route('/api/inventory/locations/<string:location_id>', methods=['DELETE'])
+@login_required
+def api_delete_location(location_id):
+    """Delete inventory location"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from .models import InventoryLocation
+
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+
+        # Check if location has stock
+        products = InventoryProduct.query.all()
+        has_stock = False
+        for product in products:
+            if product.location_stock and location_id in product.location_stock:
+                if product.location_stock[location_id] > 0:
+                    has_stock = True
+                    break
+
+        if has_stock:
+            return jsonify({
+                'error': 'Cannot delete location that still has stock. Please transfer all items first.'
+            }), 400
+
+        location_name = location.name
+        db.session.delete(location)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Location "{location_name}" deleted successfully!'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error deleting location: {str(e)}'}), 500
+
+# ============ CONSUMPTION API ENDPOINTS ============

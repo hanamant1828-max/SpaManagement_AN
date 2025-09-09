@@ -5,6 +5,46 @@ from datetime import datetime
 from app import db
 from sqlalchemy import func
 
+class InventoryLocation(db.Model):
+    """Inventory storage locations (branches, warehouses, rooms)"""
+    __tablename__ = 'inventory_locations'
+    
+    id = db.Column(db.String(50), primary_key=True)  # Use string ID for compatibility
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    type = db.Column(db.String(20), nullable=False)  # branch, warehouse, room
+    address = db.Column(db.Text)
+    contact_person = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    status = db.Column(db.String(20), default='active')  # active, inactive
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @property
+    def total_products(self):
+        """Get total number of products with stock in this location"""
+        products = InventoryProduct.query.all()
+        count = 0
+        for product in products:
+            if product.location_stock and self.id in product.location_stock:
+                if product.location_stock[self.id] > 0:
+                    count += 1
+        return count
+    
+    @property
+    def total_stock_value(self):
+        """Calculate total stock value for this location"""
+        products = InventoryProduct.query.all()
+        total_value = 0
+        for product in products:
+            if product.location_stock and self.id in product.location_stock:
+                stock = product.location_stock[self.id] or 0
+                cost = product.cost_price or 0
+                total_value += float(stock) * float(cost)
+        return total_value
+
+
 class InventoryCategory(db.Model):
     """Product categories for better organization"""
     __tablename__ = 'inventory_categories'
@@ -51,6 +91,9 @@ class InventoryProduct(db.Model):
     unit_of_measure = db.Column(db.String(20), default='pcs')  # pieces, liters, kg, etc.
     barcode = db.Column(db.String(50))
     location = db.Column(db.String(100))  # Storage location in spa
+    
+    # Location-based stock tracking (JSON field)
+    location_stock = db.Column(db.JSON, default=dict)  # {"location_id": quantity}
     
     # Status tracking
     is_active = db.Column(db.Boolean, default=True)

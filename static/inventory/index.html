@@ -107,32 +107,37 @@
                 document.querySelectorAll('.nav-link').forEach(tab => {
                     tab.classList.remove('active');
                 });
-                
+
                 // Add active class to clicked tab
                 if (tabButton) {
                     tabButton.classList.add('active');
                 }
-                
+
                 // Load content
-                const content = document.getElementById('tabContent');
                 const response = await fetch(`/static/inventory/${file}`);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const html = await response.text();
-                content.innerHTML = html;
-                
+                const tabContentElement = document.getElementById('tabContent');
+                tabContentElement.innerHTML = html;
+
                 // Execute any scripts in the loaded content
-                const scripts = content.querySelectorAll('script');
+                const scripts = tabContentElement.querySelectorAll('script');
                 scripts.forEach(script => {
                     const newScript = document.createElement('script');
-                    newScript.textContent = script.textContent;
-                    document.body.appendChild(newScript);
-                    document.body.removeChild(newScript);
+                    if (script.src) {
+                        newScript.src = script.src;
+                    } else {
+                        // Wrap script content in IIFE to avoid variable conflicts
+                        newScript.textContent = `(function() { ${script.textContent} })();`;
+                    }
+                    // Append script to head to avoid potential issues with DOM parsing
+                    document.head.appendChild(newScript);
                 });
-                
+
             } catch (error) {
                 console.error('Error loading tab:', error);
                 document.getElementById('tabContent').innerHTML = `

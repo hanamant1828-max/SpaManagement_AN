@@ -353,6 +353,103 @@ def get_inventory_dashboard_stats():
             'active_alerts': 0
         }
 
+# ============ LOCATION MANAGEMENT ============
+
+def get_all_locations(include_inactive=False):
+    """Get all inventory locations"""
+    from .models import InventoryLocation
+    query = InventoryLocation.query
+    if not include_inactive:
+        query = query.filter(InventoryLocation.status == 'active')
+    return query.order_by(InventoryLocation.name).all()
+
+def get_location_by_id(location_id):
+    """Get location by ID"""
+    from .models import InventoryLocation
+    return InventoryLocation.query.get(location_id)
+
+def create_location(location_data):
+    """Create new location"""
+    try:
+        from .models import InventoryLocation
+        location = InventoryLocation(**location_data)
+        db.session.add(location)
+        db.session.commit()
+        return location
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def update_location(location_id, location_data):
+    """Update existing location"""
+    try:
+        from .models import InventoryLocation
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return None
+
+        for key, value in location_data.items():
+            if hasattr(location, key):
+                setattr(location, key, value)
+
+        location.updated_at = datetime.utcnow()
+        db.session.commit()
+        return location
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def delete_location(location_id):
+    """Delete location"""
+    try:
+        from .models import InventoryLocation
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return False
+
+        db.session.delete(location)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def initialize_default_locations():
+    """Initialize default locations if none exist"""
+    try:
+        from .models import InventoryLocation
+        if InventoryLocation.query.count() == 0:
+            default_locations = [
+                {
+                    'id': 'main-branch',
+                    'name': 'Main Branch',
+                    'type': 'branch',
+                    'address': 'Main Street, Downtown',
+                    'contact_person': 'Manager',
+                    'phone': '(555) 123-4567',
+                    'status': 'active'
+                },
+                {
+                    'id': 'storage-room',
+                    'name': 'Storage Room',
+                    'type': 'room',
+                    'address': 'Back Office Area',
+                    'contact_person': 'Store Keeper',
+                    'phone': '',
+                    'status': 'active'
+                }
+            ]
+            
+            for location_data in default_locations:
+                location = InventoryLocation(**location_data)
+                db.session.add(location)
+            
+            db.session.commit()
+            return True
+    except Exception as e:
+        db.session.rollback()
+        return False
+
 # ============ CONSUMPTION MANAGEMENT ============
 
 def get_all_consumption_records(page=1, per_page=20, search_term=''):
