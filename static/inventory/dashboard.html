@@ -1,0 +1,201 @@
+<div>
+    <!-- Dashboard Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="totalProducts">0</h4>
+                            <p class="card-text">Total Products</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-boxes fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="lowStockCount">0</h4>
+                            <p class="card-text">Low Stock Items</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="outOfStockCount">0</h4>
+                            <p class="card-text">Out of Stock</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-times-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="totalValue">$0.00</h4>
+                            <p class="card-text">Inventory Value</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-dollar-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Level Overview -->
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Stock Level Overview</h5>
+        </div>
+        <div class="card-body">
+            <!-- Critical Alerts -->
+            <div id="criticalAlerts" class="d-none">
+                <div class="alert alert-danger mb-3">
+                    <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-1"></i>Critical Alerts</h6>
+                    <div id="alertsList"></div>
+                </div>
+            </div>
+
+            <!-- Recent Stock Movements -->
+            <div class="row">
+                <div class="col-md-12">
+                    <h6><i class="fas fa-history me-1"></i>Recent Stock Movements</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Product</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="movementsTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No recent movements</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadDashboardStats() {
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
+        const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
+        
+        // Calculate stats
+        let totalProducts = products.length;
+        let lowStockCount = 0;
+        let outOfStockCount = 0;
+        let totalValue = 0;
+        
+        products.forEach(product => {
+            if (product.stock <= 0) {
+                outOfStockCount++;
+            } else if (product.stock <= (product.minStock || 10)) {
+                lowStockCount++;
+            }
+            totalValue += product.stock * (product.costPrice || 0);
+        });
+        
+        // Update dashboard cards
+        document.getElementById('totalProducts').textContent = totalProducts;
+        document.getElementById('lowStockCount').textContent = lowStockCount;
+        document.getElementById('outOfStockCount').textContent = outOfStockCount;
+        document.getElementById('totalValue').textContent = '$' + totalValue.toFixed(2);
+        
+        // Show critical alerts
+        if (outOfStockCount > 0 || lowStockCount > 0) {
+            const alertsDiv = document.getElementById('criticalAlerts');
+            const alertsList = document.getElementById('alertsList');
+            alertsDiv.classList.remove('d-none');
+            
+            let alerts = [];
+            if (outOfStockCount > 0) {
+                alerts.push(`${outOfStockCount} products are out of stock`);
+            }
+            if (lowStockCount > 0) {
+                alerts.push(`${lowStockCount} products have low stock levels`);
+            }
+            
+            alertsList.innerHTML = alerts.map(alert => `<div class="mb-1">${alert}</div>`).join('');
+        }
+        
+        // Load recent movements (combine adjustments and consumptions)
+        let allMovements = [];
+        
+        adjustments.forEach(adj => {
+            allMovements.push({
+                date: adj.date || new Date().toISOString(),
+                product: adj.productName || 'Unknown Product',
+                type: 'in',
+                quantity: adj.quantity || 0,
+                reason: adj.remarks || 'Stock adjustment'
+            });
+        });
+        
+        consumptions.forEach(cons => {
+            allMovements.push({
+                date: cons.date || new Date().toISOString(),
+                product: cons.productName || 'Unknown Product',
+                type: 'out',
+                quantity: cons.quantity || 0,
+                reason: cons.notes || 'Stock consumption'
+            });
+        });
+        
+        // Sort by date (newest first)
+        allMovements.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // Display recent movements (last 10)
+        const movementsBody = document.getElementById('movementsTableBody');
+        if (allMovements.length > 0) {
+            movementsBody.innerHTML = allMovements.slice(0, 10).map(movement => `
+                <tr>
+                    <td>${new Date(movement.date).toLocaleDateString()} ${new Date(movement.date).toLocaleTimeString()}</td>
+                    <td>${movement.product}</td>
+                    <td>
+                        <span class="badge bg-${movement.type === 'in' ? 'success' : 'danger'}">
+                            ${movement.type.toUpperCase()}
+                        </span>
+                    </td>
+                    <td>${movement.quantity}</td>
+                    <td>${movement.reason.length > 50 ? movement.reason.substring(0, 50) + '...' : movement.reason}</td>
+                </tr>
+            `).join('');
+        } else {
+            movementsBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No recent movements</td></tr>';
+        }
+    }
+    
+    // Load dashboard when the script runs
+    loadDashboardStats();
+</script>
