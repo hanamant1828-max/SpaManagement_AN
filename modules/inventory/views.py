@@ -127,18 +127,29 @@ def add_product():
         if not name or not name.strip():
             return jsonify({'error': 'Product name is required'}), 400
         
+        # Helper function to safely convert to float with default
+        def safe_float(value, default=0.0):
+            if value is None or value == '':
+                return default
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+
         product_data = {
             'sku': sku.strip(),
             'name': name.strip(),
             'description': description.strip(),
             'category_id': int(category_id) if category_id and category_id.strip() else None,
             'supplier_id': None,  # Remove supplier requirement
-            'current_stock': float(request.form.get('current_stock', 0)),
-            'min_stock_level': float(request.form.get('min_stock_level', 10)),
-            'max_stock_level': float(request.form.get('max_stock_level', 100)),
-            'reorder_point': float(request.form.get('reorder_point', 20)),
-            'cost_price': float(request.form.get('cost_price', 0)),
-            'selling_price': float(request.form.get('selling_price', 0)),
+            'current_stock': safe_float(request.form.get('current_stock'), 0.0),
+            'reserved_stock': 0.0,  # Initialize reserved stock
+            'available_stock': 0.0,  # Will be calculated
+            'min_stock_level': safe_float(request.form.get('min_stock_level'), 10.0),
+            'max_stock_level': safe_float(request.form.get('max_stock_level'), 100.0),
+            'reorder_point': safe_float(request.form.get('reorder_point'), 20.0),
+            'cost_price': safe_float(request.form.get('cost_price'), 0.0),
+            'selling_price': safe_float(request.form.get('selling_price'), 0.0),
             'unit_of_measure': unit_of_measure.strip(),
             'barcode': barcode.strip(),
             'location': location.strip(),
@@ -177,16 +188,25 @@ def edit_product(product_id):
         try:
             old_stock = product.current_stock
             
+            # Helper function to safely convert to float with default
+            def safe_float(value, default=0.0):
+                if value is None or value == '':
+                    return default
+                try:
+                    return float(value)
+                except (ValueError, TypeError):
+                    return default
+
             product_data = {
                 'name': request.form.get('name').strip(),
                 'description': request.form.get('description', '').strip(),
                 'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
                 'supplier_id': None,  # Remove supplier requirement
-                'min_stock_level': float(request.form.get('min_stock_level', 10)),
-                'max_stock_level': float(request.form.get('max_stock_level', 100)),
-                'reorder_point': float(request.form.get('reorder_point', 20)),
-                'cost_price': float(request.form.get('cost_price', 0)),
-                'selling_price': float(request.form.get('selling_price', 0)),
+                'min_stock_level': safe_float(request.form.get('min_stock_level'), 10.0),
+                'max_stock_level': safe_float(request.form.get('max_stock_level'), 100.0),
+                'reorder_point': safe_float(request.form.get('reorder_point'), 20.0),
+                'cost_price': safe_float(request.form.get('cost_price'), 0.0),
+                'selling_price': safe_float(request.form.get('selling_price'), 0.0),
                 'unit_of_measure': request.form.get('unit_of_measure', 'pcs').strip(),
                 'barcode': request.form.get('barcode', '').strip(),
                 'location': request.form.get('location', '').strip(),

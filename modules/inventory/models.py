@@ -103,11 +103,15 @@ class InventoryProduct(db.Model):
     @property
     def stock_status(self):
         """Get stock status for alerts"""
-        if self.current_stock <= 0:
+        current = self.current_stock if self.current_stock is not None else 0
+        min_level = self.min_stock_level if self.min_stock_level is not None else 0
+        reorder = self.reorder_point if self.reorder_point is not None else 0
+        
+        if current <= 0:
             return 'out_of_stock'
-        elif self.current_stock <= self.min_stock_level:
+        elif current <= min_level:
             return 'low_stock'
-        elif self.current_stock <= self.reorder_point:
+        elif current <= reorder:
             return 'reorder_needed'
         else:
             return 'in_stock'
@@ -115,11 +119,16 @@ class InventoryProduct(db.Model):
     @property
     def stock_value(self):
         """Calculate total stock value"""
-        return float(self.current_stock * self.cost_price)
+        current = self.current_stock if self.current_stock is not None else 0
+        cost = self.cost_price if self.cost_price is not None else 0
+        return float(current * cost)
     
     def update_available_stock(self):
         """Update available stock calculation"""
-        self.available_stock = self.current_stock - self.reserved_stock
+        # Ensure values are not None
+        current = self.current_stock if self.current_stock is not None else 0
+        reserved = self.reserved_stock if self.reserved_stock is not None else 0
+        self.available_stock = current - reserved
 
 class StockMovement(db.Model):
     """Track all stock movements for audit trail"""

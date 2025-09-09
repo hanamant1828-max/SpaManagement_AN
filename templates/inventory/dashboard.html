@@ -1047,6 +1047,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // Ensure numeric fields have default values
+            const numericFields = ['current_stock', 'min_stock_level', 'max_stock_level', 'reorder_point', 'cost_price', 'selling_price'];
+            numericFields.forEach(field => {
+                const value = formData.get(field);
+                if (!value || value === '' || isNaN(value)) {
+                    formData.set(field, '0');
+                }
+            });
+
             fetch('/inventory/products/add', {
                 method: 'POST',
                 body: formData

@@ -64,6 +64,23 @@ def get_products_needing_reorder():
 def create_product(product_data):
     """Create new product"""
     try:
+        # Ensure numeric fields have proper defaults
+        defaults = {
+            'current_stock': 0.0,
+            'reserved_stock': 0.0,
+            'available_stock': 0.0,
+            'min_stock_level': 10.0,
+            'max_stock_level': 100.0,
+            'reorder_point': 20.0,
+            'cost_price': 0.0,
+            'selling_price': 0.0
+        }
+        
+        # Apply defaults for missing numeric fields
+        for key, default_value in defaults.items():
+            if key not in product_data or product_data[key] is None:
+                product_data[key] = default_value
+        
         product = InventoryProduct(**product_data)
         product.update_available_stock()
         db.session.add(product)
