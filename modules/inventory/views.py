@@ -41,10 +41,16 @@ def inventory_dashboard():
     # Recent activities
     recent_movements = get_stock_movements(limit=5)
     
+    # Get data for all tabs
+    categories = get_all_categories()
+    purchase_orders = get_purchase_orders()
+    
     return render_template('inventory/dashboard.html',
                          stats=stats,
                          critical_alerts=critical_alerts,
-                         recent_movements=recent_movements)
+                         recent_movements=recent_movements,
+                         categories=categories,
+                         purchase_orders=purchase_orders)
 
 # ============ PRODUCT MANAGEMENT ============
 
