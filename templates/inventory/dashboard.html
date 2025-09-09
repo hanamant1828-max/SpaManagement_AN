@@ -272,67 +272,187 @@
 
                 <!-- Add Inventory Items Tab -->
                 <div class="tab-pane fade" id="adjustments" role="tabpanel">
-                    <div class="card mt-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Inventory Adjustments</h5>
-                            <button class="btn btn-primary btn-sm" onclick="openAddAdjustmentModal()">
-                                <i class="fas fa-plus me-1"></i>Add Inventory Items
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">Inventory Adjustments</h4>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                            <i class="fas fa-plus"></i> Add Inventory Items
+                        </button>
+                    </div>
+
+                    <!-- Adjustments Filter Bar -->
+                    <div class="card mb-4">
                         <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped" id="adjustmentsTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Reference ID</th>
-                                            <th>Adjustment Date</th>
-                                            <th>Number of Items</th>
-                                            <th>Subtotal Value</th>
-                                            <th>Total Value</th>
-                                            <th>Remarks</th>
-                                            <th>Created By</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="adjustmentsTableBody">
-                                        <!-- Adjustment records will be loaded via JavaScript -->
-                                    </tbody>
-                                </table>
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label class="form-label">From Date</label>
+                                    <input type="date" class="form-control" id="adjustmentsFromDate">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">To Date</label>
+                                    <input type="date" class="form-control" id="adjustmentsToDate">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Search</label>
+                                    <input type="text" class="form-control" id="adjustmentsSearch" placeholder="Search reference ID, remarks, created by">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Page Size</label>
+                                    <select class="form-control" id="adjustmentsPageSize">
+                                        <option value="10">10</option>
+                                        <option value="25" selected>25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-secondary btn-sm" id="resetAdjustmentsFilters">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                        <div class="dropdown">
+                                            <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="fas fa-download"></i> Export
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#" id="exportAdjustmentsFiltered">Export Filtered to Excel</a></li>
+                                                <li><a class="dropdown-item" href="#" id="exportAdjustmentsAll">Export All to Excel</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Adjustments Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="adjustmentsTable">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="reference_id">
+                                        Reference ID <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="adjustment_date">
+                                        Adjustment Date <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="items_count">
+                                        Number of Items <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="subtotal">
+                                        Subtotal Value <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="total_value">
+                                        Total Value <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th>Remarks</th>
+                                    <th class="sortable" data-sort="created_by">
+                                        Created By <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Adjustments Pagination -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div id="adjustmentsTableInfo"></div>
+                        <nav>
+                            <ul class="pagination" id="adjustmentsPagination"></ul>
+                        </nav>
+                    </div>
                 </div>
 
-                <!-- Consumption Tab -->
+                <!-- Consumption Records Tab -->
                 <div class="tab-pane fade" id="consumption" role="tabpanel">
-                    <div class="card mt-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-minus-circle me-2"></i>Consumption Records</h5>
-                            <button class="btn btn-primary btn-sm" onclick="openAddConsumptionModal()">
-                                <i class="fas fa-plus me-1"></i>Add Consumption
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">Consumption Records</h4>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addConsumptionModal">
+                            <i class="fas fa-plus"></i> Add Consumption
+                        </button>
+                    </div>
+
+                    <!-- Consumption Filter Bar -->
+                    <div class="card mb-4">
                         <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped" id="consumptionTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Product</th>
-                                            <th>SKU</th>
-                                            <th>Quantity Used</th>
-                                            <th>Unit</th>
-                                            <th>Issued To</th>
-                                            <th>Reference</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="consumptionTableBody">
-                                        <!-- Consumption records will be loaded via JavaScript -->
-                                    </tbody>
-                                </table>
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label class="form-label">From Date</label>
+                                    <input type="date" class="form-control" id="consumptionFromDate">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">To Date</label>
+                                    <input type="date" class="form-control" id="consumptionToDate">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Search</label>
+                                    <input type="text" class="form-control" id="consumptionSearch" placeholder="Search product, SKU, reference, notes, issued to">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Page Size</label>
+                                    <select class="form-control" id="consumptionPageSize">
+                                        <option value="10">10</option>
+                                        <option value="25" selected>25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-secondary btn-sm" id="resetConsumptionFilters">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                        <div class="dropdown">
+                                            <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="fas fa-download"></i> Export
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#" id="exportConsumptionFiltered">Export Filtered to Excel</a></li>
+                                                <li><a class="dropdown-item" href="#" id="exportConsumptionAll">Export All to Excel</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Consumption Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="consumptionTable">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="consumption_date">
+                                        Date <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="product_name">
+                                        Product <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="quantity_used">
+                                        Qty Used <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th>Unit</th>
+                                    <th class="sortable" data-sort="issued_to">
+                                        Issued To <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th>Reference ID</th>
+                                    <th>Notes</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Consumption Pagination -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div id="consumptionTableInfo"></div>
+                        <nav>
+                            <ul class="pagination" id="consumptionPagination"></ul>
+                        </nav>
                     </div>
                 </div>
             </div>
@@ -973,8 +1093,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load initial data
     loadProducts();
-    loadConsumption();
-    loadAdjustments();
+    loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
+    loadAdjustmentsData(); // Changed from loadAdjustments() to loadAdjustmentsData()
 });
 
 function showToast(message, type = 'info') {
@@ -1323,7 +1443,7 @@ function addInventoryItem() {
     }
 }
 
-function populateProductDropdown(selectElement, products) {
+function populateProductDropdown(selectElement, products, preselectedValue = '') {
     // Clear existing options
     selectElement.innerHTML = '<option value="">Select Product</option>';
 
@@ -1354,6 +1474,14 @@ function populateProductDropdown(selectElement, products) {
         option.textContent = `${name} (${sku}) - Current: ${currentStock} ${unit}`;
         selectElement.appendChild(option);
     });
+
+    // Set pre-selected value if provided
+    if (preselectedValue) {
+        selectElement.value = preselectedValue;
+        // Trigger change event to update dependent fields
+        const event = new Event('change');
+        selectElement.dispatchEvent(event);
+    }
 
     // Add searchable functionality for large lists
     if (products.length > 20) {
@@ -1427,7 +1555,7 @@ function saveInventoryItems() {
             bootstrap.Modal.getInstance(document.getElementById('addInventoryModal')).hide();
             form.reset();
             loadProducts(); // Refresh product list
-            loadAdjustments(); // Refresh adjustments list
+            loadAdjustmentsData(); // Refresh adjustments list
             // Reset form to default values
             document.querySelector('input[name="adjustment_date"]').value = new Date().toISOString().split('T')[0];
             document.getElementById('modalSubtotal').textContent = '$0.00';
@@ -1562,7 +1690,7 @@ function openAddConsumptionModal() {
     .then(products => {
         const select = document.querySelector('#addConsumptionModal .consumption-product-select');
         select.innerHTML = '<option value="">Select Product</option>';
-        
+
         products.forEach(product => {
             const option = document.createElement('option');
             option.value = product.id;
@@ -1588,12 +1716,12 @@ function openAddConsumptionModal() {
 function updateAvailableStock(selectElement) {
     const selectedOption = selectElement.selectedOptions[0];
     const availableStockInput = selectElement.closest('.modal-body').querySelector('.available-stock');
-    
+
     if (selectedOption && selectedOption.value) {
         const stock = selectedOption.dataset.stock || '0';
         const unit = selectedOption.dataset.unit || 'pcs';
         availableStockInput.value = `${parseFloat(stock).toFixed(2)} ${unit}`;
-        
+
         // Clear validation errors
         selectElement.classList.remove('is-invalid');
     } else {
@@ -1604,12 +1732,12 @@ function updateAvailableStock(selectElement) {
 function updateEditAvailableStock(selectElement) {
     const selectedOption = selectElement.selectedOptions[0];
     const availableStockInput = document.getElementById('editAvailableStock');
-    
+
     if (selectedOption && selectedOption.value) {
         const stock = selectedOption.dataset.stock || '0';
         const unit = selectedOption.dataset.unit || 'pcs';
         availableStockInput.value = `${parseFloat(stock).toFixed(2)} ${unit}`;
-        
+
         // Clear validation errors
         selectElement.classList.remove('is-invalid');
     } else {
@@ -1620,16 +1748,16 @@ function updateEditAvailableStock(selectElement) {
 function validateConsumptionForm(form) {
     let isValid = true;
     const inputs = form.querySelectorAll('input[required], select[required]');
-    
+
     inputs.forEach(input => {
         const value = input.value.trim();
-        
+
         if (!value) {
             input.classList.add('is-invalid');
             isValid = false;
         } else {
             input.classList.remove('is-invalid');
-            
+
             // Additional validation for quantity
             if (input.name === 'quantity_used') {
                 const qty = parseFloat(value);
@@ -1652,20 +1780,20 @@ function validateConsumptionForm(form) {
             }
         }
     });
-    
+
     return isValid;
 }
 
 function saveConsumption() {
     const form = document.getElementById('addConsumptionForm');
-    
+
     // Validate form
     if (!validateConsumptionForm(form)) {
         return;
     }
-    
+
     const formData = new FormData(form);
-    
+
     // Ensure date is in proper format
     const dateInput = form.querySelector('input[name="consumption_date"]');
     if (dateInput.value) {
@@ -1699,10 +1827,10 @@ function saveConsumption() {
             showToast(data.message || 'Consumption record added successfully', 'success');
             bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal')).hide();
             form.reset();
-            
+
             // Refresh data
             setTimeout(() => {
-                loadConsumption();
+                loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
                 loadProducts(); // Refresh product stock levels
             }, 500);
         } else {
@@ -1720,72 +1848,28 @@ function saveConsumption() {
     });
 }
 
-function loadConsumption() {
-    fetch('/api/inventory/consumption')
-    .then(response => response.json())
-    .then(data => {
-        const tbody = document.getElementById('consumptionTableBody');
-        tbody.innerHTML = '';
-
-        if (data.records && data.records.length > 0) {
-            data.records.forEach(record => {
-                const row = `
-                    <tr>
-                        <td>${record.consumption_date || 'N/A'}</td>
-                        <td>${record.product_name || 'N/A'}</td>
-                        <td>${record.product_sku || 'N/A'}</td>
-                        <td>${record.quantity_used || 0}</td>
-                        <td>${record.unit_of_measure || 'pcs'}</td>
-                        <td>${record.issued_to || 'N/A'}</td>
-                        <td>${record.reference_doc_no || '—'}</td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" onclick="viewConsumption(${record.id})" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-outline-secondary" onclick="editConsumption(${record.id})" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="deleteConsumption(${record.id})" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
-            });
-        } else {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center text-muted">No consumption records found</td>
-                </tr>
-            `;
+function loadConsumptionData() { // Renamed from loadConsumption
+    $.get('/api/inventory/consumption', function(data) {
+        if (data.records) {
+            allConsumptionData = data.records;
+            applyConsumptionFilters(); // Use the new filter application function
         }
-    })
-    .catch(error => {
-        console.error('Error loading consumption records:', error);
-        showToast('Error loading consumption records', 'error');
-        
-        // Show error state in table
-        const tbody = document.getElementById('consumptionTableBody');
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="text-center text-danger">Error loading consumption records</td>
-            </tr>
-        `;
+    }).fail(function(xhr) {
+        console.error('Error loading consumption data:', xhr.responseText);
+        showToast('Error loading consumption records', 'danger');
     });
 }
+
 
 // Utility functions for formatting adjustment remarks
 function formatAdjustmentRemarks({ referenceId, dateISO, createdBy, userNotes, items }) {
     let parts = ['Manual stock adjustment'];
-    
+
     // Add reference ID if provided
     if (referenceId && referenceId.trim()) {
         parts.push(`Ref: ${referenceId.trim()}`);
     }
-    
+
     // Format date
     if (dateISO) {
         try {
@@ -1797,97 +1881,68 @@ function formatAdjustmentRemarks({ referenceId, dateISO, createdBy, userNotes, i
             parts.push(dateISO);
         }
     }
-    
+
     // Add created by if provided
     if (createdBy && createdBy.trim()) {
         parts.push(createdBy.trim());
     }
-    
+
     // Add user notes if provided
     if (userNotes && userNotes.trim()) {
         // Clean up notes: trim whitespace, collapse multiple spaces
         const cleanNotes = userNotes.trim().replace(/\s+/g, ' ');
-        
+
         // Limit to 120 characters total for the notes part
         const maxNotesLength = 120 - parts.join(' — ').length - ' — Notes: '.length;
         let notesText = cleanNotes;
-        
+
         if (cleanNotes.length > maxNotesLength && maxNotesLength > 0) {
             notesText = cleanNotes.substring(0, maxNotesLength - 1) + '…';
         }
-        
+
         parts.push(`Notes: ${notesText}`);
     }
-    
+
     return parts.length > 1 ? parts.join(' — ') : '—';
 }
 
 function buildRemarksTooltip(items, fullRemarks) {
     let tooltip = `<strong>Full Remarks:</strong><br>${fullRemarks || '—'}<br><br><strong>Items:</strong><br>`;
-    
+
     if (!items || items.length === 0) {
         return tooltip + 'No items found';
     }
-    
+
     const maxItems = 8;
     const itemsToShow = items.slice(0, maxItems);
-    
+
     itemsToShow.forEach(item => {
         const productName = item.product_name || 'Unknown Product';
         const quantity = parseFloat(item.quantity_added || 0).toFixed(2);
         const unitCost = parseFloat(item.unit_cost || 0).toFixed(2);
         const lineTotal = parseFloat(item.line_total || 0).toFixed(2);
         const unit = item.unit_of_measure || 'pcs';
-        
+
         tooltip += `• ${productName} — Added: ${quantity} ${unit} @ $${unitCost} → $${lineTotal}<br>`;
     });
-    
+
     if (items.length > maxItems) {
         const remaining = items.length - maxItems;
         tooltip += `<em>+${remaining} more…</em>`;
     }
-    
+
     return tooltip;
 }
 
-function loadAdjustments() {
-    fetch('/api/inventory/adjustments')
-    .then(response => response.json())
-    .then(data => {
-        const tbody = document.getElementById('adjustmentsTableBody');
-        tbody.innerHTML = '';
-
-        data.records.forEach(record => {
-            const row = `
-                <tr>
-                    <td>${record.reference_id || '—'}</td>
-                    <td>${record.adjustment_date}</td>
-                    <td>${record.items_count}</td>
-                    <td>$${record.subtotal.toFixed(2)}</td>
-                    <td>$${record.total_value.toFixed(2)}</td>
-                    <td>${record.remarks || '—'}</td>
-                    <td>${record.created_by}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" onclick="viewAdjustment(${record.id})" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-outline-secondary" onclick="editAdjustment(${record.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="deleteAdjustment(${record.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
-        });
-    })
-    .catch(error => {
-        console.error('Error loading adjustment records:', error);
-        showToast('Error loading adjustment records', 'error');
+function loadAdjustmentsData() { // Renamed from loadAdjustments
+    $.get('/api/inventory/adjustments', function(data) {
+        if (data.records) {
+            allAdjustmentsData = data.records;
+            applyAdjustmentsFilters(); // Use the new filter application function
+        }
+    }).fail(function(xhr) {
+        console.error('Error loading adjustments data:', xhr.responseText);
+        showToast('Error loading adjustments records', 'danger');
     });
 }
 
@@ -2187,18 +2242,18 @@ function editConsumption(id) {
         // Populate product dropdown
         const select = document.getElementById('editConsumptionProduct');
         select.innerHTML = '<option value="">Select Product</option>';
-        
+
         products.forEach(product => {
             const option = document.createElement('option');
             option.value = product.id;
             option.setAttribute('data-stock', product.current_stock);
             option.setAttribute('data-unit', product.unit_of_measure);
             option.textContent = `${product.name} (${product.sku}) - Available: ${product.current_stock} ${product.unit_of_measure}`;
-            
+
             if (product.id == consumption.product_id) {
                 option.selected = true;
             }
-            
+
             select.appendChild(option);
         });
 
@@ -2225,15 +2280,15 @@ function editConsumption(id) {
 
 function saveEditConsumption() {
     const form = document.getElementById('editConsumptionForm');
-    
+
     // Validate form
     if (!validateConsumptionForm(form)) {
         return;
     }
-    
+
     const formData = new FormData(form);
     const consumptionId = document.getElementById('editConsumptionId').value;
-    
+
     // Ensure date is in proper format
     const dateInput = form.querySelector('input[name="consumption_date"]');
     if (dateInput.value) {
@@ -2265,10 +2320,10 @@ function saveEditConsumption() {
         if (data.success) {
             showToast(data.message || 'Consumption record updated successfully', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
-            
+
             // Refresh data
             setTimeout(() => {
-                loadConsumption();
+                loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
                 loadProducts(); // Refresh product stock levels
             }, 500);
         } else {
@@ -2318,10 +2373,10 @@ function deleteConsumption(id) {
                 .then(data => {
                     if (data.success) {
                         showToast(data.message || 'Consumption record deleted and stock restored successfully', 'success');
-                        
+
                         // Refresh data
                         setTimeout(() => {
-                            loadConsumption();
+                            loadConsumptionData(); // Changed from loadConsumption() to loadConsumptionData()
                             loadProducts(); // Refresh product stock levels
                         }, 500);
                     } else {
@@ -2387,7 +2442,7 @@ function viewAdjustment(id) {
 
 function editAdjustment(id) {
     console.log('Loading adjustment for edit:', id);
-    
+
     fetch(`/api/inventory/adjustments/${id}`)
     .then(response => {
         if (!response.ok) {
@@ -2397,7 +2452,7 @@ function editAdjustment(id) {
     })
     .then(adjustment => {
         console.log('Adjustment data loaded:', adjustment);
-        
+
         if (adjustment.error) {
             throw new Error(adjustment.error);
         }
@@ -2626,7 +2681,7 @@ function calculateEditGrandTotal() {
 
 function saveEditedAdjustment() {
     console.log('Saving edited adjustment...');
-    
+
     const form = document.getElementById('editAdjustmentForm');
     const adjustmentId = document.getElementById('editAdjustmentId').value;
 
@@ -2701,10 +2756,10 @@ function saveEditedAdjustment() {
         if (data.success) {
             showToast(data.message || 'Adjustment updated successfully', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editAdjustmentModal')).hide();
-            
+
             // Refresh all related data
             setTimeout(() => {
-                loadAdjustments(); // Refresh adjustments table
+                loadAdjustmentsData(); // Refresh adjustments table
                 loadProducts(); // Refresh product list to show updated stock
             }, 500);
         } else {
@@ -2796,6 +2851,7 @@ function saveEditCategory() {
     });
 }
 
+// Save Consumption Functions
 function saveEditConsumption() {
     const form = document.getElementById('editConsumptionForm');
     const formData = new FormData(form);
@@ -2816,7 +2872,7 @@ function saveEditConsumption() {
         if (data.success) {
             showToast(data.message, 'success');
             bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
-            loadConsumption(); // Refresh table
+            loadConsumptionData(); // Refresh table
         } else {
             throw new Error(data.error || 'Failed to update consumption record');
         }
@@ -2925,6 +2981,258 @@ function populateProductDropdown(selectElement, products, preselectedValue = '')
         addSearchableFeature(selectElement);
     }
 }
+
+// Excel Export Functions
+function exportToExcel(data, filename, columns) {
+    const wb = XLSX.utils.book_new();
+    const wsData = [columns.map(col => col.header)];
+
+    data.forEach(row => {
+        wsData.push(columns.map(col => {
+            let value = row[col.key];
+            if (col.format === 'currency') {
+                value = parseFloat(value || 0);
+            } else if (col.format === 'date') {
+                value = value || '';
+            }
+            return value;
+        }));
+    });
+
+    // Add total row if applicable
+    if (filename.includes('consumption')) {
+        const totalRow = new Array(columns.length).fill('');
+        totalRow[0] = 'TOTAL';
+        const qtyIndex = columns.findIndex(col => col.key === 'quantity_used');
+        if (qtyIndex >= 0) {
+            totalRow[qtyIndex] = data.reduce((sum, row) => sum + parseFloat(row.quantity_used || 0), 0);
+        }
+        wsData.push(totalRow);
+    } else if (filename.includes('adjustments')) {
+        const totalRow = new Array(columns.length).fill('');
+        totalRow[0] = 'TOTAL';
+        const subtotalIndex = columns.findIndex(col => col.key === 'subtotal');
+        const totalIndex = columns.findIndex(col => col.key === 'total_value');
+        if (subtotalIndex >= 0) {
+            totalRow[subtotalIndex] = data.reduce((sum, row) => sum + parseFloat(row.subtotal || 0), 0);
+        }
+        if (totalIndex >= 0) {
+            totalRow[totalIndex] = data.reduce((sum, row) => sum + parseFloat(row.total_value || 0), 0);
+        }
+        wsData.push(totalRow);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Auto-size columns
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const colWidths = [];
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        let maxWidth = 10;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
+            const cell = ws[cellAddress];
+            if (cell && cell.v) {
+                maxWidth = Math.max(maxWidth, cell.v.toString().length);
+            }
+        }
+        colWidths.push({wch: Math.min(maxWidth + 2, 50)});
+    }
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, filename);
+}
+
+function exportConsumptionFiltered() {
+    const now = new Date();
+    const timestamp = now.getFullYear().toString() +
+                    (now.getMonth() + 1).toString().padStart(2, '0') +
+                    now.getDate().toString().padStart(2, '0') + '_' +
+                    now.getHours().toString().padStart(2, '0') +
+                    now.getMinutes().toString().padStart(2, '0');
+
+    const columns = [
+        {header: 'Date', key: 'consumption_date', format: 'date'},
+        {header: 'Product', key: 'product_name'},
+        {header: 'SKU', key: 'product_sku'},
+        {header: 'Qty Used', key: 'quantity_used'},
+        {header: 'Unit', key: 'unit_of_measure'},
+        {header: 'Issued To', key: 'issued_to'},
+        {header: 'Reference ID', key: 'reference_doc_no'},
+        {header: 'Notes', key: 'notes'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+
+    exportToExcel(filteredConsumptionData, `consumption_report_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${filteredConsumptionData.length} consumption records to Excel`, 'success');
+}
+
+function exportConsumptionAll() {
+    const now = new Date();
+    const timestamp = now.getFullYear().toString() +
+                    (now.getMonth() + 1).toString().padStart(2, '0') +
+                    now.getDate().toString().padStart(2, '0') + '_' +
+                    now.getHours().toString().padStart(2, '0') +
+                    now.getMinutes().toString().padStart(2, '0');
+
+    const columns = [
+        {header: 'Date', key: 'consumption_date', format: 'date'},
+        {header: 'Product', key: 'product_name'},
+        {header: 'SKU', key: 'product_sku'},
+        {header: 'Qty Used', key: 'quantity_used'},
+        {header: 'Unit', key: 'unit_of_measure'},
+        {header: 'Issued To', key: 'issued_to'},
+        {header: 'Reference ID', key: 'reference_doc_no'},
+        {header: 'Notes', key: 'notes'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+
+    exportToExcel(allConsumptionData, `consumption_report_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${allConsumptionData.length} consumption records to Excel`, 'success');
+}
+
+function exportAdjustmentsFiltered() {
+    const now = new Date();
+    const timestamp = now.getFullYear().toString() +
+                    (now.getMonth() + 1).toString().padStart(2, '0') +
+                    now.getDate().toString().padStart(2, '0') + '_' +
+                    now.getHours().toString().padStart(2, '0') +
+                    now.getMinutes().toString().padStart(2, '0');
+
+    const columns = [
+        {header: 'Reference ID', key: 'reference_id'},
+        {header: 'Adjustment Date', key: 'adjustment_date', format: 'date'},
+        {header: 'Number of Items', key: 'items_count'},
+        {header: 'Subtotal Value', key: 'subtotal', format: 'currency'},
+        {header: 'Total Value', key: 'total_value', format: 'currency'},
+        {header: 'Remarks', key: 'remarks'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+
+    exportToExcel(filteredAdjustmentsData, `inventory_adjustments_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${filteredAdjustmentsData.length} adjustment records to Excel`, 'success');
+}
+
+function exportAdjustmentsAll() {
+    const now = new Date();
+    const timestamp = now.getFullYear().toString() +
+                    (now.getMonth() + 1).toString().padStart(2, '0') +
+                    now.getDate().toString().padStart(2, '0') + '_' +
+                    now.getHours().toString().padStart(2, '0') +
+                    now.getMinutes().toString().padStart(2, '0');
+
+    const columns = [
+        {header: 'Reference ID', key: 'reference_id'},
+        {header: 'Adjustment Date', key: 'adjustment_date', format: 'date'},
+        {header: 'Number of Items', key: 'items_count'},
+        {header: 'Subtotal Value', key: 'subtotal', format: 'currency'},
+        {header: 'Total Value', key: 'total_value', format: 'currency'},
+        {header: 'Remarks', key: 'remarks'},
+        {header: 'Created By', key: 'created_by'}
+    ];
+
+    exportToExcel(allAdjustmentsData, `inventory_adjustments_${timestamp}.xlsx`, columns);
+    showToast(`Exported ${allAdjustmentsData.length} adjustment records to Excel`, 'success');
+}
+
+// Initialize everything when document is ready
+$(document).ready(function() {
+    // Initialize dashboard
+    loadDashboardData();
+
+    // Initialize filters
+    initializeConsumptionFilters();
+    initializeAdjustmentsFilters();
+
+    // Set up filter event listeners
+    $('#consumptionFromDate, #consumptionToDate, #consumptionSearch').on('change keyup', applyConsumptionFilters);
+    $('#consumptionPageSize').on('change', function() {
+        consumptionPageSize = parseInt(this.value);
+        consumptionCurrentPage = 1;
+        renderConsumptionTable();
+        renderConsumptionPagination();
+    });
+    $('#resetConsumptionFilters').on('click', function() {
+        document.getElementById('consumptionSearch').value = '';
+        initializeConsumptionFilters();
+        applyConsumptionFilters();
+    });
+
+    $('#adjustmentsFromDate, #adjustmentsToDate, #adjustmentsSearch').on('change keyup', applyAdjustmentsFilters);
+    $('#adjustmentsPageSize').on('change', function() {
+        adjustmentsPageSize = parseInt(this.value);
+        adjustmentsCurrentPage = 1;
+        renderAdjustmentsTable();
+        renderAdjustmentsPagination();
+    });
+    $('#resetAdjustmentsFilters').on('click', function() {
+        document.getElementById('adjustmentsSearch').value = '';
+        initializeAdjustmentsFilters();
+        applyAdjustmentsFilters();
+    });
+
+    // Export event listeners
+    $('#exportConsumptionFiltered').on('click', exportConsumptionFiltered);
+    $('#exportConsumptionAll').on('click', exportConsumptionAll);
+    $('#exportAdjustmentsFiltered').on('click', exportAdjustmentsFiltered);
+    $('#exportAdjustmentsAll').on('click', exportAdjustmentsAll);
+
+    // Sortable headers
+    $('.sortable').on('click', function() {
+        const field = $(this).data('sort');
+        const table = $(this).closest('table').attr('id');
+
+        if (table === 'consumptionTable') {
+            if (consumptionSortField === field) {
+                consumptionSortOrder = consumptionSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                consumptionSortField = field;
+                consumptionSortOrder = 'asc';
+            }
+
+            // Update sort icons
+            $('#consumptionTable .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
+            $(this).find('.sort-icon').removeClass('fa-sort').addClass(consumptionSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+
+            applyConsumptionFilters();
+        } else if (table === 'adjustmentsTable') {
+            if (adjustmentsSortField === field) {
+                adjustmentsSortOrder = adjustmentsSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                adjustmentsSortField = field;
+                adjustmentsSortOrder = 'asc';
+            }
+
+            // Update sort icons
+            $('#adjustmentsTable .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
+            $(this).find('.sort-icon').removeClass('fa-sort').addClass(adjustmentsSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+
+            applyAdjustmentsFilters();
+        }
+    });
+
+    // Set up tab change listeners
+    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        const target = $(e.target).attr('data-bs-target');
+        if (target === '#products') { // Corrected ID to match the tab content div
+            loadProducts();
+        } else if (target === '#consumption') { // Corrected ID
+            loadConsumptionData();
+        } else if (target === '#adjustments') { // Corrected ID
+            loadAdjustmentsData();
+        }
+    });
+
+    // Load initial data for visible tab
+    // This should be based on which tab is initially active, or default to the first one if none is active.
+    // Assuming 'dashboard' is the first tab and it's active by default.
+    // If another tab should be loaded initially, adjust this.
+    // For now, let's ensure the product tab is loaded if it's the first one that needs data.
+    // The current logic loads products, consumption, and adjustments when their respective tabs are shown.
+    // If the page loads with the products tab visible, loadProducts() is called.
+    // If the page loads with consumption or adjustments visible, those functions will be called on tab shown event.
+});
 
 </script>
 

@@ -1,4 +1,3 @@
-
 /* ========== SPA & SALON MANAGEMENT SUITE STYLES ========== */
 
 /* CSS Variables - Professional Dashboard Theme */
@@ -224,7 +223,7 @@ html, body {
         padding: 18px 20px;
         font-size: 0.95rem;
     }
-    
+
     #sidebar .nav-link i {
         width: 26px;
         height: 26px;
@@ -1314,4 +1313,102 @@ body.sidebar-minimized {
         background: white !important;
         color: black !important;
     }
+}
+
+/* Dashboard specific styles */
+.dashboard-card {
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+    opacity: 0.8;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-dark);
+}
+
+.stat-label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Sortable table headers */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.sortable .sort-icon {
+    margin-left: 8px;
+    color: #6c757d;
+    font-size: 0.8em;
+    transition: color 0.2s ease;
+}
+
+.sortable:hover .sort-icon {
+    color: #007bff;
+}
+
+.sortable .fa-sort-up,
+.sortable .fa-sort-down {
+    color: #007bff;
+}
+
+/* Filter bar styling */
+.card .row.g-3 {
+    align-items: end;
+}
+
+/* Table info and pagination styling */
+#consumptionTableInfo,
+#adjustmentsTableInfo {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Excel export dropdown styling */
+.dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dropdown-menu .dropdown-item:before {
+    content: "📊";
+    font-size: 1rem;
+}
+
+/* Pagination styling */
+.pagination .page-link {
+    color: var(--primary-color);
+    border-color: #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.pagination .page-link:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+    color: var(--primary-color);
 }
