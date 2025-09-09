@@ -908,33 +908,41 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Product <span class="text-danger">*</span></label>
-                        <select name="product_id" class="form-select" required>
+                        <select name="product_id" class="form-select consumption-product-select" required onchange="updateAvailableStock(this)">
                             <option value="">Select Product</option>
                         </select>
+                        <div class="invalid-feedback">Please select a product</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Available Stock</label>
+                        <input type="text" class="form-control available-stock" readonly placeholder="Select a product first">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Consumption Date <span class="text-danger">*</span></label>
                         <input type="date" name="consumption_date" class="form-control" required>
+                        <div class="invalid-feedback">Please select a date (YYYY-MM-DD format)</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Quantity Used <span class="text-danger">*</span></label>
-                        <input type="number" name="quantity_used" class="form-control" step="0.01" required>
+                        <input type="number" name="quantity_used" class="form-control" step="0.01" min="0.01" required>
+                        <div class="invalid-feedback">Please enter a valid quantity greater than 0</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Issued To <span class="text-danger">*</span></label>
                         <input type="text" name="issued_to" class="form-control" required placeholder="Department/Person">
+                        <div class="invalid-feedback">Please specify who the items were issued to</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Reference/Doc No.</label>
-                        <input type="text" name="reference_doc_no" class="form-control" placeholder="Optional reference">
+                        <input type="text" name="reference_doc_no" class="form-control" placeholder="Optional reference document number">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes about this consumption"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="saveConsumption()">
                         <i class="fas fa-save me-1"></i>Add Consumption
                     </button>
@@ -1552,11 +1560,21 @@ function openAddConsumptionModal() {
     fetch('/api/inventory/products/for-consumption')
     .then(response => response.json())
     .then(products => {
-        const select = document.querySelector('#addConsumptionModal select[name="product_id"]');
+        const select = document.querySelector('#addConsumptionModal .consumption-product-select');
         select.innerHTML = '<option value="">Select Product</option>';
+        
         products.forEach(product => {
-            select.innerHTML += `<option value="${product.id}">${product.name} (${product.sku}) - Available: ${product.current_stock} ${product.unit_of_measure}</option>`;
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.setAttribute('data-stock', product.current_stock);
+            option.setAttribute('data-unit', product.unit_of_measure);
+            option.textContent = `${product.name} (${product.sku}) - Available: ${product.current_stock} ${product.unit_of_measure}`;
+            select.appendChild(option);
         });
+
+        // Set default date to today
+        const dateInput = document.querySelector('#addConsumptionModal input[name="consumption_date"]');
+        dateInput.value = new Date().toISOString().split('T')[0];
 
         const modal = new bootstrap.Modal(document.getElementById('addConsumptionModal'));
         modal.show();
@@ -1567,21 +1585,126 @@ function openAddConsumptionModal() {
     });
 }
 
+function updateAvailableStock(selectElement) {
+    const selectedOption = selectElement.selectedOptions[0];
+    const availableStockInput = selectElement.closest('.modal-body').querySelector('.available-stock');
+    
+    if (selectedOption && selectedOption.value) {
+        const stock = selectedOption.dataset.stock || '0';
+        const unit = selectedOption.dataset.unit || 'pcs';
+        availableStockInput.value = `${parseFloat(stock).toFixed(2)} ${unit}`;
+        
+        // Clear validation errors
+        selectElement.classList.remove('is-invalid');
+    } else {
+        availableStockInput.value = '';
+    }
+}
+
+function updateEditAvailableStock(selectElement) {
+    const selectedOption = selectElement.selectedOptions[0];
+    const availableStockInput = document.getElementById('editAvailableStock');
+    
+    if (selectedOption && selectedOption.value) {
+        const stock = selectedOption.dataset.stock || '0';
+        const unit = selectedOption.dataset.unit || 'pcs';
+        availableStockInput.value = `${parseFloat(stock).toFixed(2)} ${unit}`;
+        
+        // Clear validation errors
+        selectElement.classList.remove('is-invalid');
+    } else {
+        availableStockInput.value = '';
+    }
+}
+
+function validateConsumptionForm(form) {
+    let isValid = true;
+    const inputs = form.querySelectorAll('input[required], select[required]');
+    
+    inputs.forEach(input => {
+        const value = input.value.trim();
+        
+        if (!value) {
+            input.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            input.classList.remove('is-invalid');
+            
+            // Additional validation for quantity
+            if (input.name === 'quantity_used') {
+                const qty = parseFloat(value);
+                if (isNaN(qty) || qty <= 0) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    // Check against available stock
+                    const productSelect = form.querySelector('select[name="product_id"]');
+                    const selectedOption = productSelect.selectedOptions[0];
+                    if (selectedOption) {
+                        const availableStock = parseFloat(selectedOption.dataset.stock || 0);
+                        if (qty > availableStock) {
+                            input.classList.add('is-invalid');
+                            showToast(`Quantity (${qty}) exceeds available stock (${availableStock})`, 'error');
+                            isValid = false;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    return isValid;
+}
+
 function saveConsumption() {
     const form = document.getElementById('addConsumptionForm');
+    
+    // Validate form
+    if (!validateConsumptionForm(form)) {
+        return;
+    }
+    
     const formData = new FormData(form);
+    
+    // Ensure date is in proper format
+    const dateInput = form.querySelector('input[name="consumption_date"]');
+    if (dateInput.value) {
+        // Convert to ISO format if needed
+        const date = new Date(dateInput.value);
+        if (isNaN(date.getTime())) {
+            showToast('Please select a valid date', 'error');
+            dateInput.classList.add('is-invalid');
+            return;
+        }
+        formData.set('consumption_date', date.toISOString().slice(0, 10));
+    } else {
+        showToast('Please select a consumption date', 'error');
+        dateInput.classList.add('is-invalid');
+        return;
+    }
 
-    fetch('/inventory/consumption/add', {
+    // Add loading state
+    const saveButton = form.querySelector('.btn-primary');
+    const originalContent = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    saveButton.disabled = true;
+
+    fetch('/api/inventory/consumption/add', {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message, 'success');
+            showToast(data.message || 'Consumption record added successfully', 'success');
             bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal')).hide();
             form.reset();
-            loadConsumption(); // Refresh consumption list
+            
+            // Refresh data
+            setTimeout(() => {
+                loadConsumption();
+                loadProducts(); // Refresh product stock levels
+            }, 500);
         } else {
             throw new Error(data.error || 'Failed to add consumption record');
         }
@@ -1589,47 +1712,68 @@ function saveConsumption() {
     .catch(error => {
         console.error('Error adding consumption:', error);
         showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
     });
 }
 
 function loadConsumption() {
-    fetch('/inventory/consumption')
+    fetch('/api/inventory/consumption')
     .then(response => response.json())
     .then(data => {
         const tbody = document.getElementById('consumptionTableBody');
         tbody.innerHTML = '';
 
-        data.records.forEach(record => {
-            const row = `
+        if (data.records && data.records.length > 0) {
+            data.records.forEach(record => {
+                const row = `
+                    <tr>
+                        <td>${record.consumption_date || 'N/A'}</td>
+                        <td>${record.product_name || 'N/A'}</td>
+                        <td>${record.product_sku || 'N/A'}</td>
+                        <td>${record.quantity_used || 0}</td>
+                        <td>${record.unit_of_measure || 'pcs'}</td>
+                        <td>${record.issued_to || 'N/A'}</td>
+                        <td>${record.reference_doc_no || '—'}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="viewConsumption(${record.id})" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="editConsumption(${record.id})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteConsumption(${record.id})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        } else {
+            tbody.innerHTML = `
                 <tr>
-                    <td>${record.consumption_date}</td>
-                    <td>${record.product_name}</td>
-                    <td>${record.product_sku}</td>
-                    <td>${record.quantity_used}</td>
-                    <td>${record.unit_of_measure}</td>
-                    <td>${record.issued_to}</td>
-                    <td>${record.reference_doc_no}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" onclick="viewConsumption(${record.id})" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-outline-secondary" onclick="editConsumption(${record.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="deleteConsumption(${record.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
+                    <td colspan="8" class="text-center text-muted">No consumption records found</td>
                 </tr>
             `;
-            tbody.innerHTML += row;
-        });
+        }
     })
     .catch(error => {
         console.error('Error loading consumption records:', error);
         showToast('Error loading consumption records', 'error');
+        
+        // Show error state in table
+        const tbody = document.getElementById('consumptionTableBody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center text-danger">Error loading consumption records</td>
+            </tr>
+        `;
     });
 }
 
@@ -2007,17 +2151,17 @@ function viewConsumption(id) {
             throw new Error(consumption.error);
         }
 
-        // Populate view modal
-        document.getElementById('viewConsumptionDate').textContent = consumption.consumption_date;
-        document.getElementById('viewConsumptionProduct').textContent = consumption.product_name;
-        document.getElementById('viewConsumptionSKU').textContent = consumption.product_sku;
-        document.getElementById('viewConsumptionQuantity').textContent = consumption.quantity_used;
-        document.getElementById('viewConsumptionUnit').textContent = consumption.unit_of_measure;
-        document.getElementById('viewConsumptionIssuedTo').textContent = consumption.issued_to;
-        document.getElementById('viewConsumptionReference').textContent = consumption.reference_doc_no || 'N/A';
-        document.getElementById('viewConsumptionNotes').textContent = consumption.notes || 'No notes';
-        document.getElementById('viewConsumptionCreatedBy').textContent = consumption.created_by || 'N/A';
-        document.getElementById('viewConsumptionCreatedDate').textContent = consumption.created_at ? new Date(consumption.created_at).toLocaleDateString() : 'N/A';
+        // Populate view modal with raw data only
+        document.getElementById('viewConsumptionDate').textContent = consumption.consumption_date || 'N/A';
+        document.getElementById('viewConsumptionProduct').textContent = consumption.product_name || 'N/A';
+        document.getElementById('viewConsumptionSKU').textContent = consumption.product_sku || 'N/A';
+        document.getElementById('viewConsumptionQuantity').textContent = consumption.quantity_used || '0';
+        document.getElementById('viewConsumptionUnit').textContent = consumption.unit_of_measure || 'pcs';
+        document.getElementById('viewConsumptionIssuedTo').textContent = consumption.issued_to || 'N/A';
+        document.getElementById('viewConsumptionReference').textContent = consumption.reference_doc_no || '—';
+        document.getElementById('viewConsumptionNotes').textContent = consumption.notes || '—';
+        document.getElementById('viewConsumptionCreatedBy').textContent = consumption.created_by || '—';
+        document.getElementById('viewConsumptionCreatedDate').textContent = consumption.created_at ? new Date(consumption.created_at).toLocaleDateString() : '—';
 
         const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
         modal.show();
@@ -2029,21 +2173,46 @@ function viewConsumption(id) {
 }
 
 function editConsumption(id) {
-    fetch(`/api/inventory/consumption/${id}`)
-    .then(response => response.json())
-    .then(consumption => {
+    // First load products for the dropdown
+    Promise.all([
+        fetch(`/api/inventory/consumption/${id}`),
+        fetch('/api/inventory/products/for-consumption')
+    ])
+    .then(responses => Promise.all(responses.map(r => r.json())))
+    .then(([consumption, products]) => {
         if (consumption.error) {
             throw new Error(consumption.error);
         }
 
+        // Populate product dropdown
+        const select = document.getElementById('editConsumptionProduct');
+        select.innerHTML = '<option value="">Select Product</option>';
+        
+        products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.setAttribute('data-stock', product.current_stock);
+            option.setAttribute('data-unit', product.unit_of_measure);
+            option.textContent = `${product.name} (${product.sku}) - Available: ${product.current_stock} ${product.unit_of_measure}`;
+            
+            if (product.id == consumption.product_id) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+
         // Populate edit modal
         document.getElementById('editConsumptionId').value = consumption.id;
+        document.getElementById('editOriginalQuantity').value = consumption.quantity_used;
         document.getElementById('editConsumptionDate').value = consumption.consumption_date;
-        document.getElementById('editConsumptionProduct').value = consumption.product_id;
         document.getElementById('editConsumptionQuantity').value = consumption.quantity_used;
-        document.getElementById('editConsumptionIssuedTo').value = consumption.issued_to;
+        document.getElementById('editConsumptionIssuedTo').value = consumption.issued_to || '';
         document.getElementById('editConsumptionReference').value = consumption.reference_doc_no || '';
         document.getElementById('editConsumptionNotes').value = consumption.notes || '';
+
+        // Update available stock display
+        updateEditAvailableStock(select);
 
         const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
         modal.show();
@@ -2054,24 +2223,90 @@ function editConsumption(id) {
     });
 }
 
+function saveEditConsumption() {
+    const form = document.getElementById('editConsumptionForm');
+    
+    // Validate form
+    if (!validateConsumptionForm(form)) {
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const consumptionId = document.getElementById('editConsumptionId').value;
+    
+    // Ensure date is in proper format
+    const dateInput = form.querySelector('input[name="consumption_date"]');
+    if (dateInput.value) {
+        const date = new Date(dateInput.value);
+        if (isNaN(date.getTime())) {
+            showToast('Please select a valid date', 'error');
+            dateInput.classList.add('is-invalid');
+            return;
+        }
+        formData.set('consumption_date', date.toISOString().slice(0, 10));
+    } else {
+        showToast('Please select a consumption date', 'error');
+        dateInput.classList.add('is-invalid');
+        return;
+    }
+
+    // Add loading state
+    const saveButton = form.querySelector('.btn-primary');
+    const originalContent = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    saveButton.disabled = true;
+
+    fetch(`/api/inventory/consumption/${consumptionId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message || 'Consumption record updated successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
+            
+            // Refresh data
+            setTimeout(() => {
+                loadConsumption();
+                loadProducts(); // Refresh product stock levels
+            }, 500);
+        } else {
+            throw new Error(data.error || 'Failed to update consumption record');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating consumption:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+    });
+}
+
 function deleteConsumption(id) {
     fetch(`/api/inventory/consumption/${id}`)
     .then(response => response.json())
     .then(consumption => {
         const productName = consumption.product_name || 'Unknown Product';
+        const quantity = consumption.quantity_used || 0;
+        const unit = consumption.unit_of_measure || 'pcs';
+        const date = consumption.consumption_date || 'Unknown Date';
 
         Swal.fire({
             title: 'Delete Consumption Record',
             html: `Are you sure you want to delete this consumption record?<br><br>
                    <strong>Product:</strong> ${productName}<br>
-                   <strong>Quantity:</strong> ${consumption.quantity_used} ${consumption.unit_of_measure}<br>
-                   <strong>Date:</strong> ${consumption.consumption_date}<br><br>
-                   <em>This will restore the stock and create a reversal movement.</em>`,
+                   <strong>Quantity:</strong> ${quantity} ${unit}<br>
+                   <strong>Date:</strong> ${date}<br><br>
+                   <em>This will restore ${quantity} ${unit} to the product stock.</em>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
+            confirmButtonText: 'Yes, delete and restore stock!',
             cancelButtonText: 'Cancel',
             focusCancel: true
         }).then((result) => {
@@ -2082,9 +2317,13 @@ function deleteConsumption(id) {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showToast('Consumption record deleted and stock restored', 'success');
-                        loadConsumption(); // Refresh table
-                        loadProducts(); // Refresh product table if visible
+                        showToast(data.message || 'Consumption record deleted and stock restored successfully', 'success');
+                        
+                        // Refresh data
+                        setTimeout(() => {
+                            loadConsumption();
+                            loadProducts(); // Refresh product stock levels
+                        }, 500);
                     } else {
                         throw new Error(data.error || 'Failed to delete consumption record');
                     }
@@ -2943,24 +3182,33 @@ function populateProductDropdown(selectElement, products, preselectedValue = '')
             <form id="editConsumptionForm">
                 <div class="modal-body">
                     <input type="hidden" id="editConsumptionId" name="consumption_id">
+                    <input type="hidden" id="editOriginalQuantity" name="original_quantity">
                     <div class="mb-3">
                         <label class="form-label">Date <span class="text-danger">*</span></label>
                         <input type="date" id="editConsumptionDate" name="consumption_date" class="form-control" required>
+                        <div class="invalid-feedback">Please select a date (YYYY-MM-DD format)</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Product <span class="text-danger">*</span></label>
-                        <select id="editConsumptionProduct" name="product_id" class="form-select" required>
+                        <select id="editConsumptionProduct" name="product_id" class="form-select" required onchange="updateEditAvailableStock(this)">
                             <option value="">Select Product</option>
-                            <!-- Products will be loaded dynamically -->
                         </select>
+                        <div class="invalid-feedback">Please select a product</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Available Stock</label>
+                        <input type="text" id="editAvailableStock" class="form-control" readonly>
+                        <small class="text-muted">Current available stock for selected product</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Quantity Used <span class="text-danger">*</span></label>
-                        <input type="number" id="editConsumptionQuantity" name="quantity_used" class="form-control" step="0.01" min="0" required>
+                        <input type="number" id="editConsumptionQuantity" name="quantity_used" class="form-control" step="0.01" min="0.01" required>
+                        <div class="invalid-feedback">Please enter a valid quantity greater than 0</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Issued To <span class="text-danger">*</span></label>
                         <input type="text" id="editConsumptionIssuedTo" name="issued_to" class="form-control" required>
+                        <div class="invalid-feedback">Please specify who the items were issued to</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Reference Document</label>
@@ -2973,7 +3221,9 @@ function populateProductDropdown(selectElement, products, preselectedValue = '')
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEditConsumption()">Save Changes</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditConsumption()">
+                        <i class="fas fa-save me-1"></i>Save Changes
+                    </button>
                 </div>
             </form>
         </div>

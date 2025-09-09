@@ -1053,39 +1053,114 @@ def api_delete_category(category_id):
 @app.route('/api/inventory/consumption/<int:consumption_id>/edit', methods=['POST'])
 @login_required
 def api_edit_consumption(consumption_id):
-    """Update consumption record"""
+    """Update consumption record with proper stock delta handling"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        consumption_data = {
-            'consumption_date': datetime.strptime(request.form.get('consumption_date'), '%Y-%m-%d').date(),
-            'product_id': int(request.form.get('product_id')),
-            'quantity_used': float(request.form.get('quantity_used')),
-            'issued_to': request.form.get('issued_to', '').strip(),
-            'reference_doc_no': request.form.get('reference_doc_no', '').strip(),
-            'notes': request.form.get('notes', '').strip()
-        }
-
-        # Validation
-        if not consumption_data['issued_to']:
-            return jsonify({'error': 'Issued to field is required'}), 400
-
-        if consumption_data['quantity_used'] <= 0:
-            return jsonify({'error': 'Quantity must be greater than 0'}), 400
-
-        updated_consumption = update_consumption_record(consumption_id, consumption_data, current_user.id)
-        if updated_consumption:
-            return jsonify({
-                'success': True,
-                'message': 'Consumption record updated successfully'
-            })
-        else:
+        # Get the original consumption record
+        original_consumption = get_consumption_by_id(consumption_id)
+        if not original_consumption:
             return jsonify({'error': 'Consumption record not found'}), 404
 
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        # Get form data with defensive coding
+        product_id = request.form.get('product_id')
+        consumption_date_str = request.form.get('consumption_date', '').strip()
+        quantity_used_str = request.form.get('quantity_used', '').strip()
+        issued_to = request.form.get('issued_to', '').strip()
+        reference_doc_no = request.form.get('reference_doc_no', '').strip()
+        notes = request.form.get('notes', '').strip()
+
+        # Validation with user-friendly messages
+        if not product_id:
+            return jsonify({'error': 'Please select a product'}), 400
+
+        if not consumption_date_str:
+            return jsonify({'error': 'Please select a consumption date'}), 400
+
+        if not quantity_used_str:
+            return jsonify({'error': 'Please enter the quantity used'}), 400
+
+        if not issued_to:
+            return jsonify({'error': 'Please specify who the items were issued to'}), 400
+
+        # Parse and validate data
+        try:
+            product_id = int(product_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid product selected'}), 400
+
+        try:
+            new_quantity_used = float(quantity_used_str)
+            if new_quantity_used <= 0:
+                return jsonify({'error': 'Quantity must be greater than 0'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid quantity value'}), 400
+
+        # Parse date
+        try:
+            if '/' in consumption_date_str:
+                consumption_date = datetime.strptime(consumption_date_str, '%m/%d/%Y').date()
+            elif '-' in consumption_date_str and len(consumption_date_str) == 10:
+                consumption_date = datetime.strptime(consumption_date_str, '%Y-%m-%d').date()
+            else:
+                consumption_date = datetime.fromisoformat(consumption_date_str).date()
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid date format. Please use YYYY-MM-DD format'}), 400
+
+        # Check if product exists
+        product = get_product_by_id(product_id)
+        if not product:
+            return jsonify({'error': 'Selected product not found'}), 404
+
+        # Calculate delta (difference between new and old quantity)
+        original_quantity = float(original_consumption.quantity_used or 0)
+        delta = new_quantity_used - original_quantity
+
+        # If delta is positive (increase), check if we have enough stock
+        if delta > 0:
+            current_stock = float(product.current_stock or 0)
+            if current_stock < delta:
+                return jsonify({'error': f'Insufficient stock for increase. Available: {current_stock} {product.unit_of_measure}, Additional required: {delta}'}), 400
+
+        # Update consumption data
+        consumption_data = {
+            'product_id': product_id,
+            'consumption_date': consumption_date,
+            'quantity_used': new_quantity_used,
+            'issued_to': issued_to,
+            'reference_doc_no': reference_doc_no if reference_doc_no else None,
+            'notes': notes if notes else None
+        }
+
+        # Update the consumption record
+        updated_consumption = update_consumption_record(consumption_id, consumption_data, current_user.id)
+        
+        if updated_consumption:
+            # Handle stock adjustment for the delta
+            if delta != 0:
+                new_stock = float(product.current_stock) - delta  # Subtract delta (positive delta = more consumed = less stock)
+                reason = f"Consumption Edited - {'+' if delta > 0 else ''}{delta} {product.unit_of_measure}"
+                
+                update_stock(
+                    product_id=product_id,
+                    new_quantity=max(0, new_stock),  # Prevent negative stock
+                    movement_type='adjustment',
+                    reason=reason,
+                    reference_type='consumption_edit',
+                    reference_id=consumption_id,
+                    user_id=current_user.id
+                )
+
+            return jsonify({
+                'success': True,
+                'message': f'Consumption record updated successfully. Stock adjusted by {-delta} {product.unit_of_measure}.'
+            })
+        else:
+            return jsonify({'error': 'Failed to update consumption record'}), 500
+
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': f'Error updating consumption: {str(e)}'}), 500
 
 @app.route('/api/inventory/consumption/<int:consumption_id>/delete', methods=['DELETE'])
@@ -1100,15 +1175,20 @@ def api_delete_consumption(consumption_id):
         if not consumption:
             return jsonify({'error': 'Consumption record not found'}), 404
 
-        # Restore stock
+        # Store details for success message
+        product_name = consumption.product.name if consumption.product else 'Unknown Product'
+        quantity_restored = float(consumption.quantity_used or 0)
+        unit = consumption.unit_of_measure or 'pcs'
+
+        # Restore stock by adding back the consumed quantity
         product = get_product_by_id(consumption.product_id)
         if product:
-            restored_stock = float(product.current_stock) + float(consumption.quantity_used)
+            restored_stock = float(product.current_stock or 0) + quantity_restored
             update_stock(
                 product_id=consumption.product_id,
                 new_quantity=restored_stock,
                 movement_type='in',
-                reason=f"Consumption Deleted - Stock Restored",
+                reason=f"Consumption Deleted - Stock Restored (+{quantity_restored} {unit})",
                 reference_type='consumption_deletion',
                 reference_id=consumption_id,
                 user_id=current_user.id
@@ -1118,12 +1198,13 @@ def api_delete_consumption(consumption_id):
         if delete_consumption_record(consumption_id):
             return jsonify({
                 'success': True,
-                'message': 'Consumption record deleted and stock restored successfully'
+                'message': f'Consumption record deleted successfully. Restored {quantity_restored} {unit} to {product_name}.'
             })
         else:
             return jsonify({'error': 'Failed to delete consumption record'}), 500
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': f'Error deleting consumption: {str(e)}'}), 500
 
 # ============ ADJUSTMENT API ENDPOINTS ============
@@ -1368,41 +1449,102 @@ def consumption_records():
         }
     })
 
-@app.route('/inventory/consumption/add', methods=['POST'])
+@app.route('/api/inventory/consumption/add', methods=['POST'])
 @login_required
-def add_consumption():
-    """Add new consumption record"""
+def api_add_consumption():
+    """Add new consumption record with proper validation and stock management"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
+        # Get form data with defensive coding
+        product_id = request.form.get('product_id')
+        consumption_date_str = request.form.get('consumption_date', '').strip()
+        quantity_used_str = request.form.get('quantity_used', '').strip()
+        issued_to = request.form.get('issued_to', '').strip()
+        reference_doc_no = request.form.get('reference_doc_no', '').strip()
+        notes = request.form.get('notes', '').strip()
+
+        # Validation with user-friendly messages
+        if not product_id:
+            return jsonify({'error': 'Please select a product'}), 400
+
+        if not consumption_date_str:
+            return jsonify({'error': 'Please select a consumption date'}), 400
+
+        if not quantity_used_str:
+            return jsonify({'error': 'Please enter the quantity used'}), 400
+
+        if not issued_to:
+            return jsonify({'error': 'Please specify who the items were issued to'}), 400
+
+        # Parse and validate data
+        try:
+            product_id = int(product_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid product selected'}), 400
+
+        try:
+            quantity_used = float(quantity_used_str)
+            if quantity_used <= 0:
+                return jsonify({'error': 'Quantity must be greater than 0'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid quantity value'}), 400
+
+        # Parse date with multiple format support
+        try:
+            if '/' in consumption_date_str:
+                # Handle MM/DD/YYYY or DD/MM/YYYY formats
+                consumption_date = datetime.strptime(consumption_date_str, '%m/%d/%Y').date()
+            elif '-' in consumption_date_str and len(consumption_date_str) == 10:
+                # Handle YYYY-MM-DD format (ISO)
+                consumption_date = datetime.strptime(consumption_date_str, '%Y-%m-%d').date()
+            else:
+                # Try to parse as ISO date
+                consumption_date = datetime.fromisoformat(consumption_date_str).date()
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid date format. Please use YYYY-MM-DD format'}), 400
+
+        # Check if product exists and has sufficient stock
+        product = get_product_by_id(product_id)
+        if not product:
+            return jsonify({'error': 'Selected product not found'}), 404
+
+        current_stock = float(product.current_stock or 0)
+        if current_stock < quantity_used:
+            return jsonify({'error': f'Insufficient stock. Available: {current_stock} {product.unit_of_measure}, Required: {quantity_used}'}), 400
+
+        # Create consumption data
         consumption_data = {
-            'product_id': int(request.form.get('product_id')),
-            'consumption_date': datetime.strptime(request.form.get('consumption_date'), '%Y-%m-%d').date(),
-            'quantity_used': float(request.form.get('quantity_used')),
-            'issued_to': request.form.get('issued_to').strip(),
-            'reference_doc_no': request.form.get('reference_doc_no', '').strip(),
-            'notes': request.form.get('notes', '').strip()
+            'product_id': product_id,
+            'consumption_date': consumption_date,
+            'quantity_used': quantity_used,
+            'issued_to': issued_to,
+            'reference_doc_no': reference_doc_no if reference_doc_no else None,
+            'notes': notes if notes else None
         }
 
-        # Validation
-        if not consumption_data['issued_to']:
-            return jsonify({'error': 'Issued to field is required'}), 400
-
-        if consumption_data['quantity_used'] <= 0:
-            return jsonify({'error': 'Quantity must be greater than 0'}), 400
-
+        # Create the consumption record
         consumption = create_consumption_record(consumption_data, current_user.id)
-        return jsonify({
-            'success': True,
-            'message': 'Consumption record created successfully',
-            'id': consumption.id
-        })
+        
+        if consumption:
+            return jsonify({
+                'success': True,
+                'message': f'Consumption record created successfully. Stock reduced by {quantity_used} {product.unit_of_measure}.',
+                'id': consumption.id
+            })
+        else:
+            return jsonify({'error': 'Failed to create consumption record'}), 500
 
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': 'Failed to create consumption record'}), 500
+        db.session.rollback()
+        return jsonify({'error': f'Error creating consumption record: {str(e)}'}), 500
+
+@app.route('/inventory/consumption/add', methods=['POST'])
+@login_required
+def add_consumption():
+    """Legacy endpoint - redirect to API"""
+    return api_add_consumption()
 
 @app.route('/inventory/consumption/<int:consumption_id>/edit', methods=['POST'])
 @login_required
@@ -1509,6 +1651,46 @@ def export_consumption_csv():
 
 # ============ CONSUMPTION API ENDPOINTS ============
 
+@app.route('/api/inventory/consumption')
+@login_required
+def api_get_all_consumption():
+    """Get all consumption records as JSON"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get consumption records
+        consumption_records = get_all_consumption_records()
+        
+        records = []
+        if hasattr(consumption_records, 'items'):
+            # If paginated, get items
+            items = consumption_records.items
+        else:
+            # If not paginated, use directly
+            items = consumption_records
+
+        for record in items:
+            records.append({
+                'id': record.id,
+                'product_id': record.product_id,
+                'product_name': record.product.name if record.product else 'Unknown',
+                'product_sku': record.product.sku if record.product else 'N/A',
+                'consumption_date': record.consumption_date.strftime('%Y-%m-%d') if record.consumption_date else 'N/A',
+                'quantity_used': float(record.quantity_used or 0),
+                'unit_of_measure': record.unit_of_measure or 'pcs',
+                'issued_to': record.issued_to or '',
+                'reference_doc_no': record.reference_doc_no or '',
+                'notes': record.notes or '',
+                'created_by': record.user.username if record.user else 'System',
+                'created_at': record.created_at.isoformat() if record.created_at else None
+            })
+
+        return jsonify({'records': records})
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading consumption records: {str(e)}'}), 500
+
 @app.route('/api/inventory/consumption/<int:consumption_id>')
 @login_required
 def api_get_consumption(consumption_id):
@@ -1521,13 +1703,16 @@ def api_get_consumption(consumption_id):
         return jsonify({
             'id': consumption.id,
             'product_id': consumption.product_id,
-            'product_name': consumption.product.name,
-            'consumption_date': consumption.consumption_date.strftime('%Y-%m-%d'),
-            'quantity_used': float(consumption.quantity_used),
-            'unit_of_measure': consumption.unit_of_measure,
-            'issued_to': consumption.issued_to,
+            'product_name': consumption.product.name if consumption.product else 'Unknown',
+            'product_sku': consumption.product.sku if consumption.product else 'N/A',
+            'consumption_date': consumption.consumption_date.strftime('%Y-%m-%d') if consumption.consumption_date else 'N/A',
+            'quantity_used': float(consumption.quantity_used or 0),
+            'unit_of_measure': consumption.unit_of_measure or 'pcs',
+            'issued_to': consumption.issued_to or '',
             'reference_doc_no': consumption.reference_doc_no or '',
-            'notes': consumption.notes or ''
+            'notes': consumption.notes or '',
+            'created_by': consumption.user.username if consumption.user else 'System',
+            'created_at': consumption.created_at.isoformat() if consumption.created_at else None
         })
     return jsonify({'error': 'Consumption record not found'}), 404
 
