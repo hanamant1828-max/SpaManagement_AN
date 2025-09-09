@@ -1,4 +1,5 @@
 from app import app
+from flask_login import login_required
 import routes  # This already imports all the module views
 
 # Import integrated billing views
