@@ -1,7 +1,7 @@
 <div>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3><i class="fas fa-box me-2"></i>Product Master</h3>
-        <button id="btnAddProduct" class="btn btn-primary">
+        <button id="btnAddProduct" class="btn btn-primary" type="button">
             <i class="fas fa-plus me-1"></i>Add Product
         </button>
     </div>
@@ -51,6 +51,9 @@
                         </tr>
                     </thead>
                     <tbody id="productTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">Loading products...</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -59,97 +62,131 @@
 </div>
 
 <!-- Add/Edit Product Modal -->
-<div class="modal fade" id="productModal" tabindex="-1">
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="productModalTitle">Add Product</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="productForm">
                     <input type="hidden" id="productId">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">SKU *</label>
-                            <input type="text" class="form-control" id="productSku" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Product Name *</label>
-                            <input type="text" class="form-control" id="productName" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" id="productCategory">
-                                <option value="">Select category</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Unit</label>
-                            <select class="form-select" id="productUnit">
-                                <option value="pcs">Pieces</option>
-                                <option value="kg">Kilograms</option>
-                                <option value="g">Grams</option>
-                                <option value="l">Liters</option>
-                                <option value="ml">Milliliters</option>
-                                <option value="box">Boxes</option>
-                                <option value="bottle">Bottles</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Current Stock</label>
-                            <input type="number" class="form-control" id="productStock" value="0" step="0.01" min="0">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Min Stock Level</label>
-                            <input type="number" class="form-control" id="productMinStock" value="10" step="0.01" min="0">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Reorder Level</label>
-                            <input type="number" class="form-control" id="productReorderLevel" value="0" step="0.01" min="0" placeholder="Alert threshold">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Cost Price</label>
-                            <input type="number" class="form-control" id="productCostPrice" value="0" step="0.01" min="0">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="productTrackBatches">
-                                <label class="form-check-label" for="productTrackBatches">
-                                    <i class="fas fa-calendar-alt me-1"></i>Track by Batches/Expiry
-                                </label>
-                            </div>
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" id="productTrackSerials">
-                                <label class="form-check-label" for="productTrackSerials">
-                                    <i class="fas fa-barcode me-1"></i>Track by Serial Numbers
-                                </label>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productSku" class="form-label">SKU <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="productSku" required>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Primary Location</label>
-                            <select class="form-select" id="productPrimaryLocation">
-                                <option value="">Select primary location</option>
-                            </select>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productName" class="form-label">Product Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="productName" required>
+                            </div>
                         </div>
-                        <div class="col-12 mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="productDescription" rows="2"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productCategory" class="form-label">Category</label>
+                                <select class="form-select" id="productCategory">
+                                    <option value="">Select category</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Location</label>
-                            <input type="text" class="form-control" id="productLocation" placeholder="e.g., Room A, Shelf 1">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productUnit" class="form-label">Unit of Measure</label>
+                                <select class="form-select" id="productUnit">
+                                    <option value="pcs">Pieces</option>
+                                    <option value="ml">Milliliters</option>
+                                    <option value="l">Liters</option>
+                                    <option value="g">Grams</option>
+                                    <option value="kg">Kilograms</option>
+                                    <option value="oz">Ounces</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Barcode</label>
-                            <input type="text" class="form-control" id="productBarcode">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="productStock" class="form-label">Current Stock</label>
+                                <input type="number" class="form-control" id="productStock" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="productMinStock" class="form-label">Min Stock Level</label>
+                                <input type="number" class="form-control" id="productMinStock" min="0" step="0.01" value="10">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="productReorderLevel" class="form-label">Reorder Level</label>
+                                <input type="number" class="form-control" id="productReorderLevel" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productCostPrice" class="form-label">Cost Price</label>
+                                <input type="number" class="form-control" id="productCostPrice" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productLocation" class="form-label">Primary Location</label>
+                                <select class="form-select" id="productLocation">
+                                    <option value="">Select location</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="productDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="productDescription" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productBarcode" class="form-label">Barcode</label>
+                                <input type="text" class="form-control" id="productBarcode">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="productTrackBatches">
+                                    <label class="form-check-label" for="productTrackBatches">
+                                        Track Batches
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="productTrackSerials">
+                                    <label class="form-check-label" for="productTrackSerials">
+                                        Track Serial Numbers
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+                <button type="button" class="btn btn-primary" id="saveProductBtn" onclick="saveProduct()">Save Product</button>
             </div>
         </div>
     </div>
@@ -161,9 +198,10 @@
     console.log('🚀 Current URL:', window.location.href);
     console.log('🚀 DOM Ready State:', document.readyState);
     console.log('🚀 Bootstrap available:', typeof bootstrap !== 'undefined');
-    
+
     // Isolated scope for product master tab
     let editingProductId = null;
+    let productModal = null;
 
     // Utility function to calculate total stock across all locations
     function calculateTotalStock(product) {
@@ -175,111 +213,115 @@
 
     function loadProducts() {
         console.log('Loading products from API...');
-        
+
         // Show loading state
         const tbody = document.getElementById('productTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading products...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Loading products...</td></tr>';
         }
-        
-        // Fetch products from API
-        fetch('/api/inventory/products')
+
+        // Try to load from API first
+        fetch('/api/inventory/products/master')
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    throw new Error('API not available');
                 }
                 return response.json();
             })
             .then(products => {
                 console.log('Products loaded from API:', products.length);
-                renderProductsTable(products);
+                displayProducts(products);
             })
             .catch(error => {
-                console.error('Error loading products:', error);
-                if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading products. Please refresh the page.</td></tr>';
-                }
+                console.log('API failed, using localStorage:', error);
+                // Fallback to localStorage
+                const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+                displayProducts(products);
             });
     }
-    
-    function renderProductsTable(products) {
+
+    function displayProducts(products) {
         const tbody = document.getElementById('productTableBody');
         if (!tbody) return;
-        
-        // Apply filters
-        const searchTerm = document.getElementById('productSearch') ? document.getElementById('productSearch').value.toLowerCase() : '';
-        const categoryFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : '';
-        const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
-        
-        let filteredProducts = products.filter(product => {
-            const matchesSearch = product.name.toLowerCase().includes(searchTerm) || 
-                                product.sku.toLowerCase().includes(searchTerm);
-            const matchesCategory = !categoryFilter || product.categoryId == categoryFilter;
-            
-            let matchesStatus = true;
-            if (statusFilter) {
-                const stock = product.current_stock || 0;
-                const reorderLevel = product.reorder_level || 10;
-                if (statusFilter === 'out_of_stock') matchesStatus = stock <= 0;
-                else if (statusFilter === 'low_stock') matchesStatus = stock > 0 && stock <= reorderLevel;
-                else if (statusFilter === 'in_stock') matchesStatus = stock > reorderLevel;
-            }
-            
-            return matchesSearch && matchesCategory && matchesStatus;
-        });
-        
-        tbody.innerHTML = '';
-        filteredProducts.forEach(product => {
-            const stock = product.current_stock || 0;
-            const reorderLevel = product.reorder_level || 10;
-            
-            let statusBadge = 'success';
-            let statusText = 'In Stock';
-            let warningIcons = '';
-            
-            if (stock <= 0) {
-                statusBadge = 'danger';
-                statusText = 'Out of Stock';
-                warningIcons = '<i class="fas fa-times-circle text-danger me-1" title="Out of Stock"></i>';
-            } else if (stock <= reorderLevel) {
-                statusBadge = 'warning';
-                statusText = 'Low Stock';
-                warningIcons = '<i class="fas fa-exclamation-triangle text-warning me-1" title="Low Stock Alert"></i>';
-            }
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>${product.sku}</strong></td>
-                    <td>
-                        ${warningIcons}${product.name}
-                    </td>
-                    <td>${product.category || '-'}</td>
-                    <td><strong>${stock}</strong> ${product.unit || 'pcs'}</td>
-                    <td><span class="badge bg-${statusBadge}">${statusText}</span></td>
-                    <td><small>${product.location || '-'}</small></td>
-                    <td>$${(product.cost_price || 0).toFixed(2)}</td>
-                    <td>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editProduct('${product.id}')" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${product.id}')" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-        
-        if (filteredProducts.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No products found</td></tr>';
+
+        let productsHTML = '';
+
+        if (products.length > 0) {
+            const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
+            const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+
+            // Apply filters
+            const filteredProducts = products.filter(product => {
+                const matchesSearch = !searchTerm || 
+                    product.name.toLowerCase().includes(searchTerm) ||
+                    product.sku.toLowerCase().includes(searchTerm);
+
+                const matchesCategory = !categoryFilter || 
+                    product.categoryId === categoryFilter || 
+                    product.category_id === categoryFilter;
+
+                const matchesStatus = !statusFilter || product.status === statusFilter;
+
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+
+            filteredProducts.forEach(product => {
+                const stock = calculateTotalStock(product);
+                const statusBadge = getStatusBadge(product.status || 'in_stock');
+                const categoryBadge = product.category ? 
+                    `<span class="badge" style="background-color: ${product.category_color || '#6c757d'}">${product.category}</span>` : 
+                    '<span class="text-muted">—</span>';
+
+                productsHTML += `
+                    <tr>
+                        <td><strong>${product.sku}</strong></td>
+                        <td>${product.name}</td>
+                        <td>${categoryBadge}</td>
+                        <td>
+                            <strong>${stock}</strong> ${product.unit_of_measure || product.unit || 'pcs'}
+                        </td>
+                        <td>${statusBadge}</td>
+                        <td>${product.location || product.primaryLocation || '—'}</td>
+                        <td>$${(product.cost_price || product.costPrice || 0).toFixed(2)}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-primary btn-sm" onclick="editProduct('${product.id}')" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="adjustStock('${product.id}')" title="Adjust Stock">
+                                    <i class="fas fa-plus-minus"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteProduct('${product.id}')" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
         }
+
+        if (productsHTML === '') {
+            productsHTML = '<tr><td colspan="8" class="text-center text-muted">No products found</td></tr>';
+        }
+
+        tbody.innerHTML = productsHTML;
+    }
+
+    function getStatusBadge(status) {
+        const statusMap = {
+            'in_stock': '<span class="badge bg-success">In Stock</span>',
+            'low_stock': '<span class="badge bg-warning">Low Stock</span>',
+            'out_of_stock': '<span class="badge bg-danger">Out of Stock</span>',
+            'reorder_needed': '<span class="badge bg-info">Reorder</span>'
+        };
+        return statusMap[status] || '<span class="badge bg-secondary">Unknown</span>';
     }
 
     function loadCategories() {
         console.log('Loading categories for product master...');
-        
+
         // Initialize default categories if none exist
         let categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
         if (categories.length === 0) {
@@ -291,7 +333,7 @@
             ];
             localStorage.setItem('inventory.categories', JSON.stringify(categories));
         }
-        
+
         // Try to load from API and update if available
         fetch('/api/inventory/categories')
             .then(response => response.json())
@@ -311,38 +353,38 @@
     function populateCategoryDropdowns(categories) {
         const categoryFilter = document.getElementById('categoryFilter');
         const productCategory = document.getElementById('productCategory');
-        
+
         if (categoryFilter) {
             categoryFilter.innerHTML = '<option value="">All Categories</option>';
             categories.filter(cat => cat.is_active !== false).forEach(category => {
                 categoryFilter.innerHTML += `<option value="${category.id}">${category.name}</option>`;
             });
         }
-        
+
         if (productCategory) {
             productCategory.innerHTML = '<option value="">Select category</option>';
             categories.filter(cat => cat.is_active !== false).forEach(category => {
                 productCategory.innerHTML += `<option value="${category.id}">${category.name}</option>`;
             });
         }
-        
+
         console.log('Categories loaded successfully:', categories.length);
     }
 
     function loadLocations() {
         console.log('Loading locations for product master...');
-        
+
         // Initialize default locations if none exist
         let locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
         if (locations.length === 0) {
             locations = [
-                { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active', address: 'Main location' },
-                { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active', address: 'Back storage area' },
-                { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active', address: 'First treatment room' }
+                { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active' },
+                { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active' },
+                { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active' }
             ];
             localStorage.setItem('inventory.locations', JSON.stringify(locations));
         }
-        
+
         // Try to load from API and update if available
         fetch('/api/inventory/locations')
             .then(response => response.json())
@@ -360,302 +402,75 @@
     }
 
     function populateLocationDropdowns(locations) {
-        const productLocation = document.getElementById('productPrimaryLocation');
-        
+        const productLocation = document.getElementById('productLocation');
+
         if (productLocation) {
-            productLocation.innerHTML = '<option value="">Select primary location</option>';
+            productLocation.innerHTML = '<option value="">Select location</option>';
             locations.filter(loc => loc.status === 'active').forEach(location => {
                 productLocation.innerHTML += `<option value="${location.id}">${location.name}</option>`;
             });
         }
-        
+
         console.log('Locations loaded successfully:', locations.length);
     }
 
-    // Utility functions for dropdown loading
-    function loadCategoriesIntoDropdown(dropdownId, selectedId = null) {
-        let categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        
-        // Initialize default categories if none exist
-        if (categories.length === 0) {
-            categories = [
-                { id: 'cat1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true },
-                { id: 'cat2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true },
-                { id: 'cat3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true },
-                { id: 'cat4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true }
-            ];
-            localStorage.setItem('inventory.categories', JSON.stringify(categories));
+    function showAddProductModal() {
+        console.log('🔧 Opening Add Product modal...');
+
+        // Reset form
+        document.getElementById('productModalTitle').textContent = 'Add Product';
+        document.getElementById('productForm').reset();
+        document.getElementById('productId').value = '';
+        editingProductId = null;
+
+        // Set default values
+        document.getElementById('productStock').value = '0';
+        document.getElementById('productMinStock').value = '10';
+        document.getElementById('productReorderLevel').value = '0';
+        document.getElementById('productCostPrice').value = '0';
+        document.getElementById('productUnit').value = 'pcs';
+
+        // Show modal
+        if (!productModal) {
+            productModal = new bootstrap.Modal(document.getElementById('productModal'));
         }
-        
-        const dropdown = document.getElementById(dropdownId);
-        if (!dropdown) {
-            console.warn('Category dropdown not found:', dropdownId);
-            return;
-        }
-        
-        dropdown.innerHTML = '<option value="">Select category</option>';
-        
-        // Handle both old and new data formats
-        categories.filter(cat => {
-            return cat.is_active !== false && cat.isActive !== false;
-        }).forEach(category => {
-            const selected = (category.id == selectedId) ? 'selected' : '';
-            dropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
-        });
-        
-        console.log(`Categories loaded into ${dropdownId}:`, categories.length);
+        productModal.show();
+
+        console.log('🔧 Add Product modal opened successfully');
     }
 
-    function loadLocationsIntoDropdown(dropdownId, selectedId = null) {
-        let locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-        
-        // Initialize default locations if none exist
-        if (locations.length === 0) {
-            locations = [
-                { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active', address: 'Main location' },
-                { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active', address: 'Back storage area' },
-                { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active', address: 'First treatment room' }
-            ];
-            localStorage.setItem('inventory.locations', JSON.stringify(locations));
+    function populateProductDropdowns(categoryId, locationId) {
+        // Set category selection if provided
+        if (categoryId) {
+            const categorySelect = document.getElementById('productCategory');
+            if (categorySelect) {
+                categorySelect.value = categoryId;
+            }
         }
-        
-        const dropdown = document.getElementById(dropdownId);
-        if (!dropdown) {
-            console.warn('Location dropdown not found:', dropdownId);
-            return;
+
+        // Set location selection if provided  
+        if (locationId) {
+            const locationSelect = document.getElementById('productLocation');
+            if (locationSelect) {
+                locationSelect.value = locationId;
+            }
         }
-        
-        dropdown.innerHTML = '<option value="">Select location</option>';
-        
-        locations.filter(loc => loc.status === 'active').forEach(location => {
-            const selected = (location.id == selectedId) ? 'selected' : '';
-            dropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
-        });
-        
-        console.log(`Locations loaded into ${dropdownId}:`, locations.length);
     }
 
-    // Comprehensive function to populate all product modal dropdowns
-    function populateProductDropdowns(selectedCategoryId = null, selectedLocationId = null) {
-        console.log('Populating product modal dropdowns...');
-        
-        // Load categories from API
-        fetch('/api/inventory/categories')
-            .then(response => response.json())
-            .then(data => {
-                const categories = data.categories || [];
-                const categoryDropdown = document.getElementById('productCategory');
-                if (categoryDropdown) {
-                    categoryDropdown.innerHTML = '<option value="">Select category</option>';
-                    const activeCategories = categories.filter(cat => cat.is_active !== false);
-                    activeCategories.forEach(category => {
-                        const selected = (category.id == selectedCategoryId) ? 'selected' : '';
-                        categoryDropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
-                    });
-                    console.log(`Categories populated: ${activeCategories.length} active categories`);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading categories:', error);
-                // Fallback to default categories
-                const categoryDropdown = document.getElementById('productCategory');
-                if (categoryDropdown) {
-                    categoryDropdown.innerHTML = '<option value="">Select category</option>';
-                    const defaultCategories = [
-                        { id: '1', name: 'Skincare Products' },
-                        { id: '2', name: 'Hair Care Products' },
-                        { id: '3', name: 'Spa Supplies' },
-                        { id: '4', name: 'Wellness Products' }
-                    ];
-                    defaultCategories.forEach(category => {
-                        const selected = (category.id == selectedCategoryId) ? 'selected' : '';
-                        categoryDropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
-                    });
-                }
-            });
-        
-        // Load locations from API
-        fetch('/api/inventory/locations')
-            .then(response => response.json())
-            .then(data => {
-                const locations = data.locations || [];
-                const locationDropdown = document.getElementById('productPrimaryLocation');
-                if (locationDropdown) {
-                    locationDropdown.innerHTML = '<option value="">Select primary location</option>';
-                    const activeLocations = locations.filter(loc => loc.status === 'active');
-                    activeLocations.forEach(location => {
-                        const selected = (location.id == selectedLocationId) ? 'selected' : '';
-                        locationDropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
-                    });
-                    console.log(`Locations populated: ${activeLocations.length} active locations`);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading locations:', error);
-                // Fallback to default locations
-                const locationDropdown = document.getElementById('productPrimaryLocation');
-                if (locationDropdown) {
-                    locationDropdown.innerHTML = '<option value="">Select primary location</option>';
-                    const defaultLocations = [
-                        { id: 'main-branch', name: 'Main Branch' },
-                        { id: 'storage-room', name: 'Storage Room' }
-                    ];
-                    defaultLocations.forEach(location => {
-                        const selected = (location.id == selectedLocationId) ? 'selected' : '';
-                        locationDropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
-                    });
-                }
-            });
-    }
-
-    function addProduct() {
-        console.log('🔵 Add Product function called - START');
-        console.log('🔵 Current time:', new Date().toISOString());
-        
-        try {
-            // Reset editing state
-            console.log('🔵 Resetting editing state...');
-            editingProductId = null;
-            
-            // Check if modal exists
-            console.log('🔵 Checking for modal element...');
-            const modalElement = document.getElementById('productModal');
-            if (!modalElement) {
-                console.error('❌ CRITICAL: Modal element #productModal not found in DOM');
-                alert('Error: Product form not found. Please refresh the page.');
-                return;
-            }
-            console.log('✅ Modal element found:', modalElement);
-            
-            // Set modal title
-            console.log('🔵 Setting modal title...');
-            const titleElement = document.getElementById('productModalTitle');
-            if (titleElement) {
-                titleElement.textContent = 'Add Product';
-                console.log('✅ Modal title set successfully');
-            } else {
-                console.warn('⚠️ Modal title element not found');
-            }
-            
-            // Reset form
-            console.log('🔵 Resetting form...');
-            const formElement = document.getElementById('productForm');
-            if (formElement) {
-                formElement.reset();
-                console.log('✅ Form reset successfully');
-            } else {
-                console.warn('⚠️ Form element not found');
-            }
-            
-            // Clear product ID
-            const productIdField = document.getElementById('productId');
-            if (productIdField) {
-                productIdField.value = '';
-                console.log('✅ Product ID cleared');
-            }
-            
-            // Set default values for new product
-            console.log('🔵 Setting default values...');
-            const defaultValues = [
-                { id: 'productStock', value: '0' },
-                { id: 'productMinStock', value: '10' },
-                { id: 'productReorderLevel', value: '0' },
-                { id: 'productCostPrice', value: '0' },
-                { id: 'productUnit', value: 'pcs' }
-            ];
-            
-            defaultValues.forEach(item => {
-                const element = document.getElementById(item.id);
-                if (element) {
-                    element.value = item.value;
-                    console.log(`✅ ${item.id} set to: ${item.value}`);
-                } else {
-                    console.warn(`⚠️ Element ${item.id} not found`);
-                }
-            });
-            
-            // Enable SKU field for new product
-            console.log('🔵 Enabling SKU field...');
-            const skuField = document.getElementById('productSku');
-            if (skuField) {
-                skuField.readOnly = false;
-                console.log('✅ SKU field enabled');
-            } else {
-                console.warn('⚠️ SKU field not found');
-            }
-            
-            // Populate dropdowns with fresh data
-            console.log('🔵 Populating dropdowns...');
-            populateProductDropdowns();
-            
-            // Show modal
-            console.log('🔵 Opening modal...');
-            try {
-                if (typeof bootstrap === 'undefined') {
-                    console.error('❌ CRITICAL: Bootstrap is not loaded');
-                    alert('Error: Bootstrap not loaded. Please refresh the page.');
-                    return;
-                }
-                
-                const modal = new bootstrap.Modal(modalElement);
-                console.log('✅ Bootstrap Modal instance created:', modal);
-                
-                modal.show();
-                console.log('✅ Modal.show() called successfully');
-                
-                // Check if modal is actually visible after a delay
-                setTimeout(() => {
-                    const isVisible = modalElement.classList.contains('show');
-                    console.log('🔵 Modal visibility check after 500ms:', isVisible);
-                    if (!isVisible) {
-                        console.error('❌ Modal is not visible after show() call');
-                    }
-                }, 500);
-                
-            } catch (modalError) {
-                console.error('❌ Error creating/showing modal:', modalError);
-                console.error('❌ Modal error stack:', modalError.stack);
-                alert('Error opening product form: ' + modalError.message);
-                return;
-            }
-            
-        } catch (error) {
-            console.error('❌ CRITICAL ERROR in addProduct function:', error);
-            console.error('❌ Error stack:', error.stack);
-            alert('Critical error in Add Product function. Check console for details.');
-        }
-        
-        console.log('🔵 Add Product function - END');
-    }
-
+    // Global functions for onclick handlers
     window.editProduct = function(productId) {
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         const product = products.find(p => p.id === productId);
-        
+
         if (product) {
-            // Validation first - check if categories and locations exist
-            const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-            const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-            
-            const activeCategories = categories.filter(cat => cat.is_active !== false);
-            const activeLocations = locations.filter(loc => loc.status === 'active');
-            
-            if (activeCategories.length === 0) {
-                alert('Please create at least one category before editing products.');
-                return;
-            }
-            
-            if (activeLocations.length === 0) {
-                alert('Please create at least one location before editing products.');
-                return;
-            }
-            
             editingProductId = productId;
+
+            // Set modal title and populate form
             document.getElementById('productModalTitle').textContent = 'Edit Product';
             document.getElementById('productId').value = product.id;
             document.getElementById('productSku').value = product.sku;
             document.getElementById('productName').value = product.name;
-            
+
             // Populate form fields
             document.getElementById('productUnit').value = product.unit || 'pcs';
             document.getElementById('productStock').value = calculateTotalStock(product);
@@ -667,132 +482,116 @@
             document.getElementById('productDescription').value = product.description || '';
             document.getElementById('productLocation').value = product.location || '';
             document.getElementById('productBarcode').value = product.barcode || '';
-            
+
             // Populate dropdowns with selected values immediately
             populateProductDropdowns(product.categoryId, product.primaryLocation);
-            
-            const modal = new bootstrap.Modal(document.getElementById('productModal'));
-            modal.show();
+
+            if (!productModal) {
+                productModal = new bootstrap.Modal(document.getElementById('productModal'));
+            }
+            productModal.show();
         }
     }
 
     window.saveProduct = function() {
-        console.log('Save Product function called');
-        
+        console.log('🔧 Saving product...');
+
+        const saveBtn = document.getElementById('saveProductBtn');
+        const originalText = saveBtn.innerHTML;
+
         try {
-            // Form validation
-            const sku = document.getElementById('productSku').value.trim();
-            const name = document.getElementById('productName').value.trim();
-            const categoryId = document.getElementById('productCategory').value;
-            const primaryLocation = document.getElementById('productPrimaryLocation').value;
-            const unit = document.getElementById('productUnit').value;
-            
-            // Validate required fields
-            if (!sku) {
-                alert('SKU is required');
-                document.getElementById('productSku').focus();
-                return;
-            }
-            
-            if (!name) {
-                alert('Product name is required');
-                document.getElementById('productName').focus();
-                return;
-            }
-            
-            if (!categoryId) {
-                alert('Please select a category');
-                document.getElementById('productCategory').focus();
-                return;
-            }
-            
-            if (!primaryLocation) {
-                alert('Please select a primary location');
-                document.getElementById('productPrimaryLocation').focus();
-                return;
-            }
-            
-            if (!unit) {
-                alert('Please select a unit of measure');
-                document.getElementById('productUnit').focus();
-                return;
-            }
-            
-            // Create product data object
+            // Get form data
             const productData = {
-                sku: sku,
-                name: name,
-                categoryId: categoryId,
-                unit: unit,
+                id: editingProductId || 'prod_' + Date.now(),
+                sku: document.getElementById('productSku').value.trim(),
+                name: document.getElementById('productName').value.trim(),
+                categoryId: document.getElementById('productCategory').value,
+                unit: document.getElementById('productUnit').value,
                 stock: parseFloat(document.getElementById('productStock').value) || 0,
                 minStock: parseFloat(document.getElementById('productMinStock').value) || 10,
                 reorderLevel: parseFloat(document.getElementById('productReorderLevel').value) || 0,
                 costPrice: parseFloat(document.getElementById('productCostPrice').value) || 0,
-                trackBatches: document.getElementById('productTrackBatches').checked || false,
-                trackSerials: document.getElementById('productTrackSerials').checked || false,
-                primaryLocation: primaryLocation,
-                description: document.getElementById('productDescription').value || '',
-                location: document.getElementById('productLocation').value || '',
-                barcode: document.getElementById('productBarcode').value || ''
+                primaryLocation: document.getElementById('productLocation').value,
+                description: document.getElementById('productDescription').value.trim(),
+                barcode: document.getElementById('productBarcode').value.trim(),
+                trackBatches: document.getElementById('productTrackBatches').checked,
+                trackSerials: document.getElementById('productTrackSerials').checked
             };
-            
-            console.log('Sending product data to API:', productData);
-            
-            // Show loading state
-            const saveBtn = document.querySelector('#productModal .btn-primary');
-            if (saveBtn) {
-                saveBtn.disabled = true;
-                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+            // Basic validation
+            if (!productData.sku || !productData.name) {
+                alert('SKU and Product Name are required.');
+                return;
             }
-            
-            // Send to API
-            const url = editingProductId ? `/api/inventory/products/${editingProductId}` : '/api/inventory/products';
-            const method = editingProductId ? 'PUT' : 'POST';
-            
-            fetch(url, {
+
+            // Show saving state
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+            // Try API first, fallback to localStorage
+            const isEdit = !!editingProductId;
+            const apiUrl = isEdit ? `/api/inventory/products/${editingProductId}/edit` : '/api/inventory/products';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            fetch(apiUrl, {
                 method: method,
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(productData)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Close modal
-                    const modalElement = document.getElementById('productModal');
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
+                    console.log('Product saved via API');
+                    if (productModal) {
+                        productModal.hide();
                     }
-                    
-                    // Refresh the products table
                     loadProducts();
-                    
-                    // Show success message
-                    alert(data.message);
-                    
-                    // Reset editing state
-                    editingProductId = null;
+                    alert(data.message || 'Product saved successfully!');
                 } else {
-                    alert(data.error || 'Error saving product');
+                    throw new Error(data.error || 'API save failed');
                 }
             })
             .catch(error => {
-                console.error('Error saving product:', error);
-                alert('Error saving product. Please try again.');
+                console.log('API failed, saving to localStorage:', error);
+
+                // Fallback to localStorage
+                const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+
+                if (isEdit) {
+                    const index = products.findIndex(p => p.id === editingProductId);
+                    if (index !== -1) {
+                        products[index] = { ...products[index], ...productData };
+                    }
+                } else {
+                    // Check for duplicate SKU
+                    if (products.some(p => p.sku === productData.sku)) {
+                        alert('SKU already exists. Please use a different SKU.');
+                        return;
+                    }
+                    products.push(productData);
+                }
+
+                localStorage.setItem('inventory.products', JSON.stringify(products));
+
+                if (productModal) {
+                    productModal.hide();
+                }
+                loadProducts();
+                alert('Product saved successfully!');
             })
             .finally(() => {
                 // Reset button state
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = 'Save Product';
-                }
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
             });
-            
+
         } catch (error) {
             console.error('Error saving product:', error);
             alert('Error saving product. Please try again.');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
         }
     }
 
@@ -812,100 +611,83 @@
         loadProducts();
     }
 
-    // Batch management function
-    window.manageBatches = function(productId) {
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        const product = products.find(p => p.id === productId);
-        
-        if (!product) {
-            alert('Product not found');
-            return;
-        }
-        
-        if (!product.trackBatches) {
-            alert('Batch tracking is not enabled for this product. Edit the product to enable batch tracking first.');
-            return;
-        }
-        
-        // This would open a batch management modal - placeholder for now
-        alert(`Batch management for ${product.name} will be implemented in the next update.`);
+    window.adjustStock = function(productId) {
+        alert(`Stock adjustment for product ${productId} will open the adjustments modal in the next update.`);
     }
 
-    // Show stock alert notifications when stock levels change
-    function checkStockAlerts(product) {
-        const currentStock = calculateTotalStock(product);
-        const reorderLevel = product.reorderLevel || product.minStock || 10;
-        
-        if (currentStock <= 0) {
-            window.showStockToast && window.showStockToast(`⚠️ ${product.name} (${product.sku}) is out of stock!`, 'error');
-        } else if (currentStock <= reorderLevel) {
-            window.showStockToast && window.showStockToast(`⚠️ ${product.name} (${product.sku}) is below reorder level (${currentStock} left)`, 'warning');
-        }
-    }
+    // Event listeners setup
+    function setupEventListeners() {
+        console.log('🔧 Setting up Product Master event listeners...');
 
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', function() {
         const btnAddProduct = document.getElementById('btnAddProduct');
         const productSearch = document.getElementById('productSearch');
         const categoryFilter = document.getElementById('categoryFilter');
         const statusFilter = document.getElementById('statusFilter');
-        const productModal = document.getElementById('productModal');
-        
-        console.log('🔧 Event listeners setup starting...');
+
         console.log('🔧 Add Product Button Element:', btnAddProduct);
-        
+
         if (btnAddProduct) {
             console.log('🔧 Attaching click event listener to Add Product button...');
-            btnAddProduct.addEventListener('click', function(event) {
-                event.preventDefault();
-                console.log('🎯 ADD PRODUCT BUTTON CLICKED!');
-                addProduct();
+            btnAddProduct.addEventListener('click', function(e) {
+                console.log('🔧 Add Product button clicked!');
+                e.preventDefault();
+                showAddProductModal();
             });
-            console.log('✅ Event listener attached successfully');
+            console.log('🔧 Add Product button event listener attached successfully');
         } else {
-            console.error('❌ CRITICAL: Add Product button not found!');
+            console.error('🔧 Add Product button not found!');
         }
 
-        // Global click handler for the add product button
-        document.addEventListener('click', function(event) {
-            if (event.target && event.target.id === 'btnAddProduct') {
-                event.preventDefault();
-                console.log('🎯 Global handler: ADD PRODUCT BUTTON CLICKED!');
-                addProduct();
-            }
-        });
-        if (productSearch) productSearch.addEventListener('input', loadProducts);
-        if (categoryFilter) categoryFilter.addEventListener('change', loadProducts);
-        if (statusFilter) statusFilter.addEventListener('change', loadProducts);
-        
-        // Ensure dropdowns are populated whenever modal is shown
-        if (productModal) {
-            productModal.addEventListener('show.bs.modal', function () {
-                // Small delay to ensure modal is fully rendered
-                setTimeout(() => {
-                    if (!editingProductId) {
-                        // For add product, populate with no selection
-                        populateProductDropdowns();
-                    }
-                    // For edit product, populateProductDropdowns is called in editProduct function
-                }, 50);
+        // Search and filter event listeners
+        if (productSearch) {
+            productSearch.addEventListener('input', function() {
+                loadProducts();
             });
         }
-        
-        // Initialize
-        console.log('🔧 Initializing product master components...');
-        loadCategories();
-        loadLocations();
-        loadProducts();
-        
-        // Final status check
-        setTimeout(() => {
-            console.log('🔧 Post-initialization status check:');
-            console.log('🔧 Add Product button after init:', document.getElementById('btnAddProduct'));
-            console.log('🔧 Modal element after init:', document.getElementById('productModal'));
-        }, 1000);
-    });
-    
+
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', function() {
+                loadProducts();
+            });
+        }
+
+        if (statusFilter) {
+            statusFilter.addEventListener('change', function() {
+                loadProducts();
+            });
+        }
+
+        console.log('🔧 All event listeners set up successfully');
+    }
+
+    // Initialize everything when DOM is ready
+    function initializeProductMaster() {
+        console.log('🔧 Initializing Product Master...');
+
+        // Ensure DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setupEventListeners();
+                loadCategories();
+                loadLocations();
+                loadProducts();
+            });
+        } else {
+            // DOM is already ready
+            setTimeout(() => {
+                setupEventListeners();
+                loadCategories();
+                loadLocations();
+                loadProducts();
+            }, 100);
+        }
+
+        console.log('🔧 Product Master initialization complete');
+    }
+
+    // Initialize
+    initializeProductMaster();
+
     console.log('🚀 Product Master Script Loading - END');
 })();
 </script>
