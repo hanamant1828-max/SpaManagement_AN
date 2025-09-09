@@ -196,11 +196,17 @@ def edit_product(product_id):
                     return float(value)
                 except (ValueError, TypeError):
                     return default
+                    
+            # Validation first
+            name = request.form.get('name')
+            if not name or not name.strip():
+                flash('Product name is required', 'danger')
+                return redirect(request.url)
 
             product_data = {
-                'name': request.form.get('name').strip(),
+                'name': name.strip(),
                 'description': request.form.get('description', '').strip(),
-                'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
+                'category_id': int(request.form.get('category_id')) if request.form.get('category_id') and request.form.get('category_id').strip() else None,
                 'supplier_id': None,  # Remove supplier requirement
                 'min_stock_level': safe_float(request.form.get('min_stock_level'), 10.0),
                 'max_stock_level': safe_float(request.form.get('max_stock_level'), 100.0),
@@ -722,13 +728,21 @@ def api_get_product(product_id):
     if product:
         return jsonify({
             'id': product.id,
-            'sku': product.sku,
-            'name': product.name,
-            'current_stock': float(product.current_stock),
-            'min_stock_level': float(product.min_stock_level),
-            'cost_price': float(product.cost_price),
-            'selling_price': float(product.selling_price),
-            'unit_of_measure': product.unit_of_measure,
+            'sku': product.sku or '',
+            'name': product.name or '',
+            'description': product.description or '',
+            'category_id': product.category_id,
+            'current_stock': float(product.current_stock or 0),
+            'min_stock_level': float(product.min_stock_level or 10),
+            'max_stock_level': float(product.max_stock_level or 100),
+            'reorder_point': float(product.reorder_point or 20),
+            'cost_price': float(product.cost_price or 0),
+            'selling_price': float(product.selling_price or 0),
+            'unit_of_measure': product.unit_of_measure or 'pcs',
+            'barcode': product.barcode or '',
+            'location': product.location or '',
+            'is_service_item': bool(product.is_service_item),
+            'is_retail_item': bool(product.is_retail_item),
             'stock_status': product.stock_status
         })
     return jsonify({'error': 'Product not found'}), 404

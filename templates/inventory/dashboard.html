@@ -1087,6 +1087,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const formData = new FormData(this);
         const productId = document.getElementById('editProductId').value;
+        
+        // Validate required fields
+        const name = formData.get('name');
+        if (!name || !name.trim()) {
+            alert('Product name is required');
+            return;
+        }
+
+        // Ensure numeric fields have valid values
+        const numericFields = ['min_stock_level', 'max_stock_level', 'reorder_point', 'cost_price', 'selling_price'];
+        numericFields.forEach(field => {
+            const value = formData.get(field);
+            if (!value || value === '' || isNaN(value)) {
+                const defaultValues = {
+                    'min_stock_level': '10',
+                    'max_stock_level': '100', 
+                    'reorder_point': '20',
+                    'cost_price': '0',
+                    'selling_price': '0'
+                };
+                formData.set(field, defaultValues[field]);
+            }
+        });
 
         fetch(`/inventory/products/${productId}/edit`, {
             method: 'POST',
@@ -1099,12 +1122,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadProducts();
                 alert('Product updated successfully');
             } else {
-                alert('Error updating product');
+                return response.text().then(text => {
+                    throw new Error(text || 'Error updating product');
+                });
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error updating product');
+            alert('Error updating product: ' + error.message);
         });
     });
 
@@ -1243,31 +1268,41 @@ function clearFilters() {
 
 function editProduct(id) {
     // Find product by ID and populate edit modal
-    fetch(`/api/inventory/products/${id}`)
-        .then(response => response.json())
+    fetch(`/api/inventory/product/${id}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(product => {
-            document.getElementById('editProductId').value = product.id;
-            document.getElementById('editSku').value = product.sku;
-            document.getElementById('editName').value = product.name;
+            if (product.error) {
+                throw new Error(product.error);
+            }
+            
+            // Safely populate form fields with fallback values
+            document.getElementById('editProductId').value = product.id || '';
+            document.getElementById('editSku').value = product.sku || '';
+            document.getElementById('editName').value = product.name || '';
             document.getElementById('editDescription').value = product.description || '';
             document.getElementById('editCategoryId').value = product.category_id || '';
-            document.getElementById('editUnitOfMeasure').value = product.unit_of_measure;
-            document.getElementById('editReorderPoint').value = product.reorder_point;
-            document.getElementById('editMinStockLevel').value = product.min_stock_level;
-            document.getElementById('editMaxStockLevel').value = product.max_stock_level;
-            document.getElementById('editCostPrice').value = product.cost_price;
-            document.getElementById('editSellingPrice').value = product.selling_price;
+            document.getElementById('editUnitOfMeasure').value = product.unit_of_measure || 'pcs';
+            document.getElementById('editReorderPoint').value = product.reorder_point || 20;
+            document.getElementById('editMinStockLevel').value = product.min_stock_level || 10;
+            document.getElementById('editMaxStockLevel').value = product.max_stock_level || 100;
+            document.getElementById('editCostPrice').value = product.cost_price || 0;
+            document.getElementById('editSellingPrice').value = product.selling_price || 0;
             document.getElementById('editBarcode').value = product.barcode || '';
             document.getElementById('editLocation').value = product.location || '';
-            document.getElementById('editIsServiceItem').checked = product.is_service_item;
-            document.getElementById('editIsRetailItem').checked = product.is_retail_item;
+            document.getElementById('editIsServiceItem').checked = product.is_service_item || false;
+            document.getElementById('editIsRetailItem').checked = product.is_retail_item || false;
 
             const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
             editModal.show();
         })
         .catch(error => {
             console.error('Error loading product:', error);
-            alert('Error loading product details');
+            alert('Error loading product details: ' + error.message);
         });
 }
 
