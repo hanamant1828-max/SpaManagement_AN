@@ -439,14 +439,14 @@
     function populateProductDropdowns(selectedCategoryId = null, selectedLocationId = null) {
         console.log('Populating product modal dropdowns...');
         
-        // Load categories
+        // Initialize default categories with both localStorage and database-compatible format
         let categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
         if (categories.length === 0) {
             categories = [
-                { id: 'cat1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true },
-                { id: 'cat2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true },
-                { id: 'cat3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true },
-                { id: 'cat4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true }
+                { id: '1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true },
+                { id: '2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true },
+                { id: '3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true },
+                { id: '4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true }
             ];
             localStorage.setItem('inventory.categories', JSON.stringify(categories));
         }
@@ -455,19 +455,20 @@
         const categoryDropdown = document.getElementById('productCategory');
         if (categoryDropdown) {
             categoryDropdown.innerHTML = '<option value="">Select category</option>';
-            categories.filter(cat => cat.is_active !== false).forEach(category => {
+            const activeCategories = categories.filter(cat => cat.is_active !== false);
+            activeCategories.forEach(category => {
                 const selected = (category.id == selectedCategoryId) ? 'selected' : '';
                 categoryDropdown.innerHTML += `<option value="${category.id}" ${selected}>${category.name}</option>`;
             });
+            console.log(`Categories populated: ${activeCategories.length} active categories`);
         }
         
-        // Load locations
+        // Initialize default locations with database-compatible format  
         let locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
         if (locations.length === 0) {
             locations = [
-                { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active', address: 'Main location' },
-                { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active', address: 'Back storage area' },
-                { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active', address: 'First treatment room' }
+                { id: 'main-branch', name: 'Main Branch', type: 'branch', status: 'active', address: 'Main Street, Downtown' },
+                { id: 'storage-room', name: 'Storage Room', type: 'room', status: 'active', address: 'Back Office Area' }
             ];
             localStorage.setItem('inventory.locations', JSON.stringify(locations));
         }
@@ -476,43 +477,58 @@
         const locationDropdown = document.getElementById('productPrimaryLocation');
         if (locationDropdown) {
             locationDropdown.innerHTML = '<option value="">Select primary location</option>';
-            locations.filter(loc => loc.status === 'active').forEach(location => {
+            const activeLocations = locations.filter(loc => loc.status === 'active');
+            activeLocations.forEach(location => {
                 const selected = (location.id == selectedLocationId) ? 'selected' : '';
                 locationDropdown.innerHTML += `<option value="${location.id}" ${selected}>${location.name}</option>`;
             });
+            console.log(`Locations populated: ${activeLocations.length} active locations`);
         }
         
-        console.log(`Dropdowns populated - Categories: ${categories.length}, Locations: ${locations.length}`);
+        console.log(`Dropdowns populated successfully - Categories: ${categories.length}, Locations: ${locations.length}`);
     }
 
     function addProduct() {
-        // Validation first - check if categories and locations exist
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        console.log('Add Product button clicked');
         
-        const activeCategories = categories.filter(cat => cat.is_active !== false);
-        const activeLocations = locations.filter(loc => loc.status === 'active');
-        
-        if (activeCategories.length === 0) {
-            alert('Please create at least one category before adding products.');
-            return;
-        }
-        
-        if (activeLocations.length === 0) {
-            alert('Please create at least one location before adding products.');
-            return;
-        }
-        
+        // Reset editing state
         editingProductId = null;
+        
+        // Set modal title
         document.getElementById('productModalTitle').textContent = 'Add Product';
+        
+        // Reset form
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
+        
+        // Set default values for new product
+        document.getElementById('productStock').value = '0';
+        document.getElementById('productMinStock').value = '10';
+        document.getElementById('productReorderLevel').value = '0';
+        document.getElementById('productCostPrice').value = '0';
+        document.getElementById('productUnit').value = 'pcs';
+        
+        // Enable SKU field for new product
+        document.getElementById('productSku').readOnly = false;
         
         // Populate dropdowns with fresh data
         populateProductDropdowns();
         
-        const modal = new bootstrap.Modal(document.getElementById('productModal'));
-        modal.show();
+        // Show modal
+        try {
+            const modalElement = document.getElementById('productModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+                console.log('Modal opened successfully');
+            } else {
+                console.error('Modal element not found');
+                alert('Error: Modal not found. Please refresh the page.');
+            }
+        } catch (error) {
+            console.error('Error opening modal:', error);
+            alert('Error opening product form. Please refresh the page.');
+        }
     }
 
     window.editProduct = function(productId) {
