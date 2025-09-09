@@ -248,7 +248,7 @@
         `;
     }
 
-    function changePage(page) {
+    window.changePage = function(page) {
         const totalItems = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]').length;
         const totalPages = Math.ceil(totalItems / pageSize);
         
@@ -289,7 +289,7 @@
         modal.show();
     }
 
-    function saveAdjustment() {
+    window.saveAdjustment = function() {
         const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         
@@ -336,7 +336,7 @@
         loadAdjustments();
     }
 
-    function deleteAdjustment(adjustmentId) {
+    window.deleteAdjustment = function(adjustmentId) {
         if (confirm('Are you sure you want to delete this adjustment? This will not reverse stock changes.')) {
             const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
             const filteredAdjustments = adjustments.filter(a => a.id !== adjustmentId);

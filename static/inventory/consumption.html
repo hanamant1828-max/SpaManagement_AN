@@ -253,7 +253,7 @@
         `;
     }
 
-    function changePage(page) {
+    window.changePage = function(page) {
         const totalItems = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]').length;
         const totalPages = Math.ceil(totalItems / pageSize);
         
@@ -299,7 +299,7 @@
         modal.show();
     }
 
-    function saveConsumption() {
+    window.saveConsumption = function() {
         const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         
@@ -340,7 +340,7 @@
         loadConsumptions();
     }
 
-    function deleteConsumption(consumptionId) {
+    window.deleteConsumption = function(consumptionId) {
         if (confirm('Are you sure you want to delete this consumption record? This will not restore stock levels.')) {
             const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
             const filteredConsumptions = consumptions.filter(c => c.id !== consumptionId);

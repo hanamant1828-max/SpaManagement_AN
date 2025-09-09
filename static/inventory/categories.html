@@ -140,7 +140,7 @@
         modal.show();
     }
 
-    function editCategory(categoryId) {
+    window.editCategory = function(categoryId) {
         const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
         const category = categories.find(c => c.id === categoryId);
         
@@ -159,7 +159,7 @@
         }
     }
 
-    function saveCategory() {
+    window.saveCategory = function() {
         const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
         
         const categoryData = {
@@ -189,7 +189,7 @@
         loadCategories();
     }
 
-    function deleteCategory(categoryId) {
+    window.deleteCategory = function(categoryId) {
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         const productCount = products.filter(p => p.categoryId === categoryId).length;
         
