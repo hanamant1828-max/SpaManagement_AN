@@ -1753,15 +1753,274 @@ function saveEditProduct() {
     });
 }
 
-function deleteProduct(id) { 
-    showToast('Delete product functionality to be implemented', 'info'); 
+function deleteProduct(id) {
+    // Find product name first
+    fetch(`/api/inventory/product/${id}`)
+    .then(response => response.json())
+    .then(product => {
+        const productName = product.name || 'Unknown Product';
+        
+        Swal.fire({
+            title: 'Delete Product',
+            text: `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Proceed with deletion
+                fetch(`/api/inventory/products/${id}/delete`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`Product "${productName}" deleted successfully`, 'success');
+                        loadProducts(); // Refresh table
+                    } else {
+                        throw new Error(data.error || 'Failed to delete product');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting product:', error);
+                    showToast(`Error: ${error.message}`, 'error');
+                });
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching product details:', error);
+        // Fallback confirmation without product name
+        Swal.fire({
+            title: 'Delete Product',
+            text: 'Are you sure you want to delete this product? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/inventory/products/${id}/delete`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Product deleted successfully', 'success');
+                        loadProducts();
+                    } else {
+                        throw new Error(data.error || 'Failed to delete product');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting product:', error);
+                    showToast(`Error: ${error.message}`, 'error');
+                });
+            }
+        });
+    });
 }
-function viewCategory(id) { showToast('View category functionality to be implemented', 'info'); }
-function editCategory(id) { showToast('Edit category functionality to be implemented', 'info'); }
-function deleteCategory(id) { showToast('Delete category functionality to be implemented', 'info'); }
-function viewConsumption(id) { showToast('View consumption functionality to be implemented', 'info'); }
-function editConsumption(id) { showToast('Edit consumption functionality to be implemented', 'info'); }
-function deleteConsumption(id) { showToast('Delete consumption functionality to be implemented', 'info'); }
+function viewCategory(id) {
+    fetch(`/api/inventory/categories/${id}`)
+    .then(response => response.json())
+    .then(category => {
+        if (category.error) {
+            throw new Error(category.error);
+        }
+        
+        // Populate view modal
+        document.getElementById('viewCategoryName').textContent = category.name;
+        document.getElementById('viewCategoryDescription').textContent = category.description || 'No description';
+        document.getElementById('viewCategoryColor').textContent = category.color_code;
+        document.getElementById('viewCategoryColorPreview').style.backgroundColor = category.color_code;
+        document.getElementById('viewCategoryProductCount').textContent = category.product_count || 0;
+        document.getElementById('viewCategoryCreatedDate').textContent = category.created_at ? new Date(category.created_at).toLocaleDateString() : 'N/A';
+        document.getElementById('viewCategoryStatus').textContent = category.is_active ? 'Active' : 'Inactive';
+        
+        const modal = new bootstrap.Modal(document.getElementById('viewCategoryModal'));
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error loading category:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
+
+function editCategory(id) {
+    fetch(`/api/inventory/categories/${id}`)
+    .then(response => response.json())
+    .then(category => {
+        if (category.error) {
+            throw new Error(category.error);
+        }
+        
+        // Populate edit modal
+        document.getElementById('editCategoryId').value = category.id;
+        document.getElementById('editCategoryName').value = category.name;
+        document.getElementById('editCategoryDescription').value = category.description || '';
+        document.getElementById('editCategoryColor').value = category.color_code;
+        document.getElementById('editCategoryActive').checked = category.is_active;
+        
+        const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error loading category:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
+
+function deleteCategory(id) {
+    fetch(`/api/inventory/categories/${id}`)
+    .then(response => response.json())
+    .then(category => {
+        const categoryName = category.name || 'Unknown Category';
+        
+        Swal.fire({
+            title: 'Delete Category',
+            text: `Are you sure you want to delete "${categoryName}"? This will affect all products in this category.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/inventory/categories/${id}/delete`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`Category "${categoryName}" deleted successfully`, 'success');
+                        location.reload(); // Refresh page since categories are server-rendered
+                    } else {
+                        throw new Error(data.error || 'Failed to delete category');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting category:', error);
+                    showToast(`Error: ${error.message}`, 'error');
+                });
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching category details:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
+function viewConsumption(id) {
+    fetch(`/api/inventory/consumption/${id}`)
+    .then(response => response.json())
+    .then(consumption => {
+        if (consumption.error) {
+            throw new Error(consumption.error);
+        }
+        
+        // Populate view modal
+        document.getElementById('viewConsumptionDate').textContent = consumption.consumption_date;
+        document.getElementById('viewConsumptionProduct').textContent = consumption.product_name;
+        document.getElementById('viewConsumptionSKU').textContent = consumption.product_sku;
+        document.getElementById('viewConsumptionQuantity').textContent = consumption.quantity_used;
+        document.getElementById('viewConsumptionUnit').textContent = consumption.unit_of_measure;
+        document.getElementById('viewConsumptionIssuedTo').textContent = consumption.issued_to;
+        document.getElementById('viewConsumptionReference').textContent = consumption.reference_doc_no || 'N/A';
+        document.getElementById('viewConsumptionNotes').textContent = consumption.notes || 'No notes';
+        document.getElementById('viewConsumptionCreatedBy').textContent = consumption.created_by || 'N/A';
+        document.getElementById('viewConsumptionCreatedDate').textContent = consumption.created_at ? new Date(consumption.created_at).toLocaleDateString() : 'N/A';
+        
+        const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error loading consumption:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
+
+function editConsumption(id) {
+    fetch(`/api/inventory/consumption/${id}`)
+    .then(response => response.json())
+    .then(consumption => {
+        if (consumption.error) {
+            throw new Error(consumption.error);
+        }
+        
+        // Populate edit modal
+        document.getElementById('editConsumptionId').value = consumption.id;
+        document.getElementById('editConsumptionDate').value = consumption.consumption_date;
+        document.getElementById('editConsumptionProduct').value = consumption.product_id;
+        document.getElementById('editConsumptionQuantity').value = consumption.quantity_used;
+        document.getElementById('editConsumptionIssuedTo').value = consumption.issued_to;
+        document.getElementById('editConsumptionReference').value = consumption.reference_doc_no || '';
+        document.getElementById('editConsumptionNotes').value = consumption.notes || '';
+        
+        const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error loading consumption:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
+
+function deleteConsumption(id) {
+    fetch(`/api/inventory/consumption/${id}`)
+    .then(response => response.json())
+    .then(consumption => {
+        const productName = consumption.product_name || 'Unknown Product';
+        
+        Swal.fire({
+            title: 'Delete Consumption Record',
+            html: `Are you sure you want to delete this consumption record?<br><br>
+                   <strong>Product:</strong> ${productName}<br>
+                   <strong>Quantity:</strong> ${consumption.quantity_used} ${consumption.unit_of_measure}<br>
+                   <strong>Date:</strong> ${consumption.consumption_date}<br><br>
+                   <em>This will restore the stock and create a reversal movement.</em>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/inventory/consumption/${id}/delete`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`Consumption record deleted and stock restored`, 'success');
+                        loadConsumption(); // Refresh table
+                        loadProducts(); // Refresh product table if visible
+                    } else {
+                        throw new Error(data.error || 'Failed to delete consumption record');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting consumption:', error);
+                    showToast(`Error: ${error.message}`, 'error');
+                });
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching consumption details:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
 
 // Adjustment functions
 function viewAdjustment(id) {
@@ -1808,29 +2067,511 @@ function viewAdjustment(id) {
 }
 
 function editAdjustment(id) {
-    showToast('Edit adjustment functionality to be implemented', 'info');
+    fetch(`/api/inventory/adjustments/${id}`)
+    .then(response => response.json())
+    .then(adjustment => {
+        if (adjustment.error) {
+            throw new Error(adjustment.error);
+        }
+        
+        // Populate edit modal
+        document.getElementById('editAdjustmentId').value = adjustment.id;
+        document.getElementById('editAdjustmentDate').value = adjustment.adjustment_date;
+        document.getElementById('editAdjustmentReference').value = adjustment.reference_id || '';
+        document.getElementById('editAdjustmentRemarks').value = adjustment.remarks || '';
+        
+        const modal = new bootstrap.Modal(document.getElementById('editAdjustmentModal'));
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error loading adjustment:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
 }
 
 function deleteAdjustment(id) {
-    if (confirm('Are you sure you want to delete this adjustment? This will reverse all stock changes made by this adjustment.')) {
-        fetch(`/api/inventory/adjustments/${id}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast(data.message, 'success');
-                loadAdjustments();
-                loadProducts(); // Refresh product list to show updated stock
-            } else {
-                throw new Error(data.error || 'Failed to delete adjustment');
+    fetch(`/api/inventory/adjustments/${id}`)
+    .then(response => response.json())
+    .then(adjustment => {
+        const referenceId = adjustment.reference_id || 'N/A';
+        
+        Swal.fire({
+            title: 'Delete Adjustment',
+            html: `Are you sure you want to delete this inventory adjustment?<br><br>
+                   <strong>Reference ID:</strong> ${referenceId}<br>
+                   <strong>Date:</strong> ${adjustment.adjustment_date}<br>
+                   <strong>Items:</strong> ${adjustment.items_count || 0}<br><br>
+                   <em>This will reverse all stock changes and create reversal movements.</em>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/inventory/adjustments/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Adjustment deleted and stock reversed successfully', 'success');
+                        loadAdjustments();
+                        loadProducts(); // Refresh product list to show updated stock
+                    } else {
+                        throw new Error(data.error || 'Failed to delete adjustment');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting adjustment:', error);
+                    showToast(`Error: ${error.message}`, 'error');
+                });
             }
-        })
-        .catch(error => {
-            console.error('Error deleting adjustment:', error);
-            showToast(`Error: ${error.message}`, 'error');
         });
-    }
+    })
+    .catch(error => {
+        console.error('Error fetching adjustment details:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
+
+// View Product Modal Functions
+function viewProduct(id) {
+    fetch(`/api/inventory/product/${id}`)
+    .then(response => response.json())
+    .then(product => {
+        if (product.error) {
+            throw new Error(product.error);
+        }
+        
+        // Populate view modal
+        document.getElementById('viewProductSKU').textContent = product.sku || 'N/A';
+        document.getElementById('viewProductName').textContent = product.name || 'N/A';
+        document.getElementById('viewProductDescription').textContent = product.description || 'No description';
+        document.getElementById('viewProductCategory').textContent = product.category || 'Uncategorized';
+        document.getElementById('viewProductUnit').textContent = product.unit_of_measure || 'pcs';
+        document.getElementById('viewProductCurrentStock').textContent = product.current_stock || 0;
+        document.getElementById('viewProductReorderLevel').textContent = product.reorder_point || 0;
+        document.getElementById('viewProductMinStock').textContent = product.min_stock_level || 0;
+        document.getElementById('viewProductMaxStock').textContent = product.max_stock_level || 0;
+        document.getElementById('viewProductCostPrice').textContent = `$${(product.cost_price || 0).toFixed(2)}`;
+        document.getElementById('viewProductSellingPrice').textContent = `$${(product.selling_price || 0).toFixed(2)}`;
+        document.getElementById('viewProductBarcode').textContent = product.barcode || 'N/A';
+        document.getElementById('viewProductLocation').textContent = product.location || 'N/A';
+        document.getElementById('viewProductStatus').textContent = (product.stock_status || 'unknown').replace('_', ' ').toUpperCase();
+        document.getElementById('viewProductServiceItem').textContent = product.is_service_item ? 'Yes' : 'No';
+        document.getElementById('viewProductRetailItem').textContent = product.is_retail_item ? 'Yes' : 'No';
+        
+        const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
+        modal.show();
+    })
+    .catch(error => {
+        console.error('Error loading product:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    });
+}
+
+// Save Category Functions
+function saveEditCategory() {
+    const form = document.getElementById('editCategoryForm');
+    const formData = new FormData(form);
+    const categoryId = document.getElementById('editCategoryId').value;
+    
+    // Add loading state to button
+    const saveButton = document.querySelector('#editCategoryModal .btn-primary');
+    const originalContent = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    saveButton.disabled = true;
+    
+    fetch(`/api/inventory/categories/${categoryId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
+            location.reload(); // Refresh page since categories are server-rendered
+        } else {
+            throw new Error(data.error || 'Failed to update category');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating category:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+    });
+}
+
+function saveEditConsumption() {
+    const form = document.getElementById('editConsumptionForm');
+    const formData = new FormData(form);
+    const consumptionId = document.getElementById('editConsumptionId').value;
+    
+    // Add loading state to button
+    const saveButton = document.querySelector('#editConsumptionModal .btn-primary');
+    const originalContent = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    saveButton.disabled = true;
+    
+    fetch(`/api/inventory/consumption/${consumptionId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal')).hide();
+            loadConsumption(); // Refresh table
+        } else {
+            throw new Error(data.error || 'Failed to update consumption record');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating consumption:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+    });
+}
+
+function saveEditAdjustment() {
+    const form = document.getElementById('editAdjustmentForm');
+    const formData = new FormData(form);
+    const adjustmentId = document.getElementById('editAdjustmentId').value;
+    
+    // Add loading state to button
+    const saveButton = document.querySelector('#editAdjustmentModal .btn-primary');
+    const originalContent = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+    saveButton.disabled = true;
+    
+    fetch(`/api/inventory/adjustments/${adjustmentId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editAdjustmentModal')).hide();
+            loadAdjustments(); // Refresh table
+        } else {
+            throw new Error(data.error || 'Failed to update adjustment');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating adjustment:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+    });
 }
 </script>
+
+<!-- View Product Modal -->
+<div class="modal fade" id="viewProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>SKU:</strong>
+                        <p id="viewProductSKU" class="mb-0">N/A</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Product Name:</strong>
+                        <p id="viewProductName" class="mb-0">N/A</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Description:</strong>
+                        <p id="viewProductDescription" class="mb-0">No description</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Category:</strong>
+                        <p id="viewProductCategory" class="mb-0">Uncategorized</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Unit of Measure:</strong>
+                        <p id="viewProductUnit" class="mb-0">pcs</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Current Stock:</strong>
+                        <p id="viewProductCurrentStock" class="mb-0">0</p>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Reorder Level:</strong>
+                        <p id="viewProductReorderLevel" class="mb-0">0</p>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Status:</strong>
+                        <p id="viewProductStatus" class="mb-0">UNKNOWN</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Min Stock Level:</strong>
+                        <p id="viewProductMinStock" class="mb-0">0</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Max Stock Level:</strong>
+                        <p id="viewProductMaxStock" class="mb-0">0</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Cost Price:</strong>
+                        <p id="viewProductCostPrice" class="mb-0">$0.00</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Selling Price:</strong>
+                        <p id="viewProductSellingPrice" class="mb-0">$0.00</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Barcode:</strong>
+                        <p id="viewProductBarcode" class="mb-0">N/A</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Location:</strong>
+                        <p id="viewProductLocation" class="mb-0">N/A</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Used in Services:</strong>
+                        <p id="viewProductServiceItem" class="mb-0">No</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Retail Item:</strong>
+                        <p id="viewProductRetailItem" class="mb-0">No</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Category Modal -->
+<div class="modal fade" id="viewCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Category Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Category Name:</strong>
+                    <p id="viewCategoryName" class="mb-0">N/A</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p id="viewCategoryDescription" class="mb-0">No description</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Color:</strong>
+                    <div class="d-flex align-items-center">
+                        <div id="viewCategoryColorPreview" class="color-preview me-2" style="width: 20px; height: 20px; border-radius: 3px; display: inline-block;"></div>
+                        <span id="viewCategoryColor">#000000</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Products Count:</strong>
+                    <p id="viewCategoryProductCount" class="mb-0">0</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Status:</strong>
+                    <p id="viewCategoryStatus" class="mb-0">Active</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Created Date:</strong>
+                    <p id="viewCategoryCreatedDate" class="mb-0">N/A</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCategoryForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editCategoryId" name="category_id">
+                    <div class="mb-3">
+                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" id="editCategoryName" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea id="editCategoryDescription" name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Color</label>
+                        <input type="color" id="editCategoryColor" name="color_code" class="form-control form-control-color">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" id="editCategoryActive" name="is_active" class="form-check-input" checked>
+                            <label for="editCategoryActive" class="form-check-label">Active</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditCategory()">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Consumption Modal -->
+<div class="modal fade" id="viewConsumptionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Consumption Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Date:</strong>
+                        <p id="viewConsumptionDate" class="mb-0">N/A</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Product:</strong>
+                        <p id="viewConsumptionProduct" class="mb-0">N/A</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>SKU:</strong>
+                        <p id="viewConsumptionSKU" class="mb-0">N/A</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Unit:</strong>
+                        <p id="viewConsumptionUnit" class="mb-0">N/A</p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Quantity Used:</strong>
+                    <p id="viewConsumptionQuantity" class="mb-0">0</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Issued To:</strong>
+                    <p id="viewConsumptionIssuedTo" class="mb-0">N/A</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Reference:</strong>
+                    <p id="viewConsumptionReference" class="mb-0">N/A</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Notes:</strong>
+                    <p id="viewConsumptionNotes" class="mb-0">No notes</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Created By:</strong>
+                        <p id="viewConsumptionCreatedBy" class="mb-0">N/A</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Created Date:</strong>
+                        <p id="viewConsumptionCreatedDate" class="mb-0">N/A</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Consumption Modal -->
+<div class="modal fade" id="editConsumptionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Consumption</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editConsumptionForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editConsumptionId" name="consumption_id">
+                    <div class="mb-3">
+                        <label class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" id="editConsumptionDate" name="consumption_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Product <span class="text-danger">*</span></label>
+                        <select id="editConsumptionProduct" name="product_id" class="form-select" required>
+                            <option value="">Select Product</option>
+                            <!-- Products will be loaded dynamically -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity Used <span class="text-danger">*</span></label>
+                        <input type="number" id="editConsumptionQuantity" name="quantity_used" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Issued To <span class="text-danger">*</span></label>
+                        <input type="text" id="editConsumptionIssuedTo" name="issued_to" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reference Document</label>
+                        <input type="text" id="editConsumptionReference" name="reference_doc_no" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea id="editConsumptionNotes" name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditConsumption()">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
