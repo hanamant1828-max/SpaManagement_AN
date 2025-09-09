@@ -1,0 +1,99 @@
+Prompt — Fix Consumption date error and implement Add / Edit / Delete
+
+“In the Consumption tab, implement complete CRUD using Bootstrap modals and fix the date parsing error time data '' does not match format '%Y-%m-%d'.
+
+1) Date field: make reliable and backend-compatible
+
+Use <input type="date"> for Consumption Date so the browser returns YYYY-MM-DD.
+
+Change placeholder to YYYY-MM-DD (not dd-mm-yyyy).
+
+Frontend: block submit if date is empty; show inline message: “Please select a date.”
+
+Backend: accept only YYYY-MM-DD; if UI ever sends another format, convert to ISO before calling the API (new Date(ui).toISOString().slice(0,10)).
+
+Add defensive default: if date missing, reject with a friendly error; never let an empty string reach the parser.
+
+2) Add Consumption (Create)
+
+Modal fields: Product (required select), Consumption Date (required, type=date), Quantity Used (required, >0 and ≤ Available), Issued To (required), Reference/Doc No. (optional), Notes (optional).
+
+When product selected, show Available (read-only) fetched from Product Master.
+
+On Save:
+
+Validate inputs; show inline messages.
+
+Create a record { id, productId, date, qty, issuedTo, referenceId, notes, createdBy, createdAt }.
+
+Deduct stock from Product Master; prevent negative stock.
+
+Append a Stock Movement: { type: 'Consumption', productId, qty, date, referenceId }.
+
+Persist to storage/API and refresh table + dashboard KPIs + movements without page reload.
+
+Toast success; show clear error toast on failure.
+
+3) View Consumption (read-only)
+
+Eye button opens a read-only modal showing exactly the stored fields (no extra/computed text).
+
+4) Edit Consumption
+
+Pencil button opens modal pre-filled with the record.
+
+On save:
+
+Compute delta = newQty - oldQty.
+
+Adjust product stock by -delta (e.g., if increased from 1→3, deduct 2 more; if decreased 3→1, add back 2).
+
+Re-validate that stock never becomes negative.
+
+Update the record and create a Stock Movement note like “Consumption Edited (±delta)”.
+
+Refresh table, KPIs, and movements; toast success.
+
+5) Delete Consumption
+
+Trash button → confirmation modal: “Delete consumption for <Product> on <Date>? This will restore stock.”
+
+On confirm:
+
+Restore stock by adding back qty to the product.
+
+Delete the record.
+
+Log Stock Movement: “Consumption Deleted — Stock Restored”.
+
+Refresh UI and toast success.
+
+6) Data layer & keys
+
+Use the existing keys/APIs:
+
+Product Master: inventory.products (or /api/products)
+
+Consumptions: inventory.consumptions (or /api/consumptions)
+
+Movements: inventory.movements
+
+Map product fields consistently: { id, sku, name, uom, stock }.
+
+Defensive parsing of localStorage with try/catch and safe defaults.
+
+7) Acceptance criteria
+
+Date input no longer throws the %Y-%m-%d parse error; UI enforces selection.
+
+Add/Edit/Delete all work via modals; no page navigation.
+
+Stock adjusts correctly on create, on edit (delta), and on delete (restore).
+
+View modal shows only stored fields (no extra template text).
+
+Tables, KPIs, and Recent Stock Movements update immediately.
+
+Clear success/error toasts; no console errors.
+
+Note: Remove any unrelated/leftover code (e.g., camera/face recognition logs) from this module.
