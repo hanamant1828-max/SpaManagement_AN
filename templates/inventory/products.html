@@ -401,17 +401,18 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             body: formData
         })
-        .then(response => {
-            if (response.ok) {
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert(data.message);
                 // Close modal and reload page
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
                 modal.hide();
                 location.reload();
             } else {
-                // Handle error
-                response.text().then(text => {
-                    alert('Error adding product. Please try again.');
-                });
+                // Show error message
+                alert(data.error || 'Error adding product. Please try again.');
             }
         })
         .catch(error => {

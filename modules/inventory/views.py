@@ -96,12 +96,19 @@ def inventory_products():
                              'search': search_term
                          })
 
-@app.route('/inventory/products/add', methods=['POST'])
+@app.route('/inventory/products/add', methods=['GET', 'POST'])
 @login_required
 def add_product():
     """Add new product"""
     if not current_user.can_access('inventory'):
+        if request.method == 'GET':
+            flash('Access denied', 'danger')
+            return redirect(url_for('dashboard'))
         return jsonify({'error': 'Access denied'}), 403
+    
+    if request.method == 'GET':
+        # Redirect GET requests to the products page
+        return redirect(url_for('inventory_products'))
     
     try:
         product_data = {
