@@ -4,7 +4,7 @@ Dashboard-related database queries
 from datetime import date, datetime, timedelta
 from sqlalchemy import func
 from app import db
-from models import Appointment, Customer, Inventory, User, Service
+from models import Appointment, Customer, InventoryProduct, User, Service
 
 def get_dashboard_stats():
     """Get dashboard statistics"""
@@ -46,9 +46,9 @@ def get_recent_appointments(limit=10):
 
 def get_low_stock_items(limit=5):
     """Get low stock items"""
-    return Inventory.query.filter(
-        Inventory.current_stock <= Inventory.min_stock_level,
-        Inventory.is_active == True
+    return InventoryProduct.query.filter(
+        InventoryProduct.current_stock <= InventoryProduct.min_stock_level,
+        InventoryProduct.is_active == True
     ).limit(limit).all()
 
 def get_expiring_items(limit=5):
@@ -56,9 +56,9 @@ def get_expiring_items(limit=5):
     try:
         today = date.today()
         # Use the new inventory model with different field names
-        return Inventory.query.filter(
-            Inventory.is_expiry_tracked == True,
-            Inventory.is_active == True
+        return InventoryProduct.query.filter(
+            InventoryProduct.is_expiry_tracked == True,
+            InventoryProduct.is_active == True
         ).limit(limit).all()
     except Exception as e:
         print(f"Error getting expiring items: {e}")
