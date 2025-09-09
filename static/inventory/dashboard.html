@@ -106,6 +106,8 @@
 </div>
 
 <script>
+(function() {
+    // Isolated scope for dashboard tab
     function loadDashboardStats() {
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
@@ -198,4 +200,5 @@
     
     // Load dashboard when the script runs
     loadDashboardStats();
+})();
 </script>

@@ -140,11 +140,8 @@
 </div>
 
 <script>
-    // Clear any existing variables to avoid conflicts
-    if (typeof window.consumptionCurrentPage !== 'undefined') {
-        delete window.consumptionCurrentPage;
-        delete window.consumptionPageSize;
-    }
+(function() {
+    // Isolated scope for consumption tab
     let currentPage = 1;
     let pageSize = 25;
 
@@ -396,4 +393,5 @@
 
     // Initialize
     loadConsumptions();
+})();
 </script>

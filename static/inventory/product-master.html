@@ -132,10 +132,8 @@
 </div>
 
 <script>
-    // Clear any existing variables to avoid conflicts
-    if (typeof window.editingProductId !== 'undefined') {
-        delete window.editingProductId;
-    }
+(function() {
+    // Isolated scope for product master tab
     let editingProductId = null;
 
     function loadProducts() {
@@ -316,4 +314,5 @@
     // Initialize
     loadCategories();
     loadProducts();
+})();
 </script>

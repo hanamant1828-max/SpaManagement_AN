@@ -137,11 +137,8 @@
 </div>
 
 <script>
-    // Clear any existing variables to avoid conflicts
-    if (typeof window.adjustmentsCurrentPage !== 'undefined') {
-        delete window.adjustmentsCurrentPage;
-        delete window.adjustmentsPageSize;
-    }
+(function() {
+    // Isolated scope for adjustments tab
     let currentPage = 1;
     let pageSize = 25;
 
@@ -391,4 +388,5 @@
 
     // Initialize
     loadAdjustments();
+})();
 </script>
