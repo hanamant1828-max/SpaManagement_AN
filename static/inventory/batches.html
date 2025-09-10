@@ -486,28 +486,26 @@ function populateEditBatchData(batch) {
     document.getElementById('batchUnitCost').value = batch.unit_cost || 0;
     document.getElementById('batchSellingPrice').value = batch.selling_price || '';
 
-    // Set dropdown values synchronously (dropdowns are guaranteed to be populated)
+    // Re-populate dropdowns to ensure they have all options
+    console.log('🔧 Re-populating dropdowns for edit modal...');
+    populateProductDropdowns();
+    populateLocationDropdowns();
+    
+    // Set dropdown values immediately after population (synchronous)
     const productDropdown = document.getElementById('batchProduct');
     const locationDropdown = document.getElementById('batchLocation');
     
+    console.log('🔧 Available products in dropdown:', productDropdown ? productDropdown.options.length : 'dropdown not found');
+    console.log('🔧 Available locations in dropdown:', locationDropdown ? locationDropdown.options.length : 'dropdown not found');
+    
     if (productDropdown) {
         productDropdown.value = String(batch.product_id || '');
-        console.log('🔧 Set product dropdown to:', batch.product_id);
-        
-        // Verify the option exists
-        if (batch.product_id && !productDropdown.querySelector(`option[value="${batch.product_id}"]`)) {
-            console.warn('⚠️ Product option not found:', batch.product_id);
-        }
+        console.log('🔧 Set product dropdown to:', batch.product_id, '(Selected:', productDropdown.value, ')');
     }
     
     if (locationDropdown) {
         locationDropdown.value = String(batch.location_id || '');
-        console.log('🔧 Set location dropdown to:', batch.location_id);
-        
-        // Verify the option exists
-        if (batch.location_id && !locationDropdown.querySelector(`option[value="${batch.location_id}"]`)) {
-            console.warn('⚠️ Location option not found:', batch.location_id);
-        }
+        console.log('🔧 Set location dropdown to:', batch.location_id, '(Selected:', locationDropdown.value, ')');
     }
 
     const modal = new bootstrap.Modal(document.getElementById('batchModal'));
