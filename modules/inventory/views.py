@@ -35,6 +35,8 @@ def api_get_products_master():
             'description': p.description,
             'category_id': p.category_id,
             'category_name': p.category.name if p.category else '',
+            'location_id': p.location_id,
+            'location_name': p.location.name if p.location else '',
             'sku': p.sku,
             'unit_of_measure': p.unit_of_measure,
             'barcode': p.barcode,
@@ -59,6 +61,8 @@ def api_get_products():
             'description': p.description,
             'category_id': p.category_id,
             'category_name': p.category.name if p.category else '',
+            'location_id': p.location_id,
+            'location_name': p.location.name if p.location else '',
             'sku': p.sku,
             'unit_of_measure': p.unit_of_measure,
             'barcode': p.barcode,
@@ -83,6 +87,7 @@ def api_create_product():
             'name': data.get('name'),
             'description': data.get('description', ''),
             'category_id': data.get('category_id') or data.get('categoryId'),  # Support both formats
+            'location_id': data.get('location_id') or data.get('primaryLocation'),  # Support both formats
             'sku': data.get('sku', ''),
             'unit_of_measure': data.get('unit_of_measure') or data.get('unit', 'pcs'),  # Support both formats
             'barcode': data.get('barcode', ''),
@@ -618,6 +623,7 @@ def api_update_product(product_id):
             'name': data.get('name'),
             'description': data.get('description', ''),
             'category_id': data.get('category_id') or data.get('categoryId'),  # Support both formats
+            'location_id': data.get('location_id') or data.get('primaryLocation'),  # Support both formats
             'sku': data.get('sku', ''),
             'unit_of_measure': data.get('unit_of_measure') or data.get('unit', 'pcs'),  # Support both formats
             'barcode': data.get('barcode', ''),

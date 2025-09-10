@@ -51,7 +51,7 @@
                     </thead>
                     <tbody id="productTableBody">
                         <tr>
-                            <td colspan="8" class="text-center text-muted">Loading products...</td>
+                            <td colspan="7" class="text-center text-muted">Loading products...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -295,7 +295,7 @@
             })
             .catch(error => {
                 console.error('Failed to load products from API:', error);
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load products from database</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load products from database</td></tr>';
             });
     }
 
@@ -341,7 +341,7 @@
                             <strong>${stock}</strong> ${product.unit_of_measure || product.unit || 'pcs'}
                         </td>
                         <td>${statusBadge}</td>
-                        <td>${product.location || product.primaryLocation || '—'}</td>
+                        <td>${product.location_name || product.location || product.primaryLocation || '—'}</td>
                         <td>$${(product.cost_price || product.costPrice || 0).toFixed(2)}</td>
                         <td>
                             <div class="btn-group btn-group-sm">
@@ -365,7 +365,7 @@
         }
 
         if (productsHTML === '') {
-            productsHTML = '<tr><td colspan="8" class="text-center text-muted">No products found</td></tr>';
+            productsHTML = '<tr><td colspan="7" class="text-center text-muted">No products found</td></tr>';
         }
 
         tbody.innerHTML = productsHTML;
