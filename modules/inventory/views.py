@@ -283,10 +283,17 @@ def api_create_location():
 @app.route('/api/inventory/batches', methods=['GET'])
 @login_required
 def api_get_batches():
-    """Get all batches"""
+    """Get all batches with proper relationships"""
     try:
         from .models import InventoryBatch
-        batches = InventoryBatch.query.all()
+        from sqlalchemy.orm import joinedload
+        
+        # Load batches with their related product and location data
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).all()
+        
         return jsonify({
             'batches': [{
                 'id': b.id,

@@ -350,17 +350,18 @@ function renderBatchesTable() {
     filteredBatches.forEach(batch => {
         const row = document.createElement('tr');
 
-        // Get product and location names
+        // Use the product and location names from the batch data (already resolved by API)
+        const productName = batch.product_name || 'Not Assigned';
+        const locationName = batch.location_name || 'Not Assigned';
         const product = allProducts.find(p => p.id === batch.product_id);
-        const location = allLocations.find(l => l.id === batch.location_id);
-
+        
         // Status badge class
         const statusClass = getStatusBadgeClass(batch.status, batch.is_expired);
 
         row.innerHTML = `
             <td><strong>${batch.batch_name}</strong></td>
-            <td>${product ? product.name : 'Unknown'}</td>
-            <td>${location ? location.name : 'Unknown'}</td>
+            <td>${productName}</td>
+            <td>${locationName}</td>
             <td>${batch.qty_available} ${product ? product.unit_of_measure : 'pcs'}</td>
             <td>${batch.created_date ? formatDate(batch.created_date) : '-'}</td>
             <td>${batch.mfg_date ? formatDate(batch.mfg_date) : '-'}</td>
@@ -602,14 +603,15 @@ function viewBatch(batchId) {
     if (!batch) return;
 
     const product = allProducts.find(p => p.id === batch.product_id);
-    const location = allLocations.find(l => l.id === batch.location_id);
+    const productName = batch.product_name || 'Not Assigned';
+    const locationName = batch.location_name || 'Not Assigned';
 
     const content = document.getElementById('batchDetailsContent');
     content.innerHTML = `
         <div class="row g-3">
             <div class="col-md-6">
                 <strong>Product:</strong><br>
-                ${product ? product.name : 'Not Assigned'} (${product ? product.sku : 'N/A'})
+                ${productName} (${product ? product.sku : 'N/A'})
             </div>
             <div class="col-md-6">
                 <strong>Batch Name:</strong><br>
@@ -617,7 +619,7 @@ function viewBatch(batchId) {
             </div>
             <div class="col-md-6">
                 <strong>Location:</strong><br>
-                ${location ? location.name : 'Not Assigned'}
+                ${locationName}
             </div>
             <div class="col-md-6">
                 <strong>Quantity Available:</strong><br>
