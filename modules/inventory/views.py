@@ -996,7 +996,7 @@ def api_get_categories():
 
         for category in categories:
             # Skip test/dummy data - filter out categories with invalid names
-            if not category.name or len(category.name.strip()) < 3 or category.name.strip().upper() in ['JBJ', 'TEST', 'DUMMY', 'TEMP']:
+            if not category.name or len(category.name.strip()) < 2 or category.name.strip().upper() in ['JBJ', 'TEST', 'DUMMY', 'TEMP']:
                 continue
                 
             # Count products in this category
@@ -1006,15 +1006,65 @@ def api_get_categories():
                 'id': category.id,
                 'name': category.name,
                 'description': category.description or '',
-                'color_code': category.color_code,
+                'color_code': category.color_code or '#6f42c1',
                 'is_active': category.is_active,
                 'product_count': product_count,
                 'created_at': category.created_at.isoformat() if category.created_at else None
             })
 
-        return jsonify({'categories': category_list})
+        return jsonify(category_list)  # Return as direct array, not wrapped in 'categories'
     except Exception as e:
         return jsonify({'error': f'Error loading categories: {str(e)}'}), 500
+
+@app.route('/api/categories')
+@login_required  
+def api_get_categories_simple():
+    """Simple categories endpoint for compatibility"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        categories = get_all_categories()
+        category_list = []
+
+        for category in categories:
+            if not category.name or len(category.name.strip()) < 2:
+                continue
+                
+            category_list.append({
+                'id': category.id,
+                'name': category.name,
+                'description': category.description or '',
+                'color_code': category.color_code or '#6f42c1',
+                'is_active': category.is_active != False
+            })
+
+        return jsonify(category_list)
+    except Exception as e:
+        return jsonify({'error': f'Error loading categories: {str(e)}'}), 500
+
+@app.route('/api/products')
+@login_required
+def api_get_products_simple():
+    """Simple products endpoint for compatibility"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        products = get_all_products()
+        product_list = []
+
+        for product in products:
+            product_list.append({
+                'id': product.id,
+                'name': product.name,
+                'categoryId': product.category_id,
+                'current_stock': float(product.current_stock or 0)
+            })
+
+        return jsonify(product_list)
+    except Exception as e:
+        return jsonify({'error': f'Error loading products: {str(e)}'}), 500
 
 @app.route('/api/inventory/categories', methods=['POST'])
 @login_required
@@ -2006,47 +2056,45 @@ def api_get_location(location_id):
 @app.route('/api/inventory/locations')
 @login_required
 def api_get_locations():
-    """Get all inventory locations"""
+    """Get all inventory locations from database"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # For now, return default locations from localStorage format
-        # This can be enhanced later with a proper database table
-        default_locations = [
-            {
-                'id': 'loc1',
-                'name': 'Main Store',
-                'type': 'branch',
-                'status': 'active',
-                'address': 'Main location',
-                'contact_person': '',
-                'phone': '',
-                'created_at': '2024-01-01T00:00:00'
-            },
-            {
-                'id': 'loc2',
-                'name': 'Storage Room',
-                'type': 'warehouse',
-                'status': 'active',
-                'address': 'Back storage area',
-                'contact_person': '',
-                'phone': '',
-                'created_at': '2024-01-01T00:00:00'
-            },
-            {
-                'id': 'loc3',
-                'name': 'Treatment Room A',
-                'type': 'room',
-                'status': 'active',
-                'address': 'First treatment room',
-                'contact_person': '',
-                'phone': '',
-                'created_at': '2024-01-01T00:00:00'
-            }
-        ]
+        from .models import InventoryLocation
+        
+        # Try to get from database first
+        locations = InventoryLocation.query.filter_by(status='active').all()
+        
+        # If no locations in database, create defaults
+        if not locations:
+            from .queries import initialize_default_locations
+            initialize_default_locations()
+            locations = InventoryLocation.query.filter_by(status='active').all()
+        
+        location_list = []
+        for location in locations:
+            # Count products in this location
+            products_count = len([p for p in InventoryProduct.query.filter_by(location=location.name).all() if (p.current_stock or 0) > 0])
+            
+            # Calculate total stock value
+            products_in_location = InventoryProduct.query.filter_by(location=location.name).all()
+            total_value = sum(float(p.current_stock or 0) * float(p.cost_price or 0) for p in products_in_location)
+            
+            location_list.append({
+                'id': location.id,
+                'name': location.name,
+                'type': location.type,
+                'status': location.status,
+                'address': location.address or '',
+                'contact_person': location.contact_person or '',
+                'phone': location.phone or '',
+                'total_products': products_count,
+                'total_stock_value': total_value,
+                'created_at': location.created_at.isoformat() if location.created_at else None
+            })
 
-        return jsonify({'locations': default_locations})
+        return jsonify({'locations': location_list})
     except Exception as e:
         return jsonify({'error': f'Error loading locations: {str(e)}'}), 500
 

@@ -320,23 +320,24 @@
     }
 
     function loadCategories() {
-        console.log('Loading categories from API...');
+        console.log('Loading categories from database...');
 
         fetch('/api/inventory/categories')
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('API not available');
+                    throw new Error('Categories API not available');
                 }
                 return response.json();
             })
             .then(data => {
-                const categories = data.categories || [];
+                // Handle both array and object responses
+                const categories = Array.isArray(data) ? data : (data.categories || []);
                 populateCategoryDropdowns(categories);
             })
             .catch(error => {
-                console.warn('API failed, using localStorage for categories:', error);
-                const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-                populateCategoryDropdowns(categories);
+                console.error('Categories API failed:', error);
+                // Create empty dropdown if API fails
+                populateCategoryDropdowns([]);
             });
     }
 
@@ -362,23 +363,24 @@
     }
 
     function loadLocations() {
-        console.log('Loading locations from API...');
+        console.log('Loading locations from database...');
 
         fetch('/api/inventory/locations')
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('API not available');
+                    throw new Error('Locations API not available');
                 }
                 return response.json();
             })
             .then(data => {
-                const locations = data.locations || [];
+                // Handle both array and object responses
+                const locations = Array.isArray(data) ? data : (data.locations || []);
                 populateLocationDropdowns(locations);
             })
             .catch(error => {
-                console.warn('API failed, using localStorage for locations:', error);
-                const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-                populateLocationDropdowns(locations);
+                console.error('Locations API failed:', error);
+                // Create empty dropdown if API fails
+                populateLocationDropdowns([]);
             });
     }
 

@@ -97,7 +97,10 @@
             }
             const products = await productsResponse.json();
 
-            categories.forEach(category => {
+            // Handle both array and object responses
+            const categoriesArray = Array.isArray(categories) ? categories : (categories.categories || []);
+            
+            categoriesArray.forEach(category => {
                 const productCount = products.filter(p => p.categoryId === category.id).length;
 
                 const row = document.createElement('tr');
@@ -136,7 +139,7 @@
                 tbody.appendChild(row);
             });
 
-            if (categories.length === 0) {
+            if (categoriesArray.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No categories found</td></tr>';
             }
         } catch (error) {

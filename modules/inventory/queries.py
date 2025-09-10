@@ -460,6 +460,79 @@ def initialize_default_locations():
         print(f"Error creating default locations: {e}")
         return False
 
+def initialize_default_categories():
+    """Initialize default categories if none exist"""
+    try:
+        from .models import InventoryCategory
+        
+        # Check if valid categories already exist (not test/dummy data)
+        valid_categories = InventoryCategory.query.filter(
+            InventoryCategory.name.notin_(['JBJ', 'TEST', 'DUMMY', 'TEMP'])
+        ).filter(
+            func.length(InventoryCategory.name) >= 3
+        ).all()
+        
+        if len(valid_categories) > 0:
+            return True
+            
+        # Clean up any dummy/test categories first
+        dummy_categories = InventoryCategory.query.filter(
+            or_(
+                InventoryCategory.name.in_(['JBJ', 'TEST', 'DUMMY', 'TEMP']),
+                func.length(InventoryCategory.name) < 3
+            )
+        ).all()
+        
+        for dummy in dummy_categories:
+            if not dummy.products:  # Only delete if no products assigned
+                db.session.delete(dummy)
+        
+        # Create default categories
+        default_categories = [
+            {
+                'name': 'Skincare Products',
+                'description': 'Facial and body skincare treatments',
+                'color_code': '#e74c3c',
+                'is_active': True
+            },
+            {
+                'name': 'Massage Oils',
+                'description': 'Essential oils and massage therapy products',
+                'color_code': '#3498db',
+                'is_active': True
+            },
+            {
+                'name': 'Spa Equipment',
+                'description': 'Tools and equipment for spa treatments',
+                'color_code': '#9b59b6',
+                'is_active': True
+            },
+            {
+                'name': 'Towels & Linens',
+                'description': 'Towels, robes, and spa linens',
+                'color_code': '#2ecc71',
+                'is_active': True
+            },
+            {
+                'name': 'Wellness Supplements',
+                'description': 'Health and wellness supplements',
+                'color_code': '#f39c12',
+                'is_active': True
+            }
+        ]
+        
+        for category_data in default_categories:
+            category = InventoryCategory(**category_data)
+            db.session.add(category)
+            
+        db.session.commit()
+        return True
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating default categories: {e}")
+        return False
+
 def get_all_locations(include_inactive=False):
     """Get all inventory locations"""
     from .models import InventoryLocation
