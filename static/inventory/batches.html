@@ -157,6 +157,7 @@ let allBatches = [];
 let allProducts = [];
 let allLocations = [];
 let batchModal = null;
+let editingBatchId = null; // Added to keep track of the batch being edited
 
 // Initialize batch management system
 function initializeBatchManagement() {
@@ -389,6 +390,7 @@ function openAddBatchModal() {
     document.getElementById('batchModalTitle').textContent = 'Add Batch';
     document.getElementById('batchForm').reset();
     document.getElementById('batchId').value = '';
+    editingBatchId = null; // Reset editing state
 
     // Set default created date to today
     const today = new Date().toISOString().split('T')[0];
@@ -401,40 +403,65 @@ function openAddBatchModal() {
 }
 
 // Edit batch
-async function editBatch(batchId) {
-    console.log(`✏️ Editing batch: ${batchId}`);
+function editBatch(batchId) {
+    console.log('🔧 Opening Edit Batch modal for ID:', batchId);
 
-    const batch = allBatches.find(b => b.id === batchId);
-    if (!batch) {
-        showToast('Batch not found', 'danger');
-        return;
-    }
+    // Fetch fresh batch data from API to ensure we have the latest information
+    fetch(`/api/inventory/batches/${batchId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error loading batch: ' + data.error);
+                return;
+            }
 
-    // Set modal title and populate form
-    document.getElementById('batchModalTitle').textContent = 'Edit Batch';
-    document.getElementById('batchId').value = batch.id;
+            const batch = data.batch;
 
-    // Populate form fields
-    document.getElementById('batchName').value = batch.batch_name || '';
-    document.getElementById('batchCreatedDate').value = batch.created_date || '';
-    document.getElementById('batchMfgDate').value = batch.mfg_date || '';
-    document.getElementById('batchExpiryDate').value = batch.expiry_date || '';
-    document.getElementById('batchUnitCost').value = batch.unit_cost || 0;
-    document.getElementById('batchSellingPrice').value = batch.selling_price || '';
+            // Set modal title and form data
+            document.getElementById('batchModalTitle').textContent = 'Edit Batch';
+            document.getElementById('batchId').value = batch.id;
+            document.getElementById('batchName').value = batch.batch_name || '';
+            document.getElementById('batchMfgDate').value = batch.mfg_date || '';
+            document.getElementById('batchExpiryDate').value = batch.expiry_date || '';
+            document.getElementById('batchCreatedDate').value = batch.created_date || '';
+            document.getElementById('batchUnitCost').value = batch.unit_cost || '';
+            document.getElementById('batchSellingPrice').value = batch.selling_price || '';
 
-    // Set dropdown values
-    if (batch.product_id) {
-        document.getElementById('batchProduct').value = batch.product_id;
-    }
-    if (batch.location_id) {
-        document.getElementById('batchLocation').value = batch.location_id;
-    }
+            // Set editing state
+            editingBatchId = batchId;
 
-    // Show modal
-    if (batchModal) {
-        batchModal.show();
-    }
+            // Show modal
+            if (!batchModal) {
+                batchModal = new bootstrap.Modal(document.getElementById('batchModal'));
+            }
+            batchModal.show();
+
+            // Set dropdowns after modal is shown and data is loaded
+            // Use a small delay to ensure the modal and its elements are fully rendered
+            setTimeout(() => {
+                if (batch.product_id) {
+                    const productSelect = document.getElementById('batchProduct');
+                    if (productSelect) {
+                        productSelect.value = batch.product_id;
+                        console.log('Product set to:', batch.product_id, '(' + batch.product_name + ')');
+                    }
+                }
+
+                if (batch.location_id) {
+                    const locationSelect = document.getElementById('batchLocation');
+                    if (locationSelect) {
+                        locationSelect.value = batch.location_id;
+                        console.log('Location set to:', batch.location_id, '(' + batch.location_name + ')');
+                    }
+                }
+            }, 500); // Timeout to ensure dropdowns are loaded
+        })
+        .catch(error => {
+            console.error('Error loading batch for edit:', error);
+            alert('Error loading batch data. Please try again.');
+        });
 }
+
 
 // Save batch
 function saveBatch(event) {
@@ -526,11 +553,18 @@ function saveBatch(event) {
     })
     .then(response => {
         console.log('📥 Response status:', response.status);
+        // Handle potential non-JSON responses or errors before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response body if available
+            return response.text().then(text => {
+                throw new Error(`HTTP error ${response.status}: ${text || response.statusText}`);
+            });
+        }
         return response.json();
     })
     .then(data => {
         console.log('📥 Response data:', data);
-        
+
         if (data.success) {
             showToast(data.message || 'Batch saved successfully!', 'success');
             if (batchModal) {
@@ -538,12 +572,13 @@ function saveBatch(event) {
             }
             loadBatches(); // Reload data
         } else {
-            showToast('Error: ' + (data.error || 'Unknown error'), 'danger');
+            // If success is false but no explicit error message, provide a generic one
+            showToast('Error: ' + (data.error || 'Failed to save batch. Please check the data.'), 'danger');
         }
     })
     .catch(error => {
         console.error('❌ Error saving batch:', error);
-        showToast('Error saving batch. Please try again.', 'danger');
+        showToast('Error saving batch: ' + error.message, 'danger');
     })
     .finally(() => {
         // Restore button state
@@ -570,7 +605,7 @@ function viewBatch(batchId) {
         <div class="row g-3">
             <div class="col-md-6">
                 <strong>Product:</strong><br>
-                ${batch.product_name} ${product && product.sku ? `(${product.sku})` : ''}
+                ${batch.product_name ? batch.product_name + (product && product.sku ? ` (${product.sku})` : '') : 'N/A'}
             </div>
             <div class="col-md-6">
                 <strong>Batch Name:</strong><br>
@@ -578,7 +613,7 @@ function viewBatch(batchId) {
             </div>
             <div class="col-md-6">
                 <strong>Location:</strong><br>
-                ${batch.location_name}
+                ${batch.location_name || 'N/A'}
             </div>
             <div class="col-md-6">
                 <strong>Quantity Available:</strong><br>
@@ -606,7 +641,7 @@ function viewBatch(batchId) {
             </div>
             <div class="col-md-6">
                 <strong>Days to Expiry:</strong><br>
-                ${batch.days_to_expiry !== null ? batch.days_to_expiry + ' days' : 'No expiry set'}
+                ${batch.days_to_expiry !== null && batch.days_to_expiry !== undefined ? batch.days_to_expiry + ' days' : 'N/A'}
             </div>
         </div>
     `;
@@ -632,7 +667,14 @@ function deleteBatch(batchId) {
     fetch(`/api/inventory/batches/${batchId}`, {
         method: 'DELETE'
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showToast(data.message || 'Batch deleted successfully!', 'success');
@@ -643,7 +685,7 @@ function deleteBatch(batchId) {
     })
     .catch(error => {
         console.error('Error deleting batch:', error);
-        showToast('Error deleting batch. Please try again.', 'danger');
+        showToast('Error deleting batch: ' + error.message, 'danger');
     });
 }
 
@@ -651,8 +693,15 @@ function deleteBatch(batchId) {
 function formatDate(dateString) {
     if (!dateString) return '-';
     try {
-        return new Date(dateString).toLocaleDateString('en-GB');
+        // Attempt to parse and format date
+        const date = new Date(dateString);
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+        return date.toLocaleDateString('en-GB');
     } catch (error) {
+        console.error("Error formatting date:", dateString, error);
         return '-';
     }
 }
@@ -689,7 +738,7 @@ function getOrCreateToastContainer() {
         container = document.createElement('div');
         container.id = 'toastContainer';
         container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        container.style.zIndex = '1055';
+        container.style.zIndex = '1055'; // Ensure it's above other content
         document.body.appendChild(container);
     }
     return container;
@@ -699,9 +748,10 @@ function getOrCreateToastContainer() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeBatchManagement);
 } else {
+    // If the DOM is already ready, initialize immediately
     initializeBatchManagement();
 }
 
-// Export for dashboard.js
-window.initializeBatchManagement = initializeBatchManagement;
+// Export for dashboard.js if needed, otherwise this line can be removed.
+// window.initializeBatchManagement = initializeBatchManagement;
 </script>

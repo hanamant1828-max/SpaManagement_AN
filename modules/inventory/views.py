@@ -28,23 +28,61 @@ def inventory_dashboard():
 def api_get_products_master():
     """Get all products for master view - BATCH-CENTRIC"""
     try:
-        products = get_all_products()
-        return jsonify([{
-            'id': p.id,
-            'name': p.name,
-            'description': p.description,
-            'category_id': p.category_id,
-            'category_name': p.category.name if p.category else '',
-            'sku': p.sku,
-            'unit_of_measure': p.unit_of_measure,
-            'barcode': p.barcode,
-            'total_stock': p.total_stock,  # Dynamic property from batches
-            'batch_count': p.batch_count,  # Number of batches for this product
-            'is_active': p.is_active,
-            'is_service_item': p.is_service_item,
-            'is_retail_item': p.is_retail_item
-        } for p in products])
+        from .models import InventoryProduct
+        from sqlalchemy.orm import joinedload
+        
+        # Load products with their related data
+        products = InventoryProduct.query.options(
+            joinedload(InventoryProduct.category),
+            joinedload(InventoryProduct.batches)
+        ).filter(InventoryProduct.is_active == True).all()
+        
+        product_list = []
+        for p in products:
+            # Calculate dynamic properties safely
+            try:
+                total_stock = sum(float(batch.qty_available or 0) for batch in p.batches if batch.status == 'active')
+                batch_count = len([b for b in p.batches if b.status == 'active'])
+                
+                # Determine status based on stock
+                if total_stock <= 0:
+                    status = 'out_of_stock'
+                elif total_stock <= 10:
+                    status = 'low_stock'  
+                else:
+                    status = 'in_stock'
+                    
+                product_data = {
+                    'id': p.id,
+                    'name': p.name,
+                    'description': p.description or '',
+                    'category_id': p.category_id,
+                    'category_name': p.category.name if p.category else '',
+                    'category': p.category.name if p.category else '',
+                    'sku': p.sku,
+                    'unit_of_measure': p.unit_of_measure or 'pcs',
+                    'unit': p.unit_of_measure or 'pcs',
+                    'barcode': p.barcode or '',
+                    'total_stock': total_stock,
+                    'stock': total_stock,  # Alias for compatibility
+                    'batch_count': batch_count,
+                    'status': status,
+                    'is_active': p.is_active,
+                    'is_service_item': p.is_service_item or False,
+                    'is_retail_item': p.is_retail_item or False,
+                    'created_at': p.created_at.isoformat() if p.created_at else None,
+                    'updated_at': p.updated_at.isoformat() if p.updated_at else None
+                }
+                product_list.append(product_data)
+            except Exception as inner_e:
+                print(f"Error processing product {p.id}: {inner_e}")
+                continue
+                
+        return jsonify(product_list)
     except Exception as e:
+        print(f"ERROR in api_get_products_master: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products', methods=['GET'])
@@ -76,20 +114,36 @@ def api_get_products():
 def api_create_product():
     """Create a new product - BATCH-CENTRIC"""
     try:
+        from .models import InventoryProduct
+        
         data = request.get_json()
         
+        # Validation
+        if not data.get('name'):
+            return jsonify({'error': 'Product name is required'}), 400
+        if not data.get('sku'):
+            return jsonify({'error': 'SKU is required'}), 400
+            
+        # Check for duplicate SKU
+        existing = InventoryProduct.query.filter_by(sku=data.get('sku')).first()
+        if existing:
+            return jsonify({'error': 'SKU already exists'}), 400
+        
         # Handle both camelCase (frontend) and underscore (backend) field names
-        product = create_product({
-            'name': data.get('name'),
-            'description': data.get('description', ''),
-            'category_id': data.get('category_id') or data.get('categoryId'),  # Support both formats
-            'sku': data.get('sku', ''),
-            'unit_of_measure': data.get('unit_of_measure') or data.get('unit', 'pcs'),  # Support both formats
-            'barcode': data.get('barcode', ''),
-            'is_active': True,
-            'is_service_item': data.get('is_service_item', False) or data.get('trackBatches', False),
-            'is_retail_item': data.get('is_retail_item', True) or data.get('trackSerials', True)
-        })
+        product = InventoryProduct(
+            name=data.get('name'),
+            description=data.get('description', ''),
+            category_id=data.get('category_id') or data.get('categoryId'),
+            sku=data.get('sku', ''),
+            unit_of_measure=data.get('unit_of_measure') or data.get('unit', 'pcs'),
+            barcode=data.get('barcode', ''),
+            is_active=True,
+            is_service_item=data.get('is_service_item', False) or data.get('trackBatches', False),
+            is_retail_item=data.get('is_retail_item', True) or data.get('trackSerials', True)
+        )
+        
+        db.session.add(product)
+        db.session.commit()
 
         return jsonify({
             'success': True,
@@ -97,6 +151,8 @@ def api_create_product():
             'product_id': product.id
         })
     except Exception as e:
+        db.session.rollback()
+        print(f"ERROR creating product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products/<int:product_id>', methods=['GET'])
@@ -150,16 +206,29 @@ def api_get_product(product_id):
 def api_delete_product(product_id):
     """Delete (deactivate) a product"""
     try:
-        from .queries import delete_product
-        product = delete_product(product_id)
+        from .models import InventoryProduct
+        
+        product = InventoryProduct.query.get(product_id)
         if not product:
             return jsonify({'error': 'Product not found'}), 404
+        
+        # Check if product has active batches
+        active_batches = [b for b in product.batches if b.status == 'active']
+        if active_batches:
+            return jsonify({'error': 'Cannot delete product with active batches. Please remove or deactivate all batches first.'}), 400
+        
+        # Soft delete - mark as inactive
+        product.is_active = False
+        product.updated_at = datetime.utcnow()
+        db.session.commit()
             
         return jsonify({
             'success': True,
             'message': 'Product deleted successfully'
         })
     except Exception as e:
+        db.session.rollback()
+        print(f"ERROR deleting product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories', methods=['GET'])
@@ -167,14 +236,18 @@ def api_delete_product(product_id):
 def api_get_categories():
     """Get all categories"""
     try:
-        categories = get_all_categories()
+        from .models import InventoryCategory
+        
+        categories = InventoryCategory.query.filter(InventoryCategory.is_active == True).order_by(InventoryCategory.name).all()
         return jsonify([{
             'id': c.id,
             'name': c.name,
-            'description': c.description,
+            'description': c.description or '',
+            'color_code': getattr(c, 'color_code', '#007bff'),
             'is_active': c.is_active
         } for c in categories])
     except Exception as e:
+        print(f"ERROR in api_get_categories: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories', methods=['POST'])
@@ -223,21 +296,24 @@ def api_get_category(category_id):
 def api_get_locations():
     """Get all locations"""
     try:
-        locations = get_all_locations()
+        from .models import InventoryLocation
+        
+        locations = InventoryLocation.query.filter(InventoryLocation.status == 'active').order_by(InventoryLocation.name).all()
         return jsonify({
             'locations': [{
                 'id': l.id,
                 'name': l.name,
-                'type': l.type,
-                'address': l.address,
-                'contact_person': l.contact_person,
-                'phone': l.phone,
+                'type': l.type or 'warehouse',
+                'address': l.address or '',
+                'contact_person': getattr(l, 'contact_person', '') or '',
+                'phone': getattr(l, 'phone', '') or '',
                 'status': l.status,
-                'total_products': l.total_batches,
-                'total_stock_value': l.total_stock_value
+                'total_products': len([b for b in getattr(l, 'batches', []) if b.status == 'active']),
+                'total_stock_value': 0  # Calculate if needed
             } for l in locations]
         })
     except Exception as e:
+        print(f"ERROR in api_get_locations: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/locations', methods=['POST'])
@@ -611,28 +687,51 @@ def api_get_adjustments():
 def api_update_product(product_id):
     """Update an existing product"""
     try:
-        data = request.get_json()
+        from .models import InventoryProduct
         
-        # Handle both camelCase (frontend) and underscore (backend) field names
-        product = update_product(product_id, {
-            'name': data.get('name'),
-            'description': data.get('description', ''),
-            'category_id': data.get('category_id') or data.get('categoryId'),  # Support both formats
-            'sku': data.get('sku', ''),
-            'unit_of_measure': data.get('unit_of_measure') or data.get('unit', 'pcs'),  # Support both formats
-            'barcode': data.get('barcode', ''),
-            'is_service_item': data.get('is_service_item', False) or data.get('trackBatches', False),
-            'is_retail_item': data.get('is_retail_item', True) or data.get('trackSerials', True)
-        })
-
+        data = request.get_json()
+        product = InventoryProduct.query.get(product_id)
+        
         if not product:
             return jsonify({'error': 'Product not found'}), 404
+            
+        # Check for duplicate SKU (excluding current product)
+        if data.get('sku') and data.get('sku') != product.sku:
+            existing = InventoryProduct.query.filter(
+                InventoryProduct.sku == data.get('sku'),
+                InventoryProduct.id != product_id
+            ).first()
+            if existing:
+                return jsonify({'error': 'SKU already exists'}), 400
+        
+        # Handle both camelCase (frontend) and underscore (backend) field names
+        if data.get('name'):
+            product.name = data.get('name')
+        if data.get('description') is not None:
+            product.description = data.get('description')
+        if data.get('category_id') or data.get('categoryId'):
+            product.category_id = data.get('category_id') or data.get('categoryId')
+        if data.get('sku'):
+            product.sku = data.get('sku')
+        if data.get('unit_of_measure') or data.get('unit'):
+            product.unit_of_measure = data.get('unit_of_measure') or data.get('unit')
+        if data.get('barcode') is not None:
+            product.barcode = data.get('barcode')
+        if data.get('is_service_item') is not None or data.get('trackBatches') is not None:
+            product.is_service_item = data.get('is_service_item', False) or data.get('trackBatches', False)
+        if data.get('is_retail_item') is not None or data.get('trackSerials') is not None:
+            product.is_retail_item = data.get('is_retail_item', True) or data.get('trackSerials', True)
+        
+        product.updated_at = datetime.utcnow()
+        db.session.commit()
 
         return jsonify({
             'success': True,
             'message': 'Product updated successfully'
         })
     except Exception as e:
+        db.session.rollback()
+        print(f"ERROR updating product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories/<int:category_id>', methods=['PUT'])
