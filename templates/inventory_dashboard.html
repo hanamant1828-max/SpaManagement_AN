@@ -137,6 +137,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 console.log(`${tabName} content loaded successfully`);
+                
+                // Call specific initialization functions after content loads
+                if (tabName === 'batches' && window.initializeBatchManagement) {
+                    console.log('🔧 Calling batch initialization after dynamic loading...');
+                    window.initializeBatchManagement();
+                }
             })
             .catch(error => {
                 console.error(`Error loading ${tabName}:`, error);

@@ -226,10 +226,17 @@ function initializeBatchManagement() {
     loadBatches();
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize immediately if DOM is ready, or wait for DOMContentLoaded
+if (document.readyState !== 'loading') {
+    console.log('🔧 DOM ready, initializing batch management immediately...');
     initializeBatchManagement();
-});
+} else {
+    console.log('🔧 DOM not ready, waiting for DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', initializeBatchManagement);
+}
+
+// Export to window so dashboard.js can call it after dynamic loading
+window.initializeBatchManagement = initializeBatchManagement;
 
 // Load products for dropdowns
 function loadProducts() {
