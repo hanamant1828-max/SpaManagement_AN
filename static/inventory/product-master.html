@@ -46,7 +46,6 @@
                             <th>Unit</th>
                             <th>Status</th>
                             <th>Location</th>
-                            <th>Cost Price</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -111,34 +110,8 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="productStock" class="form-label">Current Stock</label>
-                                <input type="number" class="form-control" id="productStock" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="productMinStock" class="form-label">Min Stock Level</label>
-                                <input type="number" class="form-control" id="productMinStock" min="0" step="0.01" value="10">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="productReorderLevel" class="form-label">Reorder Level</label>
-                                <input type="number" class="form-control" id="productReorderLevel" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="productCostPrice" class="form-label">Cost Price</label>
-                                <input type="number" class="form-control" id="productCostPrice" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="productLocation" class="form-label">Primary Location</label>
@@ -217,18 +190,6 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label"><strong>Unit of Measure</strong></label>
                         <p id="viewProductUnit" class="form-control-plaintext border rounded p-2 bg-light"></p>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label"><strong>Current Stock</strong></label>
-                        <p id="viewProductStock" class="form-control-plaintext border rounded p-2 bg-light"></p>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label"><strong>Min Stock Level</strong></label>
-                        <p id="viewProductMinStock" class="form-control-plaintext border rounded p-2 bg-light"></p>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label"><strong>Cost Price</strong></label>
-                        <p id="viewProductCost" class="form-control-plaintext border rounded p-2 bg-light"></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label"><strong>Location</strong></label>
@@ -508,10 +469,6 @@
         editingProductId = null;
 
         // Set default values
-        document.getElementById('productStock').value = '0';
-        document.getElementById('productMinStock').value = '10';
-        document.getElementById('productReorderLevel').value = '0';
-        document.getElementById('productCostPrice').value = '0';
         document.getElementById('productUnit').value = 'pcs';
 
         // Show modal
@@ -602,14 +559,9 @@
 
             // Populate form fields - use API field names with underscores
             document.getElementById('productUnit').value = product.unit_of_measure || 'pcs';
-            document.getElementById('productStock').value = product.total_stock || 0;
-            document.getElementById('productMinStock').value = product.min_stock || 10;
-            document.getElementById('productReorderLevel').value = product.reorder_level || 0;
-            document.getElementById('productCostPrice').value = product.cost_price || 0;
             document.getElementById('productTrackBatches').checked = product.track_batches || false;
             document.getElementById('productTrackSerials').checked = product.track_serials || false;
             document.getElementById('productDescription').value = product.description || '';
-            document.getElementById('productLocation').value = product.location_id || '';
             document.getElementById('productBarcode').value = product.barcode || '';
 
             // Populate dropdowns with selected values - use correct API field names
@@ -636,10 +588,6 @@
                 name: document.getElementById('productName').value.trim(),
                 categoryId: document.getElementById('productCategory').value,
                 unit: document.getElementById('productUnit').value,
-                stock: parseFloat(document.getElementById('productStock').value) || 0,
-                minStock: parseFloat(document.getElementById('productMinStock').value) || 10,
-                reorderLevel: parseFloat(document.getElementById('productReorderLevel').value) || 0,
-                costPrice: parseFloat(document.getElementById('productCostPrice').value) || 0,
                 primaryLocation: document.getElementById('productLocation').value,
                 description: document.getElementById('productDescription').value.trim(),
                 barcode: document.getElementById('productBarcode').value.trim(),
