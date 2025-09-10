@@ -204,8 +204,9 @@ class InventoryBatch(db.Model):
     batch_name = db.Column(db.String(100), nullable=False)  # User-friendly batch identifier
     
     # Batch details
-    mfg_date = db.Column(db.Date)  # Manufacturing date
-    expiry_date = db.Column(db.Date)  # Expiry date
+    created_date = db.Column(db.Date, default=datetime.utcnow().date())  # Creation date
+    mfg_date = db.Column(db.Date, nullable=False)  # Manufacturing date
+    expiry_date = db.Column(db.Date, nullable=False)  # Expiry date
     qty_available = db.Column(db.Numeric(10, 2), default=0, nullable=False)
     unit_cost = db.Column(db.Numeric(10, 2), default=0)
     selling_price = db.Column(db.Numeric(10, 2))  # Optional selling price override

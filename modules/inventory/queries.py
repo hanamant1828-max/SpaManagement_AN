@@ -925,7 +925,7 @@ def get_batches_by_product(product_id):
     return InventoryBatch.query.filter_by(product_id=product_id).order_by(InventoryBatch.expiry_date).all()
 
 def create_batch(batch_data):
-    """Create new batch"""
+    """Create new batch (no quantity - added later via adjustments)"""
     try:
         # Validate batch name uniqueness for product
         existing_batch = InventoryBatch.query.filter_by(
@@ -935,6 +935,14 @@ def create_batch(batch_data):
 
         if existing_batch:
             raise ValueError(f"Batch name '{batch_data['batch_name']}' already exists for this product")
+
+        # Validate expiry date is after mfg date
+        if batch_data.get('mfg_date') and batch_data.get('expiry_date'):
+            if batch_data['expiry_date'] <= batch_data['mfg_date']:
+                raise ValueError("Expiry date must be later than manufacturing date")
+
+        # Ensure no quantity is set during creation
+        batch_data['qty_available'] = 0
 
         batch = InventoryBatch(**batch_data)
         db.session.add(batch)
@@ -1093,5 +1101,28 @@ def get_dead_batches(months_inactive=6):
         InventoryBatch.qty_available > 0,
         InventoryBatch.created_at <= cutoff_date
     ).all()
+
+def get_active_batches_for_adjustment():
+    """Get active batches for inventory adjustments"""
+    return InventoryBatch.query.join(InventoryProduct).filter(
+        InventoryBatch.status == 'active',
+        InventoryProduct.is_active == True,
+        or_(
+            InventoryBatch.expiry_date == None,
+            InventoryBatch.expiry_date >= date.today()
+        )
+    ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+
+def get_active_batches_for_consumption():
+    """Get batches with stock available for consumption"""
+    return InventoryBatch.query.join(InventoryProduct).filter(
+        InventoryBatch.status == 'active',
+        InventoryBatch.qty_available > 0,
+        InventoryProduct.is_active == True,
+        or_(
+            InventoryBatch.expiry_date == None,
+            InventoryBatch.expiry_date >= date.today()
+        )
+    ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
 
 # ============ ENHANCED PRODUCT ENDPOINTS ============

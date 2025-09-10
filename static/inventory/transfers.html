@@ -74,7 +74,7 @@
             <div class="modal-body">
                 <form id="transferForm">
                     <input type="hidden" id="transferId">
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">From Location *</label>
@@ -96,7 +96,7 @@
                     </div>
 
                     <hr>
-                    
+
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6>Transfer Items</h6>
                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="addTransferItem()">
@@ -211,14 +211,14 @@
             const matchesSearch = transfer.id.toLowerCase().includes(search) ||
                                 transfer.reference?.toLowerCase().includes(search);
             const matchesStatus = !statusFilter || transfer.status === statusFilter;
-            
+
             let matchesDate = true;
             if (dateFrom || dateTo) {
                 const transferDate = new Date(transfer.date).toISOString().split('T')[0];
                 if (dateFrom && transferDate < dateFrom) matchesDate = false;
                 if (dateTo && transferDate > dateTo) matchesDate = false;
             }
-            
+
             return matchesSearch && matchesStatus && matchesDate;
         });
 
@@ -285,13 +285,13 @@
     function loadLocations() {
         const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
         const activeLocations = locations.filter(l => l.status === 'active');
-        
+
         const fromSelect = document.getElementById('fromLocation');
         const toSelect = document.getElementById('toLocation');
-        
+
         fromSelect.innerHTML = '<option value="">Select Source Location</option>';
         toSelect.innerHTML = '<option value="">Select Destination Location</option>';
-        
+
         activeLocations.forEach(location => {
             const option = `<option value="${location.id}">${location.name}</option>`;
             fromSelect.innerHTML += option;
@@ -306,33 +306,34 @@
         document.getElementById('transferModalTitle').textContent = 'New Stock Transfer';
         document.getElementById('transferForm').reset();
         document.getElementById('transferItems').innerHTML = '';
-        
+
         loadLocations();
         addTransferItem(); // Add one item by default
-        
+
         const modal = new bootstrap.Modal(document.getElementById('transferModal'));
         modal.show();
     });
 
     window.addTransferItem = function() {
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
         const fromLocationId = document.getElementById('fromLocation').value;
-        
+
         transferItemCounter++;
         const itemHtml = `
             <div class="card mb-2" id="transferItem${transferItemCounter}">
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-5">
-                            <label class="form-label">Product *</label>
-                            <select class="form-select transfer-product" data-item="${transferItemCounter}" required>
-                                <option value="">Select Product</option>
-                                ${products.map(p => `<option value="${p.id}" data-stock="${p.locationStock?.[fromLocationId] || 0}">${p.name} (${p.sku})</option>`).join('')}
+                        <div class="col-md-8">
+                            <label class="form-label">Source Batch *</label>
+                            <select class="form-select batch-select" name="source_batch_id" data-item="${transferItemCounter}" required>
+                                <option value="">Select Source Batch</option>
+                                ${batches.map(b => {
+                                    const product = JSON.parse(localStorage.getItem('inventory.products') || '[]').find(p => p.id === b.productId) || {};
+                                    const expiryDate = b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
+                                    const qtyAvailable = b.locationStock?.[fromLocationId] || 0;
+                                    return `<option value="${b.id}" data-product-name="${product.name || 'Unknown'}" data-expiry="${expiryDate}" data-stock="${qtyAvailable}">${b.batchName} (${product.name || 'Unknown'}, Exp: ${expiryDate}, Qty: ${qtyAvailable})</option>`;
+                                }).join('')}
                             </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Available Stock</label>
-                            <input type="text" class="form-control stock-info" id="stockInfo${transferItemCounter}" readonly>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Quantity *</label>
@@ -348,26 +349,30 @@
                 </div>
             </div>
         `;
-        
+
         document.getElementById('transferItems').insertAdjacentHTML('beforeend', itemHtml);
-        
-        // Add event listener for product selection
+
+        // Add event listener for batch selection
         document.querySelector(`[data-item="${transferItemCounter}"]`).addEventListener('change', function() {
             updateStockInfo(transferItemCounter, this.value);
         });
     }
 
-    function updateStockInfo(itemCounter, productId) {
+    function updateStockInfo(itemCounter, batchId) {
         const fromLocationId = document.getElementById('fromLocation').value;
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        const product = products.find(p => p.id === productId);
-        
-        if (product && fromLocationId) {
-            const stock = product.locationStock?.[fromLocationId] || 0;
-            document.getElementById(`stockInfo${itemCounter}`).value = `${stock} available`;
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
+        const batch = batches.find(b => b.id === batchId);
+
+        if (batch && fromLocationId) {
+            const stock = batch.locationStock?.[fromLocationId] || 0;
             document.getElementById(`transferQty${itemCounter}`).max = stock;
+            // Displaying batch info in a more readable way, could be a dedicated field or tooltip
+            const selectElement = document.querySelector(`[data-item="${itemCounter}"]`);
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const productName = selectedOption.getAttribute('data-product-name');
+            const expiryDate = selectedOption.getAttribute('data-expiry');
+            // Optional: Update a specific display field if you add one, e.g., document.getElementById(`batchInfo${itemCounter}`).textContent = `${productName}, Exp: ${expiryDate}`;
         } else {
-            document.getElementById(`stockInfo${itemCounter}`).value = '';
             document.getElementById(`transferQty${itemCounter}`).max = '';
         }
     }
@@ -378,7 +383,7 @@
 
     // Update stock info when from location changes
     document.getElementById('fromLocation').addEventListener('change', function() {
-        document.querySelectorAll('.transfer-product').forEach((select, index) => {
+        document.querySelectorAll('.batch-select').forEach((select, index) => {
             if (select.value) {
                 updateStockInfo(select.dataset.item, select.value);
             }
@@ -409,16 +414,16 @@
         }
 
         // Collect transfer items
-        const transferItems = document.querySelectorAll('.transfer-product');
+        const transferItems = document.querySelectorAll('.batch-select');
         for (let i = 0; i < transferItems.length; i++) {
             const select = transferItems[i];
             const itemCounter = select.dataset.item;
-            const productId = select.value;
+            const batchId = select.value;
             const qty = parseInt(document.getElementById(`transferQty${itemCounter}`).value);
 
-            if (productId && qty > 0) {
+            if (batchId && qty > 0) {
                 transferData.items.push({
-                    productId: productId,
+                    batchId: batchId,
                     quantity: qty
                 });
             }
@@ -430,14 +435,14 @@
         }
 
         // Validate stock availability
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
         for (const item of transferData.items) {
-            const product = products.find(p => p.id === item.productId);
-            const availableStock = product?.locationStock?.[transferData.fromLocation] || 0;
-            
+            const batch = batches.find(b => b.id === item.batchId);
+            const availableStock = batch?.locationStock?.[transferData.fromLocation] || 0;
+
             if (item.quantity > availableStock) {
-                const productName = product?.name || 'Unknown Product';
-                alert(`Insufficient stock for ${productName}. Available: ${availableStock}, Requested: ${item.quantity}`);
+                const batchName = batch?.batchName || 'Unknown Batch';
+                alert(`Insufficient stock for batch ${batchName}. Available: ${availableStock}, Requested: ${item.quantity}`);
                 return;
             }
         }
@@ -446,11 +451,11 @@
         const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
         transfers.push(transferData);
         localStorage.setItem('inventory.transfers', JSON.stringify(transfers));
-        
+
         // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('transferModal'));
         modal.hide();
-        
+
         loadTransfers();
         showToast('Transfer created successfully!', 'success');
     }
@@ -458,10 +463,10 @@
     // Edit transfer function
     window.editTransfer = function(transferId) {
         console.log('Editing transfer:', transferId);
-        
+
         const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
         const transfer = transfers.find(t => t.id === transferId);
-        
+
         if (!transfer) {
             alert('Transfer not found');
             return;
@@ -474,7 +479,7 @@
 
         // Load locations for dropdowns
         loadLocationsForEdit();
-        
+
         // Populate edit modal with data
         document.getElementById('editTransferId').value = transferId;
         document.getElementById('editTransferDate').value = transfer.date ? transfer.date.split('T')[0] : '';
@@ -504,7 +509,7 @@
         const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
         const filteredTransfers = transfers.filter(t => t.id !== transferId);
         localStorage.setItem('inventory.transfers', JSON.stringify(filteredTransfers));
-        
+
         loadTransfers();
         showToast('Transfer deleted successfully!', 'success');
     }
@@ -543,20 +548,20 @@
         // Update transfer in localStorage
         const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
         const transferIndex = transfers.findIndex(t => t.id === transferId);
-        
+
         if (transferIndex !== -1) {
             transfers[transferIndex] = {
                 ...transfers[transferIndex],
                 ...formData,
                 updatedDate: new Date().toISOString()
             };
-            
+
             localStorage.setItem('inventory.transfers', JSON.stringify(transfers));
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editTransferModal'));
             modal.hide();
-            
+
             // Reload transfers
             loadTransfers();
             showToast('Transfer updated successfully!', 'success');
@@ -568,13 +573,13 @@
     function loadLocationsForEdit() {
         const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
         const activeLocations = locations.filter(l => l.status === 'active');
-        
+
         const fromSelect = document.getElementById('editFromLocation');
         const toSelect = document.getElementById('editToLocation');
-        
+
         fromSelect.innerHTML = '<option value="">Select Source Location</option>';
         toSelect.innerHTML = '<option value="">Select Destination Location</option>';
-        
+
         activeLocations.forEach(location => {
             fromSelect.innerHTML += `<option value="${location.id}">${location.name}</option>`;
             toSelect.innerHTML += `<option value="${location.id}">${location.name}</option>`;
@@ -583,21 +588,23 @@
 
     function loadTransferItemsForEdit(items) {
         const container = document.getElementById('editTransferItems');
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        
+
         container.innerHTML = '';
-        
+
         items.forEach(item => {
-            const product = products.find(p => p.id === item.productId);
+            const batch = batches.find(b => b.id === item.batchId);
+            const product = products.find(p => p.id === batch?.productId);
             const productName = product ? product.name : 'Unknown Product';
-            
+
             container.innerHTML += `
                 <div class="card mb-2">
                     <div class="card-body p-2">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <strong>${productName}</strong><br>
-                                <small class="text-muted">Quantity: ${item.quantity} ${product ? product.unit || 'pcs' : 'pcs'}</small>
+                                <strong>Batch: ${batch?.batchName || 'Unknown Batch'}</strong> (${productName})<br>
+                                <small class="text-muted">Quantity: ${item.quantity} ${product?.unit || 'pcs'}</small>
                             </div>
                             <div>
                                 <span class="badge bg-info">Transfer Item</span>
@@ -607,7 +614,7 @@
                 </div>
             `;
         });
-        
+
         if (items.length === 0) {
             container.innerHTML = '<p class="text-muted">No items in this transfer</p>';
         }
@@ -617,19 +624,21 @@
         const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
         const transfer = transfers.find(t => t.id === transferId);
         const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        
+
         if (!transfer) return;
 
         const fromLocation = locations.find(l => l.id === transfer.fromLocation)?.name || 'Unknown';
         const toLocation = locations.find(l => l.id === transfer.toLocation)?.name || 'Unknown';
-        
+
         let itemsHtml = transfer.items.map(item => {
-            const product = products.find(p => p.id === item.productId);
+            const batch = batches.find(b => b.id === item.batchId);
+            const product = products.find(p => p.id === batch?.productId);
             return `
                 <tr>
+                    <td>${batch?.batchName || 'Unknown Batch'}</td>
                     <td>${product?.name || 'Unknown Product'}</td>
-                    <td>${product?.sku || '-'}</td>
                     <td>${item.quantity}</td>
                 </tr>
             `;
@@ -648,26 +657,26 @@
                 <div class="col-md-6"><strong>Date:</strong> ${new Date(transfer.date).toLocaleString()}</div>
                 <div class="col-md-6"><strong>Reference:</strong> ${transfer.reference || '-'}</div>
             </div>
-            
+
             <h6>Items to Transfer:</h6>
             <table class="table table-sm">
                 <thead>
-                    <tr><th>Product</th><th>SKU</th><th>Quantity</th></tr>
+                    <tr><th>Batch Name</th><th>Product Name</th><th>Quantity</th></tr>
                 </thead>
                 <tbody>${itemsHtml}</tbody>
             </table>
         `;
 
         document.getElementById('transferDetailsBody').innerHTML = detailsHtml;
-        
+
         // Add action buttons
         const actionsHtml = transfer.status === 'pending' ? `
             <button class="btn btn-success me-2" onclick="completeTransfer('${transfer.id}')">Complete Transfer</button>
             <button class="btn btn-danger" onclick="cancelTransfer('${transfer.id}')">Cancel Transfer</button>
         ` : '';
-        
+
         document.getElementById('transferActions').innerHTML = actionsHtml;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('transferDetailsModal'));
         modal.show();
     }
@@ -679,8 +688,8 @@
 
         const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
         const transfer = transfers.find(t => t.id === transferId);
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
+
         if (!transfer || transfer.status !== 'pending') {
             alert('Transfer not found or already processed.');
             return;
@@ -688,23 +697,23 @@
 
         // Update stock levels
         transfer.items.forEach(item => {
-            const productIndex = products.findIndex(p => p.id === item.productId);
-            if (productIndex !== -1) {
-                const product = products[productIndex];
-                
+            const batchIndex = batches.findIndex(b => b.id === item.batchId);
+            if (batchIndex !== -1) {
+                const batch = batches[batchIndex];
+
                 // Initialize locationStock if not exists
-                if (!product.locationStock) {
-                    product.locationStock = {};
+                if (!batch.locationStock) {
+                    batch.locationStock = {};
                 }
-                
+
                 // Deduct from source location
-                product.locationStock[transfer.fromLocation] = (product.locationStock[transfer.fromLocation] || 0) - item.quantity;
-                
+                batch.locationStock[transfer.fromLocation] = (batch.locationStock[transfer.fromLocation] || 0) - item.quantity;
+
                 // Add to destination location
-                product.locationStock[transfer.toLocation] = (product.locationStock[transfer.toLocation] || 0) + item.quantity;
-                
-                // Update total stock
-                product.currentStock = Object.values(product.locationStock).reduce((sum, stock) => sum + stock, 0);
+                batch.locationStock[transfer.toLocation] = (batch.locationStock[transfer.toLocation] || 0) + item.quantity;
+
+                // Update total stock for the batch (optional, as it's location-specific)
+                // batch.currentStock = Object.values(batch.locationStock).reduce((sum, stock) => sum + stock, 0);
             }
         });
 
@@ -713,12 +722,12 @@
         transfer.completedAt = new Date().toISOString();
 
         localStorage.setItem('inventory.transfers', JSON.stringify(transfers));
-        localStorage.setItem('inventory.products', JSON.stringify(products));
+        localStorage.setItem('inventory.batches', JSON.stringify(batches)); // Save updated batches
 
         // Close details modal if open
         const detailsModal = bootstrap.Modal.getInstance(document.getElementById('transferDetailsModal'));
         if (detailsModal) detailsModal.hide();
-        
+
         loadTransfers();
         showToast('Transfer completed successfully!', 'success');
     }
@@ -730,16 +739,16 @@
 
         const transfers = JSON.parse(localStorage.getItem('inventory.transfers') || '[]');
         const transferIndex = transfers.findIndex(t => t.id === transferId);
-        
+
         if (transferIndex !== -1) {
             transfers[transferIndex].status = 'cancelled';
             transfers[transferIndex].cancelledAt = new Date().toISOString();
             localStorage.setItem('inventory.transfers', JSON.stringify(transfers));
-            
+
             // Close details modal if open
             const detailsModal = bootstrap.Modal.getInstance(document.getElementById('transferDetailsModal'));
             if (detailsModal) detailsModal.hide();
-            
+
             loadTransfers();
             showToast('Transfer cancelled successfully!', 'success');
         }
@@ -769,7 +778,7 @@
 
         const toastId = 'toast-' + Date.now();
         const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
-        
+
         const toastHtml = `
             <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert">
                 <div class="d-flex">
@@ -778,12 +787,12 @@
                 </div>
             </div>
         `;
-        
+
         toastContainer.insertAdjacentHTML('beforeend', toastHtml);
         const toastElement = document.getElementById(toastId);
         const toast = new bootstrap.Toast(toastElement);
         toast.show();
-        
+
         // Remove toast element after it's hidden
         toastElement.addEventListener('hidden.bs.toast', () => {
             toastElement.remove();

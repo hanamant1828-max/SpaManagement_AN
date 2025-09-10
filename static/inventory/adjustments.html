@@ -55,7 +55,7 @@
                         <tr>
                             <th>Reference ID</th>
                             <th>Adjustment Date</th>
-                            <th>Product</th>
+                            <th>Batch</th>
                             <th>Quantity</th>
                             <th>Type</th>
                             <th>Remarks</th>
@@ -98,16 +98,16 @@
                             <label class="form-label">Adjustment Date *</label>
                             <input type="date" class="form-control" id="adjustmentDate" required>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Product *</label>
-                            <select class="form-select" id="adjustmentProduct" required>
-                                <option value="">Select product</option>
+                        <div class="col-md-8">
+                            <label class="form-label">Batch *</label>
+                            <select class="form-select batch-select" name="batch_id" required>
+                                <option value="">Select Batch</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Current Stock</label>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="currentStockDisplay" readonly placeholder="Select product first">
+                                <input type="text" class="form-control" id="currentStockDisplay" readonly placeholder="Select batch first">
                                 <span class="input-group-text" id="currentStockUnit">pcs</span>
                             </div>
                         </div>
@@ -194,8 +194,8 @@
                         <p id="viewAdjustmentDate" class="form-control-plaintext border rounded p-2 bg-light"></p>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label"><strong>Product</strong></label>
-                        <p id="viewProduct" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                        <label class="form-label"><strong>Batch</strong></label>
+                        <p id="viewBatch" class="form-control-plaintext border rounded p-2 bg-light"></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label"><strong>Quantity</strong></label>
@@ -243,9 +243,9 @@
                             <input type="date" class="form-control" id="editAdjustmentDate" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Product *</label>
-                            <select class="form-select" id="editAdjustmentProduct" required>
-                                <option value="">Select product</option>
+                            <label class="form-label">Batch *</label>
+                            <select class="form-select batch-select" name="batch_id" required>
+                                <option value="">Select Batch</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -292,7 +292,7 @@
     function displayAdjustments(adjustments) {
         // Clear any localStorage cache
         localStorage.removeItem('inventory.adjustments');
-        
+
         // Apply filters
         const fromDate = document.getElementById('adjustments-from-date').value;
         const toDate = document.getElementById('adjustments-to-date').value;
@@ -330,7 +330,7 @@
                 <tr>
                     <td>${adjustment.reference_id || '-'}</td>
                     <td>${adjustment.adjustment_date}</td>
-                    <td>${adjustment.product || 'Unknown Product'}</td>
+                    <td>${adjustment.batch_name || 'Unknown Batch'}</td>
                     <td>${adjustment.quantity} pcs</td>
                     <td>
                         <span class="badge bg-${adjustment.type === 'add' ? 'success' : adjustment.type === 'remove' ? 'danger' : 'info'}">
@@ -425,8 +425,8 @@
                 // Populate view modal with data
                 document.getElementById('viewReferenceId').textContent = data.reference_id || '-';
                 document.getElementById('viewAdjustmentDate').textContent = data.adjustment_date || '-';
-                document.getElementById('viewProduct').textContent = data.product || 'Unknown Product';
-                document.getElementById('viewQuantity').textContent = (data.quantity || 0) + ' pcs';
+                document.getElementById('viewBatch').textContent = data.batch_name || 'Unknown Batch';
+                document.getElementById('viewQuantity').textContent = (data.quantity || 0) + 'pcs';
                 document.getElementById('viewType').innerHTML = `<span class="badge bg-${data.type === 'add' ? 'success' : data.type === 'remove' ? 'danger' : 'info'}">${(data.type || 'ADD').toUpperCase()}</span>`;
                 document.getElementById('viewCreatedBy').textContent = data.created_by || 'System';
                 document.getElementById('viewRemarks').textContent = data.remarks || 'No remarks';
@@ -443,9 +443,9 @@
 
     // Edit adjustment function
     window.editAdjustment = function(adjustmentId) {
-        // Load products for dropdown
-        loadProducts();
-        
+        // Load batches for dropdown
+        loadBatchesForAdjustments(); // Changed from loadProducts
+
         fetch(`/api/inventory/adjustments/${adjustmentId}`)
             .then(response => response.json())
             .then(data => {
@@ -461,11 +461,11 @@
                 document.getElementById('editAdjustmentQuantity').value = data.quantity || 0;
                 document.getElementById('editAdjustmentRemarks').value = data.remarks || '';
 
-                // Set product selection (will be set after products load)
+                // Set batch selection (will be set after batches load)
                 setTimeout(() => {
-                    const productSelect = document.getElementById('editAdjustmentProduct');
-                    if (productSelect && data.product_id) {
-                        productSelect.value = data.product_id;
+                    const batchSelect = document.getElementById('editAdjustmentModal').querySelector('.batch-select');
+                    if (batchSelect && data.batch_id) {
+                        batchSelect.value = data.batch_id;
                     }
                 }, 500);
 
@@ -482,15 +482,16 @@
     // Save edited adjustment function
     window.saveEditedAdjustment = function() {
         const adjustmentId = document.getElementById('editAdjustmentId').value;
+        const batchId = document.getElementById('editAdjustmentModal').querySelector('.batch-select').value;
         const formData = {
             adjustment_date: document.getElementById('editAdjustmentDate').value,
             reference_id: document.getElementById('editReferenceId').value,
             quantity: parseFloat(document.getElementById('editAdjustmentQuantity').value),
             remarks: document.getElementById('editAdjustmentRemarks').value,
-            items: [{
-                product_id: document.getElementById('editAdjustmentProduct').value,
-                quantity_added: parseFloat(document.getElementById('editAdjustmentQuantity').value),
-                unit_cost: 0
+            batch_id: batchId, // Added batch_id
+            items: [{ // Keeping the items structure for potential compatibility, but batch_id is key
+                batch_id: batchId, // Use batch_id here
+                quantity_adjusted: parseFloat(document.getElementById('editAdjustmentQuantity').value)
             }]
         };
 
@@ -500,8 +501,8 @@
             return;
         }
 
-        if (!formData.items[0].product_id) {
-            alert('Please select a product.');
+        if (!formData.batch_id) {
+            alert('Please select a batch.');
             return;
         }
 
@@ -536,62 +537,48 @@
         });
     }
 
-    function loadProducts() {
-        console.log('Loading products for adjustments...');
-
-        fetch('/api/inventory/products')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to load products');
-                }
-                return response.json();
-            })
-            .then(products => {
-                const productSelect = document.getElementById('adjustmentProduct');
-                if (productSelect) {
-                    productSelect.innerHTML = '<option value="">Select product</option>';
-                    products.forEach(product => {
+    // Load batches for adjustment dropdowns
+    function loadBatchesForAdjustments() {
+        fetch('/api/inventory/batches/for-adjustment')
+            .then(response => response.json())
+            .then(data => {
+                const batchSelects = document.querySelectorAll('.batch-select');
+                batchSelects.forEach(select => {
+                    select.innerHTML = '<option value="">Select Batch</option>';
+                    data.batches.forEach(batch => {
                         const option = document.createElement('option');
-                        option.value = product.id;
-                        option.textContent = `${product.name || product.sku || 'Unnamed Product'} (${product.sku || 'No SKU'})`;
-                        option.dataset.stock = product.current_stock || 0;
-                        option.dataset.unit = product.unit || product.unit_of_measure || 'pcs';
-                        productSelect.appendChild(option);
+                        option.value = batch.id;
+                        const expiryText = batch.expiry_date ?
+                            `, Exp: ${new Date(batch.expiry_date).toLocaleDateString('en-GB')}` : '';
+                        option.textContent = `${batch.batch_name} (${batch.product_name}${expiryText}, Current: ${batch.qty_available})`;
+                        option.dataset.productName = batch.product_name;
+                        option.dataset.currentQty = batch.qty_available;
+                        select.appendChild(option);
                     });
-                }
-
-                // Add event listener for product selection if not already added
-                if (productSelect && !productSelect.hasAttribute('data-listener-added')) {
-                    productSelect.addEventListener('change', function() {
-                        updateCurrentStockDisplay(this.value);
-                    });
-                    productSelect.setAttribute('data-listener-added', 'true');
-                }
+                });
             })
-            .catch(error => {
-                console.error('Error loading products:', error);
-            });
+            .catch(error => console.error('Error loading batches:', error));
     }
 
-    function updateCurrentStockDisplay(productId) {
-        const productSelect = document.getElementById('adjustmentProduct');
+    function updateCurrentStockDisplay(batchId) {
+        const batchSelect = document.querySelector('.batch-select'); // Assuming one active batch select
         const currentStockDisplay = document.getElementById('currentStockDisplay');
         const currentStockUnit = document.getElementById('currentStockUnit');
 
-        if (productId && productSelect) {
-            const selectedOption = productSelect.querySelector(`option[value="${productId}"]`);
+        if (batchId && batchSelect) {
+            const selectedOption = batchSelect.querySelector(`option[value="${batchId}"]`);
             if (selectedOption && currentStockDisplay && currentStockUnit) {
-                const stock = parseFloat(selectedOption.dataset.stock || 0);
-                const unit = selectedOption.dataset.unit || 'pcs';
+                const stock = selectedOption.dataset.currentQty || 0;
+                const unit = 'pcs'; // Assuming 'pcs' is standard for now
 
-                currentStockDisplay.value = stock.toFixed(2);
+                currentStockDisplay.value = parseFloat(stock).toFixed(2);
                 currentStockUnit.textContent = unit;
 
                 // Add visual feedback based on stock level
                 currentStockDisplay.className = 'form-control';
-                if (stock <= 0) {
+                if (parseFloat(stock) <= 0) {
                     currentStockDisplay.classList.add('border-danger');
-                } else if (stock <= 10) {
+                } else if (parseFloat(stock) <= 10) {
                     currentStockDisplay.classList.add('border-warning');
                 } else {
                     currentStockDisplay.classList.add('border-success');
@@ -603,6 +590,7 @@
             currentStockDisplay.className = 'form-control';
         }
     }
+
 
     function generateReferenceId() {
         const today = new Date();
@@ -619,7 +607,7 @@
         document.getElementById('adjustmentReferenceId').value = generateReferenceId();
         document.getElementById('adjustmentDate').value = new Date().toISOString().split('T')[0];
 
-        loadProducts();
+        loadBatchesForAdjustments(); // Changed from loadProducts
 
         const modal = new bootstrap.Modal(document.getElementById('addAdjustmentModal'));
         modal.show();
@@ -630,42 +618,39 @@
         document.getElementById('adjustmentItems').innerHTML = ''; // Clear previous items
         adjustmentItemCounter = 0; // Reset counter
 
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]'); // Assuming batches are stored
 
         // Add the first item row
-        addAdjustmentItemRow(products);
+        addAdjustmentItemRow(batches);
 
         const modal = new bootstrap.Modal(document.getElementById('addMultipleItemsModal'));
         modal.show();
     }
 
-    function addAdjustmentItemRow(products) {
+    function addAdjustmentItemRow(batches) {
         adjustmentItemCounter++;
         const itemHtml = `
             <div class="card mb-2" id="adjustmentItem${adjustmentItemCounter}">
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Product *</label>
-                            <select class="form-select adjustment-product" data-item="${adjustmentItemCounter}" required>
-                                <option value="">Select Product</option>
-                                ${products.map(p => `<option value="${p.id}" data-stock="${p.current_stock || 0}" data-unit="${p.unit || 'pcs'}">${p.name} (${p.sku})</option>`).join('')}
+                        <div class="col-md-5">
+                            <label class="form-label">Batch *</label>
+                            <select class="form-select adjustment-batch-select" data-item="${adjustmentItemCounter}" required>
+                                <option value="">Select Batch</option>
+                                ${batches.map(b => {
+                                    const expiryText = b.expiry_date ?
+                                        `, Exp: ${new Date(b.expiry_date).toLocaleDateString('en-GB')}` : '';
+                                    return `<option value="${b.id}" data-current-qty="${b.qty_available || 0}">${b.batch_name} (${b.product_name}${expiryText}, Current: ${b.qty_available || 0})</option>`;
+                                }).join('')}
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Current Stock</label>
-                            <div class="input-group input-group-sm">
-                                <input type="text" class="form-control current-stock-display" id="currentStock${adjustmentItemCounter}" readonly>
-                                <span class="input-group-text current-stock-unit" id="currentUnit${adjustmentItemCounter}">pcs</span>
-                            </div>
+                            <label class="form-label">Current Qty</label>
+                            <input type="text" class="form-control current-stock-display" id="currentStock${adjustmentItemCounter}" readonly>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Quantity In *</label>
+                            <label class="form-label">Quantity ${document.getElementById('adjustmentType').value === 'remove' ? 'Out' : 'In'} *</label>
                             <input type="number" class="form-control quantity-in" id="quantityIn${adjustmentItemCounter}" min="0" step="0.01" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Unit Cost</label>
-                            <input type="number" class="form-control unit-cost" id="unitCost${adjustmentItemCounter}" min="0" step="0.01">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Line Total</label>
@@ -684,15 +669,14 @@
         document.getElementById('adjustmentItems').insertAdjacentHTML('beforeend', itemHtml);
 
         // Add event listeners for the new item
-        const productSelect = document.querySelector(`[data-item="${adjustmentItemCounter}"]`);
+        const batchSelect = document.querySelector(`[data-item="${adjustmentItemCounter}"]`);
         const quantityInput = document.getElementById(`quantityIn${adjustmentItemCounter}`);
-        const unitCostInput = document.getElementById(`unitCost${adjustmentItemCounter}`);
 
-        if (productSelect) {
-            productSelect.addEventListener('change', function() {
+        if (batchSelect) {
+            batchSelect.addEventListener('change', function() {
                 updateItemCurrentStock(adjustmentItemCounter, this.value);
-                updateUnitCostFromProduct(adjustmentItemCounter, this.value);
                 calculateLineTotal(adjustmentItemCounter);
+                updateTotalValue();
             });
         }
 
@@ -702,118 +686,93 @@
                 updateTotalValue();
             });
         }
-
-        if (unitCostInput) {
-            unitCostInput.addEventListener('input', function() {
-                calculateLineTotal(adjustmentItemCounter);
-                updateTotalValue();
-            });
-        }
     }
 
     window.saveAdjustment = function() {
-        const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-
         const adjustmentData = {
-            id: Date.now().toString(),
             referenceId: document.getElementById('adjustmentReferenceId').value,
             date: document.getElementById('adjustmentDate').value,
-            productId: document.getElementById('adjustmentProduct').value,
+            batch_id: document.getElementById('adjustmentProduct').value, // Changed to batch_id
             type: document.getElementById('adjustmentType').value,
             quantity: parseFloat(document.getElementById('adjustmentQuantity').value),
-            unitCost: parseFloat(document.getElementById('adjustmentUnitCost').value) || 0,
             remarks: document.getElementById('adjustmentRemarks').value,
-            createdBy: 'Current User',
+            createdBy: 'Current User', // Placeholder
             createdAt: new Date().toISOString()
         };
 
-        // Update product stock
-        const productIndex = products.findIndex(p => p.id === adjustmentData.productId);
-        if (productIndex !== -1) {
-            const product = products[productIndex];
-            const currentStock = product.stock || 0;
-
-            switch (adjustmentData.type) {
-                case 'add':
-                    product.stock = currentStock + adjustmentData.quantity;
-                    break;
-                case 'remove':
-                    product.stock = Math.max(0, currentStock - adjustmentData.quantity);
-                    break;
-                case 'set':
-                    product.stock = adjustmentData.quantity;
-                    break;
-            }
-
-            localStorage.setItem('inventory.products', JSON.stringify(products));
+        // Basic validation
+        if (!adjustmentData.date) {
+            alert('Adjustment date is required.');
+            return;
+        }
+        if (!adjustmentData.batch_id) {
+            alert('Batch is required.');
+            return;
+        }
+        if (isNaN(adjustmentData.quantity) || adjustmentData.quantity <= 0) {
+            alert('Quantity is required and must be positive.');
+            return;
         }
 
-        adjustments.push(adjustmentData);
-        localStorage.setItem('inventory.adjustments', JSON.stringify(adjustments));
-
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addAdjustmentModal'));
-        modal.hide();
-
-        loadAdjustments();
+        // For now, we'll just push to localStorage. In a real app, this would be an API call.
+        // Let's simulate an API call
+        fetch('/api/inventory/adjustments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(adjustmentData)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Adjustment saved successfully!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addAdjustmentModal'));
+                modal.hide();
+                loadAdjustments(); // Reload the list
+            } else {
+                alert('Error saving adjustment: ' + result.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving adjustment:', error);
+            alert('An error occurred. Please try again.');
+        });
     }
 
     window.saveMultipleAdjustments = function() {
-        const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
         const adjustmentItemsForm = document.getElementById('adjustmentItemsForm');
         const itemRows = adjustmentItemsForm.querySelectorAll('.card');
+        const date = document.getElementById('adjustmentDate').value;
+        const type = document.getElementById('adjustmentType').value;
+        const remarks = document.getElementById('adjustmentRemarks').value;
+        const batchId = document.querySelector('.batch-select').value; // Assuming a single batch for the form
 
+
+        let adjustmentsToSave = [];
         let hasError = false;
 
         itemRows.forEach(row => {
             const itemId = row.id.replace('adjustmentItem', '');
-            const productId = document.querySelector(`[data-item="${itemId}"]`).value;
+            const selectedBatchId = document.querySelector(`[data-item="${itemId}"]`).value;
             const quantity = parseFloat(document.getElementById(`quantityIn${itemId}`).value);
-            const unitCost = parseFloat(document.getElementById(`unitCost${itemId}`).value) || 0;
-            const adjustmentType = document.getElementById('adjustmentType').value; // Assuming same type for all items in a batch
 
-            if (!productId || isNaN(quantity) || quantity < 0) {
-                // Add error styling or message
-                if (!productId) document.querySelector(`[data-item="${itemId}"]`).classList.add('is-invalid');
-                if (isNaN(quantity) || quantity < 0) document.getElementById(`quantityIn${itemId}`).classList.add('is-invalid');
+            if (!selectedBatchId || isNaN(quantity) || quantity <= 0) {
+                if (!selectedBatchId) document.querySelector(`[data-item="${itemId}"]`).classList.add('is-invalid');
+                if (isNaN(quantity) || quantity <= 0) document.getElementById(`quantityIn${itemId}`).classList.add('is-invalid');
                 hasError = true;
-                return; // Continue to next item
+                return;
             } else {
                 document.querySelector(`[data-item="${itemId}"]`).classList.remove('is-invalid');
                 document.getElementById(`quantityIn${itemId}`).classList.remove('is-invalid');
             }
 
-            const productIndex = products.findIndex(p => p.id === productId);
-            if (productIndex !== -1) {
-                const product = products[productIndex];
-                const currentStock = product.stock || 0;
-
-                switch (adjustmentType) {
-                    case 'add':
-                        product.stock = currentStock + quantity;
-                        break;
-                    case 'remove':
-                        product.stock = Math.max(0, currentStock - quantity);
-                        break;
-                    case 'set':
-                        product.stock = quantity;
-                        break;
-                }
-                localStorage.setItem('inventory.products', JSON.stringify(products));
-            }
-
-            adjustments.push({
-                id: Date.now().toString() + itemId, // Unique ID for each item
-                referenceId: generateReferenceId(), // Or a shared reference ID for the batch
-                date: document.getElementById('adjustmentDate').value, // Assuming same date for all
-                productId: productId,
-                type: adjustmentType,
+            adjustmentsToSave.push({
+                referenceId: generateReferenceId(), // Generate a new one for each
+                date: date,
+                batch_id: selectedBatchId,
+                type: type,
                 quantity: quantity,
-                unitCost: unitCost,
-                remarks: document.getElementById('adjustmentRemarks').value, // Assuming same remarks
-                createdBy: 'Current User',
-                createdAt: new Date().toISOString()
+                remarks: remarks,
+                createdBy: 'Current User'
             });
         });
 
@@ -822,21 +781,46 @@
             return;
         }
 
-        localStorage.setItem('inventory.adjustments', JSON.stringify(adjustments));
-
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addMultipleItemsModal'));
-        modal.hide();
-
-        loadAdjustments();
+        // Simulate API call for saving multiple adjustments
+        fetch('/api/inventory/adjustments/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(adjustmentsToSave)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Adjustments saved successfully!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addMultipleItemsModal'));
+                modal.hide();
+                loadAdjustments();
+            } else {
+                alert('Error saving adjustments: ' + result.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving adjustments:', error);
+            alert('An error occurred. Please try again.');
+        });
     }
 
 
     window.deleteAdjustment = function(adjustmentId) {
-        if (confirm('Are you sure you want to delete this adjustment? This will not reverse stock changes.')) {
-            const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
-            const filteredAdjustments = adjustments.filter(a => a.id !== adjustmentId);
-            localStorage.setItem('inventory.adjustments', JSON.stringify(filteredAdjustments));
-            loadAdjustments();
+        if (confirm('Are you sure you want to delete this adjustment? This action cannot be undone.')) {
+            fetch(`/api/inventory/adjustments/${adjustmentId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Adjustment deleted successfully!');
+                    loadAdjustments();
+                } else {
+                    alert('Error deleting adjustment: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting adjustment:', error);
+                alert('An error occurred. Please try again.');
+            });
         }
     }
 
@@ -858,14 +842,19 @@
     }
 
     function exportAdjustments() {
+        // In a real app, you'd fetch filtered/sorted data based on current filters
+        // For now, let's export all available adjustments from localStorage (or fetch from API if implemented)
         const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]'); // Assuming batches are available
 
-        let csvContent = "Reference ID,Date,Product,Quantity,Type,Unit Cost,Remarks,Created By\n";
+        let csvContent = "Reference ID,Date,Batch Name,Product Name,Quantity,Type,Remarks,Created By\n";
 
         adjustments.forEach(adjustment => {
-            const product = products.find(p => p.id === adjustment.productId);
-            csvContent += `"${adjustment.referenceId}","${adjustment.date}","${product ? product.name : 'Unknown'}","${adjustment.quantity}","${adjustment.type}","${adjustment.unitCost}","${adjustment.remarks || ''}","${adjustment.createdBy || ''}"\n`;
+            const batch = batches.find(b => b.id === adjustment.batch_id);
+            const batchName = batch ? batch.batch_name : 'Unknown Batch';
+            const productName = batch ? batch.product_name : 'Unknown Product';
+
+            csvContent += `"${adjustment.referenceId || ''}","${adjustment.date || ''}","${batchName}","${productName}","${adjustment.quantity || ''}","${adjustment.type || ''}","${adjustment.remarks || ''}","${adjustment.createdBy || ''}"\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -878,22 +867,22 @@
     }
 
     // Helper functions for multiple item adjustments
-    function updateItemCurrentStock(itemCounter, productId) {
-        const productSelect = document.querySelector(`[data-item="${itemCounter}"]`);
+    function updateItemCurrentStock(itemCounter, batchId) {
+        const batchSelect = document.querySelector(`[data-item="${itemCounter}"]`);
         const currentStockDisplay = document.getElementById(`currentStock${itemCounter}`);
         const currentStockUnit = document.getElementById(`currentUnit${itemCounter}`);
 
-        if (productId && productSelect) {
-            const selectedOption = productSelect.querySelector(`option[value="${productId}"]`);
+        if (batchId && batchSelect) {
+            const selectedOption = batchSelect.querySelector(`option[value="${batchId}"]`);
             if (selectedOption && currentStockDisplay && currentStockUnit) {
-                const stock = selectedOption.dataset.stock || 0;
-                const unit = selectedOption.dataset.unit || 'pcs';
+                const stock = selectedOption.dataset.currentQty || 0;
+                const unit = 'pcs'; // Assuming 'pcs'
 
                 currentStockDisplay.value = parseFloat(stock).toFixed(2);
                 currentStockUnit.textContent = unit;
 
                 // Add visual feedback based on stock level
-                currentStockDisplay.className = 'form-control current-stock-display';
+                currentStockDisplay.className = 'form-control';
                 if (parseFloat(stock) <= 0) {
                     currentStockDisplay.classList.add('border-danger');
                 } else if (parseFloat(stock) <= 10) {
@@ -905,19 +894,35 @@
         } else if (currentStockDisplay && currentStockUnit) {
             currentStockDisplay.value = '';
             currentStockUnit.textContent = 'pcs';
-            currentStockDisplay.className = 'form-control current-stock-display';
+            currentStockDisplay.className = 'form-control';
         }
     }
 
     function calculateLineTotal(itemCounter) {
         const quantityInput = document.getElementById(`quantityIn${itemCounter}`);
-        const unitCostInput = document.getElementById(`unitCost${itemCounter}`);
         const lineTotalInput = document.getElementById(`lineTotal${itemCounter}`);
 
-        if (quantityInput && unitCostInput && lineTotalInput) {
+        if (quantityInput && lineTotalInput) {
             const quantity = parseFloat(quantityInput.value) || 0;
-            const unitCost = parseFloat(unitCostInput.value) || 0;
-            const lineTotal = quantity * unitCost;
+            const batchSelect = document.querySelector(`[data-item="${itemCounter}"]`);
+            const selectedOption = batchSelect ? batchSelect.options[batchSelect.selectedIndex] : null;
+            const currentQty = selectedOption ? parseFloat(selectedOption.dataset.currentQty) : 0;
+            const adjustmentType = document.getElementById('adjustmentType').value;
+
+            let lineTotal = 0;
+            if (adjustmentType === 'add') {
+                lineTotal = quantity;
+            } else if (adjustmentType === 'remove') {
+                if (quantity > currentQty) {
+                    // Optionally show an error or warning if quantity exceeds current stock
+                    // For now, just calculate based on input
+                    lineTotal = -quantity;
+                } else {
+                    lineTotal = -quantity;
+                }
+            } else if (adjustmentType === 'set') {
+                lineTotal = quantity; // For set, the quantity is the new stock level
+            }
 
             lineTotalInput.value = lineTotal.toFixed(2);
         }
@@ -938,27 +943,6 @@
         }
     }
 
-    function updateUnitCostFromProduct(itemCounter, productId) {
-        // Fetch product details from API to get current cost price
-        if (productId) {
-            fetch(`/api/inventory/products/${productId}`)
-                .then(response => response.json())
-                .then(product => {
-                    if (product && product.cost_price) {
-                        const unitCostInput = document.getElementById(`unitCost${itemCounter}`);
-                        if (unitCostInput) {
-                            unitCostInput.value = product.cost_price;
-                            calculateLineTotal(itemCounter);
-                            updateTotalValue();
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching product details:', error);
-                });
-        }
-    }
-
 
     // Event listeners
     document.getElementById('btnAddAdjustment').addEventListener('click', addAdjustment);
@@ -972,20 +956,50 @@
         loadAdjustments();
     });
 
-    // Event listener for adding multiple items
-    document.getElementById('btnAddAdjustment').addEventListener('click', function() {
-        // Check if the button click is for single or multiple item adjustment
-        // For now, we assume btnAddAdjustment is for single item, and a new button will be added for multiple
-        // If you want to differentiate, you might need a separate button or logic.
-        // For this change, let's assume a new button would be added or the existing one is repurposed.
-        // However, the original code only has btnAddAdjustment, so we'll stick to that for now and assume it's for single.
-        // If a multi-item add feature is desired, a new button like 'btnAddMultipleAdjustment' should be added.
-    });
-
     // Add listener for the "Add Item" button within the multi-item modal
     document.getElementById('addMoreItem').addEventListener('click', function() {
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        addAdjustmentItemRow(products);
+        // Fetch batches again to ensure up-to-date data, or use a cached version if available
+        fetch('/api/inventory/batches/for-adjustment')
+            .then(response => response.json())
+            .then(data => {
+                addAdjustmentItemRow(data.batches);
+            })
+            .catch(error => console.error('Error fetching batches for new item:', error));
+    });
+
+    // Add event listener for batch selection in the single adjustment modal
+    document.getElementById('addAdjustmentModal').addEventListener('change', function(event) {
+        if (event.target.classList.contains('batch-select')) {
+            updateCurrentStockDisplay(event.target.value);
+        }
+    });
+
+    // Add event listener for batch selection in the edit adjustment modal
+    document.getElementById('editAdjustmentModal').addEventListener('change', function(event) {
+        if (event.target.classList.contains('batch-select')) {
+            // This would need a similar update function for the edit modal's stock display if available
+        }
+    });
+
+    // Adjust the quantity input's label based on adjustment type
+    document.getElementById('adjustmentType').addEventListener('change', function() {
+        const quantityLabel = document.querySelector('#addAdjustmentModal #adjustmentQuantity');
+        if (quantityLabel) {
+            if (this.value === 'remove') {
+                quantityLabel.textContent = 'Quantity Out *';
+            } else {
+                quantityLabel.textContent = 'Quantity *';
+            }
+        }
+        // Also update for multi-item form if visible
+        const multiItemQuantityLabel = document.querySelector('#addMultipleItemsModal #adjustmentQuantity');
+        if (multiItemQuantityLabel) {
+            if (this.value === 'remove') {
+                multiItemQuantityLabel.textContent = 'Quantity Out *';
+            } else {
+                multiItemQuantityLabel.textContent = 'Quantity *';
+            }
+        }
     });
 
     // Initialize

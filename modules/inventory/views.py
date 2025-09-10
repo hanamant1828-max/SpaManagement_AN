@@ -592,19 +592,19 @@ def api_inventory_adjustments():
 
         for index, item in enumerate(items):
             # Safe extraction with defaults
-            product_id = item.get('product_id')
+            batch_id = item.get('batch_id')
             quantity_in = item.get('quantity_in')
             unit_cost_str = item.get('unit_cost', '0')
 
             # Skip empty items
-            if not product_id:
+            if not batch_id:
                 continue
 
-            # Validate product_id
+            # Validate batch_id
             try:
-                product_id = int(product_id)
+                batch_id = int(batch_id)
             except (ValueError, TypeError):
-                return jsonify({'error': f'Invalid product selected for item #{index + 1}. Please select a valid product.'}), 400
+                return jsonify({'error': f'Invalid batch selected for item #{index + 1}. Please select a valid batch.'}), 400
 
             # Validate quantity with user-friendly messages
             if not quantity_in:
@@ -625,9 +625,13 @@ def api_inventory_adjustments():
             except (ValueError, TypeError):
                 unit_cost = 0.0
 
-            product = get_product_by_id(product_id)
+            batch = get_batch_by_id(batch_id)
+            if not batch:
+                return jsonify({'error': f'Batch with ID {batch_id} not found'}), 400
+            
+            product = batch.product
             if not product:
-                return jsonify({'error': f'Product with ID {product_id} not found'}), 400
+                return jsonify({'error': f'Product not found for batch ID {batch_id}'}), 400
 
             # Build structured reason that can be parsed back to clean fields
             reason_parts = ["Manual stock adjustment"]
@@ -645,26 +649,32 @@ def api_inventory_adjustments():
 
             reason = ' — '.join(reason_parts)
 
-            updated_product = add_stock(
-                product_id=product_id,
-                quantity=quantity_in,
+            # Update batch stock directly
+            old_quantity = float(batch.qty_available or 0)
+            new_quantity = old_quantity + quantity_in
+            
+            updated_batch = update_batch_stock(
+                batch_id=batch_id,
+                new_quantity=new_quantity,
+                movement_type='in',
                 reason=reason,
-                reference_type='manual',
+                reference_type='manual_adjustment',
                 reference_id=None,
-                unit_cost=unit_cost,
                 user_id=current_user.id
             )
 
-            if updated_product:
+            if updated_batch:
                 stock_updates.append({
-                    'product_id': product.id,
+                    'batch_id': batch.id,
+                    'batch_name': batch.batch_name,
                     'product_name': product.name,
-                    'product_sku': product.sku,
+                    'product_sku': product.sku or 'N/A',
                     'quantity_added': quantity_in,
-                    'new_stock_level': float(updated_product.current_stock or 0),
+                    'new_batch_qty': float(updated_batch.qty_available or 0),
                     'unit_of_measure': product.unit_of_measure
                 })
                 total_value += float(quantity_in) * float(unit_cost)
+                processed_items += 1
 
         return jsonify({
             'success': True,
@@ -2246,32 +2256,31 @@ def api_add_batch():
             except ValueError:
                 return jsonify({'error': 'Invalid expiry date format'}), 400
 
-        # Create batch
+        # Parse created date
+        created_date = None
+        if data.get('created_date'):
+            try:
+                created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid created date format'}), 400
+        else:
+            created_date = datetime.utcnow().date()
+
+        # Create batch (no quantity - will be added via adjustments)
         batch_data = {
             'product_id': data['product_id'],
             'location_id': data['location_id'],
             'batch_name': data['batch_name'].strip(),
+            'created_date': created_date,
             'mfg_date': mfg_date,
             'expiry_date': expiry_date,
-            'qty_available': float(data.get('qty_available', 0)),
+            'qty_available': 0,  # Always start with 0 - stock added via adjustments
             'unit_cost': float(data.get('unit_cost', 0)),
             'selling_price': float(data['selling_price']) if data.get('selling_price') else None,
             'status': data.get('status', 'active')
         }
 
         batch = create_batch(batch_data)
-        
-        # If initial quantity > 0, create stock movement
-        if batch.qty_available > 0:
-            update_batch_stock(
-                batch.id,
-                batch.qty_available,
-                'in',
-                f'Initial batch stock - {batch.batch_name}',
-                'batch_creation',
-                batch.id,
-                current_user.id
-            )
 
         return jsonify({
             'success': True,
@@ -2498,6 +2507,62 @@ def api_get_expired_batches():
 
     except Exception as e:
         return jsonify({'error': f'Error loading expired batches: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches/for-adjustment')
+@login_required
+def api_get_batches_for_adjustment():
+    """Get active batches for adjustments"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        batches = get_active_batches_for_adjustment()
+        
+        batch_list = []
+        for batch in batches:
+            batch_list.append({
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_name': batch.product.name if batch.product else 'Unknown',
+                'location_name': batch.location.name if batch.location else 'Unknown',
+                'qty_available': float(batch.qty_available or 0),
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'unit': batch.product.unit_of_measure if batch.product else 'pcs'
+            })
+        
+        return jsonify({'batches': batch_list})
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading batches for adjustment: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches/for-consumption')
+@login_required
+def api_get_batches_for_consumption():
+    """Get batches with stock for consumption"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        batches = get_active_batches_for_consumption()
+        
+        batch_list = []
+        for batch in batches:
+            batch_list.append({
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_name': batch.product.name if batch.product else 'Unknown',
+                'location_name': batch.location.name if batch.location else 'Unknown',
+                'qty_available': float(batch.qty_available or 0),
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'unit': batch.product.unit_of_measure if batch.product else 'pcs'
+            })
+        
+        return jsonify({'batches': batch_list})
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading batches for consumption: {str(e)}'}), 500
 
 # ============ ENHANCED PRODUCT ENDPOINTS ============
 
