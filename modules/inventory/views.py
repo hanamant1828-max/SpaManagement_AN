@@ -643,6 +643,12 @@ def api_update_batch(batch_id):
                 return jsonify({'error': 'Batch name must be unique'}), 400
             batch.batch_name = data['batch_name']
 
+        if data.get('product_id'):
+            batch.product_id = int(data['product_id'])
+        
+        if data.get('location_id'):
+            batch.location_id = data['location_id']
+
         if data.get('created_date'):
             batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
 
@@ -667,6 +673,35 @@ def api_update_batch(batch_id):
         return jsonify({
             'success': True,
             'message': 'Batch updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['DELETE'])
+@login_required
+def api_delete_batch(batch_id):
+    """Delete a batch (soft delete - mark as inactive)"""
+    try:
+        from datetime import datetime
+        batch = InventoryBatch.query.get(batch_id)
+        
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        # Check if batch has stock - prevent deletion if it does
+        if batch.qty_available and float(batch.qty_available) > 0:
+            return jsonify({'error': 'Cannot delete batch with remaining stock. Current stock: ' + str(batch.qty_available)}), 400
+
+        # Soft delete - mark as inactive
+        batch.status = 'deleted'
+        batch.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Batch deleted successfully'
         })
     except Exception as e:
         db.session.rollback()
