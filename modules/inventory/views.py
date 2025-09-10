@@ -13,7 +13,7 @@ def inventory_dashboard():
     if not current_user.can_access('inventory'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         return render_template('inventory_dashboard.html')
     except Exception as e:
@@ -55,7 +55,7 @@ def api_create_product():
     """Create a new product"""
     try:
         data = request.get_json()
-        
+
         product = InventoryProduct(
             name=data.get('name'),
             description=data.get('description', ''),
@@ -70,10 +70,10 @@ def api_create_product():
             max_stock_level=data.get('max_stock_level', 0),
             is_active=True
         )
-        
+
         db.session.add(product)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Product created successfully',
@@ -104,16 +104,16 @@ def api_create_category():
     """Create a new category"""
     try:
         data = request.get_json()
-        
+
         category = InventoryCategory(
             name=data.get('name'),
             description=data.get('description', ''),
             is_active=True
         )
-        
+
         db.session.add(category)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Category created successfully',
@@ -132,9 +132,9 @@ def api_get_locations():
         return jsonify([{
             'id': l.id,
             'name': l.name,
-            'description': l.description,
+            'type': l.type,
             'address': l.address,
-            'is_active': l.is_active
+            'status': l.status
         } for l in locations])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -145,17 +145,17 @@ def api_create_location():
     """Create a new location"""
     try:
         data = request.get_json()
-        
+
         location = InventoryLocation(
             name=data.get('name'),
             description=data.get('description', ''),
             address=data.get('address', ''),
             is_active=True
         )
-        
+
         db.session.add(location)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Location created successfully',
@@ -170,20 +170,20 @@ def api_create_location():
 def api_get_batches():
     """Get all batches"""
     try:
-        batches = get_all_batches()
+        from .models import InventoryBatch
+        batches = InventoryBatch.query.all()
         return jsonify([{
             'id': b.id,
             'batch_name': b.batch_name,
-            'product_id': b.product_id,
-            'product_name': b.product.name if b.product else '',
-            'location_id': b.location_id,
-            'location_name': b.location.name if b.location else '',
+            'product_name': b.product.name if b.product else 'Unknown',
+            'location_name': b.location.name if b.location else 'Unknown',
             'mfg_date': b.mfg_date.isoformat() if b.mfg_date else None,
             'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
-            'qty_available': float(b.qty_available) if b.qty_available else 0,
-            'unit_cost': float(b.unit_cost) if b.unit_cost else 0,
-            'selling_price': float(b.selling_price) if b.selling_price else 0,
-            'status': b.status
+            'qty_available': float(b.qty_available or 0),
+            'unit_cost': float(b.unit_cost or 0),
+            'status': b.status,
+            'is_expired': b.is_expired,
+            'days_to_expiry': b.days_to_expiry
         } for b in batches])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -193,28 +193,59 @@ def api_get_batches():
 def api_create_batch():
     """Create a new batch"""
     try:
+        from .models import InventoryBatch
+        from datetime import datetime
+
         data = request.get_json()
-        
+
+        # Validate required fields
+        required_fields = ['product_id', 'location_id', 'batch_name', 'mfg_date', 'expiry_date']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+
+        # Check if batch name is unique for the product
+        existing_batch = InventoryBatch.query.filter_by(
+            product_id=data['product_id'],
+            batch_name=data['batch_name']
+        ).first()
+
+        if existing_batch:
+            return jsonify({'error': 'Batch name must be unique for this product'}), 400
+
+        # Parse dates
+        mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
+        expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+
+        # Validate dates
+        if expiry_date <= mfg_date:
+            return jsonify({'error': 'Expiry date must be later than manufacturing date'}), 400
+
+        # Create batch
         batch = InventoryBatch(
-            batch_name=data.get('batch_name'),
-            product_id=data.get('product_id'),
-            location_id=data.get('location_id'),
-            mfg_date=datetime.strptime(data.get('mfg_date'), '%Y-%m-%d').date() if data.get('mfg_date') else None,
-            expiry_date=datetime.strptime(data.get('expiry_date'), '%Y-%m-%d').date() if data.get('expiry_date') else None,
-            qty_available=0,  # Always start with 0
-            unit_cost=data.get('unit_cost', 0),
-            selling_price=data.get('selling_price', 0),
-            status='active'
+            product_id=data['product_id'],
+            location_id=data['location_id'],
+            batch_name=data['batch_name'],
+            mfg_date=mfg_date,
+            expiry_date=expiry_date,
+            unit_cost=float(data.get('unit_cost', 0)),
+            selling_price=float(data.get('selling_price', 0)) if data.get('selling_price') else None,
+            qty_available=0  # Start with 0, stock added via adjustments
         )
-        
+
+        # Set created_date if provided
+        if data.get('created_date'):
+            batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
+
         db.session.add(batch)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Batch created successfully',
             'batch_id': batch.id
         })
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -225,11 +256,11 @@ def api_create_adjustment():
     """Create inventory adjustment"""
     try:
         data = request.get_json()
-        
+
         batch = InventoryBatch.query.get(data.get('batch_id'))
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
-        
+
         adjustment = InventoryAdjustment(
             batch_id=data.get('batch_id'),
             adjustment_type='add',
@@ -238,13 +269,13 @@ def api_create_adjustment():
             notes=data.get('notes', ''),
             created_by=current_user.id
         )
-        
+
         # Update batch quantity
         batch.qty_available += data.get('quantity', 0)
-        
+
         db.session.add(adjustment)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Inventory adjustment created successfully'
@@ -259,28 +290,28 @@ def api_create_consumption():
     """Create consumption record"""
     try:
         data = request.get_json()
-        
+
         batch = InventoryBatch.query.get(data.get('batch_id'))
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
-        
+
         quantity = data.get('quantity', 0)
         if quantity > batch.qty_available:
             return jsonify({'error': 'Insufficient stock available'}), 400
-        
+
         consumption = InventoryConsumption(
             batch_id=data.get('batch_id'),
             quantity=quantity,
             notes=data.get('notes', ''),
             created_by=current_user.id
         )
-        
+
         # Update batch quantity
         batch.qty_available -= quantity
-        
+
         db.session.add(consumption)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Consumption recorded successfully'

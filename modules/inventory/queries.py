@@ -460,6 +460,56 @@ def initialize_default_locations():
         print(f"Error creating default locations: {e}")
         return False
 
+# ============ BATCH MANAGEMENT ============
+
+def get_all_batches():
+    """Get all batches"""
+    from .models import InventoryBatch
+    return InventoryBatch.query.order_by(InventoryBatch.batch_name).all()
+
+def get_batch_by_id(batch_id):
+    """Get batch by ID"""
+    from .models import InventoryBatch
+    return InventoryBatch.query.get(batch_id)
+
+def get_batches_by_product(product_id):
+    """Get all batches for a specific product"""
+    from .models import InventoryBatch
+    return InventoryBatch.query.filter_by(product_id=product_id).all()
+
+def get_active_batches():
+    """Get all active batches (not expired, with available quantity)"""
+    from .models import InventoryBatch
+    from datetime import date
+    return InventoryBatch.query.filter(
+        and_(
+            InventoryBatch.status == 'active',
+            InventoryBatch.expiry_date > date.today(),
+            InventoryBatch.qty_available > 0
+        )
+    ).all()
+
+def get_expiring_batches(days=30):
+    """Get batches expiring within specified days"""
+    from .models import InventoryBatch
+    from datetime import date, timedelta
+    expiry_threshold = date.today() + timedelta(days=days)
+    return InventoryBatch.query.filter(
+        and_(
+            InventoryBatch.expiry_date <= expiry_threshold,
+            InventoryBatch.expiry_date > date.today(),
+            InventoryBatch.qty_available > 0
+        )
+    ).all()
+
+def get_expired_batches():
+    """Get all expired batches"""
+    from .models import InventoryBatch
+    from datetime import date
+    return InventoryBatch.query.filter(
+        InventoryBatch.expiry_date <= date.today()
+    ).all()
+
 def initialize_default_categories():
     """Initialize default categories if none exist"""
     try:
