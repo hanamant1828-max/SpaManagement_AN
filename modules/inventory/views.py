@@ -78,17 +78,17 @@ def api_create_product():
     try:
         data = request.get_json()
         
-        # Use the batch-centric create function
+        # Handle both camelCase (frontend) and underscore (backend) field names
         product = create_product({
             'name': data.get('name'),
             'description': data.get('description', ''),
-            'category_id': data.get('category_id'),
+            'category_id': data.get('category_id') or data.get('categoryId'),  # Support both formats
             'sku': data.get('sku', ''),
-            'unit_of_measure': data.get('unit_of_measure', 'pcs'),
+            'unit_of_measure': data.get('unit_of_measure') or data.get('unit', 'pcs'),  # Support both formats
             'barcode': data.get('barcode', ''),
             'is_active': True,
-            'is_service_item': data.get('is_service_item', False),
-            'is_retail_item': data.get('is_retail_item', True)
+            'is_service_item': data.get('is_service_item', False) or data.get('trackBatches', False),
+            'is_retail_item': data.get('is_retail_item', True) or data.get('trackSerials', True)
         })
 
         return jsonify({
