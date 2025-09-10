@@ -21,6 +21,9 @@ class InventoryLocation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Relationships
+    batches = db.relationship('InventoryBatch', back_populates='location', lazy=True)
+    
     @property
     def total_batches(self):
         """Get total number of batches with stock in this location"""
@@ -79,6 +82,7 @@ class InventoryProduct(db.Model):
     
     # Relationships
     category = db.relationship('InventoryCategory', back_populates='products')
+    batches = db.relationship('InventoryBatch', back_populates='product', lazy=True)
     
     @property
     def total_stock(self):
@@ -151,8 +155,8 @@ class InventoryBatch(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    product = db.relationship('InventoryProduct', backref='batches')
-    location = db.relationship('InventoryLocation', backref='batches')
+    product = db.relationship('InventoryProduct', back_populates='batches')
+    location = db.relationship('InventoryLocation', back_populates='batches')
     
     @property
     def is_expired(self):

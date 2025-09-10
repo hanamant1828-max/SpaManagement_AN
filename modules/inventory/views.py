@@ -23,6 +23,30 @@ def inventory_dashboard():
 
 # API Routes for Inventory Management
 
+@app.route('/api/inventory/products/master', methods=['GET'])
+@login_required
+def api_get_products_master():
+    """Get all products for master view - BATCH-CENTRIC"""
+    try:
+        products = get_all_products()
+        return jsonify([{
+            'id': p.id,
+            'name': p.name,
+            'description': p.description,
+            'category_id': p.category_id,
+            'category_name': p.category.name if p.category else '',
+            'sku': p.sku,
+            'unit_of_measure': p.unit_of_measure,
+            'barcode': p.barcode,
+            'total_stock': p.total_stock,  # Dynamic property from batches
+            'batch_count': p.batch_count,  # Number of batches for this product
+            'is_active': p.is_active,
+            'is_service_item': p.is_service_item,
+            'is_retail_item': p.is_retail_item
+        } for p in products])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/products', methods=['GET'])
 @login_required
 def api_get_products():
@@ -136,9 +160,8 @@ def api_create_location():
 
         location = InventoryLocation(
             name=data.get('name'),
-            description=data.get('description', ''),
             address=data.get('address', ''),
-            is_active=True
+            status='active'
         )
 
         db.session.add(location)
@@ -221,7 +244,8 @@ def api_create_batch():
             expiry_date=expiry_date,
             unit_cost=float(data.get('unit_cost', 0)),
             selling_price=float(data.get('selling_price', 0)) if data.get('selling_price') else None,
-            qty_available=0  # Start with 0, stock added via adjustments
+            qty_available=0,  # Start with 0, stock added via adjustments
+            status='active'
         )
 
         # Set created_date if provided
@@ -262,14 +286,14 @@ def api_create_adjustment():
         adjustment = InventoryAdjustment(
             batch_id=data.get('batch_id'),
             adjustment_type='add',
-            quantity=data.get('quantity'),
-            unit_cost=data.get('unit_cost', batch.unit_cost),
+            quantity=float(data.get('quantity', 0)),
+            unit_cost=float(data.get('unit_cost', batch.unit_cost or 0)),
             notes=data.get('notes', ''),
             created_by=current_user.id
         )
 
         # Update batch quantity
-        batch.qty_available += data.get('quantity', 0)
+        batch.qty_available = float(batch.qty_available or 0) + float(data.get('quantity', 0))
 
         db.session.add(adjustment)
         db.session.commit()
@@ -280,6 +304,25 @@ def api_create_adjustment():
         })
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/for-consumption', methods=['GET'])
+@login_required
+def api_get_batches_for_consumption():
+    """Get batches available for consumption with FEFO ordering"""
+    try:
+        from .queries import get_available_batches_for_consumption
+        batches = get_available_batches_for_consumption()
+        return jsonify([{
+            'id': b.id,
+            'batch_name': b.batch_name,
+            'product_name': b.product.name if b.product else 'Unassigned',
+            'location_name': b.location.name if b.location else 'Unassigned',
+            'qty_available': float(b.qty_available or 0),
+            'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+            'dropdown_display': b.dropdown_display
+        } for b in batches])
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/available', methods=['GET'])
@@ -388,5 +431,19 @@ def api_get_adjustments():
             'created_at': a.created_at.isoformat() if a.created_at else None,
             'created_by_name': a.creator.full_name if a.creator else 'Unknown'
         } for a in adjustments])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/products', methods=['GET'])
+@login_required
+def api_get_products_simple():
+    """Simple products API endpoint"""
+    try:
+        products = get_all_products()
+        return jsonify([{
+            'id': p.id,
+            'name': p.name,
+            'category_name': p.category.name if p.category else 'No Category'
+        } for p in products])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
