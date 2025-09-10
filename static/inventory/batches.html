@@ -240,7 +240,7 @@ window.initializeBatchManagement = initializeBatchManagement;
 
 // Load products for dropdowns
 function loadProducts() {
-    fetch('/api/inventory/products')
+    return fetch('/api/inventory/products')
         .then(response => response.json())
         .then(data => {
             console.log('Products API response:', data);
@@ -252,7 +252,7 @@ function loadProducts() {
 
 // Load locations for dropdowns
 function loadLocations() {
-    fetch('/api/inventory/locations')
+    return fetch('/api/inventory/locations')
         .then(response => response.json())
         .then(data => {
             allLocations = data.locations || [];
@@ -441,21 +441,74 @@ function openAddBatchModal() {
     modal.show();
 }
 
+// Ensure both products and locations are loaded
+function ensureDropdownsPopulated() {
+    const promises = [];
+    
+    if (allProducts.length === 0) {
+        console.log('🔧 Loading products...');
+        promises.push(loadProducts());
+    }
+    
+    if (allLocations.length === 0) {
+        console.log('🔧 Loading locations...');
+        promises.push(loadLocations());
+    }
+    
+    return Promise.all(promises);
+}
+
 // Edit batch
 function editBatch(batchId) {
     const batch = allBatches.find(b => b.id === batchId);
     if (!batch) return;
 
+    console.log('🔧 Editing batch:', batch);
+
+    // Ensure both dropdowns are populated before proceeding
+    ensureDropdownsPopulated().then(() => {
+        populateEditBatchData(batch);
+    });
+}
+
+// Helper function to populate edit batch modal data
+function populateEditBatchData(batch) {
+    console.log('🔧 Populating edit modal with batch data:', batch);
+
     document.getElementById('batchModalTitle').textContent = 'Edit Batch';
     document.getElementById('batchId').value = batch.id;
-    document.getElementById('batchProduct').value = batch.product_id;
-    document.getElementById('batchLocation').value = batch.location_id;
+    
+    // Populate text fields
     document.getElementById('batchName').value = batch.batch_name;
     document.getElementById('batchCreatedDate').value = batch.created_date || '';
     document.getElementById('batchMfgDate').value = batch.mfg_date || '';
     document.getElementById('batchExpiryDate').value = batch.expiry_date || '';
     document.getElementById('batchUnitCost').value = batch.unit_cost || 0;
     document.getElementById('batchSellingPrice').value = batch.selling_price || '';
+
+    // Set dropdown values synchronously (dropdowns are guaranteed to be populated)
+    const productDropdown = document.getElementById('batchProduct');
+    const locationDropdown = document.getElementById('batchLocation');
+    
+    if (productDropdown) {
+        productDropdown.value = String(batch.product_id || '');
+        console.log('🔧 Set product dropdown to:', batch.product_id);
+        
+        // Verify the option exists
+        if (batch.product_id && !productDropdown.querySelector(`option[value="${batch.product_id}"]`)) {
+            console.warn('⚠️ Product option not found:', batch.product_id);
+        }
+    }
+    
+    if (locationDropdown) {
+        locationDropdown.value = String(batch.location_id || '');
+        console.log('🔧 Set location dropdown to:', batch.location_id);
+        
+        // Verify the option exists
+        if (batch.location_id && !locationDropdown.querySelector(`option[value="${batch.location_id}"]`)) {
+            console.warn('⚠️ Location option not found:', batch.location_id);
+        }
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('batchModal'));
     modal.show();
