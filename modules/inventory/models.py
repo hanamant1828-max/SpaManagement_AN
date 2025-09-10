@@ -252,16 +252,10 @@ class InventoryConsumption(db.Model):
     __tablename__ = 'inventory_consumption'
     
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
-    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # Optional batch tracking
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
     
     # Consumption details
-    consumption_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
-    quantity_used = db.Column(db.Numeric(10, 2), nullable=False)
-    
-    # Issuance information
-    issued_to = db.Column(db.String(200), nullable=False)  # department/project/person
-    reference_doc_no = db.Column(db.String(100))  # Reference or document number
+    quantity = db.Column(db.Numeric(10, 2), nullable=False)
     notes = db.Column(db.Text)
     
     # Tracking
@@ -270,11 +264,49 @@ class InventoryConsumption(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    product = db.relationship('InventoryProduct', backref='consumption_records')
     batch = db.relationship('InventoryBatch', backref='consumption_records')
     user = db.relationship('User', backref='consumption_records')
+
+class InventoryAdjustment(db.Model):
+    """Track inventory adjustments (adding stock to batches)"""
+    __tablename__ = 'inventory_adjustments'
     
-    @property
-    def unit_of_measure(self):
-        """Get unit of measure from the product"""
-        return self.product.unit_of_measure if self.product else 'pcs'
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
+    
+    # Adjustment details
+    adjustment_type = db.Column(db.String(20), default='add')  # add, remove, correct
+    quantity = db.Column(db.Numeric(10, 2), nullable=False)
+    unit_cost = db.Column(db.Numeric(10, 2), default=0)
+    notes = db.Column(db.Text)
+    
+    # Tracking
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    batch = db.relationship('InventoryBatch', backref='adjustments')
+    user = db.relationship('User', backref='adjustments')
+
+class InventoryTransfer(db.Model):
+    """Track inventory transfers between locations"""
+    __tablename__ = 'inventory_transfers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    from_batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
+    to_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
+    
+    # Transfer details
+    quantity = db.Column(db.Numeric(10, 2), nullable=False)
+    notes = db.Column(db.Text)
+    
+    # Tracking
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    from_batch = db.relationship('InventoryBatch', backref='transfers_out')
+    to_location = db.relationship('InventoryLocation', backref='transfers_in')
+    user = db.relationship('User', backref='transfers')
