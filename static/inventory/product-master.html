@@ -45,7 +45,7 @@
                             <th>Category</th>
                             <th>Unit</th>
                             <th>Status</th>
-                            <th>Location</th>
+                            <th>Batches</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -111,16 +111,7 @@
                     </div>
 
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="productLocation" class="form-label">Primary Location</label>
-                                <select class="form-select" id="productLocation">
-                                    <option value="">Select location</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Location is managed at batch level, not product level -->
 
                     <div class="row">
                         <div class="col-md-12">
@@ -341,7 +332,9 @@
                             <strong>${stock}</strong> ${product.unit_of_measure || product.unit || 'pcs'}
                         </td>
                         <td>${statusBadge}</td>
-                        <td>${product.location_name || product.location || product.primaryLocation || '—'}</td>
+                        <td>
+                            <span class="badge bg-info">${product.batch_count || 0} batches</span>
+                        </td>
                         <td>$${(product.cost_price || product.costPrice || 0).toFixed(2)}</td>
                         <td>
                             <div class="btn-group btn-group-sm">
@@ -642,10 +635,7 @@
                 showToast('Please select a category. If no categories are available, please create one first.', 'danger');
                 return;
             }
-            if (!productData.primaryLocation) {
-                showToast('Please select a location. If no locations are available, please create one first.', 'danger');
-                return;
-            }
+            // Location is optional for products - batches will specify locations
             if (!productData.unit.trim()) {
                 showToast('Unit of measure is required', 'danger');
                 return;
