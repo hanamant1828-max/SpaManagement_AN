@@ -172,46 +172,51 @@ def api_get_batches():
     try:
         from .models import InventoryBatch
         batches = InventoryBatch.query.all()
-        return jsonify([{
-            'id': b.id,
-            'batch_name': b.batch_name,
-            'product_name': b.product.name if b.product else 'Unknown',
-            'location_name': b.location.name if b.location else 'Unknown',
-            'mfg_date': b.mfg_date.isoformat() if b.mfg_date else None,
-            'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
-            'qty_available': float(b.qty_available or 0),
-            'unit_cost': float(b.unit_cost or 0),
-            'status': b.status,
-            'is_expired': b.is_expired,
-            'days_to_expiry': b.days_to_expiry
-        } for b in batches])
+        return jsonify({
+            'batches': [{
+                'id': b.id,
+                'batch_name': b.batch_name,
+                'product_id': b.product_id,
+                'location_id': b.location_id,
+                'product_name': b.product.name if b.product else 'Not Assigned',
+                'location_name': b.location.name if b.location else 'Not Assigned',
+                'created_date': b.created_date.isoformat() if b.created_date else None,
+                'mfg_date': b.mfg_date.isoformat() if b.mfg_date else None,
+                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+                'qty_available': float(b.qty_available or 0),
+                'unit_cost': float(b.unit_cost or 0),
+                'selling_price': float(b.selling_price or 0) if b.selling_price else None,
+                'status': b.status,
+                'is_expired': b.is_expired,
+                'days_to_expiry': b.days_to_expiry
+            } for b in batches]
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches', methods=['POST'])
 @login_required
 def api_create_batch():
-    """Create a new batch"""
+    """Create a new batch (simplified - no product/location selection)"""
     try:
         from .models import InventoryBatch
         from datetime import datetime
 
         data = request.get_json()
 
-        # Validate required fields
-        required_fields = ['product_id', 'location_id', 'batch_name', 'mfg_date', 'expiry_date']
+        # Validate required fields (simplified)
+        required_fields = ['batch_name', 'mfg_date', 'expiry_date']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
 
-        # Check if batch name is unique for the product
+        # Check if batch name is globally unique
         existing_batch = InventoryBatch.query.filter_by(
-            product_id=data['product_id'],
             batch_name=data['batch_name']
         ).first()
 
         if existing_batch:
-            return jsonify({'error': 'Batch name must be unique for this product'}), 400
+            return jsonify({'error': 'Batch name must be unique'}), 400
 
         # Parse dates
         mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
@@ -221,10 +226,8 @@ def api_create_batch():
         if expiry_date <= mfg_date:
             return jsonify({'error': 'Expiry date must be later than manufacturing date'}), 400
 
-        # Create batch
+        # Create batch (no product/location required)
         batch = InventoryBatch(
-            product_id=data['product_id'],
-            location_id=data['location_id'],
             batch_name=data['batch_name'],
             mfg_date=mfg_date,
             expiry_date=expiry_date,
@@ -253,13 +256,20 @@ def api_create_batch():
 @app.route('/api/inventory/adjustments', methods=['POST'])
 @login_required
 def api_create_adjustment():
-    """Create inventory adjustment"""
+    """Create inventory adjustment and assign product/location to batch if needed"""
     try:
         data = request.get_json()
 
         batch = InventoryBatch.query.get(data.get('batch_id'))
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
+
+        # Assign product and location to batch if not already assigned
+        if data.get('product_id') and not batch.product_id:
+            batch.product_id = data.get('product_id')
+        
+        if data.get('location_id') and not batch.location_id:
+            batch.location_id = data.get('location_id')
 
         adjustment = InventoryAdjustment(
             batch_id=data.get('batch_id'),
@@ -282,6 +292,40 @@ def api_create_adjustment():
         })
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/available', methods=['GET'])
+@login_required
+def api_get_available_batches():
+    """Get batches available for adjustments and consumption"""
+    try:
+        from .models import InventoryBatch
+        from datetime import date
+        
+        # Get all active batches (not expired)
+        batches = InventoryBatch.query.filter(
+            InventoryBatch.status == 'active',
+            or_(
+                InventoryBatch.expiry_date == None,
+                InventoryBatch.expiry_date >= date.today()
+            )
+        ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+
+        return jsonify({
+            'batches': [{
+                'id': b.id,
+                'batch_name': b.batch_name,
+                'product_id': b.product_id,
+                'location_id': b.location_id,
+                'product_name': b.product.name if b.product else None,
+                'location_name': b.location.name if b.location else None,
+                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+                'qty_available': float(b.qty_available or 0),
+                'days_to_expiry': b.days_to_expiry,
+                'unit_of_measure': b.product.unit_of_measure if b.product else 'pcs'
+            } for b in batches]
+        })
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/consumption', methods=['POST'])

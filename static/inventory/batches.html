@@ -14,19 +14,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Product</label>
-                    <select class="form-select" id="filterProduct" onchange="filterBatches()">
-                        <option value="">All Products</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Location</label>
-                    <select class="form-select" id="filterLocation" onchange="filterBatches()">
-                        <option value="">All Locations</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">Status</label>
                     <select class="form-select" id="filterStatus" onchange="filterBatches()">
                         <option value="">All Status</option>
@@ -35,9 +23,17 @@
                         <option value="blocked">Blocked</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchBatch" placeholder="Search batch name..." onkeyup="filterBatches()">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Assignment Status</label>
+                    <select class="form-select" id="filterAssignment" onchange="filterBatches()">
+                        <option value="">All Batches</option>
+                        <option value="assigned">Assigned to Product</option>
+                        <option value="unassigned">Not Assigned</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -318,18 +314,19 @@ function getFilteredBatches() {
     const productFilter = document.getElementById('filterProduct')?.value;
     const locationFilter = document.getElementById('filterLocation')?.value;
     const statusFilter = document.getElementById('filterStatus')?.value;
+    const assignmentFilter = document.getElementById('filterAssignment')?.value;
     const searchTerm = document.getElementById('searchBatch')?.value?.toLowerCase();
 
-    if (productFilter) {
-        filtered = filtered.filter(batch => batch.product_id == productFilter);
-    }
-
-    if (locationFilter) {
-        filtered = filtered.filter(batch => batch.location_id === locationFilter);
-    }
+    // Product and location filters are removed as per requirements
 
     if (statusFilter) {
         filtered = filtered.filter(batch => batch.status === statusFilter);
+    }
+
+    if (assignmentFilter === 'assigned') {
+        filtered = filtered.filter(batch => batch.product_id !== null && batch.product_id !== undefined);
+    } else if (assignmentFilter === 'unassigned') {
+        filtered = filtered.filter(batch => batch.product_id === null || batch.product_id === undefined);
     }
 
     if (searchTerm) {
@@ -387,8 +384,8 @@ function saveBatch(event) {
     const isEdit = !!batchId;
 
     const batchData = {
-        product_id: parseInt(document.getElementById('batchProduct').value),
-        location_id: document.getElementById('batchLocation').value,
+        product_id: parseInt(document.getElementById('batchProduct').value) || null, // Set to null if not selected
+        location_id: document.getElementById('batchLocation').value || null, // Set to null if not selected
         batch_name: document.getElementById('batchName').value.trim(),
         created_date: document.getElementById('batchCreatedDate').value || null,
         mfg_date: document.getElementById('batchMfgDate').value || null,
@@ -399,16 +396,6 @@ function saveBatch(event) {
     };
 
     // Validation
-    if (!batchData.product_id) {
-        alert('Please select a product');
-        return;
-    }
-
-    if (!batchData.location_id) {
-        alert('Please select a location');
-        return;
-    }
-
     if (!batchData.batch_name) {
         alert('Please enter a batch name');
         return;
@@ -429,6 +416,11 @@ function saveBatch(event) {
         alert('Expiry date must be later than manufacturing date.');
         return;
     }
+
+    // If product_id and location_id are not selected, set them to null
+    if (!batchData.product_id) batchData.product_id = null;
+    if (!batchData.location_id) batchData.location_id = null;
+
 
     const url = isEdit ? `/api/inventory/batches/${batchId}` : '/api/inventory/batches';
     const method = isEdit ? 'PUT' : 'POST';
@@ -469,7 +461,7 @@ function viewBatch(batchId) {
         <div class="row g-3">
             <div class="col-md-6">
                 <strong>Product:</strong><br>
-                ${product ? product.name : 'Unknown'} (${product ? product.sku : 'N/A'})
+                ${product ? product.name : 'Not Assigned'} (${product ? product.sku : 'N/A'})
             </div>
             <div class="col-md-6">
                 <strong>Batch Name:</strong><br>
@@ -477,7 +469,7 @@ function viewBatch(batchId) {
             </div>
             <div class="col-md-6">
                 <strong>Location:</strong><br>
-                ${location ? location.name : 'Unknown'}
+                ${location ? location.name : 'Not Assigned'}
             </div>
             <div class="col-md-6">
                 <strong>Quantity Available:</strong><br>

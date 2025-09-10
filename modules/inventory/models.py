@@ -197,11 +197,11 @@ class InventoryBatch(db.Model):
     __tablename__ = 'inventory_batches'
     
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
-    location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=True)  # Optional, assigned during adjustments
+    location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=True)  # Optional, assigned during adjustments
     
     # Batch identification
-    batch_name = db.Column(db.String(100), nullable=False)  # User-friendly batch identifier
+    batch_name = db.Column(db.String(100), nullable=False, unique=True)  # Globally unique batch identifier
     
     # Batch details
     created_date = db.Column(db.Date, default=datetime.utcnow().date())  # Creation date
@@ -221,11 +221,6 @@ class InventoryBatch(db.Model):
     # Relationships
     product = db.relationship('InventoryProduct', backref='batches')
     location = db.relationship('InventoryLocation', backref='batches')
-    
-    # Constraints
-    __table_args__ = (
-        db.UniqueConstraint('product_id', 'batch_name', name='uq_product_batch_name'),
-    )
     
     @property
     def is_expired(self):
