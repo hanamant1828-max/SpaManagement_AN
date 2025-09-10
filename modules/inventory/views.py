@@ -688,7 +688,7 @@ def api_get_adjustments():
     try:
         # Get all adjustment records from stock movements with product joins
         adjustments = []
-        adjustment_movements = db.session.query(StockMovement).join(
+        adjustment_movements = db.session.query(StockMovement).outerjoin(
             InventoryProduct, StockMovement.product_id == InventoryProduct.id
         ).filter(
             StockMovement.reference_type == 'manual'
