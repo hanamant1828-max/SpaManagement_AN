@@ -445,17 +445,15 @@ function openAddBatchModal() {
 function ensureDropdownsPopulated() {
     const promises = [];
     
-    if (allProducts.length === 0) {
-        console.log('🔧 Loading products...');
-        promises.push(loadProducts());
-    }
+    // Always reload to ensure fresh data
+    console.log('🔧 Ensuring dropdowns are populated...');
+    promises.push(loadProducts());
+    promises.push(loadLocations());
     
-    if (allLocations.length === 0) {
-        console.log('🔧 Loading locations...');
-        promises.push(loadLocations());
-    }
-    
-    return Promise.all(promises);
+    return Promise.all(promises).then(() => {
+        console.log('🔧 Dropdowns populated - Products:', allProducts.length, 'Locations:', allLocations.length);
+        return true;
+    });
 }
 
 // Edit batch
@@ -468,15 +466,20 @@ function editBatch(batchId) {
 
     console.log('🔧 Editing batch:', batch);
 
-    // Ensure both dropdowns are populated before proceeding
-    ensureDropdownsPopulated().then(() => {
-        // Add a small delay to ensure all DOM updates are complete
-        setTimeout(() => {
-            populateEditBatchData(batch);
-        }, 50);
+    // Show the modal first
+    const modal = new bootstrap.Modal(document.getElementById('batchModal'));
+    document.getElementById('batchModalTitle').textContent = 'Edit Batch';
+    modal.show();
+
+    // Ensure both dropdowns are populated and then set values
+    Promise.all([
+        ensureDropdownsPopulated(),
+        // Add a small delay to ensure modal is fully rendered
+        new Promise(resolve => setTimeout(resolve, 200))
+    ]).then(() => {
+        populateEditBatchData(batch);
     }).catch(error => {
         console.error('Error loading dropdown data:', error);
-        // Still try to populate with existing data
         populateEditBatchData(batch);
     });
 }
@@ -485,43 +488,64 @@ function editBatch(batchId) {
 function populateEditBatchData(batch) {
     console.log('🔧 Populating edit modal with batch data:', batch);
 
-    document.getElementById('batchModalTitle').textContent = 'Edit Batch';
     document.getElementById('batchId').value = batch.id;
     
-    // Populate text fields
-    document.getElementById('batchName').value = batch.batch_name;
+    // Populate text fields immediately
+    document.getElementById('batchName').value = batch.batch_name || '';
     document.getElementById('batchCreatedDate').value = batch.created_date || '';
     document.getElementById('batchMfgDate').value = batch.mfg_date || '';
     document.getElementById('batchExpiryDate').value = batch.expiry_date || '';
     document.getElementById('batchUnitCost').value = batch.unit_cost || 0;
     document.getElementById('batchSellingPrice').value = batch.selling_price || '';
 
-    // Re-populate dropdowns to ensure they have all options
-    console.log('🔧 Re-populating dropdowns for edit modal...');
+    // Force re-populate dropdowns
     populateProductDropdowns();
     populateLocationDropdowns();
     
-    // Use setTimeout to ensure dropdowns are fully populated before setting values
-    setTimeout(() => {
+    // Multiple attempts to set dropdown values with increasing delays
+    const setDropdownValues = (attempt = 1) => {
         const productDropdown = document.getElementById('batchProduct');
         const locationDropdown = document.getElementById('batchLocation');
         
-        console.log('🔧 Available products in dropdown:', productDropdown ? productDropdown.options.length : 'dropdown not found');
-        console.log('🔧 Available locations in dropdown:', locationDropdown ? locationDropdown.options.length : 'dropdown not found');
+        console.log(`🔧 Attempt ${attempt} - Setting dropdown values`);
+        console.log('🔧 Product options:', productDropdown ? productDropdown.options.length : 0);
+        console.log('🔧 Location options:', locationDropdown ? locationDropdown.options.length : 0);
         
+        let productSet = false;
+        let locationSet = false;
+        
+        // Set product dropdown
         if (productDropdown && batch.product_id) {
-            productDropdown.value = String(batch.product_id);
-            console.log('🔧 Set product dropdown to:', batch.product_id, '(Selected:', productDropdown.value, ')');
+            const productValue = String(batch.product_id);
+            productDropdown.value = productValue;
+            productSet = productDropdown.value === productValue;
+            console.log('🔧 Product set:', productSet, 'Target:', productValue, 'Actual:', productDropdown.value);
+        } else {
+            productSet = true; // No product to set
         }
         
+        // Set location dropdown
         if (locationDropdown && batch.location_id) {
-            locationDropdown.value = String(batch.location_id);
-            console.log('🔧 Set location dropdown to:', batch.location_id, '(Selected:', locationDropdown.value, ')');
+            const locationValue = String(batch.location_id);
+            locationDropdown.value = locationValue;
+            locationSet = locationDropdown.value === locationValue;
+            console.log('🔧 Location set:', locationSet, 'Target:', locationValue, 'Actual:', locationDropdown.value);
+        } else {
+            locationSet = true; // No location to set
         }
-    }, 100); // Small delay to ensure DOM is updated
-
-    const modal = new bootstrap.Modal(document.getElementById('batchModal'));
-    modal.show();
+        
+        // If values weren't set correctly and we haven't tried too many times, try again
+        if ((!productSet || !locationSet) && attempt < 5) {
+            setTimeout(() => setDropdownValues(attempt + 1), 50 * attempt);
+        } else if (attempt >= 5) {
+            console.warn('🔧 Failed to set dropdown values after 5 attempts');
+        } else {
+            console.log('🔧 Dropdown values set successfully');
+        }
+    };
+    
+    // Start setting dropdown values
+    setTimeout(() => setDropdownValues(), 150);
 }
 
 // Save batch
