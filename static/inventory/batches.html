@@ -226,6 +226,11 @@ function initializeBatchManagement() {
     loadBatches();
 }
 
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeBatchManagement();
+});
+
 // Load products for dropdowns
 function loadProducts() {
     fetch('/api/inventory/products')
