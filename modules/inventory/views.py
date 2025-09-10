@@ -292,10 +292,11 @@ def api_get_batches():
         batches = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
-        ).all()
+        ).filter(InventoryBatch.status != 'deleted').all()
         
-        return jsonify({
-            'batches': [{
+        batch_list = []
+        for b in batches:
+            batch_data = {
                 'id': b.id,
                 'batch_name': b.batch_name,
                 'product_id': b.product_id,
@@ -311,9 +312,14 @@ def api_get_batches():
                 'status': b.status,
                 'is_expired': b.is_expired,
                 'days_to_expiry': b.days_to_expiry
-            } for b in batches]
+            }
+            batch_list.append(batch_data)
+        
+        return jsonify({
+            'batches': batch_list
         })
     except Exception as e:
+        print(f"Error in api_get_batches: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches', methods=['POST'])
@@ -685,6 +691,44 @@ def api_update_batch(batch_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
+@login_required
+def api_get_batch(batch_id):
+    """Get a single batch by ID"""
+    try:
+        from sqlalchemy.orm import joinedload
+        
+        batch = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).get(batch_id)
+        
+        if not batch or batch.status == 'deleted':
+            return jsonify({'error': 'Batch not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'batch': {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_id': batch.product_id,
+                'location_id': batch.location_id,
+                'product_name': batch.product.name if batch.product else 'Not Assigned',
+                'location_name': batch.location.name if batch.location else 'Not Assigned',
+                'created_date': batch.created_date.isoformat() if batch.created_date else None,
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'qty_available': float(batch.qty_available or 0),
+                'unit_cost': float(batch.unit_cost or 0),
+                'selling_price': float(batch.selling_price or 0) if batch.selling_price else None,
+                'status': batch.status,
+                'is_expired': batch.is_expired,
+                'days_to_expiry': batch.days_to_expiry
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['DELETE'])
 @login_required
 def api_delete_batch(batch_id):
@@ -727,3 +771,40 @@ def api_get_products_simple():
         } for p in products])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/test', methods=['GET'])
+@login_required
+def api_test_inventory():
+    """Test endpoint to verify all inventory APIs are working"""
+    try:
+        # Test products
+        products = get_all_products()
+        
+        # Test locations
+        locations = get_all_locations()
+        
+        # Test batches
+        batches = InventoryBatch.query.filter(InventoryBatch.status != 'deleted').all()
+        
+        # Test categories
+        categories = get_all_categories()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'products_count': len(products),
+                'locations_count': len(locations),
+                'batches_count': len(batches),
+                'categories_count': len(categories),
+                'sample_product': products[0].name if products else 'No products',
+                'sample_location': locations[0].name if locations else 'No locations',
+                'sample_batch': batches[0].batch_name if batches else 'No batches'
+            },
+            'message': 'All inventory APIs are working correctly'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Error testing inventory APIs'
+        }), 500
