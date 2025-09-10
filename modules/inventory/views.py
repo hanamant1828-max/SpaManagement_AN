@@ -99,6 +99,52 @@ def api_create_product():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/products/<int:product_id>', methods=['GET'])
+@login_required
+def api_get_product(product_id):
+    """Get a single product by ID for viewing/editing"""
+    try:
+        product = get_product_by_id(product_id)
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+            
+        return jsonify({
+            'id': product.id,
+            'name': product.name,
+            'description': product.description,
+            'category_id': product.category_id,
+            'category_name': product.category.name if product.category else '',
+            'sku': product.sku,
+            'unit_of_measure': product.unit_of_measure,
+            'barcode': product.barcode,
+            'total_stock': product.total_stock,
+            'batch_count': product.batch_count,
+            'is_active': product.is_active,
+            'is_service_item': product.is_service_item,
+            'is_retail_item': product.is_retail_item,
+            'created_at': product.created_at.isoformat() if product.created_at else None,
+            'updated_at': product.updated_at.isoformat() if product.updated_at else None
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/products/<int:product_id>', methods=['DELETE'])
+@login_required
+def api_delete_product(product_id):
+    """Delete (deactivate) a product"""
+    try:
+        from .queries import delete_product
+        product = delete_product(product_id)
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+            
+        return jsonify({
+            'success': True,
+            'message': 'Product deleted successfully'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/categories', methods=['GET'])
 @login_required
 def api_get_categories():
