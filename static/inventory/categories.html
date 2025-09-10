@@ -99,7 +99,7 @@
 
             // Handle both array and object responses
             const categoriesArray = Array.isArray(categories) ? categories : (categories.categories || []);
-            
+
             categoriesArray.forEach(category => {
                 const productCount = products.filter(p => p.categoryId === category.id).length;
 
@@ -225,7 +225,7 @@
         try {
             const productsResponse = await fetch('/api/products');
             if (!productsResponse.ok) {
-                throw new Error(`HTTP error! status: ${productsResponse.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             const products = await productsResponse.json();
             const productCount = products.filter(p => p.categoryId === categoryId).length;

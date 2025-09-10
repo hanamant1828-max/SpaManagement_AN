@@ -1074,16 +1074,35 @@ def api_add_category():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        data = request.get_json()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = {
+                'name': request.form.get('name'),
+                'description': request.form.get('description'),
+                'color_code': request.form.get('color_code'),
+                'is_active': request.form.get('is_active', True)
+            }
+        
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
         # Validation
-        if not data.get('name', '').strip():
+        name = data.get('name', '').strip()
+        if not name:
             return jsonify({'error': 'Category name is required'}), 400
 
+        if len(name) > 100:
+            return jsonify({'error': 'Category name must be less than 100 characters'}), 400
+
+        # Check for duplicate name
+        existing = get_all_categories()
+        if any(cat.name.lower() == name.lower() for cat in existing):
+            return jsonify({'error': f'Category "{name}" already exists'}), 400
+
         category_data = {
-            'name': data['name'].strip(),
+            'name': name,
             'description': data.get('description', '').strip(),
             'color_code': data.get('color_code', '#007bff').strip(),
             'is_active': data.get('is_active', True)
@@ -1097,11 +1116,14 @@ def api_add_category():
             'category': {
                 'id': category.id,
                 'name': category.name,
-                'color_code': category.color_code
+                'description': category.description,
+                'color_code': category.color_code,
+                'is_active': category.is_active
             }
         })
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': f'Error adding category: {str(e)}'}), 500
 
 @app.route('/api/inventory/categories/<int:category_id>', methods=['GET', 'PUT'])
@@ -1942,39 +1964,224 @@ def api_add_product():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        data = request.get_json()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = {
+                'sku': request.form.get('sku'),
+                'name': request.form.get('name'),
+                'description': request.form.get('description'),
+                'categoryId': request.form.get('categoryId'),
+                'unit': request.form.get('unit'),
+                'stock': request.form.get('stock'),
+                'minStock': request.form.get('minStock'),
+                'reorderLevel': request.form.get('reorderLevel'),
+                'costPrice': request.form.get('costPrice'),
+                'location': request.form.get('location'),
+                'barcode': request.form.get('barcode')
+            }
+
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
         # Validate required fields
-        required_fields = ['sku', 'name', 'categoryId', 'primaryLocation', 'unit']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'error': f'{field} is required'}), 400
+        sku = data.get('sku', '').strip()
+        name = data.get('name', '').strip()
+        category_id = data.get('categoryId')
+        unit = data.get('unit', '').strip()
+
+        if not sku:
+            return jsonify({'error': 'SKU is required'}), 400
+        if not name:
+            return jsonify({'error': 'Product name is required'}), 400
+        if not category_id:
+            return jsonify({'error': 'Category is required'}), 400
+
+
+# ============ TRANSFERS MANAGEMENT ============
+
+@app.route('/api/inventory/transfers')
+@login_required
+def api_get_transfers():
+    """Get all inventory transfers"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # For now, return empty transfers as this feature is not yet implemented
+        return jsonify({'records': []})
+    except Exception as e:
+        return jsonify({'error': f'Error loading transfers: {str(e)}'}), 500
+
+@app.route('/api/inventory/transfers', methods=['POST'])
+@login_required
+def api_add_transfer():
+    """Add new inventory transfer (placeholder)"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        return jsonify({
+            'success': False,
+            'message': 'Transfer functionality is not yet implemented'
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error adding transfer: {str(e)}'}), 500
+
+# ============ DASHBOARD API ENHANCEMENTS ============
+
+@app.route('/api/inventory/dashboard-data')
+@login_required
+def api_inventory_dashboard_data():
+    """Get comprehensive inventory dashboard data"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get basic stats
+        stats = get_inventory_dashboard_stats()
+        
+        # Get additional data for dashboard
+        low_stock_products = get_low_stock_products()
+        out_of_stock_products = get_out_of_stock_products()
+        recent_movements = get_stock_movements(limit=10)
+        
+        # Format movement data
+        movements_data = []
+        for movement in recent_movements:
+            movements_data.append({
+                'id': movement.id,
+                'product_name': movement.product.name if movement.product else 'Unknown',
+                'movement_type': movement.movement_type,
+                'quantity': float(movement.quantity),
+                'stock_after': float(movement.stock_after),
+                'reason': movement.reason or '',
+                'created_at': movement.created_at.strftime('%Y-%m-%d %H:%M:%S') if movement.created_at else '',
+                'created_by': movement.user.username if movement.user else 'System'
+            })
+        
+        return jsonify({
+            'stats': stats,
+            'low_stock_products': [{
+                'id': p.id,
+                'name': p.name,
+                'current_stock': float(p.current_stock),
+                'min_level': float(p.min_stock_level),
+                'unit': p.unit_of_measure
+            } for p in low_stock_products[:5]],  # Limit to 5 for dashboard
+            'out_of_stock_products': [{
+                'id': p.id,
+                'name': p.name,
+                'unit': p.unit_of_measure
+            } for p in out_of_stock_products[:5]],  # Limit to 5 for dashboard
+            'recent_movements': movements_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error loading dashboard data: {str(e)}'}), 500
+
+# ============ ENHANCED PRODUCT ENDPOINTS ============
+
+@app.route('/api/inventory/products/<int:product_id>/stock-history')
+@login_required
+def api_get_product_stock_history(product_id):
+    """Get stock movement history for a specific product"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        product = get_product_by_id(product_id)
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+
+        movements = get_stock_movements(product_id, limit=50)
+        
+        movements_data = []
+        for movement in movements:
+            movements_data.append({
+                'id': movement.id,
+                'movement_type': movement.movement_type,
+                'quantity': float(movement.quantity),
+                'stock_before': float(movement.stock_before),
+                'stock_after': float(movement.stock_after),
+                'unit_cost': float(movement.unit_cost) if movement.unit_cost else 0,
+                'reason': movement.reason or '',
+                'reference_type': movement.reference_type or '',
+                'created_at': movement.created_at.strftime('%Y-%m-%d %H:%M:%S') if movement.created_at else '',
+                'created_by': movement.user.username if movement.user else 'System'
+            })
+        
+        return jsonify({
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku,
+                'current_stock': float(product.current_stock),
+                'unit': product.unit_of_measure
+            },
+            'movements': movements_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error loading stock history: {str(e)}'}), 500
+
+        if not unit:
+            return jsonify({'error': 'Unit of measure is required'}), 400
+
+        # Validate field lengths
+        if len(sku) > 50:
+            return jsonify({'error': 'SKU must be less than 50 characters'}), 400
+        if len(name) > 200:
+            return jsonify({'error': 'Product name must be less than 200 characters'}), 400
 
         # Check for duplicate SKU
-        existing_product = InventoryProduct.query.filter_by(sku=data['sku']).first()
+        existing_product = InventoryProduct.query.filter_by(sku=sku).first()
         if existing_product:
-            return jsonify({'error': f'SKU "{data["sku"]}" already exists'}), 400
+            return jsonify({'error': f'SKU "{sku}" already exists'}), 400
+
+        # Validate category exists
+        try:
+            category_id = int(category_id)
+            category = get_category_by_id(category_id)
+            if not category:
+                return jsonify({'error': 'Selected category does not exist'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid category selected'}), 400
+
+        # Safe float conversion
+        def safe_float(value, default=0.0):
+            if value is None or value == '':
+                return default
+            try:
+                result = float(value)
+                return max(0, result)  # Ensure non-negative
+            except (ValueError, TypeError):
+                return default
 
         # Create product data
         product_data = {
-            'sku': data['sku'],
-            'name': data['name'],
-            'description': data.get('description', ''),
-            'category_id': int(data['categoryId']),
-            'unit_of_measure': data['unit'],
-            'current_stock': float(data.get('stock', 0)),
-            'min_stock_level': float(data.get('minStock', 10)),
-            'reorder_point': float(data.get('reorderLevel', 0)),
-            'cost_price': float(data.get('costPrice', 0)),
-            'location': data.get('location', ''),
-            'barcode': data.get('barcode', ''),
+            'sku': sku,
+            'name': name,
+            'description': data.get('description', '').strip(),
+            'category_id': category_id,
+            'unit_of_measure': unit,
+            'current_stock': safe_float(data.get('stock')),
+            'min_stock_level': safe_float(data.get('minStock'), 10),
+            'reorder_point': safe_float(data.get('reorderLevel')),
+            'cost_price': safe_float(data.get('costPrice')),
+            'location': data.get('location', '').strip(),
+            'barcode': data.get('barcode', '').strip(),
             'is_service_item': data.get('trackBatches', False),
             'is_retail_item': data.get('trackSerials', False)
         }
 
         product = create_product(product_data)
+
+        # Create initial stock movement if stock > 0
+        if product.current_stock > 0:
+            update_stock(product.id, product.current_stock, 'in', 
+                         'Initial stock', 'manual', None, current_user.id)
 
         return jsonify({
             'success': True,
@@ -1982,11 +2189,15 @@ def api_add_product():
             'product': {
                 'id': product.id,
                 'name': product.name,
-                'sku': product.sku
+                'sku': product.sku,
+                'category': category.name,
+                'current_stock': float(product.current_stock),
+                'unit': product.unit_of_measure
             }
         })
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': f'Error adding product: {str(e)}'}), 500
 
 @app.route('/api/inventory/products', methods=['GET'])
@@ -2109,7 +2320,19 @@ def api_add_location():
         from .models import InventoryLocation
         import uuid
 
-        data = request.get_json()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = {
+                'name': request.form.get('name'),
+                'type': request.form.get('type'),
+                'address': request.form.get('address'),
+                'contact_person': request.form.get('contact_person'),
+                'phone': request.form.get('phone'),
+                'status': request.form.get('status', 'active')
+            }
+
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
@@ -2117,14 +2340,19 @@ def api_add_location():
         location_id = data.get('id') or f"loc-{str(uuid.uuid4())[:8]}"
 
         # Validation
-        if not data.get('name', '').strip():
+        name = data.get('name', '').strip()
+        if not name:
             return jsonify({'error': 'Location name is required'}), 400
 
-        if not data.get('type', '').strip():
+        location_type = data.get('type', '').strip()
+        if not location_type:
             return jsonify({'error': 'Location type is required'}), 400
 
+        if len(name) > 100:
+            return jsonify({'error': 'Location name must be less than 100 characters'}), 400
+
         # Check for duplicate name
-        existing = InventoryLocation.query.filter_by(name=data['name'].strip()).first()
+        existing = InventoryLocation.query.filter_by(name=name).first()
         if existing:
             return jsonify({'error': 'Location with this name already exists'}), 400
 
@@ -2135,8 +2363,8 @@ def api_add_location():
 
         location = InventoryLocation(
             id=location_id,
-            name=data['name'].strip(),
-            type=data['type'].strip(),
+            name=name,
+            type=location_type,
             address=data.get('address', '').strip() or None,
             contact_person=data.get('contact_person', '').strip() or None,
             phone=data.get('phone', '').strip() or None,
@@ -2152,7 +2380,11 @@ def api_add_location():
             'location': {
                 'id': location.id,
                 'name': location.name,
-                'type': location.type
+                'type': location.type,
+                'status': location.status,
+                'address': location.address,
+                'contact_person': location.contact_person,
+                'phone': location.phone
             }
         })
 
