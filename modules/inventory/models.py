@@ -22,22 +22,17 @@ class InventoryLocation(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     @property
-    def total_products(self):
-        """Get total number of products with stock in this location"""
-        # Use the location field instead of location_stock for now
-        products_in_location = InventoryProduct.query.filter_by(location=self.name).all()
-        return len([p for p in products_in_location if (p.current_stock or 0) > 0])
+    def total_batches(self):
+        """Get total number of batches with stock in this location"""
+        return len([b for b in self.batches if (b.qty_available or 0) > 0])
     
     @property
     def total_stock_value(self):
-        """Calculate total stock value for this location"""
-        # Use the location field instead of location_stock for now
-        products_in_location = InventoryProduct.query.filter_by(location=self.name).all()
+        """Calculate total stock value for this location based on batches"""
         total_value = 0
-        for product in products_in_location:
-            stock = float(product.current_stock or 0)
-            cost = float(product.cost_price or 0)
-            total_value += stock * cost
+        for batch in self.batches:
+            if batch.qty_available and batch.unit_cost:
+                total_value += float(batch.qty_available) * float(batch.unit_cost)
         return total_value
 
 
@@ -58,7 +53,7 @@ class InventoryCategory(db.Model):
 
 
 class InventoryProduct(db.Model):
-    """Main product catalog with comprehensive tracking"""
+    """Main product catalog - NO STOCK TRACKING (stock exists only at batch level)"""
     __tablename__ = 'inventory_products'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -69,27 +64,9 @@ class InventoryProduct(db.Model):
     # Categorization
     category_id = db.Column(db.Integer, db.ForeignKey('inventory_categories.id'))
     
-    # Inventory tracking
-    current_stock = db.Column(db.Numeric(10, 2), default=0)
-    reserved_stock = db.Column(db.Numeric(10, 2), default=0)  # Stock allocated but not used
-    available_stock = db.Column(db.Numeric(10, 2), default=0)  # current - reserved
-    
-    # Stock levels
-    min_stock_level = db.Column(db.Numeric(10, 2), default=10)
-    max_stock_level = db.Column(db.Numeric(10, 2), default=100)
-    reorder_point = db.Column(db.Numeric(10, 2), default=20)
-    
-    # Pricing
-    cost_price = db.Column(db.Numeric(10, 2), default=0)  # Purchase cost
-    selling_price = db.Column(db.Numeric(10, 2), default=0)  # Retail price
-    
-    # Product details
+    # Product details only - NO STOCK FIELDS
     unit_of_measure = db.Column(db.String(20), default='pcs')  # pieces, liters, kg, etc.
     barcode = db.Column(db.String(50))
-    location = db.Column(db.String(100))  # Storage location in spa
-    
-    # Location-based stock tracking (JSON field) - Temporarily removed for database compatibility
-    # location_stock = db.Column(db.JSON, default=dict)  # {"location_id": quantity}
     
     # Status tracking
     is_active = db.Column(db.Boolean, default=True)
@@ -102,69 +79,24 @@ class InventoryProduct(db.Model):
     
     # Relationships
     category = db.relationship('InventoryCategory', back_populates='products')
-    stock_movements = db.relationship('StockMovement', back_populates='product', lazy=True)
+    
+    @property
+    def total_stock(self):
+        """Get total stock across all batches for this product"""
+        return sum(float(batch.qty_available or 0) for batch in self.batches if batch.status == 'active')
     
     @property
     def stock_status(self):
-        """Get stock status for alerts"""
-        current = self.current_stock if self.current_stock is not None else 0
-        min_level = self.min_stock_level if self.min_stock_level is not None else 0
-        reorder = self.reorder_point if self.reorder_point is not None else 0
-        
-        if current <= 0:
+        """Get stock status based on batch quantities"""
+        total = self.total_stock
+        if total <= 0:
             return 'out_of_stock'
-        elif current <= min_level:
+        elif total <= 10:  # Low stock threshold
             return 'low_stock'
-        elif current <= reorder:
-            return 'reorder_needed'
         else:
             return 'in_stock'
-    
-    @property
-    def stock_value(self):
-        """Calculate total stock value"""
-        current = self.current_stock if self.current_stock is not None else 0
-        cost = self.cost_price if self.cost_price is not None else 0
-        return float(current * cost)
-    
-    def update_available_stock(self):
-        """Update available stock calculation"""
-        # Ensure values are not None and convert to float to handle decimal/float type mixing
-        current = float(self.current_stock if self.current_stock is not None else 0)
-        reserved = float(self.reserved_stock if self.reserved_stock is not None else 0)
-        self.available_stock = current - reserved
 
-class StockMovement(db.Model):
-    """Track all stock movements for audit trail"""
-    __tablename__ = 'stock_movements'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
-    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # Optional batch tracking
-    
-    # Movement details
-    movement_type = db.Column(db.String(20), nullable=False)  # in, out, adjustment, transfer
-    quantity = db.Column(db.Numeric(10, 2), nullable=False)
-    unit_cost = db.Column(db.Numeric(10, 2), default=0)
-    
-    # Stock levels at time of movement
-    stock_before = db.Column(db.Numeric(10, 2), nullable=False)
-    stock_after = db.Column(db.Numeric(10, 2), nullable=False)
-    
-    # Reference and reason
-    reference_type = db.Column(db.String(50))  # purchase_order, service, sale, adjustment
-    reference_id = db.Column(db.Integer)  # ID of the related record
-    reason = db.Column(db.String(200))
-    notes = db.Column(db.Text)
-    
-    # Tracking
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    product = db.relationship('InventoryProduct', back_populates='stock_movements')
-    batch = db.relationship('InventoryBatch', backref='stock_movements')
-    user = db.relationship('User', backref='stock_movements')
+# StockMovement model removed - replaced by InventoryAuditLog for batch-centric tracking
 
 
 
@@ -193,23 +125,23 @@ class InventoryAlert(db.Model):
     resolver = db.relationship('User', backref='resolved_alerts')
 
 class InventoryBatch(db.Model):
-    """Batch tracking for inventory products with expiry management"""
+    """Batch tracking - CENTRAL element for all stock transactions"""
     __tablename__ = 'inventory_batches'
     
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=True)  # Optional, assigned during adjustments
-    location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=True)  # Optional, assigned during adjustments
     
-    # Batch identification
+    # Core batch identification (CRUD only fields)
     batch_name = db.Column(db.String(100), nullable=False, unique=True)  # Globally unique batch identifier
-    
-    # Batch details
-    created_date = db.Column(db.Date, default=datetime.utcnow().date())  # Creation date
+    created_date = db.Column(db.Date, default=datetime.utcnow().date())  # Creation date (editable)
     mfg_date = db.Column(db.Date, nullable=False)  # Manufacturing date
     expiry_date = db.Column(db.Date, nullable=False)  # Expiry date
+    
+    # Product and location assignment (assigned during first transaction)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=True)
+    location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=True)
+    
+    # Stock quantity (updated only through transactions)
     qty_available = db.Column(db.Numeric(10, 2), default=0, nullable=False)
-    unit_cost = db.Column(db.Numeric(10, 2), default=0)
-    selling_price = db.Column(db.Numeric(10, 2))  # Optional selling price override
     
     # Status tracking
     status = db.Column(db.String(20), default='active')  # active, expired, blocked
@@ -238,9 +170,48 @@ class InventoryBatch(db.Model):
         return delta.days
     
     @property
-    def batch_value(self):
-        """Calculate total batch value"""
-        return float(self.qty_available or 0) * float(self.unit_cost or 0)
+    def is_near_expiry(self):
+        """Check if batch is nearing expiry (within 30 days)"""
+        days = self.days_to_expiry
+        return days is not None and 0 <= days <= 30
+    
+    @property
+    def dropdown_display(self):
+        """Format for batch dropdown: BatchName (ProductName, Exp: DD-MM-YYYY, Location, Stock: XX)"""
+        product_name = self.product.name if self.product else 'Unassigned'
+        location_name = self.location.name if self.location else 'Unassigned'
+        exp_date = self.expiry_date.strftime('%d-%m-%Y') if self.expiry_date else 'No Date'
+        stock = float(self.qty_available or 0)
+        return f"{self.batch_name} ({product_name}, Exp: {exp_date}, {location_name}, Stock: {stock})"
+
+# Audit Log Model - Track ALL batch-level stock changes
+class InventoryAuditLog(db.Model):
+    """Comprehensive audit log for all batch stock changes"""
+    __tablename__ = 'inventory_audit_log'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Action tracking
+    action_type = db.Column(db.String(20), nullable=False)  # adjustment_add, adjustment_remove, consumption, transfer_out, transfer_in
+    quantity_delta = db.Column(db.Numeric(10, 2), nullable=False)  # +/- change in quantity
+    stock_before = db.Column(db.Numeric(10, 2), nullable=False)
+    stock_after = db.Column(db.Numeric(10, 2), nullable=False)
+    
+    # Reference information
+    reference_type = db.Column(db.String(50))  # adjustment, consumption, transfer
+    reference_id = db.Column(db.Integer)  # ID of the related transaction record
+    notes = db.Column(db.Text)
+    
+    # Timestamps
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    batch = db.relationship('InventoryBatch', backref='audit_logs')
+    product = db.relationship('InventoryProduct', backref='audit_logs')
+    user = db.relationship('User', backref='audit_logs')
 
 class InventoryConsumption(db.Model):
     """Track item usage and issuance for inventory consumption"""
@@ -251,46 +222,46 @@ class InventoryConsumption(db.Model):
     
     # Consumption details
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
+    issued_to = db.Column(db.String(200), nullable=False)  # Who/what consumed the item
+    reference = db.Column(db.String(100))  # Optional reference number/document
     notes = db.Column(db.Text)
     
     # Tracking
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     batch = db.relationship('InventoryBatch', backref='consumption_records')
     user = db.relationship('User', backref='consumption_records')
 
 class InventoryAdjustment(db.Model):
-    """Track inventory adjustments (adding stock to batches)"""
+    """Track inventory adjustments (adding/removing stock to/from batches)"""
     __tablename__ = 'inventory_adjustments'
     
     id = db.Column(db.Integer, primary_key=True)
     batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
     
     # Adjustment details
-    adjustment_type = db.Column(db.String(20), default='add')  # add, remove, correct
-    quantity = db.Column(db.Numeric(10, 2), nullable=False)
-    unit_cost = db.Column(db.Numeric(10, 2), default=0)
-    notes = db.Column(db.Text)
+    adjustment_type = db.Column(db.String(20), nullable=False)  # add, remove
+    quantity = db.Column(db.Numeric(10, 2), nullable=False)  # Always positive, direction determined by type
+    remarks = db.Column(db.Text, nullable=False)  # Mandatory remarks for all adjustments
     
     # Tracking
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     batch = db.relationship('InventoryBatch', backref='adjustments')
     user = db.relationship('User', backref='adjustments')
 
 class InventoryTransfer(db.Model):
-    """Track inventory transfers between locations"""
+    """Track inventory transfers between locations - batch to batch"""
     __tablename__ = 'inventory_transfers'
     
     id = db.Column(db.Integer, primary_key=True)
-    from_batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
-    to_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
+    source_batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False)
+    dest_batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=True)  # Created during transfer
+    dest_location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
     
     # Transfer details
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
@@ -299,9 +270,9 @@ class InventoryTransfer(db.Model):
     # Tracking
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    from_batch = db.relationship('InventoryBatch', backref='transfers_out')
-    to_location = db.relationship('InventoryLocation', backref='transfers_in')
+    source_batch = db.relationship('InventoryBatch', foreign_keys=[source_batch_id], backref='transfers_out')
+    dest_batch = db.relationship('InventoryBatch', foreign_keys=[dest_batch_id], backref='transfers_in')
+    dest_location = db.relationship('InventoryLocation', backref='transfers_received')
     user = db.relationship('User', backref='transfers')
