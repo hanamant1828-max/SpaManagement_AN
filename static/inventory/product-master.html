@@ -600,20 +600,20 @@
             document.getElementById('productSku').value = product.sku;
             document.getElementById('productName').value = product.name;
 
-            // Populate form fields
-            document.getElementById('productUnit').value = product.unit || 'pcs';
-            document.getElementById('productStock').value = calculateTotalStock(product);
-            document.getElementById('productMinStock').value = product.minStock || 10;
-            document.getElementById('productReorderLevel').value = product.reorderLevel || 0;
-            document.getElementById('productCostPrice').value = product.costPrice || 0;
-            document.getElementById('productTrackBatches').checked = product.trackBatches || false;
-            document.getElementById('productTrackSerials').checked = product.trackSerials || false;
+            // Populate form fields - use API field names with underscores
+            document.getElementById('productUnit').value = product.unit_of_measure || 'pcs';
+            document.getElementById('productStock').value = product.total_stock || 0;
+            document.getElementById('productMinStock').value = product.min_stock || 10;
+            document.getElementById('productReorderLevel').value = product.reorder_level || 0;
+            document.getElementById('productCostPrice').value = product.cost_price || 0;
+            document.getElementById('productTrackBatches').checked = product.track_batches || false;
+            document.getElementById('productTrackSerials').checked = product.track_serials || false;
             document.getElementById('productDescription').value = product.description || '';
-            document.getElementById('productLocation').value = product.primaryLocation || '';
+            document.getElementById('productLocation').value = product.location_id || '';
             document.getElementById('productBarcode').value = product.barcode || '';
 
-            // Populate dropdowns with selected values
-            populateProductDropdowns(product.categoryId, product.primaryLocation);
+            // Populate dropdowns with selected values - use correct API field names
+            populateProductDropdowns(product.category_id, product.location_id);
 
             if (!productModal) {
                 productModal = new bootstrap.Modal(document.getElementById('productModal'));
