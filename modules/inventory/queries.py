@@ -69,6 +69,22 @@ def update_product(product_id, product_data):
         db.session.rollback()
         raise e
 
+def delete_product(product_id):
+    """Delete a product - marks as inactive instead of hard delete"""
+    try:
+        product = InventoryProduct.query.get(product_id)
+        if not product:
+            return None
+            
+        # Soft delete - mark as inactive instead of hard delete
+        product.is_active = False
+        product.updated_at = datetime.utcnow()
+        db.session.commit()
+        return product
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
 def update_category(category_id, category_data):
     """Update existing category"""
     try:
