@@ -133,32 +133,25 @@
         tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div> Loading locations...</td></tr>';
         
         fetch('/api/inventory/locations')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.error) {
                     throw new Error(data.error);
                 }
                 
                 locationsCache = data.locations || [];
-                // Save to localStorage for persistence
-                localStorage.setItem('inventory.locations', JSON.stringify(locationsCache));
-                
                 displayLocations();
+                console.log('Locations loaded from database:', locationsCache.length);
             })
             .catch(error => {
-                console.error('Error loading locations:', error);
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load locations. Please try again.</td></tr>';
-                
-                // Try to load from localStorage as fallback
-                const cached = localStorage.getItem('inventory.locations');
-                if (cached) {
-                    try {
-                        locationsCache = JSON.parse(cached);
-                        displayLocations();
-                    } catch (e) {
-                        console.error('Error parsing cached locations:', e);
-                    }
-                }
+                console.error('Error loading locations from database:', error);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load locations from database. Please check your network connection.</td></tr>';
+                locationsCache = []; // Clear cache instead of using localStorage fallback
             });
     }
 

@@ -320,32 +320,22 @@
     }
 
     function loadCategories() {
-        console.log('Loading categories for product master...');
+        console.log('Loading categories from API...');
 
-        // Initialize default categories if none exist
-        let categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        if (categories.length === 0) {
-            categories = [
-                { id: 'cat1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true },
-                { id: 'cat2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true },
-                { id: 'cat3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true },
-                { id: 'cat4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true }
-            ];
-            localStorage.setItem('inventory.categories', JSON.stringify(categories));
-        }
-
-        // Try to load from API and update if available
         fetch('/api/inventory/categories')
-            .then(response => response.json())
-            .then(data => {
-                if (data.categories && data.categories.length > 0) {
-                    categories = data.categories;
-                    localStorage.setItem('inventory.categories', JSON.stringify(categories));
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('API not available');
                 }
+                return response.json();
+            })
+            .then(data => {
+                const categories = data.categories || [];
                 populateCategoryDropdowns(categories);
             })
             .catch(error => {
-                console.warn('API failed, using localStorage:', error);
+                console.warn('API failed, using localStorage for categories:', error);
+                const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
                 populateCategoryDropdowns(categories);
             });
     }
@@ -372,31 +362,22 @@
     }
 
     function loadLocations() {
-        console.log('Loading locations for product master...');
+        console.log('Loading locations from API...');
 
-        // Initialize default locations if none exist
-        let locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-        if (locations.length === 0) {
-            locations = [
-                { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active' },
-                { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active' },
-                { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active' }
-            ];
-            localStorage.setItem('inventory.locations', JSON.stringify(locations));
-        }
-
-        // Try to load from API and update if available
         fetch('/api/inventory/locations')
-            .then(response => response.json())
-            .then(data => {
-                if (data.locations && data.locations.length > 0) {
-                    locations = data.locations;
-                    localStorage.setItem('inventory.locations', JSON.stringify(locations));
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('API not available');
                 }
+                return response.json();
+            })
+            .then(data => {
+                const locations = data.locations || [];
                 populateLocationDropdowns(locations);
             })
             .catch(error => {
-                console.warn('API failed, using localStorage:', error);
+                console.warn('API failed, using localStorage for locations:', error);
+                const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
                 populateLocationDropdowns(locations);
             });
     }
@@ -459,10 +440,27 @@
 
     // Global functions for onclick handlers
     window.editProduct = function(productId) {
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        const product = products.find(p => p.id === productId);
+        // Fetch product data from API, fallback to localStorage if API fails
+        fetch(`/api/inventory/products/${productId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('API not available');
+                return response.json();
+            })
+            .then(product => {
+                populateEditForm(product);
+            })
+            .catch(error => {
+                console.log('API failed, using localStorage for edit:', error);
+                const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+                const product = products.find(p => p.id === productId);
+                if (product) {
+                    populateEditForm(product);
+                } else {
+                    alert('Product not found!');
+                }
+            });
 
-        if (product) {
+        function populateEditForm(product) {
             editingProductId = productId;
 
             // Set modal title and populate form
@@ -480,10 +478,10 @@
             document.getElementById('productTrackBatches').checked = product.trackBatches || false;
             document.getElementById('productTrackSerials').checked = product.trackSerials || false;
             document.getElementById('productDescription').value = product.description || '';
-            document.getElementById('productLocation').value = product.location || '';
+            document.getElementById('productLocation').value = product.primaryLocation || '';
             document.getElementById('productBarcode').value = product.barcode || '';
 
-            // Populate dropdowns with selected values immediately
+            // Populate dropdowns with selected values
             populateProductDropdowns(product.categoryId, product.primaryLocation);
 
             if (!productModal) {
@@ -518,9 +516,25 @@
                 trackSerials: document.getElementById('productTrackSerials').checked
             };
 
-            // Basic validation
-            if (!productData.sku || !productData.name) {
-                alert('SKU and Product Name are required.');
+            // Validation
+            if (!productData.sku.trim()) {
+                showToast('SKU is required', 'danger');
+                return;
+            }
+            if (!productData.name.trim()) {
+                showToast('Product name is required', 'danger');
+                return;
+            }
+            if (!productData.categoryId) {
+                showToast('Please select a category. If no categories are available, please create one first.', 'danger');
+                return;
+            }
+            if (!productData.primaryLocation) {
+                showToast('Please select a location. If no locations are available, please create one first.', 'danger');
+                return;
+            }
+            if (!productData.unit.trim()) {
+                showToast('Unit of measure is required', 'danger');
                 return;
             }
 
@@ -530,7 +544,7 @@
 
             // Try API first, fallback to localStorage
             const isEdit = !!editingProductId;
-            const apiUrl = isEdit ? `/api/inventory/products/${editingProductId}/edit` : '/api/inventory/products';
+            const apiUrl = isEdit ? `/api/inventory/products/${editingProductId}` : '/api/inventory/products';
             const method = isEdit ? 'PUT' : 'POST';
 
             fetch(apiUrl, {
@@ -540,7 +554,12 @@
                 },
                 body: JSON.stringify(productData)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || 'API save failed') });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     console.log('Product saved via API');
@@ -548,13 +567,14 @@
                         productModal.hide();
                     }
                     loadProducts();
-                    alert(data.message || 'Product saved successfully!');
+                    showToast(data.message || 'Product saved successfully!', 'success');
                 } else {
                     throw new Error(data.error || 'API save failed');
                 }
             })
             .catch(error => {
                 console.log('API failed, saving to localStorage:', error);
+                showToast(`API Error: ${error.message}`, 'danger');
 
                 // Fallback to localStorage
                 const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
@@ -567,7 +587,7 @@
                 } else {
                     // Check for duplicate SKU
                     if (products.some(p => p.sku === productData.sku)) {
-                        alert('SKU already exists. Please use a different SKU.');
+                        showToast('SKU already exists. Please use a different SKU.', 'danger');
                         return;
                     }
                     products.push(productData);
@@ -579,7 +599,7 @@
                     productModal.hide();
                 }
                 loadProducts();
-                alert('Product saved successfully!');
+                showToast('Product saved successfully (local fallback)!', 'info');
             })
             .finally(() => {
                 // Reset button state
@@ -589,7 +609,7 @@
 
         } catch (error) {
             console.error('Error saving product:', error);
-            alert('Error saving product. Please try again.');
+            showToast('Error saving product. Please try again.', 'danger');
             saveBtn.disabled = false;
             saveBtn.innerHTML = originalText;
         }
@@ -597,10 +617,29 @@
 
     window.deleteProduct = function(productId) {
         if (confirm('Are you sure you want to delete this product?')) {
-            const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-            const filteredProducts = products.filter(p => p.id !== productId);
-            localStorage.setItem('inventory.products', JSON.stringify(filteredProducts));
-            loadProducts();
+            // Try API first, fallback to localStorage
+            fetch(`/api/inventory/products/${productId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || 'API delete failed') });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showToast(data.message || 'Product deleted successfully!', 'success');
+                    loadProducts();
+                })
+                .catch(error => {
+                    console.log('API failed, deleting from localStorage:', error);
+                    showToast(`API Error: ${error.message}`, 'danger');
+
+                    // Fallback to localStorage
+                    const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+                    const filteredProducts = products.filter(p => p.id !== productId);
+                    localStorage.setItem('inventory.products', JSON.stringify(filteredProducts));
+                    loadProducts();
+                    showToast('Product deleted successfully (local fallback)!', 'info');
+                });
         }
     }
 
@@ -613,6 +652,43 @@
 
     window.adjustStock = function(productId) {
         alert(`Stock adjustment for product ${productId} will open the adjustments modal in the next update.`);
+    }
+
+    // Toast notification function
+    function showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+        const toastId = `toast_${Date.now()}`;
+        const toastHtml = `
+            <div id="${toastId}" class="toast fade show align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        toastContainer.innerHTML += toastHtml;
+
+        const toastElement = document.getElementById(toastId);
+        const bsToast = new bootstrap.Toast(toastElement);
+        bsToast.show();
+
+        // Remove toast from DOM after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', function() {
+            toastElement.remove();
+        });
+    }
+
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.position = 'fixed';
+        container.style.top = '10px';
+        container.style.right = '10px';
+        container.style.zIndex = '1050'; // Ensure it's above most elements
+        document.body.appendChild(container);
+        return container;
     }
 
     // Event listeners setup

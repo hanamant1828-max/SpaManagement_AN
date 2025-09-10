@@ -78,17 +78,30 @@
     // Isolated scope for categories tab
     let editingCategoryId = null;
 
-    function loadCategories() {
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+    // Fetch categories from the API
+    async function loadCategories() {
         const tbody = document.getElementById('categoriesTableBody');
-        
-        tbody.innerHTML = '';
-        categories.forEach(category => {
-            const productCount = products.filter(p => p.categoryId === category.id).length;
-            
-            tbody.innerHTML += `
-                <tr>
+        tbody.innerHTML = ''; // Clear existing rows
+
+        try {
+            const response = await fetch('/api/categories'); // Fetch from API
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const categories = await response.json();
+
+            // Fetch products to count them per category
+            const productsResponse = await fetch('/api/products'); // Fetch from API
+            if (!productsResponse.ok) {
+                throw new Error(`HTTP error! status: ${productsResponse.status}`);
+            }
+            const products = await productsResponse.json();
+
+            categories.forEach(category => {
+                const productCount = products.filter(p => p.categoryId === category.id).length;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
                     <td>
                         <div class="d-flex align-items-center">
                             <span class="badge rounded-pill me-2" 
@@ -119,12 +132,16 @@
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
-                </tr>
-            `;
-        });
-        
-        if (categories.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No categories found</td></tr>';
+                `;
+                tbody.appendChild(row);
+            });
+
+            if (categories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No categories found</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load categories</td></tr>';
         }
     }
 
@@ -140,11 +157,14 @@
         modal.show();
     }
 
-    window.editCategory = function(categoryId) {
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        const category = categories.find(c => c.id === categoryId);
-        
-        if (category) {
+    window.editCategory = async function(categoryId) {
+        try {
+            const response = await fetch(`/api/categories/${categoryId}`); // Fetch from API
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const category = await response.json();
+
             editingCategoryId = categoryId;
             document.getElementById('categoryModalTitle').textContent = 'Edit Category';
             document.getElementById('categoryId').value = category.id;
@@ -153,56 +173,79 @@
             document.getElementById('categoryColor').value = category.color;
             document.getElementById('categoryColorText').value = category.color;
             document.getElementById('categoryActive').checked = category.isActive !== false;
-            
+
             const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
             modal.show();
+        } catch (error) {
+            console.error('Error fetching category:', error);
+            alert('Failed to load category data.');
         }
     }
 
-    window.saveCategory = function() {
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        
+    window.saveCategory = async function() {
+        const categoryId = document.getElementById('categoryId').value;
         const categoryData = {
-            id: editingCategoryId || Date.now().toString(),
             name: document.getElementById('categoryName').value,
             description: document.getElementById('categoryDescription').value,
             color: document.getElementById('categoryColor').value,
             isActive: document.getElementById('categoryActive').checked,
-            createdAt: editingCategoryId ? undefined : new Date().toISOString(),
-            updatedAt: new Date().toISOString()
         };
-        
-        if (editingCategoryId) {
-            const index = categories.findIndex(c => c.id === editingCategoryId);
-            if (index !== -1) {
-                categories[index] = { ...categories[index], ...categoryData };
+
+        try {
+            const url = categoryId ? `/api/categories/${categoryId}` : '/api/categories';
+            const method = categoryId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(categoryData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
-        } else {
-            categories.push(categoryData);
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('categoryModal'));
+            modal.hide();
+            loadCategories(); // Reload categories after saving
+        } catch (error) {
+            console.error('Error saving category:', error);
+            alert('Failed to save category: ' + error.message);
         }
-        
-        localStorage.setItem('inventory.categories', JSON.stringify(categories));
-        
-        const modal = bootstrap.Modal.getInstance(document.getElementById('categoryModal'));
-        modal.hide();
-        
-        loadCategories();
     }
 
-    window.deleteCategory = function(categoryId) {
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        const productCount = products.filter(p => p.categoryId === categoryId).length;
-        
-        if (productCount > 0) {
-            alert('Cannot delete category with associated products. Please remove or reassign products first.');
-            return;
-        }
-        
-        if (confirm('Are you sure you want to delete this category?')) {
-            const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-            const filteredCategories = categories.filter(c => c.id !== categoryId);
-            localStorage.setItem('inventory.categories', JSON.stringify(filteredCategories));
-            loadCategories();
+    window.deleteCategory = async function(categoryId) {
+        // Check for associated products before deleting
+        try {
+            const productsResponse = await fetch('/api/products');
+            if (!productsResponse.ok) {
+                throw new Error(`HTTP error! status: ${productsResponse.status}`);
+            }
+            const products = await productsResponse.json();
+            const productCount = products.filter(p => p.categoryId === categoryId).length;
+
+            if (productCount > 0) {
+                alert('Cannot delete category with associated products. Please remove or reassign products first.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this category?')) {
+                const response = await fetch(`/api/categories/${categoryId}`, {
+                    method: 'DELETE',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                loadCategories(); // Reload categories after deleting
+            }
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            alert('Failed to delete category: ' + error.message);
         }
     }
 
@@ -210,14 +253,16 @@
     document.addEventListener('DOMContentLoaded', function() {
         const colorPicker = document.getElementById('categoryColor');
         const colorText = document.getElementById('categoryColorText');
-        
+
         if (colorPicker && colorText) {
             colorPicker.addEventListener('input', function() {
                 colorText.value = this.value;
             });
-            
+
             colorText.addEventListener('input', function() {
-                colorPicker.value = this.value;
+                if (/^#[0-9A-F]{6}$/i.test(this.value)) {
+                    colorPicker.value = this.value;
+                }
             });
         }
     });
@@ -225,33 +270,7 @@
     // Event listeners
     document.getElementById('btnAddCategory').addEventListener('click', addCategory);
 
-    // Initialize default categories if none exist
-    function initializeDefaultCategories() {
-        const categories = JSON.parse(localStorage.getItem('inventory.categories') || '[]');
-        if (categories.length === 0) {
-            const defaultCategories = [
-                { id: 'cat1', name: 'Skincare Products', description: 'Facial and body care products', color_code: '#ff6b6b', is_active: true, created_at: new Date().toISOString() },
-                { id: 'cat2', name: 'Hair Care Products', description: 'Shampoos, conditioners, and styling products', color_code: '#4ecdc4', is_active: true, created_at: new Date().toISOString() },
-                { id: 'cat3', name: 'Spa Supplies', description: 'Towels, robes, and spa accessories', color_code: '#45b7d1', is_active: true, created_at: new Date().toISOString() },
-                { id: 'cat4', name: 'Wellness Products', description: 'Essential oils, aromatherapy products', color_code: '#f9ca24', is_active: true, created_at: new Date().toISOString() }
-            ];
-            localStorage.setItem('inventory.categories', JSON.stringify(defaultCategories));
-            
-            // Also create some default locations
-            const locations = JSON.parse(localStorage.getItem('inventory.locations') || '[]');
-            if (locations.length === 0) {
-                const defaultLocations = [
-                    { id: 'loc1', name: 'Main Store', type: 'branch', status: 'active', address: 'Main location', created_at: new Date().toISOString() },
-                    { id: 'loc2', name: 'Storage Room', type: 'warehouse', status: 'active', address: 'Back storage area', created_at: new Date().toISOString() },
-                    { id: 'loc3', name: 'Treatment Room A', type: 'room', status: 'active', address: 'First treatment room', created_at: new Date().toISOString() }
-                ];
-                localStorage.setItem('inventory.locations', JSON.stringify(defaultLocations));
-            }
-        }
-    }
-
     // Initialize
-    initializeDefaultCategories();
-    loadCategories();
+    loadCategories(); // Load categories when the page loads
 })();
 </script>
