@@ -315,17 +315,20 @@
                     products.forEach(product => {
                         const option = document.createElement('option');
                         option.value = product.id;
-                        option.textContent = `${product.name} (${product.sku})`;
+                        option.textContent = `${product.name || product.sku || 'Unnamed Product'} (${product.sku || 'No SKU'})`;
                         option.dataset.stock = product.current_stock || 0;
-                        option.dataset.unit = product.unit || 'pcs';
+                        option.dataset.unit = product.unit || product.unit_of_measure || 'pcs';
                         productSelect.appendChild(option);
                     });
                 }
 
-                // Add event listener for product selection
-                productSelect.addEventListener('change', function() {
-                    updateCurrentStockDisplay(this.value);
-                });
+                // Add event listener for product selection if not already added
+                if (productSelect && !productSelect.hasAttribute('data-listener-added')) {
+                    productSelect.addEventListener('change', function() {
+                        updateCurrentStockDisplay(this.value);
+                    });
+                    productSelect.setAttribute('data-listener-added', 'true');
+                }
             })
             .catch(error => {
                 console.error('Error loading products:', error);
@@ -339,24 +342,24 @@
 
         if (productId && productSelect) {
             const selectedOption = productSelect.querySelector(`option[value="${productId}"]`);
-            if (selectedOption) {
-                const stock = selectedOption.dataset.stock || 0;
+            if (selectedOption && currentStockDisplay && currentStockUnit) {
+                const stock = parseFloat(selectedOption.dataset.stock || 0);
                 const unit = selectedOption.dataset.unit || 'pcs';
 
-                currentStockDisplay.value = parseFloat(stock).toFixed(2);
+                currentStockDisplay.value = stock.toFixed(2);
                 currentStockUnit.textContent = unit;
 
                 // Add visual feedback based on stock level
                 currentStockDisplay.className = 'form-control';
-                if (parseFloat(stock) <= 0) {
+                if (stock <= 0) {
                     currentStockDisplay.classList.add('border-danger');
-                } else if (parseFloat(stock) <= 10) {
+                } else if (stock <= 10) {
                     currentStockDisplay.classList.add('border-warning');
                 } else {
                     currentStockDisplay.classList.add('border-success');
                 }
             }
-        } else {
+        } else if (currentStockDisplay && currentStockUnit) {
             currentStockDisplay.value = '';
             currentStockUnit.textContent = 'pcs';
             currentStockDisplay.className = 'form-control';

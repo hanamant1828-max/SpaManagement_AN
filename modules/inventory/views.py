@@ -686,9 +686,11 @@ def api_get_adjustments():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # Get all adjustment records from stock movements
+        # Get all adjustment records from stock movements with product joins
         adjustments = []
-        adjustment_movements = db.session.query(StockMovement).filter(
+        adjustment_movements = db.session.query(StockMovement).join(
+            InventoryProduct, StockMovement.product_id == InventoryProduct.id
+        ).filter(
             StockMovement.reference_type == 'manual'
         ).order_by(desc(StockMovement.created_at)).all()
 
@@ -711,6 +713,11 @@ def api_get_adjustments():
 
             first_movement = movements[0]
             total_value = sum(float(m.quantity or 0) * float(m.unit_cost or 0) for m in movements)
+            
+            # Get product info for first item (representative)
+            product_name = first_movement.product.name if first_movement.product else 'Unknown Product'
+            if len(movements) > 1:
+                product_name = f"{product_name} (+{len(movements)-1} more)"
 
             # Extract clean reference_id and remarks from reason field
             reference_id = ""
@@ -752,6 +759,9 @@ def api_get_adjustments():
                 'id': first_movement.id,
                 'reference_id': reference_id if reference_id else "",
                 'adjustment_date': first_movement.created_at.strftime('%Y-%m-%d') if first_movement.created_at else date.today().strftime('%Y-%m-%d'),
+                'product': product_name,
+                'quantity': sum(float(m.quantity or 0) for m in movements),
+                'type': 'add',  # Most manual adjustments are additions
                 'items_count': len(movements),
                 'subtotal': float(total_value),
                 'total_value': float(total_value),
@@ -771,13 +781,18 @@ def api_get_adjustment(adjustment_id):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # Get the movement record
-        movement = StockMovement.query.get(adjustment_id)
+        # Get the movement record with product join
+        movement = db.session.query(StockMovement).join(
+            InventoryProduct, StockMovement.product_id == InventoryProduct.id
+        ).filter(StockMovement.id == adjustment_id).first()
+        
         if not movement:
             return jsonify({'error': 'Adjustment not found'}), 404
 
-        # Get all related movements (same reason and date)
-        related_movements = StockMovement.query.filter(
+        # Get all related movements (same reason and date) with product joins
+        related_movements = db.session.query(StockMovement).join(
+            InventoryProduct, StockMovement.product_id == InventoryProduct.id
+        ).filter(
             StockMovement.reason == movement.reason,
             StockMovement.created_at == movement.created_at,
             StockMovement.created_by == movement.created_by
@@ -791,14 +806,23 @@ def api_get_adjustment(adjustment_id):
             line_total = quantity * unit_cost
             total_value += line_total
 
-            # Get current stock from product
+            # Get current stock and product info
             current_stock = 0
+            product_name = 'Unknown Product'
+            product_sku = 'N/A'
+            unit_measure = 'pcs'
+            
             if mov.product:
                 current_stock = float(mov.product.current_stock or 0)
+                product_name = mov.product.name
+                product_sku = mov.product.sku or 'N/A'
+                unit_measure = mov.product.unit_of_measure or 'pcs'
 
             items.append({
                 'product_id': mov.product_id,
-                'product_name': mov.product.name if mov.product else 'Unknown',
+                'product_name': product_name,
+                'product_sku': product_sku,
+                'unit_of_measure': unit_measure,
                 'current_stock': current_stock,
                 'quantity_added': quantity,
                 'unit_cost': unit_cost,
