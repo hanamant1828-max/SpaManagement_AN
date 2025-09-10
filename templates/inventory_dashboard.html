@@ -45,6 +45,11 @@
                 <i class="fas fa-exchange-alt me-1"></i>Transfers
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="batches-tab" data-bs-toggle="tab" data-bs-target="#batches" type="button">
+                <i class="fas fa-boxes me-1"></i>Batches
+            </button>
+        </li>
     </ul>
 
     <!-- Tab Content -->
@@ -81,7 +86,24 @@
 
         <!-- Transfers Tab -->
         <div class="tab-pane fade" id="transfers" role="tabpanel">
-            <div id="transfers-content">Loading transfers...</div>
+            <div id="transfers-content">
+                <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batches Tab -->
+        <div class="tab-pane fade" id="batches" role="tabpanel">
+            <div id="batches-content">
+                <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -89,7 +111,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Inventory Management System Loading...');
-    
+
     // Function to load content from static files
     function loadTabContent(tabName, contentId) {
         fetch(`/static/inventory/${tabName}.html`)
@@ -101,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(html => {
                 document.getElementById(contentId).innerHTML = html;
-                
+
                 // Execute any scripts in the loaded content
                 const scripts = document.getElementById(contentId).querySelectorAll('script');
                 scripts.forEach(script => {
@@ -113,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     document.head.appendChild(newScript);
                 });
-                
+
                 console.log(`${tabName} content loaded successfully`);
             })
             .catch(error => {
@@ -127,10 +149,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             });
     }
-    
+
     // Load dashboard content immediately
     loadTabContent('dashboard', 'dashboard-content');
-    
+
     // Add event listeners for tab switching
     const tabTriggerList = [].slice.call(document.querySelectorAll('#inventoryTabs button'));
     tabTriggerList.forEach(function (tabTrigger) {
@@ -138,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const target = event.target.getAttribute('data-bs-target');
             const tabName = target.replace('#', '').replace('-', '_');
             const contentId = target.replace('#', '') + '-content';
-            
+
             // Only load content if it hasn't been loaded yet
             const content = document.getElementById(contentId);
             if (content && content.innerHTML.includes('Loading')) {
@@ -150,9 +172,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     'locations': 'locations',
                     'adjustments': 'adjustments',
                     'consumption': 'consumption',
-                    'transfers': 'transfers'
+                    'transfers': 'transfers',
+                    'batches': 'batches'
                 };
-                
+
                 const fileName = fileMap[tabName] || tabName.replace('_', '-');
                 loadTabContent(fileName, contentId);
             }
