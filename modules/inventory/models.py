@@ -99,6 +99,11 @@ class InventoryProduct(db.Model):
             return 'low_stock'
         else:
             return 'in_stock'
+    
+    @property
+    def batch_count(self):
+        """Get number of active batches for this product"""
+        return len([b for b in self.batches if b.status == 'active'])
 
 # StockMovement model removed - replaced by InventoryAuditLog for batch-centric tracking
 
@@ -146,6 +151,10 @@ class InventoryBatch(db.Model):
     
     # Stock quantity (updated only through transactions)
     qty_available = db.Column(db.Numeric(10, 2), default=0, nullable=False)
+    
+    # Pricing information
+    unit_cost = db.Column(db.Numeric(10, 2), default=0)
+    selling_price = db.Column(db.Numeric(10, 2))
     
     # Status tracking
     status = db.Column(db.String(20), default='active')  # active, expired, blocked

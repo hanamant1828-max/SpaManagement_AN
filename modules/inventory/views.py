@@ -396,7 +396,7 @@ def api_get_consumption_records():
             'reference': c.reference,
             'notes': c.notes,
             'created_at': c.created_at.isoformat() if c.created_at else None,
-            'created_by_name': c.creator.full_name if c.creator else 'Unknown'
+            'created_by_name': c.user.full_name if c.user else 'Unknown'
         } for c in consumption_records])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -447,12 +447,145 @@ def api_get_adjustments():
             'product_name': a.batch.product.name if a.batch and a.batch.product else 'Unknown',
             'adjustment_type': a.adjustment_type,
             'quantity': float(a.quantity),
-            'unit_cost': float(a.unit_cost) if a.unit_cost else None,
-            'notes': a.notes,
+            'notes': a.remarks,
             'created_at': a.created_at.isoformat() if a.created_at else None,
-            'created_by_name': a.creator.full_name if a.creator else 'Unknown'
+            'created_by_name': a.user.full_name if a.user else 'Unknown'
         } for a in adjustments])
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/products/<int:product_id>', methods=['PUT'])
+@login_required
+def api_update_product(product_id):
+    """Update an existing product"""
+    try:
+        data = request.get_json()
+        
+        product = update_product(product_id, {
+            'name': data.get('name'),
+            'description': data.get('description', ''),
+            'category_id': data.get('category_id'),
+            'sku': data.get('sku', ''),
+            'unit_of_measure': data.get('unit_of_measure', 'pcs'),
+            'barcode': data.get('barcode', ''),
+            'is_service_item': data.get('is_service_item', False),
+            'is_retail_item': data.get('is_retail_item', True)
+        })
+
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'message': 'Product updated successfully'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/categories/<int:category_id>', methods=['PUT'])
+@login_required
+def api_update_category(category_id):
+    """Update an existing category"""
+    try:
+        data = request.get_json()
+        category = InventoryCategory.query.get(category_id)
+        
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+
+        category.name = data.get('name', category.name)
+        category.description = data.get('description', category.description)
+        category.color_code = data.get('color_code', category.color_code)
+        category.is_active = data.get('is_active', category.is_active)
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Category updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/locations/<location_id>', methods=['PUT'])
+@login_required
+def api_update_location(location_id):
+    """Update an existing location"""
+    try:
+        data = request.get_json()
+        location = InventoryLocation.query.get(location_id)
+        
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+
+        location.name = data.get('name', location.name)
+        location.type = data.get('type', location.type)
+        location.address = data.get('address', location.address)
+        location.contact_person = data.get('contact_person', location.contact_person)
+        location.phone = data.get('phone', location.phone)
+        location.status = data.get('status', location.status)
+        
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Location updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['PUT'])
+@login_required
+def api_update_batch(batch_id):
+    """Update an existing batch"""
+    try:
+        from datetime import datetime
+        data = request.get_json()
+        batch = InventoryBatch.query.get(batch_id)
+        
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        # Update allowed fields
+        if data.get('batch_name'):
+            # Check for unique batch name (excluding current batch)
+            existing = InventoryBatch.query.filter(
+                InventoryBatch.batch_name == data['batch_name'],
+                InventoryBatch.id != batch_id
+            ).first()
+            if existing:
+                return jsonify({'error': 'Batch name must be unique'}), 400
+            batch.batch_name = data['batch_name']
+
+        if data.get('created_date'):
+            batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
+
+        if data.get('mfg_date'):
+            batch.mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
+
+        if data.get('expiry_date'):
+            batch.expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+
+        if data.get('unit_cost') is not None:
+            batch.unit_cost = float(data['unit_cost'])
+
+        if data.get('selling_price') is not None:
+            batch.selling_price = float(data['selling_price']) if data['selling_price'] else None
+
+        # Validate dates
+        if batch.expiry_date <= batch.mfg_date:
+            return jsonify({'error': 'Expiry date must be later than manufacturing date'}), 400
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Batch updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/products', methods=['GET'])

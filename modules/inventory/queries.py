@@ -59,12 +59,49 @@ def update_product(product_id, product_data):
 
         valid_fields = ['sku', 'name', 'description', 'category_id', 'unit_of_measure', 'barcode', 'is_active', 'is_service_item', 'is_retail_item']
         for key, value in product_data.items():
-            if key in valid_fields and hasattr(product, key):
+            if key in valid_fields and hasattr(product, key) and value is not None:
                 setattr(product, key, value)
 
         product.updated_at = datetime.utcnow()
         db.session.commit()
         return product
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def update_category(category_id, category_data):
+    """Update existing category"""
+    try:
+        category = InventoryCategory.query.get(category_id)
+        if not category:
+            return None
+
+        valid_fields = ['name', 'description', 'color_code', 'is_active']
+        for key, value in category_data.items():
+            if key in valid_fields and hasattr(category, key) and value is not None:
+                setattr(category, key, value)
+
+        db.session.commit()
+        return category
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def update_location(location_id, location_data):
+    """Update existing location"""
+    try:
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return None
+
+        valid_fields = ['name', 'type', 'address', 'contact_person', 'phone', 'status']
+        for key, value in location_data.items():
+            if key in valid_fields and hasattr(location, key) and value is not None:
+                setattr(location, key, value)
+
+        location.updated_at = datetime.utcnow()
+        db.session.commit()
+        return location
     except Exception as e:
         db.session.rollback()
         raise e
