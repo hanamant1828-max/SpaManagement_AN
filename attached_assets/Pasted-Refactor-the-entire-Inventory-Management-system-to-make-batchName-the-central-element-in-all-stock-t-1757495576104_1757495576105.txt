@@ -1,0 +1,176 @@
+Refactor the entire Inventory Management system to make batchName the central element in all stock transactions. Every Add, Remove, Consumption, Transfer, and Delete operation must strictly work at the batch level.”
+
+🔹 1. Batch Management Module (CRUD Only)
+
+Batch fields required:
+
+batchName (string, required, unique per product)
+
+createdDate (auto-today, editable)
+
+mfgDate (date, required)
+
+expiryDate (date, required)
+
+Product link (FK → productId)
+
+Location link (FK → locationId)
+
+Excluded fields: qtyAvailable, cost, sellingPrice → handled in transactions only.
+
+CRUD Operations:
+
+Add → Create a batch record.
+
+Edit → Update batch details (not stock).
+
+Delete → Block if stock > 0 or batch is referenced in transactions.
+
+View → Show details with linked product + location.
+
+🔹 2. Transaction Rules (Global)
+
+Mandatory Batch Selection
+
+Every transaction screen must have a Batch dropdown.
+
+Format: BatchName (ProductName, Exp: DD-MM-YYYY, Location, Stock: XX)
+
+Dropdown pulls only active, non-expired batches.
+
+Auto-Stock Display
+
+On selecting batch, auto-display:
+
+Product Name (read-only)
+
+Location (read-only)
+
+Current Stock (read-only)
+
+Expiry (highlight if nearing expiry)
+
+Validation:
+
+Block if expired batch selected.
+
+Block if qty entered > available (for remove/consume/transfer).
+
+Allow only positive quantities.
+
+🔹 3. Adjustments (Add / Remove Stock)
+
+UI Flow:
+
+Select Batch → Auto-show Product + Current Stock.
+
+Enter Qty → Add (+) or Remove (–).
+
+Remarks mandatory.
+
+Backend:
+
+Add: Increase qtyAvailable in that batch.
+
+Remove: Decrease qtyAvailable. Block if insufficient.
+
+Log transaction in adjustments table with batchId.
+
+🔹 4. Consumption
+
+UI Flow:
+
+Select Batch → Auto-show stock.
+
+Enter Qty to Consume.
+
+Issued To (mandatory).
+
+Optional: Reference/Notes.
+
+Backend:
+
+Deduct qty from selected batch.
+
+If qty > stock → reject.
+
+FEFO (First Expire, First Out) option: pre-select earliest expiry batch.
+
+Log transaction in consumption table with batchId.
+
+🔹 5. Transfers
+
+UI Flow:
+
+Select Batch (source location).
+
+Show Product, Source Stock.
+
+Enter Qty to Transfer.
+
+Select Destination Location.
+
+Backend:
+
+Deduct qty from source batch.
+
+Create/update destination batch with same batchName, mfgDate, expiryDate.
+
+Add qty to destination batch.
+
+Log in transfers table with sourceBatchId + destBatchId.
+
+🔹 6. Delete Transactions
+
+Rule:
+
+Deleting a transaction must reverse its stock effect.
+
+Example: Delete Adjustment(Add 10) → subtract 10 from batch stock.
+
+Example: Delete Consumption(5) → add 5 back to batch stock.
+
+Block:
+
+If reversing causes negative stock → prevent deletion with error.
+
+🔹 7. Reports
+
+Batch-Wise Stock Report
+
+Show Product + BatchName + Location + Qty + Expiry.
+
+Expiring Batches Report
+
+Filter: expiry within X days.
+
+Expired Batches Report
+
+Batches already past expiry.
+
+Consumption Report
+
+Batch-wise consumption logs with Issued To.
+
+Adjustment Report
+
+All adds/removes with remarks.
+
+Transfer Report
+
+From-Batch → To-Batch movements.
+
+Audit Log
+
+Every stock change must include: batchId, productId, userId, timestamp, qty delta, actionType.
+
+🔹 8. Acceptance Criteria
+
+✅ Batch creation only captures name + dates + product + location.
+✅ Stock changes happen only through transactions (adjust, consume, transfer).
+✅ Every transaction requires selecting a batch first.
+✅ Auto-show stock details when batch selected.
+✅ Prevent expired or insufficient batches from being used.
+✅ Reports/logs always display batchName + productName + expiry.
+✅ No JSON or localStorage, DB-only.
+✅ No console errors, all UI buttons functional.
