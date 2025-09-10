@@ -2141,6 +2141,364 @@ def api_inventory_dashboard_data():
     except Exception as e:
         return jsonify({'error': f'Error loading dashboard data: {str(e)}'}), 500
 
+# ============ BATCH MANAGEMENT API ENDPOINTS ============
+
+@app.route('/api/inventory/batches')
+@login_required
+def api_get_all_batches():
+    """Get all batches with optional filters"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from .models import InventoryBatch
+        
+        # Get query parameters
+        product_id = request.args.get('product_id', type=int)
+        location_id = request.args.get('location_id')
+        include_expired = request.args.get('include_expired', 'false').lower() == 'true'
+        
+        # Build query
+        query = InventoryBatch.query.join(InventoryProduct)
+        
+        if product_id:
+            query = query.filter(InventoryBatch.product_id == product_id)
+        
+        if location_id:
+            query = query.filter(InventoryBatch.location_id == location_id)
+        
+        if not include_expired:
+            from datetime import date
+            query = query.filter(
+                or_(
+                    InventoryBatch.expiry_date == None,
+                    InventoryBatch.expiry_date >= date.today()
+                )
+            )
+        
+        batches = query.order_by(InventoryBatch.expiry_date, InventoryBatch.batch_name).all()
+        
+        batch_list = []
+        for batch in batches:
+            batch_list.append({
+                'id': batch.id,
+                'product_id': batch.product_id,
+                'location_id': batch.location_id,
+                'batch_name': batch.batch_name,
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'qty_available': float(batch.qty_available or 0),
+                'unit_cost': float(batch.unit_cost or 0),
+                'selling_price': float(batch.selling_price or 0) if batch.selling_price else None,
+                'status': batch.status,
+                'is_expired': batch.is_expired,
+                'days_to_expiry': batch.days_to_expiry,
+                'batch_value': batch.batch_value,
+                'created_at': batch.created_at.isoformat() if batch.created_at else None
+            })
+        
+        return jsonify({'batches': batch_list})
+        
+    except Exception as e:
+        return jsonify({'error': f'Error loading batches: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches', methods=['POST'])
+@login_required
+def api_add_batch():
+    """Add new batch"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Validation
+        required_fields = ['product_id', 'location_id', 'batch_name']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field.replace("_", " ").title()} is required'}), 400
+
+        # Check for duplicate batch name for this product
+        from .models import InventoryBatch
+        existing_batch = InventoryBatch.query.filter_by(
+            product_id=data['product_id'],
+            batch_name=data['batch_name'].strip()
+        ).first()
+        
+        if existing_batch:
+            return jsonify({'error': f'Batch name "{data["batch_name"]}" already exists for this product'}), 400
+
+        # Parse dates
+        mfg_date = None
+        expiry_date = None
+        
+        if data.get('mfg_date'):
+            try:
+                mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid manufacturing date format'}), 400
+        
+        if data.get('expiry_date'):
+            try:
+                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid expiry date format'}), 400
+
+        # Create batch
+        batch_data = {
+            'product_id': data['product_id'],
+            'location_id': data['location_id'],
+            'batch_name': data['batch_name'].strip(),
+            'mfg_date': mfg_date,
+            'expiry_date': expiry_date,
+            'qty_available': float(data.get('qty_available', 0)),
+            'unit_cost': float(data.get('unit_cost', 0)),
+            'selling_price': float(data['selling_price']) if data.get('selling_price') else None,
+            'status': data.get('status', 'active')
+        }
+
+        batch = create_batch(batch_data)
+        
+        # If initial quantity > 0, create stock movement
+        if batch.qty_available > 0:
+            update_batch_stock(
+                batch.id,
+                batch.qty_available,
+                'in',
+                f'Initial batch stock - {batch.batch_name}',
+                'batch_creation',
+                batch.id,
+                current_user.id
+            )
+
+        return jsonify({
+            'success': True,
+            'message': f'Batch "{batch.batch_name}" created successfully!',
+            'batch_id': batch.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error creating batch: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>')
+@login_required
+def api_get_batch(batch_id):
+    """Get specific batch details"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        batch = get_batch_by_id(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        return jsonify({
+            'id': batch.id,
+            'product_id': batch.product_id,
+            'location_id': batch.location_id,
+            'batch_name': batch.batch_name,
+            'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+            'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+            'qty_available': float(batch.qty_available or 0),
+            'unit_cost': float(batch.unit_cost or 0),
+            'selling_price': float(batch.selling_price or 0) if batch.selling_price else None,
+            'status': batch.status,
+            'is_expired': batch.is_expired,
+            'days_to_expiry': batch.days_to_expiry,
+            'batch_value': batch.batch_value,
+            'product_name': batch.product.name if batch.product else 'Unknown',
+            'location_name': batch.location.name if batch.location else 'Unknown',
+            'created_at': batch.created_at.isoformat() if batch.created_at else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading batch: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['PUT'])
+@login_required
+def api_update_batch(batch_id):
+    """Update batch"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        batch = get_batch_by_id(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        # Validation
+        if 'batch_name' in data and not data['batch_name'].strip():
+            return jsonify({'error': 'Batch name is required'}), 400
+
+        # Check for duplicate batch name if changing
+        if 'batch_name' in data and data['batch_name'].strip() != batch.batch_name:
+            from .models import InventoryBatch
+            existing_batch = InventoryBatch.query.filter_by(
+                product_id=batch.product_id,
+                batch_name=data['batch_name'].strip()
+            ).filter(InventoryBatch.id != batch_id).first()
+            
+            if existing_batch:
+                return jsonify({'error': f'Batch name "{data["batch_name"]}" already exists for this product'}), 400
+
+        # Parse dates if provided
+        update_data = {}
+        for key, value in data.items():
+            if key in ['mfg_date', 'expiry_date'] and value:
+                try:
+                    update_data[key] = datetime.strptime(value, '%Y-%m-%d').date()
+                except ValueError:
+                    return jsonify({'error': f'Invalid {key.replace("_", " ")} format'}), 400
+            elif key == 'batch_name' and value:
+                update_data[key] = value.strip()
+            elif key in ['qty_available', 'unit_cost'] and value is not None:
+                update_data[key] = float(value)
+            elif key == 'selling_price':
+                update_data[key] = float(value) if value else None
+            elif key in ['status', 'location_id', 'product_id']:
+                update_data[key] = value
+
+        updated_batch = update_batch(batch_id, update_data)
+        
+        if updated_batch:
+            return jsonify({
+                'success': True,
+                'message': f'Batch "{updated_batch.batch_name}" updated successfully!'
+            })
+        else:
+            return jsonify({'error': 'Failed to update batch'}), 500
+
+    except Exception as e:
+        return jsonify({'error': f'Error updating batch: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['DELETE'])
+@login_required
+def api_delete_batch(batch_id):
+    """Delete batch"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        batch = get_batch_by_id(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        # Check if batch has stock or movements
+        if batch.qty_available > 0:
+            return jsonify({'error': 'Cannot delete batch with remaining stock. Please consume or transfer all stock first.'}), 400
+
+        if batch.stock_movements:
+            return jsonify({'error': 'Cannot delete batch with movement history.'}), 400
+
+        batch_name = batch.batch_name
+        
+        if delete_batch(batch_id):
+            return jsonify({
+                'success': True,
+                'message': f'Batch "{batch_name}" deleted successfully!'
+            })
+        else:
+            return jsonify({'error': 'Failed to delete batch'}), 500
+
+    except Exception as e:
+        return jsonify({'error': f'Error deleting batch: {str(e)}'}), 500
+
+@app.route('/api/inventory/products/<int:product_id>/batches')
+@login_required
+def api_get_product_batches(product_id):
+    """Get all batches for a specific product"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        batches = get_batches_by_product(product_id)
+        
+        batch_list = []
+        for batch in batches:
+            batch_list.append({
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'location_id': batch.location_id,
+                'location_name': batch.location.name if batch.location else 'Unknown',
+                'qty_available': float(batch.qty_available or 0),
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'status': batch.status,
+                'is_expired': batch.is_expired,
+                'days_to_expiry': batch.days_to_expiry,
+                'unit_cost': float(batch.unit_cost or 0),
+                'batch_value': batch.batch_value
+            })
+        
+        return jsonify({'batches': batch_list})
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading product batches: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches/expiring')
+@login_required
+def api_get_expiring_batches():
+    """Get batches expiring within specified days"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        days_ahead = request.args.get('days', 30, type=int)
+        batches = get_expiring_batches(days_ahead)
+        
+        batch_list = []
+        for batch in batches:
+            batch_list.append({
+                'id': batch.id,
+                'product_name': batch.product.name if batch.product else 'Unknown',
+                'batch_name': batch.batch_name,
+                'location_name': batch.location.name if batch.location else 'Unknown',
+                'qty_available': float(batch.qty_available or 0),
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'days_to_expiry': batch.days_to_expiry,
+                'batch_value': batch.batch_value
+            })
+        
+        return jsonify({'batches': batch_list})
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading expiring batches: {str(e)}'}), 500
+
+@app.route('/api/inventory/batches/expired')
+@login_required
+def api_get_expired_batches():
+    """Get expired batches"""
+    if not current_user.can_access('inventory'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        batches = get_expired_batches()
+        
+        batch_list = []
+        for batch in batches:
+            batch_list.append({
+                'id': batch.id,
+                'product_name': batch.product.name if batch.product else 'Unknown',
+                'batch_name': batch.batch_name,
+                'location_name': batch.location.name if batch.location else 'Unknown',
+                'qty_available': float(batch.qty_available or 0),
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'days_to_expiry': batch.days_to_expiry,
+                'batch_value': batch.batch_value
+            })
+        
+        return jsonify({'batches': batch_list})
+
+    except Exception as e:
+        return jsonify({'error': f'Error loading expired batches: {str(e)}'}), 500
+
 # ============ ENHANCED PRODUCT ENDPOINTS ============
 
 @app.route('/api/inventory/products/<int:product_id>/stock-history')

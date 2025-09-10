@@ -140,6 +140,7 @@ class StockMovement(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # Optional batch tracking
     
     # Movement details
     movement_type = db.Column(db.String(20), nullable=False)  # in, out, adjustment, transfer
@@ -162,6 +163,7 @@ class StockMovement(db.Model):
     
     # Relationships
     product = db.relationship('InventoryProduct', back_populates='stock_movements')
+    batch = db.relationship('InventoryBatch', backref='stock_movements')
     user = db.relationship('User', backref='stock_movements')
 
 
@@ -190,12 +192,67 @@ class InventoryAlert(db.Model):
     product = db.relationship('InventoryProduct', backref='alerts')
     resolver = db.relationship('User', backref='resolved_alerts')
 
+class InventoryBatch(db.Model):
+    """Batch tracking for inventory products with expiry management"""
+    __tablename__ = 'inventory_batches'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
+    location_id = db.Column(db.String(50), db.ForeignKey('inventory_locations.id'), nullable=False)
+    
+    # Batch identification
+    batch_name = db.Column(db.String(100), nullable=False)  # User-friendly batch identifier
+    
+    # Batch details
+    mfg_date = db.Column(db.Date)  # Manufacturing date
+    expiry_date = db.Column(db.Date)  # Expiry date
+    qty_available = db.Column(db.Numeric(10, 2), default=0, nullable=False)
+    unit_cost = db.Column(db.Numeric(10, 2), default=0)
+    selling_price = db.Column(db.Numeric(10, 2))  # Optional selling price override
+    
+    # Status tracking
+    status = db.Column(db.String(20), default='active')  # active, expired, blocked
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    product = db.relationship('InventoryProduct', backref='batches')
+    location = db.relationship('InventoryLocation', backref='batches')
+    
+    # Constraints
+    __table_args__ = (
+        db.UniqueConstraint('product_id', 'batch_name', name='uq_product_batch_name'),
+    )
+    
+    @property
+    def is_expired(self):
+        """Check if batch is expired"""
+        if not self.expiry_date:
+            return False
+        return self.expiry_date < datetime.utcnow().date()
+    
+    @property
+    def days_to_expiry(self):
+        """Get days until expiry"""
+        if not self.expiry_date:
+            return None
+        delta = self.expiry_date - datetime.utcnow().date()
+        return delta.days
+    
+    @property
+    def batch_value(self):
+        """Calculate total batch value"""
+        return float(self.qty_available or 0) * float(self.unit_cost or 0)
+
 class InventoryConsumption(db.Model):
     """Track item usage and issuance for inventory consumption"""
     __tablename__ = 'inventory_consumption'
     
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'), nullable=False)
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # Optional batch tracking
     
     # Consumption details
     consumption_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
@@ -213,6 +270,7 @@ class InventoryConsumption(db.Model):
     
     # Relationships
     product = db.relationship('InventoryProduct', backref='consumption_records')
+    batch = db.relationship('InventoryBatch', backref='consumption_records')
     user = db.relationship('User', backref='consumption_records')
     
     @property

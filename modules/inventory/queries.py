@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, desc
 from app import db
 from .models import (
-    InventoryProduct, InventoryCategory, StockMovement, InventoryAlert, InventoryConsumption
+    InventoryProduct, InventoryCategory, StockMovement, InventoryAlert, InventoryConsumption, InventoryBatch
 )
 
 # ============ PRODUCT MANAGEMENT ============
@@ -169,7 +169,7 @@ def update_stock(product_id, new_quantity, movement_type, reason="", reference_t
         db.session.rollback()
         raise e
 
-def add_stock(product_id, quantity, reason="", reference_type=None, reference_id=None, unit_cost=0, user_id=None):
+def add_stock(product_id, quantity, reason="", reference_type=None, reference_id=None, user_id=None):
     """Add stock to product"""
     product = get_product_by_id(product_id)
     if product:
@@ -177,9 +177,9 @@ def add_stock(product_id, quantity, reason="", reference_type=None, reference_id
         current_stock = float(product.current_stock or 0)
         quantity = float(quantity)
         new_quantity = current_stock + quantity
-        
+
         updated_product = update_stock(product_id, new_quantity, 'in', reason, reference_type, reference_id, user_id)
-        
+
         # Update the movement with unit cost if provided
         if updated_product and unit_cost:
             latest_movement = StockMovement.query.filter_by(
@@ -189,7 +189,7 @@ def add_stock(product_id, quantity, reason="", reference_type=None, reference_id
             if latest_movement:
                 latest_movement.unit_cost = float(unit_cost)
                 db.session.commit()
-        
+
         return updated_product
     return None
 
@@ -418,11 +418,11 @@ def initialize_default_locations():
     """Initialize default locations if none exist"""
     try:
         from .models import InventoryLocation
-        
+
         # Check if locations already exist
         if InventoryLocation.query.count() > 0:
             return True
-            
+
         # Create default locations
         default_locations = [
             {
@@ -447,14 +447,14 @@ def initialize_default_locations():
                 'status': 'active'
             }
         ]
-        
+
         for location_data in default_locations:
             location = InventoryLocation(**location_data)
             db.session.add(location)
-            
+
         db.session.commit()
         return True
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error creating default locations: {e}")
@@ -464,17 +464,17 @@ def initialize_default_categories():
     """Initialize default categories if none exist"""
     try:
         from .models import InventoryCategory
-        
+
         # Check if valid categories already exist (not test/dummy data)
         valid_categories = InventoryCategory.query.filter(
             InventoryCategory.name.notin_(['JBJ', 'TEST', 'DUMMY', 'TEMP'])
         ).filter(
             func.length(InventoryCategory.name) >= 3
         ).all()
-        
+
         if len(valid_categories) > 0:
             return True
-            
+
         # Clean up any dummy/test categories first
         dummy_categories = InventoryCategory.query.filter(
             or_(
@@ -482,11 +482,11 @@ def initialize_default_categories():
                 func.length(InventoryCategory.name) < 3
             )
         ).all()
-        
+
         for dummy in dummy_categories:
             if not dummy.products:  # Only delete if no products assigned
                 db.session.delete(dummy)
-        
+
         # Create default categories
         default_categories = [
             {
@@ -520,14 +520,14 @@ def initialize_default_categories():
                 'is_active': True
             }
         ]
-        
+
         for category_data in default_categories:
             category = InventoryCategory(**category_data)
             db.session.add(category)
-            
+
         db.session.commit()
         return True
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error creating default categories: {e}")
@@ -617,11 +617,11 @@ def initialize_default_locations():
                     'status': 'active'
                 }
             ]
-            
+
             for location_data in default_locations:
                 location = InventoryLocation(**location_data)
                 db.session.add(location)
-            
+
             db.session.commit()
             return True
     except Exception as e:
@@ -655,11 +655,11 @@ def initialize_default_categories():
                     'color_code': '#f9ca24'
                 }
             ]
-            
+
             for category_data in default_categories:
                 category = InventoryCategory(**category_data)
                 db.session.add(category)
-            
+
             db.session.commit()
             return True
     except Exception as e:
@@ -703,11 +703,11 @@ def create_consumption_record(consumption_data, user_id=None):
     """Create new consumption record and update stock levels"""
     try:
         from decimal import Decimal
-        
+
         # Ensure quantity_used is Decimal for consistency
         if 'quantity_used' in consumption_data:
             consumption_data['quantity_used'] = Decimal(str(consumption_data['quantity_used']))
-        
+
         # Create consumption record
         consumption = InventoryConsumption(**consumption_data)
         consumption.created_by = user_id
@@ -720,7 +720,7 @@ def create_consumption_record(consumption_data, user_id=None):
             # Convert to Decimal for consistent arithmetic
             current_stock = Decimal(str(product.current_stock or 0))
             quantity_used = Decimal(str(consumption.quantity_used or 0))
-            
+
             # Check if sufficient stock
             if current_stock < quantity_used:
                 raise ValueError(f"Insufficient stock. Available: {current_stock}, Required: {quantity_used}")
@@ -747,7 +747,7 @@ def update_consumption_record(consumption_id, consumption_data, user_id=None):
     """Update existing consumption record and adjust stock levels"""
     try:
         from decimal import Decimal
-        
+
         consumption = get_consumption_by_id(consumption_id)
         if not consumption:
             return None
@@ -789,7 +789,7 @@ def update_consumption_record(consumption_id, consumption_data, user_id=None):
             new_product = get_product_by_id(consumption.product_id)
             if new_product:
                 new_current_stock = Decimal(str(new_product.current_stock or 0))
-                
+
                 if new_current_stock < new_quantity:
                     raise ValueError(f"Insufficient stock. Available: {new_current_stock}, Required: {new_quantity}")
 
@@ -814,7 +814,7 @@ def delete_consumption_record(consumption_id, user_id=None):
     """Delete consumption record and restore stock levels"""
     try:
         from decimal import Decimal
-        
+
         consumption = get_consumption_by_id(consumption_id)
         if not consumption:
             return False
@@ -826,7 +826,7 @@ def delete_consumption_record(consumption_id, user_id=None):
             current_stock = Decimal(str(product.current_stock or 0))
             quantity_to_restore = Decimal(str(consumption.quantity_used or 0))
             restored_stock = current_stock + quantity_to_restore
-            
+
             update_stock(
                 product_id=consumption.product_id,
                 new_quantity=float(restored_stock),
@@ -893,3 +893,205 @@ def get_consumption_summary_stats():
             'monthly_records': 0,
             'most_consumed': []
         }
+
+# ============ BATCH MANAGEMENT ============
+
+def get_all_batches(product_id=None, location_id=None, include_expired=False):
+    """Get all batches with optional filters"""
+    query = InventoryBatch.query.join(InventoryProduct)
+
+    if product_id:
+        query = query.filter(InventoryBatch.product_id == product_id)
+
+    if location_id:
+        query = query.filter(InventoryBatch.location_id == location_id)
+
+    if not include_expired:
+        query = query.filter(
+            or_(
+                InventoryBatch.expiry_date == None,
+                InventoryBatch.expiry_date >= date.today()
+            )
+        )
+
+    return query.order_by(InventoryBatch.expiry_date, InventoryBatch.batch_name).all()
+
+def get_batch_by_id(batch_id):
+    """Get batch by ID"""
+    return InventoryBatch.query.get(batch_id)
+
+def get_batches_by_product(product_id):
+    """Get all batches for a specific product"""
+    return InventoryBatch.query.filter_by(product_id=product_id).order_by(InventoryBatch.expiry_date).all()
+
+def create_batch(batch_data):
+    """Create new batch"""
+    try:
+        # Validate batch name uniqueness for product
+        existing_batch = InventoryBatch.query.filter_by(
+            product_id=batch_data['product_id'],
+            batch_name=batch_data['batch_name']
+        ).first()
+
+        if existing_batch:
+            raise ValueError(f"Batch name '{batch_data['batch_name']}' already exists for this product")
+
+        batch = InventoryBatch(**batch_data)
+        db.session.add(batch)
+        db.session.commit()
+
+        return batch
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def update_batch(batch_id, batch_data):
+    """Update existing batch"""
+    try:
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return None
+
+        # Check batch name uniqueness if name is being changed
+        if 'batch_name' in batch_data and batch_data['batch_name'] != batch.batch_name:
+            existing_batch = InventoryBatch.query.filter_by(
+                product_id=batch.product_id,
+                batch_name=batch_data['batch_name']
+            ).filter(InventoryBatch.id != batch_id).first()
+
+            if existing_batch:
+                raise ValueError(f"Batch name '{batch_data['batch_name']}' already exists for this product")
+
+        # Update fields
+        for key, value in batch_data.items():
+            if hasattr(batch, key):
+                setattr(batch, key, value)
+
+        batch.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return batch
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def delete_batch(batch_id):
+    """Delete batch"""
+    try:
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return False
+
+        # Check if batch has stock or movements
+        if batch.qty_available > 0:
+            raise ValueError("Cannot delete batch with remaining stock")
+
+        if batch.stock_movements:
+            raise ValueError("Cannot delete batch with movement history")
+
+        db.session.delete(batch)
+        db.session.commit()
+
+        return True
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def get_batches_for_consumption(product_id, location_id=None):
+    """Get available batches for consumption (FEFO order)"""
+    query = InventoryBatch.query.filter_by(product_id=product_id)
+
+    if location_id:
+        query = query.filter_by(location_id=location_id)
+
+    # Only active batches with stock
+    query = query.filter(
+        InventoryBatch.status == 'active',
+        InventoryBatch.qty_available > 0
+    )
+
+    # FEFO order - earliest expiry first, then by batch name
+    return query.order_by(
+        InventoryBatch.expiry_date.asc().nullslast(),
+        InventoryBatch.batch_name
+    ).all()
+
+def update_batch_stock(batch_id, new_quantity, movement_type, reason="", reference_type=None, reference_id=None, user_id=None):
+    """Update batch stock and create movement record"""
+    try:
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return None
+
+        # Convert to float for calculations
+        old_stock = float(batch.qty_available or 0)
+        new_quantity = float(new_quantity)
+        quantity_change = new_quantity - old_stock
+
+        # Create stock movement record with batch reference
+        movement = StockMovement(
+            product_id=batch.product_id,
+            batch_id=batch_id,
+            movement_type=movement_type,
+            quantity=abs(quantity_change),
+            stock_before=old_stock,
+            stock_after=new_quantity,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            reason=f"{reason} (Batch: {batch.batch_name})",
+            created_by=user_id
+        )
+
+        # Update batch stock
+        batch.qty_available = new_quantity
+        batch.updated_at = datetime.utcnow()
+
+        # Update product total stock
+        product = batch.product
+        product.current_stock = sum(float(b.qty_available or 0) for b in product.batches)
+        product.update_available_stock()
+        product.updated_at = datetime.utcnow()
+
+        db.session.add(movement)
+        db.session.commit()
+
+        return batch
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def get_expiring_batches(days_ahead=30):
+    """Get batches expiring within specified days"""
+    expiry_cutoff = date.today() + timedelta(days=days_ahead)
+
+    return InventoryBatch.query.filter(
+        InventoryBatch.expiry_date <= expiry_cutoff,
+        InventoryBatch.expiry_date >= date.today(),
+        InventoryBatch.status == 'active',
+        InventoryBatch.qty_available > 0
+    ).order_by(InventoryBatch.expiry_date).all()
+
+def get_expired_batches():
+    """Get expired batches"""
+    return InventoryBatch.query.filter(
+        InventoryBatch.expiry_date < date.today(),
+        InventoryBatch.qty_available > 0
+    ).order_by(InventoryBatch.expiry_date).all()
+
+def get_dead_batches(months_inactive=6):
+    """Get batches with no transactions for X months"""
+    cutoff_date = date.today() - timedelta(days=months_inactive * 30)
+
+    # Subquery for batches with recent movements
+    recent_movements = db.session.query(StockMovement.batch_id).filter(
+        StockMovement.created_at >= cutoff_date,
+        StockMovement.batch_id.isnot(None)
+    ).subquery()
+
+    return InventoryBatch.query.filter(
+        ~InventoryBatch.id.in_(recent_movements),
+        InventoryBatch.qty_available > 0,
+        InventoryBatch.created_at <= cutoff_date
+    ).all()
+
+# ============ ENHANCED PRODUCT ENDPOINTS ============
