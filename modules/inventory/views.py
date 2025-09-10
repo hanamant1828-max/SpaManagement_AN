@@ -2284,14 +2284,8 @@ def api_get_locations():
     try:
         from .models import InventoryLocation
         
-        # Try to get from database first
+        # Get from database - no automatic fallback to default data
         locations = InventoryLocation.query.filter_by(status='active').all()
-        
-        # If no locations in database, create defaults
-        if not locations:
-            from .queries import initialize_default_locations
-            initialize_default_locations()
-            locations = InventoryLocation.query.filter_by(status='active').all()
         
         location_list = []
         for location in locations:
