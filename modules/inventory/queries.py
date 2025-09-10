@@ -284,6 +284,10 @@ def get_available_batches_for_transactions():
         )
     ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
 
+def get_available_batches_for_consumption():
+    """Get batches available for consumption - alias for transactions"""
+    return get_available_batches_for_transactions()
+
 def get_expiring_batches(days=30):
     """Get batches expiring within specified days"""
     from datetime import date, timedelta
