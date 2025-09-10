@@ -1,0 +1,99 @@
+Implement Batch Management in the Inventory system using batchName (not batchNo) as the primary user-facing identifier. Integrate batch handling into Products, Adjustments, Consumption, Transfers, and Reports with full database CRUD.”
+
+Requirements
+1. Database
+
+Create a batches table with:
+
+id (PK)
+
+productId (FK → products)
+
+locationId (FK → locations)
+
+batchName (VARCHAR, required, unique per product)
+
+mfgDate
+
+expiryDate
+
+qtyAvailable
+
+unitCost
+
+sellingPrice (optional)
+
+status (Active, Expired, Blocked)
+
+createdAt, updatedAt
+
+Drop “batchNo” in favor of batchName.
+
+2. Batch Management UI (New Tab: “Batches”)
+
+Add a Batch Management tab.
+
+Allow users to Add, Edit, View, Delete batches.
+
+Batch creation must require a Batch Name.
+
+Show validation error if batchName is empty or duplicate within the same product.
+
+3. Integration with Other Modules
+
+Product Master
+
+Show “Total Stock” = sum of all batches.
+
+Add “View Batches” button per product → modal lists all batches with name, mfg, expiry, qty.
+
+Adjustments (Add Inventory Items)
+
+Must select or create a batch with batchName.
+
+Stock updates are always batch-specific.
+
+Consumption
+
+Dropdown must list:
+Product Name (Batch Name, Exp: DD-MM-YYYY)
+
+Deduct qty from the selected batch.
+
+Default rule: FEFO (earliest expiry first).
+
+Transfers
+
+When transferring, user must select batch.
+
+Reduce qty from source batch, add or update batch in destination location.
+
+Movements / Audit Logs
+
+Always store and display batchName in logs.
+
+4. Reports
+
+Batch-wise Stock Report → show Product + Batch Name + Location + Qty + Expiry.
+
+Expiring Batches Report → list batches nearing expiry.
+
+Expired Batches Report → list expired batches.
+
+Dead Batch Report → batches with no transactions for X months.
+
+Acceptance Criteria
+
+Batch CRUD works with batchName as required.
+
+All inventory transactions (Add, Consume, Transfer) are tied to a batchId and display batchName.
+
+Dropdowns and reports show Product Name (Batch Name, Expiry).
+
+Validation prevents duplicate batchNames for the same product.
+
+FEFO logic applied in consumption.
+
+No JSON or localStorage usage, DB-only integration.
+
+No console errors.
