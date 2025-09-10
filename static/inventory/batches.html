@@ -461,12 +461,22 @@ function ensureDropdownsPopulated() {
 // Edit batch
 function editBatch(batchId) {
     const batch = allBatches.find(b => b.id === batchId);
-    if (!batch) return;
+    if (!batch) {
+        console.error('Batch not found with ID:', batchId);
+        return;
+    }
 
     console.log('🔧 Editing batch:', batch);
 
     // Ensure both dropdowns are populated before proceeding
     ensureDropdownsPopulated().then(() => {
+        // Add a small delay to ensure all DOM updates are complete
+        setTimeout(() => {
+            populateEditBatchData(batch);
+        }, 50);
+    }).catch(error => {
+        console.error('Error loading dropdown data:', error);
+        // Still try to populate with existing data
         populateEditBatchData(batch);
     });
 }
@@ -491,22 +501,24 @@ function populateEditBatchData(batch) {
     populateProductDropdowns();
     populateLocationDropdowns();
     
-    // Set dropdown values immediately after population (synchronous)
-    const productDropdown = document.getElementById('batchProduct');
-    const locationDropdown = document.getElementById('batchLocation');
-    
-    console.log('🔧 Available products in dropdown:', productDropdown ? productDropdown.options.length : 'dropdown not found');
-    console.log('🔧 Available locations in dropdown:', locationDropdown ? locationDropdown.options.length : 'dropdown not found');
-    
-    if (productDropdown) {
-        productDropdown.value = String(batch.product_id || '');
-        console.log('🔧 Set product dropdown to:', batch.product_id, '(Selected:', productDropdown.value, ')');
-    }
-    
-    if (locationDropdown) {
-        locationDropdown.value = String(batch.location_id || '');
-        console.log('🔧 Set location dropdown to:', batch.location_id, '(Selected:', locationDropdown.value, ')');
-    }
+    // Use setTimeout to ensure dropdowns are fully populated before setting values
+    setTimeout(() => {
+        const productDropdown = document.getElementById('batchProduct');
+        const locationDropdown = document.getElementById('batchLocation');
+        
+        console.log('🔧 Available products in dropdown:', productDropdown ? productDropdown.options.length : 'dropdown not found');
+        console.log('🔧 Available locations in dropdown:', locationDropdown ? locationDropdown.options.length : 'dropdown not found');
+        
+        if (productDropdown && batch.product_id) {
+            productDropdown.value = String(batch.product_id);
+            console.log('🔧 Set product dropdown to:', batch.product_id, '(Selected:', productDropdown.value, ')');
+        }
+        
+        if (locationDropdown && batch.location_id) {
+            locationDropdown.value = String(batch.location_id);
+            console.log('🔧 Set location dropdown to:', batch.location_id, '(Selected:', locationDropdown.value, ')');
+        }
+    }, 100); // Small delay to ensure DOM is updated
 
     const modal = new bootstrap.Modal(document.getElementById('batchModal'));
     modal.show();
