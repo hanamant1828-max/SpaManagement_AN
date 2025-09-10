@@ -1,0 +1,81 @@
+Prompt — Make Entire Inventory Management Database-Driven
+
+“Refactor the Inventory Management system to remove all usage of JSON objects and localStorage. All data (Categories, Locations, Products, Adjustments, Consumption, Transfers, etc.) must be managed directly in the database via proper CRUD APIs.”
+
+1. Database First
+
+Create/update DB tables:
+
+categories: id, name, description, color, status, createdAt, updatedAt
+
+locations: id, name, type, description, status, createdAt, updatedAt
+
+products: id, sku, name, description, categoryId, locationId, uom, stock, reorderLevel, costPrice, sellingPrice, status, createdAt, updatedAt
+
+adjustments: id, date, referenceId, remarks, items (FK productId + qtyIn + unitCost), createdAt, updatedAt
+
+consumptions: id, date, productId, qtyUsed, issuedTo, referenceId, notes, createdAt, updatedAt
+
+transfers: id, date, fromLocationId, toLocationId, items (FK productId + qty/serials/batches), status, createdAt, updatedAt
+
+movements (audit log): id, productId, type, qty, locationId, referenceId, date
+
+2. API Endpoints
+
+Implement REST endpoints for each entity:
+
+Categories → GET /api/categories, POST /api/categories, PUT /api/categories/:id, DELETE /api/categories/:id
+
+Locations → same CRUD
+
+Products → same CRUD
+
+Adjustments → same CRUD, plus logic to update product stock
+
+Consumptions → same CRUD, plus logic to reduce stock
+
+Transfers → same CRUD, plus logic to reconcile stock between locations
+
+Movements → GET /api/movements for reporting/audit
+
+3. Frontend Refactor
+
+Remove all localStorage.getItem, localStorage.setItem, and JSON mocks.
+
+Each tab (Categories, Locations, Product Master, Adjustments, Consumption, Transfers) must:
+
+Load its data via GET /api/...
+
+Save via POST
+
+Update via PUT
+
+Delete via DELETE
+
+Dropdowns (Category, Location) must always fetch fresh values from DB before modal opens.
+
+All CRUD actions update the UI immediately after API success.
+
+4. Validation & UX
+
+Block saving if required fields missing.
+
+Block delete if record is referenced by another entity (e.g., cannot delete a category that has products).
+
+Show friendly Bootstrap toasts for success/error.
+
+Ensure tables refresh automatically after each API call.
+
+5. Acceptance Criteria
+
+No JSON mock data, no localStorage usage anywhere.
+
+All data lives in the database and is fetched via APIs.
+
+CRUD (Add, Edit, Delete, View) works for Categories, Locations, Products, Adjustments, Consumption, Transfers.
+
+Product Master dropdowns for Category & Location always show DB data.
+
+Dashboard KPIs & stock levels update live from DB values.
+
+No console errors.
