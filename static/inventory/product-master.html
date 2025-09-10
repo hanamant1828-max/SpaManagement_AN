@@ -233,10 +233,8 @@
                 displayProducts(products);
             })
             .catch(error => {
-                console.log('API failed, using localStorage:', error);
-                // Fallback to localStorage
-                const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-                displayProducts(products);
+                console.error('Failed to load products from API:', error);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load products from database</td></tr>';
             });
     }
 
@@ -452,14 +450,8 @@
                 populateEditForm(product);
             })
             .catch(error => {
-                console.log('API failed, using localStorage for edit:', error);
-                const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-                const product = products.find(p => p.id === productId);
-                if (product) {
-                    populateEditForm(product);
-                } else {
-                    alert('Product not found!');
-                }
+                console.error('Failed to load product from API:', error);
+                alert('Failed to load product data from database');
             });
 
         function populateEditForm(product) {
@@ -575,33 +567,8 @@
                 }
             })
             .catch(error => {
-                console.log('API failed, saving to localStorage:', error);
-                showToast(`API Error: ${error.message}`, 'danger');
-
-                // Fallback to localStorage
-                const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-
-                if (isEdit) {
-                    const index = products.findIndex(p => p.id === editingProductId);
-                    if (index !== -1) {
-                        products[index] = { ...products[index], ...productData };
-                    }
-                } else {
-                    // Check for duplicate SKU
-                    if (products.some(p => p.sku === productData.sku)) {
-                        showToast('SKU already exists. Please use a different SKU.', 'danger');
-                        return;
-                    }
-                    products.push(productData);
-                }
-
-                localStorage.setItem('inventory.products', JSON.stringify(products));
-
-                if (productModal) {
-                    productModal.hide();
-                }
-                loadProducts();
-                showToast('Product saved successfully (local fallback)!', 'info');
+                console.error('Failed to save product via API:', error);
+                showToast(`Database Error: ${error.message}`, 'danger');
             })
             .finally(() => {
                 // Reset button state
@@ -632,15 +599,8 @@
                     loadProducts();
                 })
                 .catch(error => {
-                    console.log('API failed, deleting from localStorage:', error);
-                    showToast(`API Error: ${error.message}`, 'danger');
-
-                    // Fallback to localStorage
-                    const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-                    const filteredProducts = products.filter(p => p.id !== productId);
-                    localStorage.setItem('inventory.products', JSON.stringify(filteredProducts));
-                    loadProducts();
-                    showToast('Product deleted successfully (local fallback)!', 'info');
+                    console.error('Failed to delete product via API:', error);
+                    showToast(`Database Error: ${error.message}`, 'danger');
                 });
         }
     }

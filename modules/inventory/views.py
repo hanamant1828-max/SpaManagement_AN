@@ -1998,11 +1998,37 @@ def api_add_product():
         if not category_id:
             return jsonify({'error': 'Category is required'}), 400
         
-        # TODO: Add actual product creation logic here
-        # For now, return a placeholder response
+        # Create new product
+        from .models import InventoryProduct
+        
+        # Check if SKU already exists
+        existing_product = InventoryProduct.query.filter_by(sku=sku).first()
+        if existing_product:
+            return jsonify({'error': 'Product with this SKU already exists'}), 400
+        
+        # Create the product
+        product = InventoryProduct(
+            sku=sku,
+            name=name,
+            description=data.get('description', ''),
+            category_id=int(category_id) if category_id else None,
+            unit_of_measure=data.get('unit', 'pcs'),
+            current_stock=float(data.get('stock', 0)),
+            min_stock_level=float(data.get('minStock', 10)),
+            reorder_point=float(data.get('reorderLevel', 0)),
+            cost_price=float(data.get('costPrice', 0)),
+            location=data.get('location', ''),
+            barcode=data.get('barcode', ''),
+            is_active=True
+        )
+        
+        db.session.add(product)
+        db.session.commit()
+        
         return jsonify({
-            'success': False,
-            'message': 'Product creation functionality is not yet implemented'
+            'success': True,
+            'message': f'Product "{name}" created successfully!',
+            'product_id': product.id
         })
         
     except Exception as e:
