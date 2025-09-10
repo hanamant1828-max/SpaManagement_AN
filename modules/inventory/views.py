@@ -108,6 +108,21 @@ def api_get_product(product_id):
         if not product:
             return jsonify({'error': 'Product not found'}), 404
             
+        # Find primary location from active batches (most common location)
+        primary_location_id = None
+        primary_location_name = None
+        if product.batches:
+            from collections import Counter
+            active_batches = [b for b in product.batches if b.status == 'active' and b.location_id]
+            if active_batches:
+                location_counts = Counter(b.location_id for b in active_batches)
+                most_common_location_id = location_counts.most_common(1)[0][0]
+                # Get location name
+                primary_location_batch = next((b for b in active_batches if b.location_id == most_common_location_id), None)
+                if primary_location_batch and primary_location_batch.location:
+                    primary_location_id = primary_location_batch.location_id
+                    primary_location_name = primary_location_batch.location.name
+        
         return jsonify({
             'id': product.id,
             'name': product.name,
@@ -122,6 +137,8 @@ def api_get_product(product_id):
             'is_active': product.is_active,
             'is_service_item': product.is_service_item,
             'is_retail_item': product.is_retail_item,
+            'location_id': primary_location_id,
+            'location_name': primary_location_name,
             'created_at': product.created_at.isoformat() if product.created_at else None,
             'updated_at': product.updated_at.isoformat() if product.updated_at else None
         })
