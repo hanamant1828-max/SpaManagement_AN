@@ -149,6 +149,70 @@
     </div>
 </div>
 
+<!-- Add Batch Modal -->
+<div class="modal fade" id="addBatchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Batch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addBatchForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Product</label>
+                            <select class="form-select" id="batchProduct" name="product_id">
+                                <option value="">Select Product (Optional)</option>
+                            </select>
+                            <div class="form-text">Product can be assigned later during adjustments</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Location</label>
+                            <select class="form-select" id="batchLocation" name="location_id">
+                                <option value="">Select Location (Optional)</option>
+                            </select>
+                            <div class="form-text">Location can be assigned later during adjustments</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Batch Name *</label>
+                            <input type="text" class="form-control" id="batchName" name="batch_name" required 
+                                   placeholder="Enter unique batch identifier">
+                            <div class="form-text">Must be globally unique</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Created Date</label>
+                            <input type="date" class="form-control" id="batchCreatedDate" name="created_date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Manufacturing Date *</label>
+                            <input type="date" class="form-control" id="batchMfgDate" name="mfg_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Expiry Date *</label>
+                            <input type="date" class="form-control" id="batchExpiryDate" name="expiry_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Unit Cost</label>
+                            <input type="number" class="form-control" id="batchUnitCost" name="unit_cost" 
+                                   step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Selling Price</label>
+                            <input type="number" class="form-control" id="batchSellingPrice" name="selling_price" 
+                                   step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveBatch()">Save Batch</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let allBatches = [];
 let allProducts = [];
@@ -534,10 +598,15 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-GB');
 }
 
-// Initialize when content loads
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('batchesTableBody')) {
+// Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔧 Batch Management DOM loaded');
         initializeBatchManagement();
+    });
+
+    // Filter batches function (placeholder)
+    function filterBatches() {
+        console.log('Filtering batches...');
+        // Implementation for filtering will be added
     }
-});
 </script>
