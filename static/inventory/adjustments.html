@@ -175,6 +175,98 @@
     </div>
 </div>
 
+<!-- View Adjustment Modal -->
+<div class="modal fade" id="viewAdjustmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">View Adjustment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Reference ID</strong></label>
+                        <p id="viewReferenceId" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Adjustment Date</strong></label>
+                        <p id="viewAdjustmentDate" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Product</strong></label>
+                        <p id="viewProduct" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Quantity</strong></label>
+                        <p id="viewQuantity" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Type</strong></label>
+                        <p id="viewType" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Created By</strong></label>
+                        <p id="viewCreatedBy" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Remarks</strong></label>
+                        <p id="viewRemarks" class="form-control-plaintext border rounded p-2 bg-light" style="min-height: 80px;"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Adjustment Modal -->
+<div class="modal fade" id="editAdjustmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Adjustment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editAdjustmentForm">
+                    <input type="hidden" id="editAdjustmentId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Reference ID</label>
+                            <input type="text" class="form-control" id="editReferenceId" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Adjustment Date *</label>
+                            <input type="date" class="form-control" id="editAdjustmentDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Product *</label>
+                            <select class="form-select" id="editAdjustmentProduct" required>
+                                <option value="">Select product</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quantity *</label>
+                            <input type="number" class="form-control" id="editAdjustmentQuantity" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Remarks</label>
+                            <textarea class="form-control" id="editAdjustmentRemarks" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditedAdjustment()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     // Isolated scope for adjustments tab
@@ -248,9 +340,17 @@
                     <td>${adjustment.remarks || '-'}</td>
                     <td>${adjustment.created_by || 'System'}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAdjustment('${adjustment.id}')" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-info btn-sm" onclick="viewAdjustment('${adjustment.id}')" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="editAdjustment('${adjustment.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteAdjustment('${adjustment.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -310,6 +410,130 @@
             currentPage = page;
             loadAdjustments();
         }
+    }
+
+    // View adjustment function
+    window.viewAdjustment = function(adjustmentId) {
+        fetch(`/api/inventory/adjustments/${adjustmentId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading adjustment details: ' + data.error);
+                    return;
+                }
+
+                // Populate view modal with data
+                document.getElementById('viewReferenceId').textContent = data.reference_id || '-';
+                document.getElementById('viewAdjustmentDate').textContent = data.adjustment_date || '-';
+                document.getElementById('viewProduct').textContent = data.product || 'Unknown Product';
+                document.getElementById('viewQuantity').textContent = (data.quantity || 0) + ' pcs';
+                document.getElementById('viewType').innerHTML = `<span class="badge bg-${data.type === 'add' ? 'success' : data.type === 'remove' ? 'danger' : 'info'}">${(data.type || 'ADD').toUpperCase()}</span>`;
+                document.getElementById('viewCreatedBy').textContent = data.created_by || 'System';
+                document.getElementById('viewRemarks').textContent = data.remarks || 'No remarks';
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('viewAdjustmentModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading adjustment details:', error);
+                alert('Error loading adjustment details. Please try again.');
+            });
+    }
+
+    // Edit adjustment function
+    window.editAdjustment = function(adjustmentId) {
+        // Load products for dropdown
+        loadProducts();
+        
+        fetch(`/api/inventory/adjustments/${adjustmentId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading adjustment details: ' + data.error);
+                    return;
+                }
+
+                // Populate edit modal with data
+                document.getElementById('editAdjustmentId').value = adjustmentId;
+                document.getElementById('editReferenceId').value = data.reference_id || '';
+                document.getElementById('editAdjustmentDate').value = data.adjustment_date || '';
+                document.getElementById('editAdjustmentQuantity').value = data.quantity || 0;
+                document.getElementById('editAdjustmentRemarks').value = data.remarks || '';
+
+                // Set product selection (will be set after products load)
+                setTimeout(() => {
+                    const productSelect = document.getElementById('editAdjustmentProduct');
+                    if (productSelect && data.product_id) {
+                        productSelect.value = data.product_id;
+                    }
+                }, 500);
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editAdjustmentModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading adjustment details:', error);
+                alert('Error loading adjustment details. Please try again.');
+            });
+    }
+
+    // Save edited adjustment function
+    window.saveEditedAdjustment = function() {
+        const adjustmentId = document.getElementById('editAdjustmentId').value;
+        const formData = {
+            adjustment_date: document.getElementById('editAdjustmentDate').value,
+            reference_id: document.getElementById('editReferenceId').value,
+            quantity: parseFloat(document.getElementById('editAdjustmentQuantity').value),
+            remarks: document.getElementById('editAdjustmentRemarks').value,
+            items: [{
+                product_id: document.getElementById('editAdjustmentProduct').value,
+                quantity_added: parseFloat(document.getElementById('editAdjustmentQuantity').value),
+                unit_cost: 0
+            }]
+        };
+
+        // Validate required fields
+        if (!formData.adjustment_date) {
+            alert('Please select an adjustment date.');
+            return;
+        }
+
+        if (!formData.items[0].product_id) {
+            alert('Please select a product.');
+            return;
+        }
+
+        if (!formData.quantity || formData.quantity <= 0) {
+            alert('Please enter a valid quantity.');
+            return;
+        }
+
+        fetch(`/api/inventory/adjustments/${adjustmentId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Adjustment updated successfully!');
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editAdjustmentModal'));
+                modal.hide();
+                // Reload adjustments
+                loadAdjustments();
+            } else {
+                alert('Error updating adjustment: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error saving adjustment:', error);
+            alert('Error saving adjustment. Please try again.');
+        });
     }
 
     function loadProducts() {
