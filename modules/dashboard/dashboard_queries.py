@@ -46,22 +46,21 @@ def get_recent_appointments(limit=10):
     ).order_by(Appointment.appointment_date.desc()).limit(limit).all()
 
 def get_low_stock_items(limit=5):
-    """Get low stock items"""
+    """Get low stock items - BATCH-CENTRIC"""
     try:
-        return InventoryProduct.query.filter(
-            InventoryProduct.current_stock <= InventoryProduct.min_stock_level,
-            InventoryProduct.is_active == True
-        ).limit(limit).all()
+        from modules.inventory.queries import get_low_stock_products
+        products = get_low_stock_products()
+        return products[:limit]  # Return only the first 'limit' items
     except Exception as e:
         print(f"Error getting low stock items: {e}")
         return []
 
 def get_expiring_items(limit=5):
-    """Get items expiring soon"""
+    """Get items expiring soon - BATCH-CENTRIC"""
     try:
-        # Since the current model doesn't have expiry tracking, return empty list for now
-        # This can be implemented later when expiry date fields are added to the model
-        return []
+        from modules.inventory.queries import get_expiring_batches
+        batches = get_expiring_batches(days=30)
+        return batches[:limit]  # Return only the first 'limit' items
     except Exception as e:
         print(f"Error getting expiring items: {e}")
         return []
