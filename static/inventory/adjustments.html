@@ -183,9 +183,24 @@
     let adjustmentItemCounter = 0;
 
     function loadAdjustments() {
-        const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        // Load from API instead of localStorage
+        fetch('/api/inventory/adjustments')
+            .then(response => response.json())
+            .then(data => {
+                const adjustments = data.records || [];
+                displayAdjustments(adjustments);
+            })
+            .catch(error => {
+                console.error('Error loading adjustments:', error);
+                // Fallback to empty array
+                displayAdjustments([]);
+            });
+    }
 
+    function displayAdjustments(adjustments) {
+        // Clear any localStorage cache
+        localStorage.removeItem('inventory.adjustments');
+        
         // Apply filters
         const fromDate = document.getElementById('adjustments-from-date').value;
         const toDate = document.getElementById('adjustments-to-date').value;
@@ -193,19 +208,19 @@
         pageSize = parseInt(document.getElementById('adjustments-page-size').value);
 
         let filteredAdjustments = adjustments.filter(adjustment => {
-            const adjustmentDate = new Date(adjustment.date);
+            const adjustmentDate = new Date(adjustment.adjustment_date);
             const matchesDateRange = (!fromDate || adjustmentDate >= new Date(fromDate)) &&
                                    (!toDate || adjustmentDate <= new Date(toDate));
             const matchesSearch = !searchTerm ||
-                                adjustment.referenceId.toLowerCase().includes(searchTerm) ||
+                                adjustment.reference_id.toLowerCase().includes(searchTerm) ||
                                 (adjustment.remarks && adjustment.remarks.toLowerCase().includes(searchTerm)) ||
-                                (adjustment.createdBy && adjustment.createdBy.toLowerCase().includes(searchTerm));
+                                (adjustment.created_by && adjustment.created_by.toLowerCase().includes(searchTerm));
 
             return matchesDateRange && matchesSearch;
         });
 
         // Sort by date (newest first)
-        filteredAdjustments.sort((a, b) => new Date(b.date) - new Date(a.date));
+        filteredAdjustments.sort((a, b) => new Date(b.adjustment_date) - new Date(a.adjustment_date));
 
         // Pagination
         const totalItems = filteredAdjustments.length;
@@ -219,20 +234,19 @@
         tbody.innerHTML = '';
 
         paginatedAdjustments.forEach(adjustment => {
-            const product = products.find(p => p.id === adjustment.productId);
             tbody.innerHTML += `
                 <tr>
-                    <td>${adjustment.referenceId}</td>
-                    <td>${new Date(adjustment.date).toLocaleDateString()}</td>
-                    <td>${product ? product.name : 'Unknown Product'}</td>
-                    <td>${adjustment.quantity} ${product ? product.unit || 'pcs' : 'pcs'}</td>
+                    <td>${adjustment.reference_id || '-'}</td>
+                    <td>${adjustment.adjustment_date}</td>
+                    <td>${adjustment.product || 'Unknown Product'}</td>
+                    <td>${adjustment.quantity} pcs</td>
                     <td>
                         <span class="badge bg-${adjustment.type === 'add' ? 'success' : adjustment.type === 'remove' ? 'danger' : 'info'}">
                             ${adjustment.type.toUpperCase()}
                         </span>
                     </td>
                     <td>${adjustment.remarks || '-'}</td>
-                    <td>${adjustment.createdBy || 'System'}</td>
+                    <td>${adjustment.created_by || 'System'}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" onclick="deleteAdjustment('${adjustment.id}')" title="Delete">
                             <i class="fas fa-trash"></i>
