@@ -444,42 +444,78 @@ function saveBatch(event) {
     const batchId = document.getElementById('batchId').value;
     const isEdit = !!batchId;
 
-    const batchData = {
-        product_id: parseInt(document.getElementById('batchProduct').value) || null,
-        location_id: document.getElementById('batchLocation').value || null,
-        batch_name: document.getElementById('batchName').value.trim(),
-        created_date: document.getElementById('batchCreatedDate').value || null,
-        mfg_date: document.getElementById('batchMfgDate').value || null,
-        expiry_date: document.getElementById('batchExpiryDate').value || null,
-        unit_cost: parseFloat(document.getElementById('batchUnitCost').value) || 0,
-        selling_price: parseFloat(document.getElementById('batchSellingPrice').value) || null,
-        status: 'active'
-    };
+    // Get form values with proper validation
+    const batchName = document.getElementById('batchName').value.trim();
+    const productSelect = document.getElementById('batchProduct');
+    const locationSelect = document.getElementById('batchLocation');
+    const createdDate = document.getElementById('batchCreatedDate').value;
+    const mfgDate = document.getElementById('batchMfgDate').value;
+    const expiryDate = document.getElementById('batchExpiryDate').value;
+    const unitCost = document.getElementById('batchUnitCost').value;
+    const sellingPrice = document.getElementById('batchSellingPrice').value;
 
-    // Validation
-    if (!batchData.batch_name) {
+    // Validate required fields
+    if (!batchName) {
         showToast('Please enter a batch name', 'danger');
+        document.getElementById('batchName').focus();
         return;
     }
 
-    if (!batchData.mfg_date) {
+    if (!mfgDate) {
         showToast('Please enter manufacturing date', 'danger');
+        document.getElementById('batchMfgDate').focus();
         return;
     }
 
-    if (!batchData.expiry_date) {
+    if (!expiryDate) {
         showToast('Please enter expiry date', 'danger');
+        document.getElementById('batchExpiryDate').focus();
         return;
     }
 
     // Date validation
-    if (batchData.mfg_date && batchData.expiry_date && batchData.expiry_date <= batchData.mfg_date) {
+    if (expiryDate <= mfgDate) {
         showToast('Expiry date must be later than manufacturing date', 'danger');
+        document.getElementById('batchExpiryDate').focus();
         return;
     }
 
+    // Prepare batch data
+    const batchData = {
+        batch_name: batchName,
+        mfg_date: mfgDate,
+        expiry_date: expiryDate,
+        unit_cost: parseFloat(unitCost) || 0,
+        status: 'active'
+    };
+
+    // Add optional fields only if they have values
+    if (productSelect.value && productSelect.value !== '') {
+        batchData.product_id = parseInt(productSelect.value);
+    }
+
+    if (locationSelect.value && locationSelect.value !== '') {
+        batchData.location_id = locationSelect.value;
+    }
+
+    if (createdDate && createdDate !== '') {
+        batchData.created_date = createdDate;
+    }
+
+    if (sellingPrice && sellingPrice !== '' && parseFloat(sellingPrice) > 0) {
+        batchData.selling_price = parseFloat(sellingPrice);
+    }
+
+    console.log('📤 Sending batch data:', batchData);
+
     const url = isEdit ? `/api/inventory/batches/${batchId}` : '/api/inventory/batches';
     const method = isEdit ? 'PUT' : 'POST';
+
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
 
     fetch(url, {
         method: method,
@@ -488,8 +524,13 @@ function saveBatch(event) {
         },
         body: JSON.stringify(batchData)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('📥 Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('📥 Response data:', data);
+        
         if (data.success) {
             showToast(data.message || 'Batch saved successfully!', 'success');
             if (batchModal) {
@@ -501,8 +542,13 @@ function saveBatch(event) {
         }
     })
     .catch(error => {
-        console.error('Error saving batch:', error);
+        console.error('❌ Error saving batch:', error);
         showToast('Error saving batch. Please try again.', 'danger');
+    })
+    .finally(() => {
+        // Restore button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     });
 }
 

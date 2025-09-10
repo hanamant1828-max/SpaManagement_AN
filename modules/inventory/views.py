@@ -288,11 +288,15 @@ def api_get_batches():
         from .models import InventoryBatch
         from sqlalchemy.orm import joinedload
         
+        print("DEBUG: Loading batches from database...")
+        
         # Load batches with their related product and location data
         batches = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
         ).filter(InventoryBatch.status != 'deleted').all()
+        
+        print(f"DEBUG: Found {len(batches)} batches in database")
         
         batch_list = []
         for b in batches:
@@ -314,63 +318,114 @@ def api_get_batches():
                 'days_to_expiry': b.days_to_expiry
             }
             batch_list.append(batch_data)
+            print(f"DEBUG: Batch {b.id}: {b.batch_name}, Product: {b.product_id}, Location: {b.location_id}")
+        
+        print(f"DEBUG: Returning {len(batch_list)} batches to frontend")
         
         return jsonify({
             'batches': batch_list
         })
     except Exception as e:
-        print(f"Error in api_get_batches: {str(e)}")
+        print(f"ERROR in api_get_batches: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches', methods=['POST'])
 @login_required
 def api_create_batch():
-    """Create a new batch (simplified - no product/location selection)"""
+    """Create a new batch with proper data handling"""
     try:
         from .models import InventoryBatch
         from datetime import datetime
 
         data = request.get_json()
+        print(f"DEBUG: Received batch data: {data}")  # Debug logging
 
-        # Validate required fields (simplified)
+        # Validate required fields
         required_fields = ['batch_name', 'mfg_date', 'expiry_date']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
 
-        # Check if batch name is globally unique
-        existing_batch = InventoryBatch.query.filter_by(
-            batch_name=data['batch_name']
-        ).first()
+        # Validate batch name is not empty
+        batch_name = data['batch_name'].strip()
+        if not batch_name:
+            return jsonify({'error': 'Batch name cannot be empty'}), 400
 
+        # Check if batch name is globally unique
+        existing_batch = InventoryBatch.query.filter_by(batch_name=batch_name).first()
         if existing_batch:
             return jsonify({'error': 'Batch name must be unique'}), 400
 
-        # Parse dates
-        mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
-        expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+        # Parse and validate dates
+        try:
+            mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
+            expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+        except ValueError as e:
+            return jsonify({'error': f'Invalid date format: {str(e)}'}), 400
 
-        # Validate dates
+        # Validate date logic
         if expiry_date <= mfg_date:
             return jsonify({'error': 'Expiry date must be later than manufacturing date'}), 400
 
-        # Create batch (no product/location required)
+        # Parse created_date if provided
+        created_date = None
+        if data.get('created_date'):
+            try:
+                created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid created date format'}), 400
+
+        # Parse product_id and location_id
+        product_id = None
+        if data.get('product_id') and str(data.get('product_id')).strip():
+            try:
+                product_id = int(data['product_id'])
+                # Verify product exists
+                from .models import InventoryProduct
+                if not InventoryProduct.query.get(product_id):
+                    return jsonify({'error': 'Selected product does not exist'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid product ID'}), 400
+
+        location_id = None
+        if data.get('location_id') and str(data.get('location_id')).strip():
+            location_id = str(data['location_id']).strip()
+            # Verify location exists
+            from .models import InventoryLocation
+            if not InventoryLocation.query.get(location_id):
+                return jsonify({'error': 'Selected location does not exist'}), 400
+
+        # Parse pricing
+        try:
+            unit_cost = float(data.get('unit_cost', 0))
+            selling_price = None
+            if data.get('selling_price') and str(data.get('selling_price')).strip():
+                selling_price = float(data['selling_price'])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid pricing values'}), 400
+
+        # Create the batch
         batch = InventoryBatch(
-            batch_name=data['batch_name'],
+            batch_name=batch_name,
+            product_id=product_id,
+            location_id=location_id,
             mfg_date=mfg_date,
             expiry_date=expiry_date,
-            unit_cost=float(data.get('unit_cost', 0)),
-            selling_price=float(data.get('selling_price', 0)) if data.get('selling_price') else None,
+            created_date=created_date or datetime.utcnow().date(),
+            unit_cost=unit_cost,
+            selling_price=selling_price,
             qty_available=0,  # Start with 0, stock added via adjustments
             status='active'
         )
 
-        # Set created_date if provided
-        if data.get('created_date'):
-            batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
+        print(f"DEBUG: Creating batch: {batch.batch_name}, Product: {batch.product_id}, Location: {batch.location_id}")  # Debug logging
 
         db.session.add(batch)
         db.session.commit()
+
+        print(f"DEBUG: Batch created successfully with ID: {batch.id}")  # Debug logging
 
         return jsonify({
             'success': True,
@@ -380,6 +435,7 @@ def api_create_batch():
 
     except Exception as e:
         db.session.rollback()
+        print(f"DEBUG: Error creating batch: {str(e)}")  # Debug logging
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/adjustments', methods=['POST'])
