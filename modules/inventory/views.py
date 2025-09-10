@@ -26,7 +26,7 @@ def inventory_dashboard():
 @app.route('/api/inventory/products', methods=['GET'])
 @login_required
 def api_get_products():
-    """Get all products"""
+    """Get all products - BATCH-CENTRIC"""
     try:
         products = get_all_products()
         return jsonify([{
@@ -35,16 +35,14 @@ def api_get_products():
             'description': p.description,
             'category_id': p.category_id,
             'category_name': p.category.name if p.category else '',
-            'location_id': p.location_id,
-            'location_name': p.location.name if p.location else '',
             'sku': p.sku,
-            'unit': p.unit,
-            'cost_price': float(p.cost_price) if p.cost_price else 0,
-            'selling_price': float(p.selling_price) if p.selling_price else 0,
-            'current_stock': float(p.current_stock) if p.current_stock else 0,
-            'min_stock_level': float(p.min_stock_level) if p.min_stock_level else 0,
-            'max_stock_level': float(p.max_stock_level) if p.max_stock_level else 0,
-            'is_active': p.is_active
+            'unit_of_measure': p.unit_of_measure,
+            'barcode': p.barcode,
+            'total_stock': p.total_stock,  # Dynamic property from batches
+            'batch_count': p.batch_count,  # Number of batches for this product
+            'is_active': p.is_active,
+            'is_service_item': p.is_service_item,
+            'is_retail_item': p.is_retail_item
         } for p in products])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -52,27 +50,22 @@ def api_get_products():
 @app.route('/api/inventory/products', methods=['POST'])
 @login_required
 def api_create_product():
-    """Create a new product"""
+    """Create a new product - BATCH-CENTRIC"""
     try:
         data = request.get_json()
-
-        product = InventoryProduct(
-            name=data.get('name'),
-            description=data.get('description', ''),
-            category_id=data.get('category_id'),
-            location_id=data.get('location_id'),
-            sku=data.get('sku', ''),
-            unit=data.get('unit', 'pcs'),
-            cost_price=data.get('cost_price', 0),
-            selling_price=data.get('selling_price', 0),
-            current_stock=0,  # Always start with 0 stock
-            min_stock_level=data.get('min_stock_level', 0),
-            max_stock_level=data.get('max_stock_level', 0),
-            is_active=True
-        )
-
-        db.session.add(product)
-        db.session.commit()
+        
+        # Use the batch-centric create function
+        product = create_product({
+            'name': data.get('name'),
+            'description': data.get('description', ''),
+            'category_id': data.get('category_id'),
+            'sku': data.get('sku', ''),
+            'unit_of_measure': data.get('unit_of_measure', 'pcs'),
+            'barcode': data.get('barcode', ''),
+            'is_active': True,
+            'is_service_item': data.get('is_service_item', False),
+            'is_retail_item': data.get('is_retail_item', True)
+        })
 
         return jsonify({
             'success': True,
@@ -80,7 +73,6 @@ def api_create_product():
             'product_id': product.id
         })
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories', methods=['GET'])
@@ -104,15 +96,12 @@ def api_create_category():
     """Create a new category"""
     try:
         data = request.get_json()
-
-        category = InventoryCategory(
-            name=data.get('name'),
-            description=data.get('description', ''),
-            is_active=True
-        )
-
-        db.session.add(category)
-        db.session.commit()
+        category = create_category({
+            'name': data.get('name'),
+            'description': data.get('description', ''),
+            'color_code': data.get('color_code', '#007bff'),
+            'is_active': True
+        })
 
         return jsonify({
             'success': True,
@@ -120,7 +109,6 @@ def api_create_category():
             'category_id': category.id
         })
     except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/locations', methods=['GET'])
@@ -310,56 +298,95 @@ def api_get_available_batches():
                 InventoryBatch.expiry_date >= date.today()
             )
         ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+        
+        return jsonify([{
+            'id': b.id,
+            'batch_name': b.batch_name,
+            'product_id': b.product_id,
+            'location_id': b.location_id,
+            'product_name': b.product.name if b.product else 'Not Assigned',
+            'location_name': b.location.name if b.location else 'Not Assigned',
+            'qty_available': float(b.qty_available or 0),
+            'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+            'is_expired': b.is_expired,
+            'days_to_expiry': b.days_to_expiry
+        } for b in batches])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-        return jsonify({
-            'batches': [{
-                'id': b.id,
-                'batch_name': b.batch_name,
-                'product_id': b.product_id,
-                'location_id': b.location_id,
-                'product_name': b.product.name if b.product else None,
-                'location_name': b.location.name if b.location else None,
-                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
-                'qty_available': float(b.qty_available or 0),
-                'days_to_expiry': b.days_to_expiry,
-                'unit_of_measure': b.product.unit_of_measure if b.product else 'pcs'
-            } for b in batches]
-        })
+# ============ BATCH-CENTRIC CONSUMPTION ENDPOINTS ============
+
+@app.route('/api/inventory/consumption', methods=['GET'])
+@login_required
+def api_get_consumption_records():
+    """Get consumption records"""
+    try:
+        consumption_records = get_consumption_records(limit=100)
+        return jsonify([{
+            'id': c.id,
+            'batch_id': c.batch_id,
+            'batch_name': c.batch.batch_name if c.batch else 'Unknown',
+            'product_name': c.batch.product.name if c.batch and c.batch.product else 'Unknown',
+            'quantity': float(c.quantity),
+            'issued_to': c.issued_to,
+            'reference': c.reference,
+            'notes': c.notes,
+            'created_at': c.created_at.isoformat() if c.created_at else None,
+            'created_by_name': c.creator.full_name if c.creator else 'Unknown'
+        } for c in consumption_records])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/consumption', methods=['POST'])
 @login_required
 def api_create_consumption():
-    """Create consumption record"""
+    """Create consumption record - BATCH-CENTRIC"""
     try:
         data = request.get_json()
-
-        batch = InventoryBatch.query.get(data.get('batch_id'))
-        if not batch:
-            return jsonify({'error': 'Batch not found'}), 404
-
-        quantity = data.get('quantity', 0)
-        if quantity > batch.qty_available:
-            return jsonify({'error': 'Insufficient stock available'}), 400
-
-        consumption = InventoryConsumption(
-            batch_id=data.get('batch_id'),
-            quantity=quantity,
+        
+        # Validate required fields
+        required_fields = ['batch_id', 'quantity', 'issued_to']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+        
+        # Create consumption using batch-centric function
+        consumption = create_consumption_record(
+            batch_id=data['batch_id'],
+            quantity=float(data['quantity']),
+            issued_to=data['issued_to'],
+            reference=data.get('reference', ''),
             notes=data.get('notes', ''),
-            created_by=current_user.id
+            user_id=current_user.id
         )
-
-        # Update batch quantity
-        batch.qty_available -= quantity
-
-        db.session.add(consumption)
-        db.session.commit()
-
+        
         return jsonify({
             'success': True,
-            'message': 'Consumption recorded successfully'
+            'message': 'Consumption record created successfully',
+            'consumption_id': consumption.id
         })
     except Exception as e:
-        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# ============ BATCH-CENTRIC ADJUSTMENT ENDPOINTS ============
+
+@app.route('/api/inventory/adjustments', methods=['GET'])
+@login_required  
+def api_get_adjustments():
+    """Get adjustment records"""
+    try:
+        adjustments = InventoryAdjustment.query.order_by(desc(InventoryAdjustment.created_at)).limit(100).all()
+        return jsonify([{
+            'id': a.id,
+            'batch_id': a.batch_id,
+            'batch_name': a.batch.batch_name if a.batch else 'Unknown',
+            'product_name': a.batch.product.name if a.batch and a.batch.product else 'Unknown',
+            'adjustment_type': a.adjustment_type,
+            'quantity': float(a.quantity),
+            'unit_cost': float(a.unit_cost) if a.unit_cost else None,
+            'notes': a.notes,
+            'created_at': a.created_at.isoformat() if a.created_at else None,
+            'created_by_name': a.creator.full_name if a.creator else 'Unknown'
+        } for a in adjustments])
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
