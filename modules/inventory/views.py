@@ -135,6 +135,26 @@ def api_create_category():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/categories/<int:category_id>', methods=['GET'])
+@login_required
+def api_get_category(category_id):
+    """Get a single category by ID"""
+    try:
+        category = InventoryCategory.query.get(category_id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'description': category.description,
+            'color_code': category.color_code,
+            'is_active': category.is_active,
+            'created_at': category.created_at.isoformat() if category.created_at else None
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/locations', methods=['GET'])
 @login_required
 def api_get_locations():
