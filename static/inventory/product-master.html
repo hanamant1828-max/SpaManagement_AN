@@ -190,6 +190,65 @@
     </div>
 </div>
 
+<!-- View Product Modal -->
+<div class="modal fade" id="viewProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>SKU</strong></label>
+                        <p id="viewProductSku" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Product Name</strong></label>
+                        <p id="viewProductName" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Category</strong></label>
+                        <p id="viewProductCategory" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Unit of Measure</strong></label>
+                        <p id="viewProductUnit" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label"><strong>Current Stock</strong></label>
+                        <p id="viewProductStock" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label"><strong>Min Stock Level</strong></label>
+                        <p id="viewProductMinStock" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label"><strong>Cost Price</strong></label>
+                        <p id="viewProductCost" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Location</strong></label>
+                        <p id="viewProductLocation" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Status</strong></label>
+                        <p id="viewProductStatus" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Description</strong></label>
+                        <p id="viewProductDescription" class="form-control-plaintext border rounded p-2 bg-light" style="min-height: 80px;"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     console.log('🚀 Product Master Script Loading - START');
@@ -282,10 +341,12 @@
                         <td>$${(product.cost_price || product.costPrice || 0).toFixed(2)}</td>
                         <td>
                             <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-info btn-sm" onclick="viewProduct('${product.id}')" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                                 <button class="btn btn-outline-primary btn-sm" onclick="editProduct('${product.id}')" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                
                                 <button class="btn btn-outline-danger btn-sm" onclick="deleteProduct('${product.id}')" title="Delete">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -432,6 +493,40 @@
                 locationSelect.value = locationId;
             }
         }
+    }
+
+    // View product function
+    window.viewProduct = function(productId) {
+        console.log('Viewing product:', productId);
+        
+        fetch(`/api/inventory/products/${productId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading product details: ' + data.error);
+                    return;
+                }
+
+                // Populate view modal with data
+                document.getElementById('viewProductSku').textContent = data.sku || '-';
+                document.getElementById('viewProductName').textContent = data.name || '-';
+                document.getElementById('viewProductCategory').textContent = data.category || 'No category';
+                document.getElementById('viewProductUnit').textContent = data.unit_of_measure || data.unit || 'pcs';
+                document.getElementById('viewProductStock').textContent = (calculateTotalStock(data) || 0) + ' ' + (data.unit_of_measure || data.unit || 'pcs');
+                document.getElementById('viewProductMinStock').textContent = (data.min_stock || data.minStock || 0) + ' ' + (data.unit_of_measure || data.unit || 'pcs');
+                document.getElementById('viewProductCost').textContent = '$' + (data.cost_price || data.costPrice || 0).toFixed(2);
+                document.getElementById('viewProductLocation').textContent = data.location || data.primaryLocation || 'No location specified';
+                document.getElementById('viewProductStatus').innerHTML = getStatusBadge(data.status || 'in_stock');
+                document.getElementById('viewProductDescription').textContent = data.description || 'No description available';
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading product details:', error);
+                alert('Error loading product details. Please try again.');
+            });
     }
 
     // Global functions for onclick handlers
