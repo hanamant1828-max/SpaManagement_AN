@@ -88,8 +88,8 @@ The system employs a modular design, separating concerns into distinct business 
 - ✅ Implemented batch-first workflow for adjustments, consumption, and stock management
 - ✅ Added validation for expired batches and insufficient stock at batch level
 - ✅ Created audit log system for tracking all batch-level stock changes
-- 🔄 Frontend UI updates needed to implement batch-first workflow with proper dropdowns
-- 🔄 Need to fix remaining dashboard references to old stock fields
+- ✅ Fixed batch dropdown population for Add Batch functionality with dynamic tab loading
+- ✅ Fixed Edit Batch modal data pre-population with proper async handling and dropdown value setting
 - 🔄 Transfer APIs need to be implemented for batch-to-batch transfers
 
 ## Project Status
