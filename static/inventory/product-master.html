@@ -487,8 +487,19 @@
             if (categoryId) {
                 const categorySelect = document.getElementById('productCategory');
                 if (categorySelect) {
+                    // Try both categoryId and category_id formats
                     categorySelect.value = categoryId;
                     console.log('Category set to:', categoryId);
+                    
+                    // If the value didn't set, try to find by text content
+                    if (categorySelect.value !== categoryId) {
+                        for (let option of categorySelect.options) {
+                            if (option.value == categoryId) {
+                                option.selected = true;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -496,11 +507,22 @@
             if (locationId) {
                 const locationSelect = document.getElementById('productLocation');
                 if (locationSelect) {
+                    // Try both locationId and location_id formats
                     locationSelect.value = locationId;
                     console.log('Location set to:', locationId);
+                    
+                    // If the value didn't set, try to find by text content
+                    if (locationSelect.value !== locationId) {
+                        for (let option of locationSelect.options) {
+                            if (option.value == locationId) {
+                                option.selected = true;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
-        }, 100);
+        }, 200);
     }
 
     // View product function
@@ -559,15 +581,19 @@
             // Set modal title and populate form
             document.getElementById('productModalTitle').textContent = 'Edit Product';
             document.getElementById('productId').value = product.id;
-            document.getElementById('productSku').value = product.sku;
-            document.getElementById('productName').value = product.name;
+            document.getElementById('productSku').value = product.sku || '';
+            document.getElementById('productName').value = product.name || '';
 
             // Populate form fields - use API field names with underscores
-            document.getElementById('productUnit').value = product.unit_of_measure || 'pcs';
+            document.getElementById('productUnit').value = product.unit_of_measure || product.unit || 'pcs';
             document.getElementById('productTrackBatches').checked = product.track_batches || false;
             document.getElementById('productTrackSerials').checked = product.track_serials || false;
             document.getElementById('productDescription').value = product.description || '';
             document.getElementById('productBarcode').value = product.barcode || '';
+
+            console.log('Edit product data:', product);
+            console.log('Category ID:', product.category_id);
+            console.log('Location ID:', product.location_id);
 
             if (!productModal) {
                 productModal = new bootstrap.Modal(document.getElementById('productModal'));
@@ -575,10 +601,10 @@
             productModal.show();
 
             // Populate dropdowns with selected values after modal is shown
-            // Use setTimeout to ensure dropdowns are rendered
+            // Use setTimeout to ensure dropdowns are rendered and modal is fully visible
             setTimeout(() => {
-                populateProductDropdowns(product.category_id, product.location_id);
-            }, 200);
+                populateProductDropdowns(product.category_id || product.categoryId, product.location_id || product.locationId);
+            }, 300);
         }
     }
 
