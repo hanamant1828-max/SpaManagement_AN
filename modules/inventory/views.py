@@ -1997,6 +1997,16 @@ def api_add_product():
             return jsonify({'error': 'Product name is required'}), 400
         if not category_id:
             return jsonify({'error': 'Category is required'}), 400
+        
+        # TODO: Add actual product creation logic here
+        # For now, return a placeholder response
+        return jsonify({
+            'success': False,
+            'message': 'Product creation functionality is not yet implemented'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error adding product: {str(e)}'}), 500
 
 
 # ============ TRANSFERS MANAGEMENT ============
