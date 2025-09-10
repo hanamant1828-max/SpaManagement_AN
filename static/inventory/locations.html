@@ -121,6 +121,65 @@
     </div>
 </div>
 
+<!-- View Location Modal -->
+<div class="modal fade" id="viewLocationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Location Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Location Name</strong></label>
+                        <p id="viewLocationName" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Type</strong></label>
+                        <p id="viewLocationType" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Address</strong></label>
+                        <p id="viewLocationAddress" class="form-control-plaintext border rounded p-2 bg-light" style="min-height: 60px;"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Contact Person</strong></label>
+                        <p id="viewLocationContact" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Phone</strong></label>
+                        <p id="viewLocationPhone" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Email</strong></label>
+                        <p id="viewLocationEmail" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Status</strong></label>
+                        <p id="viewLocationStatus" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Products Count</strong></label>
+                        <p id="viewLocationProductCount" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Total Stock Value</strong></label>
+                        <p id="viewLocationStockValue" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Notes</strong></label>
+                        <p id="viewLocationNotes" class="form-control-plaintext border rounded p-2 bg-light" style="min-height: 80px;"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     // Isolated scope for locations tab to prevent variable conflicts
@@ -197,11 +256,14 @@
                     <td>$${(location.total_stock_value || 0).toFixed(2)}</td>
                     <td>${statusBadge}</td>
                     <td>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editLocation('${location.id}')" title="Edit">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-info btn-sm" onclick="viewLocation('${location.id}')" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="editLocation('${location.id}')" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteLocation('${location.id}', '${location.name}')" title="Delete">
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteLocation('${location.id}', '${location.name}')" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -240,6 +302,54 @@
         }
 
         const modal = new bootstrap.Modal(document.getElementById('locationModal'));
+        modal.show();
+    }
+
+    // View location function
+    window.viewLocation = function(locationId) {
+        console.log('Viewing location:', locationId);
+        
+        // First try from cache
+        let location = locationsCache.find(loc => loc.id === locationId);
+
+        if (location) {
+            showViewLocationModal(location);
+        } else {
+            // Fallback to API if not in cache
+            fetch(`/api/inventory/locations/${locationId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showViewLocationModal(data);
+                })
+                .catch(error => {
+                    console.error('Error loading location details:', error);
+                    alert('Error loading location details. Please try again.');
+                });
+        }
+    }
+
+    function showViewLocationModal(location) {
+        // Populate view modal with data
+        document.getElementById('viewLocationName').textContent = location.name || '-';
+        document.getElementById('viewLocationType').innerHTML = getTypeBadge(location.type);
+        document.getElementById('viewLocationAddress').textContent = location.address || 'No address specified';
+        document.getElementById('viewLocationContact').textContent = location.contact_person || 'No contact person';
+        document.getElementById('viewLocationPhone').textContent = location.phone || 'No phone number';
+        document.getElementById('viewLocationEmail').textContent = location.email || 'No email';
+        document.getElementById('viewLocationStatus').innerHTML = location.status === 'active' 
+            ? '<span class="badge bg-success">Active</span>' 
+            : '<span class="badge bg-secondary">Inactive</span>';
+        document.getElementById('viewLocationProductCount').textContent = (location.total_products || 0) + ' products';
+        document.getElementById('viewLocationStockValue').textContent = '$' + (location.total_stock_value || 0).toFixed(2);
+        document.getElementById('viewLocationNotes').textContent = location.notes || 'No notes available';
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('viewLocationModal'));
         modal.show();
     }
 
