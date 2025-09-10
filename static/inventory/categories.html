@@ -84,7 +84,7 @@
         tbody.innerHTML = ''; // Clear existing rows
 
         try {
-            const response = await fetch('/api/categories'); // Fetch from API
+            const response = await fetch('/api/inventory/categories'); // Fetch from API
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -105,8 +105,8 @@
                     <td>
                         <div class="d-flex align-items-center">
                             <span class="badge rounded-pill me-2" 
-                                  style="background-color: ${category.color}; width: 20px; height: 20px;">&nbsp;</span>
-                            <small class="text-muted">${category.color}</small>
+                                  style="background-color: ${category.color_code}; width: 20px; height: 20px;">&nbsp;</span>
+                            <small class="text-muted">${category.color_code}</small>
                         </div>
                     </td>
                     <td>
@@ -119,8 +119,8 @@
                         <span class="badge bg-light text-dark">${productCount} products</span>
                     </td>
                     <td>
-                        <span class="badge bg-${category.isActive ? 'success' : 'secondary'}">
-                            ${category.isActive ? 'Active' : 'Inactive'}
+                        <span class="badge bg-${category.is_active ? 'success' : 'secondary'}">
+                            ${category.is_active ? 'Active' : 'Inactive'}
                         </span>
                     </td>
                     <td>
@@ -159,7 +159,7 @@
 
     window.editCategory = async function(categoryId) {
         try {
-            const response = await fetch(`/api/categories/${categoryId}`); // Fetch from API
+            const response = await fetch(`/api/inventory/categories/${categoryId}`); // Fetch from API
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -170,9 +170,9 @@
             document.getElementById('categoryId').value = category.id;
             document.getElementById('categoryName').value = category.name;
             document.getElementById('categoryDescription').value = category.description || '';
-            document.getElementById('categoryColor').value = category.color;
-            document.getElementById('categoryColorText').value = category.color;
-            document.getElementById('categoryActive').checked = category.isActive !== false;
+            document.getElementById('categoryColor').value = category.color_code;
+            document.getElementById('categoryColorText').value = category.color_code;
+            document.getElementById('categoryActive').checked = category.is_active !== false;
 
             const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
             modal.show();
@@ -187,12 +187,12 @@
         const categoryData = {
             name: document.getElementById('categoryName').value,
             description: document.getElementById('categoryDescription').value,
-            color: document.getElementById('categoryColor').value,
-            isActive: document.getElementById('categoryActive').checked,
+            color_code: document.getElementById('categoryColor').value,
+            is_active: document.getElementById('categoryActive').checked,
         };
 
         try {
-            const url = categoryId ? `/api/categories/${categoryId}` : '/api/categories';
+            const url = categoryId ? `/api/inventory/categories/${categoryId}` : '/api/inventory/categories';
             const method = categoryId ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -233,7 +233,7 @@
             }
 
             if (confirm('Are you sure you want to delete this category?')) {
-                const response = await fetch(`/api/categories/${categoryId}`, {
+                const response = await fetch(`/api/inventory/categories/${categoryId}`, {
                     method: 'DELETE',
                 });
 

@@ -1054,33 +1054,63 @@ def api_add_category():
     except Exception as e:
         return jsonify({'error': f'Error adding category: {str(e)}'}), 500
 
-@app.route('/api/inventory/categories/<int:category_id>')
+@app.route('/api/inventory/categories/<int:category_id>', methods=['GET', 'PUT'])
 @login_required
 def api_get_category(category_id):
     """Get category details"""
     if not current_user.can_access('inventory'):
         return jsonify({'error': 'Access denied'}), 403
 
-    try:
-        category = get_category_by_id(category_id)
-        if not category:
-            return jsonify({'error': 'Category not found'}), 404
+    if request.method == 'GET':
+        try:
+            category = get_category_by_id(category_id)
+            if not category:
+                return jsonify({'error': 'Category not found'}), 404
 
-        # Count products in this category
-        product_count = InventoryProduct.query.filter_by(category_id=category_id).count()
+            # Count products in this category
+            product_count = InventoryProduct.query.filter_by(category_id=category_id).count()
 
-        return jsonify({
-            'id': category.id,
-            'name': category.name,
-            'description': category.description or '',
-            'color_code': category.color_code,
-            'is_active': category.is_active,
-            'product_count': product_count,
-            'created_at': category.created_at.isoformat() if category.created_at else None
-        })
+            return jsonify({
+                'id': category.id,
+                'name': category.name,
+                'description': category.description or '',
+                'color_code': category.color_code,
+                'is_active': category.is_active,
+                'product_count': product_count,
+                'created_at': category.created_at.isoformat() if category.created_at else None
+            })
 
-    except Exception as e:
-        return jsonify({'error': f'Error loading category: {str(e)}'}), 500
+        except Exception as e:
+            return jsonify({'error': f'Error loading category: {str(e)}'}), 500
+    
+    elif request.method == 'PUT':
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            # Validation
+            if not data.get('name', '').strip():
+                return jsonify({'error': 'Category name is required'}), 400
+
+            category_data = {
+                'name': data['name'].strip(),
+                'description': data.get('description', '').strip(),
+                'color_code': data.get('color_code', '#007bff').strip(),
+                'is_active': data.get('is_active', True)
+            }
+
+            updated_category = update_category(category_id, category_data)
+            if updated_category:
+                return jsonify({
+                    'success': True,
+                    'message': f'Category "{updated_category.name}" updated successfully!'
+                })
+            else:
+                return jsonify({'error': 'Category not found'}), 404
+
+        except Exception as e:
+            return jsonify({'error': f'Error updating category: {str(e)}'}), 500
 
 @app.route('/api/inventory/categories/<int:category_id>/edit', methods=['POST'])
 @login_required
