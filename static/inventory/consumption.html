@@ -1,3 +1,4 @@
+
 <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3><i class="fas fa-minus-circle me-2"></i>Consumption Records</h3>
@@ -20,7 +21,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Search</label>
-                    <input type="text" class="form-control" id="consumption-search" placeholder="Search product, reference, notes, issued to">
+                    <input type="text" class="form-control" id="consumption-search" placeholder="Search batch, reference, notes, issued to">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Page Size</label>
@@ -54,6 +55,7 @@
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>Batch</th>
                             <th>Product</th>
                             <th>Quantity</th>
                             <th>Reference</th>
@@ -98,20 +100,27 @@
                             <label class="form-label">Reference</label>
                             <input type="text" class="form-control" id="consumptionReference" placeholder="e.g., Service Order #123">
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-8 mb-3">
                             <label class="form-label">Batch *</label>
                             <select class="form-select" id="consumptionBatch" required>
                                 <option value="">Select Batch</option>
                             </select>
+                            <div class="form-text" id="stockInfo"></div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Available Stock</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="availableStockDisplay" readonly>
+                                <span class="input-group-text" id="availableStockUnit">pcs</span>
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Quantity *</label>
                             <input type="number" class="form-control" id="consumptionQuantity" step="0.01" min="0.01" required>
-                            <div class="form-text" id="stockInfo"></div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Issued To</label>
-                            <input type="text" class="form-control" id="consumptionIssuedTo" placeholder="Staff member or department">
+                            <label class="form-label">Issued To *</label>
+                            <input type="text" class="form-control" id="consumptionIssuedTo" placeholder="Staff member or department" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Purpose</label>
@@ -156,6 +165,10 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label"><strong>Reference</strong></label>
                         <p id="viewConsumptionReference" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Batch</strong></label>
+                        <p id="viewConsumptionBatch" class="form-control-plaintext border rounded p-2 bg-light"></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label"><strong>Product</strong></label>
@@ -206,27 +219,28 @@
                             <label class="form-label">Reference</label>
                             <input type="text" class="form-control" id="editConsumptionReference">
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-8 mb-3">
                             <label class="form-label">Batch *</label>
                             <select class="form-select" id="editConsumptionBatch" required>
                                 <option value="">Select Batch</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Quantity *</label>
                             <input type="number" class="form-control" id="editConsumptionQuantity" step="0.01" min="0" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Issued To</label>
-                            <input type="text" class="form-control" id="editConsumptionIssuedTo">
+                            <label class="form-label">Issued To *</label>
+                            <input type="text" class="form-control" id="editConsumptionIssuedTo" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Purpose</label>
                             <select class="form-select" id="editConsumptionPurpose">
-                                <option value="Service">Service</option>
-                                <option value="Treatment">Treatment</option>
-                                <option value="Cleaning">Cleaning</option>
-                                <option value="Other">Other</option>
+                                <option value="service">Service</option>
+                                <option value="sample">Sample</option>
+                                <option value="waste">Waste</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                         <div class="col-12 mb-3">
@@ -251,9 +265,19 @@
     let pageSize = 25;
 
     function loadConsumptions() {
-        const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]'); // Assuming batches are stored
+        fetch('/api/inventory/consumption')
+            .then(response => response.json())
+            .then(data => {
+                const consumptions = data.records || [];
+                displayConsumptions(consumptions);
+            })
+            .catch(error => {
+                console.error('Error loading consumptions:', error);
+                displayConsumptions([]);
+            });
+    }
 
+    function displayConsumptions(consumptions) {
         // Apply filters
         const fromDate = document.getElementById('consumption-from-date').value;
         const toDate = document.getElementById('consumption-to-date').value;
@@ -261,21 +285,20 @@
         pageSize = parseInt(document.getElementById('consumption-page-size').value);
 
         let filteredConsumptions = consumptions.filter(consumption => {
-            const consumptionDate = new Date(consumption.date);
+            const consumptionDate = new Date(consumption.consumption_date);
             const matchesDateRange = (!fromDate || consumptionDate >= new Date(fromDate)) &&
                                    (!toDate || consumptionDate <= new Date(toDate));
-            const batch = batches.find(b => b.id === consumption.batchId);
             const matchesSearch = !searchTerm || 
-                                (batch && batch.batchName.toLowerCase().includes(searchTerm)) ||
-                                (consumption.reference && consumption.reference.toLowerCase().includes(searchTerm)) ||
+                                (consumption.batch_name && consumption.batch_name.toLowerCase().includes(searchTerm)) ||
+                                (consumption.reference_doc_no && consumption.reference_doc_no.toLowerCase().includes(searchTerm)) ||
                                 (consumption.notes && consumption.notes.toLowerCase().includes(searchTerm)) ||
-                                (consumption.issuedTo && consumption.issuedTo.toLowerCase().includes(searchTerm));
+                                (consumption.issued_to && consumption.issued_to.toLowerCase().includes(searchTerm));
 
             return matchesDateRange && matchesSearch;
         });
 
         // Sort by date (newest first)
-        filteredConsumptions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        filteredConsumptions.sort((a, b) => new Date(b.consumption_date) - new Date(a.consumption_date));
 
         // Pagination
         const totalItems = filteredConsumptions.length;
@@ -289,14 +312,14 @@
         tbody.innerHTML = '';
 
         paginatedConsumptions.forEach(consumption => {
-            const batch = batches.find(b => b.id === consumption.batchId);
             tbody.innerHTML += `
                 <tr>
-                    <td>${new Date(consumption.date).toLocaleDateString()}</td>
-                    <td>${batch ? batch.batchName : 'Unknown Batch'}</td>
-                    <td>${consumption.quantity} ${batch ? batch.productUnit || 'pcs' : 'pcs'}</td>
-                    <td>${consumption.reference || '-'}</td>
-                    <td>${consumption.issuedTo || '-'}</td>
+                    <td>${new Date(consumption.consumption_date).toLocaleDateString()}</td>
+                    <td>${consumption.batch_name || 'Unknown Batch'}</td>
+                    <td>${consumption.product_name || 'Unknown Product'}</td>
+                    <td>${consumption.quantity_used} ${consumption.unit_of_measure || 'pcs'}</td>
+                    <td>${consumption.reference_doc_no || '-'}</td>
+                    <td>${consumption.issued_to || '-'}</td>
                     <td>
                         <span class="badge bg-secondary">
                             ${consumption.purpose || 'Other'}
@@ -321,7 +344,7 @@
         });
 
         if (paginatedConsumptions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No consumption records found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No consumption records found</td></tr>';
         }
 
         // Update pagination info
@@ -367,37 +390,60 @@
     }
 
     window.changePage = function(page) {
-        const totalItems = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]').length;
-        const totalPages = Math.ceil(totalItems / pageSize);
-
-        if (page >= 1 && page <= totalPages) {
-            currentPage = page;
-            loadConsumptions();
-        }
+        currentPage = page;
+        loadConsumptions();
     }
 
-    function loadBatches() {
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
-        const select = document.getElementById('consumptionBatch');
-
-        select.innerHTML = '<option value="">Select Batch</option>';
-        batches.forEach(batch => {
-            select.innerHTML += `<option value="${batch.id}">${batch.batchName} (Exp: ${new Date(batch.expiryDate).toLocaleDateString()}, Stock: ${batch.qtyAvailable || 0} ${batch.productUnit || 'pcs'})</option>`;
-        });
+    function loadBatchesForConsumption() {
+        fetch('/api/inventory/batches/for-consumption')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('consumptionBatch');
+                select.innerHTML = '<option value="">Select Batch</option>';
+                
+                data.batches.forEach(batch => {
+                    const option = document.createElement('option');
+                    option.value = batch.id;
+                    const expiryText = batch.expiry_date ?
+                        `, Exp: ${new Date(batch.expiry_date).toLocaleDateString('en-GB')}` : '';
+                    option.textContent = `${batch.batch_name} (${batch.product_name}${expiryText}, Stock: ${batch.qty_available})`;
+                    option.dataset.productName = batch.product_name;
+                    option.dataset.currentQty = batch.qty_available;
+                    option.dataset.unit = batch.unit;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error loading batches:', error));
     }
 
     function updateStockInfo() {
         const batchId = document.getElementById('consumptionBatch').value;
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
-        const batch = batches.find(b => b.id === batchId);
+        const batchSelect = document.getElementById('consumptionBatch');
         const stockInfo = document.getElementById('stockInfo');
+        const availableStockDisplay = document.getElementById('availableStockDisplay');
+        const availableStockUnit = document.getElementById('availableStockUnit');
 
-        if (batch) {
-            const currentStock = batch.qtyAvailable || 0;
-            stockInfo.textContent = `Available stock: ${currentStock} ${batch.productUnit || 'pcs'}`;
-            stockInfo.className = currentStock > 0 ? 'form-text text-success' : 'form-text text-danger';
+        if (batchId && batchSelect) {
+            const selectedOption = batchSelect.querySelector(`option[value="${batchId}"]`);
+            if (selectedOption) {
+                const currentStock = selectedOption.dataset.currentQty || 0;
+                const unit = selectedOption.dataset.unit || 'pcs';
+                const productName = selectedOption.dataset.productName || 'Unknown Product';
+                
+                stockInfo.textContent = `Product: ${productName}`;
+                availableStockDisplay.value = currentStock;
+                availableStockUnit.textContent = unit;
+                
+                stockInfo.className = currentStock > 0 ? 'form-text text-success' : 'form-text text-danger';
+                
+                // Set max quantity for validation
+                document.getElementById('consumptionQuantity').max = currentStock;
+            }
         } else {
             stockInfo.textContent = '';
+            availableStockDisplay.value = '';
+            availableStockUnit.textContent = 'pcs';
+            document.getElementById('consumptionQuantity').removeAttribute('max');
         }
     }
 
@@ -405,7 +451,7 @@
         document.getElementById('consumptionForm').reset();
         document.getElementById('consumptionDate').value = new Date().toISOString().split('T')[0];
 
-        loadBatches();
+        loadBatchesForConsumption();
         updateStockInfo();
 
         const modal = new bootstrap.Modal(document.getElementById('addConsumptionModal'));
@@ -413,196 +459,225 @@
     }
 
     window.saveConsumption = function() {
-        const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
+        const batchId = document.getElementById('consumptionBatch').value;
+        const quantity = parseFloat(document.getElementById('consumptionQuantity').value);
+        
+        // Validation
+        if (!document.getElementById('consumptionDate').value) {
+            alert('Please select a consumption date.');
+            return;
+        }
+        
+        if (!batchId) {
+            alert('Please select a batch.');
+            return;
+        }
+        
+        if (!quantity || quantity <= 0) {
+            alert('Please enter a valid quantity.');
+            return;
+        }
+        
+        if (!document.getElementById('consumptionIssuedTo').value.trim()) {
+            alert('Please specify who the items were issued to.');
+            return;
+        }
+
+        // Check stock availability
+        const batchSelect = document.getElementById('consumptionBatch');
+        const selectedOption = batchSelect.querySelector(`option[value="${batchId}"]`);
+        const availableStock = parseFloat(selectedOption.dataset.currentQty || 0);
+        
+        if (quantity > availableStock) {
+            alert(`Insufficient stock! Available: ${availableStock}, Requested: ${quantity}`);
+            return;
+        }
 
         const consumptionData = {
-            id: Date.now().toString(),
-            date: document.getElementById('consumptionDate').value,
-            batchId: document.getElementById('consumptionBatch').value,
-            quantity: parseFloat(document.getElementById('consumptionQuantity').value),
-            reference: document.getElementById('consumptionReference').value,
-            issuedTo: document.getElementById('consumptionIssuedTo').value,
+            batch_id: batchId,
+            consumption_date: document.getElementById('consumptionDate').value,
+            quantity_used: quantity,
+            issued_to: document.getElementById('consumptionIssuedTo').value.trim(),
+            reference_doc_no: document.getElementById('consumptionReference').value.trim(),
             purpose: document.getElementById('consumptionPurpose').value,
-            notes: document.getElementById('consumptionNotes').value,
-            createdBy: 'Current User',
-            createdAt: new Date().toISOString()
+            notes: document.getElementById('consumptionNotes').value.trim()
         };
 
-        // Update batch stock
-        const batchIndex = batches.findIndex(b => b.id === consumptionData.batchId);
-        if (batchIndex !== -1) {
-            const batch = batches[batchIndex];
-            const currentStock = batch.qtyAvailable || 0;
-
-            if (currentStock < consumptionData.quantity) {
-                alert('Insufficient stock! Available: ' + currentStock + ', Requested: ' + consumptionData.quantity);
-                return;
+        fetch('/api/inventory/consumption/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(consumptionData)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Consumption record saved successfully!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal'));
+                modal.hide();
+                loadConsumptions();
+            } else {
+                alert('Error saving consumption: ' + result.error);
             }
-
-            batch.qtyAvailable = currentStock - consumptionData.quantity;
-            localStorage.setItem('inventory.batches', JSON.stringify(batches));
-        }
-
-        consumptions.push(consumptionData);
-        localStorage.setItem('inventory.consumptions', JSON.stringify(consumptions));
-
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addConsumptionModal'));
-        modal.hide();
-
-        loadConsumptions();
+        })
+        .catch(error => {
+            console.error('Error saving consumption:', error);
+            alert('An error occurred. Please try again.');
+        });
     }
 
-    // View consumption function
     window.viewConsumption = function(consumptionId) {
-        console.log('Viewing consumption:', consumptionId);
+        fetch(`/api/inventory/consumption/${consumptionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading consumption details: ' + data.error);
+                    return;
+                }
 
-        const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
-        const consumption = consumptions.find(c => c.id === consumptionId);
+                document.getElementById('viewConsumptionDate').textContent = new Date(data.consumption_date).toLocaleDateString() || '-';
+                document.getElementById('viewConsumptionReference').textContent = data.reference_doc_no || 'No reference';
+                document.getElementById('viewConsumptionBatch').textContent = data.batch_name || 'Unknown Batch';
+                document.getElementById('viewConsumptionProduct').textContent = data.product_name || 'Unknown Product';
+                document.getElementById('viewConsumptionQuantity').textContent = (data.quantity_used || 0) + ' ' + (data.unit_of_measure || 'pcs');
+                document.getElementById('viewConsumptionIssuedTo').textContent = data.issued_to || 'Not specified';
+                document.getElementById('viewConsumptionPurpose').innerHTML = `<span class="badge bg-secondary">${data.purpose || 'Other'}</span>`;
+                document.getElementById('viewConsumptionNotes').textContent = data.notes || 'No notes';
 
-        if (!consumption) {
-            alert('Consumption record not found.');
-            return;
-        }
-
-        const batch = batches.find(b => b.id === consumption.batchId);
-
-        document.getElementById('viewConsumptionDate').textContent = new Date(consumption.date).toLocaleDateString() || '-';
-        document.getElementById('viewConsumptionReference').textContent = consumption.reference || 'No reference';
-        document.getElementById('viewConsumptionProduct').textContent = batch ? batch.batchName : 'Unknown Batch';
-        document.getElementById('viewConsumptionQuantity').textContent = (consumption.quantity || 0) + ' ' + (batch ? batch.productUnit || 'pcs' : 'pcs');
-        document.getElementById('viewConsumptionIssuedTo').textContent = consumption.issuedTo || 'Not specified';
-        document.getElementById('viewConsumptionPurpose').innerHTML = `<span class="badge bg-secondary">${consumption.purpose || 'Other'}</span>`;
-        document.getElementById('viewConsumptionNotes').textContent = consumption.notes || 'No notes';
-
-        const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
-        modal.show();
+                const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading consumption details:', error);
+                alert('Error loading consumption details. Please try again.');
+            });
     }
 
-    // Edit consumption function
     window.editConsumption = function(consumptionId) {
-        console.log('Editing consumption:', consumptionId);
-
+        // Load batches for editing
         loadBatchesForEdit();
 
-        const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
-        const consumption = consumptions.find(c => c.id === consumptionId);
+        fetch(`/api/inventory/consumption/${consumptionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading consumption details: ' + data.error);
+                    return;
+                }
 
-        if (!consumption) {
-            alert('Consumption record not found.');
-            return;
-        }
+                document.getElementById('editConsumptionId').value = consumptionId;
+                document.getElementById('editConsumptionDate').value = data.consumption_date || '';
+                document.getElementById('editConsumptionReference').value = data.reference_doc_no || '';
+                document.getElementById('editConsumptionQuantity').value = data.quantity_used || 0;
+                document.getElementById('editConsumptionIssuedTo').value = data.issued_to || '';
+                document.getElementById('editConsumptionPurpose').value = data.purpose || 'other';
+                document.getElementById('editConsumptionNotes').value = data.notes || '';
 
-        document.getElementById('editConsumptionId').value = consumptionId;
-        document.getElementById('editConsumptionDate').value = consumption.date ? consumption.date.split('T')[0] : '';
-        document.getElementById('editConsumptionReference').value = consumption.reference || '';
-        document.getElementById('editConsumptionQuantity').value = consumption.quantity || 0;
-        document.getElementById('editConsumptionIssuedTo').value = consumption.issuedTo || '';
-        document.getElementById('editConsumptionPurpose').value = consumption.purpose || 'Other';
-        document.getElementById('editConsumptionNotes').value = consumption.notes || '';
+                // Set batch selection after batches load
+                setTimeout(() => {
+                    const batchSelect = document.getElementById('editConsumptionBatch');
+                    if (batchSelect && data.batch_id) {
+                        batchSelect.value = data.batch_id;
+                    }
+                }, 500);
 
-        setTimeout(() => {
-            const batchSelect = document.getElementById('editConsumptionBatch');
-            if (batchSelect && consumption.batchId) {
-                batchSelect.value = consumption.batchId;
-            }
-        }, 500);
-
-        const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
-        modal.show();
+                const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading consumption details:', error);
+                alert('Error loading consumption details. Please try again.');
+            });
     }
 
-    // Save edited consumption function
     window.saveEditedConsumption = function() {
         const consumptionId = document.getElementById('editConsumptionId').value;
         const formData = {
-            date: document.getElementById('editConsumptionDate').value,
-            reference: document.getElementById('editConsumptionReference').value,
-            batchId: document.getElementById('editConsumptionBatch').value,
-            quantity: parseFloat(document.getElementById('editConsumptionQuantity').value),
-            issuedTo: document.getElementById('editConsumptionIssuedTo').value,
+            batch_id: document.getElementById('editConsumptionBatch').value,
+            consumption_date: document.getElementById('editConsumptionDate').value,
+            quantity_used: parseFloat(document.getElementById('editConsumptionQuantity').value),
+            issued_to: document.getElementById('editConsumptionIssuedTo').value,
+            reference_doc_no: document.getElementById('editConsumptionReference').value,
             purpose: document.getElementById('editConsumptionPurpose').value,
             notes: document.getElementById('editConsumptionNotes').value
         };
 
-        if (!formData.date) {
+        if (!formData.consumption_date) {
             alert('Please select a date.');
             return;
         }
 
-        if (!formData.batchId) {
+        if (!formData.batch_id) {
             alert('Please select a batch.');
             return;
         }
 
-        if (!formData.quantity || formData.quantity <= 0) {
+        if (!formData.quantity_used || formData.quantity_used <= 0) {
             alert('Please enter a valid quantity.');
             return;
         }
 
-        const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
-        const consumptionIndex = consumptions.findIndex(c => c.id === consumptionId);
-        const originalConsumption = consumptions[consumptionIndex];
-
-        // Calculate stock difference if quantity changed
-        let stockDifference = 0;
-        if (originalConsumption.quantity !== formData.quantity) {
-            stockDifference = formData.quantity - originalConsumption.quantity;
+        if (!formData.issued_to) {
+            alert('Please specify who the items were issued to.');
+            return;
         }
 
-        // Update batch stock
-        const batchIndex = batches.findIndex(b => b.id === formData.batchId);
-        if (batchIndex !== -1) {
-            const batch = batches[batchIndex];
-            const currentStock = batch.qtyAvailable || 0;
-
-            if (stockDifference > 0 && currentStock < stockDifference) {
-                alert('Insufficient stock for the updated quantity! Available: ' + currentStock + ', Needed to add: ' + stockDifference);
-                return;
+        fetch(`/api/inventory/consumption/${consumptionId}/edit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(formData)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Consumption record updated successfully!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal'));
+                modal.hide();
+                loadConsumptions();
+            } else {
+                alert('Error updating consumption: ' + result.error);
             }
-            
-            batch.qtyAvailable = currentStock - stockDifference;
-            localStorage.setItem('inventory.batches', JSON.stringify(batches));
-        }
-
-        // Update consumption record
-        consumptions[consumptionIndex] = { ...originalConsumption, ...formData };
-        localStorage.setItem('inventory.consumptions', JSON.stringify(consumptions));
-
-        alert('Consumption record updated successfully!');
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal'));
-        modal.hide();
-        loadConsumptions();
-    }
-
-    function loadBatchesForEdit() {
-        const batchSelect = document.getElementById('editConsumptionBatch');
-        batchSelect.innerHTML = '<option value="">Select Batch</option>';
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
-
-        batches.forEach(batch => {
-            batchSelect.innerHTML += `<option value="${batch.id}">${batch.batchName} (Exp: ${new Date(batch.expiryDate).toLocaleDateString()}, Stock: ${batch.qtyAvailable || 0} ${batch.productUnit || 'pcs'})</option>`;
+        })
+        .catch(error => {
+            console.error('Error updating consumption:', error);
+            alert('An error occurred. Please try again.');
         });
     }
 
+    function loadBatchesForEdit() {
+        fetch('/api/inventory/batches/for-consumption')
+            .then(response => response.json())
+            .then(data => {
+                const batchSelect = document.getElementById('editConsumptionBatch');
+                batchSelect.innerHTML = '<option value="">Select Batch</option>';
+
+                data.batches.forEach(batch => {
+                    const option = document.createElement('option');
+                    option.value = batch.id;
+                    const expiryText = batch.expiry_date ?
+                        `, Exp: ${new Date(batch.expiry_date).toLocaleDateString('en-GB')}` : '';
+                    option.textContent = `${batch.batch_name} (${batch.product_name}${expiryText}, Stock: ${batch.qty_available})`;
+                    batchSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error loading batches:', error));
+    }
+
     window.deleteConsumption = function(consumptionId) {
-        if (confirm('Are you sure you want to delete this consumption record? This action cannot be undone and will not restore stock levels.')) {
-            const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
-            const consumptionIndex = consumptions.findIndex(c => c.id === consumptionId);
-
-            if (consumptionIndex === -1) {
-                alert('Consumption record not found.');
-                return;
-            }
-
-            // Potentially restore stock if needed, but the prompt implies deletion does not restore stock.
-            // If stock restoration on delete is required, this logic needs to be added.
-
-            const filteredConsumptions = consumptions.filter(c => c.id !== consumptionId);
-            localStorage.setItem('inventory.consumptions', JSON.stringify(filteredConsumptions));
-            loadConsumptions();
+        if (confirm('Are you sure you want to delete this consumption record? This will restore the consumed quantity to the batch stock.')) {
+            fetch(`/api/inventory/consumption/${consumptionId}/delete`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Consumption record deleted successfully!');
+                    loadConsumptions();
+                } else {
+                    alert('Error deleting consumption: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting consumption:', error);
+                alert('An error occurred. Please try again.');
+            });
         }
     }
 
@@ -616,23 +691,7 @@
     }
 
     function exportConsumption() {
-        const consumptions = JSON.parse(localStorage.getItem('inventory.consumptions') || '[]');
-        const batches = JSON.parse(localStorage.getItem('inventory.batches') || '[]');
-
-        let csvContent = "Date,BatchName,Quantity,Reference,Issued To,Purpose,Notes\n";
-
-        consumptions.forEach(consumption => {
-            const batch = batches.find(b => b.id === consumption.batchId);
-            csvContent += `"${new Date(consumption.date).toLocaleDateString()}","${batch ? batch.batchName : 'Unknown'}","${consumption.quantity}","${consumption.reference || ''}","${consumption.issuedTo || ''}","${consumption.purpose || ''}","${consumption.notes || ''}"\n`;
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `consumption_records_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        alert('Excel export functionality will be implemented.');
     }
 
     // Event listeners
@@ -647,10 +706,6 @@
         loadConsumptions();
     });
     document.getElementById('consumptionBatch').addEventListener('change', updateStockInfo);
-    document.getElementById('editConsumptionBatch').addEventListener('change', () => {
-        // Logic to update stock info in edit modal if needed, similar to add modal
-    });
-
 
     // Initialize
     loadConsumptions();

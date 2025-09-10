@@ -1,3 +1,4 @@
+
 <div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -53,15 +54,14 @@
                 <table class="table table-hover" id="batchesTable">
                     <thead>
                         <tr>
-                            <th>Product</th>
                             <th>Batch Name</th>
+                            <th>Product</th>
                             <th>Location</th>
                             <th>Qty Available</th>
+                            <th>Created Date</th>
                             <th>Mfg Date</th>
                             <th>Expiry Date</th>
                             <th>Status</th>
-                            <th>Unit Cost</th>
-                            <th>Batch Value</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -106,16 +106,16 @@
                             <div class="form-text">Must be unique for this product</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Initial Quantity</label>
-                            <input type="number" class="form-control" id="batchQty" step="0.01" min="0" value="0">
+                            <label class="form-label">Created Date</label>
+                            <input type="date" class="form-control" id="batchCreatedDate">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Manufacturing Date</label>
-                            <input type="date" class="form-control" id="batchMfgDate">
+                            <label class="form-label">Manufacturing Date *</label>
+                            <input type="date" class="form-control" id="batchMfgDate" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Expiry Date</label>
-                            <input type="date" class="form-control" id="batchExpiryDate">
+                            <label class="form-label">Expiry Date *</label>
+                            <input type="date" class="form-control" id="batchExpiryDate" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Unit Cost</label>
@@ -124,13 +124,6 @@
                         <div class="col-md-6">
                             <label class="form-label">Selling Price</label>
                             <input type="number" class="form-control" id="batchSellingPrice" step="0.01" min="0">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" id="batchStatus">
-                                <option value="active">Active</option>
-                                <option value="blocked">Blocked</option>
-                            </select>
                         </div>
                     </div>
                 </div>
@@ -266,7 +259,7 @@ function renderBatchesTable() {
     const filteredBatches = getFilteredBatches();
 
     if (filteredBatches.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No batches found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No batches found</td></tr>';
         return;
     }
 
@@ -281,15 +274,14 @@ function renderBatchesTable() {
         const statusClass = getStatusBadgeClass(batch.status, batch.is_expired);
 
         row.innerHTML = `
-            <td>${product ? product.name : 'Unknown'}</td>
             <td><strong>${batch.batch_name}</strong></td>
+            <td>${product ? product.name : 'Unknown'}</td>
             <td>${location ? location.name : 'Unknown'}</td>
-            <td>${batch.qty_available} ${product ? product.unit : 'pcs'}</td>
+            <td>${batch.qty_available} ${product ? product.unit_of_measure : 'pcs'}</td>
+            <td>${batch.created_date ? formatDate(batch.created_date) : '-'}</td>
             <td>${batch.mfg_date ? formatDate(batch.mfg_date) : '-'}</td>
             <td>${batch.expiry_date ? formatDate(batch.expiry_date) : '-'}</td>
             <td><span class="badge ${statusClass}">${batch.status}</span></td>
-            <td>$${parseFloat(batch.unit_cost || 0).toFixed(2)}</td>
-            <td>$${parseFloat(batch.batch_value || 0).toFixed(2)}</td>
             <td>
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-outline-primary" onclick="viewBatch(${batch.id})" title="View Details">
@@ -360,6 +352,9 @@ function openAddBatchModal() {
     document.getElementById('batchModalTitle').textContent = 'Add Batch';
     document.getElementById('batchForm').reset();
     document.getElementById('batchId').value = '';
+    
+    // Set default created date to today
+    document.getElementById('batchCreatedDate').value = new Date().toISOString().split('T')[0];
 
     const modal = new bootstrap.Modal(document.getElementById('batchModal'));
     modal.show();
@@ -375,12 +370,11 @@ function editBatch(batchId) {
     document.getElementById('batchProduct').value = batch.product_id;
     document.getElementById('batchLocation').value = batch.location_id;
     document.getElementById('batchName').value = batch.batch_name;
-    document.getElementById('batchQty').value = batch.qty_available;
+    document.getElementById('batchCreatedDate').value = batch.created_date || '';
     document.getElementById('batchMfgDate').value = batch.mfg_date || '';
     document.getElementById('batchExpiryDate').value = batch.expiry_date || '';
     document.getElementById('batchUnitCost').value = batch.unit_cost || 0;
     document.getElementById('batchSellingPrice').value = batch.selling_price || '';
-    document.getElementById('batchStatus').value = batch.status;
 
     const modal = new bootstrap.Modal(document.getElementById('batchModal'));
     modal.show();
@@ -397,12 +391,12 @@ function saveBatch(event) {
         product_id: parseInt(document.getElementById('batchProduct').value),
         location_id: document.getElementById('batchLocation').value,
         batch_name: document.getElementById('batchName').value.trim(),
-        qty_available: parseFloat(document.getElementById('batchQty').value) || 0,
+        created_date: document.getElementById('batchCreatedDate').value || null,
         mfg_date: document.getElementById('batchMfgDate').value || null,
         expiry_date: document.getElementById('batchExpiryDate').value || null,
         unit_cost: parseFloat(document.getElementById('batchUnitCost').value) || 0,
         selling_price: parseFloat(document.getElementById('batchSellingPrice').value) || null,
-        status: document.getElementById('batchStatus').value
+        status: 'active'
     };
 
     // Validation
@@ -421,8 +415,18 @@ function saveBatch(event) {
         return;
     }
 
-    // New validation: Expiry must be later than Mfg Date
-    if (batchData.mfg_date && batchData.expiry_date && batchData.expiry_date < batchData.mfg_date) {
+    if (!batchData.mfg_date) {
+        alert('Please enter manufacturing date');
+        return;
+    }
+
+    if (!batchData.expiry_date) {
+        alert('Please enter expiry date');
+        return;
+    }
+
+    // Validation: Expiry must be later than Mfg Date
+    if (batchData.mfg_date && batchData.expiry_date && batchData.expiry_date <= batchData.mfg_date) {
         alert('Expiry date must be later than manufacturing date.');
         return;
     }
@@ -444,16 +448,7 @@ function saveBatch(event) {
             bootstrap.Modal.getInstance(document.getElementById('batchModal')).hide();
             loadBatches(); // Reload data
         } else {
-            // Handle specific validation errors from backend if available
-            if (data.error && typeof data.error === 'object') {
-                let errorMessage = 'Error saving batch:\n';
-                for (const field in data.error) {
-                    errorMessage += `${field}: ${data.error[field].join(', ')}\n`;
-                }
-                alert(errorMessage);
-            } else {
-                alert('Error: ' + data.error);
-            }
+            alert('Error: ' + data.error);
         }
     })
     .catch(error => {
@@ -487,7 +482,11 @@ function viewBatch(batchId) {
             </div>
             <div class="col-md-6">
                 <strong>Quantity Available:</strong><br>
-                ${batch.qty_available} ${product ? product.unit : 'pcs'}
+                ${batch.qty_available} ${product ? product.unit_of_measure : 'pcs'}
+            </div>
+            <div class="col-md-6">
+                <strong>Created Date:</strong><br>
+                ${batch.created_date ? formatDate(batch.created_date) : 'Not specified'}
             </div>
             <div class="col-md-6">
                 <strong>Manufacturing Date:</strong><br>
@@ -500,10 +499,6 @@ function viewBatch(batchId) {
             <div class="col-md-6">
                 <strong>Unit Cost:</strong><br>
                 $${parseFloat(batch.unit_cost || 0).toFixed(2)}
-            </div>
-            <div class="col-md-6">
-                <strong>Batch Value:</strong><br>
-                $${parseFloat(batch.batch_value || 0).toFixed(2)}
             </div>
             <div class="col-md-6">
                 <strong>Status:</strong><br>
@@ -545,7 +540,7 @@ function deleteBatch(batchId) {
 // Format date for display
 function formatDate(dateString) {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-GB');
 }
 
 // Initialize when content loads
