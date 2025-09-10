@@ -157,9 +157,24 @@ def api_create_location():
     """Create a new location"""
     try:
         data = request.get_json()
+        
+        # Generate a unique ID based on name
+        import re
+        name = data.get('name', '')
+        # Create ID from name: lowercase, replace spaces/special chars with hyphens
+        location_id = re.sub(r'[^a-zA-Z0-9]', '-', name.lower()).strip('-')
+        
+        # Ensure uniqueness by adding suffix if needed
+        base_id = location_id
+        counter = 1
+        while InventoryLocation.query.get(location_id):
+            location_id = f"{base_id}-{counter}"
+            counter += 1
 
         location = InventoryLocation(
+            id=location_id,
             name=data.get('name'),
+            type=data.get('type', 'warehouse'),  # Default type
             address=data.get('address', ''),
             status='active'
         )
