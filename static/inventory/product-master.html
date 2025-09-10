@@ -481,21 +481,26 @@
     }
 
     function populateProductDropdowns(categoryId, locationId) {
-        // Set category selection if provided
-        if (categoryId) {
-            const categorySelect = document.getElementById('productCategory');
-            if (categorySelect) {
-                categorySelect.value = categoryId;
+        // Wait a bit for dropdowns to be populated first
+        setTimeout(() => {
+            // Set category selection if provided
+            if (categoryId) {
+                const categorySelect = document.getElementById('productCategory');
+                if (categorySelect) {
+                    categorySelect.value = categoryId;
+                    console.log('Category set to:', categoryId);
+                }
             }
-        }
 
-        // Set location selection if provided  
-        if (locationId) {
-            const locationSelect = document.getElementById('productLocation');
-            if (locationSelect) {
-                locationSelect.value = locationId;
+            // Set location selection if provided  
+            if (locationId) {
+                const locationSelect = document.getElementById('productLocation');
+                if (locationSelect) {
+                    locationSelect.value = locationId;
+                    console.log('Location set to:', locationId);
+                }
             }
-        }
+        }, 100);
     }
 
     // View product function
@@ -564,13 +569,16 @@
             document.getElementById('productDescription').value = product.description || '';
             document.getElementById('productBarcode').value = product.barcode || '';
 
-            // Populate dropdowns with selected values - use correct API field names
-            populateProductDropdowns(product.category_id, product.location_id);
-
             if (!productModal) {
                 productModal = new bootstrap.Modal(document.getElementById('productModal'));
             }
             productModal.show();
+
+            // Populate dropdowns with selected values after modal is shown
+            // Use setTimeout to ensure dropdowns are rendered
+            setTimeout(() => {
+                populateProductDropdowns(product.category_id, product.location_id);
+            }, 200);
         }
     }
 
