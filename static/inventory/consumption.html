@@ -139,6 +139,111 @@
     </div>
 </div>
 
+<!-- View Consumption Modal -->
+<div class="modal fade" id="viewConsumptionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Consumption Record Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Date</strong></label>
+                        <p id="viewConsumptionDate" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Reference</strong></label>
+                        <p id="viewConsumptionReference" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Product</strong></label>
+                        <p id="viewConsumptionProduct" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Quantity</strong></label>
+                        <p id="viewConsumptionQuantity" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Issued To</strong></label>
+                        <p id="viewConsumptionIssuedTo" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><strong>Purpose</strong></label>
+                        <p id="viewConsumptionPurpose" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Notes</strong></label>
+                        <p id="viewConsumptionNotes" class="form-control-plaintext border rounded p-2 bg-light" style="min-height: 80px;"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Consumption Modal -->
+<div class="modal fade" id="editConsumptionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Consumption Record</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editConsumptionForm">
+                    <input type="hidden" id="editConsumptionId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="editConsumptionDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Reference</label>
+                            <input type="text" class="form-control" id="editConsumptionReference">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Product *</label>
+                            <select class="form-select" id="editConsumptionProduct" required>
+                                <option value="">Select product</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quantity *</label>
+                            <input type="number" class="form-control" id="editConsumptionQuantity" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Issued To</label>
+                            <input type="text" class="form-control" id="editConsumptionIssuedTo">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Purpose</label>
+                            <select class="form-select" id="editConsumptionPurpose">
+                                <option value="Service">Service</option>
+                                <option value="Treatment">Treatment</option>
+                                <option value="Cleaning">Cleaning</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="editConsumptionNotes" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditedConsumption()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     // Isolated scope for consumption tab
@@ -199,9 +304,17 @@
                     </td>
                     <td>${consumption.notes || '-'}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteConsumption('${consumption.id}')" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-info btn-sm" onclick="viewConsumption('${consumption.id}')" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="editConsumption('${consumption.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteConsumption('${consumption.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -338,6 +451,146 @@
         modal.hide();
         
         loadConsumptions();
+    }
+
+    // View consumption function
+    window.viewConsumption = function(consumptionId) {
+        console.log('Viewing consumption:', consumptionId);
+        
+        fetch(`/api/inventory/consumption/${consumptionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading consumption details: ' + data.error);
+                    return;
+                }
+
+                // Find product details
+                const product = products.find(p => p.id === data.productId);
+
+                // Populate view modal with data
+                document.getElementById('viewConsumptionDate').textContent = new Date(data.date).toLocaleDateString() || '-';
+                document.getElementById('viewConsumptionReference').textContent = data.reference || 'No reference';
+                document.getElementById('viewConsumptionProduct').textContent = product ? product.name : 'Unknown Product';
+                document.getElementById('viewConsumptionQuantity').textContent = (data.quantity || 0) + ' ' + (product ? product.unit || 'pcs' : 'pcs');
+                document.getElementById('viewConsumptionIssuedTo').textContent = data.issuedTo || 'Not specified';
+                document.getElementById('viewConsumptionPurpose').innerHTML = `<span class="badge bg-secondary">${data.purpose || 'Other'}</span>`;
+                document.getElementById('viewConsumptionNotes').textContent = data.notes || 'No notes';
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('viewConsumptionModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading consumption details:', error);
+                alert('Error loading consumption details. Please try again.');
+            });
+    }
+
+    // Edit consumption function
+    window.editConsumption = function(consumptionId) {
+        console.log('Editing consumption:', consumptionId);
+        
+        // Load products for dropdown
+        loadProductsForEdit();
+        
+        fetch(`/api/inventory/consumption/${consumptionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading consumption details: ' + data.error);
+                    return;
+                }
+
+                // Populate edit modal with data
+                document.getElementById('editConsumptionId').value = consumptionId;
+                document.getElementById('editConsumptionDate').value = data.date ? data.date.split('T')[0] : '';
+                document.getElementById('editConsumptionReference').value = data.reference || '';
+                document.getElementById('editConsumptionQuantity').value = data.quantity || 0;
+                document.getElementById('editConsumptionIssuedTo').value = data.issuedTo || '';
+                document.getElementById('editConsumptionPurpose').value = data.purpose || 'Other';
+                document.getElementById('editConsumptionNotes').value = data.notes || '';
+
+                // Set product selection (will be set after products load)
+                setTimeout(() => {
+                    const productSelect = document.getElementById('editConsumptionProduct');
+                    if (productSelect && data.productId) {
+                        productSelect.value = data.productId;
+                    }
+                }, 500);
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editConsumptionModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading consumption details:', error);
+                alert('Error loading consumption details. Please try again.');
+            });
+    }
+
+    // Save edited consumption function
+    window.saveEditedConsumption = function() {
+        const consumptionId = document.getElementById('editConsumptionId').value;
+        const formData = {
+            date: document.getElementById('editConsumptionDate').value,
+            reference: document.getElementById('editConsumptionReference').value,
+            productId: document.getElementById('editConsumptionProduct').value,
+            quantity: parseFloat(document.getElementById('editConsumptionQuantity').value),
+            issuedTo: document.getElementById('editConsumptionIssuedTo').value,
+            purpose: document.getElementById('editConsumptionPurpose').value,
+            notes: document.getElementById('editConsumptionNotes').value
+        };
+
+        // Validate required fields
+        if (!formData.date) {
+            alert('Please select a date.');
+            return;
+        }
+
+        if (!formData.productId) {
+            alert('Please select a product.');
+            return;
+        }
+
+        if (!formData.quantity || formData.quantity <= 0) {
+            alert('Please enter a valid quantity.');
+            return;
+        }
+
+        fetch(`/api/inventory/consumption/${consumptionId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Consumption record updated successfully!');
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editConsumptionModal'));
+                modal.hide();
+                // Reload consumption records
+                loadConsumptions();
+            } else {
+                alert('Error updating consumption record: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error saving consumption record:', error);
+            alert('Error saving consumption record. Please try again.');
+        });
+    }
+
+    function loadProductsForEdit() {
+        const productSelect = document.getElementById('editConsumptionProduct');
+        productSelect.innerHTML = '<option value="">Select product</option>';
+        
+        products.forEach(product => {
+            productSelect.innerHTML += `<option value="${product.id}">${product.name}</option>`;
+        });
     }
 
     window.deleteConsumption = function(consumptionId) {
