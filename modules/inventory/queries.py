@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, desc
 from app import db
 from .models import (
-    InventoryProduct, InventoryCategory, InventoryAlert, InventoryConsumption, InventoryBatch, 
+    InventoryProduct, InventoryCategory, InventoryAlert, InventoryConsumption, InventoryBatch,
     InventoryAuditLog, InventoryAdjustment, InventoryTransfer, InventoryLocation
 )
 
@@ -290,13 +290,13 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
         batch = InventoryBatch.query.get(batch_id)
         if not batch:
             raise ValueError("Batch not found")
-        
+
         if batch.is_expired:
             raise ValueError("Cannot consume from expired batch")
-            
+
         if float(quantity) > float(batch.qty_available):
             raise ValueError(f"Insufficient stock. Available: {batch.qty_available}, Required: {quantity}")
-        
+
         # Create consumption record
         consumption = InventoryConsumption(
             batch_id=batch_id,
@@ -306,11 +306,11 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
             notes=notes,
             created_by=user_id
         )
-        
+
         # Update batch quantity
         old_qty = float(batch.qty_available)
         batch.qty_available -= float(quantity)
-        
+
         # Create audit log
         create_audit_log(
             batch_id=batch_id,
@@ -324,7 +324,7 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
             reference_id=consumption.id,
             notes=f"Consumed by: {issued_to}"
         )
-        
+
         db.session.add(consumption)
         db.session.commit()
         return consumption
@@ -340,13 +340,13 @@ def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_
         batch = InventoryBatch.query.get(batch_id)
         if not batch:
             raise ValueError("Batch not found")
-        
+
         # Assign product and location if not already assigned
         if product_id and not batch.product_id:
             batch.product_id = product_id
         if location_id and not batch.location_id:
             batch.location_id = location_id
-        
+
         # Create adjustment record
         adjustment = InventoryAdjustment(
             batch_id=batch_id,
@@ -355,7 +355,7 @@ def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_
             remarks=remarks,
             created_by=user_id
         )
-        
+
         # Update batch quantity
         old_qty = float(batch.qty_available)
         if adjustment_type == 'add':
@@ -366,7 +366,7 @@ def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_
                 raise ValueError(f"Cannot remove {quantity}. Only {old_qty} available.")
             batch.qty_available -= float(quantity)
             quantity_delta = -float(quantity)
-        
+
         # Create audit log
         create_audit_log(
             batch_id=batch_id,
@@ -380,7 +380,7 @@ def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_
             reference_id=adjustment.id,
             notes=remarks
         )
-        
+
         db.session.add(adjustment)
         db.session.commit()
         return adjustment

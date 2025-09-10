@@ -141,13 +141,19 @@ def api_get_locations():
     """Get all locations"""
     try:
         locations = get_all_locations()
-        return jsonify([{
-            'id': l.id,
-            'name': l.name,
-            'type': l.type,
-            'address': l.address,
-            'status': l.status
-        } for l in locations])
+        return jsonify({
+            'locations': [{
+                'id': l.id,
+                'name': l.name,
+                'type': l.type,
+                'address': l.address,
+                'contact_person': l.contact_person,
+                'phone': l.phone,
+                'status': l.status,
+                'total_products': l.total_batches,
+                'total_stock_value': l.total_stock_value
+            } for l in locations]
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
