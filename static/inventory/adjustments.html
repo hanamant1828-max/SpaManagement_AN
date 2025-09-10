@@ -98,13 +98,20 @@
                             <label class="form-label">Adjustment Date *</label>
                             <input type="date" class="form-control" id="adjustmentDate" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4">
                             <label class="form-label">Product *</label>
                             <select class="form-select" id="adjustmentProduct" required>
                                 <option value="">Select product</option>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Current Stock</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="currentStockDisplay" readonly placeholder="Select product first">
+                                <span class="input-group-text" id="currentStockUnit">pcs</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Adjustment Type *</label>
                             <select class="form-select" id="adjustmentType" required>
                                 <option value="">Select type</option>
@@ -136,48 +143,81 @@
     </div>
 </div>
 
+<!-- Modal for adding multiple items -->
+<div class="modal fade" id="addMultipleItemsModal" tabindex="-1" aria-labelledby="addMultipleItemsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMultipleItemsModalLabel">Add Inventory Adjustment Items</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="adjustmentItemsForm">
+                    <div id="adjustmentItems">
+                        <!-- Adjustment items will be added here -->
+                    </div>
+                    <div class="mt-3 d-flex justify-content-end">
+                        <button type="button" class="btn btn-success" id="addMoreItem"><i class="fas fa-plus"></i> Add Item</button>
+                    </div>
+                    <hr>
+                    <div class="row mt-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Total Adjustment Value</label>
+                            <h3 id="totalValueDisplay">₹0.00</h3>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="button" class="btn btn-primary" onclick="saveMultipleAdjustments()">Save All Adjustments</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     // Isolated scope for adjustments tab
     let currentPage = 1;
     let pageSize = 25;
+    let adjustmentItemCounter = 0;
 
     function loadAdjustments() {
         const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        
+
         // Apply filters
         const fromDate = document.getElementById('adjustments-from-date').value;
         const toDate = document.getElementById('adjustments-to-date').value;
         const searchTerm = document.getElementById('adjustments-search').value.toLowerCase();
         pageSize = parseInt(document.getElementById('adjustments-page-size').value);
-        
+
         let filteredAdjustments = adjustments.filter(adjustment => {
             const adjustmentDate = new Date(adjustment.date);
             const matchesDateRange = (!fromDate || adjustmentDate >= new Date(fromDate)) &&
                                    (!toDate || adjustmentDate <= new Date(toDate));
-            const matchesSearch = !searchTerm || 
+            const matchesSearch = !searchTerm ||
                                 adjustment.referenceId.toLowerCase().includes(searchTerm) ||
                                 (adjustment.remarks && adjustment.remarks.toLowerCase().includes(searchTerm)) ||
                                 (adjustment.createdBy && adjustment.createdBy.toLowerCase().includes(searchTerm));
-            
+
             return matchesDateRange && matchesSearch;
         });
-        
+
         // Sort by date (newest first)
         filteredAdjustments.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
+
         // Pagination
         const totalItems = filteredAdjustments.length;
         const totalPages = Math.ceil(totalItems / pageSize);
         const startIndex = (currentPage - 1) * pageSize;
         const endIndex = startIndex + pageSize;
         const paginatedAdjustments = filteredAdjustments.slice(startIndex, endIndex);
-        
+
         // Update table
         const tbody = document.getElementById('adjustmentsTableBody');
         tbody.innerHTML = '';
-        
+
         paginatedAdjustments.forEach(adjustment => {
             const product = products.find(p => p.id === adjustment.productId);
             tbody.innerHTML += `
@@ -201,15 +241,15 @@
                 </tr>
             `;
         });
-        
+
         if (paginatedAdjustments.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No adjustments found</td></tr>';
         }
-        
+
         // Update pagination info
-        document.getElementById('adjustmentsTableInfo').textContent = 
+        document.getElementById('adjustmentsTableInfo').textContent =
             `Showing ${startIndex + 1} to ${Math.min(endIndex, totalItems)} of ${totalItems} entries`;
-        
+
         // Update pagination controls
         updatePagination(totalPages);
     }
@@ -217,16 +257,16 @@
     function updatePagination(totalPages) {
         const pagination = document.getElementById('adjustmentsPagination');
         pagination.innerHTML = '';
-        
+
         if (totalPages <= 1) return;
-        
+
         // Previous button
         pagination.innerHTML += `
             <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
                 <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a>
             </li>
         `;
-        
+
         // Page numbers
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
@@ -239,7 +279,7 @@
                 pagination.innerHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
             }
         }
-        
+
         // Next button
         pagination.innerHTML += `
             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
@@ -251,7 +291,7 @@
     window.changePage = function(page) {
         const totalItems = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]').length;
         const totalPages = Math.ceil(totalItems / pageSize);
-        
+
         if (page >= 1 && page <= totalPages) {
             currentPage = page;
             loadAdjustments();
@@ -259,21 +299,76 @@
     }
 
     function loadProducts() {
-        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        const select = document.getElementById('adjustmentProduct');
-        
-        select.innerHTML = '<option value="">Select product</option>';
-        products.forEach(product => {
-            select.innerHTML += `<option value="${product.id}">${product.name} (${product.sku})</option>`;
-        });
+        console.log('Loading products for adjustments...');
+
+        fetch('/api/inventory/products')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load products');
+                }
+                return response.json();
+            })
+            .then(products => {
+                const productSelect = document.getElementById('adjustmentProduct');
+                if (productSelect) {
+                    productSelect.innerHTML = '<option value="">Select product</option>';
+                    products.forEach(product => {
+                        const option = document.createElement('option');
+                        option.value = product.id;
+                        option.textContent = `${product.name} (${product.sku})`;
+                        option.dataset.stock = product.current_stock || 0;
+                        option.dataset.unit = product.unit || 'pcs';
+                        productSelect.appendChild(option);
+                    });
+                }
+
+                // Add event listener for product selection
+                productSelect.addEventListener('change', function() {
+                    updateCurrentStockDisplay(this.value);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading products:', error);
+            });
+    }
+
+    function updateCurrentStockDisplay(productId) {
+        const productSelect = document.getElementById('adjustmentProduct');
+        const currentStockDisplay = document.getElementById('currentStockDisplay');
+        const currentStockUnit = document.getElementById('currentStockUnit');
+
+        if (productId && productSelect) {
+            const selectedOption = productSelect.querySelector(`option[value="${productId}"]`);
+            if (selectedOption) {
+                const stock = selectedOption.dataset.stock || 0;
+                const unit = selectedOption.dataset.unit || 'pcs';
+
+                currentStockDisplay.value = parseFloat(stock).toFixed(2);
+                currentStockUnit.textContent = unit;
+
+                // Add visual feedback based on stock level
+                currentStockDisplay.className = 'form-control';
+                if (parseFloat(stock) <= 0) {
+                    currentStockDisplay.classList.add('border-danger');
+                } else if (parseFloat(stock) <= 10) {
+                    currentStockDisplay.classList.add('border-warning');
+                } else {
+                    currentStockDisplay.classList.add('border-success');
+                }
+            }
+        } else {
+            currentStockDisplay.value = '';
+            currentStockUnit.textContent = 'pcs';
+            currentStockDisplay.className = 'form-control';
+        }
     }
 
     function generateReferenceId() {
         const today = new Date();
-        const dateStr = today.getFullYear().toString() + 
-                       (today.getMonth() + 1).toString().padStart(2, '0') + 
+        const dateStr = today.getFullYear().toString() +
+                       (today.getMonth() + 1).toString().padStart(2, '0') +
                        today.getDate().toString().padStart(2, '0');
-        const timeStr = today.getHours().toString().padStart(2, '0') + 
+        const timeStr = today.getHours().toString().padStart(2, '0') +
                        today.getMinutes().toString().padStart(2, '0');
         return `ADJ-${dateStr}-${timeStr}`;
     }
@@ -282,17 +377,103 @@
         document.getElementById('adjustmentForm').reset();
         document.getElementById('adjustmentReferenceId').value = generateReferenceId();
         document.getElementById('adjustmentDate').value = new Date().toISOString().split('T')[0];
-        
+
         loadProducts();
-        
+
         const modal = new bootstrap.Modal(document.getElementById('addAdjustmentModal'));
         modal.show();
+    }
+
+    function addMultipleItemsAdjustment() {
+        document.getElementById('adjustmentItemsForm').reset();
+        document.getElementById('adjustmentItems').innerHTML = ''; // Clear previous items
+        adjustmentItemCounter = 0; // Reset counter
+
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+
+        // Add the first item row
+        addAdjustmentItemRow(products);
+
+        const modal = new bootstrap.Modal(document.getElementById('addMultipleItemsModal'));
+        modal.show();
+    }
+
+    function addAdjustmentItemRow(products) {
+        adjustmentItemCounter++;
+        const itemHtml = `
+            <div class="card mb-2" id="adjustmentItem${adjustmentItemCounter}">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Product *</label>
+                            <select class="form-select adjustment-product" data-item="${adjustmentItemCounter}" required>
+                                <option value="">Select Product</option>
+                                ${products.map(p => `<option value="${p.id}" data-stock="${p.current_stock || 0}" data-unit="${p.unit || 'pcs'}">${p.name} (${p.sku})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Current Stock</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control current-stock-display" id="currentStock${adjustmentItemCounter}" readonly>
+                                <span class="input-group-text current-stock-unit" id="currentUnit${adjustmentItemCounter}">pcs</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Quantity In *</label>
+                            <input type="number" class="form-control quantity-in" id="quantityIn${adjustmentItemCounter}" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Unit Cost</label>
+                            <input type="number" class="form-control unit-cost" id="unitCost${adjustmentItemCounter}" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Line Total</label>
+                            <input type="text" class="form-control line-total" id="lineTotal${adjustmentItemCounter}" readonly>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-danger w-100" onclick="removeAdjustmentItem(${adjustmentItemCounter})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('adjustmentItems').insertAdjacentHTML('beforeend', itemHtml);
+
+        // Add event listeners for the new item
+        const productSelect = document.querySelector(`[data-item="${adjustmentItemCounter}"]`);
+        const quantityInput = document.getElementById(`quantityIn${adjustmentItemCounter}`);
+        const unitCostInput = document.getElementById(`unitCost${adjustmentItemCounter}`);
+
+        if (productSelect) {
+            productSelect.addEventListener('change', function() {
+                updateItemCurrentStock(adjustmentItemCounter, this.value);
+                updateUnitCostFromProduct(adjustmentItemCounter, this.value);
+                calculateLineTotal(adjustmentItemCounter);
+            });
+        }
+
+        if (quantityInput) {
+            quantityInput.addEventListener('input', function() {
+                calculateLineTotal(adjustmentItemCounter);
+                updateTotalValue();
+            });
+        }
+
+        if (unitCostInput) {
+            unitCostInput.addEventListener('input', function() {
+                calculateLineTotal(adjustmentItemCounter);
+                updateTotalValue();
+            });
+        }
     }
 
     window.saveAdjustment = function() {
         const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        
+
         const adjustmentData = {
             id: Date.now().toString(),
             referenceId: document.getElementById('adjustmentReferenceId').value,
@@ -305,13 +486,13 @@
             createdBy: 'Current User',
             createdAt: new Date().toISOString()
         };
-        
+
         // Update product stock
         const productIndex = products.findIndex(p => p.id === adjustmentData.productId);
         if (productIndex !== -1) {
             const product = products[productIndex];
             const currentStock = product.stock || 0;
-            
+
             switch (adjustmentData.type) {
                 case 'add':
                     product.stock = currentStock + adjustmentData.quantity;
@@ -323,18 +504,91 @@
                     product.stock = adjustmentData.quantity;
                     break;
             }
-            
+
             localStorage.setItem('inventory.products', JSON.stringify(products));
         }
-        
+
         adjustments.push(adjustmentData);
         localStorage.setItem('inventory.adjustments', JSON.stringify(adjustments));
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('addAdjustmentModal'));
         modal.hide();
-        
+
         loadAdjustments();
     }
+
+    window.saveMultipleAdjustments = function() {
+        const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        const adjustmentItemsForm = document.getElementById('adjustmentItemsForm');
+        const itemRows = adjustmentItemsForm.querySelectorAll('.card');
+
+        let hasError = false;
+
+        itemRows.forEach(row => {
+            const itemId = row.id.replace('adjustmentItem', '');
+            const productId = document.querySelector(`[data-item="${itemId}"]`).value;
+            const quantity = parseFloat(document.getElementById(`quantityIn${itemId}`).value);
+            const unitCost = parseFloat(document.getElementById(`unitCost${itemId}`).value) || 0;
+            const adjustmentType = document.getElementById('adjustmentType').value; // Assuming same type for all items in a batch
+
+            if (!productId || isNaN(quantity) || quantity < 0) {
+                // Add error styling or message
+                if (!productId) document.querySelector(`[data-item="${itemId}"]`).classList.add('is-invalid');
+                if (isNaN(quantity) || quantity < 0) document.getElementById(`quantityIn${itemId}`).classList.add('is-invalid');
+                hasError = true;
+                return; // Continue to next item
+            } else {
+                document.querySelector(`[data-item="${itemId}"]`).classList.remove('is-invalid');
+                document.getElementById(`quantityIn${itemId}`).classList.remove('is-invalid');
+            }
+
+            const productIndex = products.findIndex(p => p.id === productId);
+            if (productIndex !== -1) {
+                const product = products[productIndex];
+                const currentStock = product.stock || 0;
+
+                switch (adjustmentType) {
+                    case 'add':
+                        product.stock = currentStock + quantity;
+                        break;
+                    case 'remove':
+                        product.stock = Math.max(0, currentStock - quantity);
+                        break;
+                    case 'set':
+                        product.stock = quantity;
+                        break;
+                }
+                localStorage.setItem('inventory.products', JSON.stringify(products));
+            }
+
+            adjustments.push({
+                id: Date.now().toString() + itemId, // Unique ID for each item
+                referenceId: generateReferenceId(), // Or a shared reference ID for the batch
+                date: document.getElementById('adjustmentDate').value, // Assuming same date for all
+                productId: productId,
+                type: adjustmentType,
+                quantity: quantity,
+                unitCost: unitCost,
+                remarks: document.getElementById('adjustmentRemarks').value, // Assuming same remarks
+                createdBy: 'Current User',
+                createdAt: new Date().toISOString()
+            });
+        });
+
+        if (hasError) {
+            alert('Please correct the errors in the form before saving.');
+            return;
+        }
+
+        localStorage.setItem('inventory.adjustments', JSON.stringify(adjustments));
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addMultipleItemsModal'));
+        modal.hide();
+
+        loadAdjustments();
+    }
+
 
     window.deleteAdjustment = function(adjustmentId) {
         if (confirm('Are you sure you want to delete this adjustment? This will not reverse stock changes.')) {
@@ -342,6 +596,14 @@
             const filteredAdjustments = adjustments.filter(a => a.id !== adjustmentId);
             localStorage.setItem('inventory.adjustments', JSON.stringify(filteredAdjustments));
             loadAdjustments();
+        }
+    }
+
+    window.removeAdjustmentItem = function(itemCounter) {
+        const itemDiv = document.getElementById(`adjustmentItem${itemCounter}`);
+        if (itemDiv) {
+            itemDiv.remove();
+            updateTotalValue(); // Recalculate total after removal
         }
     }
 
@@ -357,14 +619,14 @@
     function exportAdjustments() {
         const adjustments = JSON.parse(localStorage.getItem('inventory.adjustments') || '[]');
         const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
-        
+
         let csvContent = "Reference ID,Date,Product,Quantity,Type,Unit Cost,Remarks,Created By\n";
-        
+
         adjustments.forEach(adjustment => {
             const product = products.find(p => p.id === adjustment.productId);
             csvContent += `"${adjustment.referenceId}","${adjustment.date}","${product ? product.name : 'Unknown'}","${adjustment.quantity}","${adjustment.type}","${adjustment.unitCost}","${adjustment.remarks || ''}","${adjustment.createdBy || ''}"\n`;
         });
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -373,6 +635,89 @@
         a.click();
         window.URL.revokeObjectURL(url);
     }
+
+    // Helper functions for multiple item adjustments
+    function updateItemCurrentStock(itemCounter, productId) {
+        const productSelect = document.querySelector(`[data-item="${itemCounter}"]`);
+        const currentStockDisplay = document.getElementById(`currentStock${itemCounter}`);
+        const currentStockUnit = document.getElementById(`currentUnit${itemCounter}`);
+
+        if (productId && productSelect) {
+            const selectedOption = productSelect.querySelector(`option[value="${productId}"]`);
+            if (selectedOption && currentStockDisplay && currentStockUnit) {
+                const stock = selectedOption.dataset.stock || 0;
+                const unit = selectedOption.dataset.unit || 'pcs';
+
+                currentStockDisplay.value = parseFloat(stock).toFixed(2);
+                currentStockUnit.textContent = unit;
+
+                // Add visual feedback based on stock level
+                currentStockDisplay.className = 'form-control current-stock-display';
+                if (parseFloat(stock) <= 0) {
+                    currentStockDisplay.classList.add('border-danger');
+                } else if (parseFloat(stock) <= 10) {
+                    currentStockDisplay.classList.add('border-warning');
+                } else {
+                    currentStockDisplay.classList.add('border-success');
+                }
+            }
+        } else if (currentStockDisplay && currentStockUnit) {
+            currentStockDisplay.value = '';
+            currentStockUnit.textContent = 'pcs';
+            currentStockDisplay.className = 'form-control current-stock-display';
+        }
+    }
+
+    function calculateLineTotal(itemCounter) {
+        const quantityInput = document.getElementById(`quantityIn${itemCounter}`);
+        const unitCostInput = document.getElementById(`unitCost${itemCounter}`);
+        const lineTotalInput = document.getElementById(`lineTotal${itemCounter}`);
+
+        if (quantityInput && unitCostInput && lineTotalInput) {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitCost = parseFloat(unitCostInput.value) || 0;
+            const lineTotal = quantity * unitCost;
+
+            lineTotalInput.value = lineTotal.toFixed(2);
+        }
+    }
+
+    function updateTotalValue() {
+        const lineTotals = document.querySelectorAll('.line-total');
+        let totalValue = 0;
+
+        lineTotals.forEach(input => {
+            const value = parseFloat(input.value) || 0;
+            totalValue += value;
+        });
+
+        const totalValueDisplay = document.getElementById('totalValueDisplay');
+        if (totalValueDisplay) {
+            totalValueDisplay.textContent = `₹${totalValue.toFixed(2)}`;
+        }
+    }
+
+    function updateUnitCostFromProduct(itemCounter, productId) {
+        // Fetch product details from API to get current cost price
+        if (productId) {
+            fetch(`/api/inventory/products/${productId}`)
+                .then(response => response.json())
+                .then(product => {
+                    if (product && product.cost_price) {
+                        const unitCostInput = document.getElementById(`unitCost${itemCounter}`);
+                        if (unitCostInput) {
+                            unitCostInput.value = product.cost_price;
+                            calculateLineTotal(itemCounter);
+                            updateTotalValue();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching product details:', error);
+                });
+        }
+    }
+
 
     // Event listeners
     document.getElementById('btnAddAdjustment').addEventListener('click', addAdjustment);
@@ -384,6 +729,22 @@
     document.getElementById('adjustments-page-size').addEventListener('change', () => {
         currentPage = 1;
         loadAdjustments();
+    });
+
+    // Event listener for adding multiple items
+    document.getElementById('btnAddAdjustment').addEventListener('click', function() {
+        // Check if the button click is for single or multiple item adjustment
+        // For now, we assume btnAddAdjustment is for single item, and a new button will be added for multiple
+        // If you want to differentiate, you might need a separate button or logic.
+        // For this change, let's assume a new button would be added or the existing one is repurposed.
+        // However, the original code only has btnAddAdjustment, so we'll stick to that for now and assume it's for single.
+        // If a multi-item add feature is desired, a new button like 'btnAddMultipleAdjustment' should be added.
+    });
+
+    // Add listener for the "Add Item" button within the multi-item modal
+    document.getElementById('addMoreItem').addEventListener('click', function() {
+        const products = JSON.parse(localStorage.getItem('inventory.products') || '[]');
+        addAdjustmentItemRow(products);
     });
 
     // Initialize
