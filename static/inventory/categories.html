@@ -73,6 +73,48 @@
     </div>
 </div>
 
+<!-- View Category Modal -->
+<div class="modal fade" id="viewCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Category Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Category Name</strong></label>
+                        <p id="viewCategoryName" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Description</strong></label>
+                        <p id="viewCategoryDescription" class="form-control-plaintext border rounded p-2 bg-light" style="min-height: 80px;"></p>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label"><strong>Color</strong></label>
+                        <div class="d-flex align-items-center">
+                            <span id="viewCategoryColorBadge" class="badge rounded-pill me-2" style="width: 30px; height: 30px;">&nbsp;</span>
+                            <span id="viewCategoryColorCode" class="text-muted"></span>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label"><strong>Status</strong></label>
+                        <p id="viewCategoryStatus" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label"><strong>Products in Category</strong></label>
+                        <p id="viewCategoryProductCount" class="form-control-plaintext border rounded p-2 bg-light"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     // Isolated scope for categories tab
@@ -127,13 +169,18 @@
                         </span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory('${category.id}')" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('${category.id}')" title="Delete" 
-                                ${productCount > 0 ? 'disabled' : ''}>
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-info btn-sm" onclick="viewCategory('${category.id}')" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="editCategory('${category.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteCategory('${category.id}')" title="Delete" 
+                                    ${productCount > 0 ? 'disabled' : ''}>
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -158,6 +205,41 @@
         document.getElementById('categoryActive').checked = true;
         const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
         modal.show();
+    }
+
+    // View category function
+    window.viewCategory = async function(categoryId) {
+        try {
+            // Fetch category data from API
+            const response = await fetch(`/api/inventory/categories/${categoryId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const category = await response.json();
+
+            // Fetch products to count them for this category
+            const productsResponse = await fetch('/api/products');
+            if (!productsResponse.ok) {
+                throw new Error(`HTTP error! status: ${productsResponse.status}`);
+            }
+            const products = await productsResponse.json();
+            const productCount = products.filter(p => p.categoryId === categoryId).length;
+
+            // Populate view modal with data
+            document.getElementById('viewCategoryName').textContent = category.name || '-';
+            document.getElementById('viewCategoryDescription').textContent = category.description || 'No description available';
+            document.getElementById('viewCategoryColorBadge').style.backgroundColor = category.color_code || '#6c757d';
+            document.getElementById('viewCategoryColorCode').textContent = category.color_code || '#6c757d';
+            document.getElementById('viewCategoryStatus').innerHTML = `<span class="badge bg-${category.is_active ? 'success' : 'secondary'}">${category.is_active ? 'Active' : 'Inactive'}</span>`;
+            document.getElementById('viewCategoryProductCount').textContent = `${productCount} products assigned to this category`;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('viewCategoryModal'));
+            modal.show();
+        } catch (error) {
+            console.error('Error loading category details:', error);
+            alert('Error loading category details. Please try again.');
+        }
     }
 
     window.editCategory = async function(categoryId) {
