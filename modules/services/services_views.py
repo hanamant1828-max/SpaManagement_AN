@@ -67,12 +67,17 @@ def services():
         
         services_list = get_all_services()
         
+        # Get categories for service management
+        from models import Category
+        categories = Category.query.filter_by(category_type='service').all()
+        
         form = ServiceForm()
         
         print(f"Services loaded: {len(services_list)} services")
         
         return render_template('services.html', 
                              services=services_list,
+                             categories=categories,
                              form=form)
     except Exception as e:
         print(f"Error in services route: {str(e)}")
@@ -377,3 +382,126 @@ def get_service_api(service_id):
     except Exception as e:
         return jsonify({'error': str(e)})
 
+
+@app.route('/create_service_category', methods=['POST'])
+@login_required
+def create_service_category():
+    """Create a new service category"""
+    try:
+        from .services_queries import create_category
+        
+        if not current_user.can_access('services'):
+            flash('Access denied', 'danger')
+            return redirect(url_for('services'))
+        
+        # Get form data
+        data = {
+            'name': request.form.get('name', '').strip().lower().replace(' ', '_'),
+            'display_name': request.form.get('display_name', '').strip(),
+            'description': request.form.get('description', '').strip(),
+            'color': request.form.get('color', '#007bff'),
+            'sort_order': int(request.form.get('sort_order', 0)),
+            'is_active': bool(request.form.get('is_active', False))
+        }
+        
+        # Validation
+        if not data['name'] or not data['display_name']:
+            flash('Category name and display name are required', 'danger')
+            return redirect(url_for('services'))
+        
+        # Create the category
+        category = create_category(data)
+        flash(f'Category "{category.display_name}" created successfully', 'success')
+        
+    except Exception as e:
+        flash(f'Error creating category: {str(e)}', 'danger')
+    
+    return redirect(url_for('services'))
+
+# Category management routes
+@app.route('/api/service-categories/<int:category_id>')
+@login_required
+def api_get_service_category(category_id):
+    """Get category data for AJAX calls"""
+    if not current_user.can_access('services'):
+        return jsonify({'error': 'Access denied'})
+    
+    try:
+        from models import Category
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({'error': 'Category not found'})
+            
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'display_name': category.display_name,
+            'description': category.description,
+            'color': category.color,
+            'sort_order': category.sort_order,
+            'is_active': category.is_active
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/service-categories/<int:category_id>/edit', methods=['POST'])
+@login_required
+def edit_service_category(category_id):
+    """Edit service category"""
+    if not current_user.can_access('services'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('services'))
+    
+    try:
+        from models import Category
+        category = Category.query.get(category_id)
+        if not category:
+            flash('Category not found', 'danger')
+            return redirect(url_for('services'))
+        
+        # Update category data
+        category.display_name = request.form.get('display_name', '').strip()
+        category.description = request.form.get('description', '').strip()
+        category.color = request.form.get('color', '#007bff')
+        category.sort_order = int(request.form.get('sort_order', 0))
+        category.is_active = bool(request.form.get('is_active', False))
+        
+        # Validation
+        if not category.display_name:
+            flash('Category display name is required', 'danger')
+            return redirect(url_for('services'))
+        
+        db.session.commit()
+        flash(f'Category "{category.display_name}" updated successfully', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating category: {str(e)}', 'danger')
+    
+    return redirect(url_for('services'))
+
+@app.route('/service-categories/<int:category_id>/toggle', methods=['POST'])
+@login_required
+def toggle_service_category(category_id):
+    """Toggle service category active status"""
+    if not current_user.can_access('services'):
+        return jsonify({'success': False, 'message': 'Access denied'})
+    
+    try:
+        from models import Category
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({'success': False, 'message': 'Category not found'})
+        
+        category.is_active = not category.is_active
+        db.session.commit()
+        
+        status = 'activated' if category.is_active else 'deactivated'
+        return jsonify({
+            'success': True, 
+            'message': f'Category {status} successfully',
+            'is_active': category.is_active
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})

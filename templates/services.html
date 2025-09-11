@@ -598,7 +598,7 @@ function deleteService(serviceId) {
 
 function editCategory(categoryId) {
     // Fetch category data and populate edit modal
-    fetch(`/api/categories/${categoryId}`)
+    fetch(`/api/service-categories/${categoryId}`)
     .then(response => response.json())
     .then(data => {
         if (data.error) {

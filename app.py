@@ -23,12 +23,12 @@ app.secret_key = os.environ.get("SESSION_SECRET")
 if not app.secret_key:
     raise ValueError("SESSION_SECRET environment variable is required for secure operation")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
-app.config['WTF_CSRF_ENABLED'] = False
-app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
-app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
+# CSRF protection is enabled by default with CSRFProtect(app)
+app.config['SESSION_COOKIE_SECURE'] = True  # Require HTTPS for security
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JS access to session cookies
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Secure default for same-site requests
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
 
 
 # Configure the database - PostgreSQL
@@ -58,11 +58,17 @@ def after_request(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
 
-    # CORS headers for webview compatibility
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    response.headers['X-Frame-Options'] = 'ALLOWALL'
+    # Secure headers for production
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['Content-Security-Policy'] = "frame-ancestors 'self' https://*.replit.com https://*.repl.co"
+    
+    # CORS headers only for trusted Replit origins if needed
+    origin = request.headers.get('Origin')
+    if origin and ('replit.com' in origin or 'repl.co' in origin):
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
     return response
 
 @login_manager.user_loader
