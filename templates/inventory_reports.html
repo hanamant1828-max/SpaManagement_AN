@@ -205,17 +205,34 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <label for="reportType" class="form-label fw-bold">Choose Report Type:</label>
-                        <select class="form-select form-select-lg" id="reportType">
+                        <select class="form-select form-select-lg" id="reportType" onchange="toggleDateRangeFields()">
                             <option value="">-- Select a Report Type --</option>
                             <option value="product-wise">Product-wise Report (Current Quantities)</option>
                             <option value="batch-wise">Batch-wise Report (Current Quantities)</option>
-                            <option value="consumption-today">Today's Consumption Report</option>
+                            <option value="consumption">Consumption Report (Custom Date Range)</option>
+                            <option value="adjustments">Stock Adjustments Report (Custom Date Range)</option>
                             <option value="item-batch-wise">Item-wise Batch-wise Report (Detailed)</option>
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
+                    <div class="col-md-6">
+                        <div id="dateRangeFields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="startDate" class="form-label fw-bold">Start Date:</label>
+                                    <input type="date" class="form-control" id="startDate" value="">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="endDate" class="form-label fw-bold">End Date:</label>
+                                    <input type="date" class="form-control" id="endDate" value="">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
                         <button class="btn btn-primary w-100" onclick="generateReport()">
                             <i class="fas fa-chart-line me-2"></i>Generate Report
                         </button>
@@ -275,6 +292,29 @@
         // Set current date
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
 
+        // Toggle date range fields based on report type
+        function toggleDateRangeFields() {
+            const reportType = document.getElementById('reportType').value;
+            const dateRangeFields = document.getElementById('dateRangeFields');
+            
+            // Show date range fields for reports that support filtering
+            if (reportType === 'consumption' || reportType === 'adjustments') {
+                dateRangeFields.style.display = 'block';
+                setDefaultDates();
+            } else {
+                dateRangeFields.style.display = 'none';
+            }
+        }
+
+        // Set default date values
+        function setDefaultDates() {
+            const today = new Date();
+            const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = oneWeekAgo.toISOString().split('T')[0];
+        }
+
         // Generate report function
         function generateReport() {
             const reportType = document.getElementById('reportType').value;
@@ -284,12 +324,38 @@
                 return;
             }
 
+            // Validate date range for date-sensitive reports
+            if (reportType === 'consumption' || reportType === 'adjustments') {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+                
+                if (new Date(startDate) > new Date(endDate)) {
+                    alert('Start date cannot be after end date');
+                    return;
+                }
+            }
+
             // Show loading spinner
             document.getElementById('loadingSpinner').style.display = 'block';
             document.getElementById('reportResults').style.display = 'none';
 
+            // Build API URL with parameters
+            let apiUrl = `/api/inventory/reports/${reportType}`;
+            
+            // Add date parameters for date-sensitive reports
+            if (reportType === 'consumption' || reportType === 'adjustments') {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                apiUrl += `?start_date=${startDate}&end_date=${endDate}`;
+            }
+
             // Make API call
-            fetch(`/api/inventory/reports/${reportType}`)
+            fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('loadingSpinner').style.display = 'none';
@@ -337,11 +403,22 @@
                         `Total Batches: ${data.data.length}`);
                     break;
                     
-                case 'consumption-today':
+                case 'consumption':
                     generateConsumptionTable(data.data, reportTableHead, reportTableBody);
+                    const consumptionSummary = data.summary ? 
+                        `Items Consumed: ${data.summary.total_items_consumed} | Total Quantity: ${data.summary.total_quantity_consumed}` :
+                        `Total Records: ${data.data.length}`;
                     showSummary(reportSummary, summaryTitle, summaryDetails, 
-                        'Today\'s Consumption Summary', 
-                        `Items Consumed: ${data.summary.total_items_consumed} | Total Quantity: ${data.summary.total_quantity_consumed}`);
+                        'Consumption Report Summary', consumptionSummary);
+                    break;
+                    
+                case 'adjustments':
+                    generateAdjustmentsTable(data.data, reportTableHead, reportTableBody);
+                    const adjustmentsSummary = data.summary ? 
+                        `Total Adjustments: ${data.summary.total_adjustments} | Net Quantity Change: ${data.summary.net_quantity_change}` :
+                        `Total Records: ${data.data.length}`;
+                    showSummary(reportSummary, summaryTitle, summaryDetails, 
+                        'Stock Adjustments Summary', adjustmentsSummary);
                     break;
                     
                 case 'item-batch-wise':
@@ -426,7 +503,7 @@
         function generateConsumptionTable(data, head, body) {
             head.innerHTML = `
                 <tr>
-                    <th>Time</th>
+                    <th>Date/Time</th>
                     <th>Product</th>
                     <th>Batch</th>
                     <th>Quantity Consumed</th>
@@ -438,13 +515,49 @@
 
             body.innerHTML = data.map(item => `
                 <tr>
-                    <td>${new Date(item.consumption_date).toLocaleTimeString()}</td>
+                    <td>${new Date(item.consumption_date).toLocaleString()}</td>
                     <td><strong>${item.product_name}</strong><br><small class="text-muted">${item.sku}</small></td>
                     <td><code>${item.batch_name}</code></td>
                     <td class="text-end">${item.quantity_consumed} <small class="text-muted">${item.unit_of_measure}</small></td>
                     <td><span class="badge bg-info">${item.purpose}</span></td>
                     <td>${item.staff_member}</td>
                     <td><small>${item.notes || '-'}</small></td>
+                </tr>
+            `).join('');
+        }
+
+        // Generate adjustments table
+        function generateAdjustmentsTable(data, head, body) {
+            head.innerHTML = `
+                <tr>
+                    <th>Date/Time</th>
+                    <th>Product</th>
+                    <th>Batch</th>
+                    <th>Adjustment Type</th>
+                    <th>Quantity Change</th>
+                    <th>Staff Member</th>
+                    <th>Reason</th>
+                </tr>
+            `;
+
+            body.innerHTML = data.map(item => `
+                <tr>
+                    <td>${new Date(item.adjustment_date).toLocaleString()}</td>
+                    <td><strong>${item.product_name}</strong><br><small class="text-muted">${item.sku}</small></td>
+                    <td><code>${item.batch_name}</code></td>
+                    <td>
+                        <span class="badge ${item.adjustment_type === 'increase' ? 'bg-success' : 'bg-warning'}">
+                            ${item.adjustment_type.toUpperCase()}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <span class="${item.quantity_change > 0 ? 'text-success' : 'text-warning'}">
+                            ${item.quantity_change > 0 ? '+' : ''}${item.quantity_change} 
+                            <small class="text-muted">${item.unit_of_measure}</small>
+                        </span>
+                    </td>
+                    <td>${item.staff_member}</td>
+                    <td><small>${item.reason || '-'}</small></td>
                 </tr>
             `).join('');
         }
