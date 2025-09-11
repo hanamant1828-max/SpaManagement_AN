@@ -1323,3 +1323,256 @@ def api_get_inventory_status():
     except Exception as e:
         print(f"Error getting inventory status: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# =============================================================================
+# INVENTORY REPORTS SECTION
+# =============================================================================
+
+@app.route('/inventory/reports')
+@login_required
+def inventory_reports():
+    """Inventory reports page with dropdown selection"""
+    if not current_user.can_access('inventory'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        return render_template('inventory_reports.html')
+    except Exception as e:
+        print(f"Inventory reports error: {e}")
+        flash('Error loading inventory reports', 'danger')
+        return redirect(url_for('inventory_dashboard'))
+
+
+@app.route('/api/inventory/reports/product-wise', methods=['GET'])
+@login_required
+def api_get_product_wise_report():
+    """Get product-wise report with current quantities"""
+    # Authorization check
+    if not current_user.can_access('inventory'):
+        return jsonify({
+            'success': False,
+            'error': 'Access denied. You do not have permission to access inventory reports.'
+        }), 403
+    
+    try:
+        from sqlalchemy.orm import joinedload
+        
+        # Use joinedload to prevent N+1 queries
+        products = InventoryProduct.query.options(
+            joinedload(InventoryProduct.category),
+            joinedload(InventoryProduct.batches)
+        ).filter(InventoryProduct.is_active == True).all()
+        
+        report_data = []
+        for product in products:
+            # Calculate current stock from active batches
+            total_qty = sum(float(batch.qty_available or 0) for batch in product.batches if batch.status == 'active')
+            total_value = sum(float(batch.qty_available or 0) * float(batch.unit_cost or 0) for batch in product.batches if batch.status == 'active')
+            batch_count = len([b for b in product.batches if b.status == 'active'])
+            
+            # Determine stock status
+            if total_qty <= 0:
+                status = 'out_of_stock'
+            elif total_qty <= 10:
+                status = 'low_stock'
+            else:
+                status = 'in_stock'
+            
+            report_data.append({
+                'product_name': product.name,
+                'sku': product.sku,
+                'category': product.category.name if product.category else 'Uncategorized',
+                'unit_of_measure': product.unit_of_measure or 'pcs',
+                'current_quantity': total_qty,
+                'total_value': round(total_value, 2),
+                'batch_count': batch_count,
+                'status': status
+            })
+        
+        return jsonify({
+            'success': True,
+            'report_type': 'Product-wise Report',
+            'data': report_data,
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error generating product-wise report: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/inventory/reports/batch-wise', methods=['GET'])
+@login_required  
+def api_get_batch_wise_report():
+    """Get batch-wise report with current quantities"""
+    # Authorization check
+    if not current_user.can_access('inventory'):
+        return jsonify({
+            'success': False,
+            'error': 'Access denied. You do not have permission to access inventory reports.'
+        }), 403
+    
+    try:
+        from sqlalchemy.orm import joinedload
+        
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).filter(InventoryBatch.status == 'active').all()
+        
+        report_data = []
+        for batch in batches:
+            total_value = float(batch.qty_available or 0) * float(batch.unit_cost or 0)
+            
+            report_data.append({
+                'batch_name': batch.batch_name,
+                'product_name': batch.product.name if batch.product else 'Unknown',
+                'sku': batch.product.sku if batch.product else 'N/A',
+                'location': batch.location.name if batch.location else 'Unknown',
+                'current_quantity': float(batch.qty_available or 0),
+                'unit_of_measure': batch.product.unit_of_measure if batch.product else 'pcs',
+                'unit_cost': float(batch.unit_cost or 0),
+                'total_value': round(total_value, 2),
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'report_type': 'Batch-wise Report',
+            'data': report_data,
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error generating batch-wise report: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/inventory/reports/consumption-today', methods=['GET'])
+@login_required
+def api_get_consumption_today_report():
+    """Get today's consumption report"""
+    # Authorization check
+    if not current_user.can_access('inventory'):
+        return jsonify({
+            'success': False,
+            'error': 'Access denied. You do not have permission to access inventory reports.'
+        }), 403
+    
+    try:
+        from sqlalchemy.orm import joinedload
+        
+        today = date.today()
+        consumption_records = InventoryConsumption.query.options(
+            joinedload(InventoryConsumption.batch).joinedload(InventoryBatch.product),
+            joinedload(InventoryConsumption.user)
+        ).filter(
+            db.func.date(InventoryConsumption.created_at) == today
+        ).all()
+        
+        report_data = []
+        for record in consumption_records:
+            batch = record.batch
+            product = batch.product if batch else None
+            
+            report_data.append({
+                'consumption_date': record.created_at.isoformat() if record.created_at else None,
+                'batch_name': batch.batch_name if batch else 'Unknown',
+                'product_name': product.name if product else 'Unknown',
+                'sku': product.sku if product else 'N/A',
+                'quantity_consumed': float(record.quantity or 0),
+                'unit_of_measure': product.unit_of_measure if product else 'pcs',
+                'purpose': record.issued_to or 'Service',
+                'staff_member': record.user.username if record.user else 'Unknown',
+                'notes': record.notes or ''
+            })
+        
+        total_consumed_items = len(report_data)
+        total_quantity_consumed = sum(float(record['quantity_consumed']) for record in report_data)
+        
+        return jsonify({
+            'success': True,
+            'report_type': 'Today\'s Consumption Report',
+            'data': report_data,
+            'summary': {
+                'total_items_consumed': total_consumed_items,
+                'total_quantity_consumed': total_quantity_consumed,
+                'report_date': today.isoformat()
+            },
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error generating consumption report: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/inventory/reports/item-batch-wise', methods=['GET'])
+@login_required
+def api_get_item_batch_wise_report():
+    """Get item-wise batch-wise detailed report"""
+    # Authorization check
+    if not current_user.can_access('inventory'):
+        return jsonify({
+            'success': False,
+            'error': 'Access denied. You do not have permission to access inventory reports.'
+        }), 403
+    
+    try:
+        from sqlalchemy.orm import joinedload
+        
+        # Get all products with their batches
+        products = InventoryProduct.query.options(
+            joinedload(InventoryProduct.category),
+            joinedload(InventoryProduct.batches).joinedload(InventoryBatch.location)
+        ).filter(InventoryProduct.is_active == True).all()
+        
+        report_data = []
+        for product in products:
+            # Get all active batches for this product
+            active_batches = [b for b in product.batches if b.status == 'active']
+            
+            # Calculate product totals
+            total_qty = sum(float(batch.qty_available or 0) for batch in active_batches)
+            total_value = sum(float(batch.qty_available or 0) * float(batch.unit_cost or 0) for batch in active_batches)
+            
+            # Create product entry with batch details
+            product_entry = {
+                'product_name': product.name,
+                'sku': product.sku,
+                'category': product.category.name if product.category else 'Uncategorized',
+                'unit_of_measure': product.unit_of_measure or 'pcs',
+                'total_quantity': total_qty,
+                'total_value': round(total_value, 2),
+                'batch_count': len(active_batches),
+                'batches': []
+            }
+            
+            # Add batch details
+            for batch in active_batches:
+                batch_value = float(batch.qty_available or 0) * float(batch.unit_cost or 0)
+                product_entry['batches'].append({
+                    'batch_name': batch.batch_name,
+                    'location': batch.location.name if batch.location else 'Unknown',
+                    'quantity': float(batch.qty_available or 0),
+                    'unit_cost': float(batch.unit_cost or 0),
+                    'total_value': round(batch_value, 2),
+                    'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                    'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None
+                })
+            
+            report_data.append(product_entry)
+        
+        return jsonify({
+            'success': True,
+            'report_type': 'Item-wise Batch-wise Report',
+            'data': report_data,
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error generating item-batch-wise report: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
