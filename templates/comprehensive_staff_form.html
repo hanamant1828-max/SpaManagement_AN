@@ -285,7 +285,7 @@
                                 <i class="fas fa-plus me-1"></i>Add Schedule Range
                             </button>
                         </div>
-                        
+
                         <!-- Existing Schedule Ranges -->
                         <div id="scheduleRangesList" class="mb-4">
                             <div class="alert alert-info">
@@ -330,6 +330,49 @@
                     </div>
                 </div>
 
+                <!-- Schedule Generation Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>Generate Work Schedule
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="fromDate" class="form-label">From Date</label>
+                                <input type="date" id="fromDate" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="toDate" class="form-label">To Date</label>
+                                <input type="date" id="toDate" class="form-control">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="button" class="btn btn-info" onclick="generateSchedule()">
+                                    <i class="fas fa-magic me-2"></i>Generate Schedule
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive" id="scheduleContainer" style="display: none;">
+                            <table class="table table-striped" id="scheduleTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Day</th>
+                                        <th>Working</th>
+                                        <th>Start Time</th>
+                                        <th>End Time</th>
+                                        <th>Break (min)</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Schedule Range Modal -->
                 <div class="modal fade" id="scheduleRangeModal" tabindex="-1" aria-labelledby="scheduleRangeModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
@@ -360,7 +403,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="mb-3">
@@ -622,14 +665,14 @@
 
                 <!-- Submit Button -->
                 <div class="text-center">
-                    <button type="submit" class="btn btn-primary btn-lg me-3" id="submitBtn">
+                    <button type="submit" class="btn btn-primary btn-lg me-3">
                         <i class="fas fa-save me-2"></i>{{ action }} Staff Member
                     </button>
                     <a href="{{ url_for('comprehensive_staff') }}" class="btn btn-secondary btn-lg">
                         <i class="fas fa-times me-2"></i>Cancel
                     </a>
                 </div>
-                
+
                 <div class="mt-3 text-center">
                     <small class="text-muted">
                         <i class="fas fa-shield-alt me-1"></i>
@@ -739,7 +782,7 @@ function setupFaceRecognition() {
                                         <i class="fas fa-info-circle me-2"></i>
                                         <strong>Instructions:</strong> Position your face clearly in the camera frame and click capture when ready.
                                     </div>
-                                    
+
                                     <div class="camera-container mb-4" style="position: relative;">
                                         <video id="staffFaceVideo" width="100%" height="300" style="max-width: 400px; border: 3px solid #dee2e6; border-radius: 12px; display: none; background: #000;"></video>
                                         <canvas id="staffFaceCanvas" width="400" height="300" style="max-width: 100%; border: 3px solid #28a745; border-radius: 12px; display: none;"></canvas>
@@ -751,7 +794,7 @@ function setupFaceRecognition() {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="button-group mb-4">
                                         <button id="startStaffCamera" class="btn btn-success btn-lg me-2 mb-2">
                                             <i class="fas fa-video me-2"></i>Start Camera
@@ -766,7 +809,7 @@ function setupFaceRecognition() {
                                             <i class="fas fa-save me-2"></i>Save Face Data
                                         </button>
                                     </div>
-                                    
+
                                     <div id="faceSetupStatus" class="mt-3"></div>
                                 </div>
                             </div>
@@ -856,18 +899,18 @@ function setupFaceRecognition() {
     document.getElementById('retakeStaffFace').addEventListener('click', function() {
         const video = document.getElementById('staffFaceVideo');
         const canvas = document.getElementById('staffFaceCanvas');
-        
+
         // Hide canvas and show video again
         canvas.style.display = 'none';
         video.style.display = 'block';
-        
+
         // Reset buttons
         document.getElementById('captureStaffFace').disabled = false;
         document.getElementById('saveStaffFace').disabled = true;
         this.style.display = 'none';
-        
+
         capturedFaceData = null;
-        
+
         document.getElementById('faceSetupStatus').innerHTML = `
             <div class="alert alert-info">
                 <i class="fas fa-camera me-2"></i>
@@ -952,24 +995,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('comprehensiveStaffForm');
     const submitBtn = document.getElementById('submitBtn');
     const requiredFields = form.querySelectorAll('input[required], select[required]');
-    
+
     // Real-time validation for required fields
     requiredFields.forEach(field => {
         field.addEventListener('blur', validateField);
         field.addEventListener('input', clearError);
     });
-    
+
     // Enhanced form submission validation
     form.addEventListener('submit', function(e) {
         let isValid = true;
-        
+
         // Validate all required fields
         requiredFields.forEach(field => {
             if (!validateField({ target: field })) {
                 isValid = false;
             }
         });
-        
+
         // Email validation
         const emailField = document.querySelector('input[type="email"]');
         if (emailField && emailField.value) {
@@ -978,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
             }
         }
-        
+
         // Phone validation
         const phoneField = document.querySelector('input[type="tel"]');
         if (phoneField && phoneField.value) {
@@ -988,46 +1031,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
             }
         }
-        
+
         if (!isValid) {
             e.preventDefault();
             showNotification('Please correct the highlighted errors before submitting.', 'error');
             return false;
         }
-        
+
         // Face capture validation
         const enableFaceCheckbox = document.getElementById('enable_face_checkin');
         const capturedFaceData = document.getElementById('capturedFaceData').value;
-        
+
         if (enableFaceCheckbox && enableFaceCheckbox.checked && !capturedFaceData) {
             e.preventDefault();
             alert('Please capture a face image before submitting the form, or uncheck "Enable Face Recognition Check-in".');
             return false;
         }
-        
+
         // Stop any active camera stream before submitting
         if (formStream) {
             stopFaceCapture();
         }
-        
+
         // Show loading state
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
         }
     });
-    
+
     function validateField(event) {
         const field = event.target;
         const value = field.value.trim();
-        
+
         clearFieldError(field);
-        
+
         if (field.hasAttribute('required') && !value) {
             showFieldError(field, 'This field is required');
             return false;
         }
-        
+
         // Username validation
         if (field.name === 'username' && value) {
             if (value.length < 4) {
@@ -1039,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
         }
-        
+
         // Staff code validation
         if (field.name === 'staff_code' && value) {
             if (!/^[A-Z0-9]{3,}$/i.test(value)) {
@@ -1047,24 +1090,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     function clearError(event) {
         clearFieldError(event.target);
     }
-    
+
     function showFieldError(field, message) {
         clearFieldError(field);
         field.classList.add('is-invalid');
-        
+
         const errorDiv = document.createElement('div');
         errorDiv.className = 'text-danger small mt-1 field-error';
         errorDiv.textContent = message;
         field.parentNode.appendChild(errorDiv);
     }
-    
+
     function clearFieldError(field) {
         field.classList.remove('is-invalid');
         const existingError = field.parentNode.querySelector('.field-error');
@@ -1072,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             existingError.remove();
         }
     }
-    
+
     function showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
@@ -1082,34 +1125,40 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
             }
         }, 5000);
     }
-    
+
     // Auto-generate staff code based on name
     const firstNameField = document.querySelector('input[name="first_name"]');
     const lastNameField = document.querySelector('input[name="last_name"]');
     const staffCodeField = document.querySelector('input[name="staff_code"]');
-    
+
     if (firstNameField && lastNameField && staffCodeField) {
         function generateStaffCode() {
             const firstName = firstNameField.value.trim();
             const lastName = lastNameField.value.trim();
-            
+
             if (firstName && lastName && !staffCodeField.value) {
                 const code = `${firstName.substring(0, 2)}${lastName.substring(0, 2)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`.toUpperCase();
                 staffCodeField.value = code;
                 staffCodeField.dispatchEvent(new Event('input'));
             }
         }
-        
+
         firstNameField.addEventListener('blur', generateStaffCode);
         lastNameField.addEventListener('blur', generateStaffCode);
     }
+
+    // Set default date range (next 30 days)
+    const today = new Date();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    document.getElementById('fromDate').valueAsDate = today;
+    document.getElementById('toDate').valueAsDate = nextMonth;
 });
 
 function validateEmail(email) {
@@ -1141,7 +1190,7 @@ async function startFaceCapture() {
     const startBtn = document.getElementById('startFaceCaptureBtn');
     const captureBtn = document.getElementById('captureFaceBtnForm');
     const stopBtn = document.getElementById('stopFaceCaptureBtn');
-    
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
@@ -1150,16 +1199,16 @@ async function startFaceCapture() {
                 facingMode: 'user' 
             } 
         });
-        
+
         formStream = stream;
         video.srcObject = stream;
-        video.style.display = 'block';
-        
+        video.play();
+
         // Update button visibility
         startBtn.style.display = 'none';
         captureBtn.style.display = 'inline-block';
         stopBtn.style.display = 'inline-block';
-        
+
     } catch (error) {
         console.error('Error accessing camera:', error);
         alert('Camera access failed. Please ensure you have granted camera permissions and try again.');
@@ -1170,23 +1219,23 @@ function captureFaceForForm() {
     const video = document.getElementById('faceVideo');
     const canvas = document.getElementById('faceCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     // Set canvas size to match video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     // Capture current video frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     // Convert to base64
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    
+
     // Store in hidden field
     document.getElementById('capturedFaceData').value = imageData;
-    
+
     // Show preview
     showCapturedFacePreview(imageData);
-    
+
     // Stop camera and update UI
     stopFaceCapture();
 }
@@ -1195,7 +1244,7 @@ function showCapturedFacePreview(imageData) {
     const preview = document.getElementById('capturedFacePreview');
     const img = document.getElementById('capturedFaceImg');
     const retakeBtn = document.getElementById('retakeFaceBtn');
-    
+
     img.src = imageData;
     preview.style.display = 'block';
     retakeBtn.style.display = 'inline-block';
@@ -1206,15 +1255,15 @@ function stopFaceCapture() {
     const startBtn = document.getElementById('startFaceCaptureBtn');
     const captureBtn = document.getElementById('captureFaceBtnForm');
     const stopBtn = document.getElementById('stopFaceCaptureBtn');
-    
+
     if (formStream) {
         formStream.getTracks().forEach(track => track.stop());
         formStream = null;
     }
-    
+
     video.srcObject = null;
     video.style.display = 'none';
-    
+
     // Update button visibility
     startBtn.style.display = 'inline-block';
     captureBtn.style.display = 'none';
@@ -1245,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modalElement) {
         scheduleRangeModal = new bootstrap.Modal(modalElement);
     }
-    
+
     // Load existing schedule ranges if editing
     if (currentStaffId) {
         setTimeout(() => loadScheduleRanges(), 1000);
@@ -1269,7 +1318,7 @@ function openScheduleRangeModal() {
     ['rangeSaturday', 'rangeSunday'].forEach(id => {
         document.getElementById(id).checked = false;
     });
-    
+
     scheduleRangeModal.show();
 }
 
@@ -1292,18 +1341,18 @@ async function saveScheduleRange() {
         break_time: parseInt(document.getElementById('breakMinutes').value),
         priority: parseInt(document.getElementById('priority').value)
     };
-    
+
     // Validate form
     if (!formData.schedule_name || !formData.start_date || !formData.end_date) {
         showNotification('Please fill in all required fields.', 'error');
         return;
     }
-    
+
     if (new Date(formData.end_date) < new Date(formData.start_date)) {
         showNotification('End date must be after start date.', 'error');
         return;
     }
-    
+
     // Check if at least one working day is selected
     const hasWorkingDay = formData.monday || formData.tuesday || formData.wednesday || 
                           formData.thursday || formData.friday || formData.saturday || formData.sunday;
@@ -1311,7 +1360,7 @@ async function saveScheduleRange() {
         showNotification('Please select at least one working day.', 'error');
         return;
     }
-    
+
     try {
         if (currentStaffId) {
             // If editing existing staff, save to API
@@ -1322,7 +1371,7 @@ async function saveScheduleRange() {
                 },
                 body: JSON.stringify(formData)
             });
-            
+
             const result = await response.json();
             if (result.success) {
                 showNotification('Schedule range added successfully!', 'success');
@@ -1337,7 +1386,7 @@ async function saveScheduleRange() {
             formData.id = Date.now(); // Temporary ID
             tempRanges.push(formData);
             localStorage.setItem('tempScheduleRanges', JSON.stringify(tempRanges));
-            
+
             showNotification('Schedule range added temporarily. It will be saved when you save the staff member.', 'info');
             scheduleRangeModal.hide();
             displayTempScheduleRanges();
@@ -1352,7 +1401,7 @@ async function loadScheduleRanges() {
     try {
         const response = await fetch(`/api/staff/${currentStaffId}/schedule-ranges`);
         const result = await response.json();
-        
+
         if (result.success) {
             displayScheduleRanges(result.schedule_ranges);
         }
@@ -1365,20 +1414,20 @@ async function loadScheduleRanges() {
 function displayScheduleRanges(ranges) {
     const container = document.getElementById('scheduleRangesList');
     const noMessage = document.getElementById('noSchedulesMessage');
-    
+
     if (!container || !noMessage) return;
-    
+
     if (ranges.length === 0) {
         noMessage.style.display = 'block';
         return;
     }
-    
+
     noMessage.style.display = 'none';
-    
+
     // Clear existing ranges (except the info alert)
     const existingRanges = container.querySelectorAll('.schedule-range-item');
     existingRanges.forEach(item => item.remove());
-    
+
     ranges.forEach(range => {
         const rangeHtml = createScheduleRangeHtml(range);
         container.insertAdjacentHTML('beforeend', rangeHtml);
@@ -1396,7 +1445,7 @@ function createScheduleRangeHtml(range) {
     const workingDays = [];
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    
+
     days.forEach((day, index) => {
         if (range.working_days && range.working_days[day]) {
             workingDays.push(dayNames[index]);
@@ -1404,7 +1453,7 @@ function createScheduleRangeHtml(range) {
             workingDays.push(dayNames[index]);
         }
     });
-    
+
     return `
         <div class="card schedule-range-item mb-2">
             <div class="card-body py-2">
@@ -1435,13 +1484,13 @@ async function deleteScheduleRange(rangeId) {
     if (!confirm('Are you sure you want to delete this schedule range?')) {
         return;
     }
-    
+
     try {
         if (currentStaffId) {
             const response = await fetch(`/api/staff/${currentStaffId}/schedule-ranges/${rangeId}`, {
                 method: 'DELETE'
             });
-            
+
             const result = await response.json();
             if (result.success) {
                 showNotification('Schedule range deleted successfully!', 'success');
@@ -1461,6 +1510,112 @@ async function deleteScheduleRange(rangeId) {
         showNotification('Error deleting schedule range: ' + error.message, 'error');
     }
 }
+
+// Schedule Generation Functions
+function generateSchedule() {
+    const fromDate = document.getElementById("fromDate").value;
+    const toDate = document.getElementById("toDate").value;
+
+    if (!fromDate || !toDate) {
+        alert("Please select both From and To dates");
+        return;
+    }
+
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+
+    if (from > to) {
+        alert("From date cannot be later than To date");
+        return;
+    }
+
+    let tbody = document.getElementById("scheduleTable").querySelector("tbody");
+    tbody.innerHTML = "";
+
+    for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+        let dayName = d.toLocaleDateString("en-US", { weekday: "long" });
+        let dateStr = d.toISOString().split("T")[0];
+        let isWeekend = d.getDay() === 0 || d.getDay() === 6; // Sunday or Saturday
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${dateStr}</td>
+                <td>${dayName}</td>
+                <td>
+                    <input type="checkbox" class="form-check-input" ${!isWeekend ? 'checked' : ''}>
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm" value="09:00">
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm" value="18:00">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm" value="60" min="0">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm" placeholder="Notes">
+                </td>
+            </tr>`;
+    }
+
+    document.getElementById("scheduleContainer").style.display = "block";
+}
+
+// Enhanced form submission with schedule
+document.getElementById("comprehensiveStaffForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    // Collect staff data
+    let formData = new FormData(e.target);
+    let staffData = {};
+    formData.forEach((value, key) => {
+        staffData[key] = value;
+    });
+
+    // Collect schedule data
+    let rows = document.querySelectorAll("#scheduleTable tbody tr");
+    let schedule = [];
+    rows.forEach(row => {
+        let cells = row.querySelectorAll("td");
+        if (cells.length > 0) {
+            schedule.push({
+                date: cells[0].innerText,
+                working: cells[2].querySelector("input").checked,
+                start_time: cells[3].querySelector("input").value,
+                end_time: cells[4].querySelector("input").value,
+                break_minutes: parseInt(cells[5].querySelector("input").value) || 0,
+                notes: cells[6].querySelector("input").value
+            });
+        }
+    });
+
+    try {
+        const response = await fetch("{{ url_for('create_comprehensive_staff') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token() }}" // If using CSRF protection
+            },
+            body: JSON.stringify({
+                staff: staffData,
+                schedule: schedule
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("Staff member and schedule created successfully!");
+            window.location.href = "{{ url_for('comprehensive_staff') }}";
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while saving the staff member");
+    }
+});
 </script>
 
 {% endblock %}
