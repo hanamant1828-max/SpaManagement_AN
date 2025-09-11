@@ -3,28 +3,33 @@ Customers-related database queries
 """
 from sqlalchemy import or_, func
 from app import db
-from models import Customer, Appointment, Communication
+# Late imports to avoid circular dependency
 
 def get_all_customers():
     """Get all active customers"""
+    from models import Customer
     return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
 
 def get_customer_by_id(customer_id):
     """Get customer by ID"""
+    from models import Customer
     return Customer.query.get(customer_id)
 
 def get_customer_by_phone(phone):
     """Get customer by phone number"""
+    from models import Customer
     return Customer.query.filter_by(phone=phone, is_active=True).first()
 
 def get_customer_by_email(email):
     """Get customer by email address"""
+    from models import Customer
     if email and email.strip():
         return Customer.query.filter_by(email=email, is_active=True).first()
     return None
 
 def search_customers(query):
     """Search customers by name, phone, or email"""
+    from models import Customer
     return Customer.query.filter(
         Customer.is_active == True,
         or_(
@@ -37,6 +42,7 @@ def search_customers(query):
 
 def create_customer(customer_data):
     """Create a new customer"""
+    from models import Customer
     try:
         customer = Customer(**customer_data)
         db.session.add(customer)
@@ -48,6 +54,7 @@ def create_customer(customer_data):
 
 def update_customer(customer_id, customer_data):
     """Update an existing customer"""
+    from models import Customer
     try:
         customer = Customer.query.get(customer_id)
         if customer:

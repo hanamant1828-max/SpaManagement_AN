@@ -3,7 +3,7 @@ Enhanced Service and Category Management Queries
 Database operations for comprehensive service/category CRUD
 """
 from app import db
-from models import Service, Category
+# Late imports to avoid circular dependency
 from sqlalchemy import and_, or_
 from datetime import datetime
 import csv
@@ -12,6 +12,7 @@ from io import StringIO
 # Service Queries
 def get_all_services(category_filter=''):
     """Get all services with optional category filtering"""
+    from models import Service, Category
     try:
         query = Service.query.filter_by(is_active=True)
         
@@ -33,6 +34,7 @@ def get_all_services(category_filter=''):
 
 def get_service_by_id(service_id):
     """Get service by ID"""
+    from models import Service
     try:
         return Service.query.get(service_id)
     except Exception as e:

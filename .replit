@@ -63,23 +63,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Flask App"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Spa Management System"
-
-[[workflows.workflow]]
-name = "Flask App"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "uv run python main.py"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow]]
 name = "Spa Management System"
@@ -87,7 +71,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "uv run python -c \"from app import app; app.run(host='0.0.0.0', port=5000, debug=True)\""
+args = "SESSION_SECRET=\"spa-mgmt-secret-$(openssl rand -hex 16)\" uv run python app.py"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -98,8 +82,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 46255
-externalPort = 3001
+localPort = 40121
+externalPort = 3000
 
 [agent]
 expertMode = true

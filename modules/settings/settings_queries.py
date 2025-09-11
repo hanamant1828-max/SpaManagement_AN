@@ -2,10 +2,11 @@
 Settings-related database queries
 """
 from app import db
-from models import SystemSetting, BusinessSettings
+# Late imports to avoid circular dependency
 
 def get_system_settings():
     """Get all system settings"""
+    from models import SystemSetting
     return SystemSetting.query.order_by(SystemSetting.category, SystemSetting.display_name).all()
 
 def get_setting_by_key(key):

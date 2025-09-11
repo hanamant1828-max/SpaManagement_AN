@@ -5,7 +5,7 @@ Implements a guided multi-step process for creating packages
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_required, current_user
 from app import app, db
-from models import Package, PackageService, Service, Category, Customer, CustomerPackage
+# Late imports to avoid circular dependency
 from .packages_queries import create_package_with_services
 import json
 from datetime import datetime, timedelta

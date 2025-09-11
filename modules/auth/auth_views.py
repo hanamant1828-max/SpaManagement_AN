@@ -9,8 +9,6 @@ from .auth_queries import validate_user_credentials
 # Assuming User model is available, e.g., from app.models import User
 # If not, this import needs to be adjusted or the logic in the login route needs to be adapted.
 # For the purpose of this change, we will assume 'User' is correctly imported or available.
-from models import User # This is a placeholder, adjust as per your project structure
-
 @app.route('/test')
 def test_route():
     """Simple test route to check connectivity"""
@@ -32,6 +30,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         from werkzeug.security import check_password_hash
+        from models import User
         user = User.query.filter_by(username=form.username.data).first()
 
         # Check password using either user method or werkzeug function

@@ -4,11 +4,12 @@ Reports related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, extract
 from app import db
-from models import Appointment, Invoice, Expense, Customer, User
+# Late imports to avoid circular dependency
 from modules.inventory.models import InventoryProduct as Inventory
 
 def get_revenue_report(start_date, end_date):
     """Get revenue report for date range"""
+    from models import Appointment
     revenue_data = db.session.query(
         func.date(Appointment.appointment_date).label('date'),
         func.sum(Appointment.amount).label('total_revenue'),
@@ -23,6 +24,7 @@ def get_revenue_report(start_date, end_date):
 
 def get_expense_report(start_date, end_date):
     """Get expense report for date range"""
+    from models import Expense
     expense_data = db.session.query(
         func.date(Expense.expense_date).label('date'),
         func.sum(Expense.amount).label('total_expenses'),
@@ -36,6 +38,7 @@ def get_expense_report(start_date, end_date):
 
 def get_staff_performance_report(start_date, end_date):
     """Get staff performance report"""
+    from models import User, Appointment
     staff_data = db.session.query(
         User.id,
         User.first_name,

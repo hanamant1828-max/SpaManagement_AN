@@ -10,8 +10,7 @@ from .clients_queries import (
     update_customer, delete_customer, get_customer_appointments,
     get_customer_communications, get_customer_stats
 )
-# Import db and Customer model for face management endpoints
-from models import Customer
+# Late imports to avoid circular dependency
 from app import db
 
 @app.route('/customers')

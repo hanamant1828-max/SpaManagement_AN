@@ -5,7 +5,7 @@ Implements comprehensive CRUD operations as per requirements document
 from flask import render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_login import login_required, current_user
 from app import app, db
-from models import Service
+# Late imports to avoid circular dependency
 from forms import ServiceForm
 try:
     from .services_queries import (

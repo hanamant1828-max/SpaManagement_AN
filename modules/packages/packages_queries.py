@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from io import StringIO
 from sqlalchemy import func, and_
 from app import db
-from models import Package, CustomerPackage, Service, PackageService, Customer, CustomerPackageSession
+# Late imports to avoid circular dependency
 
 def get_all_packages():
     """Get all active packages with enhanced features"""

@@ -5,14 +5,14 @@ Supports services, packages, subscriptions, and inventory items
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from models import (Customer, Service, Appointment, 
-                   Package, CustomerPackage, CustomerPackageSession)
+# Late imports to avoid circular dependency
+# from models import (Customer, Service, Appointment, 
+#                    Package, CustomerPackage, CustomerPackageSession)
 from modules.inventory.models import InventoryProduct
 from datetime import datetime
 import json
 
-# Import enhanced billing models from main models file
-from models import EnhancedInvoice, InvoiceItem, InvoicePayment
+# Late imports for billing models to avoid circular dependency
 # from billing_engine import BillingEngine  # Temporarily disabled
 
 @app.route('/integrated-billing')
@@ -24,11 +24,13 @@ def integrated_billing():
         return redirect(url_for('dashboard'))
     
     # Get data for billing interface
+    from models import Customer, Service
     customers = Customer.query.filter_by(is_active=True).all()
     services = Service.query.filter_by(is_active=True).all()
     inventory_items = InventoryProduct.query.filter_by(is_active=True).all()
     
     # Get recent invoices
+    from models import EnhancedInvoice
     recent_invoices = EnhancedInvoice.query.order_by(EnhancedInvoice.created_at.desc()).limit(10).all()
     
     # Calculate dashboard stats

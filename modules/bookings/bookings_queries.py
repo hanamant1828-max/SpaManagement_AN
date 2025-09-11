@@ -4,16 +4,18 @@ Bookings-related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import db
-from models import Appointment, Customer, Service, User
+# Late imports to avoid circular dependency
 
 def get_appointments_by_date(filter_date):
     """Get appointments for a specific date with full details"""
+    from models import Appointment
     return Appointment.query.filter(
         func.date(Appointment.appointment_date) == filter_date
     ).order_by(Appointment.appointment_date).all()
 
 def get_appointments_by_date_range(start_date, end_date):
     """Get appointments within a date range"""
+    from models import Appointment
     return Appointment.query.filter(
         Appointment.appointment_date >= start_date,
         Appointment.appointment_date <= end_date
@@ -21,6 +23,7 @@ def get_appointments_by_date_range(start_date, end_date):
 
 def get_staff_schedule(staff_id, filter_date):
     """Get staff schedule for a specific date"""
+    from models import Appointment
     return Appointment.query.filter(
         Appointment.staff_id == staff_id,
         func.date(Appointment.appointment_date) == filter_date
@@ -43,6 +46,7 @@ def get_time_slots(filter_date, staff_id=None, service_id=None):
     # Get service duration if specified
     service_duration = 60  # Default 60 minutes
     if service_id:
+        from models import Service
         service = Service.query.get(service_id)
         if service:
             service_duration = service.duration

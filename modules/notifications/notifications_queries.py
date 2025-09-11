@@ -4,10 +4,11 @@ Notifications related database queries
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import db
-from models import Communication, Customer, Appointment
+# Late imports to avoid circular dependency
 
 def get_recent_communications():
     """Get recent communications/notifications"""
+    from models import Communication
     return Communication.query.order_by(Communication.created_at.desc()).limit(50).all()
 
 def get_pending_notifications():
@@ -16,6 +17,7 @@ def get_pending_notifications():
 
 def create_notification(notification_data):
     """Create a new notification"""
+    from models import Communication
     notification = Communication(**notification_data)
     db.session.add(notification)
     db.session.commit()

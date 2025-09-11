@@ -4,11 +4,11 @@ Dashboard-related database queries
 from datetime import date, datetime, timedelta
 from sqlalchemy import func
 from app import db
-from models import Appointment, Customer, User, Service
-from modules.inventory.models import InventoryProduct
 
 def get_dashboard_stats():
     """Get dashboard statistics"""
+    from models import Appointment, Customer, User, Service
+    
     today = date.today()
 
     # Calculate today's revenue
@@ -41,6 +41,7 @@ def get_dashboard_stats():
 
 def get_recent_appointments(limit=10):
     """Get recent appointments"""
+    from models import Appointment
     return Appointment.query.filter(
         Appointment.appointment_date >= datetime.now() - timedelta(days=7)
     ).order_by(Appointment.appointment_date.desc()).limit(limit).all()

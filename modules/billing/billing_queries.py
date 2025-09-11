@@ -4,10 +4,11 @@ Billing-related database queries
 from datetime import datetime, date
 from sqlalchemy import func, and_
 from app import db
-from models import Invoice, Appointment, Customer, Service
+# Late imports to avoid circular dependency
 
 def get_all_invoices():
     """Get all invoices"""
+    from models import Invoice
     return Invoice.query.order_by(Invoice.created_at.desc()).all()
 
 def get_pending_invoices():
@@ -24,6 +25,7 @@ def get_invoice_by_id(invoice_id):
 
 def create_invoice(invoice_data):
     """Create a new invoice"""
+    from models import Invoice
     invoice = Invoice(**invoice_data)
     db.session.add(invoice)
     db.session.commit()

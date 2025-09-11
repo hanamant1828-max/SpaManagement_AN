@@ -4,7 +4,7 @@ Enhanced Package Management Views with proper service selection
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from models import Package, PackageService, Service, Category, Customer, CustomerPackage, CustomerPackageSession
+# Late imports to avoid circular dependency
 from .packages_queries import *
 import json
 from datetime import datetime, timedelta

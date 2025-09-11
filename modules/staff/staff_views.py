@@ -9,7 +9,8 @@ from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from app import app
 from forms import UserForm, AdvancedUserForm, ComprehensiveStaffForm
-from models import db, User, Service, Role, Department, Attendance, Leave, StaffService, StaffPerformance
+# Late imports to avoid circular dependency
+from app import db
 from .staff_queries import (
     get_all_staff, get_staff_by_id, get_staff_by_role, get_active_roles, 
     get_active_departments, get_active_services, create_staff, update_staff, delete_staff, 
