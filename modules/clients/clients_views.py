@@ -336,20 +336,37 @@ def api_get_customers():
 def api_save_face():
     """API endpoint to save face data for a customer"""
     if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            
         client_id = data.get('client_id')
         face_image = data.get('face_image')
 
-        if not client_id or not face_image:
-            return jsonify({'error': 'Missing client ID or face image'}), 400
+        # Validate input
+        if not client_id:
+            return jsonify({'success': False, 'error': 'Client ID is required'}), 400
+            
+        if not face_image:
+            return jsonify({'success': False, 'error': 'Face image data is required'}), 400
+
+        # Validate client_id is a number
+        try:
+            client_id = int(client_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid client ID format'}), 400
 
         # Get customer
         customer = Customer.query.get(client_id)
         if not customer:
-            return jsonify({'error': 'Customer not found'}), 404
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        # Validate face image data (basic validation)
+        if not face_image.startswith('data:image/'):
+            return jsonify({'success': False, 'error': 'Invalid image format'}), 400
 
         # Save face image data (base64 string)
         customer.face_image_url = face_image
@@ -359,12 +376,14 @@ def api_save_face():
         return jsonify({
             'success': True,
             'message': 'Face data saved successfully',
-            'client_name': customer.full_name
+            'client_name': customer.full_name,
+            'client_id': customer.id
         })
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in api_save_face: {str(e)}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/customers_with_faces', methods=['GET'])
 @login_required

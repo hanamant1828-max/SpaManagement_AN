@@ -73,7 +73,7 @@ function initializeFaceCapture() {
 
     // Initialize camera buttons when page loads
     setupCameraButtons();
-    
+
     // Also set up event listeners for tab switching
     document.addEventListener('shown.bs.tab', function(event) {
         if (event.target.getAttribute('data-bs-target') === '#face-capture') {
@@ -89,14 +89,14 @@ let faceStream = null;
 
 function setupCameraButtons() {
     // Only run on pages that actually have camera buttons
-    if (!document.getElementById('startCameraBtn') && 
-        !document.getElementById('startRecognitionBtn') && 
+    if (!document.getElementById('startCameraBtn') &&
+        !document.getElementById('startRecognitionBtn') &&
         !document.getElementById('startFaceCamera')) {
         return; // No camera buttons found, skip setup
     }
-    
+
     console.log('Setting up camera buttons...');
-    
+
     // Wait for DOM to be ready
     setTimeout(() => {
         // Setup face management camera buttons
@@ -110,7 +110,7 @@ function setupCameraButtons() {
                 if (typeof startFaceCameraForTab === 'function') {
                     startFaceCameraForTab();
                 } else if (typeof startFaceCamera === 'function') {
-                    startFaceCamera('faceVideo', 'faceCaptureArea');
+                    startFaceCamera('video', 'faceCaptureArea'); // Corrected to 'video'
                 } else {
                     console.error('No face camera function available');
                 }
@@ -137,7 +137,7 @@ function setupCameraButtons() {
 // New function specifically for the face management tab
 async function startFaceCameraForTab() {
     console.log('Starting face camera for tab');
-    
+
     try {
         const video = document.getElementById('faceVideo');
         const placeholder = document.getElementById('faceCameraPlaceholder');
@@ -165,7 +165,7 @@ async function startFaceCameraForTab() {
         // Set video source and show it
         video.srcObject = stream;
         video.style.display = 'block';
-        
+
         // Hide placeholder
         if (placeholder) {
             placeholder.style.display = 'none';
@@ -206,58 +206,58 @@ async function startFaceCameraForTab() {
 // Capture photo function for face management tab
 function captureFacePhotoForTab() {
     console.log('Capturing face photo for tab');
-    
+
     const video = document.getElementById('faceVideo');
     const canvas = document.getElementById('faceCanvas');
     const saveBtn = document.getElementById('saveFaceData');
-    
+
     if (!video || !canvas) {
         alert('Video or canvas element not found');
         return;
     }
-    
+
     // Set canvas size to match video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     // Get canvas context and draw video frame
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     // Show canvas and enable save button
     canvas.style.display = 'block';
     video.style.display = 'none';
-    
+
     if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.onclick = function() {
             saveFaceDataForTab();
         };
     }
-    
+
     console.log('Photo captured successfully');
 }
 
 // Save face data function for face management tab
 function saveFaceDataForTab() {
     console.log('Saving face data for tab');
-    
+
     const clientSelect = document.getElementById('faceClientSelect');
     const canvas = document.getElementById('faceCanvas');
-    
+
     if (!clientSelect || !clientSelect.value) {
         alert('Please select a customer first');
         return;
     }
-    
+
     if (!canvas) {
         alert('No photo captured');
         return;
     }
-    
+
     // Get image data from canvas
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    
+
     // Send to server
     fetch('/api/save_face', {
         method: 'POST',
@@ -293,13 +293,13 @@ function resetFaceInterface() {
     const startBtn = document.getElementById('startFaceCamera');
     const captureBtn = document.getElementById('captureFacePhoto');
     const saveBtn = document.getElementById('saveFaceData');
-    
+
     // Stop video stream
     if (video && video.srcObject) {
         video.srcObject.getTracks().forEach(track => track.stop());
         video.srcObject = null;
     }
-    
+
     // Reset display states
     if (video) video.style.display = 'none';
     if (canvas) canvas.style.display = 'none';
@@ -401,59 +401,258 @@ async function setupFacialRecognition(staffId) {
 }
 
 async function startCamera() {
-    const video = document.getElementById('faceVideo');
-    const captureBtn = document.getElementById('captureFaceBtn');
-
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        const video = document.getElementById('video');
+        if (!video) {
+            console.error('Video element not found');
+            alert('Video element not found. Please refresh the page.');
+            return;
+        }
+
+        console.log('Requesting camera access...');
+
+        // Check if browser supports getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Camera access is not supported in this browser.');
+            return;
+        }
+
+        currentStream = await navigator.mediaDevices.getUserMedia({
             video: {
-                width: 400,
-                height: 300,
+                width: { ideal: 400 },
+                height: { ideal: 300 },
                 facingMode: 'user'
             }
         });
 
-        currentStream = stream;
-        video.srcObject = stream;
+        video.srcObject = currentStream;
         video.style.display = 'block';
 
-        if (captureBtn) {
-            captureBtn.disabled = false;
-            captureBtn.onclick = captureFace;
-        }
+        // Wait for video to be ready
+        await new Promise((resolve, reject) => {
+            video.onloadedmetadata = resolve;
+            video.onerror = reject;
+            setTimeout(reject, 10000); // 10 second timeout
+        });
 
-        // Add close event to stop camera
-        const modal = document.getElementById('faceRecognitionModal');
-        if (modal) {
-            modal.addEventListener('hidden.bs.modal', stopCamera);
-        }
+        await video.play();
 
-        console.log('Staff camera started successfully');
+        // Update UI
+        const capturePrompt = document.getElementById('capturePrompt');
+        const faceCaptureArea = document.getElementById('faceCaptureArea');
+        const startBtn = document.getElementById('startCameraBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        if (capturePrompt) capturePrompt.style.display = 'none';
+        if (faceCaptureArea) faceCaptureArea.classList.add('active');
+        if (startBtn) startBtn.style.display = 'none';
+        if (captureBtn) captureBtn.style.display = 'inline-block';
+        if (stopBtn) stopBtn.style.display = 'inline-block';
+
+        console.log('Camera started successfully');
 
     } catch (error) {
         console.error('Error accessing camera:', error);
-        throw error;
+
+        // Stop any streams that might have started
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+            currentStream = null;
+        }
+
+        let errorMessage = 'Unable to access camera. ';
+        if (error.name === 'NotAllowedError') {
+            errorMessage += 'Please allow camera permissions and try again.';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage += 'No camera found on this device.';
+        } else {
+            errorMessage += 'Please check your camera and try again.';
+        }
+
+        alert(errorMessage);
     }
 }
 
-function captureFace() {
-    const video = document.getElementById('faceVideo');
-    const canvas = document.getElementById('faceCanvas');
-    const ctx = canvas.getContext('2d');
+async function capturePhoto() {
+    try {
+        const video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
 
-    // Set canvas size to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+        if (!video) {
+            console.error('Video element not found');
+            alert('Video element not found. Please refresh the page.');
+            return;
+        }
 
-    // Capture current video frame
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Create canvas if it doesn't exist
+        if (!canvas) {
+            console.log('Canvas not found, creating one...');
+            canvas = document.createElement('canvas');
+            canvas.id = 'canvas';
+            canvas.width = 400;
+            canvas.height = 300;
+            canvas.style.display = 'none';
+            canvas.style.borderRadius = '8px';
+            video.parentNode.appendChild(canvas);
+        }
 
-    // Convert to base64
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        const ctx = canvas.getContext('2d');
 
-    // Send to server
-    saveFaceImage(currentStaffId, imageData);
+        // Set canvas size to match video
+        canvas.width = video.videoWidth || 400;
+        canvas.height = video.videoHeight || 300;
+
+        // Capture current video frame
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Show captured image
+        canvas.style.display = 'block';
+        video.style.display = 'none';
+
+        // Convert to base64
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+        // Get selected customer
+        const customerSelect = document.getElementById('customerSelect');
+        if (!customerSelect || !customerSelect.value) {
+            alert('Please select a customer first');
+
+            // Show video again
+            video.style.display = 'block';
+            canvas.style.display = 'none';
+            return;
+        }
+
+        const customerId = customerSelect.value;
+
+        // Update UI
+        const captureBtn = document.getElementById('captureBtn');
+        const saveBtn = document.getElementById('saveFaceBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+
+        if (captureBtn) captureBtn.style.display = 'none';
+        if (saveBtn) {
+            saveBtn.style.display = 'inline-block';
+            saveBtn.disabled = false;
+        }
+        if (retakeBtn) retakeBtn.style.display = 'inline-block';
+
+        // Store image data for saving
+        window.capturedImageData = imageData;
+        window.selectedCustomerId = customerId;
+
+        console.log('Photo captured successfully');
+
+    } catch (error) {
+        console.error('Error capturing photo:', error);
+        alert('Error capturing photo. Please try again.');
+
+        // Reset UI on error
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        if (video) video.style.display = 'block';
+        if (canvas) canvas.style.display = 'none';
+    }
 }
+
+async function saveFaceImage(customerId, imageData) {
+    const saveBtn = document.getElementById('saveFaceBtn');
+
+    try {
+        // Show loading state
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+        }
+
+        console.log('Saving face image for customer:', customerId);
+
+        const response = await fetch('/api/save_face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                client_id: parseInt(customerId),
+                face_image: imageData
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Save face result:', result);
+
+        if (result.success) {
+            alert(`Face image saved successfully for ${result.client_name || 'customer'}!`);
+            stopCamera();
+
+            // Reset UI
+            resetFaceCaptureUI();
+
+            // Refresh the registered faces list
+            if (typeof loadRegisteredFaces === 'function') {
+                loadRegisteredFaces();
+            }
+
+            // Clear stored data
+            window.capturedImageData = null;
+            window.selectedCustomerId = null;
+
+        } else {
+            throw new Error(result.error || 'Unknown error occurred');
+        }
+
+    } catch (error) {
+        console.error('Error saving face image:', error);
+
+        let errorMessage = 'Error saving face image. ';
+        if (error.message.includes('404')) {
+            errorMessage += 'Customer not found.';
+        } else if (error.message.includes('403')) {
+            errorMessage += 'Access denied.';
+        } else if (error.message.includes('network')) {
+            errorMessage += 'Network error. Please check your connection.';
+        } else {
+            errorMessage += error.message || 'Please try again.';
+        }
+
+        alert(errorMessage);
+
+    } finally {
+        // Reset save button
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Face Data';
+        }
+    }
+}
+
+function resetFaceCaptureUI() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const capturePrompt = document.getElementById('capturePrompt');
+    const faceCaptureArea = document.getElementById('faceCaptureArea');
+    const startBtn = document.getElementById('startCameraBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const saveBtn = document.getElementById('saveFaceBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    if (video) video.style.display = 'none';
+    if (canvas) canvas.style.display = 'none';
+    if (capturePrompt) capturePrompt.style.display = 'block';
+    if (faceCaptureArea) faceCaptureArea.classList.remove('active');
+    if (startBtn) startBtn.style.display = 'inline-block';
+    if (captureBtn) captureBtn.style.display = 'none';
+    if (saveBtn) saveBtn.style.display = 'none';
+    if (retakeBtn) retakeBtn.style.display = 'none';
+    if (stopBtn) stopBtn.style.display = 'none';
+}
+
 
 function stopCamera() {
     if (currentStream) {

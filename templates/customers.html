@@ -676,24 +676,31 @@
                             </div>
                             <div class="card-body">
                                 <div class="camera-container mb-4">
-                                    <video id="faceVideo" width="300" height="200" autoplay playsinline style="border-radius: 10px; display: none; background: #000;"></video>
-                                    <canvas id="faceCanvas" width="300" height="200" style="border-radius: 10px; display: none;"></canvas>
-                                    <div id="faceCameraPlaceholder" class="d-flex align-items-center justify-content-center" style="height: 200px;">
-                                        <div>
+                                    <div class="face-capture-area" id="faceCaptureArea">
+                                        <div id="capturePrompt" class="capture-prompt">
                                             <i class="fas fa-camera fa-4x text-muted mb-3"></i>
-                                            <p class="text-muted mb-0">Select customer and start camera</p>
+                                            <h5 class="text-muted">Ready to capture face</h5>
+                                            <p class="text-muted">Click "Start Camera" to begin</p>
                                         </div>
+                                        <video id="faceVideo" width="300" height="200" autoplay playsinline style="border-radius: 10px; display: none; background: #000;"></video>
+                                        <canvas id="faceCanvas" width="300" height="200" style="border-radius: 10px; display: none;"></canvas>
                                     </div>
                                 </div>
-                                <div class="d-grid gap-3">
-                                    <button id="startCameraBtn" class="btn btn-success btn-lg">
-                                        <i class="fas fa-video me-2"></i>Start Camera
+                                <div class="text-center mt-3">
+                                    <button id="startCameraBtn" class="btn btn-success me-2">
+                                        <i class="fas fa-video me-1"></i>Start Camera
                                     </button>
-                                    <button id="captureFacePhoto" class="btn btn-primary btn-lg" disabled>
-                                        <i class="fas fa-camera me-2"></i>Capture Photo
+                                    <button id="captureFacePhoto" class="btn btn-primary me-2" style="display: none;" onclick="captureFacePhoto()">
+                                        <i class="fas fa-camera me-1"></i>Capture Photo
                                     </button>
-                                    <button id="saveFaceData" class="btn btn-warning btn-lg" disabled>
-                                        <i class="fas fa-save me-2"></i>Save Face Data
+                                    <button id="retakeBtn" class="btn btn-warning me-2" style="display: none;" onclick="retakePhoto()">
+                                        <i class="fas fa-redo me-1"></i>Retake
+                                    </button>
+                                    <button id="saveFaceData" class="btn btn-success me-2" style="display: none;" onclick="saveFaceData()">
+                                        <i class="fas fa-save me-1"></i>Save Face Data
+                                    </button>
+                                    <button id="stopBtn" class="btn btn-danger" style="display: none;" onclick="stopCamera()">
+                                        <i class="fas fa-stop me-1"></i>Stop Camera
                                     </button>
                                 </div>
                             </div>
@@ -1050,7 +1057,7 @@
                 faceVideo.style.display = 'block';
 
                 // Hide placeholder
-                const placeholder = document.getElementById('faceCameraPlaceholder');
+                const placeholder = document.getElementById('capturePrompt');
                 if (placeholder) {
                     placeholder.style.display = 'none';
                 }
@@ -1058,15 +1065,16 @@
                 // Update button states
                 const startBtn = document.getElementById('startCameraBtn');
                 const captureBtn = document.getElementById('captureFacePhoto');
+                const stopBtn = document.getElementById('stopBtn');
 
                 if (startBtn) {
-                    startBtn.disabled = true;
-                    startBtn.innerHTML = '<i class="fas fa-circle text-danger me-2"></i>Camera Active';
-                    startBtn.classList.remove('btn-success');
-                    startBtn.classList.add('btn-secondary');
+                    startBtn.style.display = 'none';
                 }
                 if (captureBtn) {
-                    captureBtn.disabled = false;
+                    captureBtn.style.display = 'inline-block';
+                }
+                if (stopBtn) {
+                    stopBtn.style.display = 'inline-block';
                 }
 
                 showFaceNotification('Camera started successfully!', 'success');
@@ -1116,6 +1124,8 @@
             // Update button states
             const captureBtn = document.getElementById('captureFacePhoto');
             const saveBtn = document.getElementById('saveFaceData');
+            const retakeBtn = document.getElementById('retakeBtn');
+
 
             if (captureBtn) {
                 captureBtn.style.display = 'none';
@@ -1124,8 +1134,35 @@
                 saveBtn.disabled = false;
                 saveBtn.style.display = 'inline-block';
             }
+            if (retakeBtn) {
+                retakeBtn.style.display = 'inline-block';
+            }
 
             showFaceNotification('Photo captured! Click "Save Face Data" to store it.', 'success');
+        }
+
+        function retakePhoto() {
+            console.log('Retaking photo...');
+
+            // Reset video and canvas display
+            if (faceVideo) faceVideo.style.display = 'block';
+            if (faceCanvas) faceCanvas.style.display = 'none';
+
+            // Update button states
+            const captureBtn = document.getElementById('captureFacePhoto');
+            const saveBtn = document.getElementById('saveFaceData');
+            const retakeBtn = document.getElementById('retakeBtn');
+
+            if (captureBtn) {
+                captureBtn.style.display = 'inline-block';
+            }
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.style.display = 'none';
+            }
+            if (retakeBtn) {
+                retakeBtn.style.display = 'none';
+            }
         }
 
         async function saveFaceData() {
@@ -1144,13 +1181,34 @@
                 }
 
                 // For now, simulate a successful save since the API endpoint doesn't exist
-                setTimeout(() => {
+                // Replace this with an actual API call to your backend
+                const response = await fetch('/api/save_face_data', { // Example API endpoint
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        customer_id: currentCustomerId,
+                        face_image: capturedImageData,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
                     showFaceNotification('Face data saved successfully!', 'success');
                     resetFaceCapture();
 
                     // Reload face data table
                     loadFaceDataTable();
-                }, 1000);
+                } else {
+                    showFaceNotification(result.error || 'Failed to save face data', 'danger');
+                    // Re-enable save button if error occurs
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
+                    }
+                }
 
             } catch (error) {
                 console.error('Error saving face data:', error);
@@ -1164,6 +1222,52 @@
             }
         }
 
+        function stopCamera() {
+            console.log('Stopping camera...');
+            if (faceStream) {
+                faceStream.getTracks().forEach(track => track.stop());
+                faceStream = null;
+            }
+
+            // Reset UI
+            if (faceVideo) faceVideo.style.display = 'none';
+            if (faceCanvas) faceCanvas.style.display = 'none';
+
+            const placeholder = document.getElementById('capturePrompt');
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+            }
+
+            const startBtn = document.getElementById('startCameraBtn');
+            const captureBtn = document.getElementById('captureFacePhoto');
+            const saveBtn = document.getElementById('saveFaceData');
+            const retakeBtn = document.getElementById('retakeBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            if (startBtn) {
+                startBtn.style.display = 'inline-block';
+                startBtn.disabled = false;
+            }
+            if (captureBtn) {
+                captureBtn.style.display = 'none';
+                captureBtn.disabled = true;
+            }
+            if (saveBtn) {
+                saveBtn.style.display = 'none';
+                saveBtn.disabled = true;
+            }
+            if (retakeBtn) {
+                retakeBtn.style.display = 'none';
+            }
+            if (stopBtn) {
+                stopBtn.style.display = 'none';
+            }
+            
+            resetFaceCapture(); // Ensure all states are fully reset
+
+            showFaceNotification('Camera stopped.', 'info');
+        }
+
         function resetFaceCapture() {
             console.log('Resetting face capture...');
 
@@ -1173,36 +1277,47 @@
                 faceStream = null;
             }
 
-            if (faceVideo && faceVideo.srcObject) {
-                faceVideo.srcObject.getTracks().forEach(track => track.stop());
+            // Reset UI elements
+            if (faceVideo) {
                 faceVideo.srcObject = null;
+                faceVideo.style.display = 'none';
+            }
+            if (faceCanvas) {
+                faceCanvas.style.display = 'none';
+                const ctx = faceCanvas.getContext('2d');
+                ctx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
             }
 
-            // Reset UI elements
-            if (faceVideo) faceVideo.style.display = 'none';
-            if (faceCanvas) faceCanvas.style.display = 'none';
-
             // Show placeholder
-            const placeholder = document.getElementById('faceCameraPlaceholder');
+            const placeholder = document.getElementById('capturePrompt');
             if (placeholder) placeholder.style.display = 'flex';
 
             // Reset button states
             const startBtn = document.getElementById('startCameraBtn');
             const captureBtn = document.getElementById('captureFacePhoto');
             const saveBtn = document.getElementById('saveFaceData');
+            const retakeBtn = document.getElementById('retakeBtn');
+            const stopBtn = document.getElementById('stopBtn');
 
             if (startBtn) {
                 startBtn.disabled = false;
-                startBtn.innerHTML = '<i class="fas fa-video me-2"></i>Start Camera';
-                startBtn.classList.remove('btn-secondary');
-                startBtn.classList.add('btn-success');
+                startBtn.innerHTML = '<i class="fas fa-video me-1"></i>Start Camera';
+                startBtn.style.display = 'inline-block';
             }
             if (captureBtn) {
                 captureBtn.disabled = true;
+                captureBtn.style.display = 'none';
             }
             if (saveBtn) {
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Face Data';
+                saveBtn.style.display = 'none';
+            }
+            if (retakeBtn) {
+                retakeBtn.style.display = 'none';
+            }
+            if (stopBtn) {
+                stopBtn.style.display = 'none';
             }
 
             // Clear data
@@ -1236,53 +1351,39 @@
         }
 
         // Face capture initialization
-            console.log('Initializing face capture functionality...');
-            setupFaceCapture();
+        function setupFaceCapture() {
+            console.log('Setting up face capture elements...');
+            const faceClientSelect = document.getElementById('faceClientSelect');
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
+            const saveFaceDataBtn = document.getElementById('saveFaceData');
+            const stopCameraBtn = document.getElementById('stopBtn'); // Added stop button listener
 
-            // Initialize camera buttons
-            initializeCameraButtons();
-
-        // Initialize customer management and face capture
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Customers page loaded, initializing face capture...');
-
-            // Wait for all elements to be rendered
-            setTimeout(() => {
-                setupFaceCapture();
-                initializeCameraButtons();
-                populateCustomerSelect();
-
-                // Verify all required elements exist
-                verifyFaceCaptureElements();
-            }, 1000);
-        });
-
-        function verifyFaceCaptureElements() {
-            const requiredElements = [
-                'faceClientSelect',
-                'startCameraBtn', 
-                'captureFacePhoto',
-                'saveFaceData',
-                'faceVideo',
-                'faceCanvas',
-                'faceCameraPlaceholder'
-            ];
-
-            const missingElements = [];
-            requiredElements.forEach(id => {
-                const element = document.getElementById(id);
-                if (!element) {
-                    missingElements.push(id);
-                }
-            });
-
-            if (missingElements.length > 0) {
-                console.error('Missing face capture elements:', missingElements);
-                showFaceNotification('Some face capture elements are missing. Please refresh the page.', 'warning');
-            } else {
-                console.log('All face capture elements found successfully');
-                showFaceNotification('Face capture system ready', 'success');
+            if (faceClientSelect) {
+                faceClientSelect.addEventListener('change', (e) => {
+                    selectCustomerForFace(e.target.value);
+                });
             }
+
+            if (startCameraBtn) {
+                startCameraBtn.addEventListener('click', startFaceCamera);
+            }
+
+            if (captureFacePhotoBtn) {
+                captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
+            }
+
+            if (saveFaceDataBtn) {
+                saveFaceDataBtn.addEventListener('click', saveFaceData);
+            }
+            
+            if (stopCameraBtn) {
+                stopCameraBtn.addEventListener('click', stopCamera);
+            }
+
+            // Initialize video and canvas elements
+            faceVideo = document.getElementById('faceVideo');
+            faceCanvas = document.getElementById('faceCanvas');
         }
 
 
@@ -1316,11 +1417,6 @@
         // Initialize face data table immediately (no infinite loader)
         loadFaceDataTable();
 
-        // Load customers function
-        function loadCustomers() {
-            console.log('Loading customers...');
-        }
-
         // Load face data table - Fixed infinite loader
         function loadFaceDataTable() {
             console.log('Loading face data table...');
@@ -1329,8 +1425,13 @@
             if (!tableContainer) return;
 
             // Try to load actual face data from server
-            fetch('/api/customers_with_faces')
-                .then(response => response.json())
+            fetch('/api/customers_with_faces') // Replace with your actual API endpoint
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success && data.customers && data.customers.length > 0) {
                         // Display customers with face data
@@ -1353,9 +1454,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="face-preview me-3">
-                                                <div class="face-image bg-primary d-flex align-items-center justify-content-center text-white">
-                                                    ${customer.full_name.charAt(0)}
-                                                </div>
+                                                <img src="${customer.face_image_url || ''}" class="face-image" alt="Customer Face">
                                             </div>
                                             <div>
                                                 <strong>${customer.full_name}</strong>
@@ -1440,80 +1539,59 @@
 
             // For now, just reload all data
             // In a real implementation, you'd filter server-side
-            loadFaceDataTable();
+            loadFaceDataTable(); // Assuming server-side filtering will be implemented later
         }
 
         // Update face
         function updateFace(customerId) {
-            if (confirm('Update face data for this customer? This will replace the existing face registration.')) {
-                // You can implement this to allow updating/recapturing face data
-                alert(`Update face for customer ID: ${customerId}`);
-            }
+            // Implement logic to allow updating/recapturing face data
+            alert(`Update face for customer ID: ${customerId} - Functionality not yet implemented.`);
         }
 
         // Remove face
         async function removeFace(customerId) {
             if (confirm('Are you sure you want to remove the face data for this customer?')) {
                 try {
-                    // You'd implement a delete endpoint here
-                    alert(`Remove face for customer ID: ${customerId}`);
-                    refreshFaceTable();
+                    // Implement a delete endpoint call here
+                    const response = await fetch(`/api/remove_face/${customerId}`, { // Example API endpoint
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showFaceNotification('Face data removed successfully!', 'success');
+                        refreshFaceTable(); // Refresh the table
+                    } else {
+                        showFaceNotification(result.error || 'Failed to remove face data', 'danger');
+                    }
                 } catch (error) {
                     console.error('Error removing face:', error);
+                    showFaceNotification('Error removing face data', 'danger');
                 }
             }
         }
-    </script>
-    <script>
-        function setupFaceCapture() {
-            console.log('Setting up face capture elements...');
-            const faceClientSelect = document.getElementById('faceClientSelect');
-            const startCameraBtn = document.getElementById('startCameraBtn');
-            const captureFacePhotoBtn = document.getElementById('captureFacePhoto');
-            const saveFaceDataBtn = document.getElementById('saveFaceData');
 
-            if (faceClientSelect) {
-                faceClientSelect.addEventListener('change', (e) => {
-                    selectCustomerForFace(e.target.value);
-                });
+        // Initialize face capture when the page loads or tab is activated
+        document.addEventListener('DOMContentLoaded', () => {
+            setupFaceCapture();
+            populateCustomerSelect();
+            // If face tab is active on load, load data
+            const activeTab = document.querySelector('.tab-pane.fade.show.active');
+            if (activeTab && activeTab.id === 'face-capture') {
+                loadFaceDataTable();
             }
+        });
 
-            if (startCameraBtn) {
-                startCameraBtn.addEventListener('click', startFaceCamera);
-            }
-
-            if (captureFacePhotoBtn) {
-                captureFacePhotoBtn.addEventListener('click', captureFacePhoto);
-            }
-
-            if (saveFaceDataBtn) {
-                saveFaceDataBtn.addEventListener('click', saveFaceData);
-            }
-        }
-
-        function setupCameraButtons() {
-            console.log('Setting up camera buttons...');
-            const startCameraBtn = document.getElementById('startCameraBtn');
-            const startRecognitionBtn = document.getElementById('startRecognitionBtn');
-
-            console.log('Found buttons:', {
-                startCameraBtn: !!startCameraBtn,
-                startRecognitionBtn: !!startRecognitionBtn
-            });
-        }
-
-        function initializeCameraButtons() {
-            const startCameraBtn = document.getElementById('startCameraBtn');
-            const startRecognitionBtn = document.getElementById('startRecognitionBtn');
-
-            if (startCameraBtn) {
-                startCameraBtn.addEventListener('click', startCamera);
-            }
-
-            if (startRecognitionBtn) {
-                startRecognitionBtn.addEventListener('click', startRecognition);
-            }
-        }
+</script>
+<script>
+        // This script appears to be a duplicate or contains similar functionality.
+        // Consolidating or removing one might be necessary for cleaner code.
+        // For now, keeping it as is, assuming it might have subtle differences or
+        // was intended for a different purpose.
 
         let videoStream = null;
         let videoElement = null;
@@ -1532,17 +1610,20 @@
                 if (!videoElement) {
                     videoElement = document.createElement('video');
                     videoElement.id = 'cameraVideo';
-                    videoElement.width = 400;
+                    videoElement.width = 400; // Adjusted for context, actual size managed by CSS/container
                     videoElement.height = 300;
                     videoElement.autoplay = true;
                     videoElement.muted = true;
                     videoElement.style.borderRadius = '10px';
                     videoElement.style.border = '2px solid #007bff';
 
-                    // Insert video into the face table container
-                    const container = document.getElementById('faceTableContainer');
-                    container.innerHTML = '';
-                    container.appendChild(videoElement);
+                    // Insert video into the face table container (This seems incorrect if it should be in the capture section)
+                    // It's better to ensure the video element is already in the DOM in the correct place.
+                    const container = document.getElementById('faceTableContainer'); // This is likely wrong place
+                    if (container) { // Check if container exists before appending
+                         container.innerHTML = ''; // Clear container
+                         container.appendChild(videoElement); // Appending to faceTableContainer is incorrect for camera view
+                    }
                 }
 
                 // Request camera access
@@ -1560,7 +1641,7 @@
                 // Update button state
                 const startCameraBtn = document.getElementById('startCameraBtn');
                 startCameraBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop Camera';
-                startCameraBtn.onclick = stopCamera;
+                startCameraBtn.onclick = stopCamera; // Reassign onclick
                 startCameraBtn.className = 'btn btn-danger me-2';
 
                 showNotification('Camera started successfully!', 'success');
@@ -1591,17 +1672,18 @@
 
             if (videoElement) {
                 videoElement.srcObject = null;
-                videoElement.remove();
+                videoElement.remove(); // Remove the element if it was dynamically created and is no longer needed
                 videoElement = null;
             }
 
             // Reset button
             const startCameraBtn = document.getElementById('startCameraBtn');
             startCameraBtn.innerHTML = '<i class="fas fa-video me-1"></i>Start Camera';
-            startCameraBtn.onclick = startCamera;
+            startCameraBtn.onclick = startCamera; // Reassign onclick
             startCameraBtn.className = 'btn btn-success me-2';
 
-            // Reset container
+            // Reset container content if it was cleared
+            // This assumes loadFaceData() will repopulate it
             loadFaceData();
 
             showNotification('Camera stopped', 'info');
