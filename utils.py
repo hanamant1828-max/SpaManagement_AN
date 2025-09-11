@@ -132,6 +132,10 @@ def get_status_badge_class(status):
     }
     return status_classes.get(status.lower() if status else '', 'badge-secondary')
 
+def get_status_class(status):
+    """Get CSS class for status (alias for get_status_badge_class for template compatibility)"""
+    return get_status_badge_class(status)
+
 def truncate_text(text, length=50):
     """Truncate text to specified length"""
     if not text:
@@ -171,3 +175,30 @@ def format_duration(minutes):
     if mins == 0:
         return f"{hours}h"
     return f"{hours}h {mins}m"
+
+def get_priority_class(priority):
+    """Get CSS class for priority badges"""
+    priority_classes = {
+        'low': 'badge-secondary',
+        'normal': 'badge-primary', 
+        'high': 'badge-warning',
+        'urgent': 'badge-danger'
+    }
+    return priority_classes.get(priority.lower() if priority else 'normal', 'badge-primary')
+
+def format_status(status):
+    """Format status for display"""
+    if not status:
+        return "Unknown"
+    return status.replace('_', ' ').title()
+
+def safe_date_format(date_obj, format_str='%Y-%m-%d'):
+    """Safely format date with error handling"""
+    try:
+        if date_obj is None:
+            return "N/A"
+        if isinstance(date_obj, str):
+            return date_obj
+        return date_obj.strftime(format_str)
+    except (ValueError, AttributeError):
+        return "Invalid Date"

@@ -159,6 +159,18 @@ def index():
 def clients_redirect():
     return redirect(url_for('customers'))
 
+# Direct route to customers (for compatibility)
+@app.route('/customers')
+@login_required
+def customers_route():
+    try:
+        from modules.clients.clients_views import customers
+        return customers()
+    except Exception as e:
+        print(f"Error in customers route: {e}")
+        flash('Error loading customers page', 'danger')
+        return redirect(url_for('dashboard'))
+
 # Additional routes that don't fit in modules yet
 @app.route('/alerts')
 @login_required

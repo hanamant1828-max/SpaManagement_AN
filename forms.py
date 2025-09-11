@@ -27,27 +27,27 @@ class UserForm(FlaskForm):
 class CustomerForm(FlaskForm):
     """Customer form with enhanced validation and defensive coding"""
     first_name = StringField('First Name', validators=[
-        DataRequired(message='First name is required. Please enter the customer\'s first name.'), 
+        DataRequired(message='First name is required. Please enter the customer\'s first name.'),
         Length(max=50, message='First name must be less than 50 characters.')
     ])
     last_name = StringField('Last Name', validators=[
-        DataRequired(message='Last name is required. Please enter the customer\'s last name.'), 
+        DataRequired(message='Last name is required. Please enter the customer\'s last name.'),
         Length(max=50, message='Last name must be less than 50 characters.')
     ])
     phone = StringField('Phone', validators=[
-        DataRequired(message='Phone number is required. Please enter a valid phone number.'), 
+        DataRequired(message='Phone number is required. Please enter a valid phone number.'),
         Length(min=10, max=20, message='Phone number must be between 10-20 characters.')
     ])
     email = StringField('Email', validators=[
-        Optional(), 
+        Optional(),
         Email(message='Please enter a valid email address format.')
     ])
     address = TextAreaField('Address', validators=[
-        Optional(), 
+        Optional(),
         Length(max=500, message='Address must be less than 500 characters.')
     ])
     notes = TextAreaField('Notes', validators=[
-        Optional(), 
+        Optional(),
         Length(max=1000, message='Notes must be less than 1000 characters.')
     ])
     date_of_birth = DateField('Date of Birth', validators=[Optional()])
@@ -85,16 +85,20 @@ class ServiceForm(FlaskForm):
 class AppointmentForm(FlaskForm):
     """Appointment form"""
     customer_id = SelectField('Customer', coerce=int, validators=[DataRequired()])
+    client_id = SelectField('Client', coerce=int, validators=[DataRequired()])  # Alias for customer_id
     service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
-    staff_id = SelectField('Staff Member', coerce=int, validators=[Optional()])
-    appointment_date = DateTimeField('Appointment Date', validators=[DataRequired()])
+    staff_id = SelectField('Staff Member', coerce=int, validators=[DataRequired()])
+    appointment_date = DateField('Date', validators=[DataRequired()])
+    appointment_time = TimeField('Time', validators=[DataRequired()])
+    duration = IntegerField('Duration (minutes)', validators=[DataRequired(), NumberRange(min=1)])
     status = SelectField('Status', choices=[
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
-        ('cancelled', 'Cancelled')
+        ('cancelled', 'Cancelled'),
+        ('no_show', 'No Show')
     ], default='pending')
-    notes = TextAreaField('Notes', validators=[Optional()])
+    notes = TextAreaField('Notes')
     submit = SubmitField('Save Appointment')
 
 # InventoryForm removed - no inventory functionality
@@ -288,7 +292,7 @@ class ComprehensiveStaffForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
-    
+
     # Personal Details
     gender = SelectField('Gender', choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')])
     date_of_birth = DateField('Date of Birth', validators=[Optional()])
@@ -296,23 +300,23 @@ class ComprehensiveStaffForm(FlaskForm):
     designation = StringField('Designation', validators=[Optional(), Length(max=100)])
     staff_code = StringField('Staff Code', validators=[Optional(), Length(max=20)])
     notes_bio = TextAreaField('Notes/Bio', validators=[Optional()])
-    
+
     # ID Verification
     aadhaar_number = StringField('Aadhaar Number', validators=[Optional(), Length(max=12)])
     pan_number = StringField('PAN Number', validators=[Optional(), Length(max=10)])
     verification_status = BooleanField('Verified', default=False)
-    
+
     # Role and Department
     role_id = SelectField('Role', coerce=int, validators=[Optional()])
     department_id = SelectField('Department', coerce=int, validators=[Optional()])
     assigned_services = SelectMultipleField('Assigned Services', coerce=int, validators=[Optional()])
-    
+
     # Basic Schedule (Legacy Support)
     shift_start_time = TimeField('Shift Start Time', validators=[Optional()])
     shift_end_time = TimeField('Shift End Time', validators=[Optional()])
     break_time = StringField('Break Time', validators=[Optional(), Length(max=50)])
     weekly_off_days = StringField('Weekly Off Days', validators=[Optional(), Length(max=20)])
-    
+
     # Working Days Checkboxes (Legacy Support)
     monday = BooleanField('Monday', default=True)
     tuesday = BooleanField('Tuesday', default=True)
@@ -321,31 +325,31 @@ class ComprehensiveStaffForm(FlaskForm):
     friday = BooleanField('Friday', default=True)
     saturday = BooleanField('Saturday', default=False)
     sunday = BooleanField('Sunday', default=False)
-    
+
     # Performance & Commission
     commission_percentage = FloatField('Commission (%)', validators=[Optional(), NumberRange(min=0, max=100)])
     hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
-    
+
     # Facial Recognition
     enable_face_checkin = BooleanField('Enable Face Check-in', default=True)
-    
+
     # Status
     is_active = BooleanField('Active', default=True)
-    
+
     # Password
     password = PasswordField('Password', validators=[Optional()])
-    
+
     submit = SubmitField('Save Staff Member')
 
 class StaffScheduleRangeForm(FlaskForm):
     """Enhanced date range-based schedule form"""
     schedule_name = StringField('Schedule Name', validators=[DataRequired(), Length(max=100)])
     description = StringField('Description', validators=[Optional(), Length(max=255)])
-    
+
     # Date Range
     start_date = DateField('Start Date', validators=[DataRequired()])
     end_date = DateField('End Date', validators=[DataRequired()])
-    
+
     # Working Days in this Range
     monday = BooleanField('Monday', default=True)
     tuesday = BooleanField('Tuesday', default=True)
@@ -354,13 +358,13 @@ class StaffScheduleRangeForm(FlaskForm):
     friday = BooleanField('Friday', default=True)
     saturday = BooleanField('Saturday', default=False)
     sunday = BooleanField('Sunday', default=False)
-    
+
     # Shift Times for this Range
     shift_start_time = TimeField('Shift Start Time', validators=[Optional()])
     shift_end_time = TimeField('Shift End Time', validators=[Optional()])
     break_time = StringField('Break Time', validators=[Optional(), Length(max=50)])
-    
+
     # Priority (higher number = higher priority)
     priority = IntegerField('Priority', validators=[Optional(), NumberRange(min=1, max=10)], default=1)
-    
+
     submit = SubmitField('Save Schedule Range')
