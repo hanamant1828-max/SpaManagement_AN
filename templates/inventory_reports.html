@@ -18,17 +18,17 @@
             --dark-bg: #2c3e50;
             --text-color: #2c3e50;
         }
-        
+
         body {
             background-color: var(--light-bg);
             color: var(--text-color);
         }
-        
+
         .navbar {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        
+
         .page-header {
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             color: white;
@@ -36,7 +36,7 @@
             margin-bottom: 2rem;
             border-radius: 0 0 20px 20px;
         }
-        
+
         .report-card {
             background: white;
             border-radius: 15px;
@@ -44,18 +44,18 @@
             margin-bottom: 2rem;
             overflow: hidden;
         }
-        
+
         .report-card .card-header {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
             border: none;
             padding: 1.5rem;
         }
-        
+
         .report-card .card-body {
             padding: 2rem;
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
             border: none;
@@ -64,16 +64,16 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
         }
-        
+
         .table {
             margin-bottom: 0;
         }
-        
+
         .table thead th {
             background-color: var(--primary-color);
             color: white;
@@ -81,12 +81,12 @@
             font-weight: 600;
             padding: 1rem;
         }
-        
+
         .table tbody td {
             padding: 0.75rem 1rem;
             border-color: #dee2e6;
         }
-        
+
         .stock-status {
             padding: 0.25rem 0.75rem;
             border-radius: 15px;
@@ -94,28 +94,28 @@
             font-weight: 600;
             text-transform: uppercase;
         }
-        
+
         .stock-status.in_stock {
             background-color: var(--success-color);
             color: white;
         }
-        
+
         .stock-status.low_stock {
             background-color: var(--warning-color);
             color: white;
         }
-        
+
         .stock-status.out_of_stock {
             background-color: var(--danger-color);
             color: white;
         }
-        
+
         .loading-spinner {
             display: none;
             text-align: center;
             padding: 2rem;
         }
-        
+
         .report-summary {
             background: linear-gradient(135deg, var(--success-color), #2ecc71);
             color: white;
@@ -123,29 +123,29 @@
             border-radius: 15px;
             margin-bottom: 2rem;
         }
-        
+
         .nested-table {
             background-color: #f8f9fa;
             border-radius: 8px;
             margin-top: 1rem;
         }
-        
+
         .nested-table .table {
             margin-bottom: 0;
             border-radius: 8px;
             overflow: hidden;
         }
-        
+
         .nested-table .table thead th {
             background-color: var(--secondary-color);
             font-size: 0.9rem;
         }
-        
+
         .parent-row {
             background-color: #f8f9fa;
             font-weight: 600;
         }
-        
+
         .expand-btn {
             background: none;
             border: none;
@@ -153,7 +153,7 @@
             font-size: 1.2rem;
             cursor: pointer;
         }
-        
+
         .expand-btn:hover {
             color: var(--primary-color);
         }
@@ -296,24 +296,24 @@
         function toggleDateRangeFields() {
             const reportType = document.getElementById('reportType').value;
             const dateRangeFields = document.getElementById('dateRangeFields');
-            
+
             // Show date range fields for reports that support filtering
             if (reportType === 'consumption' || reportType === 'adjustments') {
                 dateRangeFields.style.display = 'block';
                 setDefaultDates();
-                
+
                 // Update the generate button text to indicate date filtering
-                const generateBtn = document.querySelector('.btn-success');
+                const generateBtn = document.querySelector('.btn-primary');
                 if (generateBtn) {
-                    generateBtn.innerHTML = '<i class="fas fa-chart-bar me-1"></i>Generate Report (Custom Date Range)';
+                    generateBtn.innerHTML = '<i class="fas fa-chart-line me-1"></i>Generate Report (Custom Date Range)';
                 }
             } else {
                 dateRangeFields.style.display = 'none';
-                
+
                 // Update the generate button text for current quantity reports
-                const generateBtn = document.querySelector('.btn-success');
+                const generateBtn = document.querySelector('.btn-primary');
                 if (generateBtn) {
-                    generateBtn.innerHTML = '<i class="fas fa-chart-bar me-1"></i>Generate Report';
+                    generateBtn.innerHTML = '<i class="fas fa-chart-line me-2"></i>Generate Report';
                 }
             }
         }
@@ -322,7 +322,7 @@
         function setDefaultDates() {
             const today = new Date();
             const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-            
+
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
             document.getElementById('startDate').value = oneWeekAgo.toISOString().split('T')[0];
         }
@@ -330,7 +330,7 @@
         // Generate report function
         function generateReport() {
             const reportType = document.getElementById('reportType').value;
-            
+
             if (!reportType) {
                 alert('Please select a report type');
                 return;
@@ -340,12 +340,12 @@
             if (reportType === 'consumption' || reportType === 'adjustments') {
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
-                
+
                 if (!startDate || !endDate) {
                     alert('Please select both start and end dates');
                     return;
                 }
-                
+
                 if (new Date(startDate) > new Date(endDate)) {
                     alert('Start date cannot be after end date');
                     return;
@@ -358,7 +358,7 @@
 
             // Build API URL with parameters
             let apiUrl = `/api/inventory/reports/${reportType}`;
-            
+
             // Add date parameters for date-sensitive reports
             if (reportType === 'consumption' || reportType === 'adjustments') {
                 const startDate = document.getElementById('startDate').value;
@@ -371,7 +371,7 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('loadingSpinner').style.display = 'none';
-                    
+
                     if (data.success) {
                         displayReport(data, reportType);
                     } else {
@@ -403,40 +403,40 @@
             switch (reportType) {
                 case 'product-wise':
                     generateProductWiseTable(data.data, reportTableHead, reportTableBody);
-                    showSummary(reportSummary, summaryTitle, summaryDetails, 
-                        'Product-wise Summary', 
+                    showSummary(reportSummary, summaryTitle, summaryDetails,
+                        'Product-wise Summary',
                         `Total Products: ${data.data.length}`);
                     break;
-                    
+
                 case 'batch-wise':
                     generateBatchWiseTable(data.data, reportTableHead, reportTableBody);
-                    showSummary(reportSummary, summaryTitle, summaryDetails, 
-                        'Batch-wise Summary', 
+                    showSummary(reportSummary, summaryTitle, summaryDetails,
+                        'Batch-wise Summary',
                         `Total Batches: ${data.data.length}`);
                     break;
-                    
+
                 case 'consumption':
                     generateConsumptionTable(data.data, reportTableHead, reportTableBody);
-                    const consumptionSummary = data.summary ? 
+                    const consumptionSummary = data.summary ?
                         `Items Consumed: ${data.summary.total_items_consumed} | Total Quantity: ${data.summary.total_quantity_consumed}` :
                         `Total Records: ${data.data.length}`;
-                    showSummary(reportSummary, summaryTitle, summaryDetails, 
+                    showSummary(reportSummary, summaryTitle, summaryDetails,
                         'Consumption Report Summary', consumptionSummary);
                     break;
-                    
+
                 case 'adjustments':
                     generateAdjustmentsTable(data.data, reportTableHead, reportTableBody);
-                    const adjustmentsSummary = data.summary ? 
+                    const adjustmentsSummary = data.summary ?
                         `Total Adjustments: ${data.summary.total_adjustments} | Net Quantity Change: ${data.summary.net_quantity_change}` :
                         `Total Records: ${data.data.length}`;
-                    showSummary(reportSummary, summaryTitle, summaryDetails, 
+                    showSummary(reportSummary, summaryTitle, summaryDetails,
                         'Stock Adjustments Summary', adjustmentsSummary);
                     break;
-                    
+
                 case 'item-batch-wise':
                     generateItemBatchWiseTable(data.data, reportTableHead, reportTableBody);
-                    showSummary(reportSummary, summaryTitle, summaryDetails, 
-                        'Item-wise Batch Summary', 
+                    showSummary(reportSummary, summaryTitle, summaryDetails,
+                        'Item-wise Batch Summary',
                         `Total Products: ${data.data.length}`);
                     break;
             }
@@ -564,7 +564,7 @@
                     </td>
                     <td class="text-end">
                         <span class="${item.quantity_change > 0 ? 'text-success' : 'text-warning'}">
-                            ${item.quantity_change > 0 ? '+' : ''}${item.quantity_change} 
+                            ${item.quantity_change > 0 ? '+' : ''}${item.quantity_change}
                             <small class="text-muted">${item.unit_of_measure}</small>
                         </span>
                     </td>
@@ -641,7 +641,7 @@
         function toggleBatches(index) {
             const details = document.getElementById(`batchDetails${index}`);
             const btn = document.getElementById(`expandBtn${index}`);
-            
+
             if (details.style.display === 'none') {
                 details.style.display = '';
                 btn.innerHTML = '<i class="fas fa-minus"></i>';
@@ -657,6 +657,59 @@
                 generateReport();
             }
         });
-    </script>
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+        }
+
+        function setDateRange(period) {
+            const today = new Date();
+            let startDate, endDate;
+
+            switch(period) {
+                case 'today':
+                    startDate = endDate = today;
+                    break;
+                case 'week':
+                    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+                    startDate = weekStart;
+                    endDate = new Date();
+                    break;
+                case 'month':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date();
+                    break;
+            }
+
+            document.querySelector('input[name="start_date"]').value = startDate.toISOString().split('T')[0];
+            document.querySelector('input[name="end_date"]').value = endDate.toISOString().split('T')[0];
+
+            // Auto-submit the form
+            document.querySelector('form').submit();
+        }
+
+        function validateDateRange() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+
+            if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+                alert('Start date cannot be after end date. Please select a valid date range.');
+                // Reset to valid range
+                const today = new Date();
+                const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                document.getElementById('start_date').value = oneWeekAgo.toISOString().split('T')[0];
+                document.getElementById('end_date').value = today.toISOString().split('T')[0];
+                return false;
+            }
+            return true;
+        }
+</script>
 </body>
 </html>

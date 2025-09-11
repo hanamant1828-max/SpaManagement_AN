@@ -1338,7 +1338,32 @@ def inventory_reports():
         return redirect(url_for('dashboard'))
     
     try:
-        return render_template('inventory_reports.html')
+        # Default to last 30 days
+        end_date = date.today()
+        start_date = end_date - timedelta(days=30)
+        
+        # Get date range from request
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        
+        if start_date_str and end_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                
+                # Validate date range
+                if start_date > end_date:
+                    flash('Start date cannot be after end date', 'danger')
+                    start_date = end_date - timedelta(days=30)
+                    
+            except ValueError:
+                flash('Invalid date format. Using default date range.', 'warning')
+                end_date = date.today()
+                start_date = end_date - timedelta(days=30)
+        
+        return render_template('inventory_reports.html', 
+                             start_date=start_date, 
+                             end_date=end_date)
     except Exception as e:
         print(f"Inventory reports error: {e}")
         flash('Error loading inventory reports', 'danger')
