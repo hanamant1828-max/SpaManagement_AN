@@ -406,6 +406,7 @@ def create_comprehensive_staff(form_data):
 
         db.session.add(staff_member)
         db.session.flush()  # Get the ID for service assignments
+        db.session.commit()  # Commit the transaction to database
 
         print(f"Successfully created staff member: {staff_member.full_name} with code: {staff_code}")
         return staff_member
