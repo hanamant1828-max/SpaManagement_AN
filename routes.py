@@ -150,6 +150,7 @@ def index():
         return redirect(url_for('login'))
     except Exception as e:
         print(f"Error in index route: {e}")
+        # If there's an error, show login page directly
         return render_template('login.html')
 
 # Backward compatibility route
