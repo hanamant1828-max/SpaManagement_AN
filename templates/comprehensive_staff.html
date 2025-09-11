@@ -439,11 +439,11 @@
                         <!-- Shift Details -->
                         <div class="col-md-4">
                             <label class="form-label">Shift Start *</label>
-                            <input type="time" class="form-control" id="shiftStart" value="09:00" required>
+                            <input type="time" class="form-control" id="rangeShiftStart" value="09:00" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Shift End *</label>
-                            <input type="time" class="form-control" id="shiftEnd" value="17:00" required>
+                            <input type="time" class="form-control" id="rangeShiftEnd" value="17:00" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Break Minutes</label>
@@ -1262,8 +1262,8 @@ function openScheduleRangeModal() {
     // Reset form
     document.getElementById('scheduleRangeForm').reset();
     // Set default values
-    document.getElementById('shiftStart').value = '09:00';
-    document.getElementById('shiftEnd').value = '17:00';
+    document.getElementById('rangeShiftStart').value = '09:00';
+    document.getElementById('rangeShiftEnd').value = '17:00';
     document.getElementById('breakMinutes').value = '30';
     // Check default working days (Monday-Friday)
     ['rangeMonday', 'rangeTuesday', 'rangeWednesday', 'rangeThursday', 'rangeFriday'].forEach(id => {
@@ -1302,8 +1302,8 @@ async function saveModalScheduleRange(event) {
         start_date: document.getElementById('startDate').value,
         end_date: document.getElementById('endDate').value,
         working_days: workingDays,
-        shift_start_time: document.getElementById('shiftStart').value,
-        shift_end_time: document.getElementById('shiftEnd').value,
+        shift_start_time: document.getElementById('rangeShiftStart').value,
+        shift_end_time: document.getElementById('rangeShiftEnd').value,
         break_time: document.getElementById('breakMinutes').value || '30',
         priority: parseInt(document.getElementById('priority').value) || 1,
         description: document.getElementById('description').value || ''
