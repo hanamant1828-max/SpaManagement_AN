@@ -20,7 +20,7 @@ except ImportError as e:
         from models import Service
         query = Service.query
         if category_filter:
-            query = query.filter_by(category_id=category_filter)
+            query = query.filter_by(category=category_filter)
         return query.all()
     
     
@@ -50,6 +50,29 @@ except ImportError as e:
             db.session.commit()
             return {'success': True, 'message': 'Service deleted successfully'}
         return {'success': False, 'message': 'Service not found'}
+    
+    def export_services_csv(category_filter=''):
+        """Fallback CSV export function"""
+        import csv
+        from io import StringIO
+        from models import Service
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['ID', 'Name', 'Description', 'Price', 'Duration', 'Category', 'Active'])
+        
+        query = Service.query
+        if category_filter:
+            query = query.filter_by(category=category_filter)
+        
+        for service in query.all():
+            writer.writerow([
+                service.id, service.name, service.description or '',
+                service.price, service.duration, service.category or '',
+                service.is_active
+            ])
+        
+        return output.getvalue()
 
 
 
@@ -119,7 +142,7 @@ def create_service_route():
         except (ValueError, TypeError):
             commission_rate = 10.0
         
-        category_id = request.form.get('category_id')
+        category = request.form.get('category', '').strip()
         is_active = bool(request.form.get('is_active', False))
         
         # Enhanced validation with user-friendly messages
@@ -145,7 +168,7 @@ def create_service_route():
             'description': description,
             'duration': duration,
             'price': price,
-            'category_id': int(category_id) if category_id else None,
+            'category': category,
             'commission_rate': commission_rate,
             'is_active': is_active
         })
@@ -177,7 +200,7 @@ def edit_service(service_id):
                 'description': form.description.data,
                 'duration': form.duration.data,
                 'price': form.price.data,
-                'category_id': form.category_id.data,
+                'category': form.category.data,
                 'is_active': form.is_active.data
             })
             flash(f'Service "{service.name}" updated successfully', 'success')
@@ -335,15 +358,16 @@ def create_sample_services():
         })
 
 # API Endpoints for AJAX operations
-@app.route('/api/services/category/<int:category_id>')
+@app.route('/api/services/category/<string:category>')
 @login_required
-def get_services_by_category(category_id):
+def get_services_by_category(category):
     """Get services by category for AJAX calls"""
     if not current_user.can_access('services'):
         return jsonify({'error': 'Access denied'})
     
     try:
-        services = Service.query.filter_by(category_id=category_id, is_active=True).all()
+        from models import Service
+        services = Service.query.filter_by(category=category, is_active=True).all()
         return jsonify({
             'services': [
                 {
@@ -375,7 +399,7 @@ def get_service_api(service_id):
             'description': service.description,
             'duration': service.duration,
             'price': service.price,
-            'category_id': service.category_id,
+            'category': service.category,
             'commission_rate': getattr(service, 'commission_rate', 10),
             'is_active': service.is_active
         })
