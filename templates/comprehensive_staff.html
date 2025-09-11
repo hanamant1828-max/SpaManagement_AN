@@ -304,10 +304,112 @@
                         <div class="col-md-12">
                             <h6 class="text-primary border-bottom pb-2">
                                 <i class="fas fa-calendar-alt me-2"></i>Enhanced Work Schedule
-                                <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="openScheduleRangeModal()">
-                                    <i class="fas fa-plus me-1"></i>Add Schedule Range
+                                <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="openDateRangeScheduler()">
+                                    <i class="fas fa-calendar-plus me-1"></i>Schedule Date Range
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="viewScheduleTemplates()">
+                                    <i class="fas fa-copy me-1"></i>Templates
                                 </button>
                             </h6>
+                            
+                            <!-- Date Range Scheduler -->
+                            <div id="dateRangeScheduler" class="d-none">
+                                <div class="card border-primary mb-3">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-calendar-week me-2"></i>Date Range Scheduler
+                                            <button type="button" class="btn btn-sm btn-light ms-2" onclick="closeDateRangeScheduler()">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Step 1: Date Range Selection -->
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-4">
+                                                <label class="form-label">From Date *</label>
+                                                <input type="date" class="form-control" id="scheduleFromDate" required>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">To Date *</label>
+                                                <input type="date" class="form-control" id="scheduleToDate" required>
+                                            </div>
+                                            <div class="col-md-4 d-flex align-items-end">
+                                                <button type="button" class="btn btn-primary" onclick="generateDaySchedule()">
+                                                    <i class="fas fa-magic me-2"></i>Generate Days
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Bulk Actions -->
+                                        <div id="bulkActions" class="d-none mb-4">
+                                            <div class="border rounded p-3 bg-light">
+                                                <h6 class="text-secondary mb-3">
+                                                    <i class="fas fa-bolt me-2"></i>Bulk Actions
+                                                </h6>
+                                                <div class="row g-2">
+                                                    <div class="col-md-3">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary w-100" onclick="applyToAllDays()">
+                                                            <i class="fas fa-copy me-1"></i>Apply to All
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <button type="button" class="btn btn-sm btn-outline-warning w-100" onclick="markWeekendsOff()">
+                                                            <i class="fas fa-calendar-times me-1"></i>Weekends Off
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <button type="button" class="btn btn-sm btn-outline-success w-100" onclick="copyPreviousWeek()">
+                                                            <i class="fas fa-clone me-1"></i>Copy Previous
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <button type="button" class="btn btn-sm btn-outline-info w-100" onclick="saveAsTemplate()">
+                                                            <i class="fas fa-save me-1"></i>Save Template
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Day-by-Day Schedule Table -->
+                                        <div id="dayScheduleContainer" class="d-none">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h6 class="text-secondary mb-0">
+                                                    <i class="fas fa-list me-2"></i>Day-by-Day Schedule
+                                                </h6>
+                                                <span id="dayCount" class="badge bg-info"></span>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover" id="dayScheduleTable">
+                                                    <thead class="table-dark">
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Day</th>
+                                                            <th>Working?</th>
+                                                            <th>Start Time</th>
+                                                            <th>End Time</th>
+                                                            <th>Break</th>
+                                                            <th>Notes</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="dayScheduleBody">
+                                                        <!-- Generated rows will be inserted here -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="mt-3 text-end">
+                                                <button type="button" class="btn btn-secondary me-2" onclick="closeDateRangeScheduler()">
+                                                    <i class="fas fa-times me-2"></i>Cancel
+                                                </button>
+                                                <button type="button" class="btn btn-success" onclick="saveDaySchedule()">
+                                                    <i class="fas fa-save me-2"></i>Save Schedule
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             
                             <!-- Schedule Ranges Display -->
                             <div class="card border-0 bg-light">
@@ -1310,6 +1412,245 @@ function deleteScheduleRange(rangeId) {
     if (confirm('Are you sure you want to delete this schedule range?')) {
         showAlert('Delete functionality - Coming soon!', 'info');
     }
+}
+
+// Date Range Scheduler Functions
+let currentScheduleDays = [];
+
+// Open the date range scheduler
+function openDateRangeScheduler() {
+    document.getElementById('dateRangeScheduler').classList.remove('d-none');
+    // Set default dates (next week)
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    const endOfWeek = new Date(nextWeek);
+    endOfWeek.setDate(nextWeek.getDate() + 6);
+    
+    document.getElementById('scheduleFromDate').value = formatDateForInput(nextWeek);
+    document.getElementById('scheduleToDate').value = formatDateForInput(endOfWeek);
+}
+
+// Close the date range scheduler
+function closeDateRangeScheduler() {
+    document.getElementById('dateRangeScheduler').classList.add('d-none');
+    document.getElementById('bulkActions').classList.add('d-none');
+    document.getElementById('dayScheduleContainer').classList.add('d-none');
+    currentScheduleDays = [];
+}
+
+// Generate day-by-day schedule from date range
+function generateDaySchedule() {
+    const fromDate = document.getElementById('scheduleFromDate').value;
+    const toDate = document.getElementById('scheduleToDate').value;
+    
+    if (!fromDate || !toDate) {
+        showAlert('Please select both From Date and To Date', 'warning');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        showAlert('From Date cannot be later than To Date', 'warning');
+        return;
+    }
+    
+    // Generate all days in the range
+    const days = [];
+    const current = new Date(fromDate);
+    const end = new Date(toDate);
+    
+    while (current <= end) {
+        days.push({
+            date: formatDateForInput(current),
+            dayName: current.toLocaleDateString('en-US', { weekday: 'long' }),
+            working: !isWeekend(current), // Default: weekdays working, weekends off
+            startTime: '09:00',
+            endTime: '17:00',
+            breakMinutes: '60',
+            notes: ''
+        });
+        current.setDate(current.getDate() + 1);
+    }
+    
+    currentScheduleDays = days;
+    renderDayScheduleTable();
+    
+    // Show bulk actions and day container
+    document.getElementById('bulkActions').classList.remove('d-none');
+    document.getElementById('dayScheduleContainer').classList.remove('d-none');
+    document.getElementById('dayCount').textContent = `${days.length} days`;
+}
+
+// Render the day-by-day schedule table
+function renderDayScheduleTable() {
+    const tbody = document.getElementById('dayScheduleBody');
+    let html = '';
+    
+    currentScheduleDays.forEach((day, index) => {
+        html += `
+            <tr class="${day.working ? 'table-success' : 'table-light'}">
+                <td>
+                    <strong>${formatDisplayDate(day.date)}</strong>
+                </td>
+                <td>
+                    <span class="badge ${getDayBadgeClass(day.dayName)}">${day.dayName}</span>
+                </td>
+                <td>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" ${day.working ? 'checked' : ''} 
+                               onchange="toggleDayWorking(${index})" id="working_${index}">
+                        <label class="form-check-label" for="working_${index}">
+                            <span class="badge ${day.working ? 'bg-success' : 'bg-secondary'}">
+                                ${day.working ? 'Yes' : 'No'}
+                            </span>
+                        </label>
+                    </div>
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm" value="${day.startTime}" 
+                           ${!day.working ? 'disabled' : ''} onchange="updateDayField(${index}, 'startTime', this.value)">
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm" value="${day.endTime}" 
+                           ${!day.working ? 'disabled' : ''} onchange="updateDayField(${index}, 'endTime', this.value)">
+                </td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" value="${day.breakMinutes}" min="0" max="480" 
+                               ${!day.working ? 'disabled' : ''} onchange="updateDayField(${index}, 'breakMinutes', this.value)">
+                        <span class="input-group-text">min</span>
+                    </div>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm" value="${day.notes}" 
+                           placeholder="Notes..." onchange="updateDayField(${index}, 'notes', this.value)">
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+// Toggle working status for a day
+function toggleDayWorking(index) {
+    currentScheduleDays[index].working = !currentScheduleDays[index].working;
+    renderDayScheduleTable();
+}
+
+// Update a field for a specific day
+function updateDayField(index, field, value) {
+    currentScheduleDays[index][field] = value;
+}
+
+// Bulk Actions
+function applyToAllDays() {
+    const template = currentScheduleDays.find(day => day.working);
+    if (!template) {
+        showAlert('Please set up at least one working day as a template', 'warning');
+        return;
+    }
+    
+    currentScheduleDays.forEach(day => {
+        if (day.working) {
+            day.startTime = template.startTime;
+            day.endTime = template.endTime;
+            day.breakMinutes = template.breakMinutes;
+        }
+    });
+    
+    renderDayScheduleTable();
+    showAlert('Applied template to all working days!', 'success');
+}
+
+function markWeekendsOff() {
+    currentScheduleDays.forEach(day => {
+        if (day.dayName === 'Saturday' || day.dayName === 'Sunday') {
+            day.working = false;
+        }
+    });
+    
+    renderDayScheduleTable();
+    showAlert('Weekends marked as off!', 'success');
+}
+
+function copyPreviousWeek() {
+    showAlert('Copy previous week functionality - Coming soon!', 'info');
+}
+
+function saveAsTemplate() {
+    showAlert('Save as template functionality - Coming soon!', 'info');
+}
+
+function viewScheduleTemplates() {
+    showAlert('Schedule templates - Coming soon!', 'info');
+}
+
+// Save the day-by-day schedule
+async function saveDaySchedule() {
+    const staffId = currentModalStaffId || document.getElementById('staffId').value;
+    if (!staffId) {
+        showAlert('Please save the staff member first', 'warning');
+        return;
+    }
+    
+    if (currentScheduleDays.length === 0) {
+        showAlert('Please generate a schedule first', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/staff/${staffId}/day-schedule`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                days: currentScheduleDays
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Day-by-day schedule saved successfully!', 'success');
+            closeDateRangeScheduler();
+            await loadModalScheduleRanges(staffId);
+        } else {
+            throw new Error(result.message || 'Failed to save schedule');
+        }
+    } catch (error) {
+        console.error('Error saving day schedule:', error);
+        showAlert('Error saving schedule: ' + error.message, 'danger');
+    }
+}
+
+// Helper functions
+function formatDateForInput(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function formatDisplayDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function isWeekend(date) {
+    const day = date.getDay();
+    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+}
+
+function getDayBadgeClass(dayName) {
+    const classes = {
+        'Monday': 'bg-primary',
+        'Tuesday': 'bg-info',
+        'Wednesday': 'bg-success',
+        'Thursday': 'bg-warning',
+        'Friday': 'bg-danger',
+        'Saturday': 'bg-secondary',
+        'Sunday': 'bg-dark'
+    };
+    return classes[dayName] || 'bg-secondary';
 }
 
 // Initialize on document ready
