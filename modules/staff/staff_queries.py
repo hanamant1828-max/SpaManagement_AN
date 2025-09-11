@@ -8,7 +8,7 @@ from app import db
 from models import (
     User, Role, Department, Service, StaffService,
     Attendance, StaffPerformance, StaffScheduleRange,
-    Appointment, Commission, StaffDaySchedule # Added StaffDaySchedule here
+    Appointment, Commission
 )
 from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash
@@ -243,27 +243,32 @@ def get_staff_performance_data(staff_id):
 def get_staff_schedule_ranges(staff_id):
     """Get all schedule ranges for a staff member"""
     try:
-        ranges = StaffScheduleRange.query.filter_by(staff_id=staff_id).all()
+        ranges = StaffScheduleRange.query.filter_by(staff_id=staff_id, is_active=True).all()
 
         result = []
         for range_obj in ranges:
-            # Get all schedules within this range
-            schedules = StaffDaySchedule.query.filter(
-                StaffDaySchedule.staff_id == staff_id,
-                StaffDaySchedule.work_date >= range_obj.from_date,
-                StaffDaySchedule.work_date <= range_obj.to_date
-            ).first()  # Just get one example
+            # Get working days as a string
+            working_days = []
+            if range_obj.monday: working_days.append('Mon')
+            if range_obj.tuesday: working_days.append('Tue')
+            if range_obj.wednesday: working_days.append('Wed')
+            if range_obj.thursday: working_days.append('Thu')
+            if range_obj.friday: working_days.append('Fri')
+            if range_obj.saturday: working_days.append('Sat')
+            if range_obj.sunday: working_days.append('Sun')
 
-            if schedules:
-                result.append({
-                    'id': range_obj.id,
-                    'period': f"{range_obj.from_date.strftime('%Y-%m-%d')} to {range_obj.to_date.strftime('%Y-%m-%d')}",
-                    'day': schedules.day_of_week,
-                    'working': 'Full Day' if schedules.is_working else 'Off',
-                    'time': f"{schedules.start_time} - {schedules.end_time}" if schedules.is_working else "N/A",
-                    'break': f"{schedules.break_start} - {schedules.break_end}" if schedules.break_start else "No Break",
-                    'priority': schedules.priority or 'Normal'
-                })
+            result.append({
+                'id': range_obj.id,
+                'schedule_name': range_obj.schedule_name,
+                'start_date': range_obj.start_date.strftime('%Y-%m-%d'),
+                'end_date': range_obj.end_date.strftime('%Y-%m-%d'),
+                'working_days': ', '.join(working_days) if working_days else 'No working days',
+                'shift_start': range_obj.shift_start_time.strftime('%H:%M') if range_obj.shift_start_time else '',
+                'shift_end': range_obj.shift_end_time.strftime('%H:%M') if range_obj.shift_end_time else '',
+                'break_time': range_obj.break_time or '',
+                'priority': range_obj.priority or 1,
+                'description': range_obj.description or ''
+            })
 
         return result
     except Exception as e:
@@ -302,21 +307,14 @@ def update_schedule_range(schedule_id, data):
         return False
 
 def delete_schedule_range(schedule_id):
-    """Delete a schedule range and associated day schedules"""
+    """Delete a schedule range"""
     try:
         schedule_range = StaffScheduleRange.query.get(schedule_id)
         if not schedule_range:
             return False
 
-        # Delete associated day schedules
-        StaffDaySchedule.query.filter(
-            StaffDaySchedule.staff_id == schedule_range.staff_id,
-            StaffDaySchedule.work_date >= schedule_range.from_date,
-            StaffDaySchedule.work_date <= schedule_range.to_date
-        ).delete()
-
-        # Delete the schedule range
-        db.session.delete(schedule_range)
+        # Simply deactivate the schedule range
+        schedule_range.is_active = False
         db.session.commit()
         return True
     except Exception as e:
