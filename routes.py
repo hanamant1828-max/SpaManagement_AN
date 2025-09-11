@@ -7,8 +7,6 @@ from werkzeug.security import generate_password_hash
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_
 from app import app, db
-from models import User, Customer, Service, Appointment, Expense, Invoice, Package, StaffSchedule, CustomerPackage, PackageService, Review, Communication, Commission, Promotion, Waitlist, RecurringAppointment, Location, BusinessSettings, Role, Permission, RolePermission, Category, Department, SystemSetting
-from forms import LoginForm, UserForm, CustomerForm, ServiceForm, AppointmentForm, ExpenseForm, PackageForm, StaffScheduleForm, ReviewForm, CommunicationForm, PromotionForm, WaitlistForm, ProductSaleForm, RecurringAppointmentForm, BusinessSettingsForm, AdvancedCustomerForm, AdvancedUserForm, QuickBookingForm, PaymentForm, RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm
 import utils
 import base64
 import os
@@ -42,6 +40,13 @@ def utility_processor():
 
 def create_default_data():
     """Create default data for the application"""
+    # Import models here to avoid circular imports
+    from models import (User, Customer, Service, Appointment, Expense, Invoice, Package, 
+                       StaffSchedule, CustomerPackage, PackageService, Review, Communication, 
+                       Commission, Promotion, Waitlist, RecurringAppointment, Location, 
+                       BusinessSettings, Role, Permission, RolePermission, Category, 
+                       Department, SystemSetting)
+    
     try:
         # Create default admin user if not exists
         admin_user = User.query.filter_by(username='admin').first()
@@ -261,6 +266,9 @@ def business_settings():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import BusinessSettings
+    from forms import BusinessSettingsForm
+
     # Get business settings
     business_settings = BusinessSettings.query.first()
     if not business_settings:
@@ -280,6 +288,9 @@ def system_management():
     if not current_user.can_access('system_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
+
+    from models import Role, Permission, Category, Department, SystemSetting, BusinessSettings
+    from forms import RoleForm, PermissionForm, CategoryForm, DepartmentForm, SystemSettingForm, BusinessSettingsForm
 
     # Get all required data for system management
     roles = Role.query.all()
@@ -326,6 +337,9 @@ def add_category():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import Category
+    from forms import CategoryForm
+
     form = CategoryForm()
 
     if form.validate_on_submit():
@@ -360,6 +374,8 @@ def role_management():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import Role, Permission, RolePermission
+
     # Get all required data for role management
     roles = Role.query.all()
     permissions = Permission.query.all()
@@ -391,6 +407,9 @@ def add_role():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import Role
+    from forms import RoleForm
+
     form = RoleForm()
     if form.validate_on_submit():
         try:
@@ -420,6 +439,9 @@ def edit_role(role_id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import Role
+    from forms import RoleForm
+
     role = Role.query.get_or_404(role_id)
     form = RoleForm(obj=role)
 
@@ -448,6 +470,8 @@ def delete_role(role_id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import Role
+
     try:
         role = Role.query.get_or_404(role_id)
         db.session.delete(role)
@@ -465,6 +489,9 @@ def update_business_settings():
     if not current_user.can_access('system_management'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
+
+    from models import BusinessSettings
+    from forms import BusinessSettingsForm
 
     business_settings = BusinessSettings.query.first()
     if not business_settings:
@@ -495,6 +522,8 @@ def api_create_role():
     if not current_user.can_access('system_management'):
         return {'error': 'Access denied'}, 403
 
+    from models import Role
+
     data = request.get_json()
     if not data:
         return {'error': 'No data provided'}, 400
@@ -520,6 +549,8 @@ def api_delete_role(role_id):
     if not current_user.can_access('system_management'):
         return {'error': 'Access denied'}, 403
 
+    from models import Role
+
     try:
         role = Role.query.get_or_404(role_id)
         if role.name == 'admin':
@@ -539,6 +570,8 @@ def api_get_role_permissions(role_id):
     if not current_user.can_access('system_management'):
         return {'error': 'Access denied'}, 403
 
+    from models import Role
+
     try:
         role = Role.query.get_or_404(role_id)
         role_permissions = [rp.permission.name for rp in role.permissions]
@@ -555,6 +588,8 @@ def api_update_role_permissions(role_id):
     """API endpoint to update role permissions"""
     if not current_user.can_access('system_management'):
         return {'error': 'Access denied'}, 403
+
+    from models import Role, Permission, RolePermission
 
     data = request.get_json()
     if not data:
@@ -586,6 +621,8 @@ def api_update_role_permissions(role_id):
 @app.route('/api/services')
 @login_required
 def api_services():
+    from models import Service
+    
     services = Service.query.filter_by(is_active=True).all()
     return jsonify([{
         'id': s.id,
@@ -597,6 +634,8 @@ def api_services():
 @app.route('/api/staff')
 @login_required
 def api_staff():
+    from models import User
+    
     staff = User.query.filter(User.role.in_(['staff', 'manager'])).filter_by(is_active=True).all()
     return jsonify([{
         'id': s.id,
