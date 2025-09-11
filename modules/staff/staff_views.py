@@ -1306,17 +1306,53 @@ def api_create_staff_day_schedule(staff_id):
                     'description': day.get('notes', f"Day schedule for {day['date']}")
                 }
                 
-                # Use existing function to create schedule range
-                from modules.staff.staff_queries import create_staff_schedule_range
-                result = create_staff_schedule_range(staff_id, schedule_data)
-                if result:
+                # Create schedule range directly using models
+                from models import StaffScheduleRange
+                
+                try:
+                    schedule_range = StaffScheduleRange(
+                        staff_id=staff_id,
+                        schedule_name=schedule_data['schedule_name'],
+                        start_date=datetime.strptime(schedule_data['start_date'], '%Y-%m-%d').date(),
+                        end_date=datetime.strptime(schedule_data['end_date'], '%Y-%m-%d').date(),
+                        shift_start_time=datetime.strptime(schedule_data['shift_start_time'], '%H:%M').time(),
+                        shift_end_time=datetime.strptime(schedule_data['shift_end_time'], '%H:%M').time(),
+                        break_time=int(schedule_data['break_time']),
+                        priority=schedule_data['priority'],
+                        description=schedule_data['description'],
+                        is_active=True
+                    )
+                    
+                    # Set working days separately after creating the object
+                    working_days = schedule_data['working_days']
+                    schedule_range.monday = working_days.get('monday', False)
+                    schedule_range.tuesday = working_days.get('tuesday', False)
+                    schedule_range.wednesday = working_days.get('wednesday', False)
+                    schedule_range.thursday = working_days.get('thursday', False)
+                    schedule_range.friday = working_days.get('friday', False)
+                    schedule_range.saturday = working_days.get('saturday', False)
+                    schedule_range.sunday = working_days.get('sunday', False)
+                    
+                    db.session.add(schedule_range)
                     success_count += 1
+                except Exception as day_error:
+                    print(f"Error creating schedule for {day['date']}: {day_error}")
+                    continue
         
-        return jsonify({
-            'success': True,
-            'message': f'Successfully created {success_count} schedule entries',
-            'schedules_created': success_count
-        })
+        # Commit all schedule ranges with error handling
+        try:
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Successfully created {success_count} schedule entries',
+                'schedules_created': success_count
+            })
+        except Exception as commit_error:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': f'Failed to save schedules: {str(commit_error)}'
+            }), 500
         
     except Exception as e:
         print(f"Error creating day schedule: {e}")
