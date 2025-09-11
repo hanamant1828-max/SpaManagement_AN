@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import secrets
 from flask import Flask, request
@@ -105,3 +106,23 @@ with app.app_context():
             logging.warning("Application starting with limited functionality")
 
     # Professional inventory views removed
+    
+    # Import routes.py to register root routes and error handlers
+    try:
+        import routes  # registers root, system, error routes
+        print("routes.py imported successfully")
+    except Exception as e:
+        logging.exception(f"Failed importing routes.py: {e}")
+        print("Running without core routes - some pages may not work")
+    
+    # Log registered routes for debugging
+    print("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"  {rule.rule} -> {rule.endpoint}")
+
+# Run the Flask app when called directly
+if __name__ == "__main__":
+    # Fix: Prevent double Flask instance creation from circular imports
+    sys.modules['app'] = sys.modules[__name__]
+    print("Starting Flask development server on 0.0.0.0:5000")
+    app.run(host="0.0.0.0", port=5000, debug=False)
