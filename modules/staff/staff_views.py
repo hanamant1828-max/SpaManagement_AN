@@ -11,6 +11,10 @@ from app import app
 from forms import UserForm, AdvancedUserForm, ComprehensiveStaffForm
 # Late imports to avoid circular dependency
 from app import db
+from models import (
+    User, Role, Department, Service, StaffService, 
+    Attendance, StaffPerformance, StaffScheduleRange
+)
 from .staff_queries import (
     get_all_staff, get_staff_by_id, get_staff_by_role, get_active_roles, 
     get_active_departments, get_active_services, create_staff, update_staff, delete_staff, 

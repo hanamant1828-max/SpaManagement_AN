@@ -4,13 +4,16 @@ Supporting all 11 requirements for professional staff management
 """
 from sqlalchemy import and_, func, desc, or_
 from app import db
-# Late imports to avoid circular dependency
+# Import models to avoid NameError issues
+from models import (
+    User, Role, Department, Service, StaffService, 
+    Attendance, StaffPerformance, StaffScheduleRange
+)
 from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash
 
 def get_all_staff():
     """Get all active staff members with comprehensive data"""
-    from models import User
     return User.query.filter_by(is_active=True).order_by(User.first_name).all()
 
 def get_comprehensive_staff():

@@ -270,73 +270,180 @@
                     </div>
                 </div>
 
-                <!-- Work Schedule -->
+                <!-- Enhanced Work Schedule -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-calendar-alt me-2"></i>Work Schedule
+                            <i class="fas fa-calendar-alt me-2"></i>Enhanced Work Schedule
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    {{ form.shift_start_time.label(class="form-label") }}
+                        <!-- Schedule Ranges List -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">Schedule Ranges</h6>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="openScheduleRangeModal()">
+                                <i class="fas fa-plus me-1"></i>Add Schedule Range
+                            </button>
+                        </div>
+                        
+                        <!-- Existing Schedule Ranges -->
+                        <div id="scheduleRangesList" class="mb-4">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Enhanced Scheduling:</strong> Create flexible date ranges with specific working days instead of simple weekly patterns.
+                                <ul class="mb-0 mt-2">
+                                    <li>Set different schedules for different time periods</li>
+                                    <li>Define specific working days within each range</li>
+                                    <li>Include shift times and break information</li>
+                                </ul>
+                            </div>
+                            <div id="noSchedulesMessage" class="text-muted text-center py-3">
+                                <i class="fas fa-calendar-times fa-2x mb-2 d-block"></i>
+                                No schedule ranges defined yet. Click "Add Schedule Range" to create one.
+                            </div>
+                        </div>
+
+                        <!-- Legacy Support (Hidden but retained for compatibility) -->
+                        <div style="display: none;">
+                            <div class="row">
+                                <div class="col-md-4">
                                     {{ form.shift_start_time(class="form-control") }}
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    {{ form.shift_end_time.label(class="form-label") }}
+                                <div class="col-md-4">
                                     {{ form.shift_end_time(class="form-control") }}
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    {{ form.break_time.label(class="form-label") }}
+                                <div class="col-md-4">
                                     {{ form.break_time(class="form-control") }}
                                 </div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Working Days</label>
                             <div class="d-flex gap-3">
-                                <div class="form-check">
-                                    {{ form.monday(class="form-check-input") }}
-                                    {{ form.monday.label(class="form-check-label") }}
-                                </div>
-                                <div class="form-check">
-                                    {{ form.tuesday(class="form-check-input") }}
-                                    {{ form.tuesday.label(class="form-check-label") }}
-                                </div>
-                                <div class="form-check">
-                                    {{ form.wednesday(class="form-check-input") }}
-                                    {{ form.wednesday.label(class="form-check-label") }}
-                                </div>
-                                <div class="form-check">
-                                    {{ form.thursday(class="form-check-input") }}
-                                    {{ form.thursday.label(class="form-check-label") }}
-                                </div>
-                                <div class="form-check">
-                                    {{ form.friday(class="form-check-input") }}
-                                    {{ form.friday.label(class="form-check-label") }}
-                                </div>
-                                <div class="form-check">
-                                    {{ form.saturday(class="form-check-input") }}
-                                    {{ form.saturday.label(class="form-check-label") }}
-                                </div>
-                                <div class="form-check">
-                                    {{ form.sunday(class="form-check-input") }}
-                                    {{ form.sunday.label(class="form-check-label") }}
-                                </div>
+                                {{ form.monday(class="form-check-input") }}
+                                {{ form.tuesday(class="form-check-input") }}
+                                {{ form.wednesday(class="form-check-input") }}
+                                {{ form.thursday(class="form-check-input") }}
+                                {{ form.friday(class="form-check-input") }}
+                                {{ form.saturday(class="form-check-input") }}
+                                {{ form.sunday(class="form-check-input") }}
                             </div>
+                            {{ form.weekly_off_days(class="form-control") }}
                         </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    {{ form.weekly_off_days.label(class="form-label") }}
-                                    {{ form.weekly_off_days(class="form-control") }}
-                                </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Range Modal -->
+                <div class="modal fade" id="scheduleRangeModal" tabindex="-1" aria-labelledby="scheduleRangeModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="scheduleRangeModalLabel">Add Schedule Range</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="scheduleRangeForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="scheduleName" class="form-label required">Schedule Name</label>
+                                                <input type="text" class="form-control" id="scheduleName" required>
+                                                <div class="form-text">e.g., "Regular Weekdays", "Holiday Schedule"</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="priority" class="form-label">Priority</label>
+                                                <select class="form-select" id="priority">
+                                                    <option value="1">1 - Low</option>
+                                                    <option value="2">2 - Normal</option>
+                                                    <option value="3" selected>3 - High</option>
+                                                    <option value="4">4 - Critical</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="startDate" class="form-label required">Start Date</label>
+                                                <input type="date" class="form-control" id="startDate" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="endDate" class="form-label required">End Date</label>
+                                                <input type="date" class="form-control" id="endDate" required>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Working Days</label>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="rangeMonday" checked>
+                                                    <label class="form-check-label" for="rangeMonday">Monday</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="rangeTuesday" checked>
+                                                    <label class="form-check-label" for="rangeTuesday">Tuesday</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="rangeWednesday" checked>
+                                                    <label class="form-check-label" for="rangeWednesday">Wednesday</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="rangeThursday" checked>
+                                                    <label class="form-check-label" for="rangeThursday">Thursday</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="rangeFriday" checked>
+                                                    <label class="form-check-label" for="rangeFriday">Friday</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="rangeSaturday">
+                                                    <label class="form-check-label" for="rangeSaturday">Saturday</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="rangeSunday">
+                                                    <label class="form-check-label" for="rangeSunday">Sunday</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="shiftStart" class="form-label">Shift Start</label>
+                                                <input type="time" class="form-control" id="shiftStart" value="09:00">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="shiftEnd" class="form-label">Shift End</label>
+                                                <input type="time" class="form-control" id="shiftEnd" value="17:00">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="breakMinutes" class="form-label">Break (minutes)</label>
+                                                <input type="number" class="form-control" id="breakMinutes" value="30" min="0" max="480">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="description" class="form-label">Description</label>
+                                        <textarea class="form-control" id="description" rows="2" placeholder="Optional description for this schedule range"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="saveScheduleRange()">Save Schedule Range</button>
                             </div>
                         </div>
                     </div>
@@ -1125,6 +1232,234 @@ function clearCapturedFace() {
     document.getElementById('capturedFaceData').value = '';
     document.getElementById('capturedFacePreview').style.display = 'none';
     document.getElementById('retakeFaceBtn').style.display = 'none';
+}
+
+// Enhanced Schedule Range Management JavaScript
+let currentStaffId = {{ staff_member.id if staff_member else 'null' }};
+let scheduleRangeModal;
+
+// Initialize schedule range functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal
+    const modalElement = document.getElementById('scheduleRangeModal');
+    if (modalElement) {
+        scheduleRangeModal = new bootstrap.Modal(modalElement);
+    }
+    
+    // Load existing schedule ranges if editing
+    if (currentStaffId) {
+        setTimeout(() => loadScheduleRanges(), 1000);
+    } else {
+        setTimeout(() => displayTempScheduleRanges(), 1000);
+    }
+});
+
+// Open the schedule range modal
+function openScheduleRangeModal() {
+    // Reset form
+    document.getElementById('scheduleRangeForm').reset();
+    // Set default values
+    document.getElementById('shiftStart').value = '09:00';
+    document.getElementById('shiftEnd').value = '17:00';
+    document.getElementById('breakMinutes').value = '30';
+    // Check default working days (Monday-Friday)
+    ['rangeMonday', 'rangeTuesday', 'rangeWednesday', 'rangeThursday', 'rangeFriday'].forEach(id => {
+        document.getElementById(id).checked = true;
+    });
+    ['rangeSaturday', 'rangeSunday'].forEach(id => {
+        document.getElementById(id).checked = false;
+    });
+    
+    scheduleRangeModal.show();
+}
+
+// Save schedule range
+async function saveScheduleRange() {
+    const formData = {
+        schedule_name: document.getElementById('scheduleName').value,
+        description: document.getElementById('description').value,
+        start_date: document.getElementById('startDate').value,
+        end_date: document.getElementById('endDate').value,
+        monday: document.getElementById('rangeMonday').checked,
+        tuesday: document.getElementById('rangeTuesday').checked,
+        wednesday: document.getElementById('rangeWednesday').checked,
+        thursday: document.getElementById('rangeThursday').checked,
+        friday: document.getElementById('rangeFriday').checked,
+        saturday: document.getElementById('rangeSaturday').checked,
+        sunday: document.getElementById('rangeSunday').checked,
+        shift_start_time: document.getElementById('shiftStart').value,
+        shift_end_time: document.getElementById('shiftEnd').value,
+        break_time: parseInt(document.getElementById('breakMinutes').value),
+        priority: parseInt(document.getElementById('priority').value)
+    };
+    
+    // Validate form
+    if (!formData.schedule_name || !formData.start_date || !formData.end_date) {
+        showNotification('Please fill in all required fields.', 'error');
+        return;
+    }
+    
+    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+        showNotification('End date must be after start date.', 'error');
+        return;
+    }
+    
+    // Check if at least one working day is selected
+    const hasWorkingDay = formData.monday || formData.tuesday || formData.wednesday || 
+                          formData.thursday || formData.friday || formData.saturday || formData.sunday;
+    if (!hasWorkingDay) {
+        showNotification('Please select at least one working day.', 'error');
+        return;
+    }
+    
+    try {
+        if (currentStaffId) {
+            // If editing existing staff, save to API
+            const response = await fetch(`/api/staff/${currentStaffId}/schedule-ranges`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showNotification('Schedule range added successfully!', 'success');
+                scheduleRangeModal.hide();
+                loadScheduleRanges();
+            } else {
+                showNotification('Error adding schedule range: ' + result.error, 'error');
+            }
+        } else {
+            // For new staff, store in temporary storage
+            const tempRanges = JSON.parse(localStorage.getItem('tempScheduleRanges') || '[]');
+            formData.id = Date.now(); // Temporary ID
+            tempRanges.push(formData);
+            localStorage.setItem('tempScheduleRanges', JSON.stringify(tempRanges));
+            
+            showNotification('Schedule range added temporarily. It will be saved when you save the staff member.', 'info');
+            scheduleRangeModal.hide();
+            displayTempScheduleRanges();
+        }
+    } catch (error) {
+        showNotification('Error saving schedule range: ' + error.message, 'error');
+    }
+}
+
+// Load existing schedule ranges
+async function loadScheduleRanges() {
+    try {
+        const response = await fetch(`/api/staff/${currentStaffId}/schedule-ranges`);
+        const result = await response.json();
+        
+        if (result.success) {
+            displayScheduleRanges(result.schedule_ranges);
+        }
+    } catch (error) {
+        console.error('Error loading schedule ranges:', error);
+    }
+}
+
+// Display schedule ranges
+function displayScheduleRanges(ranges) {
+    const container = document.getElementById('scheduleRangesList');
+    const noMessage = document.getElementById('noSchedulesMessage');
+    
+    if (!container || !noMessage) return;
+    
+    if (ranges.length === 0) {
+        noMessage.style.display = 'block';
+        return;
+    }
+    
+    noMessage.style.display = 'none';
+    
+    // Clear existing ranges (except the info alert)
+    const existingRanges = container.querySelectorAll('.schedule-range-item');
+    existingRanges.forEach(item => item.remove());
+    
+    ranges.forEach(range => {
+        const rangeHtml = createScheduleRangeHtml(range);
+        container.insertAdjacentHTML('beforeend', rangeHtml);
+    });
+}
+
+// Display temporary schedule ranges for new staff
+function displayTempScheduleRanges() {
+    const tempRanges = JSON.parse(localStorage.getItem('tempScheduleRanges') || '[]');
+    displayScheduleRanges(tempRanges);
+}
+
+// Create HTML for schedule range
+function createScheduleRangeHtml(range) {
+    const workingDays = [];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    days.forEach((day, index) => {
+        if (range.working_days && range.working_days[day]) {
+            workingDays.push(dayNames[index]);
+        } else if (range[day]) {
+            workingDays.push(dayNames[index]);
+        }
+    });
+    
+    return `
+        <div class="card schedule-range-item mb-2">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${range.schedule_name}</strong>
+                        <br>
+                        <small class="text-muted">
+                            ${range.start_date} to ${range.end_date} | 
+                            ${workingDays.join(', ')} | 
+                            ${range.shift_start_time || '--'} - ${range.shift_end_time || '--'}
+                            ${range.break_time ? ` | Break: ${range.break_time}min` : ''}
+                        </small>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteScheduleRange(${range.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Delete schedule range
+async function deleteScheduleRange(rangeId) {
+    if (!confirm('Are you sure you want to delete this schedule range?')) {
+        return;
+    }
+    
+    try {
+        if (currentStaffId) {
+            const response = await fetch(`/api/staff/${currentStaffId}/schedule-ranges/${rangeId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showNotification('Schedule range deleted successfully!', 'success');
+                loadScheduleRanges();
+            } else {
+                showNotification('Error deleting schedule range: ' + result.error, 'error');
+            }
+        } else {
+            // Delete from temporary storage
+            const tempRanges = JSON.parse(localStorage.getItem('tempScheduleRanges') || '[]');
+            const filteredRanges = tempRanges.filter(range => range.id !== rangeId);
+            localStorage.setItem('tempScheduleRanges', JSON.stringify(filteredRanges));
+            displayTempScheduleRanges();
+            showNotification('Temporary schedule range removed.', 'info');
+        }
+    } catch (error) {
+        showNotification('Error deleting schedule range: ' + error.message, 'error');
+    }
 }
 </script>
 
