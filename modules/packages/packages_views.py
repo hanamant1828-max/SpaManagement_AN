@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from app import app, db
 # Late imports to avoid circular dependency
 from .packages_queries import *
+from models import Package, Service, Customer, CustomerPackage, Category
 import json
 from datetime import datetime, timedelta
 

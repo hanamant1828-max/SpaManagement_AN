@@ -4,6 +4,7 @@ Customers-related database queries
 from sqlalchemy import or_, func
 from app import db
 # Late imports to avoid circular dependency
+from models import Customer, Appointment, Communication, User
 
 def get_all_customers():
     """Get all active customers"""

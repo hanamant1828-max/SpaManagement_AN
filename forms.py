@@ -52,6 +52,8 @@ class CustomerForm(FlaskForm):
     ])
     date_of_birth = DateField('Date of Birth', validators=[Optional()])
     gender = SelectField('Gender', choices=[('', 'Select Gender'), ('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], validators=[Optional()])
+    preferences = TextAreaField('Preferences', validators=[Optional(), Length(max=1000, message='Preferences must be less than 1000 characters.')])
+    allergies = TextAreaField('Allergies', validators=[Optional(), Length(max=1000, message='Allergies must be less than 1000 characters.')])
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Customer')
 

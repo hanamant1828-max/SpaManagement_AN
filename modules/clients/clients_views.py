@@ -12,6 +12,7 @@ from .clients_queries import (
 )
 # Late imports to avoid circular dependency
 from app import db
+from models import Customer, Appointment, Communication
 
 @app.route('/customers')
 @app.route('/clients')  # Keep for backward compatibility
@@ -56,7 +57,7 @@ def create_customer_route():
         else:
             email_value = None
 
-        phone_value = form.phone.data.strip() if form.phone.data else ""
+        phone_value = (form.phone.data or '').strip() if form.phone.data else ""
 
         # Server-side validation for duplicates
         from .clients_queries import get_customer_by_phone, get_customer_by_email
@@ -102,7 +103,8 @@ def create_customer_route():
         # Form validation failed - show specific field errors
         for field, errors in form.errors.items():
             for error in errors:
-                flash(f'{field.replace("_", " ").title()}: {error}', 'danger')
+                field_name = str(field).replace("_", " ").title() if field else "Field"
+                flash(f'{field_name}: {error}', 'danger')
 
     return redirect(url_for('customers'))
 
@@ -151,7 +153,7 @@ def update_client_route(id):
         else:
             email_value = None
 
-        phone_value = form.phone.data.strip()
+        phone_value = (form.phone.data or '').strip()
 
         # Server-side validation for duplicates (excluding current customer)
         from .clients_queries import get_customer_by_phone, get_customer_by_email
@@ -197,7 +199,10 @@ def update_client_route(id):
 
         try:
             updated_customer = update_customer(id, customer_data)
-            success_msg = f'Customer "{updated_customer.first_name} {updated_customer.last_name}" has been updated successfully!'
+            if updated_customer:
+                success_msg = f'Customer "{updated_customer.first_name} {updated_customer.last_name}" has been updated successfully!'
+            else:
+                success_msg = 'Customer has been updated successfully!'
 
             flash(success_msg, 'success')
         except Exception as e:
@@ -208,7 +213,8 @@ def update_client_route(id):
         # Form validation failed - show specific field errors
         for field, errors in form.errors.items():
             for error in errors:
-                flash(f'{field.replace("_", " ").title()}: {error}', 'danger')
+                field_name = str(field).replace("_", " ").title() if field else "Field"
+                flash(f'{field_name}: {error}', 'danger')
 
     return redirect(url_for('customers'))
 

@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Client Details - {{ client.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{{ client.full_name }}</h2>
+                    <p class="text-muted mb-0">Client ID: #{{ client.id }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('customers') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Clients
+                    </a>
+                    <a href="{{ url_for('edit_client_route', id=client.id) }}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Client
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Client Information Card -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Client Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Email:</strong>
+                        <div>{{ client.email or 'Not provided' }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Phone:</strong>
+                        <div>{{ client.phone or 'Not provided' }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Date of Birth:</strong>
+                        <div>{{ client.date_of_birth.strftime('%B %d, %Y') if client.date_of_birth else 'Not provided' }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Gender:</strong>
+                        <div>{{ client.gender or 'Not specified' }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Member Since:</strong>
+                        <div>{{ client.created_at.strftime('%B %d, %Y') }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Status:</strong>
+                        <span class="badge bg-{% if client.status == 'Loyal Customer' %}success{% elif client.status == 'VIP' %}warning{% else %}primary{% endif %}">
+                            {{ client.status }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loyalty & Statistics Card -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-star me-2"></i>Loyalty & Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Loyalty Points:</strong>
+                        <div class="h4 text-warning">
+                            <i class="fas fa-coins me-1"></i>{{ client.loyalty_points or 0 }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>VIP Status:</strong>
+                        {% if client.is_vip %}
+                            <span class="badge bg-warning">VIP Member</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Regular Member</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Total Visits:</strong>
+                        <div class="h5">{{ client.total_visits or 0 }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Total Spent:</strong>
+                        <div class="h5 text-success">${{ "%.2f"|format(client.total_spent or 0) }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Last Visit:</strong>
+                        <div>{{ client.last_visit.strftime('%B %d, %Y at %I:%M %p') if client.last_visit else 'No visits yet' }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Lifetime Value:</strong>
+                        <div class="h5 text-info">${{ "%.2f"|format(client.lifetime_value or 0) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences & Notes Card -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user-cog me-2"></i>Preferences & Notes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Preferences:</strong>
+                        <div class="text-muted">
+                            {{ client.preferences or 'No preferences recorded' }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Allergies:</strong>
+                        <div class="text-danger">
+                            {{ client.allergies or 'No allergies recorded' }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Notes:</strong>
+                        <div class="text-muted">
+                            {{ client.notes or 'No notes recorded' }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Communication:</strong>
+                        <div>{{ client.preferred_communication or 'Email' }}</div>
+                    </div>
+                    {% if client.referral_source %}
+                    <div class="mb-3">
+                        <strong>Referral Source:</strong>
+                        <div>{{ client.referral_source }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointment History -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Appointment History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if appointments %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Service</th>
+                                        <th>Staff</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Payment Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for appointment in appointments %}
+                                    <tr>
+                                        <td>{{ appointment.appointment_date.strftime('%m/%d/%Y %I:%M %p') }}</td>
+                                        <td>
+                                            {% if appointment.service %}
+                                                {{ appointment.service.name }}
+                                            {% else %}
+                                                Service Not Available
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if appointment.staff %}
+                                                {{ appointment.staff.full_name }}
+                                            {% else %}
+                                                Staff Not Assigned
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if appointment.status == 'completed' %}success{% elif appointment.status == 'cancelled' %}danger{% elif appointment.status == 'confirmed' %}info{% else %}warning{% endif %}">
+                                                {{ appointment.status.title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if appointment.amount %}
+                                                ${{ "%.2f"|format(appointment.amount) }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if appointment.is_paid %}
+                                                <span class="badge bg-success">Paid</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                            <p>No appointment history found for this client.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Packages -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-gift me-2"></i>Active Packages
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if client.packages %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Package</th>
+                                        <th>Purchase Date</th>
+                                        <th>Expiry Date</th>
+                                        <th>Sessions Used</th>
+                                        <th>Status</th>
+                                        <th>Amount Paid</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for package in client.packages %}
+                                    <tr>
+                                        <td>{{ package.package.name if package.package else 'Package Not Available' }}</td>
+                                        <td>{{ package.purchase_date.strftime('%m/%d/%Y') }}</td>
+                                        <td>{{ package.expiry_date.strftime('%m/%d/%Y') }}</td>
+                                        <td>
+                                            <div class="progress" style="width: 150px;">
+                                                {% set usage_percent = ((package.sessions_used or 0) / package.total_sessions * 100) if package.total_sessions > 0 else 0 %}
+                                                <div class="progress-bar" role="progressbar" style="width: {{ usage_percent }}%">
+                                                    {{ package.sessions_used or 0 }}/{{ package.total_sessions }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if package.is_active and package.expiry_date > moment.utcnow() %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% elif package.expiry_date <= moment.utcnow() %}
+                                                <span class="badge bg-danger">Expired</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>${{ "%.2f"|format(package.amount_paid) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-gift fa-3x mb-3"></i>
+                            <p>No packages purchased by this client.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Communications History -->
+    {% if communications %}
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-comments me-2"></i>Communications History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for comm in communications %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">{{ comm.type.title() }}</h6>
+                                <p class="timeline-description">{{ comm.message }}</p>
+                                <small class="text-muted">{{ comm.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding: 20px 0 20px 60px;
+    border-left: 2px solid #dee2e6;
+}
+
+.timeline-item:last-child {
+    border-left-color: transparent;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -8px;
+    top: 25px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #007bff;
+    border: 2px solid white;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.timeline-title {
+    margin-bottom: 8px;
+    color: #495057;
+    font-weight: 600;
+}
+
+.timeline-description {
+    margin-bottom: 8px;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
