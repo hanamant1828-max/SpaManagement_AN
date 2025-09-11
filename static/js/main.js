@@ -36,6 +36,9 @@ function setupGlobalEventListeners() {
     document.addEventListener('show.bs.modal', handleModalShow);
     document.addEventListener('hidden.bs.modal', handleModalHidden);
 
+    // Auto-hide mobile sidebar when clicking navigation links
+    setupMobileSidebarAutoHide();
+
     // Initialize face capture functionality only on pages that need it
     if (window.location.pathname.includes('/staff') || window.location.pathname.includes('/face')) {
         initializeFaceCapture();
@@ -763,11 +766,94 @@ function initializeBootstrapComponents() {
             }
         });
 
+        // Initialize offcanvas components for mobile sidebar
+        const offcanvasElements = document.querySelectorAll('.offcanvas');
+        offcanvasElements.forEach(offcanvasEl => {
+            try {
+                if (!bootstrap.Offcanvas.getInstance(offcanvasEl)) {
+                    new bootstrap.Offcanvas(offcanvasEl);
+                }
+            } catch (e) {
+                console.warn('Error initializing offcanvas:', e);
+            }
+        });
+
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(tooltipTriggerEl => {
+            try {
+                if (!bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
+                    new bootstrap.Tooltip(tooltipTriggerEl);
+                }
+            } catch (e) {
+                console.warn('Error initializing tooltip:', e);
+            }
+        });
+
+        // Initialize popovers
+        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggerList.forEach(popoverTriggerEl => {
+            try {
+                if (!bootstrap.Popover.getInstance(popoverTriggerEl)) {
+                    new bootstrap.Popover(popoverTriggerEl);
+                }
+            } catch (e) {
+                console.warn('Error initializing popover:', e);
+            }
+        });
+
+        // Initialize dropdowns
+        const dropdownTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
+        dropdownTriggerList.forEach(dropdownTriggerEl => {
+            try {
+                if (!bootstrap.Dropdown.getInstance(dropdownTriggerEl)) {
+                    new bootstrap.Dropdown(dropdownTriggerEl);
+                }
+            } catch (e) {
+                console.warn('Error initializing dropdown:', e);
+            }
+        });
+
+        // Initialize modals
+        const modalElements = document.querySelectorAll('.modal');
+        modalElements.forEach(modalEl => {
+            try {
+                if (!bootstrap.Modal.getInstance(modalEl)) {
+                    new bootstrap.Modal(modalEl);
+                }
+            } catch (e) {
+                console.warn('Error initializing modal:', e);
+            }
+        });
+
         console.log('Bootstrap components initialized successfully');
 
     } catch (error) {
         console.error('Error in initializeBootstrapComponents:', error);
     }
+}
+
+// Setup auto-hide functionality for mobile sidebar
+function setupMobileSidebarAutoHide() {
+    // Auto-hide offcanvas sidebar when clicking nav links on mobile
+    const sidebarNavLinks = document.querySelectorAll('#sidebar .nav-link');
+    sidebarNavLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            // Only auto-hide on mobile screens
+            if (window.innerWidth < 992) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    const offcanvasInstance = bootstrap.Offcanvas.getOrCreateInstance(sidebar);
+                    if (offcanvasInstance) {
+                        // Small delay to allow navigation to start
+                        setTimeout(() => {
+                            offcanvasInstance.hide();
+                        }, 100);
+                    }
+                }
+            }
+        });
+    });
 }
 
 // Form validation
