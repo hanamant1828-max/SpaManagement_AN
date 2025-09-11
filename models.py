@@ -162,6 +162,7 @@ class User(UserMixin, db.Model):
     # Relationships
     appointments = db.relationship('Appointment', backref='assigned_staff', lazy=True)
     expenses = db.relationship('Expense', backref='created_by_user', lazy=True)
+    schedule_ranges = db.relationship('StaffScheduleRange', backref='staff_member', lazy=True, cascade='all, delete-orphan')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -209,6 +210,66 @@ class User(UserMixin, db.Model):
         if self.user_role:
             return self.user_role.name
         return self.role
+
+class StaffScheduleRange(db.Model):
+    """Enhanced date range-based work schedule for staff members"""
+    __tablename__ = 'staff_schedule_range'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Date range for this schedule
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    
+    # Schedule details
+    schedule_name = db.Column(db.String(100), nullable=False)  # e.g., "Holiday Schedule", "Regular Work"
+    description = db.Column(db.String(255))
+    
+    # Working days within this date range (1=working, 0=off)
+    monday = db.Column(db.Boolean, default=True)
+    tuesday = db.Column(db.Boolean, default=True)
+    wednesday = db.Column(db.Boolean, default=True)
+    thursday = db.Column(db.Boolean, default=True)
+    friday = db.Column(db.Boolean, default=True)
+    saturday = db.Column(db.Boolean, default=False)
+    sunday = db.Column(db.Boolean, default=False)
+    
+    # Shift times for this range
+    shift_start_time = db.Column(db.Time)
+    shift_end_time = db.Column(db.Time)
+    break_time = db.Column(db.String(50))
+    
+    # Status and metadata
+    is_active = db.Column(db.Boolean, default=True)
+    priority = db.Column(db.Integer, default=1)  # Higher priority overrides lower priority
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def get_working_days_string(self):
+        """Get working days as binary string for compatibility"""
+        working_days = ''
+        working_days += '1' if self.monday else '0'
+        working_days += '1' if self.tuesday else '0'
+        working_days += '1' if self.wednesday else '0'
+        working_days += '1' if self.thursday else '0'
+        working_days += '1' if self.friday else '0'
+        working_days += '1' if self.saturday else '0'
+        working_days += '1' if self.sunday else '0'
+        return working_days
+    
+    def is_working_day(self, target_date):
+        """Check if a specific date is a working day based on this schedule"""
+        if not (self.start_date <= target_date <= self.end_date):
+            return False
+        
+        weekday = target_date.weekday()  # Monday = 0, Sunday = 6
+        working_days = [self.monday, self.tuesday, self.wednesday, 
+                       self.thursday, self.friday, self.saturday, self.sunday]
+        return working_days[weekday]
+    
+    def __repr__(self):
+        return f'<StaffScheduleRange {self.schedule_name} ({self.start_date} to {self.end_date})>'
 
 class Customer(db.Model):
     __tablename__ = 'client'  # Keep table name for backward compatibility
