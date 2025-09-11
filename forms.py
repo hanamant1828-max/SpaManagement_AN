@@ -51,6 +51,7 @@ class CustomerForm(FlaskForm):
         Length(max=1000, message='Notes must be less than 1000 characters.')
     ])
     date_of_birth = DateField('Date of Birth', validators=[Optional()])
+    gender = SelectField('Gender', choices=[('', 'Select Gender'), ('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], validators=[Optional()])
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save Customer')
 
