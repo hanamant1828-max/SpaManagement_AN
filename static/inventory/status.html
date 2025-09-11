@@ -315,6 +315,71 @@
             </div>
         </div>
 
+        <!-- Product-wise Quantity Table -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-box me-2"></i>
+                        Product-wise Quantity Summary
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table status-table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>SKU</th>
+                                    <th>Category</th>
+                                    <th class="text-end">Total Quantity</th>
+                                    <th class="text-end">Batches</th>
+                                    <th class="text-end">Total Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productWiseTable">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch-wise Quantity Table -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-boxes me-2"></i>
+                        Batch-wise Quantity Details
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table status-table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Batch Name</th>
+                                    <th>Product</th>
+                                    <th>Location</th>
+                                    <th class="text-end">Available Qty</th>
+                                    <th class="text-end">Unit Cost</th>
+                                    <th class="text-end">Total Value</th>
+                                    <th>Mfg Date</th>
+                                    <th>Expiry Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchWiseTable">
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Refresh Button -->
         <div class="row">
             <div class="col-12 text-end">
@@ -342,6 +407,8 @@
                         populateLowStockItems(data.low_stock_items);
                         populateExpiredBatches(data.expired_batches);
                         populateExpiringSoon(data.expiring_soon);
+                        populateProductWiseTable(data.product_wise_data);
+                        populateBatchWiseTable(data.batch_wise_data);
                         console.log('Inventory status loaded successfully');
                     } else {
                         console.error('Error loading inventory status:', data.error);
@@ -445,6 +512,53 @@
                     <td class="text-end">
                         <span class="badge bg-warning">${batch.days_until_expiry} days</span>
                     </td>
+                </tr>
+            `).join('');
+        }
+
+        function populateProductWiseTable(products) {
+            const tbody = document.getElementById('productWiseTable');
+            
+            if (!products || products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No products found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = products.map(product => `
+                <tr>
+                    <td>${product.name}</td>
+                    <td><code>${product.sku}</code></td>
+                    <td><span class="badge bg-secondary">${product.category}</span></td>
+                    <td class="text-end">${product.total_quantity} <small class="text-muted">${product.unit_of_measure}</small></td>
+                    <td class="text-end"><span class="badge bg-info">${product.batch_count}</span></td>
+                    <td class="text-end">$${product.total_value.toLocaleString()}</td>
+                    <td>
+                        <span class="stock-status ${product.status}">
+                            ${product.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function populateBatchWiseTable(batches) {
+            const tbody = document.getElementById('batchWiseTable');
+            
+            if (!batches || batches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No batches found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = batches.map(batch => `
+                <tr>
+                    <td><code>${batch.batch_name}</code></td>
+                    <td>${batch.product_name}</td>
+                    <td><span class="badge bg-secondary">${batch.location_name}</span></td>
+                    <td class="text-end">${batch.qty_available} <small class="text-muted">${batch.unit_of_measure}</small></td>
+                    <td class="text-end">$${batch.unit_cost.toFixed(2)}</td>
+                    <td class="text-end">$${batch.total_value.toFixed(2)}</td>
+                    <td>${batch.mfg_date ? new Date(batch.mfg_date).toLocaleDateString() : '-'}</td>
+                    <td>${batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry'}</td>
                 </tr>
             `).join('');
         }

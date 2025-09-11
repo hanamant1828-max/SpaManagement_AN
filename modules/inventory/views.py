@@ -1240,6 +1240,57 @@ def api_get_inventory_status():
             InventoryAdjustment.created_at >= week_ago
         ).count()
         
+        # Get all batches with detailed information
+        all_batches_detailed = []
+        batches = InventoryBatch.query.filter(InventoryBatch.status == 'active').all()
+        
+        for batch in batches:
+            batch_data = {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_name': batch.product.name if batch.product else 'Unknown',
+                'product_sku': batch.product.sku if batch.product else '',
+                'location_name': batch.location.name if batch.location else 'Unknown',
+                'location_id': batch.location_id,
+                'qty_available': float(batch.qty_available or 0),
+                'unit_of_measure': batch.product.unit_of_measure if batch.product else 'pcs',
+                'unit_cost': float(batch.unit_cost or 0),
+                'total_value': float(batch.qty_available or 0) * float(batch.unit_cost or 0),
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'status': batch.status
+            }
+            all_batches_detailed.append(batch_data)
+        
+        # Get product-wise totals
+        product_wise_totals = []
+        for product in products:
+            active_batches = [b for b in product.batches if b.status == 'active']
+            total_qty = sum(float(batch.qty_available or 0) for batch in active_batches)
+            total_value_product = sum(float(batch.qty_available or 0) * float(batch.unit_cost or 0) for batch in active_batches)
+            batch_count = len(active_batches)
+            
+            # Determine status
+            if total_qty <= 0:
+                status = 'out_of_stock'
+            elif total_qty <= 10:
+                status = 'low_stock'
+            else:
+                status = 'in_stock'
+            
+            product_data = {
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku,
+                'category': product.category.name if product.category else 'Uncategorized',
+                'unit_of_measure': product.unit_of_measure or 'pcs',
+                'total_quantity': total_qty,
+                'total_value': round(total_value_product, 2),
+                'batch_count': batch_count,
+                'status': status
+            }
+            product_wise_totals.append(product_data)
+
         return jsonify({
             'success': True,
             'overview': {
@@ -1264,7 +1315,9 @@ def api_get_inventory_status():
             'recent_activity': {
                 'consumption_records': recent_consumption,
                 'adjustments': recent_adjustments
-            }
+            },
+            'batch_wise_data': all_batches_detailed,
+            'product_wise_data': product_wise_totals
         })
         
     except Exception as e:
