@@ -517,42 +517,80 @@ def api_create_batch():
 @app.route('/api/inventory/adjustments', methods=['POST'])
 @login_required
 def api_create_adjustment():
-    """Create inventory adjustment and assign product/location to batch if needed"""
+    """Create inventory adjustment from the frontend modal"""
     try:
+        from datetime import datetime
         data = request.get_json()
+        print(f"DEBUG: Received adjustment data: {data}")
 
-        batch = InventoryBatch.query.get(data.get('batch_id'))
+        # Handle both single item and items array structures
+        if 'items' in data and data['items']:
+            # New structure with items array
+            item = data['items'][0]  # Get first item
+            batch_id = item.get('batch_id')
+            quantity = float(item.get('quantity_in', 0))
+            unit_cost = float(item.get('unit_cost', 0))
+            product_id = item.get('product_id')
+            location_id = item.get('location_id')
+        else:
+            # Direct structure
+            batch_id = data.get('batch_id')
+            quantity = float(data.get('quantity', 0))
+            unit_cost = float(data.get('unit_cost', 0))
+            product_id = data.get('product_id')
+            location_id = data.get('location_id')
+
+        # Validate required fields
+        if not batch_id:
+            return jsonify({'error': 'Batch is required'}), 400
+        if quantity <= 0:
+            return jsonify({'error': 'Quantity must be positive'}), 400
+
+        batch = InventoryBatch.query.get(batch_id)
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
 
-        # Assign product and location to batch if not already assigned
-        if data.get('product_id') and not batch.product_id:
-            batch.product_id = data.get('product_id')
+        # Assign product and location to batch if provided and not already assigned
+        if product_id and not batch.product_id:
+            batch.product_id = int(product_id)
         
-        if data.get('location_id') and not batch.location_id:
-            batch.location_id = data.get('location_id')
+        if location_id and not batch.location_id:
+            batch.location_id = str(location_id)
 
+        # Generate reference ID if not provided
+        reference_no = data.get('reference_no')
+        if not reference_no:
+            today = datetime.now()
+            reference_no = f"ADJ-{today.strftime('%Y%m%d-%H%M%S')}"
+
+        # Create adjustment record
         adjustment = InventoryAdjustment(
-            batch_id=data.get('batch_id'),
+            batch_id=batch_id,
             adjustment_type='add',
-            quantity=float(data.get('quantity', 0)),
-            unit_cost=float(data.get('unit_cost', batch.unit_cost or 0)),
-            notes=data.get('notes', ''),
+            quantity=quantity,
+            remarks=data.get('notes', '') or 'Stock adjustment via inventory management',
             created_by=current_user.id
         )
 
-        # Update batch quantity
-        batch.qty_available = float(batch.qty_available or 0) + float(data.get('quantity', 0))
+        # Update batch quantity and cost
+        batch.qty_available = float(batch.qty_available or 0) + quantity
+        if unit_cost > 0:
+            batch.unit_cost = unit_cost
 
         db.session.add(adjustment)
         db.session.commit()
 
+        print(f"DEBUG: Adjustment created - ID: {adjustment.id}, Batch: {batch_id}, Qty: {quantity}")
+
         return jsonify({
             'success': True,
-            'message': 'Inventory adjustment created successfully'
+            'message': 'Inventory adjustment created successfully',
+            'adjustment_id': adjustment.id,
+            'reference_no': reference_no
         })
     except Exception as e:
         db.session.rollback()
+        print(f"DEBUG: Error creating adjustment: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/for-consumption', methods=['GET'])
@@ -665,21 +703,46 @@ def api_create_consumption():
 @app.route('/api/inventory/adjustments', methods=['GET'])
 @login_required  
 def api_get_adjustments():
-    """Get adjustment records"""
+    """Get adjustment records with proper structure for frontend"""
     try:
-        adjustments = InventoryAdjustment.query.order_by(desc(InventoryAdjustment.created_at)).limit(100).all()
-        return jsonify([{
-            'id': a.id,
-            'batch_id': a.batch_id,
-            'batch_name': a.batch.batch_name if a.batch else 'Unknown',
-            'product_name': a.batch.product.name if a.batch and a.batch.product else 'Unknown',
-            'adjustment_type': a.adjustment_type,
-            'quantity': float(a.quantity),
-            'notes': a.remarks,
-            'created_at': a.created_at.isoformat() if a.created_at else None,
-            'created_by_name': a.user.full_name if a.user else 'Unknown'
-        } for a in adjustments])
+        from sqlalchemy.orm import joinedload
+        from sqlalchemy import desc
+        
+        adjustments = InventoryAdjustment.query.options(
+            joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.product),
+            joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.location),
+            joinedload(InventoryAdjustment.user)
+        ).order_by(desc(InventoryAdjustment.created_at)).limit(100).all()
+
+        records = []
+        for a in adjustments:
+            # Generate reference ID (this should ideally be stored in DB)
+            reference_id = f"ADJ-{a.created_at.strftime('%Y%m%d-%H%M%S')}-{a.id}" if a.created_at else f"ADJ-{a.id}"
+            
+            record = {
+                'id': a.id,
+                'reference_id': reference_id,
+                'batch_id': a.batch_id,
+                'batch_name': a.batch.batch_name if a.batch else 'Unknown Batch',
+                'product_name': a.batch.product.name if a.batch and a.batch.product else 'Unknown Product',
+                'location_name': a.batch.location.name if a.batch and a.batch.location else 'Unknown Location',
+                'adjustment_date': a.created_at.strftime('%Y-%m-%d') if a.created_at else '',
+                'adjustment_type': a.adjustment_type,
+                'quantity': float(a.quantity),
+                'unit_cost': float(a.batch.unit_cost or 0) if a.batch else 0,
+                'remarks': a.remarks or '',
+                'notes': a.remarks or '',  # Alias for compatibility
+                'created_at': a.created_at.isoformat() if a.created_at else None,
+                'created_by': a.user.full_name if a.user else 'System'
+            }
+            records.append(record)
+
+        return jsonify({
+            'success': True,
+            'records': records
+        })
     except Exception as e:
+        print(f"ERROR in api_get_adjustments: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products/<int:product_id>', methods=['PUT'])
@@ -924,6 +987,107 @@ def api_get_products_simple():
             'name': p.name,
             'category_name': p.category.name if p.category else 'No Category'
         } for p in products])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/adjustments/<int:adjustment_id>', methods=['GET'])
+@login_required
+def api_get_adjustment(adjustment_id):
+    """Get single adjustment for viewing"""
+    try:
+        from sqlalchemy.orm import joinedload
+        
+        adjustment = InventoryAdjustment.query.options(
+            joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.product),
+            joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.location),
+            joinedload(InventoryAdjustment.user)
+        ).get(adjustment_id)
+        
+        if not adjustment:
+            return jsonify({'error': 'Adjustment not found'}), 404
+
+        reference_id = f"ADJ-{adjustment.created_at.strftime('%Y%m%d-%H%M%S')}-{adjustment.id}" if adjustment.created_at else f"ADJ-{adjustment.id}"
+        
+        return jsonify({
+            'success': True,
+            'id': adjustment.id,
+            'reference_id': reference_id,
+            'batch_name': adjustment.batch.batch_name if adjustment.batch else 'Unknown Batch',
+            'product_name': adjustment.batch.product.name if adjustment.batch and adjustment.batch.product else 'Unknown Product',
+            'location_name': adjustment.batch.location.name if adjustment.batch and adjustment.batch.location else 'Unknown Location',
+            'adjustment_date': adjustment.created_at.strftime('%Y-%m-%d') if adjustment.created_at else '',
+            'quantity': float(adjustment.quantity),
+            'remarks': adjustment.remarks or '',
+            'created_by': adjustment.user.full_name if adjustment.user else 'System',
+            'created_at': adjustment.created_at.isoformat() if adjustment.created_at else None
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/adjustments/<int:adjustment_id>', methods=['DELETE'])
+@login_required
+def api_delete_adjustment(adjustment_id):
+    """Delete adjustment and reverse stock change"""
+    try:
+        adjustment = InventoryAdjustment.query.get(adjustment_id)
+        if not adjustment:
+            return jsonify({'error': 'Adjustment not found'}), 404
+
+        batch = adjustment.batch
+        if batch:
+            # Reverse the adjustment
+            if adjustment.adjustment_type == 'add':
+                batch.qty_available = float(batch.qty_available or 0) - float(adjustment.quantity)
+            else:
+                batch.qty_available = float(batch.qty_available or 0) + float(adjustment.quantity)
+            
+            # Ensure stock doesn't go negative
+            if batch.qty_available < 0:
+                batch.qty_available = 0
+
+        db.session.delete(adjustment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Adjustment deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/for-adjustment', methods=['GET'])
+@login_required
+def api_get_batches_for_adjustment():
+    """Get batches available for adjustments"""
+    try:
+        from sqlalchemy.orm import joinedload
+        
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).filter(InventoryBatch.status == 'active').order_by(InventoryBatch.batch_name).all()
+
+        batch_list = []
+        for b in batches:
+            batch_data = {
+                'id': b.id,
+                'batch_name': b.batch_name,
+                'product_id': b.product_id,
+                'product_name': b.product.name if b.product else 'Not Assigned',
+                'location_id': b.location_id,
+                'location_name': b.location.name if b.location else 'Not Assigned',
+                'qty_available': float(b.qty_available or 0),
+                'unit': b.product.unit_of_measure if b.product else 'pcs',
+                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+                'unit_cost': float(b.unit_cost or 0)
+            }
+            batch_list.append(batch_data)
+
+        return jsonify({
+            'success': True,
+            'batches': batch_list
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
