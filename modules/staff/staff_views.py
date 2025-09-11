@@ -1107,3 +1107,154 @@ def api_delete_staff(staff_id):
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Enhanced Schedule Range Management APIs
+@app.route('/api/staff/<int:staff_id>/schedule-ranges', methods=['GET'])
+@login_required
+def api_get_staff_schedule_ranges(staff_id):
+    """Get all schedule ranges for a staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import StaffScheduleRange
+        
+        schedule_ranges = StaffScheduleRange.query.filter_by(
+            staff_id=staff_id, 
+            is_active=True
+        ).order_by(StaffScheduleRange.start_date).all()
+        
+        ranges_data = []
+        for schedule_range in schedule_ranges:
+            ranges_data.append({
+                'id': schedule_range.id,
+                'schedule_name': schedule_range.schedule_name,
+                'description': schedule_range.description,
+                'start_date': schedule_range.start_date.strftime('%Y-%m-%d'),
+                'end_date': schedule_range.end_date.strftime('%Y-%m-%d'),
+                'working_days': {
+                    'monday': schedule_range.monday,
+                    'tuesday': schedule_range.tuesday,
+                    'wednesday': schedule_range.wednesday,
+                    'thursday': schedule_range.thursday,
+                    'friday': schedule_range.friday,
+                    'saturday': schedule_range.saturday,
+                    'sunday': schedule_range.sunday
+                },
+                'shift_start_time': schedule_range.shift_start_time.strftime('%H:%M') if schedule_range.shift_start_time else None,
+                'shift_end_time': schedule_range.shift_end_time.strftime('%H:%M') if schedule_range.shift_end_time else None,
+                'break_time': schedule_range.break_time,
+                'priority': schedule_range.priority
+            })
+        
+        return jsonify({'success': True, 'schedule_ranges': ranges_data})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>/schedule-ranges', methods=['POST'])
+@login_required
+def api_create_staff_schedule_range(staff_id):
+    """Create a new schedule range for a staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import StaffScheduleRange
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['schedule_name', 'start_date', 'end_date']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+        
+        # Create new schedule range
+        schedule_range = StaffScheduleRange(
+            staff_id=staff_id,
+            schedule_name=data['schedule_name'],
+            description=data.get('description', ''),
+            start_date=datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
+            end_date=datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
+            monday=data.get('monday', True),
+            tuesday=data.get('tuesday', True),
+            wednesday=data.get('wednesday', True),
+            thursday=data.get('thursday', True),
+            friday=data.get('friday', True),
+            saturday=data.get('saturday', False),
+            sunday=data.get('sunday', False),
+            priority=data.get('priority', 1)
+        )
+        
+        # Add shift times if provided
+        if data.get('shift_start_time'):
+            schedule_range.shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
+        if data.get('shift_end_time'):
+            schedule_range.shift_end_time = datetime.strptime(data['shift_end_time'], '%H:%M').time()
+        if data.get('break_time'):
+            schedule_range.break_time = data['break_time']
+        
+        db.session.add(schedule_range)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Schedule range created successfully',
+            'schedule_range_id': schedule_range.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>/working-status/<date>')
+@login_required  
+def api_check_staff_working_status(staff_id, date):
+    """Check if staff member is working on a specific date"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import StaffScheduleRange, User
+        
+        target_date = datetime.strptime(date, '%Y-%m-%d').date()
+        
+        # Get all active schedule ranges for this staff member that cover the target date
+        schedule_ranges = StaffScheduleRange.query.filter(
+            StaffScheduleRange.staff_id == staff_id,
+            StaffScheduleRange.is_active == True,
+            StaffScheduleRange.start_date <= target_date,
+            StaffScheduleRange.end_date >= target_date
+        ).order_by(StaffScheduleRange.priority.desc()).all()
+        
+        if not schedule_ranges:
+            # Fall back to legacy working_days pattern
+            staff_member = User.query.get(staff_id)
+            if staff_member and staff_member.working_days:
+                weekday = target_date.weekday()  # Monday = 0
+                is_working = staff_member.working_days[weekday] == '1'
+                return jsonify({
+                    'success': True,
+                    'is_working': is_working,
+                    'source': 'legacy_pattern',
+                    'shift_start': staff_member.shift_start_time.strftime('%H:%M') if staff_member.shift_start_time else None,
+                    'shift_end': staff_member.shift_end_time.strftime('%H:%M') if staff_member.shift_end_time else None
+                })
+        
+        # Use the highest priority schedule range
+        active_range = schedule_ranges[0]
+        is_working = active_range.is_working_day(target_date)
+        
+        return jsonify({
+            'success': True,
+            'is_working': is_working,
+            'source': 'schedule_range',
+            'schedule_name': active_range.schedule_name,
+            'shift_start': active_range.shift_start_time.strftime('%H:%M') if active_range.shift_start_time else None,
+            'shift_end': active_range.shift_end_time.strftime('%H:%M') if active_range.shift_end_time else None,
+            'break_time': active_range.break_time
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
