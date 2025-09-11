@@ -1510,6 +1510,176 @@ def api_get_consumption_today_report():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/inventory/reports/consumption', methods=['GET'])
+@login_required
+def api_get_consumption_report():
+    """Get consumption report for specified date range"""
+    # Authorization check
+    if not current_user.can_access('inventory'):
+        return jsonify({
+            'success': False,
+            'error': 'Access denied. You do not have permission to access inventory reports.'
+        }), 403
+    
+    try:
+        from sqlalchemy.orm import joinedload
+        from datetime import datetime
+        
+        # Get date parameters
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        
+        if not start_date_str or not end_date_str:
+            return jsonify({
+                'success': False,
+                'error': 'Both start_date and end_date parameters are required'
+            }), 400
+        
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid date format. Use YYYY-MM-DD format.'
+            }), 400
+        
+        # Get consumption records within date range
+        consumption_records = InventoryConsumption.query.options(
+            joinedload(InventoryConsumption.batch).joinedload(InventoryBatch.product),
+            joinedload(InventoryConsumption.user)
+        ).filter(
+            db.func.date(InventoryConsumption.created_at) >= start_date,
+            db.func.date(InventoryConsumption.created_at) <= end_date
+        ).order_by(InventoryConsumption.created_at.desc()).all()
+        
+        report_data = []
+        for record in consumption_records:
+            batch = record.batch
+            product = batch.product if batch else None
+            
+            report_data.append({
+                'consumption_date': record.created_at.isoformat() if record.created_at else None,
+                'batch_name': batch.batch_name if batch else 'Unknown',
+                'product_name': product.name if product else 'Unknown',
+                'sku': product.sku if product else 'N/A',
+                'quantity_consumed': float(record.quantity or 0),
+                'unit_of_measure': product.unit_of_measure if product else 'pcs',
+                'purpose': record.issued_to or 'Service',
+                'staff_member': record.user.username if record.user else 'Unknown',
+                'notes': record.notes or ''
+            })
+        
+        total_consumed_items = len(report_data)
+        total_quantity_consumed = sum(float(record['quantity_consumed']) for record in report_data)
+        
+        return jsonify({
+            'success': True,
+            'report_type': f'Consumption Report ({start_date} to {end_date})',
+            'data': report_data,
+            'summary': {
+                'total_items_consumed': total_consumed_items,
+                'total_quantity_consumed': total_quantity_consumed,
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat()
+            },
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error generating consumption report: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/inventory/reports/adjustments', methods=['GET'])
+@login_required
+def api_get_adjustments_report():
+    """Get adjustments report for specified date range"""
+    # Authorization check
+    if not current_user.can_access('inventory'):
+        return jsonify({
+            'success': False,
+            'error': 'Access denied. You do not have permission to access inventory reports.'
+        }), 403
+    
+    try:
+        from sqlalchemy.orm import joinedload
+        from datetime import datetime
+        
+        # Get date parameters
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        
+        if not start_date_str or not end_date_str:
+            return jsonify({
+                'success': False,
+                'error': 'Both start_date and end_date parameters are required'
+            }), 400
+        
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid date format. Use YYYY-MM-DD format.'
+            }), 400
+        
+        # Get adjustment records within date range
+        adjustment_records = InventoryAdjustment.query.options(
+            joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.product),
+            joinedload(InventoryAdjustment.user)
+        ).filter(
+            db.func.date(InventoryAdjustment.created_at) >= start_date,
+            db.func.date(InventoryAdjustment.created_at) <= end_date
+        ).order_by(InventoryAdjustment.created_at.desc()).all()
+        
+        report_data = []
+        total_adjustments = 0
+        net_quantity_change = 0
+        
+        for record in adjustment_records:
+            batch = record.batch
+            product = batch.product if batch else None
+            
+            # Calculate quantity change based on adjustment type
+            quantity_change = float(record.quantity_change or 0)
+            if record.adjustment_type == 'decrease':
+                quantity_change = -abs(quantity_change)
+            
+            net_quantity_change += quantity_change
+            total_adjustments += 1
+            
+            report_data.append({
+                'adjustment_date': record.created_at.isoformat() if record.created_at else None,
+                'batch_name': batch.batch_name if batch else 'Unknown',
+                'product_name': product.name if product else 'Unknown',
+                'sku': product.sku if product else 'N/A',
+                'adjustment_type': record.adjustment_type or 'unknown',
+                'quantity_change': quantity_change,
+                'unit_of_measure': product.unit_of_measure if product else 'pcs',
+                'staff_member': record.user.username if record.user else 'Unknown',
+                'reason': record.reason or ''
+            })
+        
+        return jsonify({
+            'success': True,
+            'report_type': f'Stock Adjustments Report ({start_date} to {end_date})',
+            'data': report_data,
+            'summary': {
+                'total_adjustments': total_adjustments,
+                'net_quantity_change': net_quantity_change,
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat()
+            },
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error generating adjustments report: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/inventory/reports/item-batch-wise', methods=['GET'])
 @login_required
 def api_get_item_batch_wise_report():
