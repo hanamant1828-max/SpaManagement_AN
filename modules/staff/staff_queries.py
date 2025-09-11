@@ -90,10 +90,23 @@ def get_active_services():
 
 def create_staff(staff_data):
     """Create a new staff member"""
-    staff = User(**staff_data)
-    db.session.add(staff)
-    db.session.commit()
-    return staff
+    try:
+        # Create User object by explicitly setting each field
+        staff = User()
+        
+        # Set all the fields from staff_data
+        for field, value in staff_data.items():
+            if hasattr(staff, field):
+                setattr(staff, field, value)
+        
+        db.session.add(staff)
+        db.session.commit()
+        return staff
+        
+    except Exception as e:
+        print(f"Error in create_staff: {e}")
+        db.session.rollback()
+        raise e
 
 def update_staff(staff_id, staff_data):
     """Update an existing staff member"""
