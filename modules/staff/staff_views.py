@@ -1262,3 +1262,65 @@ def api_check_staff_working_status(staff_id, date):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff/<int:staff_id>/day-schedule', methods=['POST'])
+@login_required
+def api_create_staff_day_schedule(staff_id):
+    """Create day-by-day schedule for staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        days = data.get('days', [])
+        
+        if not days:
+            return jsonify({
+                'success': False,
+                'message': 'No schedule days provided'
+            }), 400
+        
+        # Create individual schedule ranges for each working period
+        success_count = 0
+        
+        for day in days:
+            if day.get('working', False):
+                # Create a single-day schedule range
+                schedule_data = {
+                    'schedule_name': f"Day Schedule - {day['date']}",
+                    'start_date': day['date'],
+                    'end_date': day['date'],
+                    'working_days': {
+                        'monday': day['dayName'].lower() == 'monday',
+                        'tuesday': day['dayName'].lower() == 'tuesday',
+                        'wednesday': day['dayName'].lower() == 'wednesday',
+                        'thursday': day['dayName'].lower() == 'thursday',
+                        'friday': day['dayName'].lower() == 'friday',
+                        'saturday': day['dayName'].lower() == 'saturday',
+                        'sunday': day['dayName'].lower() == 'sunday'
+                    },
+                    'shift_start_time': day.get('startTime', '09:00'),
+                    'shift_end_time': day.get('endTime', '17:00'),
+                    'break_time': day.get('breakMinutes', '60'),
+                    'priority': 1,
+                    'description': day.get('notes', f"Day schedule for {day['date']}")
+                }
+                
+                # Use existing function to create schedule range
+                from modules.staff.staff_queries import create_staff_schedule_range
+                result = create_staff_schedule_range(staff_id, schedule_data)
+                if result:
+                    success_count += 1
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully created {success_count} schedule entries',
+            'schedules_created': success_count
+        })
+        
+    except Exception as e:
+        print(f"Error creating day schedule: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to create day schedule: {str(e)}'
+        }), 500
