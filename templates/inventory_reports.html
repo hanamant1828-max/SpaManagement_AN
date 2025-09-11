@@ -301,8 +301,20 @@
             if (reportType === 'consumption' || reportType === 'adjustments') {
                 dateRangeFields.style.display = 'block';
                 setDefaultDates();
+                
+                // Update the generate button text to indicate date filtering
+                const generateBtn = document.querySelector('.btn-success');
+                if (generateBtn) {
+                    generateBtn.innerHTML = '<i class="fas fa-chart-bar me-1"></i>Generate Report (Custom Date Range)';
+                }
             } else {
                 dateRangeFields.style.display = 'none';
+                
+                // Update the generate button text for current quantity reports
+                const generateBtn = document.querySelector('.btn-success');
+                if (generateBtn) {
+                    generateBtn.innerHTML = '<i class="fas fa-chart-bar me-1"></i>Generate Report';
+                }
             }
         }
 

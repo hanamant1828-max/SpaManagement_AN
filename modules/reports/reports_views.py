@@ -43,14 +43,18 @@ def reports():
     # Get report data
     revenue_data = get_revenue_report(start_date, end_date)
     expense_data = get_expense_report(start_date, end_date)
-    staff_data = get_staff_performance_report(start_date, end_date)
+    staff_performance = get_staff_performance_report(start_date, end_date)
     client_data = get_client_report(start_date, end_date)
     inventory_data = get_inventory_report()
+    
+    # Get service statistics (similar to staff performance)
+    service_stats = []  # This would be implemented with actual service data
     
     return render_template('reports.html',
                          revenue_data=revenue_data,
                          expense_data=expense_data,
-                         staff_data=staff_data,
+                         staff_performance=staff_performance,
+                         service_stats=service_stats,
                          client_data=client_data,
                          inventory_data=inventory_data,
                          start_date=start_date,
