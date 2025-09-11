@@ -6,6 +6,7 @@ from sqlalchemy import func, and_, extract
 from app import db
 # Late imports to avoid circular dependency
 from modules.inventory.models import InventoryProduct as Inventory
+from models import Customer, Appointment, Expense
 
 def get_revenue_report(start_date, end_date):
     """Get revenue report for date range"""
