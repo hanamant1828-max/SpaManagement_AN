@@ -29,8 +29,16 @@ def reports():
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            
+            # Validate date range
+            if start_date > end_date:
+                flash('Start date cannot be after end date', 'danger')
+                start_date = end_date - timedelta(days=30)
+                
         except ValueError:
-            flash('Invalid date format', 'danger')
+            flash('Invalid date format. Using default date range.', 'warning')
+            end_date = date.today()
+            start_date = end_date - timedelta(days=30)
     
     # Get report data
     revenue_data = get_revenue_report(start_date, end_date)
