@@ -324,7 +324,7 @@
                                 <small class="text-muted">For detailed schedule management, use the Schedule button in the staff table.</small>
                             </div>
                         </div>
-                        
+
                         <!-- Advanced Features -->
                         <div class="col-md-6">
                             <h6 class="text-primary border-bottom pb-2">Advanced Features</h6>
@@ -386,7 +386,7 @@
                             <label class="form-label">End Date *</label>
                             <input type="date" class="form-control" id="endDate" required>
                         </div>
-                        
+
                         <!-- Working Days -->
                         <div class="col-12">
                             <label class="form-label">Working Days *</label>
@@ -435,7 +435,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Shift Details -->
                         <div class="col-md-4">
                             <label class="form-label">Shift Start *</label>
@@ -449,7 +449,7 @@
                             <label class="form-label">Break Minutes</label>
                             <input type="number" class="form-control" id="breakMinutes" value="30" min="0" max="180">
                         </div>
-                        
+
                         <!-- Priority and Description -->
                         <div class="col-md-6">
                             <label class="form-label">Priority</label>
@@ -469,9 +469,8 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-2"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Schedule Range
-                    </button>
+                    <button type="button" class="btn btn-danger" id="deleteScheduleBtn" onclick="deleteScheduleRange()" style="display: none;">Delete Schedule</button>
+                    <button type="button" class="btn btn-primary" id="saveScheduleBtn" onclick="saveScheduleRange()">Save Schedule</button>
                 </div>
             </form>
         </div>
@@ -490,7 +489,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="scheduleStaffId" value="">
-                
+
                 <!-- Date Range Scheduler -->
                 <div class="card border-primary mb-3">
                     <div class="card-header bg-primary text-white">
@@ -515,7 +514,7 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <!-- Bulk Actions -->
                         <div id="modalBulkActions" class="d-none mb-4">
                             <div class="border rounded p-3 bg-light">
@@ -536,7 +535,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Day-by-Day Schedule Table -->
                         <div id="modalDayScheduleContainer" class="d-none">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -571,7 +570,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Current Schedule Ranges -->
                 <div class="card border-0 bg-light">
                     <div class="card-body p-3">
@@ -678,6 +677,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStaffData();
     setupFormHandlers();
     setupModalHandlers();
+    initializeModalScheduleManagement();
 });
 
 // Setup modal handlers
@@ -1249,7 +1249,7 @@ function initializeModalScheduleManagement() {
     if (modalElement) {
         modalScheduleRangeModal = new bootstrap.Modal(modalElement);
     }
-    
+
     // Setup form submission
     const scheduleForm = document.getElementById('scheduleRangeForm');
     if (scheduleForm) {
@@ -1279,13 +1279,13 @@ function openScheduleRangeModal() {
 // Save schedule range from modal
 async function saveModalScheduleRange(event) {
     event.preventDefault();
-    
+
     const staffId = currentModalStaffId || document.getElementById('staffId').value;
     if (!staffId) {
         showAlert('Please save the staff member first before adding schedule ranges', 'warning');
         return;
     }
-    
+
     // Collect working days
     const workingDays = {
         monday: document.getElementById('rangeMonday').checked,
@@ -1296,7 +1296,7 @@ async function saveModalScheduleRange(event) {
         saturday: document.getElementById('rangeSaturday').checked,
         sunday: document.getElementById('rangeSunday').checked
     };
-    
+
     const scheduleData = {
         schedule_name: document.getElementById('scheduleName').value,
         start_date: document.getElementById('startDate').value,
@@ -1308,7 +1308,7 @@ async function saveModalScheduleRange(event) {
         priority: parseInt(document.getElementById('priority').value) || 1,
         description: document.getElementById('description').value || ''
     };
-    
+
     try {
         const response = await fetch(`/api/staff/${staffId}/schedule-ranges`, {
             method: 'POST',
@@ -1317,9 +1317,9 @@ async function saveModalScheduleRange(event) {
             },
             body: JSON.stringify(scheduleData)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showAlert('Schedule range added successfully!', 'success');
             modalScheduleRangeModal.hide();
@@ -1336,14 +1336,14 @@ async function saveModalScheduleRange(event) {
 // Load schedule ranges for modal display
 async function loadModalScheduleRanges(staffId) {
     if (!staffId) return;
-    
+
     try {
         const response = await fetch(`/api/staff/${staffId}/schedule-ranges`);
         const data = await response.json();
-        
-        const tbody = document.querySelector('#scheduleRangesTable tbody');
+
+        const tbody = document.querySelector('#modalScheduleRangesTable tbody');
         if (!tbody) return;
-        
+
         if (data.success && data.schedule_ranges && data.schedule_ranges.length > 0) {
             renderScheduleRangesTable(data.schedule_ranges);
         } else {
@@ -1363,20 +1363,20 @@ async function loadModalScheduleRanges(staffId) {
 
 // Render schedule ranges in user-friendly table format
 function renderScheduleRangesTable(ranges) {
-    const tbody = document.querySelector('#scheduleRangesTable tbody');
+    const tbody = document.querySelector('#modalScheduleRangesTable tbody');
     if (!tbody) return;
-    
+
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    
+
     let html = '';
-    
+
     ranges.forEach((range, rangeIndex) => {
         days.forEach((dayName, dayIndex) => {
             const dayKey = dayKeys[dayIndex];
             const isWorking = range.working_days[dayKey];
             const isFirstRow = dayIndex === 0;
-            
+
             html += `
                 <tr ${isWorking ? 'class="table-success"' : 'class="table-light"'}>
                     <td>${isFirstRow ? `<strong>${range.schedule_name}</strong>` : ''}</td>
@@ -1394,11 +1394,11 @@ function renderScheduleRangesTable(ranges) {
                     <td>
                         ${isFirstRow ? `
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-sm" onclick="editScheduleRange(${rangeIndex})" title="Edit">
-                                    <i class="fas fa-edit"></i>
+                                <button class="btn btn-sm btn-outline-primary me-2" onclick="editScheduleRange(${range.id})">
+                                    <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="deleteScheduleRange(${range.id})" title="Delete">
-                                    <i class="fas fa-trash"></i>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteScheduleRangeConfirm(${range.id})">
+                                    <i class="fas fa-trash"></i> Delete
                                 </button>
                             </div>
                         ` : ''}
@@ -1406,26 +1406,101 @@ function renderScheduleRangesTable(ranges) {
                 </tr>
             `;
         });
-        
+
         // Add separator row between different schedule ranges
         if (rangeIndex < ranges.length - 1) {
             html += `<tr><td colspan="8" class="border-top border-2"></td></tr>`;
         }
     });
-    
+
     tbody.innerHTML = html;
 }
 
-// Edit schedule range function (placeholder)
-function editScheduleRange(rangeIndex) {
-    showAlert('Edit functionality - Coming soon!', 'info');
+// Edit schedule range function
+function editScheduleRange(scheduleId) {
+    currentEditingScheduleId = scheduleId;
+
+    // Fetch schedule range details
+    fetch(`/api/staff/schedule-ranges/${scheduleId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const schedule = data.schedule;
+
+            // Populate modal with existing data
+            document.getElementById('scheduleName').value = schedule.schedule_name;
+            document.getElementById('startDate').value = schedule.start_date;
+            document.getElementById('endDate').value = schedule.end_date;
+            document.getElementById('rangeShiftStart').value = schedule.shift_start_time;
+            document.getElementById('rangeShiftEnd').value = schedule.shift_end_time;
+            document.getElementById('breakMinutes').value = schedule.break_time;
+            document.getElementById('priority').value = schedule.priority;
+            document.getElementById('description').value = schedule.description;
+
+            // Check working days
+            const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            dayKeys.forEach(key => {
+                document.getElementById(`range${key.charAt(0).toUpperCase() + key.slice(1)}`).checked = schedule.working_days[key];
+            });
+
+
+            // Update modal title and button text
+            document.querySelector('#scheduleRangeModal .modal-title').textContent = 'Edit Schedule Range';
+            document.getElementById('saveScheduleBtn').textContent = 'Update Schedule';
+            document.getElementById('deleteScheduleBtn').style.display = 'inline-block';
+
+            // Show modal
+            modalScheduleRangeModal.show();
+        } else {
+            showAlert('Error loading schedule data: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error loading schedule data', 'danger');
+    });
 }
 
-// Delete schedule range function (placeholder)
-function deleteScheduleRange(rangeId) {
+// Delete schedule range confirmation
+function deleteScheduleRangeConfirm(scheduleId) {
     if (confirm('Are you sure you want to delete this schedule range?')) {
-        showAlert('Delete functionality - Coming soon!', 'info');
+        deleteScheduleRange(scheduleId);
     }
+}
+
+// Delete schedule range
+async function deleteScheduleRange(scheduleId) {
+    const staffId = document.getElementById('scheduleStaffId').value;
+    try {
+        const response = await fetch(`/api/staff/${staffId}/schedule-ranges/${scheduleId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showAlert('Schedule range deleted successfully!', 'success');
+            await loadModalScheduleRanges(staffId);
+        } else {
+            throw new Error(result.message || 'Failed to delete schedule range');
+        }
+    } catch (error) {
+        console.error('Error deleting schedule range:', error);
+        showAlert('Error deleting schedule range: ' + error.message, 'danger');
+    }
+}
+
+// Reset schedule range modal
+function resetScheduleRangeModal() {
+    document.getElementById('scheduleRangeForm').reset();
+    document.getElementById('scheduleRangeModalLabel').innerHTML = 
+        `<i class="fas fa-calendar-plus me-2"></i>Add Schedule Range`;
+    document.getElementById('saveScheduleBtn').textContent = 'Save Schedule Range';
+    document.getElementById('deleteScheduleBtn').style.display = 'none';
+    currentEditingScheduleId = null;
 }
 
 // Date Range Scheduler Functions
@@ -1440,7 +1515,7 @@ function openDateRangeScheduler() {
     nextWeek.setDate(today.getDate() + 7);
     const endOfWeek = new Date(nextWeek);
     endOfWeek.setDate(nextWeek.getDate() + 6);
-    
+
     document.getElementById('scheduleFromDate').value = formatDateForInput(nextWeek);
     document.getElementById('scheduleToDate').value = formatDateForInput(endOfWeek);
 }
@@ -1457,22 +1532,22 @@ function closeDateRangeScheduler() {
 function generateDaySchedule() {
     const fromDate = document.getElementById('scheduleFromDate').value;
     const toDate = document.getElementById('scheduleToDate').value;
-    
+
     if (!fromDate || !toDate) {
         showAlert('Please select both From Date and To Date', 'warning');
         return;
     }
-    
+
     if (new Date(fromDate) > new Date(toDate)) {
         showAlert('From Date cannot be later than To Date', 'warning');
         return;
     }
-    
+
     // Generate all days in the range
     const days = [];
     const current = new Date(fromDate);
     const end = new Date(toDate);
-    
+
     while (current <= end) {
         days.push({
             date: formatDateForInput(current),
@@ -1485,10 +1560,10 @@ function generateDaySchedule() {
         });
         current.setDate(current.getDate() + 1);
     }
-    
+
     currentScheduleDays = days;
     renderDayScheduleTable();
-    
+
     // Show bulk actions and day container
     document.getElementById('bulkActions').classList.remove('d-none');
     document.getElementById('dayScheduleContainer').classList.remove('d-none');
@@ -1499,7 +1574,7 @@ function generateDaySchedule() {
 function renderDayScheduleTable() {
     const tbody = document.getElementById('dayScheduleBody');
     let html = '';
-    
+
     currentScheduleDays.forEach((day, index) => {
         html += `
             <tr class="${day.working ? 'table-success' : 'table-light'}">
@@ -1542,7 +1617,7 @@ function renderDayScheduleTable() {
             </tr>
         `;
     });
-    
+
     tbody.innerHTML = html;
 }
 
@@ -1564,7 +1639,7 @@ function applyToAllDays() {
         showAlert('Please set up at least one working day as a template', 'warning');
         return;
     }
-    
+
     currentScheduleDays.forEach(day => {
         if (day.working) {
             day.startTime = template.startTime;
@@ -1572,7 +1647,7 @@ function applyToAllDays() {
             day.breakMinutes = template.breakMinutes;
         }
     });
-    
+
     renderDayScheduleTable();
     showAlert('Applied template to all working days!', 'success');
 }
@@ -1583,7 +1658,7 @@ function markWeekendsOff() {
             day.working = false;
         }
     });
-    
+
     renderDayScheduleTable();
     showAlert('Weekends marked as off!', 'success');
 }
@@ -1607,12 +1682,12 @@ async function saveDaySchedule() {
         showAlert('Please save the staff member first', 'warning');
         return;
     }
-    
+
     if (currentScheduleDays.length === 0) {
         showAlert('Please generate a schedule first', 'warning');
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/staff/${staffId}/day-schedule`, {
             method: 'POST',
@@ -1623,9 +1698,9 @@ async function saveDaySchedule() {
                 days: currentScheduleDays
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showAlert('Day-by-day schedule saved successfully!', 'success');
             closeDateRangeScheduler();
@@ -1675,18 +1750,16 @@ let scheduleModal;
 function openScheduleModal(staffId) {
     const staff = allStaff.find(s => s.id === staffId);
     if (!staff) return;
-    
+
     // Set staff info
     document.getElementById('scheduleStaffId').value = staffId;
     document.getElementById('scheduleModalLabel').innerHTML = 
         `<i class="fas fa-calendar-alt me-2"></i>Schedule Management - ${staff.full_name}`;
-    
+
     // Reset modal
     resetScheduleModal();
-    
-    // Load existing schedules
     loadModalScheduleRanges(staffId);
-    
+
     // Show modal
     scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
     scheduleModal.show();
@@ -1694,41 +1767,47 @@ function openScheduleModal(staffId) {
 
 // Reset schedule modal
 function resetScheduleModal() {
+    // Clear existing day schedule
+    modalScheduleDays = [];
+    document.getElementById('modalDayScheduleBody').innerHTML = '';
     document.getElementById('modalBulkActions').classList.add('d-none');
     document.getElementById('modalDayScheduleContainer').classList.add('d-none');
-    modalScheduleDays = [];
-    
+    document.getElementById('modalDayCount').textContent = '';
+
     // Set default dates (next week)
     const today = new Date();
     const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 7);
     const endOfWeek = new Date(nextWeek);
     endOfWeek.setDate(nextWeek.getDate() + 6);
-    
+
     document.getElementById('modalScheduleFromDate').value = formatDateForInput(nextWeek);
     document.getElementById('modalScheduleToDate').value = formatDateForInput(endOfWeek);
+
+    // Reset schedule range form
+    resetScheduleRangeModal();
 }
 
 // Generate day-by-day schedule from date range (modal version)
 function generateModalDaySchedule() {
     const fromDate = document.getElementById('modalScheduleFromDate').value;
     const toDate = document.getElementById('modalScheduleToDate').value;
-    
+
     if (!fromDate || !toDate) {
         showAlert('Please select both From Date and To Date', 'warning');
         return;
     }
-    
+
     if (new Date(fromDate) > new Date(toDate)) {
         showAlert('From Date cannot be later than To Date', 'warning');
         return;
     }
-    
+
     // Generate all days in the range
     const days = [];
     const current = new Date(fromDate);
     const end = new Date(toDate);
-    
+
     while (current <= end) {
         days.push({
             date: formatDateForInput(current),
@@ -1741,10 +1820,10 @@ function generateModalDaySchedule() {
         });
         current.setDate(current.getDate() + 1);
     }
-    
+
     modalScheduleDays = days;
     renderModalDayScheduleTable();
-    
+
     // Show bulk actions and day container
     document.getElementById('modalBulkActions').classList.remove('d-none');
     document.getElementById('modalDayScheduleContainer').classList.remove('d-none');
@@ -1755,7 +1834,7 @@ function generateModalDaySchedule() {
 function renderModalDayScheduleTable() {
     const tbody = document.getElementById('modalDayScheduleBody');
     let html = '';
-    
+
     modalScheduleDays.forEach((day, index) => {
         html += `
             <tr class="${day.working ? 'table-success' : 'table-light'}">
@@ -1798,7 +1877,7 @@ function renderModalDayScheduleTable() {
             </tr>
         `;
     });
-    
+
     tbody.innerHTML = html;
 }
 
@@ -1820,7 +1899,7 @@ function modalApplyToAllDays() {
         showAlert('Please set up at least one working day as a template', 'warning');
         return;
     }
-    
+
     modalScheduleDays.forEach(day => {
         if (day.working) {
             day.startTime = template.startTime;
@@ -1849,12 +1928,12 @@ async function saveModalDaySchedule() {
         showAlert('Staff ID is missing', 'danger');
         return;
     }
-    
+
     if (modalScheduleDays.length === 0) {
         showAlert('Please generate day schedule first', 'warning');
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/staff/${staffId}/day-schedule`, {
             method: 'POST',
@@ -1865,11 +1944,12 @@ async function saveModalDaySchedule() {
                 days: modalScheduleDays
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showAlert('Day-by-day schedule saved successfully!', 'success');
+            // Reset modal state after saving
             resetScheduleModal();
             await loadModalScheduleRanges(staffId);
         } else {
@@ -1880,11 +1960,6 @@ async function saveModalDaySchedule() {
         showAlert('Error saving schedule: ' + error.message, 'danger');
     }
 }
-
-// Initialize on document ready
-document.addEventListener('DOMContentLoaded', function() {
-    initializeModalScheduleManagement();
-});
 
 </script>
 

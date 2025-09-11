@@ -6,9 +6,9 @@ from sqlalchemy import and_, func, desc, or_
 from app import db
 # Import models to avoid NameError issues
 from models import (
-    User, Role, Department, Service, StaffService, 
+    User, Role, Department, Service, StaffService,
     Attendance, StaffPerformance, StaffScheduleRange,
-    Appointment, Commission
+    Appointment, Commission, StaffDaySchedule # Added StaffDaySchedule here
 )
 from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash
@@ -48,7 +48,7 @@ def get_staff_by_id(staff_id):
             if not staff_member.date_of_joining:
                 staff_member.date_of_joining = staff_member.created_at.date() if staff_member.created_at else date.today()
                 updated = True
-            
+
             if updated:
                 db.session.commit()
         return staff_member
@@ -93,16 +93,16 @@ def create_staff(staff_data):
     try:
         # Create User object by explicitly setting each field
         staff = User()
-        
+
         # Set all the fields from staff_data
         for field, value in staff_data.items():
             if hasattr(staff, field):
                 setattr(staff, field, value)
-        
+
         db.session.add(staff)
         db.session.commit()
         return staff
-        
+
     except Exception as e:
         print(f"Error in create_staff: {e}")
         db.session.rollback()
@@ -240,12 +240,97 @@ def get_staff_performance_data(staff_id):
             'total_services': 0
         }
 
+def get_staff_schedule_ranges(staff_id):
+    """Get all schedule ranges for a staff member"""
+    try:
+        ranges = StaffScheduleRange.query.filter_by(staff_id=staff_id).all()
+
+        result = []
+        for range_obj in ranges:
+            # Get all schedules within this range
+            schedules = StaffDaySchedule.query.filter(
+                StaffDaySchedule.staff_id == staff_id,
+                StaffDaySchedule.work_date >= range_obj.from_date,
+                StaffDaySchedule.work_date <= range_obj.to_date
+            ).first()  # Just get one example
+
+            if schedules:
+                result.append({
+                    'id': range_obj.id,
+                    'period': f"{range_obj.from_date.strftime('%Y-%m-%d')} to {range_obj.to_date.strftime('%Y-%m-%d')}",
+                    'day': schedules.day_of_week,
+                    'working': 'Full Day' if schedules.is_working else 'Off',
+                    'time': f"{schedules.start_time} - {schedules.end_time}" if schedules.is_working else "N/A",
+                    'break': f"{schedules.break_start} - {schedules.break_end}" if schedules.break_start else "No Break",
+                    'priority': schedules.priority or 'Normal'
+                })
+
+        return result
+    except Exception as e:
+        print(f"Error getting staff schedule ranges: {e}")
+        return []
+
+def get_schedule_range_by_id(schedule_id):
+    """Get a specific schedule range by ID"""
+    try:
+        return StaffScheduleRange.query.get(schedule_id)
+    except Exception as e:
+        print(f"Error getting schedule range by ID: {e}")
+        return None
+
+def update_schedule_range(schedule_id, data):
+    """Update a schedule range"""
+    try:
+        schedule_range = StaffScheduleRange.query.get(schedule_id)
+        if not schedule_range:
+            return False
+
+        # Parse dates
+        from_date = datetime.strptime(data['from_date'], '%Y-%m-%d').date()
+        to_date = datetime.strptime(data['to_date'], '%Y-%m-%d').date()
+
+        # Update the range
+        schedule_range.from_date = from_date
+        schedule_range.to_date = to_date
+        schedule_range.updated_at = datetime.utcnow()
+
+        db.session.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating schedule range: {e}")
+        db.session.rollback()
+        return False
+
+def delete_schedule_range(schedule_id):
+    """Delete a schedule range and associated day schedules"""
+    try:
+        schedule_range = StaffScheduleRange.query.get(schedule_id)
+        if not schedule_range:
+            return False
+
+        # Delete associated day schedules
+        StaffDaySchedule.query.filter(
+            StaffDaySchedule.staff_id == schedule_range.staff_id,
+            StaffDaySchedule.work_date >= schedule_range.from_date,
+            StaffDaySchedule.work_date <= schedule_range.to_date
+        ).delete()
+
+        # Delete the schedule range
+        db.session.delete(schedule_range)
+        db.session.commit()
+        return True
+    except Exception as e:
+        print(f"Error deleting schedule range: {e}")
+        db.session.rollback()
+        return False
+
+
 def get_comprehensive_staff():
     """Get all staff with comprehensive details"""
     try:
         # Force fresh query from database
         db.session.expire_all()
-        
+
         staff_members = User.query.options(
             db.joinedload(User.user_role),
             db.joinedload(User.staff_department),
@@ -257,7 +342,7 @@ def get_comprehensive_staff():
 
         # Only update fields that are truly missing, avoid conflicts
         existing_codes = set([u.staff_code for u in User.query.filter(User.staff_code.isnot(None)).all()])
-        
+
         for member in staff_members:
             try:
                 updated = False
@@ -268,19 +353,19 @@ def get_comprehensive_staff():
                     while potential_code in existing_codes:
                         code_num += 1
                         potential_code = f"STF{str(code_num).zfill(3)}"
-                    
+
                     member.staff_code = potential_code
                     existing_codes.add(potential_code)
                     updated = True
-                    
+
                 if not member.designation:
                     member.designation = member.role.title()
                     updated = True
-                    
+
                 if not member.date_of_joining:
                     member.date_of_joining = member.created_at.date() if member.created_at else date.today()
                     updated = True
-                
+
                 if updated:
                     db.session.flush()  # Flush individual changes
             except Exception as member_error:
@@ -292,7 +377,7 @@ def get_comprehensive_staff():
         except Exception as commit_error:
             print(f"Error committing staff updates: {commit_error}")
             db.session.rollback()
-            
+
         print(f"Retrieved {len(staff_members)} staff members from database")
         return staff_members
     except Exception as e:
@@ -328,7 +413,7 @@ def create_comprehensive_staff(form_data):
     """Create new staff member with comprehensive details"""
     try:
         from werkzeug.security import generate_password_hash
-        
+
         # Generate staff code if not provided
         staff_code = form_data.get('staff_code')
         if not staff_code:

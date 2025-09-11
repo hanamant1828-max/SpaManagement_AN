@@ -18,7 +18,8 @@ from .staff_queries import (
     get_all_staff, get_staff_by_id, get_staff_by_role, get_active_roles, 
     get_active_departments, get_active_services, create_staff, update_staff, delete_staff, 
     get_staff_appointments, get_staff_commissions, get_staff_stats, 
-    get_comprehensive_staff, create_comprehensive_staff
+    get_comprehensive_staff, create_comprehensive_staff,
+    get_staff_schedule_ranges, get_schedule_range_by_id, update_schedule_range, delete_schedule_range
 )
 import os
 import csv
@@ -763,7 +764,7 @@ def deactivate_staff(staff_id):
 def staff_detail(id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('staff'))
 
     staff_member = get_staff_by_id(id)
     if not staff_member:
@@ -1259,14 +1260,14 @@ def api_create_staff_day_schedule(staff_id):
         for day_data in days:
             if day_data.get('working', False):
                 schedule_date = datetime.strptime(day_data['date'], '%Y-%m-%d').date()
-                
+
                 # Check if schedule already exists for this date
                 existing = StaffScheduleRange.query.filter_by(
                     staff_id=staff_id,
                     start_date=schedule_date,
                     end_date=schedule_date
                 ).first()
-                
+
                 if existing:
                     # Update existing schedule
                     existing.shift_start_time = datetime.strptime(day_data.get('startTime', '09:00'), '%H:%M').time()
@@ -1415,3 +1416,125 @@ def api_get_staff_schedule_ranges(staff_id):
     except Exception as e:
         print(f"Error getting schedule ranges: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/staff/schedule-ranges/<int:schedule_id>', methods=['GET'])
+@login_required
+def api_get_schedule_range(schedule_id):
+    """Get a specific schedule range by ID"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    try:
+        schedule = get_schedule_range_by_id(schedule_id)
+        if schedule:
+            return jsonify({
+                'success': True,
+                'schedule': {
+                    'id': schedule.id,
+                    'from_date': schedule.start_date.strftime('%Y-%m-%d'),
+                    'to_date': schedule.end_date.strftime('%Y-%m-%d'),
+                    'staff_id': schedule.staff_id,
+                    'schedule_name': schedule.schedule_name,
+                    'description': schedule.description,
+                    'monday': schedule.monday,
+                    'tuesday': schedule.tuesday,
+                    'wednesday': schedule.wednesday,
+                    'thursday': schedule.thursday,
+                    'friday': schedule.friday,
+                    'saturday': schedule.saturday,
+                    'sunday': schedule.sunday,
+                    'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
+                    'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+                    'break_time': schedule.break_time,
+                    'priority': schedule.priority,
+                    'is_active': schedule.is_active
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Schedule range not found'
+            }), 404
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/staff/<int:staff_id>/schedule-ranges/<int:schedule_id>', methods=['PUT'])
+@login_required
+def api_update_schedule_range(staff_id, schedule_id):
+    """Update a specific schedule range"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    try:
+        data = request.get_json()
+
+        # Validate input
+        if not data.get('start_date') or not data.get('end_date'):
+            return jsonify({
+                'success': False,
+                'error': 'start_date and end_date are required'
+            }), 400
+            
+        update_data = {
+            'schedule_name': data.get('schedule_name'),
+            'description': data.get('description'),
+            'start_date': datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
+            'end_date': datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
+            'monday': data.get('monday'),
+            'tuesday': data.get('tuesday'),
+            'wednesday': data.get('wednesday'),
+            'thursday': data.get('thursday'),
+            'friday': data.get('friday'),
+            'saturday': data.get('saturday'),
+            'sunday': data.get('sunday'),
+            'shift_start_time': datetime.strptime(data['shift_start_time'], '%H:%M').time() if data.get('shift_start_time') else None,
+            'shift_end_time': datetime.strptime(data['shift_end_time'], '%H:%M').time() if data.get('shift_end_time') else None,
+            'break_time': data.get('break_time'),
+            'priority': data.get('priority'),
+            'is_active': data.get('is_active')
+        }
+
+        # Update the schedule range
+        success = update_schedule_range(schedule_id, update_data)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Schedule range updated successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to update schedule range'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/staff/schedule-ranges/<int:schedule_id>', methods=['DELETE'])
+@login_required
+def api_delete_schedule_range(schedule_id):
+    """Delete a specific schedule range"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    try:
+        success = delete_schedule_range(schedule_id)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Schedule range deleted successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to delete schedule range'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
