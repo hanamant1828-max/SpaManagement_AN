@@ -300,33 +300,38 @@
                             </div>
                         </div>
 
-                        <!-- Work Schedule -->
+                        <!-- Enhanced Work Schedule -->
+                        <div class="col-md-12">
+                            <h6 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-calendar-alt me-2"></i>Enhanced Work Schedule
+                                <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="openScheduleRangeModal()">
+                                    <i class="fas fa-plus me-1"></i>Add Schedule Range
+                                </button>
+                            </h6>
+                            
+                            <!-- Schedule Ranges Display -->
+                            <div class="card border-0 bg-light">
+                                <div class="card-body p-3">
+                                    <h6 class="card-title mb-3">
+                                        <i class="fas fa-clock me-2"></i>Current Schedule Ranges
+                                    </h6>
+                                    <div id="modalScheduleRangesList" class="schedule-ranges-container">
+                                        <div class="text-center text-muted py-3">
+                                            <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                            <p class="mb-0">No schedule ranges defined yet. Click "Add Schedule Range" to create one.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Features -->
                         <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Work Schedule</h6>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Shift Start</label>
-                                        <input type="time" class="form-control" id="shiftStart">
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Shift End</label>
-                                        <input type="time" class="form-control" id="shiftEnd">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Working Days</label>
-                                <input type="text" class="form-control" id="workingDays" 
-                                       placeholder="1111100 (Mon-Sun, 1=working, 0=off)">
-                                <small class="form-text text-muted">Example: 1111100 = Monday to Friday working</small>
-                            </div>
-                            <div class="form-check">
+                            <h6 class="text-primary border-bottom pb-2">Advanced Features</h6>
+                            <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" id="enableFaceCheckin" checked>
                                 <label class="form-check-label" for="enableFaceCheckin">
-                                    Enable Face Check-in
+                                    <i class="fas fa-user-lock me-2"></i>Enable Face Check-in
                                 </label>
                             </div>
                         </div>
@@ -348,6 +353,124 @@
                     </button>
                     <button type="submit" class="btn btn-primary" id="submitBtn">
                         <i class="fas fa-save me-1"></i>Save Staff
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Range Modal -->
+<div class="modal fade" id="scheduleRangeModal" tabindex="-1" aria-labelledby="scheduleRangeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scheduleRangeModalLabel">
+                    <i class="fas fa-calendar-plus me-2"></i>Add Schedule Range
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="scheduleRangeForm">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <!-- Schedule Name and Date Range -->
+                        <div class="col-md-6">
+                            <label class="form-label">Schedule Name *</label>
+                            <input type="text" class="form-control" id="scheduleName" required placeholder="e.g., Regular Hours, Holiday Schedule">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date *</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date *</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                        
+                        <!-- Working Days -->
+                        <div class="col-12">
+                            <label class="form-label">Working Days *</label>
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rangeMonday">
+                                    <label class="form-check-label" for="rangeMonday">
+                                        <i class="fas fa-calendar-day me-1"></i>Monday
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rangeTuesday">
+                                    <label class="form-check-label" for="rangeTuesday">
+                                        <i class="fas fa-calendar-day me-1"></i>Tuesday
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rangeWednesday">
+                                    <label class="form-check-label" for="rangeWednesday">
+                                        <i class="fas fa-calendar-day me-1"></i>Wednesday
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rangeThursday">
+                                    <label class="form-check-label" for="rangeThursday">
+                                        <i class="fas fa-calendar-day me-1"></i>Thursday
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rangeFriday">
+                                    <label class="form-check-label" for="rangeFriday">
+                                        <i class="fas fa-calendar-day me-1"></i>Friday
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rangeSaturday">
+                                    <label class="form-check-label" for="rangeSaturday">
+                                        <i class="fas fa-calendar-day me-1"></i>Saturday
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rangeSunday">
+                                    <label class="form-check-label" for="rangeSunday">
+                                        <i class="fas fa-calendar-day me-1"></i>Sunday
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Shift Details -->
+                        <div class="col-md-4">
+                            <label class="form-label">Shift Start *</label>
+                            <input type="time" class="form-control" id="shiftStart" value="09:00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Shift End *</label>
+                            <input type="time" class="form-control" id="shiftEnd" value="17:00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Break Minutes</label>
+                            <input type="number" class="form-control" id="breakMinutes" value="30" min="0" max="180">
+                        </div>
+                        
+                        <!-- Priority and Description -->
+                        <div class="col-md-6">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select" id="priority">
+                                <option value="1">Normal (1)</option>
+                                <option value="2">High (2)</option>
+                                <option value="3">Critical (3)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Description</label>
+                            <input type="text" class="form-control" id="description" placeholder="Optional description">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Schedule Range
                     </button>
                 </div>
             </form>
@@ -978,6 +1101,159 @@ function showAlert(message, type = 'info') {
         }
     }, 5000);
 }
+
+// Enhanced Schedule Range Management JavaScript for Modal
+let modalScheduleRangeModal;
+let currentModalStaffId = null;
+
+// Initialize schedule range functionality for modal
+function initializeModalScheduleManagement() {
+    // Initialize modal
+    const modalElement = document.getElementById('scheduleRangeModal');
+    if (modalElement) {
+        modalScheduleRangeModal = new bootstrap.Modal(modalElement);
+    }
+    
+    // Setup form submission
+    const scheduleForm = document.getElementById('scheduleRangeForm');
+    if (scheduleForm) {
+        scheduleForm.addEventListener('submit', saveModalScheduleRange);
+    }
+}
+
+// Open the schedule range modal from within staff modal
+function openScheduleRangeModal() {
+    // Reset form
+    document.getElementById('scheduleRangeForm').reset();
+    // Set default values
+    document.getElementById('shiftStart').value = '09:00';
+    document.getElementById('shiftEnd').value = '17:00';
+    document.getElementById('breakMinutes').value = '30';
+    // Check default working days (Monday-Friday)
+    ['rangeMonday', 'rangeTuesday', 'rangeWednesday', 'rangeThursday', 'rangeFriday'].forEach(id => {
+        document.getElementById(id).checked = true;
+    });
+    ['rangeSaturday', 'rangeSunday'].forEach(id => {
+        document.getElementById(id).checked = false;
+    });
+    // Show modal
+    modalScheduleRangeModal.show();
+}
+
+// Save schedule range from modal
+async function saveModalScheduleRange(event) {
+    event.preventDefault();
+    
+    const staffId = currentModalStaffId || document.getElementById('staffId').value;
+    if (!staffId) {
+        showAlert('Please save the staff member first before adding schedule ranges', 'warning');
+        return;
+    }
+    
+    // Collect working days
+    const workingDays = {
+        monday: document.getElementById('rangeMonday').checked,
+        tuesday: document.getElementById('rangeTuesday').checked,
+        wednesday: document.getElementById('rangeWednesday').checked,
+        thursday: document.getElementById('rangeThursday').checked,
+        friday: document.getElementById('rangeFriday').checked,
+        saturday: document.getElementById('rangeSaturday').checked,
+        sunday: document.getElementById('rangeSunday').checked
+    };
+    
+    const scheduleData = {
+        schedule_name: document.getElementById('scheduleName').value,
+        start_date: document.getElementById('startDate').value,
+        end_date: document.getElementById('endDate').value,
+        working_days: workingDays,
+        shift_start_time: document.getElementById('shiftStart').value,
+        shift_end_time: document.getElementById('shiftEnd').value,
+        break_time: document.getElementById('breakMinutes').value || '30',
+        priority: parseInt(document.getElementById('priority').value) || 1,
+        description: document.getElementById('description').value || ''
+    };
+    
+    try {
+        const response = await fetch(`/api/staff/${staffId}/schedule-ranges`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(scheduleData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Schedule range added successfully!', 'success');
+            modalScheduleRangeModal.hide();
+            await loadModalScheduleRanges(staffId);
+        } else {
+            throw new Error(result.message || 'Failed to save schedule range');
+        }
+    } catch (error) {
+        console.error('Error saving schedule range:', error);
+        showAlert('Error saving schedule range: ' + error.message, 'danger');
+    }
+}
+
+// Load schedule ranges for modal display
+async function loadModalScheduleRanges(staffId) {
+    if (!staffId) return;
+    
+    try {
+        const response = await fetch(`/api/staff/${staffId}/schedule-ranges`);
+        const data = await response.json();
+        
+        const container = document.getElementById('modalScheduleRangesList');
+        if (!container) return;
+        
+        if (data.success && data.schedule_ranges && data.schedule_ranges.length > 0) {
+            let html = '';
+            data.schedule_ranges.forEach(range => {
+                const workingDaysText = Object.entries(range.working_days)
+                    .filter(([day, working]) => working)
+                    .map(([day]) => day.charAt(0).toUpperCase() + day.slice(1, 3))
+                    .join(', ');
+                
+                html += `
+                    <div class="border rounded p-3 mb-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="text-primary mb-2">
+                                    <i class="fas fa-calendar-check me-2"></i>${range.schedule_name}
+                                </h6>
+                                <p class="mb-1"><strong>Period:</strong> ${range.start_date} to ${range.end_date}</p>
+                                <p class="mb-1"><strong>Working Days:</strong> ${workingDaysText}</p>
+                                <p class="mb-1"><strong>Shift:</strong> ${range.shift_start_time} - ${range.shift_end_time} (Break: ${range.break_time} min)</p>
+                                ${range.description ? `<p class="mb-0 text-muted"><em>${range.description}</em></p>` : ''}
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">Priority ${range.priority}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                    <p class="mb-0">No schedule ranges defined yet. Click "Add Schedule Range" to create one.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading schedule ranges:', error);
+    }
+}
+
+// Initialize on document ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeModalScheduleManagement();
+});
+
 </script>
 
 {% endblock %}
