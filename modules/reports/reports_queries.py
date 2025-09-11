@@ -71,15 +71,45 @@ def get_client_report(start_date, end_date):
     return client_data
 
 def get_inventory_report():
-    """Get inventory report"""
+    """Get inventory report - batch-centric approach"""
+    from modules.inventory.models import InventoryBatch
+    
     inventory_data = Inventory.query.filter_by(is_active=True).all()
     
-    low_stock = [item for item in inventory_data if item.current_stock <= item.min_stock_level]
-    expiring_soon = [item for item in inventory_data if item.expiry_date and item.expiry_date <= date.today() + timedelta(days=30)]
+    low_stock = []
+    expiring_soon = []
+    total_value = 0
+    
+    for item in inventory_data:
+        # Calculate total stock from active batches
+        total_stock = sum(float(batch.qty_available or 0) for batch in item.batches if batch.status == 'active')
+        
+        # Check for low stock (threshold of 10)
+        if total_stock <= 10 and total_stock > 0:
+            low_stock.append(item)
+        elif total_stock <= 0:
+            low_stock.append(item)
+        
+        # Calculate total value from batches
+        for batch in item.batches:
+            if batch.status == 'active' and batch.qty_available and batch.unit_cost:
+                total_value += float(batch.qty_available) * float(batch.unit_cost)
+    
+    # Get expiring batches (within 30 days)
+    expiring_batches = InventoryBatch.query.filter(
+        InventoryBatch.status == 'active',
+        InventoryBatch.expiry_date.isnot(None),
+        InventoryBatch.expiry_date <= date.today() + timedelta(days=30)
+    ).all()
+    
+    # Get unique products from expiring batches
+    expiring_product_ids = set(batch.product_id for batch in expiring_batches if batch.product_id)
+    expiring_soon = [item for item in inventory_data if item.id in expiring_product_ids]
     
     return {
         'total_items': len(inventory_data),
         'low_stock_items': low_stock,
         'expiring_items': expiring_soon,
-        'total_value': sum(item.current_stock * item.cost_price for item in inventory_data)
+        'total_value': total_value,
+        'expiring_batches': expiring_batches
     }
