@@ -495,18 +495,16 @@
 
         const consumptionData = {
             batch_id: batchId,
-            consumption_date: document.getElementById('consumptionDate').value,
-            quantity_used: quantity,
+            quantity: quantity,
             issued_to: document.getElementById('consumptionIssuedTo').value.trim(),
-            reference_doc_no: document.getElementById('consumptionReference').value.trim(),
-            purpose: document.getElementById('consumptionPurpose').value,
+            reference: document.getElementById('consumptionReference').value.trim(),
             notes: document.getElementById('consumptionNotes').value.trim()
         };
 
-        fetch('/api/inventory/consumption/add', {
+        fetch('/api/inventory/consumption', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(consumptionData)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(consumptionData)
         })
         .then(response => response.json())
         .then(result => {
