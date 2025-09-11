@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Status Overview</title>
+    <style>
+        .status-card {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-secondary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .status-metric {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .status-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--bs-primary);
+        }
+        
+        .status-label {
+            color: var(--bs-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .alert-badge {
+            position: relative;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .alert-badge.critical {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            border: 1px solid #dc3545;
+        }
+        
+        .alert-badge.warning {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+        
+        .alert-badge.good {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+            border: 1px solid #28a745;
+        }
+        
+        .status-table {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-secondary);
+        }
+        
+        .status-table th {
+            background: var(--bs-secondary);
+            color: var(--bs-light);
+            border-color: var(--bs-secondary);
+        }
+        
+        .status-table td {
+            border-color: var(--bs-secondary);
+            color: var(--bs-light);
+        }
+        
+        .stock-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .stock-status.out-of-stock {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+        
+        .stock-status.low-stock {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+        
+        .stock-status.in-stock {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+        
+        .category-chart {
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-light mb-1">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Inventory Status Overview
+                </h2>
+                <p class="text-muted mb-0">Comprehensive view of current inventory status and alerts</p>
+            </div>
+        </div>
+
+        <!-- Overview Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="status-card">
+                    <div class="status-metric">
+                        <div class="status-number" id="totalProducts">-</div>
+                        <div class="status-label">Total Products</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="status-card">
+                    <div class="status-metric">
+                        <div class="status-number" id="totalBatches">-</div>
+                        <div class="status-label">Active Batches</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="status-card">
+                    <div class="status-metric">
+                        <div class="status-number" id="totalValue">$0</div>
+                        <div class="status-label">Total Value</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="status-card">
+                    <div class="status-metric">
+                        <div class="status-number text-success" id="inStockCount">-</div>
+                        <div class="status-label">Items In Stock</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Summary -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Inventory Alerts
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <span class="alert-badge critical" id="outOfStockBadge">
+                                <i class="fas fa-times-circle me-1"></i>
+                                <span id="outOfStockCount">0</span> Out of Stock
+                            </span>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <span class="alert-badge warning" id="lowStockBadge">
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                <span id="lowStockCount">0</span> Low Stock
+                            </span>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <span class="alert-badge critical" id="expiredBadge">
+                                <i class="fas fa-calendar-times me-1"></i>
+                                <span id="expiredCount">0</span> Expired
+                            </span>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <span class="alert-badge warning" id="expiringSoonBadge">
+                                <i class="fas fa-clock me-1"></i>
+                                <span id="expiringSoonCount">0</span> Expiring Soon
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Breakdown & Recent Activity -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-tags me-2"></i>
+                        Products by Category
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="text-end">Products</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoryBreakdown">
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-activity me-2"></i>
+                        Recent Activity (7 Days)
+                    </h5>
+                    <div class="row">
+                        <div class="col-6 text-center">
+                            <div class="status-number text-info" id="recentConsumption">-</div>
+                            <div class="status-label">Consumption Records</div>
+                        </div>
+                        <div class="col-6 text-center">
+                            <div class="status-number text-warning" id="recentAdjustments">-</div>
+                            <div class="status-label">Stock Adjustments</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Items -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Items Requiring Attention
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table status-table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>SKU</th>
+                                    <th class="text-end">Current Stock</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lowStockItems">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expiring Batches -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-calendar-times me-2"></i>
+                        Expired Batches
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table status-table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Batch</th>
+                                    <th>Product</th>
+                                    <th>Expiry Date</th>
+                                    <th class="text-end">Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expiredBatches">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h5 class="text-light mb-3">
+                        <i class="fas fa-clock me-2"></i>
+                        Expiring Soon (7 Days)
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table status-table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Batch</th>
+                                    <th>Product</th>
+                                    <th>Expiry Date</th>
+                                    <th class="text-end">Days Left</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expiringSoonBatches">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <div class="row">
+            <div class="col-12 text-end">
+                <button class="btn btn-primary" onclick="loadInventoryStatus()">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    Refresh Status
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load inventory status data
+        function loadInventoryStatus() {
+            console.log('Loading inventory status...');
+            
+            fetch('/api/inventory/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        populateOverview(data.overview);
+                        populateAlerts(data.alerts);
+                        populateCategoryBreakdown(data.category_breakdown);
+                        populateRecentActivity(data.recent_activity);
+                        populateLowStockItems(data.low_stock_items);
+                        populateExpiredBatches(data.expired_batches);
+                        populateExpiringSoon(data.expiring_soon);
+                        console.log('Inventory status loaded successfully');
+                    } else {
+                        console.error('Error loading inventory status:', data.error);
+                        alert('Error loading inventory status: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while loading inventory status.');
+                });
+        }
+
+        function populateOverview(overview) {
+            document.getElementById('totalProducts').textContent = overview.total_products || 0;
+            document.getElementById('totalBatches').textContent = overview.total_batches || 0;
+            document.getElementById('totalValue').textContent = '$' + (overview.total_inventory_value || 0).toLocaleString();
+            document.getElementById('inStockCount').textContent = overview.stock_summary.in_stock || 0;
+        }
+
+        function populateAlerts(alerts) {
+            document.getElementById('outOfStockCount').textContent = alerts.out_of_stock_count || 0;
+            document.getElementById('lowStockCount').textContent = alerts.low_stock_count || 0;
+            document.getElementById('expiredCount').textContent = alerts.expired_batches_count || 0;
+            document.getElementById('expiringSoonCount').textContent = alerts.expiring_soon_count || 0;
+        }
+
+        function populateCategoryBreakdown(categories) {
+            const tbody = document.getElementById('categoryBreakdown');
+            
+            if (!categories || categories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No categories found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = categories.map(cat => `
+                <tr>
+                    <td>${cat.category}</td>
+                    <td class="text-end"><span class="badge bg-primary">${cat.product_count}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function populateRecentActivity(activity) {
+            document.getElementById('recentConsumption').textContent = activity.consumption_records || 0;
+            document.getElementById('recentAdjustments').textContent = activity.adjustments || 0;
+        }
+
+        function populateLowStockItems(items) {
+            const tbody = document.getElementById('lowStockItems');
+            
+            if (!items || items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No low stock items</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = items.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td><code>${item.sku}</code></td>
+                    <td class="text-end">${item.current_stock}</td>
+                    <td>
+                        <span class="stock-status ${item.status}">
+                            ${item.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function populateExpiredBatches(batches) {
+            const tbody = document.getElementById('expiredBatches');
+            
+            if (!batches || batches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No expired batches</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = batches.map(batch => `
+                <tr>
+                    <td><code>${batch.batch_name}</code></td>
+                    <td>${batch.product_name}</td>
+                    <td>${new Date(batch.expiry_date).toLocaleDateString()}</td>
+                    <td class="text-end">${batch.qty_available}</td>
+                </tr>
+            `).join('');
+        }
+
+        function populateExpiringSoon(batches) {
+            const tbody = document.getElementById('expiringSoonBatches');
+            
+            if (!batches || batches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No batches expiring soon</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = batches.map(batch => `
+                <tr>
+                    <td><code>${batch.batch_name}</code></td>
+                    <td>${batch.product_name}</td>
+                    <td>${new Date(batch.expiry_date).toLocaleDateString()}</td>
+                    <td class="text-end">
+                        <span class="badge bg-warning">${batch.days_until_expiry} days</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', loadInventoryStatus);
+    </script>
+</body>
+</html>

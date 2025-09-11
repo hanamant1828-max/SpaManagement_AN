@@ -1133,3 +1133,140 @@ def api_test_inventory():
             'error': str(e),
             'message': 'Error testing inventory APIs'
         }), 500
+
+
+@app.route('/api/inventory/status', methods=['GET'])
+@login_required
+def api_get_inventory_status():
+    """Get comprehensive inventory status overview"""
+    try:
+        from sqlalchemy import func
+        from datetime import datetime, timedelta
+        
+        # Product counts by category
+        category_stats = db.session.query(
+            InventoryCategory.name,
+            func.count(InventoryProduct.id).label('product_count')
+        ).join(InventoryProduct).filter(
+            InventoryProduct.is_active == True
+        ).group_by(InventoryCategory.name).all()
+        
+        # Overall stock levels
+        total_products = InventoryProduct.query.filter(InventoryProduct.is_active == True).count()
+        total_batches = InventoryBatch.query.filter(InventoryBatch.status == 'active').count()
+        
+        # Calculate stock status counts
+        stock_summary = {
+            'in_stock': 0,
+            'low_stock': 0, 
+            'out_of_stock': 0
+        }
+        
+        # Low stock and expired items
+        low_stock_items = []
+        expired_batches = []
+        expiring_soon = []
+        
+        # Calculate total inventory value
+        total_value = 0
+        
+        # Process all active products
+        products = InventoryProduct.query.filter(InventoryProduct.is_active == True).all()
+        
+        for product in products:
+            active_batches = [b for b in product.batches if b.status == 'active']
+            total_stock = sum(float(batch.qty_available or 0) for batch in active_batches)
+            
+            # Stock status categorization
+            if total_stock <= 0:
+                stock_summary['out_of_stock'] += 1
+                low_stock_items.append({
+                    'id': product.id,
+                    'name': product.name,
+                    'sku': product.sku,
+                    'current_stock': total_stock,
+                    'status': 'out_of_stock'
+                })
+            elif total_stock <= 10:  # Low stock threshold
+                stock_summary['low_stock'] += 1
+                low_stock_items.append({
+                    'id': product.id,
+                    'name': product.name,
+                    'sku': product.sku,
+                    'current_stock': total_stock,
+                    'status': 'low_stock'
+                })
+            else:
+                stock_summary['in_stock'] += 1
+            
+            # Calculate value from batches
+            for batch in active_batches:
+                if batch.qty_available and batch.unit_cost:
+                    total_value += float(batch.qty_available) * float(batch.unit_cost)
+        
+        # Check for expired and expiring batches
+        today = datetime.now().date()
+        next_week = today + timedelta(days=7)
+        
+        all_batches = InventoryBatch.query.filter(InventoryBatch.status == 'active').all()
+        
+        for batch in all_batches:
+            if batch.expiry_date:
+                if batch.expiry_date < today:
+                    expired_batches.append({
+                        'id': batch.id,
+                        'batch_name': batch.batch_name,
+                        'product_name': batch.product.name if batch.product else 'Unknown',
+                        'expiry_date': batch.expiry_date.isoformat(),
+                        'qty_available': float(batch.qty_available or 0)
+                    })
+                elif batch.expiry_date <= next_week:
+                    expiring_soon.append({
+                        'id': batch.id,
+                        'batch_name': batch.batch_name,
+                        'product_name': batch.product.name if batch.product else 'Unknown',
+                        'expiry_date': batch.expiry_date.isoformat(),
+                        'qty_available': float(batch.qty_available or 0),
+                        'days_until_expiry': (batch.expiry_date - today).days
+                    })
+        
+        # Recent activity (last 7 days)
+        week_ago = datetime.now() - timedelta(days=7)
+        recent_consumption = InventoryConsumption.query.filter(
+            InventoryConsumption.created_at >= week_ago
+        ).count()
+        
+        recent_adjustments = InventoryAdjustment.query.filter(
+            InventoryAdjustment.created_at >= week_ago
+        ).count()
+        
+        return jsonify({
+            'success': True,
+            'overview': {
+                'total_products': total_products,
+                'total_batches': total_batches,
+                'total_inventory_value': round(total_value, 2),
+                'stock_summary': stock_summary
+            },
+            'category_breakdown': [
+                {'category': cat[0], 'product_count': cat[1]} 
+                for cat in category_stats
+            ],
+            'alerts': {
+                'low_stock_count': len([item for item in low_stock_items if item['status'] == 'low_stock']),
+                'out_of_stock_count': len([item for item in low_stock_items if item['status'] == 'out_of_stock']),
+                'expired_batches_count': len(expired_batches),
+                'expiring_soon_count': len(expiring_soon)
+            },
+            'low_stock_items': low_stock_items[:10],  # Limit to top 10
+            'expired_batches': expired_batches[:10],
+            'expiring_soon': expiring_soon[:10],
+            'recent_activity': {
+                'consumption_records': recent_consumption,
+                'adjustments': recent_adjustments
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error getting inventory status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
