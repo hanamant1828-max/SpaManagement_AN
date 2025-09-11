@@ -600,15 +600,21 @@ def api_get_batches_for_consumption():
     try:
         from .queries import get_available_batches_for_consumption
         batches = get_available_batches_for_consumption()
-        return jsonify([{
+        batch_data = [{
             'id': b.id,
             'batch_name': b.batch_name,
             'product_name': b.product.name if b.product else 'Unassigned',
             'location_name': b.location.name if b.location else 'Unassigned',
             'qty_available': float(b.qty_available or 0),
+            'unit': b.product.unit_of_measure if b.product else 'pcs',
             'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
             'dropdown_display': b.dropdown_display
-        } for b in batches])
+        } for b in batches]
+        
+        return jsonify({
+            'success': True,
+            'batches': batch_data
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
