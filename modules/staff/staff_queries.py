@@ -7,7 +7,8 @@ from app import db
 # Import models to avoid NameError issues
 from models import (
     User, Role, Department, Service, StaffService, 
-    Attendance, StaffPerformance, StaffScheduleRange
+    Attendance, StaffPerformance, StaffScheduleRange,
+    Appointment, Commission
 )
 from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash
