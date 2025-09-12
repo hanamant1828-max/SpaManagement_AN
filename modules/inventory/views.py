@@ -653,7 +653,7 @@ def api_get_consumption_records():
     """Get consumption records"""
     try:
         consumption_records = get_consumption_records(limit=100)
-        return jsonify([{
+        records_data = [{
             'id': c.id,
             'batch_id': c.batch_id,
             'batch_name': c.batch.batch_name if c.batch else 'Unknown',
@@ -664,7 +664,17 @@ def api_get_consumption_records():
             'notes': c.notes,
             'created_at': c.created_at.isoformat() if c.created_at else None,
             'created_by_name': c.user.full_name if c.user else 'Unknown'
-        } for c in consumption_records])
+        } for c in consumption_records]
+        
+        return jsonify({
+            'success': True,
+            'data': records_data,
+            'pagination': {
+                'page': 1,
+                'pages': 1,
+                'total': len(records_data)
+            }
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
