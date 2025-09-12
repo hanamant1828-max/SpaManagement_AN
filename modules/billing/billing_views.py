@@ -13,21 +13,7 @@ import logging
 # Create billing blueprint
 billing_bp = Blueprint('billing', __name__, url_prefix='/billing')
 
-@app.route('/billing')
-def billing():
-    """Main billing dashboard"""
-    try:
-        # Get recent invoices and billing data
-        recent_invoices = []
-        pending_payments = []
-        
-        return render_template('billing.html',
-                             recent_invoices=recent_invoices,
-                             pending_payments=pending_payments)
-    except Exception as e:
-        logging.error(f"Error in billing dashboard: {e}")
-        flash('Error loading billing dashboard', 'danger')
-        return redirect(url_for('dashboard'))
+# Main billing route removed - handled by integrated_billing_views.py
 
 @app.route('/billing/invoices')
 def billing_invoices():
