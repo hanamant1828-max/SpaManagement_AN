@@ -429,22 +429,6 @@ window.refreshDashboardData = refreshDashboardData;
 
 // Global variables for dashboard functionality
 let inventoryState = {
-    consumption: {
-        currentPage: 1,
-        perPage: 10,
-        totalPages: 1,
-        data: [],
-        allData: [], // For export all functionality
-        filters: {
-            fromDate: '',
-            toDate: '',
-            search: ''
-        },
-        sort: {
-            field: 'consumption_date',
-            direction: 'desc'
-        }
-    },
     adjustments: {
         currentPage: 1,
         perPage: 10,
@@ -470,52 +454,15 @@ function initializeDateRanges() {
     const todayStr = today.toISOString().split('T')[0];
     const firstDayStr = firstDay.toISOString().split('T')[0];
 
-    // Set consumption filters
-    inventoryState.consumption.filters.fromDate = firstDayStr;
-    inventoryState.consumption.filters.toDate = todayStr;
-
     // Set adjustments filters  
     inventoryState.adjustments.filters.fromDate = firstDayStr;
     inventoryState.adjustments.filters.toDate = todayStr;
 
     // Update form fields
-    document.getElementById('consumption-from-date').value = firstDayStr;
-    document.getElementById('consumption-to-date').value = todayStr;
     document.getElementById('adjustments-from-date').value = firstDayStr;
     document.getElementById('adjustments-to-date').value = todayStr;
 }
 
-// Load consumption data
-async function loadConsumptionData(page = 1) {
-    try {
-        const params = new URLSearchParams({
-            page: page,
-            per_page: inventoryState.consumption.perPage,
-            from_date: inventoryState.consumption.filters.fromDate,
-            to_date: inventoryState.consumption.filters.toDate,
-            search: inventoryState.consumption.filters.search,
-            sort_by: inventoryState.consumption.sort.field,
-            sort_order: inventoryState.consumption.sort.direction
-        });
-
-        const response = await fetch(`/api/inventory/consumption?${params}`);
-        const data = await response.json();
-
-        if (data.success) {
-            inventoryState.consumption.data = data.data;
-            inventoryState.consumption.currentPage = data.pagination.page;
-            inventoryState.consumption.totalPages = data.pagination.pages;
-            renderConsumptionTable();
-            renderConsumptionPagination();
-        } else {
-            console.error('Error loading consumption data:', data.error);
-            showAlert('Error loading consumption data', 'error');
-        }
-    } catch (error) {
-        console.error('Error loading consumption data:', error);
-        showAlert('Error loading consumption data', 'error');
-    }
-}
 
 // Load adjustments data
 async function loadAdjustmentsData(page = 1) {
@@ -549,48 +496,6 @@ async function loadAdjustmentsData(page = 1) {
     }
 }
 
-// Render consumption table
-function renderConsumptionTable() {
-    const tbody = document.getElementById('consumptionTableBody');
-    if (!tbody) return;
-
-    if (inventoryState.consumption.data.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="9" class="text-center text-muted py-4">
-                    <i class="fas fa-inbox fa-2x mb-3"></i><br>
-                    No consumption records found.
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    tbody.innerHTML = inventoryState.consumption.data.map(record => `
-        <tr>
-            <td>${new Date(record.created_at).toLocaleDateString()}</td>
-            <td>${record.batch_name || 'N/A'}</td>
-            <td>${record.product_name || 'N/A'}</td>
-            <td>${record.quantity}</td>
-            <td>${record.reference || '-'}</td>
-            <td>${record.issued_to || '-'}</td>
-            <td>-</td>
-            <td>
-                ${record.notes ? `<span class="text-truncate" style="max-width: 100px;" title="${record.notes}">${record.notes}</span>` : '-'}
-            </td>
-            <td>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary btn-sm" onclick="editConsumption(${record.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm" onclick="deleteConsumption(${record.id})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-}
 
 // Render adjustments table
 function renderAdjustmentsTable() {
@@ -634,15 +539,6 @@ function renderAdjustmentsTable() {
     `).join('');
 }
 
-// Render pagination
-function renderConsumptionPagination() {
-    const container = document.getElementById('consumption-pagination');
-    if (!container) return;
-
-    renderPagination(container, inventoryState.consumption.currentPage, 
-                    inventoryState.consumption.totalPages, 
-                    (page) => loadConsumptionData(page));
-}
 
 function renderAdjustmentsPagination() {
     const container = document.getElementById('adjustments-pagination');
@@ -695,13 +591,6 @@ function renderPagination(container, currentPage, totalPages, onPageClick) {
 }
 
 // Filter functions
-function applyConsumptionFilters() {
-    inventoryState.consumption.filters.fromDate = document.getElementById('consumption-from-date').value;
-    inventoryState.consumption.filters.toDate = document.getElementById('consumption-to-date').value;
-    inventoryState.consumption.filters.search = document.getElementById('consumption-search').value;
-    inventoryState.consumption.currentPage = 1;
-    loadConsumptionData();
-}
 
 function applyAdjustmentsFilters() {
     inventoryState.adjustments.filters.fromDate = document.getElementById('adjustments-from-date').value;
@@ -711,14 +600,6 @@ function applyAdjustmentsFilters() {
     loadAdjustmentsData();
 }
 
-function resetConsumptionFilters() {
-    document.getElementById('consumption-from-date').value = '';
-    document.getElementById('consumption-to-date').value = '';
-    document.getElementById('consumption-search').value = '';
-    inventoryState.consumption.filters = { fromDate: '', toDate: '', search: '' };
-    inventoryState.consumption.currentPage = 1;
-    loadConsumptionData();
-}
 
 function resetAdjustmentsFilters() {
     document.getElementById('adjustments-from-date').value = '';
@@ -730,17 +611,6 @@ function resetAdjustmentsFilters() {
 }
 
 // Sorting functions
-function sortConsumption(field) {
-    if (inventoryState.consumption.sort.field === field) {
-        inventoryState.consumption.sort.direction = 
-            inventoryState.consumption.sort.direction === 'asc' ? 'desc' : 'asc';
-    } else {
-        inventoryState.consumption.sort.field = field;
-        inventoryState.consumption.sort.direction = 'desc';
-    }
-    loadConsumptionData();
-    updateSortIcons('consumption', field);
-}
 
 function sortAdjustments(field) {
     if (inventoryState.adjustments.sort.field === field) {
@@ -770,11 +640,6 @@ function updateSortIcons(tableType, activeField) {
 }
 
 // Page size change handlers
-function changeConsumptionPageSize() {
-    inventoryState.consumption.perPage = parseInt(document.getElementById('consumption-page-size').value);
-    inventoryState.consumption.currentPage = 1;
-    loadConsumptionData();
-}
 
 function changeAdjustmentsPageSize() {
     inventoryState.adjustments.perPage = parseInt(document.getElementById('adjustments-page-size').value);
@@ -788,39 +653,7 @@ async function exportToExcel(type, exportAll = false) {
         let data = [];
         let filename = '';
 
-        if (type === 'consumption') {
-            if (exportAll) {
-                // Load all consumption data
-                const params = new URLSearchParams({
-                    per_page: 10000, // Large number to get all records
-                    from_date: '',
-                    to_date: '',
-                    search: ''
-                });
-                const response = await fetch(`/api/inventory/consumption?${params}`);
-                const result = await response.json();
-                data = result.success ? result.data : [];
-                filename = 'consumption-all-records.xlsx';
-            } else {
-                data = inventoryState.consumption.data;
-                filename = 'consumption-filtered-records.xlsx';
-            }
-
-            // Transform data for Excel
-            const excelData = data.map(record => ({
-                'Date': record.consumption_date,
-                'Product': record.product_name,
-                'SKU': record.product_sku,
-                'Qty Used': record.quantity_used,
-                'Unit': record.unit_of_measure,
-                'Issued To': record.issued_to,
-                'Reference ID': record.reference_doc_no,
-                'Notes': record.notes || ''
-            }));
-
-            exportToExcelFile(excelData, filename);
-
-        } else if (type === 'adjustments') {
+        if (type === 'adjustments') {
             if (exportAll) {
                 // Load all adjustments data
                 const params = new URLSearchParams({
@@ -871,15 +704,6 @@ function exportToExcelFile(data, filename) {
 }
 
 // Placeholder functions for CRUD operations
-function editConsumption(id) {
-    showAlert('Edit consumption functionality coming soon!', 'info');
-}
-
-function deleteConsumption(id) {
-    if (confirm('Are you sure you want to delete this consumption record?')) {
-        showAlert('Delete consumption functionality coming soon!', 'info');
-    }
-}
 
 function editAdjustment(id) {
     showAlert('Edit adjustment functionality coming soon!', 'info');
