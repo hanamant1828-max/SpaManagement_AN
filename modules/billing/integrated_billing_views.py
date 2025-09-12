@@ -288,12 +288,12 @@ def list_integrated_invoices():
                          invoices=invoices,
                          status_filter=status_filter)
 
-# Main billing route - redirect to integrated billing
-@app.route('/billing')
-@login_required
-def billing():
-    """Main billing route redirects to integrated billing"""
-    return redirect(url_for('integrated_billing'))
+# Main billing route - redirect to integrated billing (commented out due to route conflict)
+# @app.route('/billing')
+# @login_required  
+# def billing():
+#     """Main billing route redirects to integrated billing"""
+#     return redirect(url_for('integrated_billing'))
 
 # Legacy billing compatibility route
 @app.route('/billing/integrated')
