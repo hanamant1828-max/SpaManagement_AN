@@ -551,15 +551,15 @@ async function loadAdjustmentsData(page = 1) {
 
 // Render consumption table
 function renderConsumptionTable() {
-    const tbody = document.getElementById('consumption-table-body');
+    const tbody = document.getElementById('consumptionTableBody');
     if (!tbody) return;
 
     if (inventoryState.consumption.data.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-muted py-4">
+                <td colspan="9" class="text-center text-muted py-4">
                     <i class="fas fa-inbox fa-2x mb-3"></i><br>
-                    No records match your filters.
+                    No consumption records found.
                 </td>
             </tr>
         `;
@@ -568,15 +568,13 @@ function renderConsumptionTable() {
 
     tbody.innerHTML = inventoryState.consumption.data.map(record => `
         <tr>
-            <td>${record.consumption_date}</td>
-            <td>
-                <strong>${record.product_name}</strong><br>
-                <small class="text-muted">SKU: ${record.product_sku}</small>
-            </td>
-            <td>${record.quantity_used} ${record.unit_of_measure}</td>
-            <td>${record.unit_of_measure}</td>
-            <td>${record.issued_to}</td>
-            <td>${record.reference_doc_no}</td>
+            <td>${new Date(record.created_at).toLocaleDateString()}</td>
+            <td>${record.batch_name || 'N/A'}</td>
+            <td>${record.product_name || 'N/A'}</td>
+            <td>${record.quantity}</td>
+            <td>${record.reference || '-'}</td>
+            <td>${record.issued_to || '-'}</td>
+            <td>-</td>
             <td>
                 ${record.notes ? `<span class="text-truncate" style="max-width: 100px;" title="${record.notes}">${record.notes}</span>` : '-'}
             </td>
