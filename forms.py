@@ -232,6 +232,7 @@ class AdvancedUserForm(FlaskForm):
     hire_date = DateField('Hire Date', validators=[Optional()])
     salary = FloatField('Salary', validators=[Optional(), NumberRange(min=0)])
     commission_rate = FloatField('Commission Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)])
+    hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
     is_active = BooleanField('Active', default=True)
     submit = SubmitField('Save User')
 

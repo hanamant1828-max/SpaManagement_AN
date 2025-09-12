@@ -52,7 +52,7 @@ def staff():
     roles = get_active_roles()
     departments = get_active_departments()
 
-    form = UserForm()
+    form = AdvancedUserForm()
     advanced_form = AdvancedUserForm()
 
     # Set up form choices
