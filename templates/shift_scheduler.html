@@ -4,6 +4,7 @@
 
 {% block extra_head %}
 <link href="{{ url_for('static', filename='css/shift_scheduler.css') }}" rel="stylesheet">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 {% endblock %}
 
 {% block content %}
@@ -32,6 +33,7 @@
         </div>
         <div class="card-body">
             <form id="scheduleConfigForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="row g-3">
                     <!-- Staff Selection -->
                     <div class="col-md-4">

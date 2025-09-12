@@ -2,15 +2,20 @@
 Staff Shift Scheduler Views
 Complete implementation with CRUD operations for staff scheduling
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
+from flask_wtf.csrf import validate_csrf
+from werkzeug.exceptions import BadRequest
 from app import app, db
 from models import User, StaffScheduleRange
 from datetime import datetime, date, timedelta
 import json
 
+# Create Blueprint for shift scheduler
+shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
+
 # Main shift scheduler interface
-@app.route('/shift-scheduler')
+@shift_scheduler_bp.route('/shift-scheduler')
 @login_required 
 def shift_scheduler():
     """Main shift scheduler interface"""
@@ -26,7 +31,7 @@ def shift_scheduler():
                          today=date.today().strftime('%Y-%m-%d'))
 
 # API endpoint to get existing schedules for UI hydration
-@app.route('/api/shift-scheduler', methods=['GET'])
+@shift_scheduler_bp.route('/api/shift-scheduler', methods=['GET'])
 @login_required
 def api_get_shift_schedules():
     """Get existing shift schedules for a staff member in date range"""
@@ -84,12 +89,18 @@ def api_get_shift_schedules():
         return jsonify({'error': str(e)}), 500
 
 # Bulk save schedule ranges
-@app.route('/shift-scheduler/save', methods=['POST'])
+@shift_scheduler_bp.route('/shift-scheduler/save', methods=['POST'])
 @login_required
 def save_shift_schedule():
     """Bulk save/update shift schedules"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
+    
+    # CSRF Protection
+    try:
+        validate_csrf(request.form.get('csrf_token') or request.json.get('csrf_token'))
+    except Exception as e:
+        return jsonify({'error': 'CSRF token validation failed'}), 400
     
     try:
         data = request.get_json()
@@ -189,12 +200,18 @@ def save_shift_schedule():
         return jsonify({'error': str(e)}), 500
 
 # Bulk delete schedules
-@app.route('/shift-scheduler/delete', methods=['POST'])
+@shift_scheduler_bp.route('/shift-scheduler/delete', methods=['POST'])
 @login_required
 def delete_shift_schedules():
     """Bulk delete shift schedules by IDs or date range"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
+    
+    # CSRF Protection
+    try:
+        validate_csrf(request.form.get('csrf_token') or request.json.get('csrf_token'))
+    except Exception as e:
+        return jsonify({'error': 'CSRF token validation failed'}), 400
     
     try:
         data = request.get_json()
@@ -247,7 +264,7 @@ def delete_shift_schedules():
         return jsonify({'error': str(e)}), 500
 
 # Get all existing schedules for a staff member
-@app.route('/api/staff/<int:staff_id>/all-schedules', methods=['GET'])
+@shift_scheduler_bp.route('/api/staff/<int:staff_id>/all-schedules', methods=['GET'])
 @login_required
 def api_get_all_staff_schedules(staff_id):
     """Get all existing schedules for a staff member"""
@@ -295,7 +312,7 @@ def api_get_all_staff_schedules(staff_id):
         return jsonify({'error': str(e)}), 500
 
 # Update single schedule
-@app.route('/api/schedule/<int:schedule_id>', methods=['PUT'])
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['PUT'])
 @login_required 
 def api_update_schedule(schedule_id):
     """Update a single schedule"""
@@ -344,7 +361,7 @@ def api_update_schedule(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete single schedule
-@app.route('/api/schedule/<int:schedule_id>', methods=['DELETE'])
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['DELETE'])
 @login_required
 def api_delete_schedule(schedule_id):
     """Delete a single schedule"""

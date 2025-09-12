@@ -20,6 +20,8 @@ try:
     from modules.services import services_views
     from modules.inventory import views as inventory_views
     # from modules.billing import billing_views  # Removed - billing_views.py deleted
+    from modules.staff.shift_scheduler_views import shift_scheduler_bp
+    app.register_blueprint(shift_scheduler_bp)
     from modules.expenses import expenses_views
     from modules.reports import reports_views
     from modules.packages import packages_views
