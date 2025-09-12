@@ -1,0 +1,198 @@
+I need manual, step-by-step testing (no automated frameworks) across my Inventory app. Do not add CSRF/auth—this is a simple CRUD verification pass. As you test, if something is broken or confusing, fix it immediately, then continue.
+
+Scope (modules on the left nav)
+
+Dashboard
+
+Product Master
+
+Categories
+
+Locations (a.k.a. Location Management)
+
+Adjustments
+
+Consumption
+
+Transfers
+
+Batches
+
+Status Overview
+
+Reports
+
+Current screen shows Location Management with “Search locations… / All Types / All Status” and a table (Name, Type, Address, Contact, Products Count, Total Stock Value, Status, Actions) showing “No locations found.”
+
+Environment rules (important)
+
+No CSRF, no auth. Remove/disable any CSRF/anti-forgery middleware and route checks. This is a dev pass to verify UI CRUD flows only.
+
+Use a single in-repo SQLite/JSON store so tests can reset/seed quickly.
+
+Add clear error messages in the UI instead of throwing/500s.
+
+Keep a test log (markdown) capturing each step, what you clicked, expected vs actual, and fixes applied.
+
+Global UI checklist (apply to every module)
+
+Navigation loads content on click (no 404/500). Active menu item is visually highlighted.
+
+Empty state: if a list is empty, show a friendly “No … found” with an Add button.
+
+Add / Edit / Delete:
+
+Add opens the form in a modal or page section; Save persists and returns to list with a toast/snackbar.
+
+Edit opens with current values; Save updates the row; toast confirms.
+
+Delete asks confirmation; removal updates the list immediately.
+
+List features:
+
+Search filters results.
+
+Dropdown filters (type/status) work and combine with search.
+
+Sorting on text and numeric columns (where present).
+
+Pagination (if applicable) keeps search/filters/sort state.
+
+Validation (keep it simple):
+
+Required fields show inline messages and block Save.
+
+Numeric fields reject negatives where not meaningful.
+
+No console errors during normal use.
+
+Data seeding (so lists aren’t empty)
+
+Seed 5–10 realistic records per module:
+
+Locations: mix Types (Store/WH/Salon/etc.), Status (Active/Inactive), varied Address/Contact, computed Products Count and Total Stock Value (even if mocked).
+
+Products: names, SKUs, unit price, category links.
+
+Categories: 5–8 typical categories.
+
+Batches: 6–10 batches linked to products (with dates).
+
+Adjustments/Consumption/Transfers: a few demo records to validate totals and history.
+
+Provide a Reset Test Data button (dev only) to reseed quickly.
+
+Module-by-module test plan (fix issues as you go)
+1) Location Management
+
+List loads with seeded rows; active nav state correct.
+
+Search (“Search locations…”) live-filters by Name and Address.
+
+Filters: “All Types”, “All Status” → switch between types and Active/Inactive; combinations work.
+
+Add Location:
+
+Fields: Name*, Type*, Address, Contact, Status (Active/Inactive).
+
+Save → new row visible; Products Count defaults to 0; Total Stock Value updates (0 or computed from linked stock if applicable).
+
+Edit → change Address and Status; verify row updates and filter/search reflect it.
+
+Delete → confirm dialog, then row disappears; counts/pagination adjust.
+
+2) Product Master
+
+List: name, SKU, category, unit price, status.
+
+Search/Filter: by name/SKU, by category/status.
+
+Add/Edit/Delete products; block deletion if referenced by batches (show friendly message).
+
+Ensure unit price numeric validation.
+
+3) Categories
+
+Simple CRUD; prevent duplicates by case-insensitive name check.
+
+Deleting a category in use shows a friendly explanation.
+
+4) Batches
+
+List: product, batch name/code, mfg/exp dates, qty on hand.
+
+Add batch; date pickers work; qty >= 0.
+
+Edit/Delete; linked product name shows correctly.
+
+5) Adjustments
+
+Add positive/negative adjustment; new on-hand qty reflects change.
+
+List shows reason, delta, timestamp.
+
+Prevent negative on-hand if business rules forbid; otherwise allow but show warning.
+
+6) Consumption
+
+Record consumption; on-hand decreases; appears in history.
+
+Can filter by product/date.
+
+7) Transfers
+
+Create transfer: From location A → B; moving qty updates both locations.
+
+Prevent transfer if qty > available; friendly error.
+
+8) Status Overview
+
+Aggregates across locations: total SKUs, on-hand, low-stock alerts.
+
+Clicking a card takes you to a filtered list (optional but nice).
+
+9) Reports
+
+Date filter + export (CSV/print) of current grid.
+
+Totals match what lists/overview display.
+
+UX polish (professional but simple)
+
+Consistent spacing, borders, and headings across pages.
+
+Buttons: Primary (Save/Add), Neutral (Cancel), Danger (Delete).
+
+Toasts for success/error; modal close on success.
+
+Loading states for lists and Save actions.
+
+Accessibility & semantics
+
+Labels tied to inputs, aria-* on modals and toasts.
+
+Keyboard: Tab order sane; Enter on primary action; Esc closes modal.
+
+Screen reader: section headings identify which module is open.
+
+Fix-as-you-go rule
+
+After each click or save:
+
+If something fails (broken route, null ref, bad selector, wrong binding), fix it immediately.
+
+Document the fix briefly in the test log.
+
+Re-run that step to confirm it passes before moving on.
+
+Deliverables
+
+Working UI for all modules above with normal CRUD (no CSRF/auth).
+
+Seeded demo data + a Reset Test Data action.
+
+A short TEST_LOG.md summarizing each module, what was tested, issues found, and fixes applied.
+
+Zero console errors during a full walkthrough.
+
+If any module is missing, please stub it minimally (list + Add/Edit/Delete) so the end-to-end pass completes. Keep everything simple and reliable—this is about basic CRUD behavior and clean UI, not security
