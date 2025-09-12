@@ -27,6 +27,7 @@ try:
     from modules.notifications import notifications_views
     from modules.settings import settings_views
     from modules.staff import staff_views
+    from modules.staff import shift_scheduler_views
     # from modules.hanamantinventory import views as hanaman_views  # Removed
     print("All modules imported successfully")
 except ImportError as e:

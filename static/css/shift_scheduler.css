@@ -1,0 +1,681 @@
+/**
+ * Staff Shift Scheduler CSS Styling
+ * Color-coded days, working status highlighting, and responsive design
+ */
+
+/* ============================
+   Main Container & Layout
+   ============================ */
+
+.shift-scheduler-container {
+    padding: 20px 0;
+}
+
+/* Page header styling */
+.shift-scheduler-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 30px 0;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.shift-scheduler-header h1 {
+    font-weight: 700;
+    margin: 0;
+}
+
+.shift-scheduler-header p {
+    margin: 10px 0 0 0;
+    opacity: 0.9;
+}
+
+/* ============================
+   Card Styling Enhancements
+   ============================ */
+
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    border-bottom: none;
+    padding: 15px 20px;
+    font-weight: 600;
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* ============================
+   Day Color Coding System
+   ============================ */
+
+.day-monday {
+    background-color: #007bff !important;
+    color: white !important;
+}
+
+.day-tuesday {
+    background-color: #17a2b8 !important;
+    color: white !important;
+}
+
+.day-wednesday {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+.day-thursday {
+    background-color: #fd7e14 !important;
+    color: white !important;
+}
+
+.day-friday {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.day-saturday, .day-sunday {
+    background-color: #6c757d !important;
+    color: white !important;
+}
+
+/* Day badge styling */
+.day-badge {
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* ============================
+   Schedule Table Styling
+   ============================ */
+
+#scheduleTable {
+    font-size: 14px;
+}
+
+#scheduleTable th {
+    background-color: #343a40 !important;
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 15px 10px;
+    vertical-align: middle;
+}
+
+#scheduleTable td {
+    padding: 12px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Working day row highlighting */
+.table-row-working {
+    background-color: #d4edda !important;
+    border-left: 4px solid #28a745;
+}
+
+.table-row-off {
+    background-color: #f8f9fa !important;
+    border-left: 4px solid #6c757d;
+    opacity: 0.7;
+}
+
+/* Hover effects for table rows */
+#scheduleTable tbody tr:hover {
+    background-color: #e3f2fd !important;
+    cursor: pointer;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+/* ============================
+   Form Controls & Inputs
+   ============================ */
+
+/* Enhanced form controls */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    padding: 10px 12px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Disabled input styling */
+.form-control:disabled {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    opacity: 0.6;
+}
+
+/* Time input specific styling */
+input[type="time"] {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* ============================
+   Toggle Switch Styling
+   ============================ */
+
+.form-check-input {
+    width: 2.5rem;
+    height: 1.25rem;
+    border-radius: 2rem;
+    background-color: #6c757d;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+}
+
+.form-check-label {
+    font-weight: 600;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+/* Working status labels */
+.working-label {
+    color: #28a745;
+    font-weight: 700;
+}
+
+.off-label {
+    color: #6c757d;
+    font-weight: 700;
+}
+
+/* ============================
+   Button Styling
+   ============================ */
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Specific button color schemes */
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+    color: #212529;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8, #007bff);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+/* Small buttons */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+/* Outline button variants */
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.btn-outline-success:hover {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.btn-outline-danger:hover {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+}
+
+.btn-outline-warning:hover {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+/* ============================
+   Bulk Actions Panel
+   ============================ */
+
+#bulkActionsPanel {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: none;
+}
+
+#bulkActionsPanel .card-header {
+    background: linear-gradient(135deg, #17a2b8, #007bff);
+}
+
+.bulk-action-btn {
+    margin: 0 5px;
+    min-width: 120px;
+}
+
+/* ============================
+   Existing Schedules Section
+   ============================ */
+
+.schedule-card {
+    transition: all 0.3s ease;
+    border: 2px solid #e9ecef;
+}
+
+.schedule-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #007bff;
+}
+
+.schedule-card .card-title {
+    color: #007bff;
+    font-weight: 700;
+}
+
+.schedule-card .card-text {
+    line-height: 1.6;
+}
+
+/* Schedule checkbox styling */
+.schedule-checkbox {
+    transform: scale(1.2);
+    accent-color: #007bff;
+}
+
+/* ============================
+   Status Badges & Indicators
+   ============================ */
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-inactive {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Count badges */
+.count-badge {
+    background: linear-gradient(135deg, #17a2b8, #007bff);
+    color: white;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+/* ============================
+   Modal Styling
+   ============================ */
+
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    border-bottom: 2px solid #e9ecef;
+    border-radius: 15px 15px 0 0;
+    padding: 20px;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-footer {
+    border-top: 2px solid #e9ecef;
+    border-radius: 0 0 15px 15px;
+    padding: 20px;
+}
+
+/* Loading modal styling */
+#loadingModal .modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* ============================
+   Working Days Checkboxes (Modal)
+   ============================ */
+
+.working-days-container {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+}
+
+.working-days-container .form-check {
+    margin: 8px 10px;
+}
+
+.working-days-container .form-check-input {
+    transform: scale(1.1);
+    margin-right: 8px;
+}
+
+.working-days-container .form-check-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+/* ============================
+   Alert Styling
+   ============================ */
+
+.alert {
+    border-radius: 10px;
+    border: none;
+    padding: 15px 20px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+    color: #721c24;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    color: #856404;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    color: #0c5460;
+}
+
+/* ============================
+   Responsive Design
+   ============================ */
+
+/* Tablet and mobile responsiveness */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 10px;
+    }
+    
+    .card {
+        margin-bottom: 20px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    /* Stack form elements vertically on mobile */
+    .row.g-3 > * {
+        margin-bottom: 15px;
+    }
+    
+    /* Make table responsive */
+    .table-responsive {
+        font-size: 12px;
+    }
+    
+    #scheduleTable td {
+        padding: 8px 6px;
+    }
+    
+    /* Hide less important columns on mobile */
+    @media (max-width: 576px) {
+        .hide-mobile {
+            display: none;
+        }
+        
+        /* Adjust button sizes */
+        .btn {
+            padding: 8px 12px;
+            font-size: 0.875rem;
+        }
+        
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+        
+        /* Stack existing schedule cards */
+        .schedule-card {
+            margin-bottom: 15px;
+        }
+        
+        /* Adjust day badges for mobile */
+        .day-badge {
+            min-width: 60px;
+            font-size: 0.8em;
+            padding: 6px 8px;
+        }
+    }
+}
+
+/* Large desktop improvements */
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    #scheduleTable {
+        font-size: 15px;
+    }
+    
+    .card-body {
+        padding: 25px;
+    }
+}
+
+/* ============================
+   Animation & Transitions
+   ============================ */
+
+/* Smooth transitions for interactive elements */
+* {
+    transition: all 0.2s ease;
+}
+
+/* Fade in animation for new content */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Pulse animation for important buttons */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
+
+.btn-pulse {
+    animation: pulse 2s infinite;
+}
+
+/* ============================
+   Utility Classes
+   ============================ */
+
+.text-working {
+    color: #28a745 !important;
+    font-weight: 700;
+}
+
+.text-off {
+    color: #6c757d !important;
+    font-weight: 700;
+}
+
+.bg-light-primary {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
+
+.bg-light-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.bg-light-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.border-left-primary {
+    border-left: 4px solid #007bff !important;
+}
+
+.border-left-success {
+    border-left: 4px solid #28a745 !important;
+}
+
+.border-left-danger {
+    border-left: 4px solid #dc3545 !important;
+}
+
+/* Custom scrollbar for better appearance */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ============================
+   Print Styles
+   ============================ */
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+    }
+    
+    .table {
+        font-size: 12px;
+    }
+    
+    .btn {
+        display: none;
+    }
+}
+
+/* ============================
+   Dark Mode Support (Future)
+   ============================ */
+
+@media (prefers-color-scheme: dark) {
+    .card {
+        background-color: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .form-control, .form-select {
+        background-color: #4a5568;
+        color: #e2e8f0;
+        border-color: #718096;
+    }
+    
+    .table {
+        color: #e2e8f0;
+    }
+}
