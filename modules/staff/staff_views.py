@@ -1172,13 +1172,34 @@ def api_create_staff_schedule_range(staff_id):
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
 
+        # Parse and validate dates
+        try:
+            start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        except ValueError as e:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD format.'}), 400
+        
+        # Parse and validate shift times
+        shift_start_time = None
+        shift_end_time = None
+        if data.get('shift_start_time'):
+            try:
+                shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
+            except ValueError:
+                return jsonify({'error': 'Invalid shift start time format. Use HH:MM format.'}), 400
+        if data.get('shift_end_time'):
+            try:
+                shift_end_time = datetime.strptime(data['shift_end_time'], '%H:%M').time()
+            except ValueError:
+                return jsonify({'error': 'Invalid shift end time format. Use HH:MM format.'}), 400
+
         # Create new schedule range
         schedule_range = StaffScheduleRange(
             staff_id=staff_id,
             schedule_name=data['schedule_name'],
             description=data.get('description', ''),
-            start_date=datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
-            end_date=datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
+            start_date=start_date,
+            end_date=end_date,
             monday=data.get('monday', True),
             tuesday=data.get('tuesday', True),
             wednesday=data.get('wednesday', True),
@@ -1190,10 +1211,10 @@ def api_create_staff_schedule_range(staff_id):
         )
 
         # Add shift times if provided
-        if data.get('shift_start_time'):
-            schedule_range.shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
-        if data.get('shift_end_time'):
-            schedule_range.shift_end_time = datetime.strptime(data['shift_end_time'], '%H:%M').time()
+        if shift_start_time:
+            schedule_range.shift_start_time = shift_start_time
+        if shift_end_time:
+            schedule_range.shift_end_time = shift_end_time
         if data.get('break_time'):
             schedule_range.break_time = data['break_time']
 
