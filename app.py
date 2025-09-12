@@ -2,8 +2,11 @@ import os
 import sys
 import logging
 import secrets
-from flask import Flask, request
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, date, timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.orm import DeclarativeBase
 
@@ -37,6 +40,13 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 # Initialize the app with the extension
 db.init_app(app)
 
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
+
 # Add headers for webview compatibility and caching control
 @app.after_request
 def after_request(response):
@@ -55,7 +65,11 @@ def after_request(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
     return response
 
-# Login manager disabled for testing
+# User loader for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    from models import User
+    return User.query.get(int(user_id))
 
 with app.app_context():
     # Import models here so their tables will be created
@@ -93,7 +107,7 @@ with app.app_context():
             logging.warning("Application starting with limited functionality")
 
     # Professional inventory views removed
-    
+
     # Import routes.py to register root routes and error handlers
     try:
         import routes  # registers root, system, error routes
@@ -101,7 +115,7 @@ with app.app_context():
     except Exception as e:
         logging.exception(f"Failed importing routes.py: {e}")
         print("Running without core routes - some pages may not work")
-    
+
     # Log registered routes for debugging
     print("Registered routes:")
     for rule in app.url_map.iter_rules():
