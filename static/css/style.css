@@ -47,7 +47,7 @@ html, body {
     }
 
     #sidebar {
-        width: 280px;
+        width: 280px !important;
         position: fixed;
         top: 56px;
         left: 0;
@@ -56,6 +56,8 @@ html, body {
         border-right: 1px solid var(--professional-border);
         overflow-y: auto;
         background-color: var(--professional-sidebar);
+        display: block !important;
+        transform: none !important;
     }
 
     .main-content {
@@ -105,6 +107,19 @@ html, body {
     background: #ffffff;
     border-right: 1px solid #e5e7eb;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure sidebar is always visible on laptops and desktops */
+@media (min-width: 992px) {
+    .offcanvas-lg {
+        position: fixed !important;
+        top: 56px !important;
+        left: 0 !important;
+        transform: translateX(0%) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
 }
 
 .offcanvas-body {
