@@ -48,7 +48,7 @@ def create_customer_route():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    form = CustomerForm()
+    form = AdvancedCustomerForm()
     if form.validate_on_submit():
         # Validate and clean data
         email_value = form.email.data
@@ -143,7 +143,7 @@ def update_client_route(id):
         flash('Client not found', 'danger')
         return redirect(url_for('customers'))
 
-    form = CustomerForm()
+    form = AdvancedCustomerForm()
     if form.validate_on_submit():
         # Validate and clean data
         email_value = form.email.data
