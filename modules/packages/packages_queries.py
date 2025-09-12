@@ -8,7 +8,7 @@ from sqlalchemy import func, and_
 from app import db
 
 # Import models
-from models import Package, Service, Customer, CustomerPackage, PackageService
+from models import Package, Service, Customer, CustomerPackage, PackageService, CustomerPackageSession
 
 # Late imports to avoid circular dependency
 
