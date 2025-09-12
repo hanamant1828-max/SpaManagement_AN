@@ -6,6 +6,10 @@ from datetime import datetime, timedelta
 from io import StringIO
 from sqlalchemy import func, and_
 from app import db
+
+# Import models
+from models import Package, Service, Customer, CustomerPackage, PackageService
+
 # Late imports to avoid circular dependency
 
 def get_all_packages():

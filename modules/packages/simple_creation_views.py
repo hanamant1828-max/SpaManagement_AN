@@ -5,6 +5,10 @@ Single-page workflow for creating packages with all required features
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
+
+# Import models
+from models import Package, Service, Category, PackageService
+
 # Late imports to avoid circular dependency
 from .packages_queries import create_package_with_services
 import json
