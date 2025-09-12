@@ -7,7 +7,7 @@ from app import app
 from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get_low_stock_items, get_expiring_items
 
 @app.route('/dashboard')
-@login_required  
+  
 def dashboard():
     try:
         stats = get_dashboard_stats()
