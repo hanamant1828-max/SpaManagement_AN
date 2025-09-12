@@ -163,12 +163,13 @@ def update_client_route(id):
         from .clients_queries import get_customer_by_phone, get_customer_by_email
 
         # Check for duplicate phone number (excluding current customer)
-        existing_phone_customer = get_customer_by_phone(phone_value)
-        if existing_phone_customer and existing_phone_customer.id != id:
-            error_msg = 'A customer with this phone number already exists. Please use a different phone number.'
-            # Duplicate phone
-            flash(error_msg, 'danger')
-            return redirect(url_for('customers'))
+        if phone_value:
+            existing_phone_customer = get_customer_by_phone(phone_value)
+            if existing_phone_customer and existing_phone_customer.id != id:
+                error_msg = 'A customer with this phone number already exists. Please use a different phone number.'
+                # Duplicate phone
+                flash(error_msg, 'danger')
+                return redirect(url_for('customers'))
 
         # Check for duplicate email (only if email is provided and excluding current customer)
         if email_value:
@@ -289,7 +290,9 @@ def api_get_customer(customer_id):
                 'address': customer.address or '',
                 'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else '',
                 'gender': customer.gender or '',
-                'preferences': customer.preferences or '',
+                'emergency_contact': customer.emergency_contact or '',
+                'emergency_phone': customer.emergency_phone or '',
+                'medical_conditions': customer.medical_conditions or '',
                 'allergies': customer.allergies or '',
                 'notes': customer.notes or ''
             }
