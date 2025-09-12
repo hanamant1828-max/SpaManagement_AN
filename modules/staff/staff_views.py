@@ -1563,3 +1563,21 @@ def api_delete_schedule_range(schedule_id):
             'success': False,
             'error': str(e)
         }), 500
+
+# API CSRF Token Support
+@app.route("/api/csrf", methods=["GET"])
+@login_required
+def api_get_csrf_token():
+    """Provide CSRF token for authenticated JSON API requests"""
+    try:
+        from flask_wtf.csrf import generate_csrf
+        token = generate_csrf()
+        return jsonify({
+            "success": True,
+            "csrf_token": token
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Failed to generate CSRF token"
+        }), 500
