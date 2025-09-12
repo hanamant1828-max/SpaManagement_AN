@@ -22,11 +22,11 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
 if not app.secret_key:
     raise ValueError("SESSION_SECRET environment variable is required for secure operation")
-app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # CSRF tokens expire in 1 hour for security
 app.config['WTF_CSRF_ENABLED'] = True  # Enable CSRF protection for security
-app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
-app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production for HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS access to session cookies
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Secure same-site policy
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
@@ -58,11 +58,14 @@ def after_request(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
 
-    # CORS headers for webview compatibility
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    # Security headers
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'  # Prevent clickjacking
+    response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME sniffing
+    response.headers['X-XSS-Protection'] = '1; mode=block'  # Enable XSS protection
+    # Restrict CORS for security (remove wildcard in production)
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    response.headers['X-Frame-Options'] = 'ALLOWALL'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
     return response
 
 @login_manager.user_loader

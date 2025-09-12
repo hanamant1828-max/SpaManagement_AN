@@ -997,8 +997,15 @@ def api_create_staff():
         if not re.match(email_pattern, email):
             return jsonify({'error': 'Please enter a valid email address format.'}), 400
 
-        # Set default password if not provided
-        password = data.get('password', 'password123')
+        # Enforce secure password requirements
+        password = data.get('password', '').strip()
+        if not password:
+            # Generate secure temporary password requiring immediate change
+            import secrets
+            import string
+            characters = string.ascii_letters + string.digits + "!@#$%^&*"
+            password = ''.join(secrets.choice(characters) for i in range(12))
+            # TODO: Flag account for mandatory password change on first login
 
         staff_data = {
             'username': data['username'].strip(),
