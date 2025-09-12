@@ -290,15 +290,59 @@ def update_schedule_range(schedule_id, data):
         if not schedule_range:
             return False
 
-        # Parse dates
-        from_date = datetime.strptime(data['from_date'], '%Y-%m-%d').date()
-        to_date = datetime.strptime(data['to_date'], '%Y-%m-%d').date()
+        # Update dates - handle both string and date object inputs
+        if data.get('start_date'):
+            if isinstance(data['start_date'], str):
+                schedule_range.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            else:
+                schedule_range.start_date = data['start_date']
+        if data.get('end_date'):
+            if isinstance(data['end_date'], str):
+                schedule_range.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+            else:
+                schedule_range.end_date = data['end_date']
 
-        # Update the range
-        schedule_range.from_date = from_date
-        schedule_range.to_date = to_date
-        schedule_range.updated_at = datetime.utcnow()
+        # Update other fields - only if not None
+        if data.get('schedule_name') is not None:
+            schedule_range.schedule_name = data['schedule_name']
+        if data.get('description') is not None:
+            schedule_range.description = data['description']
+        if data.get('priority') is not None:
+            schedule_range.priority = int(data['priority'])
+        if data.get('break_time') is not None:
+            schedule_range.break_time = data['break_time']
+        
+        # Update working days - only if not None
+        if data.get('monday') is not None:
+            schedule_range.monday = bool(data['monday'])
+        if data.get('tuesday') is not None:
+            schedule_range.tuesday = bool(data['tuesday'])
+        if data.get('wednesday') is not None:
+            schedule_range.wednesday = bool(data['wednesday'])
+        if data.get('thursday') is not None:
+            schedule_range.thursday = bool(data['thursday'])
+        if data.get('friday') is not None:
+            schedule_range.friday = bool(data['friday'])
+        if data.get('saturday') is not None:
+            schedule_range.saturday = bool(data['saturday'])
+        if data.get('sunday') is not None:
+            schedule_range.sunday = bool(data['sunday'])
+            
+        # Update shift times - handle both string and time object inputs
+        if data.get('shift_start_time'):
+            if isinstance(data['shift_start_time'], str):
+                schedule_range.shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
+            else:
+                schedule_range.shift_start_time = data['shift_start_time']
+        if data.get('shift_end_time'):
+            if isinstance(data['shift_end_time'], str):
+                schedule_range.shift_end_time = datetime.strptime(data['shift_end_time'], '%H:%M').time()
+            else:
+                schedule_range.shift_end_time = data['shift_end_time']
 
+        # Guard updated_at with hasattr check
+        if hasattr(schedule_range, 'updated_at'):
+            schedule_range.updated_at = datetime.utcnow()
         db.session.commit()
         return True
     except Exception as e:
