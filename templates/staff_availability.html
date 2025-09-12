@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Availability - Quick Book - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-users-cog me-2"></i>Staff Availability - Quick Book
+                </h1>
+                <div class="d-flex gap-2">
+                    <input type="date" class="form-control" id="dateSelector" value="{{ selected_date.strftime('%Y-%m-%d') }}" 
+                           onchange="window.location.href='{{ url_for('staff_availability') }}?date=' + this.value">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#quickBookModal">
+                        <i class="fas fa-plus me-2"></i>Quick Book
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ selected_date.strftime('%A, %B %d, %Y') }}</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-success rounded" style="width: 20px; height: 20px;"></div>
+                                </div>
+                                <span>Available</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-danger rounded" style="width: 20px; height: 20px;"></div>
+                                </div>
+                                <span>Booked</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-secondary rounded" style="width: 20px; height: 20px;"></div>
+                                </div>
+                                <span>Unavailable</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Availability Grid -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    {% for staff_member in staff_members %}
+                                    <th class="text-center">
+                                        <div>{{ staff_member.first_name }} {{ staff_member.last_name }}</div>
+                                        <small class="text-muted">{{ staff_member.role }}</small>
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for time_slot in time_slots %}
+                                <tr>
+                                    <td class="fw-bold">
+                                        {{ time_slot.start_time.strftime('%I:%M %p') }}
+                                    </td>
+                                    {% for staff_member in staff_members %}
+                                    {% set slot_key = (staff_member.id, time_slot.start_time) %}
+                                    {% set availability = staff_availability.get(slot_key, {'status': 'available'}) %}
+                                    <td class="text-center p-1">
+                                        {% if availability.status == 'booked' %}
+                                        <div class="bg-danger text-white p-2 rounded small">
+                                            <div class="fw-bold">{{ availability.client_name }}</div>
+                                            <div>{{ availability.service_name }}</div>
+                                        </div>
+                                        {% else %}
+                                        <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn" 
+                                                data-staff-id="{{ staff_member.id }}"
+                                                data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
+                                                data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
+                                                data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
+                                                data-bs-toggle="modal" data-bs-target="#quickBookModal">
+                                            <i class="fas fa-plus"></i> Book
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title">Today's Revenue</h5>
+                            <h3>${{ today_revenue or 0 }}</h3>
+                        </div>
+                        <div class="ms-3">
+                            <i class="fas fa-dollar-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title">Today's Appointments</h5>
+                            <h3>{{ today_appointments|length }}</h3>
+                        </div>
+                        <div class="ms-3">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Book Modal -->
+<div class="modal fade" id="quickBookModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Book Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickBookForm">
+                    <div class="mb-3">
+                        <label for="clientSelect" class="form-label">Client</label>
+                        <select class="form-select" id="clientSelect" required>
+                            <option value="">Select Client</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="serviceSelect" class="form-label">Service</label>
+                        <select class="form-select" id="serviceSelect" required>
+                            <option value="">Select Service</option>
+                            {% for service in services %}
+                            <option value="{{ service.id }}" data-price="{{ service.price }}">
+                                {{ service.name }} - ${{ service.price }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="appointmentNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="appointmentNotes" rows="3"></textarea>
+                    </div>
+                    <input type="hidden" id="selectedStaffId">
+                    <input type="hidden" id="selectedDate">
+                    <input type="hidden" id="selectedTime">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitQuickBook()">Book Appointment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle quick book button clicks
+document.addEventListener('DOMContentLoaded', function() {
+    const quickBookButtons = document.querySelectorAll('.quick-book-btn');
+    quickBookButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('selectedStaffId').value = this.dataset.staffId;
+            document.getElementById('selectedDate').value = this.dataset.date;
+            document.getElementById('selectedTime').value = this.dataset.time;
+            
+            // Update modal title with staff and time info
+            const modalTitle = document.querySelector('#quickBookModal .modal-title');
+            modalTitle.textContent = `Quick Book - ${this.dataset.staffName} at ${this.dataset.time}`;
+        });
+    });
+});
+
+function submitQuickBook() {
+    const formData = {
+        client_id: document.getElementById('clientSelect').value,
+        service_id: document.getElementById('serviceSelect').value,
+        staff_id: document.getElementById('selectedStaffId').value,
+        appointment_date: document.getElementById('selectedDate').value,
+        appointment_time: document.getElementById('selectedTime').value,
+        notes: document.getElementById('appointmentNotes').value
+    };
+
+    // Validate required fields
+    if (!formData.client_id || !formData.service_id || !formData.staff_id) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    // Submit the booking
+    fetch('/appointments/book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Appointment booked successfully!');
+            location.reload(); // Refresh to show updated schedule
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error booking appointment: ' + error);
+    });
+}
+</script>
+{% endblock %}
