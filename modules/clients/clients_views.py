@@ -80,7 +80,7 @@ def create_customer_route():
             'address': (form.address.data or '').strip(),
             'date_of_birth': form.date_of_birth.data,
             'gender': form.gender.data if form.gender.data and form.gender.data.strip() else None,
-            'preferences': (form.preferences.data or '').strip(),
+
             'allergies': (form.allergies.data or '').strip(),
             'notes': (form.notes.data or '').strip()
         }
@@ -182,7 +182,7 @@ def update_client_route(id):
             'address': (form.address.data or '').strip(),
             'date_of_birth': form.date_of_birth.data,
             'gender': form.gender.data if form.gender.data and form.gender.data.strip() else None,
-            'preferences': (form.preferences.data or '').strip(),
+
             'allergies': (form.allergies.data or '').strip(),
             'notes': (form.notes.data or '').strip()
         }

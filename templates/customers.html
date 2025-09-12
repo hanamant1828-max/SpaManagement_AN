@@ -568,7 +568,7 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="status-badge bg-{{ utils.get_status_class(customer.status.lower().replace(' ', '_')) }}">
+                                            <span class="status-badge bg-{{ utils.get_status_badge_class(customer.status.lower().replace(' ', '_')) }}">
                                                 {{ customer.status }}
                                             </span>
                                         </td>
@@ -811,7 +811,7 @@
                         <div class="col-md-6">
                             <div class="form-floating-modern">
                                 <label for="gender">Gender</label>
-                                {{ form.gender(class="form-select") }}
+                                {{ advanced_form.gender(class="form-select") }}
                             </div>
                         </div>
                     </div>
@@ -823,12 +823,12 @@
 
                     <div class="form-floating-modern">
                         <label for="preferences">Preferences</label>
-                        {{ form.preferences(class="form-control", rows="2", placeholder="Customer preferences, favorite services, etc.") }}
+                        {{ advanced_form.emergency_contact(class="form-control", placeholder="Emergency contact name") }}
                     </div>
 
                     <div class="form-floating-modern">
                         <label for="allergies">Allergies & Sensitivities</label>
-                        {{ form.allergies(class="form-control", rows="2", placeholder="Any known allergies or sensitivities") }}
+                        {{ advanced_form.allergies(class="form-control", rows="2", placeholder="Any known allergies or sensitivities") }}
                     </div>
 
                     <div class="form-floating-modern">
