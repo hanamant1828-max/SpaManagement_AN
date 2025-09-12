@@ -19,7 +19,7 @@ try:
     from modules.clients import clients_views
     from modules.services import services_views
     from modules.inventory import views as inventory_views
-    from modules.billing import billing_views
+    # from modules.billing import billing_views  # Removed - billing_views.py deleted
     from modules.expenses import expenses_views
     from modules.reports import reports_views
     from modules.packages import packages_views

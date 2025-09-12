@@ -12,7 +12,7 @@ from .inventory import views as inventory_views
 from .services import services_views
 
 # Import remaining modules
-from .billing import billing_views
+# from .billing import billing_views  # Removed - billing_views.py deleted
 from .expenses import expenses_views
 from .settings import settings_views
 from .reports import reports_views

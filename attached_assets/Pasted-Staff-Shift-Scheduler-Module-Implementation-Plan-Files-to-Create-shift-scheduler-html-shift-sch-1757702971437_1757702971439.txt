@@ -1,0 +1,648 @@
+Staff Shift Scheduler Module - Implementation Plan
+🎯 Files to Create
+shift-scheduler.html
+shift-scheduler.css  
+shift-scheduler.js
+📱 UI Structure
+Top Section
+html<!-- Staff Selection -->
+<select id="staff-select">
+  <option>Choose staff member...</option>
+</select>
+
+<!-- Date Range -->
+<input type="date" id="from-date" placeholder="From Date *">
+<input type="date" id="to-date" placeholder="To Date *">
+<button id="generate-btn">Generate Days</button>
+Bulk Actions
+html<div class="bulk-actions">
+  <h3>⚡ Bulk Actions</h3>
+  <button class="bulk-btn apply-all">📋 Apply to All</button>
+  <button class="bulk-btn weekends-off">📅 Weekends Off</button>
+</div>
+Schedule Table
+html<div class="schedule-section">
+  <h3>📋 Day-by-Day Schedule <span class="days-badge">7 days</span></h3>
+  
+  <table class="schedule-table">
+    <thead>
+      <tr>
+        <th>DATE</th>
+        <th>DAY</th>
+        <th>WORKING?</th>
+        <th>START TIME</th>
+        <th>END TIME</th>
+        <th>BREAK</th>
+        <th>NOTES</th>
+      </tr>
+    </thead>
+    <tbody id="schedule-tbody">
+      <!-- Dynamic rows generated here -->
+    </tbody>
+  </table>
+  
+  <button class="save-btn">💾 Save Schedule</button>
+</div>
+🔧 Core Functions
+1. Generate Days Function
+javascriptfunction generateDays() {
+  const fromDate = document.getElementById('from-date').value;
+  const toDate = document.getElementById('to-date').value;
+  const staff = document.getElementById('staff-select').value;
+  
+  if (!staff || !fromDate || !toDate) {
+    alert('Please select staff and date range');
+    return;
+  }
+  
+  // Generate date array
+  const dates = getDateRange(fromDate, toDate);
+  
+  // Create table rows
+  renderScheduleTable(dates);
+}
+2. Table Row Structure
+javascriptfunction createScheduleRow(date, dayName) {
+  return `
+    <tr class="schedule-row" data-date="${date}">
+      <td class="date-cell">${formatDate(date)}</td>
+      <td><span class="day-badge ${dayName.toLowerCase()}">${dayName}</span></td>
+      <td>
+        <label class="toggle-switch">
+          <input type="checkbox" class="working-toggle" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="status-badge status-yes">Yes</span>
+      </td>
+      <td><input type="time" class="time-input" value="09:00"></td>
+      <td><input type="time" class="time-input" value="17:00"></td>
+      <td><input type="number" class="break-input" value="60" min="0"> min</td>
+      <td><input type="text" class="notes-input" placeholder="Notes..."></td>
+    </tr>
+  `;
+}
+3. Toggle Working Status
+javascriptfunction setupWorkingToggle() {
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('working-toggle')) {
+      const row = e.target.closest('tr');
+      const isWorking = e.target.checked;
+      
+      if (isWorking) {
+        row.classList.add('working-row');
+        enableTimeInputs(row);
+        updateStatusBadge(row, 'Yes', 'status-yes');
+      } else {
+        row.classList.remove('working-row');
+        disableTimeInputs(row);
+        updateStatusBadge(row, 'No', 'status-no');
+      }
+    }
+  });
+}
+4. Bulk Actions
+javascriptfunction applyToAll() {
+  const firstRow = document.querySelector('.schedule-row');
+  if (!firstRow) return;
+  
+  const startTime = firstRow.querySelector('.time-input:nth-of-type(1)').value;
+  const endTime = firstRow.querySelector('.time-input:nth-of-type(2)').value;
+  const breakTime = firstRow.querySelector('.break-input').value;
+  
+  document.querySelectorAll('.schedule-row').forEach(row => {
+    if (row.querySelector('.working-toggle').checked) {
+      row.querySelector('.time-input:nth-of-type(1)').value = startTime;
+      row.querySelector('.time-input:nth-of-type(2)').value = endTime;
+      row.querySelector('.break-input').value = breakTime;
+    }
+  });
+}
+
+function setWeekendsOff() {
+  document.querySelectorAll('.schedule-row').forEach(row => {
+    const dayBadge = row.querySelector('.day-badge');
+    if (dayBadge.classList.contains('saturday') || dayBadge.classList.contains('sunday')) {
+      const toggle = row.querySelector('.working-toggle');
+      toggle.checked = false;
+      toggle.dispatchEvent(new Event('change'));
+    }
+  });
+}
+5. Save Schedule
+javascriptfunction saveSchedule() {
+  const staffId = document.getElementById('staff-select').value;
+  const scheduleData = [];
+  
+  document.querySelectorAll('.schedule-row').forEach(row => {
+    const date = row.dataset.date;
+    const working = row.querySelector('.working-toggle').checked;
+    const startTime = row.querySelector('.time-input:nth-of-type(1)').value;
+    const endTime = row.querySelector('.time-input:nth-of-type(2)').value;
+    const breakTime = row.querySelector('.break-input').value;
+    const notes = row.querySelector('.notes-input').value;
+    
+    scheduleData.push({
+      date,
+      working,
+      startTime: working ? startTime : null,
+      endTime: working ? endTime : null,
+      breakMinutes: working ? parseInt(breakTime) : null,
+      notes
+    });
+  });
+  
+  // Save to localStorage or send to API
+  localStorage.setItem(`schedule_${staffId}_${Date.now()}`, JSON.stringify({
+    staffId,
+    schedule: scheduleData,
+    createdAt: new Date().toISOString()
+  }));
+  
+  showToast('Schedule saved successfully!');
+}
+🎨 CSS Classes Structure
+Color-coded Day Badges
+css.day-badge.friday { background: #ef4444; }
+.day-badge.saturday { background: #6b7280; }
+.day-badge.sunday { background: #6b7280; }
+.day-badge.monday { background: #3b82f6; }
+.day-badge.tuesday { background: #06b6d4; }
+.day-badge.wednesday { background: #10b981; }
+.day-badge.thursday { background: #f59e0b; }
+Working Row Styling
+css.working-row {
+  background: #f0fdf4;
+}
+
+.working-row:hover {
+  background: #ecfdf5;
+}
+Toggle Switch
+css.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.slider {
+  background-color: #cbd5e1;
+  border-radius: 24px;
+  transition: 0.3s;
+}
+
+input:checked + .slider {
+  background-color: #3b82f6;
+}
+💾 Data Structure
+javascript{
+  staffId: "staff_123",
+  schedule: [
+    {
+      date: "2025-09-19",
+      working: true,
+      startTime: "09:00",
+      endTime: "17:00", 
+      breakMinutes: 60,
+      notes: "Regular shift"
+    }
+  ],
+  createdAt: "2025-09-19T10:00:00.000Z"
+}
+🔧 Helper Functions Needed
+javascriptgetDateRange(from, to)      // Generate array of dates
+formatDate(date)            // Format display date
+getDayName(date)            // Get day name
+enableTimeInputs(row)       // Enable time fields
+disableTimeInputs(row)      // Disable time fields  
+updateStatusBadge(row)      // Update Yes/No badge
+showToast(message)          // Show success message
+validateTimeRange()         // Validate start < end time
+This plan gives you the exact structure to recreate the interface you showed, with all the interactive elements and functionality needed.RetryKadd edit and deleteEditStaff Shift Scheduler Module - CRUD Operations Plan
+🎯 Complete CRUD Structure
+Main View with Action Buttons
+html<!-- Header with CRUD actions -->
+<div class="header-actions">
+  <button id="new-schedule-btn" class="action-btn new">➕ New Schedule</button>
+  <button id="edit-schedule-btn" class="action-btn edit" disabled>✏️ Edit</button>
+  <button id="delete-schedule-btn" class="action-btn delete" disabled>🗑️ Delete</button>
+  <button id="duplicate-schedule-btn" class="action-btn duplicate" disabled>📋 Duplicate</button>
+</div>
+
+<!-- Existing Schedules List -->
+<div class="schedules-list">
+  <h3>📋 Existing Schedules</h3>
+  <table class="schedules-table">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="select-all"></th>
+        <th>STAFF</th>
+        <th>DATE RANGE</th>
+        <th>DAYS</th>
+        <th>STATUS</th>
+        <th>ACTIONS</th>
+      </tr>
+    </thead>
+    <tbody id="schedules-list">
+      <!-- Dynamic schedule rows -->
+    </tbody>
+  </table>
+</div>
+📋 CREATE (Add New Schedule)
+New Schedule Flow
+javascriptfunction createNewSchedule() {
+  // Reset form
+  document.getElementById('staff-select').value = '';
+  document.getElementById('from-date').value = '';
+  document.getElementById('to-date').value = '';
+  
+  // Clear existing table
+  document.getElementById('schedule-tbody').innerHTML = '';
+  
+  // Show form section
+  document.querySelector('.schedule-form').style.display = 'block';
+  document.querySelector('.schedule-section').style.display = 'none';
+  
+  // Set mode
+  currentMode = 'create';
+  currentScheduleId = null;
+}
+
+function saveNewSchedule() {
+  const scheduleData = collectScheduleData();
+  
+  if (!validateSchedule(scheduleData)) {
+    return;
+  }
+  
+  // Generate unique ID
+  const scheduleId = 'schedule_' + Date.now();
+  
+  // Save to storage
+  const savedSchedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  savedSchedules.push({
+    id: scheduleId,
+    ...scheduleData,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: 'draft'
+  });
+  
+  localStorage.setItem('staff_schedules', JSON.stringify(savedSchedules));
+  
+  showToast('Schedule created successfully!', 'success');
+  refreshSchedulesList();
+  resetForm();
+}
+✏️ EDIT (Modify Existing Schedule)
+Edit Schedule Interface
+html<!-- Edit Mode Indicator -->
+<div class="edit-mode-banner" style="display: none;">
+  <span>✏️ Editing Schedule</span>
+  <button class="cancel-edit-btn">Cancel</button>
+</div>
+Edit Functions
+javascriptfunction editSchedule(scheduleId) {
+  const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  const schedule = schedules.find(s => s.id === scheduleId);
+  
+  if (!schedule) {
+    showToast('Schedule not found!', 'error');
+    return;
+  }
+  
+  // Set mode
+  currentMode = 'edit';
+  currentScheduleId = scheduleId;
+  
+  // Populate form with existing data
+  document.getElementById('staff-select').value = schedule.staffId;
+  document.getElementById('from-date').value = schedule.dateRange.from;
+  document.getElementById('to-date').value = schedule.dateRange.to;
+  
+  // Generate and populate table
+  generateDaysFromSchedule(schedule);
+  
+  // Show edit mode banner
+  document.querySelector('.edit-mode-banner').style.display = 'flex';
+  
+  // Update save button text
+  document.querySelector('.save-btn').innerHTML = '💾 Update Schedule';
+}
+
+function updateExistingSchedule() {
+  const scheduleData = collectScheduleData();
+  
+  if (!validateSchedule(scheduleData)) {
+    return;
+  }
+  
+  const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  const scheduleIndex = schedules.findIndex(s => s.id === currentScheduleId);
+  
+  if (scheduleIndex === -1) {
+    showToast('Schedule not found!', 'error');
+    return;
+  }
+  
+  // Update existing schedule
+  schedules[scheduleIndex] = {
+    ...schedules[scheduleIndex],
+    ...scheduleData,
+    updatedAt: new Date().toISOString()
+  };
+  
+  localStorage.setItem('staff_schedules', JSON.stringify(schedules));
+  
+  showToast('Schedule updated successfully!', 'success');
+  refreshSchedulesList();
+  exitEditMode();
+}
+
+function generateDaysFromSchedule(schedule) {
+  // Clear existing table
+  document.getElementById('schedule-tbody').innerHTML = '';
+  
+  // Generate table with existing data
+  schedule.schedule.forEach(dayData => {
+    const row = createScheduleRowFromData(dayData);
+    document.getElementById('schedule-tbody').appendChild(row);
+  });
+  
+  // Show schedule section
+  document.querySelector('.schedule-section').style.display = 'block';
+}
+
+function createScheduleRowFromData(dayData) {
+  const date = new Date(dayData.date);
+  const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+  
+  const row = document.createElement('tr');
+  row.className = dayData.working ? 'schedule-row working-row' : 'schedule-row';
+  row.dataset.date = dayData.date;
+  
+  row.innerHTML = `
+    <td class="date-cell">${formatDate(dayData.date)}</td>
+    <td><span class="day-badge ${dayName.toLowerCase()}">${dayName}</span></td>
+    <td>
+      <label class="toggle-switch">
+        <input type="checkbox" class="working-toggle" ${dayData.working ? 'checked' : ''}>
+        <span class="slider"></span>
+      </label>
+      <span class="status-badge ${dayData.working ? 'status-yes' : 'status-no'}">
+        ${dayData.working ? 'Yes' : 'No'}
+      </span>
+    </td>
+    <td><input type="time" class="time-input" value="${dayData.startTime || '09:00'}" ${!dayData.working ? 'disabled' : ''}></td>
+    <td><input type="time" class="time-input" value="${dayData.endTime || '17:00'}" ${!dayData.working ? 'disabled' : ''}></td>
+    <td><input type="number" class="break-input" value="${dayData.breakMinutes || 60}" min="0" ${!dayData.working ? 'disabled' : ''}> min</td>
+    <td><input type="text" class="notes-input" placeholder="Notes..." value="${dayData.notes || ''}"></td>
+  `;
+  
+  return row;
+}
+🗑️ DELETE (Remove Schedule)
+Delete Confirmation Modal
+html<div id="delete-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🗑️ Delete Schedule</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete this schedule?</p>
+      <div class="schedule-details">
+        <strong>Staff:</strong> <span id="delete-staff-name"></span><br>
+        <strong>Date Range:</strong> <span id="delete-date-range"></span><br>
+        <strong>Total Days:</strong> <span id="delete-total-days"></span>
+      </div>
+      <p class="warning">⚠️ This action cannot be undone!</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel">Cancel</button>
+      <button class="btn-delete" id="confirm-delete">Delete Schedule</button>
+    </div>
+  </div>
+</div>
+Delete Functions
+javascriptfunction deleteSchedule(scheduleId) {
+  const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  const schedule = schedules.find(s => s.id === scheduleId);
+  
+  if (!schedule) {
+    showToast('Schedule not found!', 'error');
+    return;
+  }
+  
+  // Populate delete modal
+  document.getElementById('delete-staff-name').textContent = getStaffName(schedule.staffId);
+  document.getElementById('delete-date-range').textContent = `${schedule.dateRange.from} to ${schedule.dateRange.to}`;
+  document.getElementById('delete-total-days').textContent = schedule.schedule.length + ' days';
+  
+  // Show modal
+  document.getElementById('delete-modal').style.display = 'flex';
+  
+  // Set up confirm button
+  document.getElementById('confirm-delete').onclick = () => confirmDelete(scheduleId);
+}
+
+function confirmDelete(scheduleId) {
+  const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  const filteredSchedules = schedules.filter(s => s.id !== scheduleId);
+  
+  localStorage.setItem('staff_schedules', JSON.stringify(filteredSchedules));
+  
+  // Hide modal
+  document.getElementById('delete-modal').style.display = 'none';
+  
+  showToast('Schedule deleted successfully!', 'success');
+  refreshSchedulesList();
+  
+  // If currently editing this schedule, exit edit mode
+  if (currentScheduleId === scheduleId) {
+    exitEditMode();
+  }
+}
+
+function bulkDelete() {
+  const selectedCheckboxes = document.querySelectorAll('.schedule-checkbox:checked');
+  
+  if (selectedCheckboxes.length === 0) {
+    showToast('Please select schedules to delete', 'warning');
+    return;
+  }
+  
+  const scheduleIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.scheduleId);
+  
+  if (confirm(`Are you sure you want to delete ${scheduleIds.length} schedule(s)?`)) {
+    const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+    const filteredSchedules = schedules.filter(s => !scheduleIds.includes(s.id));
+    
+    localStorage.setItem('staff_schedules', JSON.stringify(filteredSchedules));
+    
+    showToast(`${scheduleIds.length} schedule(s) deleted successfully!`, 'success');
+    refreshSchedulesList();
+  }
+}
+📋 READ (View Existing Schedules)
+Schedules List Table
+javascriptfunction refreshSchedulesList() {
+  const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  const tbody = document.getElementById('schedules-list');
+  
+  tbody.innerHTML = '';
+  
+  schedules.forEach(schedule => {
+    const row = createScheduleListRow(schedule);
+    tbody.appendChild(row);
+  });
+  
+  updateActionButtons();
+}
+
+function createScheduleListRow(schedule) {
+  const workingDays = schedule.schedule.filter(day => day.working).length;
+  const totalDays = schedule.schedule.length;
+  
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>
+      <input type="checkbox" class="schedule-checkbox" data-schedule-id="${schedule.id}">
+    </td>
+    <td>
+      <div class="staff-info">
+        <strong>${getStaffName(schedule.staffId)}</strong>
+        <small>${getStaffRole(schedule.staffId)}</small>
+      </div>
+    </td>
+    <td>
+      <div class="date-range">
+        ${formatDate(schedule.dateRange.from)} - ${formatDate(schedule.dateRange.to)}
+      </div>
+    </td>
+    <td>
+      <div class="days-info">
+        <span class="working-days">${workingDays}</span> / ${totalDays} days
+      </div>
+    </td>
+    <td>
+      <span class="status-badge status-${schedule.status}">${schedule.status}</span>
+    </td>
+    <td>
+      <div class="action-buttons">
+        <button class="btn-sm view" onclick="viewSchedule('${schedule.id}')">👁️</button>
+        <button class="btn-sm edit" onclick="editSchedule('${schedule.id}')">✏️</button>
+        <button class="btn-sm delete" onclick="deleteSchedule('${schedule.id}')">🗑️</button>
+        <button class="btn-sm duplicate" onclick="duplicateSchedule('${schedule.id}')">📋</button>
+      </div>
+    </td>
+  `;
+  
+  return row;
+}
+🔄 Additional CRUD Operations
+Duplicate Schedule
+javascriptfunction duplicateSchedule(scheduleId) {
+  const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  const originalSchedule = schedules.find(s => s.id === scheduleId);
+  
+  if (!originalSchedule) {
+    showToast('Schedule not found!', 'error');
+    return;
+  }
+  
+  // Create duplicate with new ID and dates
+  const newSchedule = {
+    ...originalSchedule,
+    id: 'schedule_' + Date.now(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: 'draft'
+  };
+  
+  // Shift dates by one week (or show date picker)
+  const fromDate = new Date(originalSchedule.dateRange.from);
+  const toDate = new Date(originalSchedule.dateRange.to);
+  fromDate.setDate(fromDate.getDate() + 7);
+  toDate.setDate(toDate.getDate() + 7);
+  
+  newSchedule.dateRange.from = fromDate.toISOString().split('T')[0];
+  newSchedule.dateRange.to = toDate.toISOString().split('T')[0];
+  
+  // Update schedule dates
+  newSchedule.schedule.forEach((day, index) => {
+    const dayDate = new Date(day.date);
+    dayDate.setDate(dayDate.getDate() + 7);
+    day.date = dayDate.toISOString().split('T')[0];
+  });
+  
+  schedules.push(newSchedule);
+  localStorage.setItem('staff_schedules', JSON.stringify(schedules));
+  
+  showToast('Schedule duplicated successfully!', 'success');
+  refreshSchedulesList();
+}
+View Schedule (Read-Only)
+javascriptfunction viewSchedule(scheduleId) {
+  const schedules = JSON.parse(localStorage.getItem('staff_schedules') || '[]');
+  const schedule = schedules.find(s => s.id === scheduleId);
+  
+  if (!schedule) {
+    showToast('Schedule not found!', 'error');
+    return;
+  }
+  
+  // Populate form in read-only mode
+  document.getElementById('staff-select').value = schedule.staffId;
+  document.getElementById('staff-select').disabled = true;
+  document.getElementById('from-date').value = schedule.dateRange.from;
+  document.getElementById('from-date').disabled = true;
+  document.getElementById('to-date').value = schedule.dateRange.to;
+  document.getElementById('to-date').disabled = true;
+  
+  // Generate table in read-only mode
+  generateDaysFromSchedule(schedule);
+  
+  // Disable all inputs
+  document.querySelectorAll('.schedule-section input').forEach(input => {
+    input.disabled = true;
+  });
+  
+  // Hide save button, show close button
+  document.querySelector('.save-btn').style.display = 'none';
+  document.querySelector('.close-view-btn').style.display = 'block';
+  
+  currentMode = 'view';
+}
+Mode Management
+javascriptlet currentMode = 'list'; // 'list', 'create', 'edit', 'view'
+let currentScheduleId = null;
+
+function exitEditMode() {
+  currentMode = 'list';
+  currentScheduleId = null;
+  
+  // Hide edit banner
+  document.querySelector('.edit-mode-banner').style.display = 'none';
+  
+  // Reset save button
+  document.querySelector('.save-btn').innerHTML = '💾 Save Schedule';
+  
+  // Clear form
+  resetForm();
+}
+
+function resetForm() {
+  document.getElementById('staff-select').value = '';
+  document.getElementById('from-date').value = '';
+  document.getElementById('to-date').value = '';
+  document.getElementById('schedule-tbody').innerHTML = '';
+  
+  // Re-enable all controls
+  document.querySelectorAll('input, select').forEach(input => {
+    input.disabled = false;
+  });
+  
+  // Hide schedule section
+  document.querySelector('.schedule-section').style.display = 'none';
+}
+This comprehensive CRUD plan gives you full Create, Read, Update, Delete functionality with proper validation, confirmation dialogs, and user feedback throughout the process.

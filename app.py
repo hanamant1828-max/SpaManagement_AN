@@ -82,7 +82,7 @@ with app.app_context():
     from modules.staff import staff_views
     from modules.checkin import checkin_views
     from modules.notifications import notifications_views
-    from modules.billing import billing_views, integrated_billing_views
+    from modules.billing import integrated_billing_views
     from modules.services import services_views
     from modules.packages import packages_views
     from modules.reports import reports_views
