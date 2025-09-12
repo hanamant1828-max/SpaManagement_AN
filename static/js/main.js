@@ -89,8 +89,10 @@ function initializeFaceCapture() {
 let currentStream = null;
 let faceStream = null;
 
-// Declare currentStaffId only once
-let currentStaffId = null;
+// Declare currentStaffId only once (check if already declared)
+if (typeof currentStaffId === 'undefined') {
+    let currentStaffId = null;
+}
 
 function setupCameraButtons() {
     // Only run on pages that actually have camera buttons
@@ -1960,7 +1962,16 @@ function handleEditCustomerSubmit(event) {
     form.submit();
 }
 
+// Load metadata function for staff management
+function loadMetadata() {
+    console.log('Metadata loading handled in loadStaffData');
+    // This function is called from comprehensive_staff.html
+    // The actual metadata loading is handled in the loadStaffData function
+    return Promise.resolve();
+}
+
 // Make functions globally available
+window.loadMetadata = loadMetadata;
 window.showNotification = showNotification;
 window.exportTableData = exportTableData;
 window.printElement = printElement;
@@ -2013,30 +2024,57 @@ function createContextMenuHTML() {
         <div class="context-menu-item" data-url="/dashboard">
             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
         </div>
+        <div class="context-menu-item" data-url="/bookings">
+            <i class="fas fa-calendar-alt me-2"></i>Smart Booking & Calendar
+        </div>
+        <div class="context-menu-item" data-url="/staff_availability">
+            <i class="fas fa-users-cog me-2"></i>Staff Availability
+        </div>
+        <div class="context-menu-item" data-url="/appointments_management">
+            <i class="fas fa-calendar-check me-2"></i>Manage Appointments
+        </div>
+        <div class="context-menu-item" data-url="/customers">
+            <i class="fas fa-users me-2"></i>Client History & Loyalty
+        </div>
         <div class="context-menu-item" data-url="/comprehensive_staff">
             <i class="fas fa-users me-2"></i>Staff Management
         </div>
-        <div class="context-menu-item" data-url="/bookings">
-            <i class="fas fa-calendar-alt me-2"></i>Schedule Management
+        <div class="context-menu-item" data-url="/checkin">
+            <i class="fas fa-user-check me-2"></i>Check-In
         </div>
-        <div class="context-menu-item" data-url="/customers">
-            <i class="fas fa-users me-2"></i>Client Management
-        </div>
-        <div class="context-menu-item" data-url="/services">
-            <i class="fas fa-spa me-2"></i>Services Management
-        </div>
-        <div class="context-menu-item" data-url="/inventory_dashboard">
-            <i class="fas fa-boxes me-2"></i>Inventory Management
+        <div class="context-menu-item" data-url="/notifications">
+            <i class="fas fa-bell me-2"></i>WhatsApp Notifications
         </div>
         <div class="context-menu-item" data-url="/integrated_billing">
             <i class="fas fa-cash-register me-2"></i>Billing System
         </div>
+        <div class="context-menu-item" data-url="/services">
+            <i class="fas fa-spa me-2"></i>Services Management
+        </div>
+        <div class="context-menu-item" data-url="/packages">
+            <i class="fas fa-gift me-2"></i>Package Management
+        </div>
         <div class="context-menu-item" data-url="/reports">
             <i class="fas fa-chart-bar me-2"></i>Reports & Insights
         </div>
+        <div class="context-menu-item" data-url="/expenses">
+            <i class="fas fa-receipt me-2"></i>Daily Expense Tracker
+        </div>
+        <div class="context-menu-item" data-url="/inventory_dashboard">
+            <i class="fas fa-boxes me-2"></i>Inventory Management
+        </div>
+        <div class="context-menu-item" data-url="/alerts">
+            <i class="fas fa-exclamation-triangle me-2"></i>Expiring Product Alerts
+        </div>
         <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-url="/system_management">
+            <i class="fas fa-server me-2"></i>System Management
+        </div>
+        <div class="context-menu-item" data-url="/role_management">
+            <i class="fas fa-users-cog me-2"></i>Role Management
+        </div>
         <div class="context-menu-item" data-url="/settings">
-            <i class="fas fa-cog me-2"></i>Settings
+            <i class="fas fa-user-cog me-2"></i>User & Access Control
         </div>
     `;
 
