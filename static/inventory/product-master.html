@@ -608,18 +608,16 @@
         const originalText = saveBtn.innerHTML;
 
         try {
-            // Get form data
+            // Get form data - use backend API field names
             const productData = {
-                id: editingProductId || 'prod_' + Date.now(),
                 sku: document.getElementById('productSku').value.trim(),
                 name: document.getElementById('productName').value.trim(),
-                categoryId: document.getElementById('productCategory').value,
-                unit: document.getElementById('productUnit').value,
-                primaryLocation: document.getElementById('productLocation').value,
+                category_id: document.getElementById('productCategory').value,
+                unit_of_measure: document.getElementById('productUnit').value,
                 description: document.getElementById('productDescription').value.trim(),
                 barcode: document.getElementById('productBarcode').value.trim(),
-                trackBatches: document.getElementById('productTrackBatches').checked,
-                trackSerials: document.getElementById('productTrackSerials').checked
+                is_service_item: document.getElementById('productTrackBatches').checked,
+                is_retail_item: document.getElementById('productTrackSerials').checked
             };
 
             // Validation
@@ -631,12 +629,12 @@
                 showToast('Product name is required', 'danger');
                 return;
             }
-            if (!productData.categoryId) {
+            if (!productData.category_id) {
                 showToast('Please select a category. If no categories are available, please create one first.', 'danger');
                 return;
             }
             // Location is optional for products - batches will specify locations
-            if (!productData.unit.trim()) {
+            if (!productData.unit_of_measure.trim()) {
                 showToast('Unit of measure is required', 'danger');
                 return;
             }

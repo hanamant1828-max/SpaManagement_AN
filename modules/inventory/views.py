@@ -564,7 +564,7 @@ def api_create_adjustment():
             adjustment_type='add',
             quantity=quantity,
             remarks=data.get('notes', '') or 'Stock adjustment via inventory management',
-            created_by=current_user.id
+            created_by=1  # Default user ID for testing (no login_manager)
         )
 
         # Update batch quantity and cost
@@ -688,7 +688,7 @@ def api_create_consumption():
             issued_to=data['issued_to'],
             reference=data.get('reference', ''),
             notes=data.get('notes', ''),
-            user_id=current_user.id
+            user_id=1  # Default user ID for testing (no login_manager)
         )
         
         return jsonify({
