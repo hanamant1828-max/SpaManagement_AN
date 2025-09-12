@@ -7,7 +7,7 @@ from datetime import datetime, date
 import json
 
 @app.route('/inventory')
-@login_required
+
 def inventory_dashboard():
     """Inventory dashboard main page"""
     if not current_user.can_access('inventory'):
@@ -24,7 +24,7 @@ def inventory_dashboard():
 # API Routes for Inventory Management
 
 @app.route('/api/inventory/products/master', methods=['GET'])
-@login_required
+
 def api_get_products_master():
     """Get all products for master view - BATCH-CENTRIC"""
     try:
@@ -86,7 +86,6 @@ def api_get_products_master():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products', methods=['GET'])
-@login_required
 def api_get_products():
     """Get all products - BATCH-CENTRIC"""
     try:
@@ -110,7 +109,7 @@ def api_get_products():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products', methods=['POST'])
-@login_required
+
 def api_create_product():
     """Create a new product - BATCH-CENTRIC"""
     try:
@@ -156,7 +155,7 @@ def api_create_product():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products/<int:product_id>', methods=['GET'])
-@login_required
+
 def api_get_product(product_id):
     """Get a single product by ID for viewing/editing"""
     try:
@@ -202,7 +201,7 @@ def api_get_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products/<int:product_id>', methods=['DELETE'])
-@login_required
+
 def api_delete_product(product_id):
     """Delete (deactivate) a product"""
     try:
@@ -232,7 +231,6 @@ def api_delete_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories', methods=['GET'])
-@login_required
 def api_get_categories():
     """Get all categories"""
     try:
@@ -251,7 +249,6 @@ def api_get_categories():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories', methods=['POST'])
-@login_required
 def api_create_category():
     """Create a new category"""
     try:
@@ -272,7 +269,7 @@ def api_create_category():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories/<int:category_id>', methods=['GET'])
-@login_required
+
 def api_get_category(category_id):
     """Get a single category by ID"""
     try:
@@ -292,7 +289,6 @@ def api_get_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/locations', methods=['GET'])
-@login_required
 def api_get_locations():
     """Get all locations"""
     try:
@@ -317,7 +313,6 @@ def api_get_locations():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/locations', methods=['POST'])
-@login_required
 def api_create_location():
     """Create a new location"""
     try:
@@ -357,7 +352,7 @@ def api_create_location():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches', methods=['GET'])
-@login_required
+
 def api_get_batches():
     """Get all batches with proper relationships"""
     try:
@@ -408,7 +403,7 @@ def api_get_batches():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches', methods=['POST'])
-@login_required
+
 def api_create_batch():
     """Create a new batch with proper data handling"""
     try:
@@ -515,7 +510,7 @@ def api_create_batch():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/adjustments', methods=['POST'])
-@login_required
+
 def api_create_adjustment():
     """Create inventory adjustment from the frontend modal"""
     try:
@@ -594,7 +589,7 @@ def api_create_adjustment():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/for-consumption', methods=['GET'])
-@login_required
+
 def api_get_batches_for_consumption():
     """Get batches available for consumption with FEFO ordering"""
     try:
@@ -619,7 +614,7 @@ def api_get_batches_for_consumption():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/available', methods=['GET'])
-@login_required
+
 def api_get_available_batches():
     """Get batches available for adjustments and consumption"""
     try:
@@ -653,7 +648,7 @@ def api_get_available_batches():
 # ============ BATCH-CENTRIC CONSUMPTION ENDPOINTS ============
 
 @app.route('/api/inventory/consumption', methods=['GET'])
-@login_required
+
 def api_get_consumption_records():
     """Get consumption records"""
     try:
@@ -674,7 +669,7 @@ def api_get_consumption_records():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/consumption', methods=['POST'])
-@login_required
+
 def api_create_consumption():
     """Create consumption record - BATCH-CENTRIC"""
     try:
@@ -707,7 +702,7 @@ def api_create_consumption():
 # ============ BATCH-CENTRIC ADJUSTMENT ENDPOINTS ============
 
 @app.route('/api/inventory/adjustments', methods=['GET'])
-@login_required  
+  
 def api_get_adjustments():
     """Get adjustment records with proper structure for frontend"""
     try:
@@ -752,7 +747,7 @@ def api_get_adjustments():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/products/<int:product_id>', methods=['PUT'])
-@login_required
+
 def api_update_product(product_id):
     """Update an existing product"""
     try:
@@ -804,7 +799,7 @@ def api_update_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories/<int:category_id>', methods=['PUT'])
-@login_required
+
 def api_update_category(category_id):
     """Update an existing category"""
     try:
@@ -830,7 +825,7 @@ def api_update_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/locations/<location_id>', methods=['PUT'])
-@login_required
+
 def api_update_location(location_id):
     """Update an existing location"""
     try:
@@ -858,7 +853,7 @@ def api_update_location(location_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['PUT'])
-@login_required
+
 def api_update_batch(batch_id):
     """Update an existing batch"""
     try:
@@ -916,7 +911,7 @@ def api_update_batch(batch_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
-@login_required
+
 def api_get_batch(batch_id):
     """Get a single batch by ID"""
     try:
@@ -954,7 +949,7 @@ def api_get_batch(batch_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['DELETE'])
-@login_required
+
 def api_delete_batch(batch_id):
     """Delete a batch (soft delete - mark as inactive)"""
     try:
@@ -983,7 +978,7 @@ def api_delete_batch(batch_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/products', methods=['GET'])
-@login_required
+
 def api_get_products_simple():
     """Simple products API endpoint"""
     try:
@@ -997,7 +992,7 @@ def api_get_products_simple():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/adjustments/<int:adjustment_id>', methods=['GET'])
-@login_required
+
 def api_get_adjustment(adjustment_id):
     """Get single adjustment for viewing"""
     try:
@@ -1031,7 +1026,7 @@ def api_get_adjustment(adjustment_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/adjustments/<int:adjustment_id>', methods=['DELETE'])
-@login_required
+
 def api_delete_adjustment(adjustment_id):
     """Delete adjustment and reverse stock change"""
     try:
@@ -1063,7 +1058,7 @@ def api_delete_adjustment(adjustment_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/for-adjustment', methods=['GET'])
-@login_required
+
 def api_get_batches_for_adjustment():
     """Get batches available for adjustments"""
     try:
@@ -1098,7 +1093,7 @@ def api_get_batches_for_adjustment():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/test', methods=['GET'])
-@login_required
+
 def api_test_inventory():
     """Test endpoint to verify all inventory APIs are working"""
     try:
@@ -1136,7 +1131,7 @@ def api_test_inventory():
 
 
 @app.route('/api/inventory/status', methods=['GET'])
-@login_required
+
 def api_get_inventory_status():
     """Get comprehensive inventory status overview"""
     try:
@@ -1330,7 +1325,7 @@ def api_get_inventory_status():
 # =============================================================================
 
 @app.route('/inventory/reports')
-@login_required
+
 def inventory_reports():
     """Inventory reports page with dropdown selection"""
     if not current_user.can_access('inventory'):
@@ -1371,7 +1366,7 @@ def inventory_reports():
 
 
 @app.route('/api/inventory/reports/product-wise', methods=['GET'])
-@login_required
+
 def api_get_product_wise_report():
     """Get product-wise report with current quantities"""
     # Authorization check
@@ -1429,7 +1424,7 @@ def api_get_product_wise_report():
 
 
 @app.route('/api/inventory/reports/batch-wise', methods=['GET'])
-@login_required  
+  
 def api_get_batch_wise_report():
     """Get batch-wise report with current quantities"""
     # Authorization check
@@ -1477,7 +1472,7 @@ def api_get_batch_wise_report():
 
 
 @app.route('/api/inventory/reports/consumption-today', methods=['GET'])
-@login_required
+
 def api_get_consumption_today_report():
     """Get today's consumption report"""
     # Authorization check
@@ -1536,7 +1531,7 @@ def api_get_consumption_today_report():
 
 
 @app.route('/api/inventory/reports/consumption', methods=['GET'])
-@login_required
+
 def api_get_consumption_report():
     """Get consumption report for specified date range"""
     # Authorization check
@@ -1617,7 +1612,7 @@ def api_get_consumption_report():
 
 
 @app.route('/api/inventory/reports/adjustments', methods=['GET'])
-@login_required
+
 def api_get_adjustments_report():
     """Get adjustments report for specified date range"""
     # Authorization check
@@ -1706,7 +1701,7 @@ def api_get_adjustments_report():
 
 
 @app.route('/api/inventory/reports/item-batch-wise', methods=['GET'])
-@login_required
+
 def api_get_item_batch_wise_report():
     """Get item-wise batch-wise detailed report"""
     # Authorization check

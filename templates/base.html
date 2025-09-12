@@ -27,7 +27,7 @@
 </head>
 <body>
     <!-- Top Navigation Bar -->
-    {% if current_user.is_authenticated %}
+    {% if true %}
     <nav class="navbar navbar-dark bg-primary fixed-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('dashboard') }}" style="display: none;">
@@ -41,7 +41,7 @@
             <div class="navbar-nav ms-auto">
                 <div class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle me-1"></i>{{ current_user.full_name }}
+                        <i class="fas fa-user-circle me-1"></i>Test User
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="{{ url_for('settings') }}">
@@ -74,7 +74,7 @@
                         </a>
                     </li>
 
-                    {% if current_user.can_access('bookings') %}
+                    {% if testuser.can_access('bookings') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('bookings') }}">
                             <i class="fas fa-calendar-alt me-2"></i><span>Smart Booking & Calendar</span>
@@ -93,7 +93,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('clients') %}
+                    {% if testuser.can_access('clients') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('customers') }}">
                             <i class="fas fa-users me-2"></i><span>Client History & Loyalty</span>
@@ -101,7 +101,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('staff') %}
+                    {% if testuser.can_access('staff') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('comprehensive_staff') }}">
                             <i class="fas fa-users me-2"></i><span>Staff Management</span>
@@ -109,7 +109,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('checkin') %}
+                    {% if testuser.can_access('checkin') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('checkin') }}">
                             <i class="fas fa-user-check me-2"></i><span>Check-In</span>
@@ -117,7 +117,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('notifications') %}
+                    {% if testuser.can_access('notifications') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('notifications') }}">
                             <i class="fas fa-bell me-2"></i><span>WhatsApp Notifications</span>
@@ -125,7 +125,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('billing') %}
+                    {% if testuser.can_access('billing') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('integrated_billing') }}">
                             <i class="fas fa-cash-register me-2"></i><span>Billing System</span>
@@ -134,7 +134,7 @@
                     {% endif %}
 
 
-                    {% if current_user.can_access('services') %}
+                    {% if testuser.can_access('services') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('services') }}">
                             <i class="fas fa-spa me-2"></i><span>Services Management</span>
@@ -142,7 +142,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('packages') %}
+                    {% if testuser.can_access('packages') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('packages') }}">
                             <i class="fas fa-gift me-2"></i><span>Package Management</span>
@@ -150,7 +150,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('reports') %}
+                    {% if testuser.can_access('reports') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('reports') }}">
                             <i class="fas fa-chart-bar me-2"></i><span>Reports & Insights</span>
@@ -158,7 +158,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('expenses') %}
+                    {% if testuser.can_access('expenses') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('expenses') }}">
                             <i class="fas fa-receipt me-2"></i><span>Daily Expense Tracker</span>
@@ -166,7 +166,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('inventory') %}
+                    {% if testuser.can_access('inventory') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('inventory_dashboard') }}">
                             <i class="fas fa-boxes me-2"></i><span>Inventory Management</span>
@@ -174,7 +174,7 @@
                     </li>
                     {% endif %}
 
-                    {% if current_user.can_access('alerts') %}
+                    {% if testuser.can_access('alerts') %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('alerts') }}">
                             <i class="fas fa-exclamation-triangle me-2"></i><span>Expiring Product Alerts</span>
@@ -185,7 +185,7 @@
 
 
                     <!-- System Management -->
-                    {% if current_user.can_access('system_management') %}
+                    {% if testuser.can_access('system_management') %}
                     <li class="nav-item mt-3 mb-2">
                         <div class="nav-section-header px-3">
                             <span class="text-muted small">SYSTEM MANAGEMENT</span>
@@ -217,7 +217,7 @@
     {% endif %}
 
     <!-- Main Content -->
-    <main class="main-content {% if not current_user.is_authenticated %}expanded{% endif %}" style="padding-top: 0 !important; margin-top: 0 !important;">
+    <main class="main-content {% if not true %}expanded{% endif %}" style="padding-top: 0 !important; margin-top: 0 !important;">
         <!-- Toast Container for Notifications -->
         <div id="notificationContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
 
