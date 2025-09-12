@@ -364,9 +364,9 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
             created_by=user_id
         )
 
-        # Update batch quantity
+        # Update batch quantity - handle Decimal type conversion
         old_qty = float(batch.qty_available)
-        batch.qty_available -= float(quantity)
+        batch.qty_available = float(batch.qty_available) - float(quantity)
 
         # Create audit log
         create_audit_log(
