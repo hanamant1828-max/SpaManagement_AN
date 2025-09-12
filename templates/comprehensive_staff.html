@@ -665,6 +665,7 @@
 <script>
 // Enhanced staff management JavaScript
 let allStaff = []; // Renamed from staffList to avoid conflict with filteredStaff
+let filteredStaff = []; // Declare filteredStaff variable
 let rolesData = []; // Renamed from roles
 let departmentsData = []; // Renamed from departments
 let services = []; // Assuming this is intended to be used elsewhere or is a placeholder
@@ -685,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load initial data
     loadStaffData();
-    // loadMetadata(); // This function seems to be missing or not provided in the original snippet. Assuming it's handled elsewhere or not critical for this fix.
+    loadMetadata();
 
     // Setup form submission
     const staffForm = document.getElementById('staffForm');
@@ -851,6 +852,17 @@ function getCheckboxValue(fieldId, defaultValue = false) {
     return element ? element.checked : defaultValue;
 }
 
+// Load metadata (roles, departments, services)
+async function loadMetadata() {
+    try {
+        // This function loads dropdown data and is called from loadStaffData
+        // The actual loading is handled in loadStaffData for efficiency
+        console.log('Metadata loading handled in loadStaffData');
+    } catch (error) {
+        console.error('Error in loadMetadata:', error);
+    }
+}
+
 // Load all staff data from API
 async function loadStaffData() {
     try {
@@ -861,12 +873,19 @@ async function loadStaffData() {
 
         if (data.success) {
             allStaff = data.staff;
+            filteredStaff = [...allStaff]; // Initialize filtered staff
             rolesData = data.roles;
             departmentsData = data.departments;
 
             populateDropdowns();
             updateStats();
             renderStaffTable();
+            
+            // Show table if we have data
+            if (allStaff.length > 0) {
+                showTable(true);
+            }
+            
             showAlert('Staff data loaded successfully', 'success');
         } else {
             throw new Error(data.error || 'Failed to load staff data');
@@ -938,6 +957,8 @@ function updateStats() {
 
 // Render staff table
 function renderStaffTable() {
+    // Initialize filteredStaff with all staff data
+    filteredStaff = [...allStaff];
     // Apply filters immediately after loading data
     filterStaff(); 
 }
@@ -1016,6 +1037,7 @@ function createStaffRow(staff) {
 
 // Filter staff based on search and filters
 function filterStaff() {
+    console.log('Filtering staff. Total staff:', allStaff.length);
     let filtered = [...allStaff];
 
     // Search filter
@@ -1028,43 +1050,56 @@ function filterStaff() {
             staff.username.toLowerCase().includes(searchTerm) ||
             (staff.phone && staff.phone.includes(searchTerm))
         );
+        console.log('After search filter:', filtered.length);
     }
 
     // Role filter
     const roleFilter = document.getElementById('roleFilter').value;
     if (roleFilter) {
         filtered = filtered.filter(staff => staff.role_id == roleFilter);
+        console.log('After role filter:', filtered.length);
     }
 
     // Department filter
     const deptFilter = document.getElementById('departmentFilter').value;
     if (deptFilter) {
         filtered = filtered.filter(staff => staff.department_id == deptFilter);
+        console.log('After department filter:', filtered.length);
     }
 
     // Status filter
     const statusFilter = document.getElementById('statusFilter').value;
     if (statusFilter === 'active') {
         filtered = filtered.filter(staff => staff.is_active);
+        console.log('After status filter (active):', filtered.length);
     } else if (statusFilter === 'inactive') {
         filtered = filtered.filter(staff => !staff.is_active);
+        console.log('After status filter (inactive):', filtered.length);
     }
 
     // Update the global filteredStaff array
     filteredStaff = filtered; 
+    console.log('Final filtered staff count:', filteredStaff.length);
     renderFilteredStaff(); // Render the filtered list
 }
 
 // Render filtered staff
 function renderFilteredStaff() {
     const tbody = document.getElementById('staffTableBody');
+    if (!tbody) {
+        console.error('Staff table body not found');
+        return;
+    }
+    
     tbody.innerHTML = '';
 
-    if (filteredStaff.length === 0) {
+    if (!filteredStaff || filteredStaff.length === 0) {
+        console.log('No filtered staff to display');
         showEmptyState();
         return;
     }
 
+    console.log('Rendering', filteredStaff.length, 'staff members');
     filteredStaff.forEach(staff => {
         const row = createStaffRow(staff);
         tbody.appendChild(row);
