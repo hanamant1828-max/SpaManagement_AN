@@ -5,6 +5,7 @@ from .models import InventoryProduct, InventoryCategory, InventoryLocation, Inve
 from .queries import *
 from datetime import datetime, date, timedelta
 import json
+import logging
 
 @app.route('/inventory')
 
@@ -30,20 +31,20 @@ def api_get_products_master():
     try:
         from .models import InventoryProduct
         from sqlalchemy.orm import joinedload
-        
+
         # Load products with their related data
         products = InventoryProduct.query.options(
             joinedload(InventoryProduct.category),
             joinedload(InventoryProduct.batches)
         ).filter(InventoryProduct.is_active == True).all()
-        
+
         product_list = []
         for p in products:
             # Calculate dynamic properties safely
             try:
                 total_stock = sum(float(batch.qty_available or 0) for batch in p.batches if batch.status == 'active')
                 batch_count = len([b for b in p.batches if b.status == 'active'])
-                
+
                 # Determine status based on stock
                 if total_stock <= 0:
                     status = 'out_of_stock'
@@ -51,7 +52,7 @@ def api_get_products_master():
                     status = 'low_stock'  
                 else:
                     status = 'in_stock'
-                    
+
                 product_data = {
                     'id': p.id,
                     'name': p.name,
@@ -77,7 +78,7 @@ def api_get_products_master():
             except Exception as inner_e:
                 print(f"Error processing product {p.id}: {inner_e}")
                 continue
-                
+
         return jsonify(product_list)
     except Exception as e:
         print(f"ERROR in api_get_products_master: {str(e)}")
@@ -114,20 +115,20 @@ def api_create_product():
     """Create a new product - BATCH-CENTRIC"""
     try:
         from .models import InventoryProduct
-        
+
         data = request.get_json()
-        
+
         # Validation
         if not data.get('name'):
             return jsonify({'error': 'Product name is required'}), 400
         if not data.get('sku'):
             return jsonify({'error': 'SKU is required'}), 400
-            
+
         # Check for duplicate SKU
         existing = InventoryProduct.query.filter_by(sku=data.get('sku')).first()
         if existing:
             return jsonify({'error': 'SKU already exists'}), 400
-        
+
         # Handle both camelCase (frontend) and underscore (backend) field names
         product = InventoryProduct(
             name=data.get('name'),
@@ -140,7 +141,7 @@ def api_create_product():
             is_service_item=data.get('is_service_item', False) or data.get('trackBatches', False),
             is_retail_item=data.get('is_retail_item', True) or data.get('trackSerials', True)
         )
-        
+
         db.session.add(product)
         db.session.commit()
 
@@ -162,7 +163,7 @@ def api_get_product(product_id):
         product = get_product_by_id(product_id)
         if not product:
             return jsonify({'error': 'Product not found'}), 404
-            
+
         # Find primary location from active batches (most common location)
         primary_location_id = None
         primary_location_name = None
@@ -177,7 +178,7 @@ def api_get_product(product_id):
                 if primary_location_batch and primary_location_batch.location:
                     primary_location_id = primary_location_batch.location_id
                     primary_location_name = primary_location_batch.location.name
-        
+
         return jsonify({
             'id': product.id,
             'name': product.name,
@@ -206,21 +207,21 @@ def api_delete_product(product_id):
     """Delete (deactivate) a product"""
     try:
         from .models import InventoryProduct
-        
+
         product = InventoryProduct.query.get(product_id)
         if not product:
             return jsonify({'error': 'Product not found'}), 404
-        
+
         # Check if product has active batches
         active_batches = [b for b in product.batches if b.status == 'active']
         if active_batches:
             return jsonify({'error': 'Cannot delete product with active batches. Please remove or deactivate all batches first.'}), 400
-        
+
         # Soft delete - mark as inactive
         product.is_active = False
         product.updated_at = datetime.utcnow()
         db.session.commit()
-            
+
         return jsonify({
             'success': True,
             'message': 'Product deleted successfully'
@@ -235,7 +236,7 @@ def api_get_categories():
     """Get all categories"""
     try:
         from .models import InventoryCategory
-        
+
         categories = InventoryCategory.query.filter(InventoryCategory.is_active == True).order_by(InventoryCategory.name).all()
         return jsonify([{
             'id': c.id,
@@ -293,7 +294,7 @@ def api_get_locations():
     """Get all locations"""
     try:
         from .models import InventoryLocation
-        
+
         locations = InventoryLocation.query.filter(InventoryLocation.status == 'active').order_by(InventoryLocation.name).all()
         return jsonify({
             'locations': [{
@@ -317,13 +318,13 @@ def api_create_location():
     """Create a new location"""
     try:
         data = request.get_json()
-        
+
         # Generate a unique ID based on name
         import re
         name = data.get('name', '')
         # Create ID from name: lowercase, replace spaces/special chars with hyphens
         location_id = re.sub(r'[^a-zA-Z0-9]', '-', name.lower()).strip('-')
-        
+
         # Ensure uniqueness by adding suffix if needed
         base_id = location_id
         counter = 1
@@ -358,17 +359,17 @@ def api_get_batches():
     try:
         from .models import InventoryBatch
         from sqlalchemy.orm import joinedload
-        
+
         print("DEBUG: Loading batches from database...")
-        
+
         # Load batches with their related product and location data
         batches = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
         ).filter(InventoryBatch.status != 'deleted').all()
-        
+
         print(f"DEBUG: Found {len(batches)} batches in database")
-        
+
         batch_list = []
         for b in batches:
             batch_data = {
@@ -390,9 +391,9 @@ def api_get_batches():
             }
             batch_list.append(batch_data)
             print(f"DEBUG: Batch {b.id}: {b.batch_name}, Product: {b.product_id}, Location: {b.location_id}")
-        
+
         print(f"DEBUG: Returning {len(batch_list)} batches to frontend")
-        
+
         return jsonify({
             'batches': batch_list
         })
@@ -548,7 +549,7 @@ def api_create_adjustment():
         # Assign product and location to batch if provided and not already assigned
         if product_id and not batch.product_id:
             batch.product_id = int(product_id)
-        
+
         if location_id and not batch.location_id:
             batch.location_id = str(location_id)
 
@@ -605,7 +606,7 @@ def api_get_batches_for_consumption():
             'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
             'dropdown_display': b.dropdown_display
         } for b in batches]
-        
+
         return jsonify({
             'success': True,
             'batches': batch_data
@@ -620,7 +621,8 @@ def api_get_available_batches():
     try:
         from .models import InventoryBatch
         from datetime import date
-        
+        from sqlalchemy import or_
+
         # Get all active batches (not expired)
         batches = InventoryBatch.query.filter(
             InventoryBatch.status == 'active',
@@ -629,7 +631,7 @@ def api_get_available_batches():
                 InventoryBatch.expiry_date >= date.today()
             )
         ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
-        
+
         return jsonify([{
             'id': b.id,
             'batch_name': b.batch_name,
@@ -656,10 +658,10 @@ def api_get_consumption_records():
         from_date = request.args.get('from_date')
         to_date = request.args.get('to_date')
         search = request.args.get('search', '')
-        
+
         # Get all consumption records first
         query = InventoryConsumption.query
-        
+
         # Apply date filters if provided
         if from_date:
             try:
@@ -667,7 +669,7 @@ def api_get_consumption_records():
                 query = query.filter(InventoryConsumption.created_at >= from_date_obj)
             except ValueError:
                 pass  # Invalid date format, ignore
-                
+
         if to_date:
             try:
                 to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()
@@ -676,7 +678,7 @@ def api_get_consumption_records():
                 query = query.filter(InventoryConsumption.created_at < to_date_obj)
             except ValueError:
                 pass  # Invalid date format, ignore
-        
+
         # Apply search filter if provided
         if search:
             query = query.join(InventoryBatch).join(InventoryProduct).filter(
@@ -688,10 +690,10 @@ def api_get_consumption_records():
                     InventoryProduct.name.ilike(f'%{search}%')
                 )
             )
-        
+
         # Get filtered records ordered by creation date (newest first)
         consumption_records = query.order_by(InventoryConsumption.created_at.desc()).limit(100).all()
-        
+
         records_data = [{
             'id': c.id,
             'batch_id': c.batch_id,
@@ -704,7 +706,7 @@ def api_get_consumption_records():
             'created_at': c.created_at.isoformat() if c.created_at else None,
             'created_by_name': c.user.full_name if c.user else 'Unknown'
         } for c in consumption_records]
-        
+
         return jsonify({
             'success': True,
             'data': records_data,
@@ -723,13 +725,13 @@ def api_create_consumption():
     """Create consumption record - BATCH-CENTRIC"""
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['batch_id', 'quantity', 'issued_to']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
-        
+
         # Create consumption using batch-centric function
         consumption = create_consumption_record(
             batch_id=data['batch_id'],
@@ -739,7 +741,7 @@ def api_create_consumption():
             notes=data.get('notes', ''),
             user_id=1  # Default user ID for testing (no login_manager)
         )
-        
+
         return jsonify({
             'success': True,
             'message': 'Consumption record created successfully',
@@ -753,10 +755,10 @@ def api_get_consumption_by_id(consumption_id):
     """Get a specific consumption record by ID"""
     try:
         consumption = InventoryConsumption.query.filter_by(id=consumption_id).first()
-        
+
         if not consumption:
             return jsonify({'error': 'Consumption record not found'}), 404
-        
+
         consumption_data = {
             'id': consumption.id,
             'batch_id': consumption.batch_id,
@@ -768,7 +770,7 @@ def api_get_consumption_by_id(consumption_id):
             'notes': consumption.notes,
             'created_at': consumption.created_at.isoformat() if consumption.created_at else None,
             'created_by_name': consumption.user.full_name if consumption.user else 'Unknown',
-            
+
             # Fields expected by the frontend
             'consumption_date': consumption.created_at.strftime('%Y-%m-%d') if consumption.created_at else '',
             'reference_doc_no': consumption.reference,
@@ -776,69 +778,102 @@ def api_get_consumption_by_id(consumption_id):
             'unit_of_measure': consumption.batch.product.unit_of_measure if consumption.batch and consumption.batch.product else 'pcs',
             'purpose': 'other'  # Default since we don't have this field yet
         }
-        
+
         return jsonify(consumption_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/consumption/<int:consumption_id>', methods=['PUT'])
 def api_update_consumption(consumption_id):
-    """Update a specific consumption record"""
+    """Update a consumption record"""
     try:
-        consumption = InventoryConsumption.query.filter_by(id=consumption_id).first()
-        
-        if not consumption:
-            return jsonify({'error': 'Consumption record not found'}), 404
-        
         data = request.get_json()
-        
-        # Update only provided fields
-        if 'issued_to' in data:
-            consumption.issued_to = data['issued_to']
+        logging.info(f"Updating consumption {consumption_id} with data: {data}")
+
+        # Get the consumption record
+        consumption = InventoryConsumption.query.get_or_404(consumption_id)
+        old_quantity = consumption.quantity
+        old_batch_id = consumption.batch_id
+
+        # Update fields
+        if 'date' in data:
+            consumption.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
         if 'reference' in data:
             consumption.reference = data['reference']
+        if 'batch_id' in data and data['batch_id']:
+            new_batch_id = int(data['batch_id'])
+            consumption.batch_id = new_batch_id
+        if 'quantity' in data:
+            consumption.quantity = float(data['quantity'])
+        if 'issued_to' in data:
+            consumption.issued_to = data['issued_to']
+        if 'purpose' in data:
+            consumption.purpose = data['purpose']
         if 'notes' in data:
             consumption.notes = data['notes']
-        
-        # Note: We typically wouldn't update quantity/batch after creation
-        # as it affects inventory calculations, but for completeness:
-        if 'quantity' in data:
-            old_quantity = consumption.quantity
-            new_quantity = float(data['quantity'])
-            
-            # Update the batch quantity to reflect the change
-            if consumption.batch:
-                quantity_diff = old_quantity - new_quantity
-                consumption.batch.qty_available = float(consumption.batch.qty_available or 0) + quantity_diff
-            
-            consumption.quantity = new_quantity
-        
+
+        consumption.updated_at = datetime.utcnow()
+
+        # Update batch stock if batch or quantity changed
+        if old_batch_id != consumption.batch_id or old_quantity != consumption.quantity:
+            # Restore old batch stock
+            if old_batch_id:
+                old_batch = InventoryBatch.query.get(old_batch_id)
+                if old_batch:
+                    old_batch.qty_available = float(old_batch.qty_available or 0) + old_quantity
+
+            # Deduct from new batch
+            if consumption.batch_id:
+                new_batch = InventoryBatch.query.get(consumption.batch_id)
+                if new_batch:
+                    new_batch.qty_available = float(new_batch.qty_available or 0) - consumption.quantity
+                    # Ensure qty_available doesn't go negative
+                    if new_batch.qty_available < 0:
+                        new_batch.qty_available = 0
+
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
-            'message': 'Consumption record updated successfully'
+            'message': 'Consumption record updated successfully',
+            'consumption': {
+                'id': consumption.id,
+                'date': consumption.date.strftime('%Y-%m-%d') if hasattr(consumption, 'date') and consumption.date else '',
+                'reference': consumption.reference,
+                'batch_id': consumption.batch_id,
+                'quantity': consumption.quantity,
+                'issued_to': consumption.issued_to,
+                'purpose': consumption.purpose,
+                'notes': consumption.notes
+            }
         })
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        logging.error(f"Error updating consumption: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @app.route('/api/inventory/consumption/<int:consumption_id>', methods=['DELETE'])
 def api_delete_consumption(consumption_id):
     """Delete a specific consumption record"""
     try:
         consumption = InventoryConsumption.query.filter_by(id=consumption_id).first()
-        
+
         if not consumption:
             return jsonify({'error': 'Consumption record not found'}), 404
-        
+
         # Restore the quantity to the batch before deleting
         if consumption.batch:
             consumption.batch.qty_available = float(consumption.batch.qty_available or 0) + float(consumption.quantity)
-        
+
         db.session.delete(consumption)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Consumption record deleted successfully'
@@ -850,13 +885,13 @@ def api_delete_consumption(consumption_id):
 # ============ BATCH-CENTRIC ADJUSTMENT ENDPOINTS ============
 
 @app.route('/api/inventory/adjustments', methods=['GET'])
-  
+
 def api_get_adjustments():
     """Get adjustment records with proper structure for frontend"""
     try:
         from sqlalchemy.orm import joinedload
         from sqlalchemy import desc
-        
+
         adjustments = InventoryAdjustment.query.options(
             joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.product),
             joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.location),
@@ -865,9 +900,9 @@ def api_get_adjustments():
 
         records = []
         for a in adjustments:
-            # Generate reference ID (this should ideally be stored in DB)
+            # Generate reference ID if not stored (this should ideally be stored in DB)
             reference_id = f"ADJ-{a.created_at.strftime('%Y%m%d-%H%M%S')}-{a.id}" if a.created_at else f"ADJ-{a.id}"
-            
+
             record = {
                 'id': a.id,
                 'reference_id': reference_id,
@@ -900,13 +935,13 @@ def api_update_product(product_id):
     """Update an existing product"""
     try:
         from .models import InventoryProduct
-        
+
         data = request.get_json()
         product = InventoryProduct.query.get(product_id)
-        
+
         if not product:
             return jsonify({'error': 'Product not found'}), 404
-            
+
         # Check for duplicate SKU (excluding current product)
         if data.get('sku') and data.get('sku') != product.sku:
             existing = InventoryProduct.query.filter(
@@ -915,7 +950,7 @@ def api_update_product(product_id):
             ).first()
             if existing:
                 return jsonify({'error': 'SKU already exists'}), 400
-        
+
         # Handle both camelCase (frontend) and underscore (backend) field names
         if data.get('name'):
             product.name = data.get('name')
@@ -933,7 +968,7 @@ def api_update_product(product_id):
             product.is_service_item = data.get('is_service_item', False) or data.get('trackBatches', False)
         if data.get('is_retail_item') is not None or data.get('trackSerials') is not None:
             product.is_retail_item = data.get('is_retail_item', True) or data.get('trackSerials', True)
-        
+
         product.updated_at = datetime.utcnow()
         db.session.commit()
 
@@ -953,7 +988,7 @@ def api_update_category(category_id):
     try:
         data = request.get_json()
         category = InventoryCategory.query.get(category_id)
-        
+
         if not category:
             return jsonify({'error': 'Category not found'}), 404
 
@@ -961,7 +996,7 @@ def api_update_category(category_id):
         category.description = data.get('description', category.description)
         category.color_code = data.get('color_code', category.color_code)
         category.is_active = data.get('is_active', category.is_active)
-        
+
         db.session.commit()
 
         return jsonify({
@@ -978,21 +1013,21 @@ def api_delete_category(category_id):
     try:
         from .models import InventoryCategory, InventoryProduct
         from datetime import datetime
-        
+
         category = InventoryCategory.query.get(category_id)
         if not category:
             return jsonify({'error': 'Category not found'}), 404
-        
+
         # Check if category has associated products
         product_count = InventoryProduct.query.filter_by(category_id=category_id, is_active=True).count()
         if product_count > 0:
             return jsonify({'error': f'Cannot delete category with {product_count} associated products. Please remove or reassign products first.'}), 400
-        
+
         # Soft delete - mark as inactive
         category.is_active = False
         category.updated_at = datetime.utcnow()
         db.session.commit()
-            
+
         return jsonify({
             'success': True,
             'message': 'Category deleted successfully'
@@ -1009,7 +1044,7 @@ def api_update_location(location_id):
     try:
         data = request.get_json()
         location = InventoryLocation.query.get(location_id)
-        
+
         if not location:
             return jsonify({'error': 'Location not found'}), 404
 
@@ -1019,7 +1054,7 @@ def api_update_location(location_id):
         location.contact_person = data.get('contact_person', location.contact_person)
         location.phone = data.get('phone', location.phone)
         location.status = data.get('status', location.status)
-        
+
         db.session.commit()
 
         return jsonify({
@@ -1036,21 +1071,21 @@ def api_delete_location(location_id):
     try:
         from .models import InventoryLocation, InventoryBatch
         from datetime import datetime
-        
+
         location = InventoryLocation.query.get(location_id)
         if not location:
             return jsonify({'error': 'Location not found'}), 404
-        
+
         # Check if location has associated batches
         batch_count = InventoryBatch.query.filter_by(location_id=location_id).filter(InventoryBatch.status != 'deleted').count()
         if batch_count > 0:
             return jsonify({'error': f'Cannot delete location with {batch_count} associated batches. Please remove or reassign batches first.'}), 400
-        
+
         # Soft delete - mark as inactive
         location.status = 'inactive'
         location.updated_at = datetime.utcnow()
         db.session.commit()
-            
+
         return jsonify({
             'success': True,
             'message': 'Location deleted successfully'
@@ -1068,7 +1103,7 @@ def api_update_batch(batch_id):
         from datetime import datetime
         data = request.get_json()
         batch = InventoryBatch.query.get(batch_id)
-        
+
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
 
@@ -1085,7 +1120,7 @@ def api_update_batch(batch_id):
 
         if data.get('product_id'):
             batch.product_id = int(data['product_id'])
-        
+
         if data.get('location_id'):
             batch.location_id = data['location_id']
 
@@ -1124,12 +1159,12 @@ def api_get_batch(batch_id):
     """Get a single batch by ID"""
     try:
         from sqlalchemy.orm import joinedload
-        
+
         batch = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
         ).get(batch_id)
-        
+
         if not batch or batch.status == 'deleted':
             return jsonify({'error': 'Batch not found'}), 404
 
@@ -1163,7 +1198,7 @@ def api_delete_batch(batch_id):
     try:
         from datetime import datetime
         batch = InventoryBatch.query.get(batch_id)
-        
+
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
 
@@ -1174,7 +1209,7 @@ def api_delete_batch(batch_id):
         # Soft delete - mark as inactive
         batch.status = 'deleted'
         batch.updated_at = datetime.utcnow()
-        
+
         db.session.commit()
 
         return jsonify({
@@ -1205,18 +1240,18 @@ def api_get_adjustment(adjustment_id):
     """Get single adjustment for viewing"""
     try:
         from sqlalchemy.orm import joinedload
-        
+
         adjustment = InventoryAdjustment.query.options(
             joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.product),
             joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.location),
             joinedload(InventoryAdjustment.user)
         ).get(adjustment_id)
-        
+
         if not adjustment:
             return jsonify({'error': 'Adjustment not found'}), 404
 
         reference_id = f"ADJ-{adjustment.created_at.strftime('%Y%m%d-%H%M%S')}-{adjustment.id}" if adjustment.created_at else f"ADJ-{adjustment.id}"
-        
+
         return jsonify({
             'success': True,
             'id': adjustment.id,
@@ -1249,7 +1284,7 @@ def api_delete_adjustment(adjustment_id):
                 batch.qty_available = float(batch.qty_available or 0) - float(adjustment.quantity)
             else:
                 batch.qty_available = float(batch.qty_available or 0) + float(adjustment.quantity)
-            
+
             # Ensure stock doesn't go negative
             if batch.qty_available < 0:
                 batch.qty_available = 0
@@ -1271,7 +1306,7 @@ def api_get_batches_for_adjustment():
     """Get batches available for adjustments"""
     try:
         from sqlalchemy.orm import joinedload
-        
+
         batches = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
@@ -1307,16 +1342,16 @@ def api_test_inventory():
     try:
         # Test products
         products = get_all_products()
-        
+
         # Test locations
         locations = get_all_locations()
-        
+
         # Test batches
         batches = InventoryBatch.query.filter(InventoryBatch.status != 'deleted').all()
-        
+
         # Test categories
         categories = get_all_categories()
-        
+
         return jsonify({
             'success': True,
             'data': {
@@ -1345,7 +1380,7 @@ def api_get_inventory_status():
     try:
         from sqlalchemy import func
         from datetime import datetime, timedelta
-        
+
         # Product counts by category
         category_stats = db.session.query(
             InventoryCategory.name,
@@ -1353,33 +1388,33 @@ def api_get_inventory_status():
         ).join(InventoryProduct).filter(
             InventoryProduct.is_active == True
         ).group_by(InventoryCategory.name).all()
-        
+
         # Overall stock levels
         total_products = InventoryProduct.query.filter(InventoryProduct.is_active == True).count()
         total_batches = InventoryBatch.query.filter(InventoryBatch.status == 'active').count()
-        
+
         # Calculate stock status counts
         stock_summary = {
             'in_stock': 0,
             'low_stock': 0, 
             'out_of_stock': 0
         }
-        
+
         # Low stock and expired items
         low_stock_items = []
         expired_batches = []
         expiring_soon = []
-        
+
         # Calculate total inventory value
         total_value = 0
-        
+
         # Process all active products
         products = InventoryProduct.query.filter(InventoryProduct.is_active == True).all()
-        
+
         for product in products:
             active_batches = [b for b in product.batches if b.status == 'active']
             total_stock = sum(float(batch.qty_available or 0) for batch in active_batches)
-            
+
             # Stock status categorization
             if total_stock <= 0:
                 stock_summary['out_of_stock'] += 1
@@ -1401,18 +1436,18 @@ def api_get_inventory_status():
                 })
             else:
                 stock_summary['in_stock'] += 1
-            
+
             # Calculate value from batches
             for batch in active_batches:
                 if batch.qty_available and batch.unit_cost:
                     total_value += float(batch.qty_available) * float(batch.unit_cost)
-        
+
         # Check for expired and expiring batches
         today = datetime.now().date()
         next_week = today + timedelta(days=7)
-        
+
         all_batches = InventoryBatch.query.filter(InventoryBatch.status == 'active').all()
-        
+
         for batch in all_batches:
             if batch.expiry_date:
                 if batch.expiry_date < today:
@@ -1432,21 +1467,21 @@ def api_get_inventory_status():
                         'qty_available': float(batch.qty_available or 0),
                         'days_until_expiry': (batch.expiry_date - today).days
                     })
-        
+
         # Recent activity (last 7 days)
         week_ago = datetime.now() - timedelta(days=7)
         recent_consumption = InventoryConsumption.query.filter(
             InventoryConsumption.created_at >= week_ago
         ).count()
-        
+
         recent_adjustments = InventoryAdjustment.query.filter(
             InventoryAdjustment.created_at >= week_ago
         ).count()
-        
+
         # Get all batches with detailed information
         all_batches_detailed = []
         batches = InventoryBatch.query.filter(InventoryBatch.status == 'active').all()
-        
+
         for batch in batches:
             batch_data = {
                 'id': batch.id,
@@ -1464,7 +1499,7 @@ def api_get_inventory_status():
                 'status': batch.status
             }
             all_batches_detailed.append(batch_data)
-        
+
         # Get product-wise totals
         product_wise_totals = []
         for product in products:
@@ -1472,7 +1507,7 @@ def api_get_inventory_status():
             total_qty = sum(float(batch.qty_available or 0) for batch in active_batches)
             total_value_product = sum(float(batch.qty_available or 0) * float(batch.unit_cost or 0) for batch in active_batches)
             batch_count = len(active_batches)
-            
+
             # Determine status
             if total_qty <= 0:
                 status = 'out_of_stock'
@@ -1480,7 +1515,7 @@ def api_get_inventory_status():
                 status = 'low_stock'
             else:
                 status = 'in_stock'
-            
+
             product_data = {
                 'id': product.id,
                 'name': product.name,
@@ -1522,7 +1557,7 @@ def api_get_inventory_status():
             'batch_wise_data': all_batches_detailed,
             'product_wise_data': product_wise_totals
         })
-        
+
     except Exception as e:
         print(f"Error getting inventory status: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1539,31 +1574,31 @@ def inventory_reports():
     if False:
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         # Default to last 30 days
         end_date = date.today()
         start_date = end_date - timedelta(days=30)
-        
+
         # Get date range from request
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
-        
+
         if start_date_str and end_date_str:
             try:
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
                 end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-                
+
                 # Validate date range
                 if start_date > end_date:
                     flash('Start date cannot be after end date', 'danger')
                     start_date = end_date - timedelta(days=30)
-                    
+
             except ValueError:
                 flash('Invalid date format. Using default date range.', 'warning')
                 end_date = date.today()
                 start_date = end_date - timedelta(days=30)
-        
+
         return render_template('inventory_reports.html', 
                              start_date=start_date, 
                              end_date=end_date)
@@ -1583,23 +1618,23 @@ def api_get_product_wise_report():
             'success': False,
             'error': 'Access denied. You do not have permission to access inventory reports.'
         }), 403
-    
+
     try:
         from sqlalchemy.orm import joinedload
-        
+
         # Use joinedload to prevent N+1 queries
         products = InventoryProduct.query.options(
             joinedload(InventoryProduct.category),
             joinedload(InventoryProduct.batches)
         ).filter(InventoryProduct.is_active == True).all()
-        
+
         report_data = []
         for product in products:
             # Calculate current stock from active batches
             total_qty = sum(float(batch.qty_available or 0) for batch in product.batches if batch.status == 'active')
             total_value = sum(float(batch.qty_available or 0) * float(batch.unit_cost or 0) for batch in product.batches if batch.status == 'active')
             batch_count = len([b for b in product.batches if b.status == 'active'])
-            
+
             # Determine stock status
             if total_qty <= 0:
                 status = 'out_of_stock'
@@ -1607,7 +1642,7 @@ def api_get_product_wise_report():
                 status = 'low_stock'
             else:
                 status = 'in_stock'
-            
+
             report_data.append({
                 'product_name': product.name,
                 'sku': product.sku,
@@ -1618,21 +1653,21 @@ def api_get_product_wise_report():
                 'batch_count': batch_count,
                 'status': status
             })
-        
+
         return jsonify({
             'success': True,
             'report_type': 'Product-wise Report',
             'data': report_data,
             'generated_at': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"Error generating product-wise report: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/inventory/reports/batch-wise', methods=['GET'])
-  
+
 def api_get_batch_wise_report():
     """Get batch-wise report with current quantities"""
     # Authorization check
@@ -1641,19 +1676,19 @@ def api_get_batch_wise_report():
             'success': False,
             'error': 'Access denied. You do not have permission to access inventory reports.'
         }), 403
-    
+
     try:
         from sqlalchemy.orm import joinedload
-        
+
         batches = InventoryBatch.query.options(
             joinedload(InventoryBatch.product),
             joinedload(InventoryBatch.location)
         ).filter(InventoryBatch.status == 'active').all()
-        
+
         report_data = []
         for batch in batches:
             total_value = float(batch.qty_available or 0) * float(batch.unit_cost or 0)
-            
+
             report_data.append({
                 'batch_name': batch.batch_name,
                 'product_name': batch.product.name if batch.product else 'Unknown',
@@ -1666,14 +1701,14 @@ def api_get_batch_wise_report():
                 'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
                 'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None
             })
-        
+
         return jsonify({
             'success': True,
             'report_type': 'Batch-wise Report',
             'data': report_data,
             'generated_at': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"Error generating batch-wise report: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1689,10 +1724,10 @@ def api_get_consumption_today_report():
             'success': False,
             'error': 'Access denied. You do not have permission to access inventory reports.'
         }), 403
-    
+
     try:
         from sqlalchemy.orm import joinedload
-        
+
         today = date.today()
         consumption_records = InventoryConsumption.query.options(
             joinedload(InventoryConsumption.batch).joinedload(InventoryBatch.product),
@@ -1700,12 +1735,12 @@ def api_get_consumption_today_report():
         ).filter(
             db.func.date(InventoryConsumption.created_at) == today
         ).all()
-        
+
         report_data = []
         for record in consumption_records:
             batch = record.batch
             product = batch.product if batch else None
-            
+
             report_data.append({
                 'consumption_date': record.created_at.isoformat() if record.created_at else None,
                 'batch_name': batch.batch_name if batch else 'Unknown',
@@ -1717,10 +1752,10 @@ def api_get_consumption_today_report():
                 'staff_member': record.user.username if record.user else 'Unknown',
                 'notes': record.notes or ''
             })
-        
+
         total_consumed_items = len(report_data)
         total_quantity_consumed = sum(float(record['quantity_consumed']) for record in report_data)
-        
+
         return jsonify({
             'success': True,
             'report_type': 'Today\'s Consumption Report',
@@ -1732,7 +1767,7 @@ def api_get_consumption_today_report():
             },
             'generated_at': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"Error generating consumption report: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1748,21 +1783,21 @@ def api_get_consumption_report():
             'success': False,
             'error': 'Access denied. You do not have permission to access inventory reports.'
         }), 403
-    
+
     try:
         from sqlalchemy.orm import joinedload
         from datetime import datetime
-        
+
         # Get date parameters
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
-        
+
         if not start_date_str or not end_date_str:
             return jsonify({
                 'success': False,
                 'error': 'Both start_date and end_date parameters are required'
             }), 400
-        
+
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
@@ -1771,7 +1806,7 @@ def api_get_consumption_report():
                 'success': False,
                 'error': 'Invalid date format. Use YYYY-MM-DD format.'
             }), 400
-        
+
         # Get consumption records within date range
         consumption_records = InventoryConsumption.query.options(
             joinedload(InventoryConsumption.batch).joinedload(InventoryBatch.product),
@@ -1780,12 +1815,12 @@ def api_get_consumption_report():
             db.func.date(InventoryConsumption.created_at) >= start_date,
             db.func.date(InventoryConsumption.created_at) <= end_date
         ).order_by(InventoryConsumption.created_at.desc()).all()
-        
+
         report_data = []
         for record in consumption_records:
             batch = record.batch
             product = batch.product if batch else None
-            
+
             report_data.append({
                 'consumption_date': record.created_at.isoformat() if record.created_at else None,
                 'batch_name': batch.batch_name if batch else 'Unknown',
@@ -1797,10 +1832,10 @@ def api_get_consumption_report():
                 'staff_member': record.user.username if record.user else 'Unknown',
                 'notes': record.notes or ''
             })
-        
+
         total_consumed_items = len(report_data)
         total_quantity_consumed = sum(float(record['quantity_consumed']) for record in report_data)
-        
+
         return jsonify({
             'success': True,
             'report_type': f'Consumption Report ({start_date} to {end_date})',
@@ -1813,7 +1848,7 @@ def api_get_consumption_report():
             },
             'generated_at': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"Error generating consumption report: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1829,21 +1864,21 @@ def api_get_adjustments_report():
             'success': False,
             'error': 'Access denied. You do not have permission to access inventory reports.'
         }), 403
-    
+
     try:
         from sqlalchemy.orm import joinedload
         from datetime import datetime
-        
+
         # Get date parameters
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
-        
+
         if not start_date_str or not end_date_str:
             return jsonify({
                 'success': False,
                 'error': 'Both start_date and end_date parameters are required'
             }), 400
-        
+
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
@@ -1852,7 +1887,7 @@ def api_get_adjustments_report():
                 'success': False,
                 'error': 'Invalid date format. Use YYYY-MM-DD format.'
             }), 400
-        
+
         # Get adjustment records within date range
         adjustment_records = InventoryAdjustment.query.options(
             joinedload(InventoryAdjustment.batch).joinedload(InventoryBatch.product),
@@ -1861,23 +1896,23 @@ def api_get_adjustments_report():
             db.func.date(InventoryAdjustment.created_at) >= start_date,
             db.func.date(InventoryAdjustment.created_at) <= end_date
         ).order_by(InventoryAdjustment.created_at.desc()).all()
-        
+
         report_data = []
         total_adjustments = 0
         net_quantity_change = 0
-        
+
         for record in adjustment_records:
             batch = record.batch
             product = batch.product if batch else None
-            
+
             # Calculate quantity change based on adjustment type
-            quantity_change = float(record.quantity_change or 0)
+            quantity_change = float(record.quantity) # Assuming quantity field holds the change amount
             if record.adjustment_type == 'decrease':
                 quantity_change = -abs(quantity_change)
-            
+
             net_quantity_change += quantity_change
             total_adjustments += 1
-            
+
             report_data.append({
                 'adjustment_date': record.created_at.isoformat() if record.created_at else None,
                 'batch_name': batch.batch_name if batch else 'Unknown',
@@ -1887,9 +1922,9 @@ def api_get_adjustments_report():
                 'quantity_change': quantity_change,
                 'unit_of_measure': product.unit_of_measure if product else 'pcs',
                 'staff_member': record.user.username if record.user else 'Unknown',
-                'reason': record.reason or ''
+                'reason': record.remarks or '' # Using 'remarks' as the reason
             })
-        
+
         return jsonify({
             'success': True,
             'report_type': f'Stock Adjustments Report ({start_date} to {end_date})',
@@ -1902,7 +1937,7 @@ def api_get_adjustments_report():
             },
             'generated_at': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"Error generating adjustments report: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1918,25 +1953,25 @@ def api_get_item_batch_wise_report():
             'success': False,
             'error': 'Access denied. You do not have permission to access inventory reports.'
         }), 403
-    
+
     try:
         from sqlalchemy.orm import joinedload
-        
+
         # Get all products with their batches
         products = InventoryProduct.query.options(
             joinedload(InventoryProduct.category),
             joinedload(InventoryProduct.batches).joinedload(InventoryBatch.location)
         ).filter(InventoryProduct.is_active == True).all()
-        
+
         report_data = []
         for product in products:
             # Get all active batches for this product
             active_batches = [b for b in product.batches if b.status == 'active']
-            
+
             # Calculate product totals
             total_qty = sum(float(batch.qty_available or 0) for batch in active_batches)
             total_value = sum(float(batch.qty_available or 0) * float(batch.unit_cost or 0) for batch in active_batches)
-            
+
             # Create product entry with batch details
             product_entry = {
                 'product_name': product.name,
@@ -1948,7 +1983,7 @@ def api_get_item_batch_wise_report():
                 'batch_count': len(active_batches),
                 'batches': []
             }
-            
+
             # Add batch details
             for batch in active_batches:
                 batch_value = float(batch.qty_available or 0) * float(batch.unit_cost or 0)
@@ -1961,16 +1996,16 @@ def api_get_item_batch_wise_report():
                     'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
                     'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None
                 })
-            
+
             report_data.append(product_entry)
-        
+
         return jsonify({
             'success': True,
             'report_type': 'Item-wise Batch-wise Report',
             'data': report_data,
             'generated_at': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"Error generating item-batch-wise report: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
