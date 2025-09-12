@@ -94,6 +94,11 @@ def create_customer_route():
             flash('Last name is required. Please enter the customer\'s last name.', 'danger')
             return redirect(url_for('customers'))
 
+        # Add missing advanced form fields
+        customer_data['emergency_contact'] = (form.emergency_contact.data or '').strip()
+        customer_data['emergency_phone'] = (form.emergency_phone.data or '').strip()  
+        customer_data['medical_conditions'] = (form.medical_conditions.data or '').strip()
+
         try:
             new_customer = create_customer(customer_data)
             flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
@@ -152,7 +157,7 @@ def update_client_route(id):
         else:
             email_value = None
 
-        phone_value = form.phone.data.strip()
+        phone_value = form.phone.data.strip() if form.phone.data else ""
 
         # Server-side validation for duplicates (excluding current customer)
         from .clients_queries import get_customer_by_phone, get_customer_by_email
@@ -195,6 +200,11 @@ def update_client_route(id):
         if not customer_data['last_name']:
             flash('Last name is required. Please enter the customer\'s last name.', 'danger')
             return redirect(url_for('customers'))
+
+        # Add missing advanced form fields
+        customer_data['emergency_contact'] = (form.emergency_contact.data or '').strip()
+        customer_data['emergency_phone'] = (form.emergency_phone.data or '').strip()  
+        customer_data['medical_conditions'] = (form.medical_conditions.data or '').strip()
 
         try:
             updated_customer = update_customer(id, customer_data)
