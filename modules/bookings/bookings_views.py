@@ -498,7 +498,9 @@ def staff_availability():
                          time_slots=time_slots,
                          staff_availability=staff_availability,
                          clients=clients,
-                         services=services)
+                         services=services,
+                         timedelta=timedelta,
+                         date=date)
 
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required
