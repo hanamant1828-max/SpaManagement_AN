@@ -4,7 +4,6 @@ Complete implementation with CRUD operations for staff scheduling
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from flask_wtf.csrf import validate_csrf
 from werkzeug.exceptions import BadRequest
 from app import app, db
 from models import User, StaffScheduleRange
@@ -96,11 +95,7 @@ def save_shift_schedule():
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
     
-    # CSRF Protection
-    try:
-        validate_csrf(request.form.get('csrf_token') or request.json.get('csrf_token'))
-    except Exception as e:
-        return jsonify({'error': 'CSRF token validation failed'}), 400
+
     
     try:
         data = request.get_json()
@@ -207,11 +202,7 @@ def delete_shift_schedules():
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
     
-    # CSRF Protection
-    try:
-        validate_csrf(request.form.get('csrf_token') or request.json.get('csrf_token'))
-    except Exception as e:
-        return jsonify({'error': 'CSRF token validation failed'}), 400
+
     
     try:
         data = request.get_json()
