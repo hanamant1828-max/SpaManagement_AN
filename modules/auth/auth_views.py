@@ -39,7 +39,7 @@ def login():
             if hasattr(user, 'check_password'):
                 password_valid = user.check_password(form.password.data)
             elif user.password_hash:
-                password_valid = check_password_hash(user.password_hash, form.password.data)
+                password_valid = check_password_hash(user.password_hash, form.password.data or "")
             else:
                 # Fallback for plain text password (not recommended for production)
                 password_valid = user.password == form.password.data
