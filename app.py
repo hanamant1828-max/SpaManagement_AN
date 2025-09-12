@@ -18,7 +18,7 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "38d1afe7e2abcf9302d889f089a6dee730745f7117dd3f987111fc57ae4b29ab")
+app.secret_key = os.environ.get("SESSION_SECRET")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
