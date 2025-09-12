@@ -32,6 +32,15 @@ print("Registering Staff Management routes...")
 print(f"App name: {app.name}")
 print(f"Current module: {__name__}")
 
+@app.route('/api/health', methods=['GET'])
+def api_health():
+    """API health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'message': 'Staff Management API is running',
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
 @app.route('/staff')
 @login_required
 def staff():
@@ -928,15 +937,21 @@ def api_create_staff():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        data = request.get_json()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
 
         # Defensive coding - validate required fields with user-friendly messages
         required_fields = {
             'username': 'Username is required. Please enter a unique username.',
             'first_name': 'First name is required. Please enter the staff member\'s first name.',
             'last_name': 'Last name is required. Please enter the staff member\'s last name.',
-            'email': 'Email address is required. Please enter a valid email address.',
-            'password': 'Password is required. Please enter a secure password.'
+            'email': 'Email address is required. Please enter a valid email address.'
         }
 
         for field, message in required_fields.items():
@@ -982,27 +997,30 @@ def api_create_staff():
         if not re.match(email_pattern, email):
             return jsonify({'error': 'Please enter a valid email address format.'}), 400
 
+        # Set default password if not provided
+        password = data.get('password', 'password123')
+
         staff_data = {
             'username': data['username'].strip(),
             'first_name': data['first_name'].strip().title(),
             'last_name': data['last_name'].strip().title(),
             'email': email,
-            'password_hash': generate_password_hash(data['password']),
+            'password_hash': generate_password_hash(password),
             'phone': (data.get('phone') or '').strip(),
             'role': (data.get('role') or 'staff').strip(),
             'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
             'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
-            'designation': (data.get('designation') or '').strip(),
+            'designation': (data.get('designation') or 'Staff Member').strip(),
             'commission_rate': safe_float(data.get('commission_rate'), 0.0, 0.0, 100.0),
             'hourly_rate': safe_float(data.get('hourly_rate'), 0.0, 0.0, 1000.0),
-            'gender': (data.get('gender') or '').strip(),
+            'gender': (data.get('gender') or 'other').strip(),
             'date_of_birth': safe_date_parse(data.get('date_of_birth')),
             'date_of_joining': safe_date_parse(data.get('date_of_joining'), date.today()),
             'shift_start_time': safe_time_parse(data.get('shift_start_time')),
             'shift_end_time': safe_time_parse(data.get('shift_end_time')),
             'working_days': (data.get('working_days') or '1111100').strip(),
             'verification_status': False,
-            'enable_face_checkin': bool(data.get('enable_face_checkin', True)),
+            'enable_face_checkin': bool(data.get('enable_face_checkin', False)),
             'notes_bio': (data.get('notes_bio') or '').strip(),
             'is_active': True
         }

@@ -663,36 +663,173 @@
 </div>
 
 <script>
-// Global Variables
-let allStaff = [];
-let filteredStaff = [];
-let rolesData = [];
-let departmentsData = [];
-let isEditing = false;
-let currentDeleteId = null;
+// Enhanced staff management JavaScript
+let staffList = [];
+let roles = [];
+let departments = [];
+let services = [];
+let currentStaffId = null;
+let staffModal;
 
-// Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Bootstrap Modal Staff Management loaded');
+
+    // Initialize modal
+    const modalElement = document.getElementById('staffModal');
+    if (modalElement) {
+        staffModal = new bootstrap.Modal(modalElement);
+    }
+
+    // Load initial data
     loadStaffData();
-    setupFormHandlers();
-    setupModalHandlers();
-    initializeModalScheduleManagement();
+    loadMetadata();
+
+    // Setup form submission
+    const staffForm = document.getElementById('staffForm');
+    if (staffForm) {
+        staffForm.addEventListener('submit', handleFormSubmission);
+    }
 });
 
-// Setup modal handlers
-function setupModalHandlers() {
-    // Clear form when modal is hidden
-    document.getElementById('staffModal').addEventListener('hidden.bs.modal', function() {
-        clearForm();
-    });
+async function handleFormSubmission(e) {
+    e.preventDefault();
 
-    // Setup delete confirmation
-    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-        if (currentDeleteId) {
-            performDelete(currentDeleteId);
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+
+    try {
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+        const formData = collectFormData();
+
+        // Validate required fields
+        const validation = validateFormData(formData);
+        if (!validation.isValid) {
+            showNotification(validation.message, 'error');
+            return;
         }
-    });
+
+        const mode = document.getElementById('formMode').value;
+
+        let response;
+        if (mode === 'edit') {
+            response = await updateStaff(currentStaffId, formData);
+        } else {
+            response = await createStaff(formData);
+        }
+
+        if (response && response.success) {
+            showNotification(response.message, 'success');
+            staffModal.hide();
+            loadStaffData(); // Reload staff list
+        } else {
+            const errorMsg = response?.error || 'An error occurred while saving';
+            showNotification(errorMsg, 'error');
+        }
+
+    } catch (error) {
+        console.error('Form submission error:', error);
+        showNotification('Network error: ' + error.message, 'error');
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+function validateFormData(data) {
+    const required = ['username', 'first_name', 'last_name', 'email'];
+
+    for (const field of required) {
+        if (!data[field] || data[field].trim() === '') {
+            return {
+                isValid: false,
+                message: `${field.replace('_', ' ').toUpperCase()} is required`
+            };
+        }
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+        return {
+            isValid: false,
+            message: 'Please enter a valid email address'
+        };
+    }
+
+    return { isValid: true };
+}
+
+async function createStaff(staffData) {
+    try {
+        console.log('Creating staff with data:', staffData);
+
+        const response = await fetch('/api/staff', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(staffData)
+        });
+
+        const result = await response.json();
+
+        console.log('API Response:', result);
+
+        if (!response.ok) {
+            throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Error creating staff:', error);
+        return {
+            success: false,
+            error: error.message || 'Failed to create staff member'
+        };
+    }
+}
+
+function collectFormData() {
+    const data = {
+        username: getFieldValue('username'),
+        first_name: getFieldValue('firstName'),
+        last_name: getFieldValue('lastName'),
+        email: getFieldValue('email'),
+        phone: getFieldValue('phone'),
+        password: getFieldValue('password'),
+        role: getFieldValue('role') || 'staff',
+        role_id: getFieldValue('roleId'),
+        department_id: getFieldValue('departmentId'),
+        designation: getFieldValue('designation'),
+        gender: getFieldValue('gender'),
+        date_of_birth: getFieldValue('dateOfBirth'),
+        date_of_joining: getFieldValue('dateOfJoining'),
+        shift_start_time: getFieldValue('shiftStart'),
+        shift_end_time: getFieldValue('shiftEnd'),
+        commission_rate: parseFloat(getFieldValue('commissionRate')) || 0,
+        hourly_rate: parseFloat(getFieldValue('hourlyRate')) || 0,
+        notes_bio: getFieldValue('notesBio'),
+        enable_face_checkin: getCheckboxValue('enableFaceCheckin'),
+        verification_status: getCheckboxValue('verificationStatus'),
+        is_active: getCheckboxValue('isActive', true)
+    };
+
+    console.log('Collected form data:', data);
+    return data;
+}
+
+function getFieldValue(fieldId) {
+    const element = document.getElementById(fieldId);
+    return element ? element.value.trim() : '';
+}
+
+function getCheckboxValue(fieldId, defaultValue = false) {
+    const element = document.getElementById(fieldId);
+    return element ? element.checked : defaultValue;
 }
 
 // Load all staff data from API
