@@ -824,6 +824,36 @@ def api_update_category(category_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/categories/<int:category_id>', methods=['DELETE'])
+def api_delete_category(category_id):
+    """Delete (deactivate) a category"""
+    try:
+        from .models import InventoryCategory, InventoryProduct
+        from datetime import datetime
+        
+        category = InventoryCategory.query.get(category_id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+        
+        # Check if category has associated products
+        product_count = InventoryProduct.query.filter_by(category_id=category_id, is_active=True).count()
+        if product_count > 0:
+            return jsonify({'error': f'Cannot delete category with {product_count} associated products. Please remove or reassign products first.'}), 400
+        
+        # Soft delete - mark as inactive
+        category.is_active = False
+        category.updated_at = datetime.utcnow()
+        db.session.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': 'Category deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERROR deleting category: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/locations/<location_id>', methods=['PUT'])
 
 def api_update_location(location_id):
