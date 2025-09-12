@@ -82,6 +82,7 @@ def get_time_slots(filter_date, staff_id=None, service_id=None):
 
 def get_active_clients():
     """Get all active clients"""
+    from models import Customer
     return Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
 
 def get_active_services():
@@ -115,6 +116,7 @@ def get_active_services():
 
 def get_staff_members():
     """Get all staff members"""
+    from models import User
     return User.query.filter(
         User.role.in_(['staff', 'manager', 'admin']), 
         User.is_active == True
@@ -148,6 +150,7 @@ def get_appointment_stats(filter_date):
 
 def create_appointment(appointment_data):
     """Create a new appointment"""
+    from models import Service, Appointment
     try:
         # Calculate end_time if not provided
         if 'end_time' not in appointment_data and 'service_id' in appointment_data:
@@ -169,6 +172,7 @@ def create_appointment(appointment_data):
 
 def update_appointment(appointment_id, appointment_data):
     """Update an existing appointment"""
+    from models import Appointment
     appointment = Appointment.query.get(appointment_id)
     if appointment:
         for key, value in appointment_data.items():
@@ -178,6 +182,7 @@ def update_appointment(appointment_id, appointment_data):
 
 def delete_appointment(appointment_id):
     """Delete an appointment"""
+    from models import Appointment
     appointment = Appointment.query.get(appointment_id)
     if appointment:
         db.session.delete(appointment)
@@ -187,4 +192,5 @@ def delete_appointment(appointment_id):
 
 def get_appointment_by_id(appointment_id):
     """Get appointment by ID"""
+    from models import Appointment
     return Appointment.query.get(appointment_id)
