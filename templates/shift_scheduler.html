@@ -19,6 +19,11 @@
                     </h1>
                     <p class="text-muted">Create and manage staff work schedules with date ranges and bulk operations</p>
                 </div>
+                <div>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addShiftModal">
+                        <i class="fas fa-plus me-2"></i>Add Assign Shift
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -365,5 +370,252 @@ function showAlert(message, type = 'success') {
         $('.alert').alert('close');
     }, 5000);
 }
+
+// Modal functionality for Add Assign Shift
+let modalScheduleData = [];
+
+function openAddShiftModal() {
+    $('#addShiftModal').modal('show');
+}
+
+function generateShiftTable() {
+    const staffId = $('#modalStaffSelect').val();
+    const fromDate = $('#modalFromDate').val();
+    const toDate = $('#modalToDate').val();
+    
+    if (!staffId || !fromDate || !toDate) {
+        showAlert('Please select staff member and date range', 'danger');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        showAlert('From date cannot be later than To date', 'danger');
+        return;
+    }
+    
+    const staffName = $('#modalStaffSelect option:selected').text();
+    $('#shiftTableTitle').text(`Shift Schedule for ${staffName}`);
+    
+    // Show the table section
+    $('#shiftTableSection').show();
+    
+    // Generate date range
+    const dates = [];
+    const currentDate = new Date(fromDate);
+    const endDate = new Date(toDate);
+    
+    while (currentDate <= endDate) {
+        dates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Generate table HTML
+    let tableHtml = `
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Working</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    dates.forEach((date, index) => {
+        const dateStr = date.toISOString().split('T')[0];
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        
+        tableHtml += `
+            <tr data-date="${dateStr}">
+                <td>${dateStr}</td>
+                <td>${dayName}</td>
+                <td>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input working-toggle" type="checkbox" 
+                               id="working_${index}" ${!isWeekend ? 'checked' : ''}>
+                        <label class="form-check-label" for="working_${index}">
+                            ${!isWeekend ? 'Yes' : 'No'}
+                        </label>
+                    </div>
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm start-time" 
+                           value="09:00" ${isWeekend ? 'disabled' : ''}>
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm end-time" 
+                           value="17:00" ${isWeekend ? 'disabled' : ''}>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm notes" 
+                           placeholder="Notes..." ${isWeekend ? 'disabled' : ''}>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableHtml += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <button type="button" class="btn btn-success" onclick="saveShiftSchedule()">
+                <i class="fas fa-save me-2"></i>Save Schedule
+            </button>
+            <button type="button" class="btn btn-secondary ms-2" onclick="selectAllWorkingDays()">
+                <i class="fas fa-check-double me-2"></i>All Working Days
+            </button>
+            <button type="button" class="btn btn-secondary ms-2" onclick="selectWeekendsOff()">
+                <i class="fas fa-calendar-times me-2"></i>Weekends Off
+            </button>
+        </div>
+    `;
+    
+    $('#shiftTableContainer').html(tableHtml);
+    
+    // Add event listeners for working toggles
+    $('.working-toggle').change(function() {
+        const row = $(this).closest('tr');
+        const timeInputs = row.find('.start-time, .end-time, .notes');
+        const label = $(this).next('label');
+        
+        if (this.checked) {
+            timeInputs.prop('disabled', false);
+            label.text('Yes');
+            row.removeClass('table-secondary');
+        } else {
+            timeInputs.prop('disabled', true);
+            label.text('No');
+            row.addClass('table-secondary');
+        }
+    });
+}
+
+function selectAllWorkingDays() {
+    $('.working-toggle').each(function() {
+        $(this).prop('checked', true).trigger('change');
+    });
+}
+
+function selectWeekendsOff() {
+    $('.working-toggle').each(function(index) {
+        const row = $(this).closest('tr');
+        const date = new Date(row.data('date'));
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        
+        $(this).prop('checked', !isWeekend).trigger('change');
+    });
+}
+
+function saveShiftSchedule() {
+    const staffId = $('#modalStaffSelect').val();
+    const scheduleData = [];
+    
+    $('#shiftTableContainer tbody tr').each(function() {
+        const row = $(this);
+        const date = row.data('date');
+        const isWorking = row.find('.working-toggle').is(':checked');
+        const startTime = row.find('.start-time').val();
+        const endTime = row.find('.end-time').val();
+        const notes = row.find('.notes').val();
+        
+        scheduleData.push({
+            date: date,
+            working: isWorking,
+            start_time: isWorking ? startTime : null,
+            end_time: isWorking ? endTime : null,
+            notes: notes || ''
+        });
+    });
+    
+    // Send to server
+    fetch('/shift-scheduler/save', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            staff_id: staffId,
+            schedule_data: scheduleData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`Schedule saved successfully! ${data.created_count} new schedules created, ${data.updated_count} updated.`, 'success');
+            $('#addShiftModal').modal('hide');
+            // Refresh the existing schedules if staff is selected
+            const currentStaffId = $('#staffSelect').val();
+            if (currentStaffId) {
+                loadExistingSchedules(currentStaffId);
+            }
+        } else {
+            showAlert('Error saving schedule: ' + (data.error || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error saving schedule: ' + error.message, 'danger');
+    });
+}
 </script>
+
+<!-- Add Assign Shift Modal -->
+<div class="modal fade" id="addShiftModal" tabindex="-1" aria-labelledby="addShiftModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addShiftModalLabel">
+                    <i class="fas fa-plus me-2"></i>Add Assign Shift
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Staff and Date Selection -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="modalStaffSelect" class="form-label fw-bold">
+                            <i class="fas fa-user me-1"></i>Select Staff Member
+                        </label>
+                        <select class="form-select" id="modalStaffSelect" required>
+                            <option value="">Choose staff member...</option>
+                            {% for staff in staff_members %}
+                                <option value="{{ staff.id }}">{{ staff.full_name }} - {{ staff.role }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="modalFromDate" class="form-label fw-bold">
+                            <i class="fas fa-calendar me-1"></i>From Date
+                        </label>
+                        <input type="date" class="form-control" id="modalFromDate" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="modalToDate" class="form-label fw-bold">
+                            <i class="fas fa-calendar me-1"></i>To Date
+                        </label>
+                        <input type="date" class="form-control" id="modalToDate" required>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-success w-100" onclick="generateShiftTable()">
+                            <i class="fas fa-table me-2"></i>Generate Table
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Generated Schedule Table -->
+                <div id="shiftTableSection" style="display: none;">
+                    <h6 id="shiftTableTitle" class="mb-3"></h6>
+                    <div id="shiftTableContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
