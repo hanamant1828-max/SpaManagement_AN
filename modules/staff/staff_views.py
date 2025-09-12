@@ -64,7 +64,7 @@ def staff():
         advanced_form.department_id.choices = [(d.id, d.display_name) for d in departments]
 
     return render_template('staff.html', 
-                         staff=staff_list,
+                         staff_members=staff_list,
                          form=form,
                          advanced_form=advanced_form,
                          roles=roles,
@@ -669,7 +669,7 @@ def create_staff_route():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    form = UserForm()
+    form = AdvancedUserForm()
     roles = get_active_roles()
     form.role.choices = [(r.name, r.display_name) for r in roles]
 
@@ -683,7 +683,7 @@ def create_staff_route():
             'role': form.role.data,
             'commission_rate': form.commission_rate.data,
             'hourly_rate': form.hourly_rate.data,
-            'password_hash': generate_password_hash(form.password.data),
+            'password_hash': generate_password_hash('TempPass123!'),  # Temporary password - must be changed on first login
             'is_active': True
         }
 
@@ -706,7 +706,7 @@ def update_staff_route(id):
         flash('Staff member not found', 'danger')
         return redirect(url_for('staff'))
 
-    form = UserForm()
+    form = AdvancedUserForm()
     roles = get_active_roles()
     form.role.choices = [(r.name, r.display_name) for r in roles]
 

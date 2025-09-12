@@ -23,7 +23,7 @@ app.secret_key = os.environ.get("SESSION_SECRET")
 if not app.secret_key:
     raise ValueError("SESSION_SECRET environment variable is required for secure operation")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
-app.config['WTF_CSRF_ENABLED'] = False
+app.config['WTF_CSRF_ENABLED'] = True  # Enable CSRF protection for security
 app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
 app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
