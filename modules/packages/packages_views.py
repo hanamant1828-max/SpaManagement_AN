@@ -1,13 +1,18 @@
 """
 Enhanced Package Management Views with proper service selection
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_login import login_required, current_user
 from app import app, db
 # Late imports to avoid circular dependency
 from .packages_queries import *
 import json
+import csv
+import io
 from datetime import datetime, timedelta
+
+# Import models
+from models import Package, Service, Category, Customer, CustomerPackage, PackageService
 
 @app.route('/packages')
 @login_required
