@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app import app, db
 from .models import InventoryProduct, InventoryCategory, InventoryLocation, InventoryBatch, InventoryAdjustment, InventoryConsumption, InventoryTransfer
 from .queries import *
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import json
 
 @app.route('/inventory')
@@ -652,7 +652,46 @@ def api_get_available_batches():
 def api_get_consumption_records():
     """Get consumption records"""
     try:
-        consumption_records = get_consumption_records(limit=100)
+        # Get filter parameters
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        search = request.args.get('search', '')
+        
+        # Get all consumption records first
+        query = InventoryConsumption.query
+        
+        # Apply date filters if provided
+        if from_date:
+            try:
+                from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()
+                query = query.filter(InventoryConsumption.created_at >= from_date_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore
+                
+        if to_date:
+            try:
+                to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()
+                # Add one day to include records from the entire to_date day
+                to_date_obj = to_date_obj + timedelta(days=1)
+                query = query.filter(InventoryConsumption.created_at < to_date_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore
+        
+        # Apply search filter if provided
+        if search:
+            query = query.join(InventoryBatch).join(InventoryProduct).filter(
+                or_(
+                    InventoryConsumption.issued_to.ilike(f'%{search}%'),
+                    InventoryConsumption.reference.ilike(f'%{search}%'),
+                    InventoryConsumption.notes.ilike(f'%{search}%'),
+                    InventoryBatch.batch_name.ilike(f'%{search}%'),
+                    InventoryProduct.name.ilike(f'%{search}%')
+                )
+            )
+        
+        # Get filtered records ordered by creation date (newest first)
+        consumption_records = query.order_by(InventoryConsumption.created_at.desc()).limit(100).all()
+        
         records_data = [{
             'id': c.id,
             'batch_id': c.batch_id,

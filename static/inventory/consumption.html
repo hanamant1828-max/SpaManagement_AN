@@ -265,11 +265,26 @@
     let pageSize = 25;
 
     function loadConsumptions() {
-        fetch('/api/inventory/consumption')
+        const params = new URLSearchParams({
+            page: 1,
+            per_page: pageSize,
+            from_date: document.getElementById('consumption-from-date').value || '',
+            to_date: document.getElementById('consumption-to-date').value || '',
+            search: document.getElementById('consumption-search').value || '',
+            sort_by: 'created_at',
+            sort_order: 'desc'
+        });
+
+        fetch(`/api/inventory/consumption?${params}`)
             .then(response => response.json())
             .then(data => {
-                const consumptions = data.records || [];
-                displayConsumptions(consumptions);
+                if (data.success) {
+                    const consumptions = data.data || [];
+                    displayConsumptions(consumptions);
+                } else {
+                    console.error('Error loading consumptions:', data.error);
+                    displayConsumptions([]);
+                }
             })
             .catch(error => {
                 console.error('Error loading consumptions:', error);
@@ -278,51 +293,25 @@
     }
 
     function displayConsumptions(consumptions) {
-        // Apply filters
-        const fromDate = document.getElementById('consumption-from-date').value;
-        const toDate = document.getElementById('consumption-to-date').value;
-        const searchTerm = document.getElementById('consumption-search').value.toLowerCase();
+        // No need for local filtering - API handles it now
         pageSize = parseInt(document.getElementById('consumption-page-size').value);
-
-        let filteredConsumptions = consumptions.filter(consumption => {
-            const consumptionDate = new Date(consumption.consumption_date);
-            const matchesDateRange = (!fromDate || consumptionDate >= new Date(fromDate)) &&
-                                   (!toDate || consumptionDate <= new Date(toDate));
-            const matchesSearch = !searchTerm || 
-                                (consumption.batch_name && consumption.batch_name.toLowerCase().includes(searchTerm)) ||
-                                (consumption.reference_doc_no && consumption.reference_doc_no.toLowerCase().includes(searchTerm)) ||
-                                (consumption.notes && consumption.notes.toLowerCase().includes(searchTerm)) ||
-                                (consumption.issued_to && consumption.issued_to.toLowerCase().includes(searchTerm));
-
-            return matchesDateRange && matchesSearch;
-        });
-
-        // Sort by date (newest first)
-        filteredConsumptions.sort((a, b) => new Date(b.consumption_date) - new Date(a.consumption_date));
-
-        // Pagination
-        const totalItems = filteredConsumptions.length;
-        const totalPages = Math.ceil(totalItems / pageSize);
-        const startIndex = (currentPage - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
-        const paginatedConsumptions = filteredConsumptions.slice(startIndex, endIndex);
 
         // Update table
         const tbody = document.getElementById('consumptionTableBody');
         tbody.innerHTML = '';
 
-        paginatedConsumptions.forEach(consumption => {
+        consumptions.forEach(consumption => {
             tbody.innerHTML += `
                 <tr>
-                    <td>${new Date(consumption.consumption_date).toLocaleDateString()}</td>
+                    <td>${new Date(consumption.created_at).toLocaleDateString()}</td>
                     <td>${consumption.batch_name || 'Unknown Batch'}</td>
                     <td>${consumption.product_name || 'Unknown Product'}</td>
-                    <td>${consumption.quantity_used} ${consumption.unit_of_measure || 'pcs'}</td>
-                    <td>${consumption.reference_doc_no || '-'}</td>
+                    <td>${consumption.quantity}</td>
+                    <td>${consumption.reference || '-'}</td>
                     <td>${consumption.issued_to || '-'}</td>
                     <td>
                         <span class="badge bg-secondary">
-                            ${consumption.purpose || 'Other'}
+                            Other
                         </span>
                     </td>
                     <td>${consumption.notes || '-'}</td>
@@ -343,16 +332,16 @@
             `;
         });
 
-        if (paginatedConsumptions.length === 0) {
+        if (consumptions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No consumption records found</td></tr>';
         }
 
-        // Update pagination info
+        // Update pagination info (simplified since API handles pagination)
         document.getElementById('consumptionTableInfo').textContent = 
-            `Showing ${startIndex + 1} to ${Math.min(endIndex, totalItems)} of ${totalItems} entries`;
+            `Showing ${consumptions.length} entries`;
 
-        // Update pagination controls
-        updatePagination(totalPages);
+        // Remove local pagination since API handles it
+        document.getElementById('consumptionPagination').innerHTML = '';
     }
 
     function updatePagination(totalPages) {
