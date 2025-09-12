@@ -1,0 +1,264 @@
+
+{% extends "base.html" %}
+
+{% block title %}Navigation Test - Spa Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-vial me-2"></i>Navigation Menu Test
+            </h1>
+            <p class="text-muted">Click each menu item below to test navigation. Results will be logged in the browser console.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>Menu Items Test
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Main Navigation Items -->
+                        <div class="col-lg-6">
+                            <h6 class="fw-bold mb-3">Main Navigation</h6>
+                            <div class="list-group">
+                                <a href="/dashboard" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                </a>
+                                <a href="/bookings" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-calendar-alt me-2"></i>Smart Booking & Calendar
+                                </a>
+                                <a href="/staff_availability" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-users-cog me-2"></i>Staff Availability
+                                </a>
+                                <a href="/appointments_management" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-calendar-check me-2"></i>Manage Appointments
+                                </a>
+                                <a href="/customers" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-users me-2"></i>Client History & Loyalty
+                                </a>
+                                <a href="/comprehensive_staff" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-users me-2"></i>Staff Management
+                                </a>
+                                <a href="/checkin" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-user-check me-2"></i>Check-In
+                                </a>
+                                <a href="/notifications" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-bell me-2"></i>WhatsApp Notifications
+                                </a>
+                                <a href="/integrated_billing" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-cash-register me-2"></i>Billing System
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Service & Management Items -->
+                        <div class="col-lg-6">
+                            <h6 class="fw-bold mb-3">Services & Management</h6>
+                            <div class="list-group">
+                                <a href="/services" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-spa me-2"></i>Services Management
+                                </a>
+                                <a href="/packages" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-gift me-2"></i>Package Management
+                                </a>
+                                <a href="/reports" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-chart-bar me-2"></i>Reports & Insights
+                                </a>
+                                <a href="/expenses" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-receipt me-2"></i>Daily Expense Tracker
+                                </a>
+                                <a href="/inventory_dashboard" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-boxes me-2"></i>Inventory Management
+                                </a>
+                                <a href="/alerts" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Expiring Product Alerts
+                                </a>
+                                <a href="/system_management" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-server me-2"></i>System Management
+                                </a>
+                                <a href="/role_management" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-users-cog me-2"></i>Role Management
+                                </a>
+                                <a href="/settings" class="list-group-item list-group-item-action test-link">
+                                    <i class="fas fa-user-cog me-2"></i>User & Access Control
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>Test Results
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="testResults">
+                        <p class="text-muted">Click menu items above to start testing. Results will appear here.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="runAutomatedTest()">
+                        <i class="fas fa-play me-2"></i>Run Automated Test
+                    </button>
+                    <button class="btn btn-secondary ms-2" onclick="clearResults()">
+                        <i class="fas fa-trash me-2"></i>Clear Results
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let testResults = [];
+let testCount = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers to test links
+    document.querySelectorAll('.test-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            testMenuLink(this.href, this.textContent.trim());
+        });
+    });
+});
+
+function testMenuLink(url, name) {
+    const startTime = Date.now();
+    testCount++;
+    
+    console.log(`🔍 Testing: ${name} (${url})`);
+    
+    // Create a hidden iframe to test the page load
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    iframe.onload = function() {
+        const loadTime = Date.now() - startTime;
+        
+        try {
+            // Check if the page loaded successfully
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const hasError = iframeDoc.body.innerHTML.includes('error') || 
+                            iframeDoc.body.innerHTML.includes('Error');
+            
+            const result = {
+                name: name,
+                url: url,
+                loadTime: loadTime,
+                success: !hasError,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            testResults.push(result);
+            displayTestResult(result);
+            
+            console.log(`✅ ${name}: ${loadTime}ms ${hasError ? '(with errors)' : ''}`);
+            
+        } catch (error) {
+            const result = {
+                name: name,
+                url: url,
+                loadTime: loadTime,
+                success: false,
+                error: error.message,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            testResults.push(result);
+            displayTestResult(result);
+            
+            console.log(`❌ ${name}: ${error.message}`);
+        }
+        
+        // Remove the iframe
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+    };
+    
+    iframe.onerror = function() {
+        const loadTime = Date.now() - startTime;
+        const result = {
+            name: name,
+            url: url,
+            loadTime: loadTime,
+            success: false,
+            error: 'Failed to load',
+            timestamp: new Date().toLocaleTimeString()
+        };
+        
+        testResults.push(result);
+        displayTestResult(result);
+        
+        console.log(`❌ ${name}: Failed to load`);
+        
+        // Remove the iframe
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+    };
+    
+    iframe.src = url;
+}
+
+function displayTestResult(result) {
+    const resultsDiv = document.getElementById('testResults');
+    
+    if (testResults.length === 1) {
+        resultsDiv.innerHTML = '<h6>Test Results:</h6>';
+    }
+    
+    const icon = result.success ? '✅' : '❌';
+    const statusClass = result.success ? 'text-success' : 'text-danger';
+    const errorText = result.error ? ` - ${result.error}` : '';
+    
+    const resultHtml = `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span>${icon} ${result.name}</span>
+            <span class="${statusClass} small">
+                ${result.loadTime}ms ${errorText} (${result.timestamp})
+            </span>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML += resultHtml;
+}
+
+function runAutomatedTest() {
+    const links = document.querySelectorAll('.test-link');
+    let index = 0;
+    
+    function testNext() {
+        if (index < links.length) {
+            const link = links[index];
+            testMenuLink(link.href, link.textContent.trim());
+            index++;
+            setTimeout(testNext, 2000); // Wait 2 seconds between tests
+        } else {
+            // Show summary
+            const successful = testResults.filter(r => r.success).length;
+            const total = testResults.length;
+            showNotification(`Test completed: ${successful}/${total} pages loaded successfully`, 
+                           successful === total ? 'success' : 'warning');
+        }
+    }
+    
+    clearResults();
+    testNext();
+}
+
+function clearResults() {
+    testResults = [];
+    testCount = 0;
+    document.getElementById('testResults').innerHTML = 
+        '<p class="text-muted">Click menu items above to start testing. Results will appear here.</p>';
+}
+</script>
+{% endblock %}

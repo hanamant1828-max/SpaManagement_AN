@@ -168,6 +168,12 @@ def alerts():
         return redirect(url_for('dashboard'))
     return render_template('alerts.html')
 
+@app.route('/test_navigation')
+@login_required
+def test_navigation():
+    """Navigation testing page"""
+    return render_template('test_navigation.html')
+
 @app.route('/communications')
 @login_required
 def communications():

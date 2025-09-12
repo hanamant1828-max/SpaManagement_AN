@@ -89,10 +89,8 @@ function initializeFaceCapture() {
 let currentStream = null;
 let faceStream = null;
 
-// Declare currentStaffId only once (check if already declared)
-if (typeof currentStaffId === 'undefined') {
-    let currentStaffId = null;
-}
+// Declare currentStaffId only once globally
+let currentStaffId = null;
 
 function setupCameraButtons() {
     // Only run on pages that actually have camera buttons
@@ -1962,7 +1960,7 @@ function handleEditCustomerSubmit(event) {
     form.submit();
 }
 
-// Load metadata function for staff management
+// Load metadata function for staff management - defined early
 function loadMetadata() {
     console.log('Metadata loading handled in loadStaffData');
     // This function is called from comprehensive_staff.html
@@ -1970,7 +1968,7 @@ function loadMetadata() {
     return Promise.resolve();
 }
 
-// Make functions globally available
+// Make functions globally available immediately
 window.loadMetadata = loadMetadata;
 window.showNotification = showNotification;
 window.exportTableData = exportTableData;
