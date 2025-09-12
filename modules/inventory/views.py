@@ -882,6 +882,36 @@ def api_update_location(location_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/locations/<location_id>', methods=['DELETE'])
+def api_delete_location(location_id):
+    """Delete (deactivate) a location"""
+    try:
+        from .models import InventoryLocation, InventoryBatch
+        from datetime import datetime
+        
+        location = InventoryLocation.query.get(location_id)
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+        
+        # Check if location has associated batches
+        batch_count = InventoryBatch.query.filter_by(location_id=location_id).filter(InventoryBatch.status != 'deleted').count()
+        if batch_count > 0:
+            return jsonify({'error': f'Cannot delete location with {batch_count} associated batches. Please remove or reassign batches first.'}), 400
+        
+        # Soft delete - mark as inactive
+        location.status = 'inactive'
+        location.updated_at = datetime.utcnow()
+        db.session.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': 'Location deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERROR deleting location: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['PUT'])
 
 def api_update_batch(batch_id):
