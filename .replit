@@ -65,8 +65,24 @@ author = "agent"
 task = "workflow.run"
 args = "Spa Management System"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask App"
+
 [[workflows.workflow]]
 name = "Spa Management System"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "uv run python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Flask App"
 author = "agent"
 
 [[workflows.workflow.tasks]]
@@ -80,10 +96,6 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 37759
-externalPort = 3001
 
 [[ports]]
 localPort = 42581
