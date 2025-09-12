@@ -84,8 +84,12 @@ function initializeFaceCapture() {
 }
 
 let currentStream = null;
-let currentStaffId = null;
 let faceStream = null;
+
+// Only declare currentStaffId if it doesn't exist
+if (typeof currentStaffId === 'undefined') {
+    let currentStaffId = null;
+}
 
 function setupCameraButtons() {
     // Only run on pages that actually have camera buttons

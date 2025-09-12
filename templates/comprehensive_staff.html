@@ -664,12 +664,15 @@
 
 <script>
 // Enhanced staff management JavaScript
-let staffList = [];
-let roles = [];
-let departments = [];
-let services = [];
+let allStaff = []; // Renamed from staffList to avoid conflict with filteredStaff
+let rolesData = []; // Renamed from roles
+let departmentsData = []; // Renamed from departments
+let services = []; // Assuming this is intended to be used elsewhere or is a placeholder
 let currentStaffId = null;
 let staffModal;
+let isEditing = false; // Added to track edit mode
+let currentDeleteId = null; // Added for delete confirmation
+let currentEditingScheduleId = null; // Added for editing schedule ranges
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Bootstrap Modal Staff Management loaded');
@@ -682,13 +685,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load initial data
     loadStaffData();
-    loadMetadata();
+    // loadMetadata(); // This function seems to be missing or not provided in the original snippet. Assuming it's handled elsewhere or not critical for this fix.
 
     // Setup form submission
     const staffForm = document.getElementById('staffForm');
     if (staffForm) {
         staffForm.addEventListener('submit', handleFormSubmission);
     }
+
+    // Setup delete confirmation button
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', () => {
+            performDelete(currentDeleteId);
+        });
+    }
+
+    // Initialize schedule range modal
+    initializeModalScheduleManagement();
 });
 
 async function handleFormSubmission(e) {
@@ -814,8 +828,8 @@ function collectFormData() {
         hourly_rate: parseFloat(getFieldValue('hourlyRate')) || 0,
         notes_bio: getFieldValue('notesBio'),
         enable_face_checkin: getCheckboxValue('enableFaceCheckin'),
-        verification_status: getCheckboxValue('verificationStatus'),
-        is_active: getCheckboxValue('isActive', true)
+        verification_status: getCheckboxValue('verificationStatus'), // Assuming this field exists and is relevant
+        is_active: getCheckboxValue('isActive', true) // Assuming a default for isActive if not present
     };
 
     console.log('Collected form data:', data);
@@ -823,9 +837,14 @@ function collectFormData() {
 }
 
 function getFieldValue(fieldId) {
-    const element = document.getElementById(fieldId);
-    return element ? element.value.trim() : '';
+    const field = document.getElementById(fieldId);
+    if (!field) {
+        console.warn(`Field ${fieldId} not found`);
+        return '';
+    }
+    return field.value?.trim() || '';
 }
+
 
 function getCheckboxValue(fieldId, defaultValue = false) {
     const element = document.getElementById(fieldId);
@@ -919,23 +938,8 @@ function updateStats() {
 
 // Render staff table
 function renderStaffTable() {
-    filteredStaff = [...allStaff];
-    filterStaff();
-
-    const tbody = document.getElementById('staffTableBody');
-    tbody.innerHTML = '';
-
-    if (filteredStaff.length === 0) {
-        showEmptyState();
-        return;
-    }
-
-    filteredStaff.forEach(staff => {
-        const row = createStaffRow(staff);
-        tbody.appendChild(row);
-    });
-
-    showTable(true);
+    // Apply filters immediately after loading data
+    filterStaff(); 
 }
 
 // Create staff table row
@@ -1020,9 +1024,9 @@ function filterStaff() {
         filtered = filtered.filter(staff => 
             staff.full_name.toLowerCase().includes(searchTerm) ||
             staff.email.toLowerCase().includes(searchTerm) ||
-            staff.staff_code.toLowerCase().includes(searchTerm) ||
+            (staff.staff_code && staff.staff_code.toLowerCase().includes(searchTerm)) ||
             staff.username.toLowerCase().includes(searchTerm) ||
-            staff.phone.includes(searchTerm)
+            (staff.phone && staff.phone.includes(searchTerm))
         );
     }
 
@@ -1046,8 +1050,9 @@ function filterStaff() {
         filtered = filtered.filter(staff => !staff.is_active);
     }
 
-    filteredStaff = filtered;
-    renderFilteredStaff();
+    // Update the global filteredStaff array
+    filteredStaff = filtered; 
+    renderFilteredStaff(); // Render the filtered list
 }
 
 // Render filtered staff
@@ -1074,14 +1079,14 @@ function clearFilters() {
     document.getElementById('roleFilter').value = '';
     document.getElementById('departmentFilter').value = '';
     document.getElementById('statusFilter').value = '';
-    filterStaff();
+    filterStaff(); // Re-apply filters (which will now be empty)
 }
 
 // Show/hide loading state
 function showLoading(show) {
     document.getElementById('loadingState').style.display = show ? 'block' : 'none';
-    document.getElementById('staffTableContainer').style.display = show ? 'none' : 'block';
-    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('staffTableContainer').style.display = 'none'; // Hide table while loading
+    document.getElementById('emptyState').style.display = 'none'; // Hide empty state while loading
 }
 
 // Show/hide table
@@ -1100,55 +1105,55 @@ function showEmptyState() {
 
 // Show add modal
 function showAddModal() {
-    isEditing = false;
+    isEditing = false; // Ensure we are in add mode
     document.getElementById('formMode').value = 'add';
     document.getElementById('staffModalLabel').textContent = 'Add New Staff Member';
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
     document.getElementById('passwordHelp').textContent = 'Password is required for new staff';
-    document.getElementById('password').required = true;
+    document.getElementById('password').required = true; // Make password required for new staff
 
-    clearForm();
+    clearForm(); // Clear any previous data
+    staffModal.show(); // Show the modal
 }
 
 // Edit staff
 async function editStaff(staffId) {
     try {
-        isEditing = true;
+        isEditing = true; // Set editing mode
+        currentStaffId = staffId; // Store the ID of the staff being edited
+
         document.getElementById('formMode').value = 'edit';
         document.getElementById('staffModalLabel').textContent = 'Edit Staff Member';
         document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
         document.getElementById('passwordHelp').textContent = 'Leave blank to keep current password';
-        document.getElementById('password').required = false;
+        document.getElementById('password').required = false; // Password is not required for editing
 
-        // Load staff data
+        // Load staff data from API first
         const response = await fetch(`/api/staff/${staffId}`);
         const data = await response.json();
 
         if (data.success) {
-            populateForm(data.staff);
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('staffModal'));
-            modal.show();
+            populateForm(data.staff); // Populate form with fetched data
+            staffModal.show(); // Show the modal
         } else {
-            // If staff not found via API, try to get from local data
+            // Fallback: If API fails, try to get from local data (allStaff)
             const staff = allStaff.find(s => s.id === staffId);
             if (staff) {
                 populateForm(staff);
-                const modal = new bootstrap.Modal(document.getElementById('staffModal'));
-                modal.show();
+                staffModal.show();
             } else {
-                throw new Error(data.error || 'Staff member not found');
+                throw new Error(data.error || 'Staff member not found via API or local data');
             }
         }
     } catch (error) {
-        showAlert('Error loading staff data: ' + error.message, 'danger');
+        console.error('Error editing staff:', error);
+        showAlert('Error loading staff data for editing: ' + error.message, 'danger');
     }
 }
 
 // Populate form with staff data
 function populateForm(staff) {
-    document.getElementById('staffId').value = staff.id;
+    document.getElementById('staffId').value = staff.id || '';
     document.getElementById('username').value = staff.username || '';
     document.getElementById('firstName').value = staff.first_name || '';
     document.getElementById('lastName').value = staff.last_name || '';
@@ -1157,64 +1162,66 @@ function populateForm(staff) {
     document.getElementById('roleId').value = staff.role_id || '';
     document.getElementById('departmentId').value = staff.department_id || '';
     document.getElementById('designation').value = staff.designation || '';
-    document.getElementById('commissionRate').value = staff.commission_rate || '';
-    document.getElementById('hourlyRate').value = staff.hourly_rate || '';
+    document.getElementById('commissionRate').value = staff.commission_rate !== undefined ? staff.commission_rate : '';
+    document.getElementById('hourlyRate').value = staff.hourly_rate !== undefined ? staff.hourly_rate : '';
     document.getElementById('gender').value = staff.gender || '';
     document.getElementById('dateOfBirth').value = staff.date_of_birth || '';
     document.getElementById('dateOfJoining').value = staff.date_of_joining || '';
     document.getElementById('shiftStart').value = staff.shift_start_time || '';
     document.getElementById('shiftEnd').value = staff.shift_end_time || '';
     document.getElementById('workingDays').value = staff.working_days || '';
-    document.getElementById('enableFaceCheckin').checked = staff.enable_face_checkin;
+    document.getElementById('enableFaceCheckin').checked = staff.enable_face_checkin || false;
     document.getElementById('notesBio').value = staff.notes_bio || '';
 }
 
-// Clear form
+// Clear form fields and reset state
 function clearForm() {
-    document.getElementById('staffForm').reset();
-    document.getElementById('staffId').value = '';
+    document.getElementById('staffForm').reset(); // Reset form to its initial state
+    document.getElementById('staffId').value = ''; // Clear hidden ID field
+    document.getElementById('formMode').value = 'add'; // Reset mode to add
+    document.getElementById('staffModalLabel').textContent = 'Add New Staff Member'; // Reset modal title
+    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff'; // Reset button text
+    document.getElementById('passwordHelp').textContent = 'Password is required for new staff'; // Reset password help text
+    document.getElementById('password').required = true; // Make password required again for add mode
 }
 
-// Setup form handlers
-function setupFormHandlers() {
-    document.getElementById('staffForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        await saveStaff();
-    });
-}
 
 // Save staff (add or update)
 async function saveStaff() {
     try {
         const formData = {
-            username: document.getElementById('username').value,
-            first_name: document.getElementById('firstName').value,
-            last_name: document.getElementById('lastName').value,
-            email: document.getElementById('email').value,
-            phone: document.getElementById('phone').value,
-            role_id: parseInt(document.getElementById('roleId').value) || null,
-            department_id: parseInt(document.getElementById('departmentId').value) || null,
-            designation: document.getElementById('designation').value,
-            commission_rate: parseFloat(document.getElementById('commissionRate').value) || 0,
-            hourly_rate: parseFloat(document.getElementById('hourlyRate').value) || 0,
-            gender: document.getElementById('gender').value,
-            date_of_birth: document.getElementById('dateOfBirth').value,
-            date_of_joining: document.getElementById('dateOfJoining').value,
-            shift_start_time: document.getElementById('shiftStart').value,
-            shift_end_time: document.getElementById('shiftEnd').value,
-            working_days: document.getElementById('workingDays').value,
-            enable_face_checkin: document.getElementById('enableFaceCheckin').checked,
-            notes_bio: document.getElementById('notesBio').value
+            username: getFieldValue('username'),
+            first_name: getFieldValue('firstName'),
+            last_name: getFieldValue('lastName'),
+            email: getFieldValue('email'),
+            phone: getFieldValue('phone'),
+            role_id: parseInt(getFieldValue('roleId')) || null,
+            department_id: parseInt(getFieldValue('departmentId')) || null,
+            designation: getFieldValue('designation'),
+            commission_rate: parseFloat(getFieldValue('commissionRate')) || 0,
+            hourly_rate: parseFloat(getFieldValue('hourlyRate')) || 0,
+            gender: getFieldValue('gender'),
+            date_of_birth: getFieldValue('dateOfBirth'),
+            date_of_joining: getFieldValue('dateOfJoining'),
+            shift_start_time: getFieldValue('shiftStart'),
+            shift_end_time: getFieldValue('shiftEnd'),
+            working_days: getFieldValue('workingDays'),
+            enable_face_checkin: getCheckboxValue('enableFaceCheckin'),
+            notes_bio: getFieldValue('notesBio')
         };
 
-        // Add password if provided
-        const password = document.getElementById('password').value;
-        if (password) {
-            formData.password = password;
+        // Add password only if it's provided (for edit mode) or required (for add mode)
+        const passwordField = document.getElementById('password');
+        if (passwordField && passwordField.value) {
+            formData.password = passwordField.value;
+        } else if (document.getElementById('formMode').value === 'add' && !formData.password) {
+            // If in add mode and password is not provided, this will be caught by validation
+            // Or we can explicitly check here if needed.
         }
 
+
         let url, method;
-        if (isEditing) {
+        if (isEditing) { // Use the isEditing flag
             const staffId = document.getElementById('staffId').value;
             url = `/api/staff/${staffId}`;
             method = 'PUT';
@@ -1237,33 +1244,37 @@ async function saveStaff() {
             showAlert(data.message, 'success');
 
             // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('staffModal'));
-            modal.hide();
+            staffModal.hide(); // Use the globally initialized modal instance
 
             loadStaffData(); // Refresh data
         } else {
-            throw new Error(data.error);
+            throw new Error(data.error || 'An unknown error occurred');
         }
     } catch (error) {
+        console.error('Error saving staff:', error);
         showAlert('Error saving staff: ' + error.message, 'danger');
     }
 }
 
-// Show delete modal
+// Show delete modal with confirmation message
 function showDeleteModal(staffId) {
     const staff = allStaff.find(s => s.id === staffId);
     if (!staff) return;
 
-    currentDeleteId = staffId;
+    currentDeleteId = staffId; // Store the ID for confirmation
     document.getElementById('deleteMessage').textContent = 
-        `Are you sure you want to delete ${staff.full_name}? This action cannot be undone.`;
+        `Are you sure you want to delete ${staff.full_name} (${staff.username})? This action cannot be undone.`;
 
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
 }
 
-// Perform delete
+// Perform delete operation
 async function performDelete(staffId) {
+    if (!staffId) {
+        console.error("No staff ID provided for deletion.");
+        return;
+    }
     try {
         const response = await fetch(`/api/staff/${staffId}`, {
             method: 'DELETE'
@@ -1278,43 +1289,47 @@ async function performDelete(staffId) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
             modal.hide();
 
-            currentDeleteId = null;
+            currentDeleteId = null; // Clear the stored ID
             loadStaffData(); // Refresh data
         } else {
-            throw new Error(data.error);
+            throw new Error(data.error || 'Failed to delete staff member');
         }
     } catch (error) {
+        console.error('Error deleting staff:', error);
         showAlert('Error deleting staff: ' + error.message, 'danger');
     }
 }
 
-// View performance
+// View performance details
 function viewPerformance(staffId) {
     const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) return;
+    if (!staff) {
+        showAlert('Staff member not found.', 'danger');
+        return;
+    }
 
     document.getElementById('performanceModalLabel').textContent = `${staff.full_name} - Performance`;
     document.getElementById('performanceContent').innerHTML = `
         <div class="row">
             <div class="col-md-6">
-                <div class="card border-primary">
+                <div class="card border-primary mb-3">
                     <div class="card-header bg-primary text-white">
                         <h6 class="mb-0">Revenue & Commission</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
-                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate}%</div>
-                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate}</div>
+                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated?.toFixed(2) ?? 'N/A'}</div>
+                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate !== undefined ? `${staff.commission_rate}%` : 'N/A'}</div>
+                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate !== undefined ? staff.hourly_rate.toFixed(2) : 'N/A'}</div>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card border-success">
+                <div class="card border-success mb-3">
                     <div class="card-header bg-success text-white">
                         <h6 class="mb-0">Client Service</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served}</div>
+                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served ?? 'N/A'}</div>
                         <div class="mb-2"><strong>Average Rating:</strong> ${staff.average_rating > 0 ? `⭐${staff.average_rating.toFixed(1)}` : 'No rating yet'}</div>
                         <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? 'success' : 'danger'}">${staff.is_active ? 'Active' : 'Inactive'}</span></div>
                     </div>
@@ -1341,87 +1356,95 @@ function viewPerformance(staffId) {
     modal.show();
 }
 
-// Refresh staff data
+// Refresh staff data and show notification
 async function refreshStaffData() {
     showAlert('Refreshing staff data...', 'info');
     await loadStaffData();
 }
 
-// Export staff data (placeholder)
+// Placeholder for export functionality
 function exportStaffData() {
     showAlert('Export functionality - Feature coming soon!', 'info');
 }
 
-// Show alert
+// Show a temporary alert message
 function showAlert(message, type = 'info') {
     const alertContainer = document.getElementById('alertContainer');
-    const alertId = 'alert-' + Date.now();
+    const alertId = 'alert-' + Date.now(); // Unique ID for each alert
 
     const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}">
+        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     `;
 
     alertContainer.insertAdjacentHTML('beforeend', alertHtml);
 
-    // Auto remove after 5 seconds
+    // Automatically remove the alert after a few seconds
     setTimeout(() => {
-        const alert = document.getElementById(alertId);
-        if (alert) {
-            alert.remove();
+        const alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            // Use bootstrap's alert dismissal for proper animation
+            const alert = new bootstrap.Alert(alertElement);
+            alert.close();
         }
-    }, 5000);
+    }, 5000); // Alert disappears after 5 seconds
 }
 
-// Enhanced Schedule Range Management JavaScript for Modal
-let modalScheduleRangeModal;
-let currentModalStaffId = null;
-
-// Initialize schedule range functionality for modal
+// Initialize modal for schedule ranges
 function initializeModalScheduleManagement() {
-    // Initialize modal
     const modalElement = document.getElementById('scheduleRangeModal');
     if (modalElement) {
         modalScheduleRangeModal = new bootstrap.Modal(modalElement);
     }
 
-    // Setup form submission
     const scheduleForm = document.getElementById('scheduleRangeForm');
     if (scheduleForm) {
-        scheduleForm.addEventListener('submit', saveModalScheduleRange);
+        scheduleForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+            saveModalScheduleRange(); // Call the save function
+        });
     }
 }
 
-// Open the schedule range modal from within staff modal
+// Open schedule range modal (called from staff edit/add)
 function openScheduleRangeModal() {
-    // Reset form
+    // Reset form and set defaults
     document.getElementById('scheduleRangeForm').reset();
-    // Set default values
     document.getElementById('rangeShiftStart').value = '09:00';
     document.getElementById('rangeShiftEnd').value = '17:00';
     document.getElementById('breakMinutes').value = '30';
-    // Check default working days (Monday-Friday)
+    document.getElementById('priority').value = '1'; // Default to Normal priority
+
+    // Check default working days (Mon-Fri)
     ['rangeMonday', 'rangeTuesday', 'rangeWednesday', 'rangeThursday', 'rangeFriday'].forEach(id => {
         document.getElementById(id).checked = true;
     });
     ['rangeSaturday', 'rangeSunday'].forEach(id => {
         document.getElementById(id).checked = false;
     });
-    // Show modal
-    modalScheduleRangeModal.show();
+
+    // Update modal title and button for adding
+    document.querySelector('#scheduleRangeModal .modal-title').innerHTML = 
+        `<i class="fas fa-calendar-plus me-2"></i>Add Schedule Range`;
+    document.getElementById('saveScheduleBtn').textContent = 'Save Schedule Range';
+    document.getElementById('deleteScheduleBtn').style.display = 'none'; // Hide delete button
+
+    // Show the modal
+    if (modalScheduleRangeModal) {
+        modalScheduleRangeModal.show();
+    }
 }
 
-// Save schedule range from modal
-async function saveModalScheduleRange(event) {
-    event.preventDefault();
-
-    const staffId = currentModalStaffId || document.getElementById('staffId').value;
+// Save or update a schedule range
+async function saveModalScheduleRange() {
+    const staffId = document.getElementById('staffId').value; // Get staff ID from the main staff form
     if (!staffId) {
-        showAlert('Please save the staff member first before adding schedule ranges', 'warning');
+        showAlert('Please save the staff member details first before adding schedule ranges', 'warning');
         return;
     }
+    currentModalStaffId = staffId; // Store globally for other schedule functions
 
     // Collect working days
     const workingDays = {
@@ -1435,20 +1458,33 @@ async function saveModalScheduleRange(event) {
     };
 
     const scheduleData = {
-        schedule_name: document.getElementById('scheduleName').value,
-        start_date: document.getElementById('startDate').value,
-        end_date: document.getElementById('endDate').value,
+        schedule_name: getFieldValue('scheduleName'),
+        start_date: getFieldValue('startDate'),
+        end_date: getFieldValue('endDate'),
         working_days: workingDays,
-        shift_start_time: document.getElementById('rangeShiftStart').value,
-        shift_end_time: document.getElementById('rangeShiftEnd').value,
-        break_time: document.getElementById('breakMinutes').value || '30',
-        priority: parseInt(document.getElementById('priority').value) || 1,
-        description: document.getElementById('description').value || ''
+        shift_start_time: getFieldValue('rangeShiftStart'),
+        shift_end_time: getFieldValue('rangeShiftEnd'),
+        break_time: getFieldValue('breakMinutes'),
+        priority: parseInt(getFieldValue('priority')) || 1,
+        description: getFieldValue('description')
     };
 
+    // Basic validation for schedule range
+    if (!scheduleData.schedule_name || !scheduleData.start_date || !scheduleData.end_date ||
+        !scheduleData.shift_start_time || !scheduleData.shift_end_time) {
+        showAlert('Please fill in all required schedule fields (Name, Dates, Times)', 'warning');
+        return;
+    }
+
+    const isEditing = currentEditingScheduleId !== null;
+    const url = isEditing
+        ? `/api/staff/${staffId}/schedule-ranges/${currentEditingScheduleId}`
+        : `/api/staff/${staffId}/schedule-ranges`;
+    const method = isEditing ? 'PUT' : 'POST';
+
     try {
-        const response = await fetch(`/api/staff/${staffId}/schedule-ranges`, {
-            method: 'POST',
+        const response = await fetch(url, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -1458,9 +1494,12 @@ async function saveModalScheduleRange(event) {
         const result = await response.json();
 
         if (result.success) {
-            showAlert('Schedule range added successfully!', 'success');
-            modalScheduleRangeModal.hide();
-            await loadModalScheduleRanges(staffId);
+            showAlert(result.message || 'Schedule range saved successfully!', 'success');
+            if (modalScheduleRangeModal) {
+                modalScheduleRangeModal.hide();
+            }
+            await loadModalScheduleRanges(staffId); // Refresh the list in the schedule modal
+            resetScheduleRangeModal(); // Reset the form for next time
         } else {
             throw new Error(result.message || 'Failed to save schedule range');
         }
@@ -1470,7 +1509,7 @@ async function saveModalScheduleRange(event) {
     }
 }
 
-// Load schedule ranges for modal display
+// Load and render schedule ranges for a specific staff member
 async function loadModalScheduleRanges(staffId) {
     if (!staffId) return;
 
@@ -1479,7 +1518,10 @@ async function loadModalScheduleRanges(staffId) {
         const data = await response.json();
 
         const tbody = document.querySelector('#modalScheduleRangesTable tbody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.error('Schedule ranges table body not found.');
+            return;
+        }
 
         if (data.success && data.schedule_ranges && data.schedule_ranges.length > 0) {
             renderScheduleRangesTable(data.schedule_ranges);
@@ -1495,10 +1537,11 @@ async function loadModalScheduleRanges(staffId) {
         }
     } catch (error) {
         console.error('Error loading schedule ranges:', error);
+        showAlert('Error loading schedule ranges: ' + error.message, 'danger');
     }
 }
 
-// Render schedule ranges in user-friendly table format
+// Render schedule ranges in a table format
 function renderScheduleRangesTable(ranges) {
     const tbody = document.querySelector('#modalScheduleRangesTable tbody');
     if (!tbody) return;
@@ -1509,42 +1552,64 @@ function renderScheduleRangesTable(ranges) {
     let html = '';
 
     ranges.forEach((range, rangeIndex) => {
-        days.forEach((dayName, dayIndex) => {
-            const dayKey = dayKeys[dayIndex];
-            const isWorking = range.working_days[dayKey];
-            const isFirstRow = dayIndex === 0;
+        // Add a row for the schedule name and period only for the first day of the range
+        html += `
+            <tr>
+                <td class="align-middle">
+                    <strong>${range.schedule_name}</strong>
+                    <br><small>${range.start_date} to ${range.end_date}</small>
+                </td>
+                <td class="align-middle">${days[0]}</td>
+                <td class="align-middle">
+                    <span class="badge ${getDayBadgeClass(days[0])}">${days[0]}</span>
+                </td>
+                <td class="align-middle">
+                    <span class="badge ${range.working_days.monday ? 'bg-success' : 'bg-secondary'}">
+                        <i class="fas fa-${range.working_days.monday ? 'check' : 'times'} me-1"></i>
+                        ${range.working_days.monday ? 'Yes' : 'No'}
+                    </span>
+                </td>
+                <td class="align-middle">${range.working_days.monday ? `${range.shift_start_time} - ${range.shift_end_time}` : '-'}</td>
+                <td class="align-middle">${range.working_days.monday ? `${range.break_time} min` : '-'}</td>
+                <td class="align-middle"><span class="badge bg-primary">Prio ${range.priority}</span></td>
+                <td class="align-middle">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="editScheduleRange(${range.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteScheduleRangeConfirm(${range.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
 
+        // Add rows for subsequent days in the range
+        for (let i = 1; i < days.length; i++) {
+            const dayName = days[i];
+            const dayKey = dayKeys[i];
             html += `
-                <tr ${isWorking ? 'class="table-success"' : 'class="table-light"'}>
-                    <td>${isFirstRow ? `<strong>${range.schedule_name}</strong>` : ''}</td>
-                    <td>${isFirstRow ? `${range.start_date} to ${range.end_date}` : ''}</td>
-                    <td><span class="badge bg-secondary">${dayName}</span></td>
-                    <td>
-                        <span class="badge ${isWorking ? 'bg-success' : 'bg-secondary'}">
-                            <i class="fas fa-${isWorking ? 'check' : 'times'} me-1"></i>
-                            ${isWorking ? 'Yes' : 'No'}
+                <tr>
+                    <td></td> <!-- Empty cell for schedule name/period -->
+                    <td class="align-middle">${dayName}</td>
+                    <td class="align-middle">
+                        <span class="badge ${getDayBadgeClass(dayName)}">${dayName}</span>
+                    </td>
+                    <td class="align-middle">
+                        <span class="badge ${range.working_days[dayKey] ? 'bg-success' : 'bg-secondary'}">
+                            <i class="fas fa-${range.working_days[dayKey] ? 'check' : 'times'} me-1"></i>
+                            ${range.working_days[dayKey] ? 'Yes' : 'No'}
                         </span>
                     </td>
-                    <td>${isWorking ? `${range.shift_start_time} - ${range.shift_end_time}` : '-'}</td>
-                    <td>${isWorking ? `${range.break_time} min` : '-'}</td>
-                    <td>${isFirstRow ? `<span class="badge bg-primary">Priority ${range.priority}</span>` : ''}</td>
-                    <td>
-                        ${isFirstRow ? `
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-sm btn-outline-primary me-2" onclick="editScheduleRange(${range.id})">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteScheduleRangeConfirm(${range.id})">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        ` : ''}
-                    </td>
+                    <td class="align-middle">${range.working_days[dayKey] ? `${range.shift_start_time} - ${range.shift_end_time}` : '-'}</td>
+                    <td class="align-middle">${range.working_days[dayKey] ? `${range.break_time} min` : '-'}</td>
+                    <td></td> <!-- Empty cell for priority -->
+                    <td></td> <!-- Empty cells for actions -->
                 </tr>
             `;
-        });
-
-        // Add separator row between different schedule ranges
+        }
+        // Add a separator between different schedule ranges
         if (rangeIndex < ranges.length - 1) {
             html += `<tr><td colspan="8" class="border-top border-2"></td></tr>`;
         }
@@ -1553,18 +1618,18 @@ function renderScheduleRangesTable(ranges) {
     tbody.innerHTML = html;
 }
 
-// Edit schedule range function
+// Edit a schedule range
 function editScheduleRange(scheduleId) {
-    currentEditingScheduleId = scheduleId;
+    currentEditingScheduleId = scheduleId; // Store the ID of the range being edited
 
-    // Fetch schedule range details
+    // Fetch the schedule range details
     fetch(`/api/staff/schedule-ranges/${scheduleId}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             const schedule = data.schedule;
 
-            // Populate modal with existing data
+            // Populate the modal form with the fetched data
             document.getElementById('scheduleName').value = schedule.schedule_name;
             document.getElementById('startDate').value = schedule.start_date;
             document.getElementById('endDate').value = schedule.end_date;
@@ -1574,40 +1639,48 @@ function editScheduleRange(scheduleId) {
             document.getElementById('priority').value = schedule.priority;
             document.getElementById('description').value = schedule.description;
 
-            // Check working days
+            // Update checkboxes for working days
             const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             dayKeys.forEach(key => {
-                document.getElementById(`range${key.charAt(0).toUpperCase() + key.slice(1)}`).checked = schedule.working_days[key];
+                const checkboxId = `range${key.charAt(0).toUpperCase() + key.slice(1)}`;
+                document.getElementById(checkboxId).checked = schedule.working_days[key];
             });
 
+            // Update modal title and button text to reflect editing
+            document.querySelector('#scheduleRangeModal .modal-title').innerHTML = 
+                `<i class="fas fa-edit me-2"></i>Edit Schedule Range`;
+            document.getElementById('saveScheduleBtn').textContent = 'Update Schedule Range';
+            document.getElementById('deleteScheduleBtn').style.display = 'inline-block'; // Show delete button
 
-            // Update modal title and button text
-            document.querySelector('#scheduleRangeModal .modal-title').textContent = 'Edit Schedule Range';
-            document.getElementById('saveScheduleBtn').textContent = 'Update Schedule';
-            document.getElementById('deleteScheduleBtn').style.display = 'inline-block';
-
-            // Show modal
-            modalScheduleRangeModal.show();
+            // Show the modal
+            if (modalScheduleRangeModal) {
+                modalScheduleRangeModal.show();
+            }
         } else {
             showAlert('Error loading schedule data: ' + data.error, 'danger');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Error fetching schedule range:', error);
         showAlert('Error loading schedule data', 'danger');
     });
 }
 
-// Delete schedule range confirmation
+// Confirm deletion of a schedule range
 function deleteScheduleRangeConfirm(scheduleId) {
-    if (confirm('Are you sure you want to delete this schedule range?')) {
+    if (confirm('Are you sure you want to delete this schedule range? This action cannot be undone.')) {
         deleteScheduleRange(scheduleId);
     }
 }
 
-// Delete schedule range
+// Delete a schedule range
 async function deleteScheduleRange(scheduleId) {
-    const staffId = document.getElementById('scheduleStaffId').value;
+    const staffId = document.getElementById('staffId').value; // Get staff ID from the main form
+    if (!staffId) {
+        showAlert('Staff ID not found. Cannot delete schedule.', 'danger');
+        return;
+    }
+
     try {
         const response = await fetch(`/api/staff/${staffId}/schedule-ranges/${scheduleId}`, {
             method: 'DELETE',
@@ -1619,8 +1692,8 @@ async function deleteScheduleRange(scheduleId) {
         const result = await response.json();
 
         if (result.success) {
-            showAlert('Schedule range deleted successfully!', 'success');
-            await loadModalScheduleRanges(staffId);
+            showAlert(result.message || 'Schedule range deleted successfully!', 'success');
+            await loadModalScheduleRanges(staffId); // Refresh the list
         } else {
             throw new Error(result.message || 'Failed to delete schedule range');
         }
@@ -1630,40 +1703,19 @@ async function deleteScheduleRange(scheduleId) {
     }
 }
 
-// Reset schedule range modal
+// Reset the schedule range modal form to its initial state
 function resetScheduleRangeModal() {
     document.getElementById('scheduleRangeForm').reset();
     document.getElementById('scheduleRangeModalLabel').innerHTML = 
         `<i class="fas fa-calendar-plus me-2"></i>Add Schedule Range`;
     document.getElementById('saveScheduleBtn').textContent = 'Save Schedule Range';
     document.getElementById('deleteScheduleBtn').style.display = 'none';
-    currentEditingScheduleId = null;
+    currentEditingScheduleId = null; // Reset editing ID
+    currentModalStaffId = null; // Reset staff ID context
 }
 
-// Date Range Scheduler Functions
-let currentScheduleDays = [];
-
-// Open the date range scheduler
-function openDateRangeScheduler() {
-    document.getElementById('dateRangeScheduler').classList.remove('d-none');
-    // Set default dates (next week)
-    const today = new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
-    const endOfWeek = new Date(nextWeek);
-    endOfWeek.setDate(nextWeek.getDate() + 6);
-
-    document.getElementById('scheduleFromDate').value = formatDateForInput(nextWeek);
-    document.getElementById('scheduleToDate').value = formatDateForInput(endOfWeek);
-}
-
-// Close the date range scheduler
-function closeDateRangeScheduler() {
-    document.getElementById('dateRangeScheduler').classList.add('d-none');
-    document.getElementById('bulkActions').classList.add('d-none');
-    document.getElementById('dayScheduleContainer').classList.add('d-none');
-    currentScheduleDays = [];
-}
+// --- Date Range Scheduler Functions ---
+let currentScheduleDays = []; // Stores the generated day-by-day schedule data
 
 // Generate day-by-day schedule from date range
 function generateDaySchedule() {
@@ -1674,15 +1726,13 @@ function generateDaySchedule() {
         showAlert('Please select both From Date and To Date', 'warning');
         return;
     }
-
     if (new Date(fromDate) > new Date(toDate)) {
         showAlert('From Date cannot be later than To Date', 'warning');
         return;
     }
 
-    // Generate all days in the range
     const days = [];
-    const current = new Date(fromDate);
+    let current = new Date(fromDate);
     const end = new Date(toDate);
 
     while (current <= end) {
@@ -1695,16 +1745,16 @@ function generateDaySchedule() {
             breakMinutes: '60',
             notes: ''
         });
-        current.setDate(current.getDate() + 1);
+        current.setDate(current.getDate() + 1); // Move to the next day
     }
 
-    currentScheduleDays = days;
-    renderDayScheduleTable();
+    currentScheduleDays = days; // Update global state
+    renderDayScheduleTable(); // Render the table
 
-    // Show bulk actions and day container
+    // Show bulk actions and the day schedule container
     document.getElementById('bulkActions').classList.remove('d-none');
     document.getElementById('dayScheduleContainer').classList.remove('d-none');
-    document.getElementById('dayCount').textContent = `${days.length} days`;
+    document.getElementById('dayCount').textContent = `${days.length} days`; // Update day count
 }
 
 // Render the day-by-day schedule table
@@ -1723,8 +1773,9 @@ function renderDayScheduleTable() {
                 </td>
                 <td>
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" ${day.working ? 'checked' : ''} 
-                               onchange="toggleDayWorking(${index})" id="working_${index}">
+                        <input class="form-check-input" type="checkbox" 
+                               id="working_${index}" ${day.working ? 'checked' : ''} 
+                               onchange="toggleDayWorking(${index})">
                         <label class="form-check-label" for="working_${index}">
                             <span class="badge ${day.working ? 'bg-success' : 'bg-secondary'}">
                                 ${day.working ? 'Yes' : 'No'}
@@ -1734,22 +1785,26 @@ function renderDayScheduleTable() {
                 </td>
                 <td>
                     <input type="time" class="form-control form-control-sm" value="${day.startTime}" 
-                           ${!day.working ? 'disabled' : ''} onchange="updateDayField(${index}, 'startTime', this.value)">
+                           id="startTime_${index}" ${!day.working ? 'disabled' : ''} 
+                           onchange="updateDayField(${index}, 'startTime', this.value)">
                 </td>
                 <td>
                     <input type="time" class="form-control form-control-sm" value="${day.endTime}" 
-                           ${!day.working ? 'disabled' : ''} onchange="updateDayField(${index}, 'endTime', this.value)">
+                           id="endTime_${index}" ${!day.working ? 'disabled' : ''} 
+                           onchange="updateDayField(${index}, 'endTime', this.value)">
                 </td>
                 <td>
                     <div class="input-group input-group-sm">
                         <input type="number" class="form-control" value="${day.breakMinutes}" min="0" max="480" 
-                               ${!day.working ? 'disabled' : ''} onchange="updateDayField(${index}, 'breakMinutes', this.value)">
+                               id="breakMinutes_${index}" ${!day.working ? 'disabled' : ''} 
+                               onchange="updateDayField(${index}, 'breakMinutes', this.value)">
                         <span class="input-group-text">min</span>
                     </div>
                 </td>
                 <td>
                     <input type="text" class="form-control form-control-sm" value="${day.notes}" 
-                           placeholder="Notes..." onchange="updateDayField(${index}, 'notes', this.value)">
+                           id="notes_${index}" placeholder="Notes..." 
+                           onchange="updateDayField(${index}, 'notes', this.value)">
                 </td>
             </tr>
         `;
@@ -1761,65 +1816,69 @@ function renderDayScheduleTable() {
 // Toggle working status for a day
 function toggleDayWorking(index) {
     currentScheduleDays[index].working = !currentScheduleDays[index].working;
-    renderDayScheduleTable();
+    renderDayScheduleTable(); // Re-render to update row colors and disabled states
 }
 
-// Update a field for a specific day
+// Update a specific field for a day
 function updateDayField(index, field, value) {
     currentScheduleDays[index][field] = value;
 }
 
-// Bulk Actions
+// Apply template to all working days
 function applyToAllDays() {
-    const template = currentScheduleDays.find(day => day.working);
-    if (!template) {
+    // Find the first working day as a template
+    const templateDay = currentScheduleDays.find(day => day.working);
+    if (!templateDay) {
         showAlert('Please set up at least one working day as a template', 'warning');
         return;
     }
 
+    // Apply template values to all other working days
     currentScheduleDays.forEach(day => {
         if (day.working) {
-            day.startTime = template.startTime;
-            day.endTime = template.endTime;
-            day.breakMinutes = template.breakMinutes;
+            day.startTime = templateDay.startTime;
+            day.endTime = templateDay.endTime;
+            day.breakMinutes = templateDay.breakMinutes;
         }
     });
 
-    renderDayScheduleTable();
+    renderDayScheduleTable(); // Update the table view
     showAlert('Applied template to all working days!', 'success');
 }
 
+// Mark weekends as non-working
 function markWeekendsOff() {
     currentScheduleDays.forEach(day => {
         if (day.dayName === 'Saturday' || day.dayName === 'Sunday') {
             day.working = false;
         }
     });
-
-    renderDayScheduleTable();
-    showAlert('Weekends marked as off!', 'success');
+    renderDayScheduleTable(); // Update the table view
+    showAlert('Marked all weekends as off!', 'success');
 }
 
+// Placeholder for "Copy Previous Week" functionality
 function copyPreviousWeek() {
     showAlert('Copy previous week functionality - Coming soon!', 'info');
 }
 
+// Placeholder for "Save as Template" functionality
 function saveAsTemplate() {
     showAlert('Save as template functionality - Coming soon!', 'info');
 }
 
+// Placeholder for "View Schedule Templates" functionality
 function viewScheduleTemplates() {
     showAlert('Schedule templates - Coming soon!', 'info');
 }
 
-// Save the day-by-day schedule
+// Save the generated day-by-day schedule
 async function saveDaySchedule() {
-    const staffId = currentModalStaffId || document.getElementById('staffId').value;
+    const staffId = document.getElementById('scheduleStaffId').value; // Get staff ID from the schedule modal
     if (!staffId) {
-        showAlert('Please save the staff member first', 'warning');
+        showAlert('Staff ID is missing. Cannot save schedule.', 'danger');
         return;
     }
-
     if (currentScheduleDays.length === 0) {
         showAlert('Please generate a schedule first', 'warning');
         return;
@@ -1831,17 +1890,15 @@ async function saveDaySchedule() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                days: currentScheduleDays
-            })
+            body: JSON.stringify({ days: currentScheduleDays })
         });
 
         const result = await response.json();
 
         if (result.success) {
-            showAlert('Day-by-day schedule saved successfully!', 'success');
-            closeDateRangeScheduler();
-            await loadModalScheduleRanges(staffId);
+            showAlert(result.message || 'Day-by-day schedule saved successfully!', 'success');
+            closeDateRangeScheduler(); // Close the scheduler section
+            await loadModalScheduleRanges(staffId); // Refresh schedule ranges display
         } else {
             throw new Error(result.message || 'Failed to save schedule');
         }
@@ -1851,19 +1908,27 @@ async function saveDaySchedule() {
     }
 }
 
-// Helper functions
+// Close the date range scheduler section
+function closeDateRangeScheduler() {
+    document.getElementById('dateRangeScheduler').classList.add('d-none');
+    document.getElementById('bulkActions').classList.add('d-none');
+    document.getElementById('dayScheduleContainer').classList.add('d-none');
+    currentScheduleDays = []; // Clear the stored schedule data
+}
+
+// --- Helper Functions ---
 function formatDateForInput(date) {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
 }
 
 function formatDisplayDate(dateStr) {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // Format for display
 }
 
 function isWeekend(date) {
-    const day = date.getDay();
-    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+    const day = date.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
+    return day === 0 || day === 6;
 }
 
 function getDayBadgeClass(dayName) {
@@ -1871,47 +1936,48 @@ function getDayBadgeClass(dayName) {
         'Monday': 'bg-primary',
         'Tuesday': 'bg-info',
         'Wednesday': 'bg-success',
-        'Thursday': 'bg-warning',
+        'Thursday': 'bg-warning text-dark', // Dark text for better contrast on yellow
         'Friday': 'bg-danger',
         'Saturday': 'bg-secondary',
         'Sunday': 'bg-dark'
     };
-    return classes[dayName] || 'bg-secondary';
+    return classes[dayName] || 'bg-secondary'; // Default to secondary
 }
 
-// Schedule Modal Functions
-let modalScheduleDays = [];
-let scheduleModal;
+// --- Schedule Modal Functions ---
+let modalScheduleDays = []; // Data for the schedule generated within the modal
+let scheduleModalInstance; // Bootstrap modal instance for the schedule modal
 
-// Open schedule modal for a specific staff member
+// Open the main schedule modal for a staff member
 function openScheduleModal(staffId) {
     const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) return;
+    if (!staff) {
+        showAlert('Staff member not found.', 'danger');
+        return;
+    }
 
-    // Set staff info
-    document.getElementById('scheduleStaffId').value = staffId;
+    document.getElementById('scheduleStaffId').value = staffId; // Store staff ID
     document.getElementById('scheduleModalLabel').innerHTML = 
         `<i class="fas fa-calendar-alt me-2"></i>Schedule Management - ${staff.full_name}`;
 
-    // Reset modal
-    resetScheduleModal();
-    loadModalScheduleRanges(staffId);
+    resetScheduleModal(); // Reset all sections of the modal
+    loadModalScheduleRanges(staffId); // Load existing schedule ranges
 
-    // Show modal
-    scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
-    scheduleModal.show();
+    // Initialize and show the modal
+    scheduleModalInstance = new bootstrap.Modal(document.getElementById('scheduleModal'));
+    scheduleModalInstance.show();
 }
 
-// Reset schedule modal
+// Reset all parts of the schedule modal
 function resetScheduleModal() {
-    // Clear existing day schedule
+    // Reset day-by-day scheduler section
     modalScheduleDays = [];
     document.getElementById('modalDayScheduleBody').innerHTML = '';
     document.getElementById('modalBulkActions').classList.add('d-none');
     document.getElementById('modalDayScheduleContainer').classList.add('d-none');
     document.getElementById('modalDayCount').textContent = '';
 
-    // Set default dates (next week)
+    // Set default dates for the scheduler (next week)
     const today = new Date();
     const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 7);
@@ -1921,11 +1987,10 @@ function resetScheduleModal() {
     document.getElementById('modalScheduleFromDate').value = formatDateForInput(nextWeek);
     document.getElementById('modalScheduleToDate').value = formatDateForInput(endOfWeek);
 
-    // Reset schedule range form
-    resetScheduleRangeModal();
+    resetScheduleRangeModal(); // Also reset the schedule range form part
 }
 
-// Generate day-by-day schedule from date range (modal version)
+// Generate day-by-day schedule within the modal
 function generateModalDaySchedule() {
     const fromDate = document.getElementById('modalScheduleFromDate').value;
     const toDate = document.getElementById('modalScheduleToDate').value;
@@ -1934,22 +1999,20 @@ function generateModalDaySchedule() {
         showAlert('Please select both From Date and To Date', 'warning');
         return;
     }
-
     if (new Date(fromDate) > new Date(toDate)) {
         showAlert('From Date cannot be later than To Date', 'warning');
         return;
     }
 
-    // Generate all days in the range
     const days = [];
-    const current = new Date(fromDate);
+    let current = new Date(fromDate);
     const end = new Date(toDate);
 
     while (current <= end) {
         days.push({
             date: formatDateForInput(current),
             dayName: current.toLocaleDateString('en-US', { weekday: 'long' }),
-            working: !isWeekend(current), // Default: weekdays working, weekends off
+            working: !isWeekend(current),
             startTime: '09:00',
             endTime: '17:00',
             breakMinutes: '60',
@@ -1959,15 +2022,15 @@ function generateModalDaySchedule() {
     }
 
     modalScheduleDays = days;
-    renderModalDayScheduleTable();
+    renderModalDayScheduleTable(); // Render the table
 
-    // Show bulk actions and day container
+    // Show relevant sections
     document.getElementById('modalBulkActions').classList.remove('d-none');
     document.getElementById('modalDayScheduleContainer').classList.remove('d-none');
     document.getElementById('modalDayCount').textContent = `${days.length} days`;
 }
 
-// Render the day-by-day schedule table (modal version)
+// Render the day-by-day schedule table within the modal
 function renderModalDayScheduleTable() {
     const tbody = document.getElementById('modalDayScheduleBody');
     let html = '';
@@ -1975,79 +2038,78 @@ function renderModalDayScheduleTable() {
     modalScheduleDays.forEach((day, index) => {
         html += `
             <tr class="${day.working ? 'table-success' : 'table-light'}">
-                <td>
-                    <strong>${formatDisplayDate(day.date)}</strong>
-                </td>
-                <td>
-                    <span class="badge ${getDayBadgeClass(day.dayName)}">${day.dayName}</span>
-                </td>
+                <td><strong>${formatDisplayDate(day.date)}</strong></td>
+                <td><span class="badge ${getDayBadgeClass(day.dayName)}">${day.dayName}</span></td>
                 <td>
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" ${day.working ? 'checked' : ''} 
-                               onchange="toggleModalDayWorking(${index})" id="modal_working_${index}">
+                        <input class="form-check-input" type="checkbox" 
+                               id="modal_working_${index}" ${day.working ? 'checked' : ''} 
+                               onchange="toggleModalDayWorking(${index})">
                         <label class="form-check-label" for="modal_working_${index}">
-                            <span class="badge ${day.working ? 'bg-success' : 'bg-secondary'}">
-                                ${day.working ? 'Yes' : 'No'}
-                            </span>
+                            <span class="badge ${day.working ? 'bg-success' : 'bg-secondary'}">${day.working ? 'Yes' : 'No'}</span>
                         </label>
                     </div>
                 </td>
                 <td>
                     <input type="time" class="form-control form-control-sm" value="${day.startTime}" 
-                           ${!day.working ? 'disabled' : ''} onchange="updateModalDayField(${index}, 'startTime', this.value)">
+                           id="modal_startTime_${index}" ${!day.working ? 'disabled' : ''} 
+                           onchange="updateModalDayField(${index}, 'startTime', this.value)">
                 </td>
                 <td>
                     <input type="time" class="form-control form-control-sm" value="${day.endTime}" 
-                           ${!day.working ? 'disabled' : ''} onchange="updateModalDayField(${index}, 'endTime', this.value)">
+                           id="modal_endTime_${index}" ${!day.working ? 'disabled' : ''} 
+                           onchange="updateModalDayField(${index}, 'endTime', this.value)">
                 </td>
                 <td>
                     <div class="input-group input-group-sm">
                         <input type="number" class="form-control" value="${day.breakMinutes}" min="0" max="480" 
-                               ${!day.working ? 'disabled' : ''} onchange="updateModalDayField(${index}, 'breakMinutes', this.value)">
+                               id="modal_breakMinutes_${index}" ${!day.working ? 'disabled' : ''} 
+                               onchange="updateModalDayField(${index}, 'breakMinutes', this.value)">
                         <span class="input-group-text">min</span>
                     </div>
                 </td>
                 <td>
                     <input type="text" class="form-control form-control-sm" value="${day.notes}" 
-                           placeholder="Notes..." onchange="updateModalDayField(${index}, 'notes', this.value)">
+                           id="modal_notes_${index}" placeholder="Notes..." 
+                           onchange="updateModalDayField(${index}, 'notes', this.value)">
                 </td>
             </tr>
         `;
     });
-
     tbody.innerHTML = html;
 }
 
-// Toggle working status for a day (modal version)
+// Toggle working status for a day in the modal
 function toggleModalDayWorking(index) {
     modalScheduleDays[index].working = !modalScheduleDays[index].working;
     renderModalDayScheduleTable();
 }
 
-// Update a field for a specific day (modal version)
+// Update a field for a day in the modal
 function updateModalDayField(index, field, value) {
     modalScheduleDays[index][field] = value;
 }
 
-// Modal Bulk Actions
+// Modal bulk action: Apply template to all working days
 function modalApplyToAllDays() {
-    const template = modalScheduleDays.find(day => day.working);
-    if (!template) {
+    const templateDay = modalScheduleDays.find(day => day.working);
+    if (!templateDay) {
         showAlert('Please set up at least one working day as a template', 'warning');
         return;
     }
 
     modalScheduleDays.forEach(day => {
         if (day.working) {
-            day.startTime = template.startTime;
-            day.endTime = template.endTime;
-            day.breakMinutes = template.breakMinutes;
+            day.startTime = templateDay.startTime;
+            day.endTime = templateDay.endTime;
+            day.breakMinutes = templateDay.breakMinutes;
         }
     });
     renderModalDayScheduleTable();
     showAlert('Applied template to all working days', 'success');
 }
 
+// Modal bulk action: Mark all weekends as off
 function modalMarkWeekendsOff() {
     modalScheduleDays.forEach(day => {
         if (day.dayName === 'Saturday' || day.dayName === 'Sunday') {
@@ -2058,14 +2120,13 @@ function modalMarkWeekendsOff() {
     showAlert('Marked all weekends as off', 'success');
 }
 
-// Save day-by-day schedule (modal version)
+// Save the day-by-day schedule generated in the modal
 async function saveModalDaySchedule() {
     const staffId = document.getElementById('scheduleStaffId').value;
     if (!staffId) {
-        showAlert('Staff ID is missing', 'danger');
+        showAlert('Staff ID is missing. Cannot save schedule.', 'danger');
         return;
     }
-
     if (modalScheduleDays.length === 0) {
         showAlert('Please generate day schedule first', 'warning');
         return;
@@ -2077,18 +2138,15 @@ async function saveModalDaySchedule() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                days: modalScheduleDays
-            })
+            body: JSON.stringify({ days: modalScheduleDays })
         });
 
         const result = await response.json();
 
         if (result.success) {
-            showAlert('Day-by-day schedule saved successfully!', 'success');
-            // Reset modal state after saving
-            resetScheduleModal();
-            await loadModalScheduleRanges(staffId);
+            showAlert(result.message || 'Day-by-day schedule saved successfully!', 'success');
+            resetScheduleModal(); // Reset the modal state
+            await loadModalScheduleRanges(staffId); // Refresh the schedule ranges list
         } else {
             throw new Error(result.message || 'Failed to save schedule');
         }
@@ -2097,6 +2155,37 @@ async function saveModalDaySchedule() {
         showAlert('Error saving schedule: ' + error.message, 'danger');
     }
 }
+
+// Helper function to update staff data via API
+async function updateStaff(staffId, staffData) {
+    try {
+        console.log('Updating staff with data:', staffData);
+
+        const response = await fetch(`/api/staff/${staffId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(staffData)
+        });
+
+        const result = await response.json();
+        console.log('Update API Response:', result);
+
+        if (!response.ok) {
+            throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Error updating staff:', error);
+        return {
+            success: false,
+            error: error.message || 'Failed to update staff member'
+        };
+    }
+}
+
 
 </script>
 
