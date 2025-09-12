@@ -748,6 +748,105 @@ def api_create_consumption():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/inventory/consumption/<int:consumption_id>', methods=['GET'])
+def api_get_consumption_by_id(consumption_id):
+    """Get a specific consumption record by ID"""
+    try:
+        consumption = InventoryConsumption.query.filter_by(id=consumption_id).first()
+        
+        if not consumption:
+            return jsonify({'error': 'Consumption record not found'}), 404
+        
+        consumption_data = {
+            'id': consumption.id,
+            'batch_id': consumption.batch_id,
+            'batch_name': consumption.batch.batch_name if consumption.batch else 'Unknown',
+            'product_name': consumption.batch.product.name if consumption.batch and consumption.batch.product else 'Unknown',
+            'quantity': float(consumption.quantity),
+            'issued_to': consumption.issued_to,
+            'reference': consumption.reference,
+            'notes': consumption.notes,
+            'created_at': consumption.created_at.isoformat() if consumption.created_at else None,
+            'created_by_name': consumption.user.full_name if consumption.user else 'Unknown',
+            
+            # Fields expected by the frontend
+            'consumption_date': consumption.created_at.strftime('%Y-%m-%d') if consumption.created_at else '',
+            'reference_doc_no': consumption.reference,
+            'quantity_used': float(consumption.quantity),
+            'unit_of_measure': consumption.batch.product.unit_of_measure if consumption.batch and consumption.batch.product else 'pcs',
+            'purpose': 'other'  # Default since we don't have this field yet
+        }
+        
+        return jsonify(consumption_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/consumption/<int:consumption_id>', methods=['PUT'])
+def api_update_consumption(consumption_id):
+    """Update a specific consumption record"""
+    try:
+        consumption = InventoryConsumption.query.filter_by(id=consumption_id).first()
+        
+        if not consumption:
+            return jsonify({'error': 'Consumption record not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update only provided fields
+        if 'issued_to' in data:
+            consumption.issued_to = data['issued_to']
+        if 'reference' in data:
+            consumption.reference = data['reference']
+        if 'notes' in data:
+            consumption.notes = data['notes']
+        
+        # Note: We typically wouldn't update quantity/batch after creation
+        # as it affects inventory calculations, but for completeness:
+        if 'quantity' in data:
+            old_quantity = consumption.quantity
+            new_quantity = float(data['quantity'])
+            
+            # Update the batch quantity to reflect the change
+            if consumption.batch:
+                quantity_diff = old_quantity - new_quantity
+                consumption.batch.qty_available = float(consumption.batch.qty_available or 0) + quantity_diff
+            
+            consumption.quantity = new_quantity
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Consumption record updated successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/consumption/<int:consumption_id>', methods=['DELETE'])
+def api_delete_consumption(consumption_id):
+    """Delete a specific consumption record"""
+    try:
+        consumption = InventoryConsumption.query.filter_by(id=consumption_id).first()
+        
+        if not consumption:
+            return jsonify({'error': 'Consumption record not found'}), 404
+        
+        # Restore the quantity to the batch before deleting
+        if consumption.batch:
+            consumption.batch.qty_available = float(consumption.batch.qty_available or 0) + float(consumption.quantity)
+        
+        db.session.delete(consumption)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Consumption record deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # ============ BATCH-CENTRIC ADJUSTMENT ENDPOINTS ============
 
 @app.route('/api/inventory/adjustments', methods=['GET'])
