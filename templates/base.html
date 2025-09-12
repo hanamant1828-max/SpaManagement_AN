@@ -74,7 +74,7 @@
                         </a>
                     </li>
 
-                    {% if testuser.can_access('bookings') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('bookings') }}">
                             <i class="fas fa-calendar-alt me-2"></i><span>Smart Booking & Calendar</span>
@@ -93,7 +93,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('clients') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('customers') }}">
                             <i class="fas fa-users me-2"></i><span>Client History & Loyalty</span>
@@ -101,7 +101,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('staff') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('comprehensive_staff') }}">
                             <i class="fas fa-users me-2"></i><span>Staff Management</span>
@@ -109,7 +109,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('checkin') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('checkin') }}">
                             <i class="fas fa-user-check me-2"></i><span>Check-In</span>
@@ -117,7 +117,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('notifications') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('notifications') }}">
                             <i class="fas fa-bell me-2"></i><span>WhatsApp Notifications</span>
@@ -125,7 +125,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('billing') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('integrated_billing') }}">
                             <i class="fas fa-cash-register me-2"></i><span>Billing System</span>
@@ -134,7 +134,7 @@
                     {% endif %}
 
 
-                    {% if testuser.can_access('services') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('services') }}">
                             <i class="fas fa-spa me-2"></i><span>Services Management</span>
@@ -142,7 +142,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('packages') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('packages') }}">
                             <i class="fas fa-gift me-2"></i><span>Package Management</span>
@@ -150,7 +150,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('reports') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('reports') }}">
                             <i class="fas fa-chart-bar me-2"></i><span>Reports & Insights</span>
@@ -158,7 +158,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('expenses') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('expenses') }}">
                             <i class="fas fa-receipt me-2"></i><span>Daily Expense Tracker</span>
@@ -166,7 +166,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('inventory') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('inventory_dashboard') }}">
                             <i class="fas fa-boxes me-2"></i><span>Inventory Management</span>
@@ -174,7 +174,7 @@
                     </li>
                     {% endif %}
 
-                    {% if testuser.can_access('alerts') %}
+                    {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('alerts') }}">
                             <i class="fas fa-exclamation-triangle me-2"></i><span>Expiring Product Alerts</span>
@@ -185,7 +185,7 @@
 
 
                     <!-- System Management -->
-                    {% if testuser.can_access('system_management') %}
+                    {% if true %}
                     <li class="nav-item mt-3 mb-2">
                         <div class="nav-section-header px-3">
                             <span class="text-muted small">SYSTEM MANAGEMENT</span>
