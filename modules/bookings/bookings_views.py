@@ -56,9 +56,9 @@ def bookings():
     
     # Create appointment form
     form = AppointmentForm()
-    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.customer_id.choices = [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
     form.service_id.choices = [(s.id, f"{s.name} - ${s.price:.2f}") for s in services]
-    form.staff_id.choices = [(s.id, s.full_name) for s in staff]
+    form.staff_id.choices = [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
     
     return render_template('bookings.html', 
                          appointments=appointments,
@@ -75,7 +75,6 @@ def bookings():
                          date=date)
 
 @app.route('/bookings/create', methods=['POST'])
-@app.route('/add_appointment', methods=['POST'])
 @login_required
 def create_booking():
     if not current_user.can_access('bookings'):
@@ -87,13 +86,13 @@ def create_booking():
     services = get_active_services()
     staff = get_staff_members()
     
-    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.customer_id.choices = [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
     form.service_id.choices = [(s.id, f"{s.name} - ${s.price}") for s in services]
-    form.staff_id.choices = [(s.id, s.full_name) for s in staff]
+    form.staff_id.choices = [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
     
     if form.validate_on_submit():
         appointment_data = {
-            'client_id': form.client_id.data,
+            'client_id': form.customer_id.data,
             'service_id': form.service_id.data,
             'staff_id': form.staff_id.data,
             'appointment_date': form.appointment_date.data,
@@ -125,13 +124,13 @@ def update_booking(id):
     services = get_active_services()
     staff = get_staff_members()
     
-    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.customer_id.choices = [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
     form.service_id.choices = [(s.id, f"{s.name} - ${s.price}") for s in services]
-    form.staff_id.choices = [(s.id, s.full_name) for s in staff]
+    form.staff_id.choices = [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
     
     if form.validate_on_submit():
         appointment_data = {
-            'client_id': form.client_id.data,
+            'client_id': form.customer_id.data,
             'service_id': form.service_id.data,
             'staff_id': form.staff_id.data,
             'appointment_date': form.appointment_date.data,
@@ -172,13 +171,13 @@ def add_appointment():
     services = get_active_services()
     staff = get_staff_members()
     
-    form.client_id.choices = [(c.id, c.full_name) for c in clients]
+    form.customer_id.choices = [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
     form.service_id.choices = [(s.id, f"{s.name} - ${s.price}") for s in services]
-    form.staff_id.choices = [(s.id, s.full_name) for s in staff]
+    form.staff_id.choices = [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
     
     if form.validate_on_submit():
         appointment_data = {
-            'client_id': form.client_id.data,
+            'client_id': form.customer_id.data,
             'service_id': form.service_id.data,
             'staff_id': form.staff_id.data,
             'appointment_date': form.appointment_date.data,

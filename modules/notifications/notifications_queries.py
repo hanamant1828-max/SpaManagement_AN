@@ -13,6 +13,7 @@ def get_recent_communications():
 
 def get_pending_notifications():
     """Get pending notifications to send"""
+    from models import Communication
     return Communication.query.filter_by(status='pending').order_by(Communication.created_at).all()
 
 def create_notification(notification_data):
@@ -25,6 +26,7 @@ def create_notification(notification_data):
 
 def mark_notification_sent(notification_id):
     """Mark notification as sent"""
+    from models import Communication
     notification = Communication.query.get(notification_id)
     if notification:
         notification.status = 'sent'
@@ -34,6 +36,7 @@ def mark_notification_sent(notification_id):
 
 def get_clients_for_reminders():
     """Get clients who need appointment reminders"""
+    from models import Appointment
     tomorrow = date.today() + timedelta(days=1)
     return Appointment.query.filter(
         func.date(Appointment.appointment_date) == tomorrow,

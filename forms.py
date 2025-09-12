@@ -101,6 +101,8 @@ class AppointmentForm(FlaskForm):
         ('cancelled', 'Cancelled')
     ], default='pending')
     notes = TextAreaField('Notes', validators=[Optional()])
+    amount = FloatField('Amount', validators=[Optional(), NumberRange(min=0)])
+    discount = FloatField('Discount', validators=[Optional(), NumberRange(min=0)])
     submit = SubmitField('Save Appointment')
 
 # InventoryForm removed - no inventory functionality
