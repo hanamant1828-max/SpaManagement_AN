@@ -296,6 +296,75 @@
     </div>
 </div>
 
+<!-- Add Shift Modal -->
+<div class="modal fade" id="addShiftModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Add Staff Shift Schedule
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addShiftForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="modalStaffSelect" class="form-label fw-bold">
+                                <i class="fas fa-user me-1"></i>Select Staff Member
+                            </label>
+                            <select class="form-select" id="modalStaffSelect" name="staff_id" required>
+                                <option value="">Choose staff member...</option>
+                                {% for staff in staff_members %}
+                                    <option value="{{ staff.id }}" data-name="{{ staff.full_name }}">
+                                        {{ staff.full_name }} - {{ staff.role }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="modalFromDate" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>From Date
+                            </label>
+                            <input type="date" class="form-control" id="modalFromDate" name="from_date" value="{{ today }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="modalToDate" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>To Date
+                            </label>
+                            <input type="date" class="form-control" id="modalToDate" name="to_date" required>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-info" onclick="generateShiftTable()">
+                                <i class="fas fa-table me-2"></i>Generate Shift Table
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Shift Table Section (Hidden by default) -->
+                <div id="shiftTableSection" style="display: none;" class="mt-4">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0" id="shiftTableTitle">
+                                <i class="fas fa-table me-2"></i>Shift Schedule Table
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="shiftTableContainer">
+                                <!-- Dynamic table will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Loading Modal -->
 <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
@@ -345,7 +414,7 @@ $(document).ready(function() {
     // Show success message if any
     {% if get_flashed_messages() %}
         {% for category, message in get_flashed_messages(with_categories=true) %}
-            showAlert('{{ message|safe }}', '{{ category }}');
+            showAlert({{ message|tojson }}, {{ category|tojson }});
         {% endfor %}
     {% endif %}
 });
