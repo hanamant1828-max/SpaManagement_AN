@@ -46,6 +46,16 @@ class CustomerForm(FlaskForm):
         Optional(), 
         Length(max=500, message='Address must be less than 500 characters.')
     ])
+    date_of_birth = DateField('Date of Birth', validators=[Optional()])
+    gender = SelectField('Gender', choices=[('', 'Select...'), ('male', 'Male'), ('female', 'Female'), ('other', 'Other')])
+    preferences = TextAreaField('Preferences', validators=[
+        Optional(), 
+        Length(max=1000, message='Preferences must be less than 1000 characters.')
+    ])
+    allergies = TextAreaField('Allergies', validators=[
+        Optional(), 
+        Length(max=1000, message='Allergies must be less than 1000 characters.')
+    ])
     notes = TextAreaField('Notes', validators=[
         Optional(), 
         Length(max=1000, message='Notes must be less than 1000 characters.')
