@@ -381,7 +381,7 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <!-- Include the shift scheduler JavaScript -->
 <script src="{{ url_for('static', filename='js/shift_scheduler.js') }}"></script>
 
@@ -411,12 +411,13 @@ $(document).ready(function() {
         }
     });
     
-    // Show success message if any
-    {% if get_flashed_messages() %}
-        {% for category, message in get_flashed_messages(with_categories=true) %}
-            showAlert({{ message|tojson }}, {{ category|tojson }});
-        {% endfor %}
-    {% endif %}
+    // Initialize flash messages if any
+    const flashMessages = {{ get_flashed_messages(with_categories=true)|tojson }};
+    if (flashMessages && flashMessages.length > 0) {
+        flashMessages.forEach(function(flash) {
+            showAlert(flash[1], flash[0]);
+        });
+    }
 });
 
 // Utility function to show alerts
