@@ -1,3 +1,4 @@
+
 /**
  * Staff Shift Scheduler JavaScript
  * Complete functionality for schedule management
@@ -105,6 +106,11 @@ function initializeDateInputs() {
     if (!$('#endDate').val()) {
         $('#endDate').val(nextWeek.toISOString().split('T')[0]);
     }
+    
+    // Initialize modal dates
+    if (!$('#modalToDate').val()) {
+        $('#modalToDate').val(nextWeek.toISOString().split('T')[0]);
+    }
 }
 
 /**
@@ -164,6 +170,260 @@ function generateDays() {
     $('#scheduleTableCard').show();
     
     showAlert(`Generated ${scheduleData.length} days for scheduling`, 'success');
+}
+
+/**
+ * Generate shift table for the modal
+ */
+function generateShiftTable() {
+    console.log('generateShiftTable called');
+    const staffId = $('#modalStaffSelect').val();
+    const fromDate = $('#modalFromDate').val();
+    const toDate = $('#modalToDate').val();
+    
+    if (!staffId) {
+        showAlert('Please select a staff member first', 'danger');
+        return;
+    }
+    
+    if (!fromDate || !toDate) {
+        showAlert('Please select both from and to dates', 'danger');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        showAlert('From date cannot be after to date', 'danger');
+        return;
+    }
+    
+    const staffName = $('#modalStaffSelect option:selected').text();
+    $('#shiftTableTitle').text(`Shift Schedule for ${staffName}`);
+    
+    // Generate date range
+    const dates = [];
+    const currentDate = new Date(fromDate);
+    const endDate = new Date(toDate);
+    
+    while (currentDate <= endDate) {
+        dates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Generate table HTML
+    let tableHtml = `
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Working</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Break Time</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    dates.forEach((date, index) => {
+        const dateStr = date.toISOString().split('T')[0];
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        
+        tableHtml += `
+            <tr data-date="${dateStr}">
+                <td>${dateStr}</td>
+                <td>${dayName}</td>
+                <td>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input working-toggle" type="checkbox" 
+                               id="working_${index}" ${!isWeekend ? 'checked' : ''}>
+                        <label class="form-check-label" for="working_${index}">
+                            ${!isWeekend ? 'Yes' : 'No'}
+                        </label>
+                    </div>
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm start-time" 
+                           value="09:00" ${isWeekend ? 'disabled' : ''}>
+                </td>
+                <td>
+                    <input type="time" class="form-control form-control-sm end-time" 
+                           value="17:00" ${isWeekend ? 'disabled' : ''}>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm break-time" 
+                           value="1 hour" ${isWeekend ? 'disabled' : ''}>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm notes" 
+                           placeholder="Notes..." ${isWeekend ? 'disabled' : ''}>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableHtml += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <button type="button" class="btn btn-success" onclick="saveShiftSchedule()">
+                <i class="fas fa-save me-2"></i>Save Schedule
+            </button>
+            <button type="button" class="btn btn-secondary ms-2" onclick="selectAllWorkingDays()">
+                <i class="fas fa-check-double me-2"></i>All Working Days
+            </button>
+            <button type="button" class="btn btn-secondary ms-2" onclick="selectWeekendsOff()">
+                <i class="fas fa-calendar-times me-2"></i>Weekends Off
+            </button>
+        </div>
+    `;
+    
+    $('#shiftTableContainer').html(tableHtml);
+    
+    // Show the table section
+    $('#shiftTableSection').show();
+    
+    // Add event listeners for working toggles
+    $('.working-toggle').change(function() {
+        const row = $(this).closest('tr');
+        const timeInputs = row.find('.start-time, .end-time, .break-time, .notes');
+        const label = $(this).next('label');
+        
+        if (this.checked) {
+            timeInputs.prop('disabled', false);
+            label.text('Yes');
+            row.removeClass('table-secondary');
+        } else {
+            timeInputs.prop('disabled', true);
+            label.text('No');
+            row.addClass('table-secondary');
+        }
+    });
+    
+    showAlert(`Generated schedule table for ${staffName}`, 'success');
+}
+
+/**
+ * Save shift schedule from modal
+ */
+function saveShiftSchedule() {
+    console.log('saveShiftSchedule called');
+    const staffId = $('#modalStaffSelect').val();
+    
+    if (!staffId) {
+        showAlert('Please select a staff member', 'danger');
+        return;
+    }
+    
+    // Get all the schedule data from the modal table
+    const modalScheduleData = [];
+    $('#shiftTableContainer table tbody tr').each(function() {
+        const row = $(this);
+        const date = row.data('date');
+        const isWorking = row.find('.working-toggle').is(':checked');
+        const startTime = row.find('.start-time').val();
+        const endTime = row.find('.end-time').val();
+        const breakTime = row.find('.break-time').val();
+        const notes = row.find('.notes').val();
+        
+        if (isWorking) {
+            modalScheduleData.push({
+                start_date: date,
+                end_date: date,
+                schedule_name: `${startTime} - ${endTime} Shift`,
+                description: notes || '',
+                shift_start_time: startTime,
+                shift_end_time: endTime,
+                break_time: breakTime || '',
+                monday: new Date(date).getDay() === 1,
+                tuesday: new Date(date).getDay() === 2,
+                wednesday: new Date(date).getDay() === 3,
+                thursday: new Date(date).getDay() === 4,
+                friday: new Date(date).getDay() === 5,
+                saturday: new Date(date).getDay() === 6,
+                sunday: new Date(date).getDay() === 0,
+                priority: 1
+            });
+        }
+    });
+    
+    if (modalScheduleData.length === 0) {
+        showAlert('No working days selected to save', 'warning');
+        return;
+    }
+    
+    showLoadingModal('Saving shift schedule...');
+    
+    $.ajax({
+        url: '/shift-scheduler/save',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            staff_id: parseInt(staffId),
+            schedule_data: modalScheduleData
+        }),
+        success: function(response) {
+            hideLoadingModal();
+            if (response.success) {
+                showAlert(response.message, 'success');
+                $('#addShiftModal').modal('hide');
+                // Refresh existing schedules if staff is selected in main form
+                const mainStaffId = $('#staffSelect').val();
+                if (mainStaffId) {
+                    loadExistingSchedules(mainStaffId);
+                }
+                // Clear the table
+                $('#shiftTableSection').hide();
+                $('#shiftTableContainer').empty();
+            } else {
+                showAlert('Error saving schedule: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr, status, error) {
+            hideLoadingModal();
+            console.error('Error saving schedule:', error);
+            showAlert('Error saving schedule. Please try again.', 'danger');
+        }
+    });
+}
+
+/**
+ * Select all working days in modal
+ */
+function selectAllWorkingDays() {
+    $('#shiftTableContainer table tbody tr').each(function() {
+        const checkbox = $(this).find('.working-toggle');
+        checkbox.prop('checked', true).trigger('change');
+    });
+    
+    showAlert('Set all days as working days', 'success');
+}
+
+/**
+ * Select weekends off in modal  
+ */
+function selectWeekendsOff() {
+    $('#shiftTableContainer table tbody tr').each(function() {
+        const row = $(this);
+        const date = new Date(row.data('date'));
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+        
+        const checkbox = row.find('.working-toggle');
+        
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            // Weekend - set as not working
+            checkbox.prop('checked', false).trigger('change');
+        } else {
+            // Weekday - set as working
+            checkbox.prop('checked', true).trigger('change');
+        }
+    });
+    
+    showAlert('Set weekends as off days', 'success');
 }
 
 /**
@@ -918,149 +1178,6 @@ function showAlert(message, type = 'success') {
     setTimeout(() => {
         $('.alert').first().alert('close');
     }, 5000);
-}
-
-/**
- * Generate shift table for the modal - called from template onclick
- */
-function generateShiftTable() {
-    const staffId = $('#modalStaffSelect').val();
-    const fromDate = $('#modalFromDate').val();
-    const toDate = $('#modalToDate').val();
-    
-    if (!staffId) {
-        showAlert('Please select a staff member first', 'danger');
-        return;
-    }
-    
-    if (!fromDate || !toDate) {
-        showAlert('Please select both from and to dates', 'danger');
-        return;
-    }
-    
-    if (new Date(fromDate) > new Date(toDate)) {
-        showAlert('From date cannot be after to date', 'danger');
-        return;
-    }
-    
-    const staffName = $('#modalStaffSelect option:selected').text();
-    $('#shiftTableTitle').text(`Shift Schedule for ${staffName}`);
-    
-    // Show the table section
-    $('#shiftTableSection').show();
-    
-    showAlert(`Generated schedule table for ${staffName}`, 'success');
-}
-
-/**
- * Save shift schedule from modal - called from template onclick
- */
-function saveShiftSchedule() {
-    console.log('saveShiftSchedule called');
-    const staffId = $('#modalStaffSelect').val();
-    console.log('Staff ID:', staffId);
-    
-    if (!staffId) {
-        showAlert('Please select a staff member', 'danger');
-        return;
-    }
-    
-    // Get all the schedule data from the modal table
-    const scheduleData = [];
-    $('#shiftTableContainer table tbody tr').each(function() {
-        const row = $(this);
-        const date = row.data('date');
-        const isWorking = row.find('input[type="checkbox"]').is(':checked');
-        const startTime = row.find('input[type="time"]:first').val();
-        const endTime = row.find('input[type="time"]:last').val();
-        const notes = row.find('input[type="text"]:last').val();
-        
-        scheduleData.push({
-            date: date,
-            working: isWorking,
-            start_time: startTime,
-            end_time: endTime,
-            notes: notes
-        });
-    });
-    
-    if (scheduleData.length === 0) {
-        showAlert('No schedule data to save. Please generate the table first.', 'danger');
-        return;
-    }
-    
-    showLoadingModal('Saving shift schedule...');
-    
-    $.ajax({
-        url: '/shift-scheduler/save',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            staff_id: parseInt(staffId),
-            schedule_data: scheduleData
-        }),
-        success: function(response) {
-            hideLoadingModal();
-            if (response.success) {
-                showAlert(response.message, 'success');
-                $('#addShiftModal').modal('hide');
-                // Refresh existing schedules if staff is selected in main form
-                const mainStaffId = $('#staffSelect').val();
-                if (mainStaffId) {
-                    loadExistingSchedules(mainStaffId);
-                }
-            } else {
-                showAlert('Error saving schedule: ' + response.error, 'danger');
-            }
-        },
-        error: function(xhr, status, error) {
-            hideLoadingModal();
-            console.error('Error saving schedule:', error);
-            showAlert('Error saving schedule. Please try again.', 'danger');
-        }
-    });
-}
-
-/**
- * Select all working days in modal - called from template onclick
- */
-function selectAllWorkingDays() {
-    $('#shiftTableContainer table tbody tr').each(function() {
-        const checkbox = $(this).find('input[type="checkbox"]');
-        checkbox.prop('checked', true);
-        
-        // Enable time inputs
-        const timeInputs = $(this).find('input[type="time"]');
-        timeInputs.prop('disabled', false);
-    });
-    
-    showAlert('Set all days as working days', 'success');
-}
-
-/**
- * Select weekends off in modal - called from template onclick  
- */
-function selectWeekendsOff() {
-    $('#shiftTableContainer table tbody tr').each(function() {
-        const row = $(this);
-        const date = new Date(row.data('date'));
-        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-        
-        const checkbox = row.find('input[type="checkbox"]');
-        const timeInputs = row.find('input[type="time"]');
-        
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            // Weekend - set as not working
-            checkbox.prop('checked', false);
-            timeInputs.prop('disabled', true);
-        } else {
-            // Weekday - set as working
-            checkbox.prop('checked', true);
-            timeInputs.prop('disabled', false);
-        }
-    });
-    
-    showAlert('Set weekends as off days', 'success');
 }
 
 console.log('Shift Scheduler JavaScript fully loaded');
