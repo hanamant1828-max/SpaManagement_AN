@@ -956,7 +956,9 @@ function generateShiftTable() {
  * Save shift schedule from modal - called from template onclick
  */
 function saveShiftSchedule() {
+    console.log('saveShiftSchedule called');
     const staffId = $('#modalStaffSelect').val();
+    console.log('Staff ID:', staffId);
     
     if (!staffId) {
         showAlert('Please select a staff member', 'danger');

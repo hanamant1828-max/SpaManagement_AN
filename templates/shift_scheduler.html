@@ -383,7 +383,7 @@
 
 {% block scripts %}
 <!-- Include the shift scheduler JavaScript -->
-<script src="{{ url_for('static', filename='js/shift_scheduler.js') }}"></script>
+<script src="{{ url_for('static', filename='js/shift_scheduler.js') }}?v=2"></script>
 
 <!-- Initialize the scheduler -->
 <script>
@@ -411,13 +411,7 @@ $(document).ready(function() {
         }
     });
     
-    // Initialize flash messages if any
-    const flashMessages = {{ get_flashed_messages(with_categories=true)|tojson }};
-    if (flashMessages && flashMessages.length > 0) {
-        flashMessages.forEach(function(flash) {
-            showAlert(flash[1], flash[0]);
-        });
-    }
+    // Flash messages will be handled by server-side rendering
 });
 
 // Utility function to show alerts
