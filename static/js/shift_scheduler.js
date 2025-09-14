@@ -1440,18 +1440,21 @@
                         <div class="action-buttons-group">
                             <button type="button" class="btn btn-sm btn-outline-warning me-1" 
                                     onclick="editStaffSchedules(${staffGroup.staff_id})" 
+                                    data-staff-id="${staffGroup.staff_id}"
                                     title="Edit Schedules">
                                 🖊️ Edit
                             </button>
                             <span class="text-muted">•</span>
                             <button type="button" class="btn btn-sm btn-outline-danger me-1 ms-1" 
                                     onclick="deleteStaffSchedules(${staffGroup.staff_id})" 
+                                    data-staff-id="${staffGroup.staff_id}"
                                     title="Delete All Schedules">
                                 🗑️ Delete
                             </button>
                             <span class="text-muted">•</span>
                             <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
                                     onclick="viewStaffScheduleDetails(${staffGroup.staff_id})" 
+                                    data-staff-id="${staffGroup.staff_id}"
                                     title="View Details">
                                 🔍 View
                             </button>
@@ -1536,6 +1539,12 @@
      * View staff schedule details - Make globally accessible
      */
     window.viewStaffScheduleDetails = function(staffId) {
+        // Ensure staffId is defined and valid
+        if (!staffId || staffId === 'undefined' || staffId === null) {
+            showAlert('Invalid staff ID. Please try again.', 'danger');
+            return;
+        }
+        
         // Load staff details and schedules
         loadStaffDetailsModal(staffId);
     };
@@ -1855,6 +1864,12 @@
      * Edit staff schedules - Make globally accessible
      */
     window.editStaffSchedules = function(staffId) {
+        // Ensure staffId is defined and valid
+        if (!staffId || staffId === 'undefined' || staffId === null) {
+            showAlert('Invalid staff ID. Please try again.', 'danger');
+            return;
+        }
+        
         console.log('Edit staff schedules called for staff ID:', staffId);
         
         // First, load all schedules for this staff member
@@ -2026,6 +2041,12 @@
      * Delete all staff schedules - Make globally accessible
      */
     window.deleteStaffSchedules = function(staffId) {
+        // Ensure staffId is defined and valid
+        if (!staffId || staffId === 'undefined' || staffId === null) {
+            showAlert('Invalid staff ID. Please try again.', 'danger');
+            return;
+        }
+        
         if (!confirm('Are you sure you want to delete ALL schedules for this staff member? This action cannot be undone.')) {
             return;
         }
