@@ -7,7 +7,7 @@ from app import db
 # Import models to avoid NameError issues
 from models import (
     User, Role, Department, Service, StaffService,
-    Attendance, StaffPerformance, StaffScheduleRange,
+    Attendance, StaffPerformance,
     Appointment, Commission
 )
 from datetime import datetime, date, timedelta
@@ -239,133 +239,6 @@ def get_staff_performance_data(staff_id):
             'total_commission': 0,
             'total_services': 0
         }
-
-def get_staff_schedule_ranges(staff_id):
-    """Get all schedule ranges for a staff member"""
-    try:
-        ranges = StaffScheduleRange.query.filter_by(staff_id=staff_id, is_active=True).all()
-
-        result = []
-        for range_obj in ranges:
-            # Get working days as a string
-            working_days = []
-            if range_obj.monday: working_days.append('Mon')
-            if range_obj.tuesday: working_days.append('Tue')
-            if range_obj.wednesday: working_days.append('Wed')
-            if range_obj.thursday: working_days.append('Thu')
-            if range_obj.friday: working_days.append('Fri')
-            if range_obj.saturday: working_days.append('Sat')
-            if range_obj.sunday: working_days.append('Sun')
-
-            result.append({
-                'id': range_obj.id,
-                'schedule_name': range_obj.schedule_name,
-                'start_date': range_obj.start_date.strftime('%Y-%m-%d'),
-                'end_date': range_obj.end_date.strftime('%Y-%m-%d'),
-                'working_days': ', '.join(working_days) if working_days else 'No working days',
-                'shift_start': range_obj.shift_start_time.strftime('%H:%M') if range_obj.shift_start_time else '',
-                'shift_end': range_obj.shift_end_time.strftime('%H:%M') if range_obj.shift_end_time else '',
-                'break_time': range_obj.break_time or '',
-                'priority': range_obj.priority or 1,
-                'description': range_obj.description or ''
-            })
-
-        return result
-    except Exception as e:
-        print(f"Error getting staff schedule ranges: {e}")
-        return []
-
-def get_schedule_range_by_id(schedule_id):
-    """Get a specific schedule range by ID"""
-    try:
-        return StaffScheduleRange.query.get(schedule_id)
-    except Exception as e:
-        print(f"Error getting schedule range by ID: {e}")
-        return None
-
-def update_schedule_range(schedule_id, data):
-    """Update a schedule range"""
-    try:
-        schedule_range = StaffScheduleRange.query.get(schedule_id)
-        if not schedule_range:
-            return False
-
-        # Update dates - handle both string and date object inputs
-        if data.get('start_date'):
-            if isinstance(data['start_date'], str):
-                schedule_range.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
-            else:
-                schedule_range.start_date = data['start_date']
-        if data.get('end_date'):
-            if isinstance(data['end_date'], str):
-                schedule_range.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-            else:
-                schedule_range.end_date = data['end_date']
-
-        # Update other fields - only if not None
-        if data.get('schedule_name') is not None:
-            schedule_range.schedule_name = data['schedule_name']
-        if data.get('description') is not None:
-            schedule_range.description = data['description']
-        if data.get('priority') is not None:
-            schedule_range.priority = int(data['priority'])
-        if data.get('break_time') is not None:
-            schedule_range.break_time = data['break_time']
-
-        # Update working days - only if not None
-        if data.get('monday') is not None:
-            schedule_range.monday = bool(data['monday'])
-        if data.get('tuesday') is not None:
-            schedule_range.tuesday = bool(data['tuesday'])
-        if data.get('wednesday') is not None:
-            schedule_range.wednesday = bool(data['wednesday'])
-        if data.get('thursday') is not None:
-            schedule_range.thursday = bool(data['thursday'])
-        if data.get('friday') is not None:
-            schedule_range.friday = bool(data['friday'])
-        if data.get('saturday') is not None:
-            schedule_range.saturday = bool(data['saturday'])
-        if data.get('sunday') is not None:
-            schedule_range.sunday = bool(data['sunday'])
-
-        # Update shift times - handle both string and time object inputs
-        if data.get('shift_start_time'):
-            if isinstance(data['shift_start_time'], str):
-                schedule_range.shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
-            else:
-                schedule_range.shift_start_time = data['shift_start_time']
-        if data.get('shift_end_time'):
-            if isinstance(data['shift_end_time'], str):
-                schedule_range.shift_end_time = datetime.strptime(data['shift_end_time'], '%H:%M').time()
-            else:
-                schedule_range.shift_end_time = data['shift_end_time']
-
-        # Guard updated_at with hasattr check
-        if hasattr(schedule_range, 'updated_at'):
-            schedule_range.updated_at = datetime.utcnow()
-        db.session.commit()
-        return True
-    except Exception as e:
-        print(f"Error updating schedule range: {e}")
-        db.session.rollback()
-        return False
-
-def delete_schedule_range(schedule_id):
-    """Delete a schedule range"""
-    try:
-        schedule_range = StaffScheduleRange.query.get(schedule_id)
-        if not schedule_range:
-            return False
-
-        # Simply deactivate the schedule range
-        schedule_range.is_active = False
-        db.session.commit()
-        return True
-    except Exception as e:
-        print(f"Error deleting schedule range: {e}")
-        db.session.rollback()
-        return False
-
 
 def get_comprehensive_staff():
     """Get all staff with comprehensive details"""
