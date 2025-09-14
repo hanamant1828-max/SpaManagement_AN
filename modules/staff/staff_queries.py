@@ -311,7 +311,7 @@ def update_schedule_range(schedule_id, data):
             schedule_range.priority = int(data['priority'])
         if data.get('break_time') is not None:
             schedule_range.break_time = data['break_time']
-        
+
         # Update working days - only if not None
         if data.get('monday') is not None:
             schedule_range.monday = bool(data['monday'])
@@ -327,7 +327,7 @@ def update_schedule_range(schedule_id, data):
             schedule_range.saturday = bool(data['saturday'])
         if data.get('sunday') is not None:
             schedule_range.sunday = bool(data['sunday'])
-            
+
         # Update shift times - handle both string and time object inputs
         if data.get('shift_start_time'):
             if isinstance(data['shift_start_time'], str):
@@ -501,12 +501,12 @@ def create_comprehensive_staff(form_data):
             facial_encoding=form_data.get('facial_encoding'),
             enable_face_checkin=form_data.get('enable_face_checkin', True),
 
-            # Work Schedule
-            working_days=form_data.get('working_days', '1111100'),
-            shift_start_time=form_data.get('shift_start_time'),
-            shift_end_time=form_data.get('shift_end_time'),
-            break_time=form_data.get('break_time'),
-            weekly_off_days=form_data.get('weekly_off_days'),
+            # Work Schedule - Removed these fields as per request
+            # working_days=form_data.get('working_days', '1111100'),
+            # shift_start_time=form_data.get('shift_start_time'),
+            # shift_end_time=form_data.get('shift_end_time'),
+            # break_time=form_data.get('break_time'),
+            # weekly_off_days=form_data.get('weekly_off_days'),
 
             # Commission
             commission_percentage=float(form_data.get('commission_percentage') or 0.0),

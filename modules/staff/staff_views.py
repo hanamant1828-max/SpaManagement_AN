@@ -675,7 +675,7 @@ def create_staff_route():
 def update_staff_route(id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('staff'))
 
     staff_member = get_staff_by_id(id)
     if not staff_member:
@@ -714,7 +714,7 @@ def update_staff_route(id):
 def delete_staff_route(id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('staff'))
 
     if delete_staff(id):
         flash('Staff member deleted successfully!', 'success')
@@ -1154,7 +1154,7 @@ def api_create_staff_schedule_range(staff_id):
             end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
         except ValueError as e:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD format.'}), 400
-        
+
         # Parse and validate shift times
         shift_start_time = None
         shift_end_time = None
@@ -1497,7 +1497,7 @@ def api_update_schedule_range(staff_id, schedule_id):
                 'success': False,
                 'error': 'start_date and end_date are required'
             }), 400
-            
+
         update_data = {
             'schedule_name': data.get('schedule_name'),
             'description': data.get('description'),
