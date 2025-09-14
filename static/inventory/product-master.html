@@ -554,18 +554,30 @@
 
     // Global functions for onclick handlers
     window.editProduct = function(productId) {
-        // Fetch product data from API, fallback to localStorage if API fails
+        console.log('Editing product with ID:', productId);
+        
+        // Show loading indicator
+        const modal = new bootstrap.Modal(document.getElementById('productModal'));
+        document.getElementById('productModalTitle').textContent = 'Loading Product...';
+        modal.show();
+        
+        // Fetch product data from API
         fetch(`/api/inventory/products/${productId}`)
             .then(response => {
-                if (!response.ok) throw new Error('API not available');
+                console.log('API Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 return response.json();
             })
             .then(product => {
+                console.log('Received product data:', product);
                 populateEditForm(product);
             })
             .catch(error => {
-                console.error('Failed to load product from API:', error);
-                alert('Failed to load product data from database');
+                console.error('Error loading product details:', error);
+                alert(`Error loading product details: ${error.message}. Please try again.`);
+                modal.hide();
             });
 
         function populateEditForm(product) {
@@ -573,30 +585,37 @@
 
             // Set modal title and populate form
             document.getElementById('productModalTitle').textContent = 'Edit Product';
-            document.getElementById('productId').value = product.id;
+            document.getElementById('productId').value = product.id || '';
             document.getElementById('productSku').value = product.sku || '';
             document.getElementById('productName').value = product.name || '';
 
             // Populate form fields - use API field names with underscores
-            document.getElementById('productUnit').value = product.unit_of_measure || product.unit || 'pcs';
-            document.getElementById('productTrackBatches').checked = product.track_batches || false;
-            document.getElementById('productTrackSerials').checked = product.track_serials || false;
+            document.getElementById('productUnit').value = product.unit_of_measure || 'pcs';
             document.getElementById('productDescription').value = product.description || '';
             document.getElementById('productBarcode').value = product.barcode || '';
 
-            console.log('Edit product data:', product);
-            console.log('Category ID:', product.category_id);
-            console.log('Location ID:', product.location_id);
+            // Handle boolean fields if they exist
+            const trackBatchesEl = document.getElementById('productTrackBatches');
+            const trackSerialsEl = document.getElementById('productTrackSerials');
+            if (trackBatchesEl) trackBatchesEl.checked = product.is_service_item || false;
+            if (trackSerialsEl) trackSerialsEl.checked = product.is_retail_item || false;
 
-            if (!productModal) {
-                productModal = new bootstrap.Modal(document.getElementById('productModal'));
-            }
-            productModal.show();
+            console.log('Populated form with product data:', {
+                id: product.id,
+                sku: product.sku,
+                name: product.name,
+                category_id: product.category_id,
+                unit_of_measure: product.unit_of_measure
+            });
 
             // Populate dropdowns with selected values after modal is shown
             // Use setTimeout to ensure dropdowns are rendered and modal is fully visible
             setTimeout(() => {
-                populateProductDropdowns(product.category_id || product.categoryId, product.location_id || product.locationId);
+                const categorySelect = document.getElementById('productCategory');
+                if (categorySelect && product.category_id) {
+                    categorySelect.value = product.category_id;
+                }
+                console.log('Set category to:', product.category_id);
             }, 300);
         }
     }
