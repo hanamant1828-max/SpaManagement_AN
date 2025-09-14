@@ -1444,15 +1444,34 @@ Management Suite{% endblock %} {% block content %}
         try {
             console.log("Updating staff with data:", staffData);
 
+            // Validate staffId
+            if (!staffId || staffId <= 0) {
+                throw new Error('Invalid staff ID provided');
+            }
+
+            // Ensure required fields are present
+            if (!staffData.first_name || !staffData.last_name) {
+                throw new Error('First name and last name are required');
+            }
+
             const response = await fetch(`/api/staff/${staffId}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
+                    "Accept": "application/json"
                 },
                 body: JSON.stringify(staffData),
             });
 
-            const result = await response.json();
+            console.log("Update response status:", response.status);
+
+            let result;
+            try {
+                result = await response.json();
+            } catch (jsonError) {
+                throw new Error(`Failed to parse server response: ${response.statusText}`);
+            }
+
             console.log("Update API Response:", result);
 
             if (!response.ok) {
@@ -1460,6 +1479,10 @@ Management Suite{% endblock %} {% block content %}
                     result.error ||
                         `HTTP ${response.status}: ${response.statusText}`,
                 );
+            }
+
+            if (!result.success) {
+                throw new Error(result.error || "Update failed");
             }
 
             return result;

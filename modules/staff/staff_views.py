@@ -1041,63 +1041,113 @@ def api_update_staff(staff_id):
             return jsonify({'error': 'Staff member not found'}), 404
 
         data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
 
-        # Update staff data
-        update_data = {}
+        # Validate required fields
+        if not data.get('first_name') or not data.get('last_name'):
+            return jsonify({'error': 'First name and last name are required'}), 400
 
-        # Basic fields
-        for field in ['first_name', 'last_name', 'email', 'phone', 'designation', 'notes_bio']:
-            if field in data:
-                update_data[field] = data[field]
+        # Defensive updates with proper type handling
+        try:
+            # Basic string fields
+            if 'first_name' in data and data['first_name']:
+                staff.first_name = str(data['first_name']).strip()
+            if 'last_name' in data and data['last_name']:
+                staff.last_name = str(data['last_name']).strip()
+            if 'email' in data:
+                staff.email = str(data['email']).strip() if data['email'] else None
+            if 'phone' in data:
+                staff.phone = str(data['phone']).strip() if data['phone'] else None
+            if 'designation' in data:
+                staff.designation = str(data['designation']).strip() if data['designation'] else None
+            if 'notes_bio' in data:
+                staff.notes_bio = str(data['notes_bio']).strip() if data['notes_bio'] else None
+            if 'gender' in data:
+                staff.gender = str(data['gender']).strip() if data['gender'] else None
 
-        # Numeric fields
-        for field in ['commission_rate', 'hourly_rate']:
-            if field in data:
-                update_data[field] = float(data[field]) if data[field] else 0
+            # Numeric fields with safe conversion
+            if 'commission_rate' in data:
+                try:
+                    staff.commission_rate = float(data['commission_rate']) if data['commission_rate'] else 0.0
+                except (ValueError, TypeError):
+                    staff.commission_rate = 0.0
+            
+            if 'hourly_rate' in data:
+                try:
+                    staff.hourly_rate = float(data['hourly_rate']) if data['hourly_rate'] else 0.0
+                except (ValueError, TypeError):
+                    staff.hourly_rate = 0.0
 
-        # Role and department
-        if 'role_id' in data:
-            update_data['role_id'] = data['role_id']
-        if 'department_id' in data:
-            update_data['department_id'] = data['department_id']
-        if 'role' in data:
-            update_data['role'] = data['role']
+            # Role and department IDs with safe conversion
+            if 'role_id' in data and data['role_id']:
+                try:
+                    role_id = int(data['role_id'])
+                    staff.role_id = role_id if role_id > 0 else None
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+            
+            if 'department_id' in data and data['department_id']:
+                try:
+                    dept_id = int(data['department_id'])
+                    staff.department_id = dept_id if dept_id > 0 else None
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
 
-        # Date fields
-        if data.get('date_of_birth'):
-            update_data['date_of_birth'] = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
-        if data.get('date_of_joining'):
-            update_data['date_of_joining'] = datetime.strptime(data['date_of_joining'], '%Y-%m-%d').date()
+            # Date fields with safe parsing
+            if 'date_of_birth' in data and data['date_of_birth']:
+                try:
+                    staff.date_of_birth = datetime.strptime(str(data['date_of_birth']), '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+                    
+            if 'date_of_joining' in data and data['date_of_joining']:
+                try:
+                    staff.date_of_joining = datetime.strptime(str(data['date_of_joining']), '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
 
-        # Time fields
-        if data.get('shift_start_time'):
-            update_data['shift_start_time'] = datetime.strptime(data['shift_start_time'], '%H:%M').time()
-        if data.get('shift_end_time'):
-            update_data['shift_end_time'] = datetime.strptime(data['shift_end_time'], '%H:%M').time()
+            # Time fields with safe parsing
+            if 'shift_start_time' in data and data['shift_start_time']:
+                try:
+                    staff.shift_start_time = datetime.strptime(str(data['shift_start_time']), '%H:%M').time()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+                    
+            if 'shift_end_time' in data and data['shift_end_time']:
+                try:
+                    staff.shift_end_time = datetime.strptime(str(data['shift_end_time']), '%H:%M').time()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
 
-        # Other fields
-        if 'working_days' in data:
-            update_data['working_days'] = data['working_days']
-        if 'gender' in data:
-            update_data['gender'] = data['gender']
-        if 'enable_face_checkin' in data:
-            update_data['enable_face_checkin'] = data['enable_face_checkin']
+            # Boolean and other fields
+            if 'enable_face_checkin' in data:
+                staff.enable_face_checkin = bool(data['enable_face_checkin'])
+            
+            if 'working_days' in data:
+                staff.working_days = str(data['working_days']) if data['working_days'] else None
 
-        # Update password if provided
-        if data.get('password'):
-            update_data['password_hash'] = generate_password_hash(data['password'])
+            # Password update with proper hashing
+            if data.get('password') and str(data['password']).strip():
+                staff.password_hash = generate_password_hash(str(data['password']).strip())
 
-        # Apply updates
-        updated_staff = update_staff(staff_id, update_data)
+            # Commit the changes
+            db.session.commit()
 
-        return jsonify({
-            'success': True,
-            'message': f'Staff member {updated_staff.first_name} {updated_staff.last_name} updated successfully'
-        })
+            return jsonify({
+                'success': True,
+                'message': f'Staff member {staff.first_name} {staff.last_name} updated successfully'
+            })
+
+        except Exception as update_error:
+            db.session.rollback()
+            print(f"Error updating staff fields: {update_error}")
+            return jsonify({'error': f'Failed to update staff data: {str(update_error)}'}), 500
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in api_update_staff: {e}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
 @login_required

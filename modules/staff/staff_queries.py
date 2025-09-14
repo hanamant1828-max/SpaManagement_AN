@@ -110,12 +110,24 @@ def create_staff(staff_data):
 
 def update_staff(staff_id, staff_data):
     """Update an existing staff member"""
-    staff = User.query.get(staff_id)
-    if staff:
+    try:
+        staff = User.query.get(staff_id)
+        if not staff:
+            return None
+            
+        # Safely update each field
         for key, value in staff_data.items():
-            setattr(staff, key, value)
+            if hasattr(staff, key):
+                setattr(staff, key, value)
+            else:
+                print(f"Warning: Staff model does not have attribute '{key}'")
+        
         db.session.commit()
-    return staff
+        return staff
+    except Exception as e:
+        print(f"Error updating staff: {e}")
+        db.session.rollback()
+        return None
 
 def delete_staff(staff_id):
     """Soft delete a staff member"""
