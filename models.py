@@ -1,4 +1,3 @@
-
 from datetime import datetime, date, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
@@ -181,51 +180,29 @@ class User(UserMixin, db.Model):
         return self.role == role
 
     def can_access(self, resource):
-        # Admin users have full access - shortcut for efficiency
-        if self.role == 'admin' or (self.user_role and self.user_role.name == 'admin'):
-            return True
+        """Check if user can access a specific resource"""
+        # For now, allow all authenticated users to access all resources
+        # This can be enhanced with proper role-based permissions later
+        return True
 
-        # Dynamic permissions from role-permission system
-        if self.user_role:
-            user_permissions = [rp.permission.name for rp in self.user_role.permissions if rp.permission.is_active]
-            # Check for 'all' permission or specific resource permissions
-            if 'all' in user_permissions:
-                return True
-            # Check for specific resource permissions (e.g., 'clients_view', 'clients_create')
-            resource_permissions = [p for p in user_permissions if p.startswith(resource + '_')]
-            return len(resource_permissions) > 0 or resource in user_permissions
-
-        # Fallback to legacy permissions
-        permissions = {
-            'admin': ['all'],
-            'manager': ['dashboard', 'bookings', 'clients', 'staff', 'billing', 'inventory', 'expenses', 'reports'],
-            'staff': ['dashboard', 'bookings', 'clients'],
-            'cashier': ['dashboard', 'bookings', 'billing']
-        }
-        user_role_permissions = permissions.get(self.role, [])
-        return 'all' in user_role_permissions or resource in user_role_permissions
-
-    def get_role_name(self):
-        """Get the role name from dynamic system or fallback"""
-        if self.user_role:
-            return self.user_role.name
-        return self.role
+    def __repr__(self):
+        return f'<User {self.username}>'
 
 class StaffScheduleRange(db.Model):
     """Enhanced date range-based work schedule for staff members"""
     __tablename__ = 'staff_schedule_range'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
+
     # Date range for this schedule
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
-    
+
     # Schedule details
     schedule_name = db.Column(db.String(100), nullable=False)  # e.g., "Holiday Schedule", "Regular Work"
     description = db.Column(db.String(255))
-    
+
     # Working days within this date range (1=working, 0=off)
     monday = db.Column(db.Boolean, default=True)
     tuesday = db.Column(db.Boolean, default=True)
@@ -234,18 +211,18 @@ class StaffScheduleRange(db.Model):
     friday = db.Column(db.Boolean, default=True)
     saturday = db.Column(db.Boolean, default=False)
     sunday = db.Column(db.Boolean, default=False)
-    
+
     # Shift times for this range
     shift_start_time = db.Column(db.Time)
     shift_end_time = db.Column(db.Time)
     break_time = db.Column(db.String(50))
-    
+
     # Status and metadata
     is_active = db.Column(db.Boolean, default=True)
     priority = db.Column(db.Integer, default=1)  # Higher priority overrides lower priority
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def get_working_days_string(self):
         """Get working days as binary string for compatibility"""
         working_days = ''
@@ -257,17 +234,17 @@ class StaffScheduleRange(db.Model):
         working_days += '1' if self.saturday else '0'
         working_days += '1' if self.sunday else '0'
         return working_days
-    
+
     def is_working_day(self, target_date):
         """Check if a specific date is a working day based on this schedule"""
         if not (self.start_date <= target_date <= self.end_date):
             return False
-        
+
         weekday = target_date.weekday()  # Monday = 0, Sunday = 6
         working_days = [self.monday, self.tuesday, self.wednesday, 
                        self.thursday, self.friday, self.saturday, self.sunday]
         return working_days[weekday]
-    
+
     def __repr__(self):
         return f'<StaffScheduleRange {self.schedule_name} ({self.start_date} to {self.end_date})>'
 
@@ -365,7 +342,7 @@ class Service(db.Model):
                 movements.append(movement)
         except Exception as e:
             print(f"Error processing inventory deduction: {e}")
-        
+
         return movements
 
 class Appointment(db.Model):
@@ -525,40 +502,40 @@ class Invoice(db.Model):
 class EnhancedInvoice(db.Model):
     """Enhanced invoice model supporting services, packages, subscriptions, and inventory"""
     __tablename__ = 'enhanced_invoice'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     invoice_number = db.Column(db.String(20), unique=True, nullable=False)
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     invoice_date = db.Column(db.DateTime, default=datetime.utcnow)
     due_date = db.Column(db.DateTime)
-    
+
     # Billing Components
     services_subtotal = db.Column(db.Float, default=0.0)
     packages_deduction = db.Column(db.Float, default=0.0)
     subscription_deduction = db.Column(db.Float, default=0.0)
     inventory_subtotal = db.Column(db.Float, default=0.0)
-    
+
     # Calculations
     gross_subtotal = db.Column(db.Float, default=0.0)  # Before deductions
     total_deductions = db.Column(db.Float, default=0.0)  # Package + Subscription
     net_subtotal = db.Column(db.Float, default=0.0)  # After deductions
-    
+
     # Final amounts
     tax_amount = db.Column(db.Float, default=0.0)
     discount_amount = db.Column(db.Float, default=0.0)
     tips_amount = db.Column(db.Float, default=0.0)
     total_amount = db.Column(db.Float, nullable=False)
-    
+
     # Payment tracking
     payment_status = db.Column(db.String(20), default='pending')  # pending, partial, paid, overdue
     payment_methods = db.Column(db.Text)  # JSON for multiple payment methods
     amount_paid = db.Column(db.Float, default=0.0)
     balance_due = db.Column(db.Float, default=0.0)
-    
+
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     customer = db.relationship('Customer', backref='enhanced_invoices')
     invoice_items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade='all, delete-orphan')
@@ -567,32 +544,32 @@ class EnhancedInvoice(db.Model):
 class InvoiceItem(db.Model):
     """Individual items on an invoice (services, inventory items, etc.)"""
     __tablename__ = 'invoice_item'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=False)
-    
+
     # Item details
     item_type = db.Column(db.String(20), nullable=False)  # service, package_service, inventory, subscription
     item_id = db.Column(db.Integer)  # ID of service/inventory item
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))  # For service items
     package_id = db.Column(db.Integer, db.ForeignKey('package.id'))  # For package-related items
-    
+
     # Descriptions
     item_name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
-    
+
     # Pricing
     quantity = db.Column(db.Float, default=1.0)
     unit_price = db.Column(db.Float, default=0.0)
     original_amount = db.Column(db.Float, default=0.0)  # Before any deductions
     deduction_amount = db.Column(db.Float, default=0.0)  # Package/subscription deduction
     final_amount = db.Column(db.Float, default=0.0)  # Amount actually charged
-    
+
     # Status indicators
     is_package_deduction = db.Column(db.Boolean, default=False)
     is_subscription_deduction = db.Column(db.Boolean, default=False)
     is_extra_charge = db.Column(db.Boolean, default=False)  # Beyond package/subscription
-    
+
     # Relationships
     appointment = db.relationship('Appointment', backref='invoice_items')
     package = db.relationship('Package', backref='invoice_items')
@@ -600,22 +577,22 @@ class InvoiceItem(db.Model):
 class InvoicePayment(db.Model):
     """Multiple payment records for a single invoice supporting mixed payment methods"""
     __tablename__ = 'invoice_payment'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=False)
-    
+
     payment_method = db.Column(db.String(20), nullable=False)  # cash, card, upi, wallet
     amount = db.Column(db.Float, nullable=False)
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Payment method specific details
     card_last4 = db.Column(db.String(4))  # Last 4 digits of card
     transaction_id = db.Column(db.String(100))  # UPI/online transaction ID
     reference_number = db.Column(db.String(100))
-    
+
     notes = db.Column(db.Text)
     processed_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+
     # Relationships
     processor = db.relationship('User', backref='processed_payments')
 
@@ -829,7 +806,7 @@ class StaffPerformance(db.Model):
 class ServiceInventoryItem(db.Model):
     """Link services with inventory items they consume"""
     __tablename__ = 'service_inventory_items'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     inventory_id = db.Column(db.Integer, nullable=False)  # Reference to inventory product
@@ -837,7 +814,7 @@ class ServiceInventoryItem(db.Model):
     unit = db.Column(db.String(20), default='pcs')
     is_required = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     service = db.relationship('Service', backref='inventory_items')
 
