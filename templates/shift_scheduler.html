@@ -20,10 +20,91 @@
                     <p class="text-muted">Create and manage staff work schedules with date ranges and bulk operations</p>
                 </div>
                 <div>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addShiftModal">
+                    <button type="button" class="btn btn-primary" id="addAssignShiftBtn">
                         <i class="fas fa-plus me-2"></i>Add Assign Shift
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inline Shift Form (Hidden by default) -->
+    <div class="card mb-4" id="inlineShiftForm" style="display: none;">
+        <div class="card-header d-flex justify-content-between align-items-center" id="inlineFormHeader">
+            <h5 class="mb-0" id="inlineFormTitle">
+                <i class="fas fa-plus me-2" id="inlineFormIcon"></i><span id="inlineFormTitleText">Add Staff Shift Schedule</span>
+            </h5>
+            <button type="button" class="btn btn-outline-light btn-sm" id="closeInlineFormBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="card-body">
+            <form id="inlineShiftFormElement">
+                <!-- Hidden fields for edit mode -->
+                <input type="hidden" id="inlineEditMode" value="false">
+                <input type="hidden" id="inlineEditScheduleId" value="">
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="inlineStaffSelect" class="form-label fw-bold">
+                            <i class="fas fa-user me-1"></i>Select Staff Member
+                        </label>
+                        <select class="form-select" id="inlineStaffSelect" name="staff_id" required>
+                            <option value="">Choose staff member...</option>
+                            {% for staff in staff_members %}
+                                <option value="{{ staff.id }}" data-name="{{ staff.full_name }}">
+                                    {{ staff.full_name }} - {{ staff.role }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="inlineFromDate" class="form-label fw-bold">
+                            <i class="fas fa-calendar me-1"></i>From Date
+                        </label>
+                        <input type="date" class="form-control" id="inlineFromDate" name="from_date" value="{{ today }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="inlineToDate" class="form-label fw-bold">
+                            <i class="fas fa-calendar me-1"></i>To Date
+                        </label>
+                        <input type="date" class="form-control" id="inlineToDate" name="to_date" required>
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-info" id="inlineGenerateShiftTableBtn">
+                            <i class="fas fa-table me-2"></i>Generate Shift Table
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Inline Shift Table Section (Hidden by default) -->
+            <div id="inlineShiftTableSection" style="display: none;" class="mt-4">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0" id="inlineShiftTableTitle">
+                            <i class="fas fa-table me-2"></i>Shift Schedule Table
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="inlineShiftTableContainer">
+                            <!-- Dynamic table will be generated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end gap-2 mt-3" id="inlineFormActions">
+                <button type="button" class="btn btn-secondary" id="inlineCancelBtn">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="inlineAddModeBtn" style="display: none;">
+                    <i class="fas fa-save me-2"></i>Save Schedule
+                </button>
+                <button type="button" class="btn btn-warning" id="inlineEditModeBtn" style="display: none;">
+                    <i class="fas fa-edit me-2"></i>Save Changes
+                </button>
             </div>
         </div>
     </div>
@@ -179,7 +260,7 @@
                 <button type="button" class="btn btn-outline-light btn-sm" id="refreshAllSchedulesBtn">
                     <i class="fas fa-sync me-2"></i>Refresh
                 </button>
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addShiftModal">
+                <button type="button" class="btn btn-success btn-sm" id="addNewScheduleBtn">
                     <i class="fas fa-plus me-2"></i>Add New Schedule
                 </button>
             </div>

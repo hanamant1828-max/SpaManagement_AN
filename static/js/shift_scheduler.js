@@ -28,6 +28,7 @@
         console.log('Shift Scheduler JavaScript loaded');
         initializeEventHandlers();
         initializeDateInputs();
+        initializeInlineFormHandlers();
     });
 
     /**
@@ -2697,6 +2698,524 @@
         });
     };
 
+    /**
+     * Initialize inline form event handlers
+     */
+    function initializeInlineFormHandlers() {
+        // Add Assign Shift button - show inline form
+        $('#addAssignShiftBtn').click(function() {
+            showInlineFormForAdd();
+        });
+        
+        // Add New Schedule button - same as Add Assign Shift
+        $('#addNewScheduleBtn').click(function() {
+            showInlineFormForAdd();
+        });
+        
+        // Close inline form button
+        $('#closeInlineFormBtn, #inlineCancelBtn').click(function() {
+            hideInlineForm();
+        });
+        
+        // Generate shift table button
+        $('#inlineGenerateShiftTableBtn').click(function() {
+            generateInlineShiftTable();
+        });
+        
+        // Save buttons
+        $('#inlineAddModeBtn').click(function() {
+            saveInlineShiftSchedule();
+        });
+        
+        $('#inlineEditModeBtn').click(function() {
+            updateInlineShiftSchedule();
+        });
+    }
+    
+    /**
+     * Show inline form for adding new shift
+     */
+    function showInlineFormForAdd() {
+        // Reset form to add mode
+        setInlineFormToAddMode();
+        
+        // Clear form data
+        clearInlineForm();
+        
+        // Show the form
+        $('#inlineShiftForm').slideDown();
+        
+        // Scroll to form
+        $('html, body').animate({
+            scrollTop: $('#inlineShiftForm').offset().top - 100
+        }, 500);
+    }
+    
+    /**
+     * Set inline form to add mode
+     */
+    function setInlineFormToAddMode() {
+        $('#inlineEditMode').val('false');
+        $('#inlineEditScheduleId').val('');
+        $('#inlineFormTitleText').text('Add Staff Shift Schedule');
+        $('#inlineFormIcon').removeClass('fa-edit fa-eye').addClass('fa-plus');
+        $('#inlineFormHeader').removeClass('bg-warning bg-info').addClass('bg-primary');
+        $('#inlineAddModeBtn').show();
+        $('#inlineEditModeBtn').hide();
+        
+        // Enable all form elements
+        $('#inlineShiftFormElement input, #inlineShiftFormElement select').prop('disabled', false);
+        $('#inlineFormActions').show();
+    }
+    
+    /**
+     * Set inline form to edit mode
+     */
+    function setInlineFormToEditMode(scheduleId) {
+        $('#inlineEditMode').val('true');
+        $('#inlineEditScheduleId').val(scheduleId);
+        $('#inlineFormTitleText').text('Edit Staff Shift Schedule');
+        $('#inlineFormIcon').removeClass('fa-plus fa-eye').addClass('fa-edit');
+        $('#inlineFormHeader').removeClass('bg-primary bg-info').addClass('bg-warning');
+        $('#inlineAddModeBtn').hide();
+        $('#inlineEditModeBtn').show();
+        
+        // Enable all form elements
+        $('#inlineShiftFormElement input, #inlineShiftFormElement select').prop('disabled', false);
+        $('#inlineFormActions').show();
+    }
+    
+    /**
+     * Set inline form to view mode
+     */
+    function setInlineFormToViewMode() {
+        $('#inlineFormTitleText').text('View Staff Shift Schedule');
+        $('#inlineFormIcon').removeClass('fa-plus fa-edit').addClass('fa-eye');
+        $('#inlineFormHeader').removeClass('bg-primary bg-warning').addClass('bg-info');
+        
+        // Disable all form elements
+        $('#inlineShiftFormElement input, #inlineShiftFormElement select').prop('disabled', true);
+        $('#inlineShiftTableContainer input, #inlineShiftTableContainer select').prop('disabled', true);
+        $('#inlineFormActions').hide();
+    }
+    
+    /**
+     * Clear inline form data
+     */
+    function clearInlineForm() {
+        $('#inlineStaffSelect').val('');
+        $('#inlineFromDate').val($('#startDate').val() || new Date().toISOString().split('T')[0]);
+        $('#inlineToDate').val('');
+        $('#inlineShiftTableSection').hide();
+        $('#inlineShiftTableContainer').empty();
+    }
+    
+    /**
+     * Hide inline form
+     */
+    function hideInlineForm() {
+        $('#inlineShiftForm').slideUp();
+    }
+    
+    /**
+     * Generate shift table for inline form
+     */
+    function generateInlineShiftTable() {
+        const staffId = $('#inlineStaffSelect').val();
+        const fromDate = $('#inlineFromDate').val();
+        const toDate = $('#inlineToDate').val();
+        
+        if (!staffId || !fromDate || !toDate) {
+            showAlert('Please select staff member, from date, and to date', 'warning');
+            return;
+        }
+        
+        if (new Date(fromDate) > new Date(toDate)) {
+            showAlert('From date cannot be after to date', 'danger');
+            return;
+        }
+        
+        const staffName = $('#inlineStaffSelect option:selected').text();
+        $('#inlineShiftTableTitle').text(`Shift Schedule for ${staffName}`);
+        
+        // Generate date range
+        const dates = [];
+        const startDate = new Date(fromDate);
+        const endDate = new Date(toDate);
+        const currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+            dates.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Generate table HTML
+        generateInlineShiftTableHTML(dates);
+    }
+    
+    /**
+     * Generate HTML for inline shift table
+     */
+    function generateInlineShiftTableHTML(dates, existingSchedule = null) {
+        let tableHtml = `
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Working</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Break Time</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        dates.forEach((date, index) => {
+            const dateStr = date.toISOString().split('T')[0];
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            
+            // Check if this day is working (default: weekdays working, weekends off)
+            let isWorking = dayOfWeek !== 0 && dayOfWeek !== 6; // Default: Mon-Fri working
+            let startTime = '09:00';
+            let endTime = '17:00';
+            let breakTime = '1 hour';
+            let notes = '';
+            
+            // If we have existing schedule data, use it
+            if (existingSchedule) {
+                const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const dayKey = dayKeys[dayOfWeek];
+                isWorking = existingSchedule[dayKey] === true || existingSchedule[dayKey] === 1;
+                startTime = existingSchedule.shift_start_time || startTime;
+                endTime = existingSchedule.shift_end_time || endTime;
+                breakTime = existingSchedule.break_time || breakTime;
+                notes = existingSchedule.description || notes;
+            }
+            
+            tableHtml += `
+                <tr data-date="${dateStr}">
+                    <td>${dateStr}</td>
+                    <td class="day-badge day-${dayName.toLowerCase()}">${dayName}</td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input working-toggle" type="checkbox" 
+                                   id="inline_working_${index}" ${isWorking ? 'checked' : ''}>
+                            <label class="form-check-label" for="inline_working_${index}">
+                                ${isWorking ? 'Yes' : 'No'}
+                            </label>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm start-time" 
+                               value="${startTime}" ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm end-time" 
+                               value="${endTime}" ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm break-time" 
+                               value="${breakTime}" ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm notes" 
+                               value="${notes}" placeholder="Notes..." ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tableHtml += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        $('#inlineShiftTableContainer').html(tableHtml);
+        $('#inlineShiftTableSection').show();
+        
+        // Add event listeners for working toggles
+        $('.working-toggle').change(function() {
+            const row = $(this).closest('tr');
+            const timeInputs = row.find('.start-time, .end-time, .break-time, .notes');
+            const label = $(this).next('label');
+            
+            if (this.checked) {
+                timeInputs.prop('disabled', false);
+                label.text('Yes');
+                row.removeClass('table-secondary');
+            } else {
+                timeInputs.prop('disabled', true);
+                label.text('No');
+                row.addClass('table-secondary');
+            }
+        });
+    }
+    
+    /**
+     * Save new shift schedule from inline form
+     */
+    function saveInlineShiftSchedule() {
+        // Reuse existing save logic but with inline form elements
+        const formData = collectInlineFormData();
+        if (!formData) return;
+        
+        // Use existing save endpoint
+        $.ajax({
+            url: '/shift-scheduler/save',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Schedule saved successfully!', 'success');
+                    hideInlineForm();
+                    loadAllSchedules(); // Refresh the table
+                } else {
+                    showAlert('Error saving schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error saving schedule:', error);
+                showAlert('Error saving schedule. Please try again.', 'danger');
+            }
+        });
+    }
+    
+    /**
+     * Update existing shift schedule from inline form
+     */
+    function updateInlineShiftSchedule() {
+        const scheduleId = $('#inlineEditScheduleId').val();
+        if (!scheduleId) {
+            showAlert('Error: No schedule ID found for update', 'danger');
+            return;
+        }
+        
+        const formData = collectInlineFormData();
+        if (!formData) return;
+        
+        // Use existing update endpoint
+        $.ajax({
+            url: `/shift-scheduler/update/${scheduleId}`,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Schedule updated successfully!', 'success');
+                    hideInlineForm();
+                    loadAllSchedules(); // Refresh the table
+                } else {
+                    showAlert('Error updating schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating schedule:', error);
+                showAlert('Error updating schedule. Please try again.', 'danger');
+            }
+        });
+    }
+    
+    /**
+     * Collect form data from inline form
+     */
+    function collectInlineFormData() {
+        const staffId = $('#inlineStaffSelect').val();
+        const fromDate = $('#inlineFromDate').val();
+        const toDate = $('#inlineToDate').val();
+        
+        if (!staffId || !fromDate || !toDate) {
+            showAlert('Please fill in all required fields', 'warning');
+            return null;
+        }
+        
+        // Collect working days data
+        const workingDays = {
+            monday: false,
+            tuesday: false,
+            wednesday: false,
+            thursday: false,
+            friday: false,
+            saturday: false,
+            sunday: false
+        };
+        
+        let shiftStartTime = null;
+        let shiftEndTime = null;
+        let breakTime = null;
+        let description = '';
+        
+        // Process each table row
+        $('#inlineShiftTableContainer tbody tr').each(function() {
+            const row = $(this);
+            const date = new Date(row.data('date'));
+            const dayOfWeek = date.getDay();
+            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayKey = dayKeys[dayOfWeek];
+            const isWorking = row.find('.working-toggle').is(':checked');
+            
+            if (isWorking) {
+                workingDays[dayKey] = true;
+                
+                // Get times from first working day
+                if (!shiftStartTime) {
+                    shiftStartTime = row.find('.start-time').val();
+                    shiftEndTime = row.find('.end-time').val();
+                    breakTime = row.find('.break-time').val();
+                    const rowNotes = row.find('.notes').val();
+                    if (rowNotes) description = rowNotes;
+                }
+            }
+        });
+        
+        return {
+            staff_id: parseInt(staffId),
+            start_date: fromDate,
+            end_date: toDate,
+            schedule_name: `Schedule for ${$('#inlineStaffSelect option:selected').text().split(' - ')[0]}`,
+            description: description,
+            ...workingDays,
+            shift_start_time: shiftStartTime,
+            shift_end_time: shiftEndTime,
+            break_time: breakTime
+        };
+    }
+    
+    /**
+     * Show inline form for editing existing shift
+     */
+    function showInlineFormForEdit(scheduleId) {
+        // Set form to edit mode
+        setInlineFormToEditMode(scheduleId);
+        
+        // Fetch and populate schedule data
+        fetchAndPopulateInlineForm(scheduleId);
+        
+        // Show the form
+        $('#inlineShiftForm').slideDown();
+        
+        // Scroll to form
+        $('html, body').animate({
+            scrollTop: $('#inlineShiftForm').offset().top - 100
+        }, 500);
+    }
+    
+    /**
+     * Show inline form for viewing existing shift
+     */
+    function showInlineFormForView(scheduleId) {
+        // Fetch and populate schedule data first
+        fetchAndPopulateInlineForm(scheduleId, true); // true for view mode
+        
+        // Show the form
+        $('#inlineShiftForm').slideDown();
+        
+        // Scroll to form
+        $('html, body').animate({
+            scrollTop: $('#inlineShiftForm').offset().top - 100
+        }, 500);
+    }
+    
+    /**
+     * Fetch schedule data and populate inline form
+     */
+    function fetchAndPopulateInlineForm(scheduleId, viewMode = false) {
+        $.ajax({
+            url: `/api/schedule/${scheduleId}/details`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.schedule) {
+                    populateInlineFormWithSchedule(response.schedule, viewMode);
+                } else {
+                    showAlert('Could not load schedule details: ' + (response.error || 'Unknown error'), 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching schedule:', error);
+                showAlert('Error loading schedule details. Please try again.', 'danger');
+            }
+        });
+    }
+    
+    /**
+     * Populate inline form with schedule data
+     */
+    function populateInlineFormWithSchedule(schedule, viewMode = false) {
+        // Set form mode
+        if (viewMode) {
+            setInlineFormToViewMode();
+        } else {
+            setInlineFormToEditMode(schedule.id);
+        }
+        
+        // Populate form fields
+        $('#inlineStaffSelect').val(schedule.staff_id);
+        $('#inlineFromDate').val(schedule.start_date);
+        $('#inlineToDate').val(schedule.end_date);
+        
+        // Generate shift table with existing data
+        generateInlineShiftTableWithExistingData(schedule);
+    }
+    
+    /**
+     * Generate inline shift table with existing schedule data
+     */
+    function generateInlineShiftTableWithExistingData(schedule) {
+        const staffName = $('#inlineStaffSelect option:selected').text();
+        $('#inlineShiftTableTitle').text(`Shift Schedule for ${staffName}`);
+        
+        // Generate date range
+        const dates = [];
+        const startDate = new Date(schedule.start_date);
+        const endDate = new Date(schedule.end_date);
+        const currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+            dates.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Generate table with existing schedule data
+        generateInlineShiftTableHTML(dates, schedule);
+    }
+    
+    /**
+     * Delete schedule with confirmation
+     */
+    function deleteScheduleWithConfirmation(scheduleId) {
+        if (!confirm('Are you sure you want to delete this schedule? This action cannot be undone.')) {
+            return;
+        }
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Schedule deleted successfully', 'success');
+                    loadAllSchedules(); // Refresh the table
+                } else {
+                    showAlert('Error deleting schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error deleting schedule:', error);
+                showAlert('Error deleting schedule. Please try again.', 'danger');
+            }
+        });
+    }
+    
+    // Make functions globally accessible for inline form operations
+    window.showInlineFormForEdit = showInlineFormForEdit;
+    window.showInlineFormForView = showInlineFormForView;
+    window.deleteScheduleWithConfirmation = deleteScheduleWithConfirmation;
+    
     console.log('Shift Scheduler JavaScript fully loaded');
 
 })(); // End IIFE
