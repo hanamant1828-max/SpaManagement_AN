@@ -70,6 +70,18 @@ def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
 
+# Inject user and CSRF token into template context
+@app.context_processor
+def inject_user():
+    from models import User
+    from flask_wtf.csrf import generate_csrf
+    return dict(
+        current_user=current_user,
+        User=User,
+        utils=utils,
+        csrf_token=generate_csrf
+    )
+
 with app.app_context():
     # Import models here so their tables will be created
     import models  # noqa: F401
