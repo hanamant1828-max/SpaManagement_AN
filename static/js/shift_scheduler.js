@@ -13,11 +13,12 @@
     // Initialize when document is ready
     $(document).ready(function() {
         console.log('Shift Scheduler JavaScript loaded - Wireframe Implementation');
+        
+        // Initialize loading modal first
+        loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        
         initializeEventHandlers();
         loadSchedules();
-
-        // Initialize loading modal
-        loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
     });
 
     /**
@@ -57,17 +58,25 @@
             method: 'GET',
             success: function(response) {
                 hideLoadingModal();
+                console.log('API Response:', response);
                 if (response.success) {
                     schedules = response.schedules || [];
+                    console.log('Loaded schedules:', schedules);
                     renderScheduleTable();
                     updateScheduleCount();
                 } else {
+                    console.error('API Error:', response.error);
                     showAlert('Error loading schedules: ' + response.error, 'danger');
                 }
             },
             error: function(xhr, status, error) {
                 hideLoadingModal();
-                console.error('Error loading schedules:', error);
+                console.error('AJAX Error:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    statusCode: xhr.status
+                });
                 showAlert('Error loading schedules. Please try again.', 'danger');
             }
         });
@@ -251,14 +260,18 @@
      */
     function showLoadingModal(message) {
         $('#loadingMessage').text(message);
-        loadingModal.show();
+        if (loadingModal) {
+            loadingModal.show();
+        }
     }
 
     /**
      * Hide loading modal
      */
     function hideLoadingModal() {
-        loadingModal.hide();
+        if (loadingModal) {
+            loadingModal.hide();
+        }
     }
 
     /**
