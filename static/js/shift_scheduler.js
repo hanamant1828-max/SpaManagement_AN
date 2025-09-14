@@ -1018,6 +1018,12 @@
         console.log('openEditScheduleModal called with ID:', scheduleId);
         console.log('existingSchedules array:', existingSchedules);
 
+        // Validate scheduleId
+        if (!scheduleId || scheduleId === 'undefined' || scheduleId === null) {
+            showAlert('Invalid schedule ID. Please try again.', 'danger');
+            return;
+        }
+
         // First check if modal exists
         if (!$('#editScheduleModal').length) {
             console.error('Edit modal not found in DOM!');
@@ -1029,7 +1035,7 @@
         console.log('Found schedule:', schedule);
 
         if (!schedule) {
-            console.error('Schedule not found with ID:', scheduleId);
+            console.log('Schedule not found in existingSchedules, fetching from server for ID:', scheduleId);
             // Try to fetch schedule details from server
             fetchAndPopulateScheduleDetails(scheduleId);
             return;
@@ -1131,9 +1137,9 @@
     }
 
     /**
-     * Update schedule
+     * Update schedule - Make globally accessible
      */
-    function updateSchedule() {
+    window.updateSchedule = function() {
         console.log('updateSchedule called');
 
         const scheduleId = $('#editScheduleId').val();
@@ -1198,7 +1204,7 @@
                 showAlert('Error updating schedule. Please try again.', 'danger');
             }
         });
-    }
+    };
 
     /**
      * Delete a single schedule

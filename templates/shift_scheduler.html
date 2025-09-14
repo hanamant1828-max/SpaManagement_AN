@@ -536,12 +536,6 @@ $(document).ready(function() {
         $('#modalToDate').val(nextWeek.toISOString().split('T')[0]);
     }
 
-    // Edit schedule form submission
-    $(document).on('submit', '#editScheduleForm', function(e) {
-        e.preventDefault();
-        updateSchedule();
-    });
-
     // Edit schedule button click handler
     $(document).on('click', '.edit-schedule-btn', function(e) {
         e.preventDefault();
