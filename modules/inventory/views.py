@@ -610,24 +610,46 @@ def api_create_adjustment():
 def api_get_batches_for_consumption():
     """Get batches available for consumption with FEFO ordering"""
     try:
-        from .queries import get_available_batches_for_consumption
-        batches = get_available_batches_for_consumption()
-        batch_data = [{
-            'id': b.id,
-            'batch_name': b.batch_name,
-            'product_name': b.product.name if b.product else 'Unassigned',
-            'location_name': b.location.name if b.location else 'Unassigned',
-            'qty_available': float(b.qty_available or 0),
-            'unit': b.product.unit_of_measure if b.product else 'pcs',
-            'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
-            'dropdown_display': b.dropdown_display
-        } for b in batches]
+        from sqlalchemy.orm import joinedload
+        from datetime import date
+
+        # Load batches with their related product and location data
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).filter(
+            InventoryBatch.status == 'active',
+            InventoryBatch.qty_available > 0
+        ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+
+        batch_data = []
+        for b in batches:
+            qty_available = float(b.qty_available or 0)
+            unit = b.product.unit_of_measure if b.product else 'pcs'
+            product_name = b.product.name if b.product else 'Unassigned'
+            location_name = b.location.name if b.location else 'Unassigned'
+            
+            # Create dropdown display text
+            expiry_text = f", Exp: {b.expiry_date.strftime('%d/%m/%Y')}" if b.expiry_date else ""
+            dropdown_display = f"{b.batch_name} ({product_name}{expiry_text}) - Available: {qty_available} {unit}"
+            
+            batch_data.append({
+                'id': b.id,
+                'batch_name': b.batch_name,
+                'product_name': product_name,
+                'location_name': location_name,
+                'qty_available': qty_available,
+                'unit': unit,
+                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+                'dropdown_display': dropdown_display
+            })
 
         return jsonify({
             'success': True,
             'batches': batch_data
         })
     except Exception as e:
+        print(f"Error in api_get_batches_for_consumption: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/available', methods=['GET'])
