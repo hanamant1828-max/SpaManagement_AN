@@ -1383,19 +1383,92 @@
      * View staff schedule details - Make globally accessible
      */
     window.viewStaffScheduleDetails = function(staffId) {
-        // Load existing schedules for this staff member and show details
-        currentStaffId = staffId;
-        $('#staffSelect').val(staffId);
-        loadExistingSchedules(staffId);
-        showAlert('Viewing schedules for staff ID: ' + staffId, 'info');
-        
-        // Scroll to existing schedules section if it exists
-        if ($('#existingSchedulesContainer').length) {
-            $('html, body').animate({
-                scrollTop: $('#existingSchedulesContainer').offset().top - 100
-            }, 500);
-        }
+        // Load staff details and schedules
+        loadStaffDetailsModal(staffId);
     };
+
+    /**
+     * Load staff details modal with complete information
+     */
+    function loadStaffDetailsModal(staffId) {
+        showLoadingModal('Loading staff details...');
+        
+        $.ajax({
+            url: `/api/staff/${staffId}/details`,
+            method: 'GET',
+            success: function(response) {
+                hideLoadingModal();
+                if (response.success) {
+                    populateStaffDetailsModal(response.staff, response.schedules);
+                    $('#staffDetailsModal').modal('show');
+                } else {
+                    showAlert('Error loading staff details: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error loading staff details:', error);
+                showAlert('Error loading staff details. Please try again.', 'danger');
+            }
+        });
+    }
+
+    /**
+     * Populate staff details modal with data
+     */
+    function populateStaffDetailsModal(staff, schedules) {
+        $('#staffDetailsName').text(`${staff.first_name} ${staff.last_name}`);
+        $('#staffDetailsRole').text(staff.role || 'N/A');
+        $('#staffDetailsEmail').text(staff.email || 'N/A');
+        $('#staffDetailsPhone').text(staff.phone || 'N/A');
+        $('#staffDetailsAddress').text(staff.address || 'N/A');
+        $('#staffDetailsHireDate').text(staff.hire_date ? formatDate(staff.hire_date) : 'N/A');
+        $('#staffDetailsStatus').html(staff.is_active ? 
+            '<span class="badge bg-success">Active</span>' : 
+            '<span class="badge bg-danger">Inactive</span>');
+        
+        // Populate schedules table
+        const tbody = $('#staffSchedulesTableBody');
+        tbody.empty();
+        
+        if (schedules && schedules.length > 0) {
+            schedules.forEach((schedule, index) => {
+                const workingDaysStr = schedule.working_days_str || schedule.working_days.join(', ');
+                const timeStr = schedule.shift_start_time && schedule.shift_end_time ? 
+                    `${schedule.shift_start_time} - ${schedule.shift_end_time}` : 'No times set';
+                
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${schedule.schedule_name}</td>
+                        <td>${formatDate(schedule.start_date)}</td>
+                        <td>${formatDate(schedule.end_date)}</td>
+                        <td><span class="badge bg-primary">${workingDaysStr}</span></td>
+                        <td>${timeStr}</td>
+                        <td>${schedule.break_time || 'N/A'}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-warning" 
+                                    onclick="editScheduleFromDetails(${schedule.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
+                                    onclick="deleteScheduleFromDetails(${schedule.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            $('#noSchedulesMessage').hide();
+            $('#staffSchedulesTable').show();
+        } else {
+            $('#staffSchedulesTable').hide();
+            $('#noSchedulesMessage').show();
+        }
+        
+        $('#staffSchedulesCount').text(schedules ? schedules.length : 0);
+    }
 
     /**
      * Edit staff schedules - Make globally accessible
@@ -1505,6 +1578,41 @@
             showAlert('Schedules refreshed', 'info');
         });
     });
+
+    /**
+     * Edit schedule from details modal - Make globally accessible
+     */
+    window.editScheduleFromDetails = function(scheduleId) {
+        $('#staffDetailsModal').modal('hide');
+        openEditScheduleModal(scheduleId);
+    };
+
+    /**
+     * Delete schedule from details modal - Make globally accessible
+     */
+    window.deleteScheduleFromDetails = function(scheduleId) {
+        if (!confirm('Are you sure you want to delete this schedule?')) {
+            return;
+        }
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Schedule deleted successfully', 'success');
+                    $('#staffDetailsModal').modal('hide');
+                    loadAllSchedules(); // Refresh main table
+                } else {
+                    showAlert('Error deleting schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error deleting schedule:', error);
+                showAlert('Error deleting schedule. Please try again.', 'danger');
+            }
+        });
+    };
 
     console.log('Shift Scheduler JavaScript fully loaded');
 
