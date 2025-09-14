@@ -1855,15 +1855,171 @@
      * Edit staff schedules - Make globally accessible
      */
     window.editStaffSchedules = function(staffId) {
-        // Set the staff in the main form and load their schedules for editing
-        selectedStaffId = staffId;
-        $('#staffSelect').val(staffId).trigger('change');
-        showAlert('Staff schedules loaded for editing. Use the configuration section above.', 'info');
+        console.log('Edit staff schedules called for staff ID:', staffId);
         
-        // Scroll to the top configuration section
-        $('html, body').animate({
-            scrollTop: $('.card').first().offset().top - 100
-        }, 500);
+        // First, load all schedules for this staff member
+        $.ajax({
+            url: `/api/staff/${staffId}/all-schedules`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.schedules.length > 0) {
+                    console.log('Found schedules:', response.schedules);
+                    
+                    // If there's only one schedule, edit it directly
+                    if (response.schedules.length === 1) {
+                        openEditScheduleModal(response.schedules[0].id);
+                    } else {
+                        // If multiple schedules, show a selection modal
+                        showScheduleSelectionModal(staffId, response.schedules);
+                    }
+                } else {
+                    showAlert('No schedules found for this staff member. Create a new schedule first.', 'warning');
+                    // Set the staff in the main form to allow creating new schedules
+                    selectedStaffId = staffId;
+                    $('#staffSelect').val(staffId).trigger('change');
+                    
+                    // Scroll to the top configuration section
+                    $('html, body').animate({
+                        scrollTop: $('.card').first().offset().top - 100
+                    }, 500);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading staff schedules:', error);
+                showAlert('Error loading staff schedules. Falling back to configuration mode.', 'warning');
+                
+                // Fallback: Set the staff in the main form and load their schedules for editing
+                selectedStaffId = staffId;
+                $('#staffSelect').val(staffId).trigger('change');
+                showAlert('Staff schedules loaded for editing. Use the configuration section above.', 'info');
+                
+                // Scroll to the top configuration section
+                $('html, body').animate({
+                    scrollTop: $('.card').first().offset().top - 100
+                }, 500);
+            }
+        });
+    };
+
+    /**
+     * Show schedule selection modal for staff with multiple schedules
+     */
+    function showScheduleSelectionModal(staffId, schedules) {
+        console.log('Showing schedule selection modal for staff ID:', staffId);
+        
+        const staffName = schedules.length > 0 ? schedules[0].staff_name : 'Unknown Staff';
+        
+        let modalHtml = `
+            <div class="modal fade" id="scheduleSelectionModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-edit me-2"></i>Select Schedule to Edit - ${staffName}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-3">This staff member has multiple schedules. Please select which one you'd like to edit:</p>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Schedule Name</th>
+                                            <th>Date Range</th>
+                                            <th>Working Days</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+        
+        schedules.forEach(schedule => {
+            const workingDaysText = schedule.working_days.length > 0 ? 
+                schedule.working_days.join(', ') : 'No working days';
+            const timeText = schedule.shift_start_time && schedule.shift_end_time ?
+                `${schedule.shift_start_time} - ${schedule.shift_end_time}` : 'No times set';
+            
+            modalHtml += `
+                <tr>
+                    <td>
+                        <strong>${schedule.schedule_name}</strong>
+                        ${schedule.description ? `<br><small class="text-muted">${schedule.description}</small>` : ''}
+                    </td>
+                    <td>
+                        <span class="badge bg-info">${formatDate(schedule.start_date)} to ${formatDate(schedule.end_date)}</span>
+                        <br><small class="text-muted">${timeText}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-success">${workingDaysText}</span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-warning btn-sm" 
+                                onclick="selectScheduleForEdit(${schedule.id})">
+                            <i class="fas fa-edit me-1"></i>Edit This Schedule
+                        </button>
+                    </td>
+                </tr>`;
+        });
+        
+        modalHtml += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="editAllSchedulesForStaff(${staffId})">
+                                <i class="fas fa-cogs me-1"></i>Edit All Schedules (Configuration Mode)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if present
+        $('#scheduleSelectionModal').remove();
+        
+        // Add new modal to body
+        $('body').append(modalHtml);
+        
+        // Show modal
+        $('#scheduleSelectionModal').modal('show');
+        
+        // Clean up modal when closed
+        $('#scheduleSelectionModal').on('hidden.bs.modal', function() {
+            $(this).remove();
+        });
+    }
+
+    /**
+     * Select a specific schedule for editing
+     */
+    window.selectScheduleForEdit = function(scheduleId) {
+        $('#scheduleSelectionModal').modal('hide');
+        setTimeout(() => {
+            openEditScheduleModal(scheduleId);
+        }, 300);
+    };
+
+    /**
+     * Edit all schedules for staff (original behavior)
+     */
+    window.editAllSchedulesForStaff = function(staffId) {
+        $('#scheduleSelectionModal').modal('hide');
+        setTimeout(() => {
+            // Set the staff in the main form and load their schedules for editing
+            selectedStaffId = staffId;
+            $('#staffSelect').val(staffId).trigger('change');
+            showAlert('Staff schedules loaded for editing. Use the configuration section above.', 'info');
+            
+            // Scroll to the top configuration section
+            $('html, body').animate({
+                scrollTop: $('.card').first().offset().top - 100
+            }, 500);
+        }, 300);
     };
 
     /**
