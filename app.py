@@ -75,6 +75,7 @@ def load_user(user_id):
 def inject_user():
     from models import User
     from flask_wtf.csrf import generate_csrf
+    import utils
     return dict(
         current_user=current_user,
         User=User,
