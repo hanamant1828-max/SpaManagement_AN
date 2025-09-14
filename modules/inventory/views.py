@@ -528,6 +528,7 @@ def api_create_adjustment():
             unit_cost = float(item.get('unit_cost', 0))
             product_id = item.get('product_id')
             location_id = item.get('location_id')
+            adjustment_type = item.get('adjustment_type', 'add')
         else:
             # Direct structure
             batch_id = data.get('batch_id')
@@ -535,16 +536,25 @@ def api_create_adjustment():
             unit_cost = float(data.get('unit_cost', 0))
             product_id = data.get('product_id')
             location_id = data.get('location_id')
+            adjustment_type = data.get('adjustment_type', 'add')
 
         # Validate required fields
         if not batch_id:
             return jsonify({'error': 'Batch is required'}), 400
         if quantity <= 0:
             return jsonify({'error': 'Quantity must be positive'}), 400
+        if adjustment_type not in ['add', 'remove']:
+            return jsonify({'error': 'Invalid adjustment type'}), 400
 
         batch = InventoryBatch.query.get(batch_id)
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
+
+        # Additional validation for remove operations
+        if adjustment_type == 'remove':
+            current_stock = float(batch.qty_available or 0)
+            if quantity > current_stock:
+                return jsonify({'error': f'Cannot remove {quantity}. Only {current_stock} available in stock.'}), 400
 
         # Assign product and location to batch if provided and not already assigned
         if product_id and not batch.product_id:
@@ -562,16 +572,22 @@ def api_create_adjustment():
         # Create adjustment record
         adjustment = InventoryAdjustment(
             batch_id=batch_id,
-            adjustment_type='add',
+            adjustment_type=adjustment_type,
             quantity=quantity,
-            remarks=data.get('notes', '') or 'Stock adjustment via inventory management',
+            remarks=data.get('notes', '') or f'Stock {adjustment_type} via inventory management',
             created_by=None  # No user tracking for now
         )
 
-        # Update batch quantity and cost
-        batch.qty_available = float(batch.qty_available or 0) + quantity
-        if unit_cost > 0:
-            batch.unit_cost = unit_cost
+        # Update batch quantity based on adjustment type
+        if adjustment_type == 'add':
+            batch.qty_available = float(batch.qty_available or 0) + quantity
+            if unit_cost > 0:
+                batch.unit_cost = unit_cost
+        else:  # remove
+            batch.qty_available = float(batch.qty_available or 0) - quantity
+            # Ensure qty_available doesn't go negative
+            if batch.qty_available < 0:
+                batch.qty_available = 0
 
         db.session.add(adjustment)
         db.session.commit()
