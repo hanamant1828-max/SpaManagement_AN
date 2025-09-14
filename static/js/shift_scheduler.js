@@ -1207,7 +1207,7 @@
     }
 
     /**
-     * Render all schedules in the management table
+     * Render all schedules in the management table - grouped by staff
      */
     function renderAllSchedulesTable(schedules) {
         const tbody = $('#allSchedulesTableBody');
@@ -1222,22 +1222,56 @@
         $('#allSchedulesTable').show();
         $('#noAllSchedules').hide();
         
-        schedules.forEach((schedule, index) => {
-            // Format the dates properly
-            const fromDate = formatScheduleDate(schedule.start_date);
-            const toDate = formatScheduleDate(schedule.end_date);
+        // Group schedules by staff member
+        const staffGroups = {};
+        schedules.forEach(schedule => {
+            const staffKey = schedule.staff_id;
+            if (!staffGroups[staffKey]) {
+                staffGroups[staffKey] = {
+                    staff_id: schedule.staff_id,
+                    staff_name: schedule.staff_name,
+                    schedules: [],
+                    earliest_start: schedule.start_date,
+                    latest_end: schedule.end_date,
+                    all_working_days: new Set()
+                };
+            }
             
-            // Create a more readable office days string
-            const officeDays = formatOfficeDays(schedule.working_days);
-                
+            staffGroups[staffKey].schedules.push(schedule);
+            
+            // Track date ranges
+            if (schedule.start_date < staffGroups[staffKey].earliest_start) {
+                staffGroups[staffKey].earliest_start = schedule.start_date;
+            }
+            if (schedule.end_date > staffGroups[staffKey].latest_end) {
+                staffGroups[staffKey].latest_end = schedule.end_date;
+            }
+            
+            // Collect all working days
+            schedule.working_days.forEach(day => {
+                staffGroups[staffKey].all_working_days.add(day);
+            });
+        });
+        
+        // Render one row per staff member
+        let rowIndex = 1;
+        Object.values(staffGroups).forEach(staffGroup => {
+            const fromDate = formatScheduleDate(staffGroup.earliest_start);
+            const toDate = formatScheduleDate(staffGroup.latest_end);
+            
+            // Convert working days set to array and format
+            const workingDaysArray = Array.from(staffGroup.all_working_days);
+            const officeDays = formatOfficeDays(workingDaysArray);
+            
             const row = `
                 <tr class="schedule-management-row">
                     <td class="text-center">
-                        <strong>${index + 1}</strong>
+                        <strong>${rowIndex}</strong>
                     </td>
                     <td>
                         <div class="staff-info">
-                            <strong class="text-primary">${schedule.staff_name}</strong>
+                            <strong class="text-primary">${staffGroup.staff_name}</strong>
+                            <br><small class="text-muted">${staffGroup.schedules.length} schedule(s)</small>
                         </div>
                     </td>
                     <td>
@@ -1252,19 +1286,19 @@
                     <td>
                         <div class="action-buttons-group">
                             <button type="button" class="btn btn-sm btn-outline-warning me-1" 
-                                    onclick="editScheduleFromTable(${schedule.id})" 
-                                    title="Edit Schedule">
+                                    onclick="editStaffSchedules(${staffGroup.staff_id})" 
+                                    title="Edit Schedules">
                                 🖊️ Edit
                             </button>
                             <span class="text-muted">•</span>
                             <button type="button" class="btn btn-sm btn-outline-danger me-1 ms-1" 
-                                    onclick="deleteScheduleFromTable(${schedule.id})" 
-                                    title="Delete Schedule">
+                                    onclick="deleteStaffSchedules(${staffGroup.staff_id})" 
+                                    title="Delete All Schedules">
                                 🗑️ Delete
                             </button>
                             <span class="text-muted">•</span>
                             <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
-                                    onclick="viewScheduleDetails(${schedule.id})" 
+                                    onclick="viewStaffScheduleDetails(${staffGroup.staff_id})" 
                                     title="View Details">
                                 🔍 View
                             </button>
@@ -1273,6 +1307,7 @@
                 </tr>
             `;
             tbody.append(row);
+            rowIndex++;
         });
     }
 
@@ -1345,24 +1380,97 @@
     }
 
     /**
-     * View schedule details - Make globally accessible
+     * View staff schedule details - Make globally accessible
+     */
+    window.viewStaffScheduleDetails = function(staffId) {
+        // Load existing schedules for this staff member and show details
+        currentStaffId = staffId;
+        $('#staffSelect').val(staffId);
+        loadExistingSchedules(staffId);
+        showAlert('Viewing schedules for staff ID: ' + staffId, 'info');
+        
+        // Scroll to existing schedules section if it exists
+        if ($('#existingSchedulesContainer').length) {
+            $('html, body').animate({
+                scrollTop: $('#existingSchedulesContainer').offset().top - 100
+            }, 500);
+        }
+    };
+
+    /**
+     * Edit staff schedules - Make globally accessible
+     */
+    window.editStaffSchedules = function(staffId) {
+        // Set the staff in the main form and load their schedules for editing
+        currentStaffId = staffId;
+        $('#staffSelect').val(staffId).trigger('change');
+        showAlert('Staff schedules loaded for editing. Use the configuration section above.', 'info');
+        
+        // Scroll to the top configuration section
+        $('html, body').animate({
+            scrollTop: $('.card').first().offset().top - 100
+        }, 500);
+    };
+
+    /**
+     * Delete all staff schedules - Make globally accessible
+     */
+    window.deleteStaffSchedules = function(staffId) {
+        if (!confirm('Are you sure you want to delete ALL schedules for this staff member? This action cannot be undone.')) {
+            return;
+        }
+        
+        // Get all schedule IDs for this staff member
+        $.ajax({
+            url: `/api/staff/${staffId}/all-schedules`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.schedules.length > 0) {
+                    const scheduleIds = response.schedules.map(s => s.id);
+                    
+                    // Delete all schedules
+                    $.ajax({
+                        url: '/shift-scheduler/delete',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            schedule_ids: scheduleIds
+                        }),
+                        success: function(deleteResponse) {
+                            if (deleteResponse.success) {
+                                showAlert(`All schedules deleted successfully for staff member`, 'success');
+                                loadAllSchedules(); // Refresh the table
+                            } else {
+                                showAlert('Error deleting schedules: ' + deleteResponse.error, 'danger');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error deleting schedules:', error);
+                            showAlert('Error deleting schedules. Please try again.', 'danger');
+                        }
+                    });
+                } else {
+                    showAlert('No schedules found for this staff member', 'warning');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading staff schedules:', error);
+                showAlert('Error loading staff schedules. Please try again.', 'danger');
+            }
+        });
+    };
+
+    /**
+     * Legacy functions for backward compatibility
      */
     window.viewScheduleDetails = function(scheduleId) {
-        // Find the schedule in existing data or make API call
         showAlert('View functionality - Schedule ID: ' + scheduleId, 'info');
     };
 
-    /**
-     * Edit schedule from table view - Make globally accessible
-     */
     window.editScheduleFromTable = function(scheduleId) {
-        // Use the existing edit functionality but adapt for global schedules
         openEditScheduleModal(scheduleId);
     };
 
-    /**
-     * Delete schedule from table view - Make globally accessible
-     */
     window.deleteScheduleFromTable = function(scheduleId) {
         if (!confirm('Are you sure you want to delete this schedule? This action cannot be undone.')) {
             return;
@@ -1374,7 +1482,7 @@
             success: function(response) {
                 if (response.success) {
                     showAlert('Schedule deleted successfully', 'success');
-                    loadAllSchedules(); // Refresh the table
+                    loadAllSchedules();
                 } else {
                     showAlert('Error deleting schedule: ' + response.error, 'danger');
                 }
