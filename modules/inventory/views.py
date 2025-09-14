@@ -565,7 +565,7 @@ def api_create_adjustment():
             adjustment_type='add',
             quantity=quantity,
             remarks=data.get('notes', '') or 'Stock adjustment via inventory management',
-            created_by=1  # Default user ID for testing (no login_manager)
+            created_by=None  # No user tracking for now
         )
 
         # Update batch quantity and cost
