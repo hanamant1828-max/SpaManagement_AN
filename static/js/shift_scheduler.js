@@ -31,9 +31,309 @@
     });
 
     /**
+     * Set modal to add mode
+     */
+    function setModalToAddMode() {
+        $('#editMode').val('false');
+        $('#editScheduleId').val('');
+        $('#modalTitleText').text('Add Staff Shift Schedule');
+        $('#modalIcon').removeClass('fa-edit').addClass('fa-plus');
+        $('#modalHeader').removeClass('bg-warning').addClass('bg-primary');
+        $('#addModeBtn').show();
+        $('#editModeBtn').hide();
+        
+        // Clear form
+        $('#modalStaffSelect').val('');
+        $('#modalFromDate').val($('#startDate').val() || new Date().toISOString().split('T')[0]);
+        $('#modalToDate').val($('#endDate').val() || '');
+        $('#shiftTableSection').hide();
+        $('#shiftTableContainer').empty();
+    }
+    
+    /**
+     * Set modal to edit mode
+     */
+    function setModalToEditMode(scheduleId) {
+        $('#editMode').val('true');
+        $('#editScheduleId').val(scheduleId);
+        $('#modalTitleText').text('Edit Staff Shift Schedule');
+        $('#modalIcon').removeClass('fa-plus').addClass('fa-edit');
+        $('#modalHeader').removeClass('bg-primary').addClass('bg-warning');
+        $('#addModeBtn').hide();
+        $('#editModeBtn').show();
+    }
+    
+    /**
+     * Open unified modal for editing with pre-populated data
+     */
+    function openUnifiedEditModal(scheduleId) {
+        console.log('Opening unified edit modal for schedule ID:', scheduleId);
+        
+        // Validate schedule ID
+        if (!scheduleId || scheduleId === 'undefined' || scheduleId === null) {
+            showAlert('Error: Invalid schedule ID provided', 'danger');
+            return;
+        }
+        
+        // Check if modal elements exist
+        if (!$('#addShiftModal').length) {
+            showAlert('Error: Edit modal not found on page', 'danger');
+            return;
+        }
+        
+        const schedule = existingSchedules.find(s => s.id == scheduleId);
+        if (!schedule) {
+            console.log('Schedule not found in existingSchedules, fetching from server');
+            fetchAndPopulateUnifiedModal(scheduleId);
+            return;
+        }
+        
+        populateUnifiedModalWithSchedule(schedule);
+    }
+    
+    /**
+     * Fetch schedule details and populate unified modal
+     */
+    function fetchAndPopulateUnifiedModal(scheduleId) {
+        // Validate schedule ID before making request
+        if (!scheduleId || scheduleId === 'undefined' || scheduleId === null) {
+            showAlert('Error: Invalid schedule ID for fetching details', 'danger');
+            return;
+        }
+        
+        showLoadingModal('Loading schedule details...');
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}/details`,
+            method: 'GET',
+            timeout: 30000,
+            success: function(response) {
+                hideLoadingModal();
+                
+                // Enhanced response validation
+                if (!response) {
+                    showAlert('Error: Empty response from server', 'danger');
+                    return;
+                }
+                
+                if (response.success && response.schedule) {
+                    populateUnifiedModalWithSchedule(response.schedule);
+                } else {
+                    const errorMsg = response.error || 'Unknown error occurred';
+                    showAlert('Could not load schedule details: ' + errorMsg, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error fetching schedule details:', {
+                    status: status,
+                    error: error,
+                    response: xhr.responseText
+                });
+                
+                let errorMessage = 'Error loading schedule details.';
+                if (xhr.status === 404) {
+                    errorMessage = 'Schedule not found.';
+                } else if (xhr.status === 403) {
+                    errorMessage = 'Access denied. Please check your permissions.';
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                } else if (status === 'timeout') {
+                    errorMessage = 'Request timed out. Please try again.';
+                }
+                
+                showAlert(errorMessage, 'danger');
+            }
+        });
+    }
+    
+    /**
+     * Populate unified modal with schedule data for editing
+     */
+    function populateUnifiedModalWithSchedule(schedule) {
+        console.log('Populating unified modal with schedule:', schedule);
+        
+        // Validate schedule object
+        if (!schedule) {
+            showAlert('Error: Schedule data is missing', 'danger');
+            return;
+        }
+        
+        if (!schedule.id) {
+            showAlert('Error: Schedule ID is missing', 'danger');
+            return;
+        }
+        
+        // Set to edit mode
+        setModalToEditMode(schedule.id);
+        
+        // Populate basic form fields with null checks
+        if (schedule.staff_id) {
+            $('#modalStaffSelect').val(schedule.staff_id);
+        }
+        
+        if (schedule.start_date) {
+            $('#modalFromDate').val(schedule.start_date);
+        }
+        
+        if (schedule.end_date) {
+            $('#modalToDate').val(schedule.end_date);
+        }
+        
+        // Generate the shift table with existing data
+        generateShiftTableWithData(schedule);
+        
+        // Show the modal
+        $('#addShiftModal').modal('show');
+    }
+    
+    /**
+     * Generate shift table with existing schedule data
+     */
+    function generateShiftTableWithData(schedule) {
+        console.log('Generating shift table with existing data:', schedule);
+        
+        // Validate schedule object and dates
+        if (!schedule || !schedule.start_date || !schedule.end_date) {
+            showAlert('Error: Invalid schedule data or missing dates', 'danger');
+            return;
+        }
+        
+        // Validate staff selection
+        const staffSelect = $('#modalStaffSelect');
+        if (!staffSelect.length || !staffSelect.val()) {
+            showAlert('Error: No staff member selected', 'danger');
+            return;
+        }
+        
+        const staffName = staffSelect.find('option:selected').text() || 'Unknown Staff';
+        const shiftTitleElement = $('#shiftTableTitle');
+        if (shiftTitleElement.length) {
+            shiftTitleElement.text(`Edit Shift Schedule for ${staffName}`);
+        }
+        
+        // Generate date range from schedule with validation
+        const dates = [];
+        const startDate = new Date(schedule.start_date);
+        const endDate = new Date(schedule.end_date);
+        
+        // Validate dates
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            showAlert('Error: Invalid date format in schedule', 'danger');
+            return;
+        }
+        
+        if (startDate > endDate) {
+            showAlert('Error: Start date cannot be after end date', 'danger');
+            return;
+        }
+        
+        const currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            dates.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Generate table HTML with existing data
+        let tableHtml = `
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-warning">
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Working</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Break Time</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        dates.forEach((date, index) => {
+            const dateStr = date.toISOString().split('T')[0];
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            
+            // Check if this day is working in the existing schedule
+            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayKey = dayKeys[dayOfWeek];
+            const isWorking = schedule[dayKey] === true || schedule[dayKey] === 1;
+            
+            tableHtml += `
+                <tr data-date="${dateStr}">
+                    <td>${dateStr}</td>
+                    <td>${dayName}</td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input working-toggle" type="checkbox" 
+                                   id="working_${index}" ${isWorking ? 'checked' : ''}>
+                            <label class="form-check-label" for="working_${index}">
+                                ${isWorking ? 'Yes' : 'No'}
+                            </label>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm start-time" 
+                               value="${schedule.shift_start_time || '09:00'}" ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm end-time" 
+                               value="${schedule.shift_end_time || '17:00'}" ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm break-time" 
+                               value="${schedule.break_time || '1 hour'}" ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm notes" 
+                               value="${schedule.description || ''}" placeholder="Notes..." ${!isWorking ? 'disabled' : ''}>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tableHtml += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        $('#shiftTableContainer').html(tableHtml);
+        $('#shiftTableSection').show();
+        
+        // Add event listeners for working toggles
+        $('.working-toggle').change(function() {
+            const row = $(this).closest('tr');
+            const timeInputs = row.find('.start-time, .end-time, .break-time, .notes');
+            const label = $(this).next('label');
+            
+            if (this.checked) {
+                timeInputs.prop('disabled', false);
+                label.text('Yes');
+                row.removeClass('table-secondary');
+            } else {
+                timeInputs.prop('disabled', true);
+                label.text('No');
+                row.addClass('table-secondary');
+            }
+        });
+    }
+
+    /**
      * Initialize all event handlers
      */
     function initializeEventHandlers() {
+        // Modal show event - set to add mode by default
+        $('#addShiftModal').on('show.bs.modal', function() {
+            // Only set to add mode if not already in edit mode
+            if ($('#editMode').val() !== 'true') {
+                setModalToAddMode();
+            }
+        });
+        
         // Generate Days button
         $('#generateDaysBtn').on('click', function() {
             generateDays();
@@ -80,11 +380,7 @@
             deleteSelectedSchedules();
         });
 
-        // Edit schedule form submission
-        $('#editScheduleForm').on('submit', function(e) {
-            e.preventDefault();
-            updateSchedule();
-        });
+        // Note: Legacy edit schedule form removed - using unified modal now
 
         // Staff selection change
         $('#staffSelect').on('change', function() {
@@ -308,6 +604,133 @@
         });
 
         showAlert(`Generated schedule table for ${staffName}`, 'success');
+    };
+
+    /**
+     * Update shift schedule - Make globally accessible
+     */
+    window.updateShiftSchedule = function() {
+        console.log('updateShiftSchedule called');
+        const scheduleId = $('#editScheduleId').val();
+        const staffId = $('#modalStaffSelect').val();
+
+        if (!scheduleId) {
+            showAlert('No schedule ID found for update', 'danger');
+            return;
+        }
+
+        if (!staffId) {
+            showAlert('Please select a staff member', 'danger');
+            return;
+        }
+
+        // Get all the schedule data from the modal table
+        const modalScheduleData = [];
+        $('#shiftTableContainer table tbody tr').each(function() {
+            const row = $(this);
+            const date = row.data('date');
+            const isWorking = row.find('.working-toggle').is(':checked');
+            const startTime = row.find('.start-time').val();
+            const endTime = row.find('.end-time').val();
+            const breakTime = row.find('.break-time').val();
+            const notes = row.find('.notes').val();
+
+            if (isWorking) {
+                modalScheduleData.push({
+                    start_date: date,
+                    end_date: date,
+                    schedule_name: `${startTime} - ${endTime} Shift`,
+                    description: notes || '',
+                    shift_start_time: startTime,
+                    shift_end_time: endTime,
+                    break_time: breakTime || '',
+                    monday: new Date(date).getDay() === 1,
+                    tuesday: new Date(date).getDay() === 2,
+                    wednesday: new Date(date).getDay() === 3,
+                    thursday: new Date(date).getDay() === 4,
+                    friday: new Date(date).getDay() === 5,
+                    saturday: new Date(date).getDay() === 6,
+                    sunday: new Date(date).getDay() === 0,
+                    priority: 1
+                });
+            }
+        });
+
+        if (modalScheduleData.length === 0) {
+            showAlert('No working days selected to save', 'warning');
+            return;
+        }
+
+        // Use the consolidated schedule data for update
+        const updateData = {
+            start_date: $('#modalFromDate').val(),
+            end_date: $('#modalToDate').val(),
+            schedule_name: modalScheduleData.length > 0 ? modalScheduleData[0].schedule_name : 'Updated Schedule',
+            description: modalScheduleData.length > 0 ? modalScheduleData[0].description : '',
+            shift_start_time: modalScheduleData.length > 0 ? modalScheduleData[0].shift_start_time : '',
+            shift_end_time: modalScheduleData.length > 0 ? modalScheduleData[0].shift_end_time : '',
+            break_time: modalScheduleData.length > 0 ? modalScheduleData[0].break_time : '',
+            monday: modalScheduleData.some(d => d.monday),
+            tuesday: modalScheduleData.some(d => d.tuesday),
+            wednesday: modalScheduleData.some(d => d.wednesday),
+            thursday: modalScheduleData.some(d => d.thursday),
+            friday: modalScheduleData.some(d => d.friday),
+            saturday: modalScheduleData.some(d => d.saturday),
+            sunday: modalScheduleData.some(d => d.sunday),
+            priority: 1
+        };
+
+        showLoadingModal('Updating shift schedule...');
+        console.log('Starting AJAX request to update schedule:', scheduleId);
+        console.log('Update data:', updateData);
+
+        $.ajax({
+            url: `/api/schedule/${scheduleId}/update-with-range`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(updateData),
+            timeout: 30000,
+            success: function(response) {
+                console.log('AJAX success:', response);
+                hideLoadingModal();
+                if (response.success) {
+                    showAlert(response.message || 'Schedule updated successfully', 'success');
+                    $('#addShiftModal').modal('hide');
+                    
+                    // Refresh existing schedules if staff is selected in main form
+                    const mainStaffId = $('#staffSelect').val();
+                    if (mainStaffId) {
+                        loadExistingSchedules(mainStaffId);
+                    }
+                    
+                    // Clear the modal state
+                    setModalToAddMode();
+                } else {
+                    showAlert('Error updating schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error details:');
+                console.error('Status:', status);
+                console.error('Error:', error);
+                console.error('Response status:', xhr.status);
+                console.error('Response text:', xhr.responseText);
+                hideLoadingModal();
+
+                let errorMessage = 'Error updating schedule.';
+                if (xhr.status === 401) {
+                    errorMessage = 'Please log in and try again.';
+                } else if (xhr.status === 403) {
+                    errorMessage = 'You do not have permission to update schedules.';
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Server error. Please try again.';
+                } else if (status === 'timeout') {
+                    errorMessage = 'Request timed out. Please try again.';
+                }
+
+                showAlert(errorMessage, 'danger');
+            }
+        });
     };
 
     /**
@@ -995,7 +1418,7 @@
         // Edit schedule buttons
         $('.edit-schedule-btn').on('click', function() {
             const scheduleId = $(this).data('schedule-id');
-            openEditScheduleModal(scheduleId);
+            openUnifiedEditModal(scheduleId);
         });
 
         // Delete schedule buttons
@@ -1829,7 +2252,7 @@
     window.editScheduleFromView = function(scheduleId) {
         $('#viewScheduleModal').modal('hide');
         setTimeout(() => {
-            openEditScheduleModal(scheduleId);
+            openUnifiedEditModal(scheduleId);
         }, 300);
     };
 
@@ -2199,7 +2622,7 @@
     };
 
     window.editScheduleFromTable = function(scheduleId) {
-        openEditScheduleModal(scheduleId);
+        openUnifiedEditModal(scheduleId);
     };
 
     window.deleteScheduleFromTable = function(scheduleId) {
@@ -2242,7 +2665,9 @@
      */
     window.editScheduleFromDetails = function(scheduleId) {
         $('#staffDetailsModal').modal('hide');
-        openEditScheduleModal(scheduleId);
+        setTimeout(() => {
+            openUnifiedEditModal(scheduleId);
+        }, 300);
     };
 
     /**

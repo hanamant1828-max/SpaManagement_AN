@@ -220,131 +220,23 @@
     </div>
 </div>
 
-<!-- Edit Schedule Modal -->
-<div class="modal fade" id="editScheduleModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title">
-                    <i class="fas fa-edit me-2"></i>Edit Schedule
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="editScheduleForm">
-                <div class="modal-body">
-                    <input type="hidden" id="editScheduleId" name="schedule_id">
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="editScheduleName" class="form-label">Schedule Name</label>
-                            <input type="text" class="form-control" id="editScheduleName" name="schedule_name" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="editPriority" class="form-label">Priority</label>
-                            <select class="form-select" id="editPriority" name="priority">
-                                <option value="1">Low</option>
-                                <option value="2">Medium</option>
-                                <option value="3">High</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="editStartDate" class="form-label">
-                                <i class="fas fa-calendar-plus me-1"></i>Start Date
-                                <small class="text-muted">(editable)</small>
-                            </label>
-                            <input type="date" class="form-control" id="editStartDate" name="start_date" required>
-                            <small class="form-text text-info">
-                                <i class="fas fa-info-circle me-1"></i>Changing dates will update the schedule range
-                            </small>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="editEndDate" class="form-label">
-                                <i class="fas fa-calendar-check me-1"></i>End Date
-                                <small class="text-muted">(editable)</small>
-                            </label>
-                            <input type="date" class="form-control" id="editEndDate" name="end_date" required>
-                            <small class="form-text text-info">
-                                <i class="fas fa-info-circle me-1"></i>Will apply to all days in new range
-                            </small>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Working Days</label>
-                            <div class="d-flex gap-3 flex-wrap">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="editMonday" name="monday">
-                                    <label class="form-check-label" for="editMonday">Monday</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="editTuesday" name="tuesday">
-                                    <label class="form-check-label" for="editTuesday">Tuesday</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="editWednesday" name="wednesday">
-                                    <label class="form-check-label" for="editWednesday">Wednesday</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="editThursday" name="thursday">
-                                    <label class="form-check-label" for="editThursday">Thursday</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="editFriday" name="friday">
-                                    <label class="form-check-label" for="editFriday">Friday</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="editSaturday" name="saturday">
-                                    <label class="form-check-label" for="editSaturday">Saturday</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="editSunday" name="sunday">
-                                    <label class="form-check-label" for="editSunday">Sunday</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label for="editShiftStart" class="form-label">Shift Start</label>
-                            <input type="time" class="form-control" id="editShiftStart" name="shift_start_time">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="editShiftEnd" class="form-label">Shift End</label>
-                            <input type="time" class="form-control" id="editShiftEnd" name="shift_end_time">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="editBreakTime" class="form-label">Break Time</label>
-                            <input type="text" class="form-control" id="editBreakTime" name="break_time" placeholder="e.g., 1hr lunch">
-                        </div>
-
-                        <div class="col-12">
-                            <label for="editDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="editDescription" name="description" rows="2" placeholder="Schedule notes..."></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-save me-2"></i>Update Schedule
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add Shift Modal -->
+<!-- Add/Edit Shift Modal -->
 <div class="modal fade" id="addShiftModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-plus me-2"></i>Add Staff Shift Schedule
+            <div class="modal-header bg-primary text-white" id="modalHeader">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-plus me-2" id="modalIcon"></i><span id="modalTitleText">Add Staff Shift Schedule</span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="addShiftForm">
+                    <!-- Hidden fields for edit mode -->
+                    <input type="hidden" id="editMode" value="false">
+                    <input type="hidden" id="editScheduleId" value="">
+                    
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="modalStaffSelect" class="form-label fw-bold">
@@ -397,6 +289,12 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="addModeBtn" onclick="saveShiftSchedule()" style="display: none;">
+                    <i class="fas fa-save me-2"></i>Save Schedule
+                </button>
+                <button type="button" class="btn btn-warning" id="editModeBtn" onclick="updateShiftSchedule()" style="display: none;">
+                    <i class="fas fa-edit me-2"></i>Update Schedule
+                </button>
             </div>
         </div>
     </div>
