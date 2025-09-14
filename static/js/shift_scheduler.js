@@ -122,7 +122,7 @@
                         <span class="date-display">${formatDate(schedule.end_date)}</span>
                     </td>
                     <td>
-                        <span class="office-days-badge">
+                        <span class="badge-office-days">
                             <i class="fas fa-calendar-week me-1"></i>${schedule.working_days_str}
                         </span>
                     </td>
@@ -134,17 +134,20 @@
                             <span class="fw-bold">${schedule.shift_end_time || 'N/A'}</span>
                         </div>
                         ${schedule.break_time ? `<small class="text-muted d-block mt-1"><i class="fas fa-coffee me-1"></i>${schedule.break_time}</small>` : ''}
+                        <div class="mt-1">
+                            ${getStatusBadge(schedule.is_active !== false && schedule.status !== 'inactive')}
+                        </div>
                     </td>
                     <td>
                         <div class="action-buttons-group">
-                            <button type="button" class="btn btn-info btn-sm btn-view" data-id="${schedule.id}" title="View Schedule">
-                                <i class="fas fa-eye"></i>
+                            <button type="button" class="btn action-btn-view btn-view" data-id="${schedule.id}" title="View Schedule">
+                                👁 <i class="fas fa-eye"></i>
                             </button>
-                            <button type="button" class="btn btn-warning btn-sm btn-edit" data-id="${schedule.id}" title="Edit Schedule">
-                                <i class="fas fa-edit"></i>
+                            <button type="button" class="btn action-btn-edit btn-edit" data-id="${schedule.id}" title="Edit Schedule">
+                                ✏ <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="btn btn-danger btn-sm btn-delete" data-id="${schedule.id}" title="Delete Schedule">
-                                <i class="fas fa-trash"></i>
+                            <button type="button" class="btn action-btn-delete btn-delete" data-id="${schedule.id}" title="Delete Schedule">
+                                🗑 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </td>
@@ -252,6 +255,17 @@
         } catch (e) {
             console.error("Error formatting date:", dateString, e);
             return 'Error';
+        }
+    }
+
+    /**
+     * Generate status badge HTML based on active status
+     */
+    function getStatusBadge(isActive) {
+        if (isActive) {
+            return '<span class="badge-status-active">Active</span>';
+        } else {
+            return '<span class="badge-status-inactive">Inactive</span>';
         }
     }
 

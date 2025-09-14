@@ -280,15 +280,6 @@ def edit_comprehensive_staff(staff_id):
     form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
     form.assigned_services.choices = [(s.id, s.name) for s in services]
 
-    # Pre-populate working days
-    if staff_member.working_days:
-        form.monday.data = staff_member.working_days[0] == '1'
-        form.tuesday.data = staff_member.working_days[1] == '1'
-        form.wednesday.data = staff_member.working_days[2] == '1'
-        form.thursday.data = staff_member.working_days[3] == '1'
-        form.friday.data = staff_member.working_days[4] == '1'
-        form.saturday.data = staff_member.working_days[5] == '1'
-        form.sunday.data = staff_member.working_days[6] == '1'
 
     # Pre-populate assigned services
     assigned_service_ids = [ss.service_id for ss in staff_member.staff_services if ss.is_active]
@@ -296,16 +287,6 @@ def edit_comprehensive_staff(staff_id):
 
     if form.validate_on_submit():
         try:
-            # Generate working days string
-            working_days = ''
-            working_days += '1' if form.monday.data else '0'
-            working_days += '1' if form.tuesday.data else '0'
-            working_days += '1' if form.wednesday.data else '0'
-            working_days += '1' if form.thursday.data else '0'
-            working_days += '1' if form.friday.data else '0'
-            working_days += '1' if form.saturday.data else '0'
-            working_days += '1' if form.sunday.data else '0'
-
             # Update staff member
             staff_member.username = form.username.data
             staff_member.first_name = form.first_name.data
@@ -321,11 +302,6 @@ def edit_comprehensive_staff(staff_id):
             staff_member.aadhaar_number = form.aadhaar_number.data
             staff_member.pan_number = form.pan_number.data
             staff_member.verification_status = form.verification_status.data
-            staff_member.shift_start_time = form.shift_start_time.data
-            staff_member.shift_end_time = form.shift_end_time.data
-            staff_member.break_time = form.break_time.data
-            staff_member.weekly_off_days = form.weekly_off_days.data
-            staff_member.working_days = working_days
 
             staff_member.enable_face_checkin = form.enable_face_checkin.data
             staff_member.role_id = form.role_id.data if form.role_id.data != 0 else None

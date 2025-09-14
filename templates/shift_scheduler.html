@@ -35,63 +35,40 @@
         <!-- Clean Page 1: Shift Management View (as per wireframe) -->
 
         <!-- Schedule Management Table -->
-        <div class="card" id="scheduleTableSection">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-calendar-check me-2"></i>
-                    <div>
-                        <h6 class="mb-0">Schedule Management</h6>
-                        <small class="text-muted">
-                            <span id="scheduleCount">0</span> schedules currently managed
-                        </small>
-                    </div>
-                </div>
-                <div>
-                    <button type="button" class="btn btn-secondary btn-sm" id="refreshSchedulesBtn">
-                        <i class="fas fa-sync-alt me-1"></i>Refresh
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3><i class="fas fa-calendar-check me-2"></i>Schedule Management</h3>
+            <button type="button" class="btn btn-secondary btn-sm" id="refreshSchedulesBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+        </div>
+
+        <!-- Schedule Management Table -->
+        <div class="spa-table-container">
+            <table class="spa-table" id="scheduleTable">
+                <thead>
+                    <tr>
+                        <th width="5%" class="text-center">#</th>
+                        <th width="20%">Staff Member</th>
+                        <th width="10%">From Date</th>
+                        <th width="10%">To Date</th>
+                        <th width="15%">Office Days</th>
+                        <th width="15%">Shift Times</th>
+                        <th width="10%">Status</th>
+                        <th width="15%" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleTableBody">
+                    <!-- Dynamic rows will be inserted here -->
+                </tbody>
+            </table>
+            <div class="text-center py-5" id="noSchedules" style="display: none;">
+                <div class="text-muted">
+                    <i class="fas fa-calendar-times fa-4x mb-4 text-secondary"></i>
+                    <h5 class="text-secondary">No Schedules Found</h5>
+                    <p class="mb-4">Get started by creating your first staff schedule</p>
+                    <button type="button" class="btn btn-primary btn-lg hover-lift" onclick="openForm('add')">
+                        <i class="fas fa-plus-circle me-2"></i>Create Your First Schedule
                     </button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table mb-0" id="scheduleTable">
-                        <thead>
-                            <tr>
-                                <th width="5%" class="text-center">#</th>
-                                <th width="20%">
-                                    <i class="fas fa-user-tie me-2"></i>Staff Member
-                                </th>
-                                <th width="12%">
-                                    <i class="fas fa-calendar-plus me-2"></i>From Date
-                                </th>
-                                <th width="12%">
-                                    <i class="fas fa-calendar-minus me-2"></i>To Date
-                                </th>
-                                <th width="15%">
-                                    <i class="fas fa-business-time me-2"></i>Office Days
-                                </th>
-                                <th width="15%">
-                                    <i class="fas fa-clock me-2"></i>Shift Times
-                                </th>
-                                <th width="21%" class="text-center">
-                                    <i class="fas fa-tools me-2"></i>Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="scheduleTableBody">
-                            <!-- Dynamic rows will be inserted here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="text-center py-5" id="noSchedules" style="display: none;">
-                    <div class="text-muted">
-                        <i class="fas fa-calendar-times fa-4x mb-4 text-secondary"></i>
-                        <h5 class="text-secondary">No Schedules Found</h5>
-                        <p class="mb-4">Get started by creating your first staff schedule</p>
-                        <button type="button" class="btn btn-primary btn-lg hover-lift" onclick="openForm('add')">
-                            <i class="fas fa-plus-circle me-2"></i>Create Your First Schedule
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>

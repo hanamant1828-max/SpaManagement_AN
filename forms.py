@@ -316,20 +316,6 @@ class ComprehensiveStaffForm(FlaskForm):
     department_id = SelectField('Department', coerce=int, validators=[Optional()])
     assigned_services = SelectMultipleField('Assigned Services', coerce=int, validators=[Optional()])
     
-    # Basic Schedule (Legacy Support)
-    shift_start_time = TimeField('Shift Start Time', validators=[Optional()])
-    shift_end_time = TimeField('Shift End Time', validators=[Optional()])
-    break_time = StringField('Break Time', validators=[Optional(), Length(max=50)])
-    weekly_off_days = StringField('Weekly Off Days', validators=[Optional(), Length(max=20)])
-    
-    # Working Days Checkboxes (Legacy Support)
-    monday = BooleanField('Monday', default=True)
-    tuesday = BooleanField('Tuesday', default=True)
-    wednesday = BooleanField('Wednesday', default=True)
-    thursday = BooleanField('Thursday', default=True)
-    friday = BooleanField('Friday', default=True)
-    saturday = BooleanField('Saturday', default=False)
-    sunday = BooleanField('Sunday', default=False)
     
     # Performance & Commission
     commission_percentage = FloatField('Commission (%)', validators=[Optional(), NumberRange(min=0, max=100)])

@@ -261,8 +261,133 @@ body {
 }
 
 /* ============================
-   Simple Table Design - White and Black
+   Schedule Management Table - Unified Format
    ============================ */
+
+/* Override spa-table styles for schedule management */
+.spa-table-container {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+    background: #ffffff !important;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.spa-table thead th {
+    background-color: #f8f9fa !important;
+    color: #333 !important;
+    font-weight: bold !important;
+    border-bottom: 1px solid #ddd !important;
+    padding: 16px 20px;
+    font-size: 0.875rem;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+.spa-table tbody td {
+    background-color: #ffffff !important;
+    color: #444 !important;
+    border-bottom: 1px solid #eee !important;
+    padding: 16px 20px;
+    vertical-align: middle;
+}
+
+.spa-table tbody tr:hover {
+    background-color: #f1f5f9 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.spa-table tbody tr:hover td {
+    background-color: #f1f5f9 !important;
+}
+
+/* Badge Styling for Office Days */
+.badge-office-days {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.75rem;
+    display: inline-block;
+}
+
+/* Status Badge Styling */
+.badge-status-active {
+    background-color: #d1fae5;
+    color: #065f46;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.75rem;
+    display: inline-block;
+}
+
+.badge-status-inactive {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.75rem;
+    display: inline-block;
+}
+
+/* Action Buttons */
+.action-btn-view {
+    background: transparent !important;
+    border: 1px solid #60a5fa !important;
+    color: #3b82f6 !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+}
+
+.action-btn-view:hover {
+    background-color: #eff6ff !important;
+    color: #3b82f6 !important;
+    border-color: #60a5fa !important;
+}
+
+.action-btn-edit {
+    background-color: #3b82f6 !important;
+    color: #fff !important;
+    border: 1px solid #3b82f6 !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+}
+
+.action-btn-edit:hover {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #fff !important;
+}
+
+.action-btn-delete {
+    background: transparent !important;
+    border: 1px solid #ef4444 !important;
+    color: #ef4444 !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+}
+
+.action-btn-delete:hover {
+    background-color: #fee2e2 !important;
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+/* Legacy Table Design - White and Black (kept for compatibility) */
 .table-responsive {
     border: 1px solid #000;
     background: white;
