@@ -116,6 +116,11 @@ def save_shift_schedule():
         
         for item in schedule_data:
             try:
+                # Handle date field normalization (date -> start_date/end_date)
+                if 'date' in item and ('start_date' not in item or 'end_date' not in item):
+                    item['start_date'] = item['date']
+                    item['end_date'] = item['date']
+                
                 # Parse dates
                 start_date = datetime.strptime(item['start_date'], '%Y-%m-%d').date()
                 end_date = datetime.strptime(item['end_date'], '%Y-%m-%d').date()
@@ -181,6 +186,14 @@ def save_shift_schedule():
                 continue
         
         db.session.commit()
+        
+        # If no schedules were created or updated, return error instead of success
+        if created_count == 0 and updated_count == 0:
+            return jsonify({
+                'success': False,
+                'error': 'No schedules were saved. Please check your data and try again.',
+                'errors': errors
+            }), 400
         
         return jsonify({
             'success': True,
