@@ -3211,6 +3211,194 @@
     window.showInlineFormForView = showInlineFormForView;
     window.deleteScheduleWithConfirmation = deleteScheduleWithConfirmation;
     
-    console.log('Shift Scheduler JavaScript fully loaded');
+    /**
+     * Initialize UI enhancements and animations
+     */
+    function initializeUIEnhancements() {
+        // Add smooth fade-in animations to cards
+        $('.card').each(function(index) {
+            $(this).css('animation-delay', (index * 0.1) + 's');
+            $(this).addClass('fade-in');
+        });
+        
+        // Add hover effects to buttons
+        $('.btn').hover(
+            function() {
+                $(this).addClass('hover-lift');
+            },
+            function() {
+                $(this).removeClass('hover-lift');
+            }
+        );
+        
+        // Smooth form transitions
+        $('.form-control, .form-select').on('focus', function() {
+            $(this).parent().addClass('focused');
+        }).on('blur', function() {
+            $(this).parent().removeClass('focused');
+        });
+        
+        // Enhanced table row interactions
+        $('#allSchedulesTable tbody').on('mouseenter', 'tr', function() {
+            $(this).addClass('table-row-hover');
+        }).on('mouseleave', 'tr', function() {
+            $(this).removeClass('table-row-hover');
+        });
+        
+        // Smooth scroll to sections
+        $('a[href^="#"]').on('click', function(e) {
+            e.preventDefault();
+            const target = $($(this).attr('href'));
+            if (target.length) {
+                $('html, body').animate({
+                    scrollTop: target.offset().top - 100
+                }, 800, 'easeInOutCubic');
+            }
+        });
+        
+        // Loading state for buttons
+        $('.btn').on('click', function() {
+            const $btn = $(this);
+            if (!$btn.hasClass('loading')) {
+                const originalText = $btn.html();
+                $btn.addClass('loading').html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
+                
+                setTimeout(() => {
+                    $btn.removeClass('loading').html(originalText);
+                }, 2000);
+            }
+        });
+        
+        // Enhanced alert animations
+        $('.alert').each(function() {
+            $(this).addClass('slide-in');
+        });
+        
+        // Tooltip initialization for action buttons
+        $('[title]').tooltip({
+            placement: 'top',
+            trigger: 'hover'
+        });
+        
+        // Progressive form validation feedback
+        $('.form-control, .form-select').on('input change', function() {
+            const $input = $(this);
+            const $group = $input.closest('.form-group, .mb-3, .col-md-3, .col-md-4, .col-md-6');
+            
+            if (this.checkValidity()) {
+                $group.removeClass('has-error').addClass('has-success');
+                $input.removeClass('is-invalid').addClass('is-valid');
+            } else {
+                $group.removeClass('has-success').addClass('has-error');
+                $input.removeClass('is-valid').addClass('is-invalid');
+            }
+        });
+        
+        // Smooth modal transitions
+        $('.modal').on('show.bs.modal', function() {
+            $(this).find('.modal-content').addClass('fade-in');
+        });
+        
+        // Enhanced inline form animations
+        $('#inlineShiftForm').on('show', function() {
+            $(this).addClass('slide-in');
+        });
+        
+        // Auto-hide success alerts after 5 seconds
+        $('.alert-success').delay(5000).fadeOut('slow');
+        
+        // Add pulse animation to important buttons
+        $('.btn-primary, .btn-success').addClass('pulse-animation');
+        
+        // Remove animations after they complete to improve performance
+        setTimeout(() => {
+            $('.fade-in, .slide-in').removeClass('fade-in slide-in');
+        }, 1000);
+    }
+    
+    /**
+     * Enhanced table rendering with animations
+     */
+    function renderTableWithAnimations(tableSelector, data, renderFunction) {
+        const $table = $(tableSelector);
+        const $tbody = $table.find('tbody');
+        
+        // Fade out existing rows
+        $tbody.children().fadeOut(300, function() {
+            $(this).remove();
+            
+            // Render new data
+            renderFunction(data);
+            
+            // Fade in new rows with staggered animation
+            $tbody.children().each(function(index) {
+                $(this).hide().delay(index * 50).fadeIn(300);
+            });
+        });
+    }
+    
+    /**
+     * Enhanced notification system
+     */
+    function showEnhancedAlert(message, type = 'success', duration = 5000) {
+        const alertClass = type === 'danger' ? 'alert-danger' : 
+                          type === 'warning' ? 'alert-warning' :
+                          type === 'info' ? 'alert-info' : 'alert-success';
+        const iconClass = type === 'danger' ? 'fa-exclamation-triangle' : 
+                         type === 'warning' ? 'fa-exclamation-circle' :
+                         type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
+
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show slide-in" role="alert" style="margin: 1rem 0;">
+                <div class="d-flex align-items-center">
+                    <i class="fas ${iconClass} me-3" style="font-size: 1.2em;"></i>
+                    <div class="flex-grow-1">${message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+
+        // Insert at top of container  
+        $('.container-fluid').prepend(alertHtml);
+
+        // Auto-dismiss after specified duration
+        if (duration > 0) {
+            setTimeout(() => {
+                $('.alert').first().fadeOut(500, function() {
+                    $(this).remove();
+                });
+            }, duration);
+        }
+    }
+    
+    /**
+     * Initialize enhanced features on document ready
+     */
+    $(document).ready(function() {
+        initializeUIEnhancements();
+        
+        // Override the original showAlert function with enhanced version
+        window.showAlert = showEnhancedAlert;
+        
+        // Add smooth scrolling to top button
+        const scrollToTopBtn = $('<button class="btn btn-primary position-fixed" id="scrollToTop" style="bottom: 20px; right: 20px; z-index: 1000; border-radius: 50%; width: 50px; height: 50px; display: none;"><i class="fas fa-arrow-up"></i></button>');
+        $('body').append(scrollToTopBtn);
+        
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 300) {
+                $('#scrollToTop').fadeIn();
+            } else {
+                $('#scrollToTop').fadeOut();
+            }
+        });
+        
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({scrollTop: 0}, 800);
+        });
+        
+        console.log('Enhanced UI features initialized successfully');
+    });
+
+    console.log('Shift Scheduler JavaScript fully loaded with UI enhancements');
 
 })(); // End IIFE
