@@ -20,427 +20,233 @@
                             Staff Shift Scheduler
                         </h1>
                         <p class="mb-0">
-                            Professional scheduling management with advanced date ranges, bulk operations, and comprehensive staff coordination
+                            Professional scheduling management with streamlined add, edit, and view operations
                         </p>
                     </div>
                     <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                        <button type="button" class="btn btn-light btn-lg hover-lift" id="addAssignShiftBtn">
-                            <i class="fas fa-plus-circle me-2"></i>Create New Schedule
+                        <button type="button" class="btn btn-light btn-lg hover-lift" id="addShiftBtn">
+                            <i class="fas fa-plus-circle me-2"></i>Add Assign Shift
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-    <!-- Enhanced Inline Shift Form (Hidden by default) -->
-    <div class="card mb-4 fade-in" id="inlineShiftForm" style="display: none;">
-        <div class="card-header d-flex justify-content-between align-items-center" id="inlineFormHeader">
-            <h5 class="mb-0 d-flex align-items-center" id="inlineFormTitle">
-                <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
-                    <i class="fas fa-plus" id="inlineFormIcon"></i>
-                </div>
-                <span id="inlineFormTitleText">Add Staff Shift Schedule</span>
-            </h5>
-            <button type="button" class="btn btn-outline-light btn-sm hover-lift" id="closeInlineFormBtn">
-                <i class="fas fa-times me-1"></i>Close
-            </button>
-        </div>
-        <div class="card-body">
-            <form id="inlineShiftFormElement">
-                <!-- Hidden fields for edit mode -->
-                <input type="hidden" id="inlineEditMode" value="false">
-                <input type="hidden" id="inlineEditScheduleId" value="">
-                
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="inlineStaffSelect" class="form-label fw-bold">
-                            <i class="fas fa-user me-1"></i>Select Staff Member
-                        </label>
-                        <select class="form-select" id="inlineStaffSelect" name="staff_id" required>
-                            <option value="">Choose staff member...</option>
-                            {% for staff in staff_members %}
-                                <option value="{{ staff.id }}" data-name="{{ staff.full_name }}">
-                                    {{ staff.full_name }} - {{ staff.role }}
-                                </option>
-                            {% endfor %}
-                        </select>
+        <!-- Inline Shift Form Section (Hidden by default) -->
+        <div class="card mb-4 fade-in" id="shiftFormSection" style="display: none;">
+            <div class="card-header d-flex justify-content-between align-items-center" id="formHeader">
+                <h5 class="mb-0 d-flex align-items-center" id="formTitle">
+                    <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                        <i class="fas fa-plus" id="formIcon"></i>
                     </div>
-                    <div class="col-md-3">
-                        <label for="inlineFromDate" class="form-label fw-bold">
-                            <i class="fas fa-calendar me-1"></i>From Date
-                        </label>
-                        <input type="date" class="form-control" id="inlineFromDate" name="from_date" value="{{ today }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="inlineToDate" class="form-label fw-bold">
-                            <i class="fas fa-calendar me-1"></i>To Date
-                        </label>
-                        <input type="date" class="form-control" id="inlineToDate" name="to_date" required>
-                    </div>
-                    <div class="col-12">
-                        <button type="button" class="btn btn-info" id="inlineGenerateShiftTableBtn">
-                            <i class="fas fa-table me-2"></i>Generate Shift Table
-                        </button>
-                    </div>
-                </div>
-            </form>
+                    <span id="formTitleText">Add Shift</span>
+                </h5>
+                <button type="button" class="btn btn-outline-light btn-sm hover-lift" id="cancelFormBtn">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="shiftForm">
+                    <!-- Hidden field for edit mode -->
+                    <input type="hidden" id="editIndex" value="">
+                    <input type="hidden" id="formMode" value="add">
 
-            <!-- Inline Shift Table Section (Hidden by default) -->
-            <div id="inlineShiftTableSection" style="display: none;" class="mt-4">
-                <div class="card">
-                    <div class="card-header bg-secondary text-white">
-                        <h6 class="mb-0" id="inlineShiftTableTitle">
-                            <i class="fas fa-table me-2"></i>Shift Schedule Table
-                        </h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <div id="inlineShiftTableContainer">
-                            <!-- Dynamic table will be generated here -->
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label for="staffSelect" class="form-label fw-bold">
+                                <i class="fas fa-user me-1"></i>Staff Member
+                            </label>
+                            <select class="form-select" id="staffSelect" name="staff_member" required>
+                                <option value="">Choose staff member...</option>
+                                {% for staff in staff_members %}
+                                    <option value="{{ staff.id }}" data-name="{{ staff.full_name }}">
+                                        {{ staff.full_name }} - {{ staff.role }}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Action Buttons -->
-            <div class="d-flex justify-content-end gap-2 mt-3" id="inlineFormActions">
-                <button type="button" class="btn btn-secondary" id="inlineCancelBtn">
-                    <i class="fas fa-times me-2"></i>Cancel
-                </button>
-                <button type="button" class="btn btn-success" id="inlineAddModeBtn" style="display: none;">
-                    <i class="fas fa-save me-2"></i>Save Schedule
-                </button>
-                <button type="button" class="btn btn-warning" id="inlineEditModeBtn" style="display: none;">
-                    <i class="fas fa-edit me-2"></i>Save Changes
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced Control Panel -->
-    <div class="card mb-4 slide-in">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-cogs me-2"></i>Schedule Configuration
-            </h5>
-        </div>
-        <div class="card-body">
-            <form id="scheduleConfigForm">
-                <div class="row g-4">
-                    <!-- Staff Selection -->
-                    <div class="col-lg-5">
-                        <label for="staffSelect" class="form-label">
-                            <i class="fas fa-user-tie"></i>Select Staff Member
-                        </label>
-                        <select class="form-select" id="staffSelect" name="staff_id" required>
-                            <option value="">Choose a staff member to schedule...</option>
-                            {% for staff in staff_members %}
-                                <option value="{{ staff.id }}" data-name="{{ staff.full_name }}">
-                                    {{ staff.full_name }} - {{ staff.role }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text text-muted">
-                            <i class="fas fa-info-circle me-1"></i>Select the team member you want to create a schedule for
+                        <div class="col-md-3">
+                            <label for="fromDate" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>From Date
+                            </label>
+                            <input type="date" class="form-control" id="fromDate" name="from_date" required>
                         </div>
-                    </div>
 
-                    <!-- Date Range -->
-                    <div class="col-lg-3">
-                        <label for="startDate" class="form-label">
-                            <i class="fas fa-calendar-plus"></i>Start Date
-                        </label>
-                        <input type="date" class="form-control" id="startDate" name="start_date" value="{{ today }}" required>
-                    </div>
-
-                    <div class="col-lg-3">
-                        <label for="endDate" class="form-label">
-                            <i class="fas fa-calendar-minus"></i>End Date
-                        </label>
-                        <input type="date" class="form-control" id="endDate" name="end_date" required>
-                    </div>
-
-                    <!-- Generate Button -->
-                    <div class="col-lg-1 d-flex align-items-end">
-                        <button type="button" class="btn btn-success w-100 hover-lift" id="generateDaysBtn">
-                            <i class="fas fa-magic me-2"></i>Generate
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Enhanced Bulk Actions Panel -->
-    <div class="card mb-4 fade-in" id="bulkActionsPanel" style="display: none;">
-        <div class="card-header">
-            <h6 class="mb-0">
-                <i class="fas fa-bolt me-2"></i>Quick Actions & Bulk Operations
-            </h6>
-        </div>
-        <div class="card-body">
-            <div class="row g-4">
-                <div class="col-lg-6">
-                    <label class="form-label mb-3">
-                        <i class="fas fa-wand-magic-sparkles me-2"></i>Quick Apply Settings
-                    </label>
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-outline-success btn-sm hover-lift" id="applyAllWorkingBtn">
-                            <i class="fas fa-check-circle me-1"></i>All Working Days
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm hover-lift" id="setWeekendsOffBtn">
-                            <i class="fas fa-weekend me-1"></i>Weekends Off
-                        </button>
-                        <button type="button" class="btn btn-outline-warning btn-sm hover-lift" id="clearAllBtn">
-                            <i class="fas fa-eraser me-1"></i>Clear All
-                        </button>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <label class="form-label mb-3">
-                        <i class="fas fa-clock me-2"></i>Default Time Settings
-                    </label>
-                    <div class="d-flex gap-2 align-items-end">
-                        <div class="flex-fill">
-                            <input type="time" class="form-control" id="defaultStartTime" value="09:00" placeholder="Start Time">
-                            <small class="text-muted">Start</small>
+                        <div class="col-md-3">
+                            <label for="toDate" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>To Date
+                            </label>
+                            <input type="date" class="form-control" id="toDate" name="to_date" required>
                         </div>
-                        <div class="flex-fill">
-                            <input type="time" class="form-control" id="defaultEndTime" value="18:00" placeholder="End Time">
-                            <small class="text-muted">End</small>
-                        </div>
-                        <button type="button" class="btn btn-primary hover-lift" id="applyDefaultTimesBtn">
-                            <i class="fas fa-clock me-1"></i>Apply Times
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Schedule Table -->
-    <div class="card mb-4" id="scheduleTableCard" style="display: none;">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0">
-                <i class="fas fa-table me-2"></i>Schedule Table
-                <span id="selectedStaffName" class="text-info"></span>
-            </h6>
-            <div>
-                <button type="button" class="btn btn-success btn-sm" id="saveScheduleBtn">
-                    <i class="fas fa-save me-2"></i>Save Schedule
-                </button>
-                <button type="button" class="btn btn-danger btn-sm" id="clearScheduleBtn">
-                    <i class="fas fa-trash me-2"></i>Clear All
-                </button>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0" id="scheduleTable">
-                    <thead class="table-dark sticky-top">
-                        <tr>
-                            <th width="15%">
-                                <i class="fas fa-calendar me-1"></i>Date
-                            </th>
-                            <th width="10%">
-                                <i class="fas fa-calendar-day me-1"></i>Day
-                            </th>
-                            <th width="10%">
-                                <i class="fas fa-toggle-on me-1"></i>Working?
-                            </th>
-                            <th width="15%">
-                                <i class="fas fa-clock me-1"></i>Start Time
-                            </th>
-                            <th width="15%">
-                                <i class="fas fa-clock me-1"></i>End Time
-                            </th>
-                            <th width="15%">
+                        <div class="col-md-4">
+                            <label for="officeDays" class="form-label fw-bold">
+                                <i class="fas fa-calendar-days me-1"></i>Office Days
+                            </label>
+                            <select class="form-select" id="officeDays" name="office_days" required>
+                                <option value="">Select working days...</option>
+                                <option value="Mon-Fri">Monday to Friday</option>
+                                <option value="All">All Days</option>
+                                <option value="Weekends">Weekends Only</option>
+                                <option value="Custom">Custom Selection</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="startTime" class="form-label fw-bold">
+                                <i class="fas fa-clock me-1"></i>Shift Start Time
+                            </label>
+                            <input type="time" class="form-control" id="startTime" name="start_time" value="09:00" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="endTime" class="form-label fw-bold">
+                                <i class="fas fa-clock me-1"></i>Shift End Time
+                            </label>
+                            <input type="time" class="form-control" id="endTime" name="end_time" value="17:00" required>
+                        </div>
+
+                        <!-- Custom Days Selection (Hidden by default) -->
+                        <div class="col-12" id="customDaysSection" style="display: none;">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-calendar-week me-1"></i>Select Working Days
+                            </label>
+                            <div class="working-days-container">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="monday" name="working_days" value="monday">
+                                    <label class="form-check-label" for="monday">Monday</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="tuesday" name="working_days" value="tuesday">
+                                    <label class="form-check-label" for="tuesday">Tuesday</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="wednesday" name="working_days" value="wednesday">
+                                    <label class="form-check-label" for="wednesday">Wednesday</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="thursday" name="working_days" value="thursday">
+                                    <label class="form-check-label" for="thursday">Thursday</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="friday" name="working_days" value="friday">
+                                    <label class="form-check-label" for="friday">Friday</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="saturday" name="working_days" value="saturday">
+                                    <label class="form-check-label" for="saturday">Saturday</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="sunday" name="working_days" value="sunday">
+                                    <label class="form-check-label" for="sunday">Sunday</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="breakTime" class="form-label fw-bold">
                                 <i class="fas fa-coffee me-1"></i>Break Time
-                            </th>
-                            <th width="20%">
-                                <i class="fas fa-sticky-note me-1"></i>Notes
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="scheduleTableBody">
-                        <!-- Dynamic rows will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+                            </label>
+                            <input type="text" class="form-control" id="breakTime" name="break_time" 
+                                   placeholder="e.g. 1 hr lunch" value="1 hour lunch">
+                        </div>
 
-    <!-- Enhanced Schedule Management Table -->
-    <div class="card slide-in">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <div>
-                    <h6 class="mb-0">Active Schedule Management</h6>
-                    <small class="text-white-50">
-                        <span id="allSchedulesCount" class="count-badge">0</span>
-                        schedules currently managed
-                    </small>
-                </div>
-            </div>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-light btn-sm hover-lift" id="refreshAllSchedulesBtn">
-                    <i class="fas fa-sync-alt me-2"></i>Refresh Data
-                </button>
-                <button type="button" class="btn btn-light btn-sm hover-lift" id="addNewScheduleBtn">
-                    <i class="fas fa-plus-circle me-2"></i>Create Schedule
-                </button>
+                        <div class="col-md-6">
+                            <label for="priority" class="form-label fw-bold">
+                                <i class="fas fa-flag me-1"></i>Priority
+                            </label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="1">Normal</option>
+                                <option value="2">High</option>
+                                <option value="3">Critical</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="description" class="form-label fw-bold">
+                                <i class="fas fa-sticky-note me-1"></i>Description
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Optional notes about this shift schedule..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-4" id="formActions">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success" id="saveBtn">
+                            <i class="fas fa-save me-2"></i>Save
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table mb-0" id="allSchedulesTable">
-                    <thead>
-                        <tr>
-                            <th width="5%" class="text-center">#</th>
-                            <th width="25%">
-                                <i class="fas fa-user-tie me-2"></i>Staff Member
-                            </th>
-                            <th width="15%">
-                                <i class="fas fa-calendar-plus me-2"></i>Start Date
-                            </th>
-                            <th width="15%">
-                                <i class="fas fa-calendar-minus me-2"></i>End Date
-                            </th>
-                            <th width="20%">
-                                <i class="fas fa-business-time me-2"></i>Working Days
-                            </th>
-                            <th width="20%" class="text-center">
-                                <i class="fas fa-tools me-2"></i>Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="allSchedulesTableBody">
-                        <!-- Dynamic rows will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="text-center py-5" id="noAllSchedules" style="display: none;">
-                <div class="text-muted">
-                    <i class="fas fa-calendar-times fa-4x mb-4 text-secondary"></i>
-                    <h5 class="text-secondary">No Schedules Found</h5>
-                    <p class="mb-4">Get started by creating your first staff schedule</p>
-                    <button type="button" class="btn btn-primary btn-lg hover-lift" onclick="$('#addNewScheduleBtn').click()">
-                        <i class="fas fa-plus-circle me-2"></i>Create Your First Schedule
+
+        <!-- Schedule Management Table -->
+        <div class="card slide-in" id="scheduleTableSection">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">Schedule Management</h6>
+                        <small class="text-white-50">
+                            <span id="scheduleCount" class="count-badge">0</span>
+                            schedules currently managed
+                        </small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-light btn-sm hover-lift" id="refreshSchedulesBtn">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
                     </button>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-</div>
-
-<!-- Staff Details Modal -->
-<div class="modal fade" id="staffDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-user-circle me-2"></i>Staff Details & Schedules
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Staff Information Card -->
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">
-                            <i class="fas fa-user me-2"></i>Staff Information
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <table class="table table-borderless">
-                                    <tr>
-                                        <td class="fw-bold">Name:</td>
-                                        <td id="staffDetailsName">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold">Role:</td>
-                                        <td id="staffDetailsRole">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold">Email:</td>
-                                        <td id="staffDetailsEmail">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold">Phone:</td>
-                                        <td id="staffDetailsPhone">-</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            <div class="col-md-6">
-                                <table class="table table-borderless">
-                                    <tr>
-                                        <td class="fw-bold">Address:</td>
-                                        <td id="staffDetailsAddress">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold">Hire Date:</td>
-                                        <td id="staffDetailsHireDate">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold">Status:</td>
-                                        <td id="staffDetailsStatus">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="fw-bold">Total Schedules:</td>
-                                        <td><span id="staffSchedulesCount" class="badge bg-info">0</span></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0" id="scheduleTable">
+                        <thead>
+                            <tr>
+                                <th width="5%" class="text-center">#</th>
+                                <th width="20%">
+                                    <i class="fas fa-user-tie me-2"></i>Staff Member
+                                </th>
+                                <th width="12%">
+                                    <i class="fas fa-calendar-plus me-2"></i>From Date
+                                </th>
+                                <th width="12%">
+                                    <i class="fas fa-calendar-minus me-2"></i>To Date
+                                </th>
+                                <th width="15%">
+                                    <i class="fas fa-business-time me-2"></i>Office Days
+                                </th>
+                                <th width="15%">
+                                    <i class="fas fa-clock me-2"></i>Shift Times
+                                </th>
+                                <th width="21%" class="text-center">
+                                    <i class="fas fa-tools me-2"></i>Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleTableBody">
+                            <!-- Dynamic rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center py-5" id="noSchedules" style="display: none;">
+                    <div class="text-muted">
+                        <i class="fas fa-calendar-times fa-4x mb-4 text-secondary"></i>
+                        <h5 class="text-secondary">No Schedules Found</h5>
+                        <p class="mb-4">Get started by creating your first staff schedule</p>
+                        <button type="button" class="btn btn-primary btn-lg hover-lift" onclick="openForm('add')">
+                            <i class="fas fa-plus-circle me-2"></i>Create Your First Schedule
+                        </button>
                     </div>
                 </div>
-
-                <!-- Schedules Information Card -->
-                <div class="card">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="fas fa-calendar-alt me-2"></i>Current Schedules
-                        </h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover mb-0" id="staffSchedulesTable">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th width="5%">#</th>
-                                        <th width="20%">Schedule Name</th>
-                                        <th width="12%">From Date</th>
-                                        <th width="12%">To Date</th>
-                                        <th width="15%">Working Days</th>
-                                        <th width="15%">Shift Times</th>
-                                        <th width="10%">Break</th>
-                                        <th width="11%">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="staffSchedulesTableBody">
-                                    <!-- Dynamic content will be inserted here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="text-center text-muted py-4" id="noSchedulesMessage" style="display: none;">
-                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
-                            <p>No schedules found for this staff member.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Close
-                </button>
-                <button type="button" class="btn btn-primary" onclick="editStaffSchedules($('#staffDetailsModal').data('staff-id'))">
-                    <i class="fas fa-edit me-2"></i>Edit Schedules
-                </button>
             </div>
         </div>
     </div>
@@ -464,35 +270,22 @@
 
 {% block scripts %}
 <!-- Include the shift scheduler JavaScript -->
-<script src="{{ url_for('static', filename='js/shift_scheduler.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/shift_scheduler.js') }}?v=3"></script>
 
 <!-- Initialize the scheduler -->
 <script>
 $(document).ready(function() {
-    console.log('Shift Scheduler initialized');
+    console.log('New Shift Scheduler initialized');
 
-    // Initialize modal date inputs
+    // Initialize date inputs with defaults
     const today = new Date();
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    if (!$('#modalFromDate').val()) {
-        $('#modalFromDate').val(today.toISOString().split('T')[0]);
-    }
-    if (!$('#modalToDate').val()) {
-        $('#modalToDate').val(nextWeek.toISOString().split('T')[0]);
-    }
+    $('#fromDate').val(today.toISOString().split('T')[0]);
+    $('#toDate').val(nextWeek.toISOString().split('T')[0]);
 
-    // Edit schedule button click handler
-    $(document).on('click', '.edit-schedule-btn', function(e) {
-        e.preventDefault();
-        const scheduleId = $(this).data('schedule-id');
-        if (scheduleId) {
-            openEditScheduleModal(scheduleId);
-        } else {
-            showAlert('Schedule ID not found', 'danger');
-        }
-    });
+    // Load existing schedules
+    loadSchedules();
 });
 </script>
-
 {% endblock %}
