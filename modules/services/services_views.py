@@ -143,16 +143,21 @@ def create_service_route():
             return redirect(url_for('services'))
         
         # Create service
-        service = create_service({
-            'name': name,
-            'description': description,
-            'duration': duration,
-            'price': price,
-            'category_id': int(category_id) if category_id else None,
-            'commission_rate': commission_rate,
-            'is_active': is_active
-        })
-        flash(f'Service "{service.name}" created successfully', 'success')
+        try:
+            service = create_service({
+                'name': name,
+                'description': description,
+                'duration': duration,
+                'price': price,
+                'category_id': int(category_id) if category_id else None,
+                'commission_rate': commission_rate,
+                'is_active': is_active
+            })
+            flash(f'Service "{service.name}" created successfully', 'success')
+        except Exception as create_error:
+            flash(f'Failed to create service: {str(create_error)}', 'danger')
+            print(f"Service creation error: {create_error}")
+            return redirect(url_for('services'))
         
     except Exception as e:
         flash(f'Error creating service: {str(e)}', 'danger')
