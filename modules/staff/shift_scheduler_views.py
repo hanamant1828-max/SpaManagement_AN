@@ -364,6 +364,104 @@ def api_update_schedule(schedule_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# Enhanced update that supports date range changes
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>/update-with-range', methods=['PUT'])
+@login_required 
+def api_update_schedule_with_range(schedule_id):
+    """Update a schedule with support for date range changes"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        schedule = StaffScheduleRange.query.get_or_404(schedule_id)
+        data = request.get_json()
+        
+        # Get original dates for comparison
+        original_start = schedule.start_date
+        original_end = schedule.end_date
+        
+        # Parse new dates
+        new_start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date() if data.get('start_date') else original_start
+        new_end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date() if data.get('end_date') else original_end
+        
+        # Check if this is a date range update
+        date_range_changed = (new_start_date != original_start or new_end_date != original_end)
+        
+        if date_range_changed:
+            # Create a new schedule with the new date range and delete the old one
+            # This ensures proper date range handling
+            
+            # Create new schedule with updated data
+            new_schedule = StaffScheduleRange(
+                staff_id=schedule.staff_id,
+                schedule_name=data.get('schedule_name', schedule.schedule_name),
+                description=data.get('description', schedule.description),
+                start_date=new_start_date,
+                end_date=new_end_date,
+                monday=data.get('monday', schedule.monday),
+                tuesday=data.get('tuesday', schedule.tuesday),
+                wednesday=data.get('wednesday', schedule.wednesday),
+                thursday=data.get('thursday', schedule.thursday),
+                friday=data.get('friday', schedule.friday),
+                saturday=data.get('saturday', schedule.saturday),
+                sunday=data.get('sunday', schedule.sunday),
+                shift_start_time=datetime.strptime(data['shift_start_time'], '%H:%M').time() if data.get('shift_start_time') else schedule.shift_start_time,
+                shift_end_time=datetime.strptime(data['shift_end_time'], '%H:%M').time() if data.get('shift_end_time') else schedule.shift_end_time,
+                break_time=data.get('break_time', schedule.break_time),
+                priority=data.get('priority', schedule.priority),
+                is_active=True,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+            # Add new schedule and mark old one as inactive
+            db.session.add(new_schedule)
+            schedule.is_active = False
+            schedule.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Schedule updated with new date range ({new_start_date} to {new_end_date})',
+                'new_schedule_id': new_schedule.id,
+                'date_range_changed': True
+            })
+        else:
+            # Regular update without date range change
+            if 'schedule_name' in data:
+                schedule.schedule_name = data['schedule_name']
+            if 'description' in data:
+                schedule.description = data['description']
+            
+            # Update working days
+            for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
+                if day in data:
+                    setattr(schedule, day, data[day])
+            
+            # Update times
+            if 'shift_start_time' in data and data['shift_start_time']:
+                schedule.shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
+            if 'shift_end_time' in data and data['shift_end_time']:
+                schedule.shift_end_time = datetime.strptime(data['shift_end_time'], '%H:%M').time()
+            if 'break_time' in data:
+                schedule.break_time = data['break_time']
+            if 'priority' in data:
+                schedule.priority = data['priority']
+            
+            schedule.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Schedule updated successfully',
+                'date_range_changed': False
+            })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Delete single schedule
 @shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['DELETE'])
 @login_required

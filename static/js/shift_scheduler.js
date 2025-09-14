@@ -1108,6 +1108,9 @@
             checkbox.prop('checked', isWorking);
         });
 
+        // Add date range validation
+        setupDateRangeValidation();
+
         console.log('About to show modal...');
         // Show modal with proper Bootstrap initialization
         try {
@@ -1137,7 +1140,35 @@
     }
 
     /**
-     * Update schedule - Make globally accessible
+     * Setup date range validation for edit modal
+     */
+    function setupDateRangeValidation() {
+        // Validate date range
+        $('#editStartDate, #editEndDate').on('change', function() {
+            const startDate = $('#editStartDate').val();
+            const endDate = $('#editEndDate').val();
+            
+            if (startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                
+                if (start > end) {
+                    showAlert('Start date cannot be after end date', 'warning');
+                    $(this).addClass('is-invalid');
+                } else {
+                    $('#editStartDate, #editEndDate').removeClass('is-invalid');
+                    
+                    // Calculate date range and show info
+                    const diffTime = Math.abs(end - start);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    console.log(`Date range: ${diffDays} days`);
+                }
+            }
+        });
+    }
+
+    /**
+     * Update schedule - Make globally accessible with date range support
      */
     window.updateSchedule = function() {
         console.log('updateSchedule called');
@@ -1148,11 +1179,20 @@
             return;
         }
 
+        // Get the original schedule data to compare dates
+        const originalSchedule = existingSchedules.find(s => s.id == scheduleId);
+        const newStartDate = $('#editStartDate').val();
+        const newEndDate = $('#editEndDate').val();
+        
+        // Check if dates have changed
+        const datesChanged = originalSchedule && 
+            (originalSchedule.start_date !== newStartDate || originalSchedule.end_date !== newEndDate);
+
         const data = {
             schedule_name: $('#editScheduleName').val(),
             description: $('#editDescription').val(),
-            start_date: $('#editStartDate').val(),
-            end_date: $('#editEndDate').val(),
+            start_date: newStartDate,
+            end_date: newEndDate,
             shift_start_time: $('#editShiftStart').val(),
             shift_end_time: $('#editShiftEnd').val(),
             break_time: $('#editBreakTime').val(),
@@ -1163,13 +1203,68 @@
             thursday: $('#editThursday').is(':checked'),
             friday: $('#editFriday').is(':checked'),
             saturday: $('#editSaturday').is(':checked'),
-            sunday: $('#editSunday').is(':checked')
+            sunday: $('#editSunday').is(':checked'),
+            update_date_range: datesChanged // Flag to indicate date range update
         };
 
         console.log('Updating schedule with data:', data);
+        console.log('Date range changed:', datesChanged);
+
+        if (datesChanged) {
+            if (!confirm('You are changing the date range. This will update the schedule to apply to the new date range. Continue?')) {
+                return;
+            }
+        }
 
         showLoadingModal('Updating schedule...');
 
+        // Use the enhanced update endpoint that supports date range changes
+        $.ajax({
+            url: `/api/schedule/${scheduleId}/update-with-range`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                hideLoadingModal();
+                console.log('Update response:', response);
+                if (response.success) {
+                    showAlert(response.message || 'Schedule updated successfully', 'success');
+
+                    // Close modal properly
+                    const modalElement = document.getElementById('editScheduleModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+
+                    // Refresh schedules list
+                    if (selectedStaffId) {
+                        loadExistingSchedules(selectedStaffId);
+                    }
+                    loadAllSchedules(); // Refresh the main management table
+                } else {
+                    showAlert('Error updating schedule: ' + (response.error || 'Unknown error'), 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error updating schedule:', error);
+                console.error('Response:', xhr.responseText);
+                
+                // Fallback to regular update if enhanced endpoint doesn't exist
+                if (xhr.status === 404) {
+                    updateScheduleRegular(scheduleId, data);
+                } else {
+                    showAlert('Error updating schedule. Please try again.', 'danger');
+                }
+            }
+        });
+    };
+
+    /**
+     * Fallback regular update method
+     */
+    function updateScheduleRegular(scheduleId, data) {
         $.ajax({
             url: `/api/schedule/${scheduleId}`,
             method: 'PUT',
@@ -1204,7 +1299,7 @@
                 showAlert('Error updating schedule. Please try again.', 'danger');
             }
         });
-    };
+    }
 
     /**
      * Delete a single schedule

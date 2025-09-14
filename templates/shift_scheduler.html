@@ -249,12 +249,24 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="editStartDate" class="form-label">Start Date</label>
+                            <label for="editStartDate" class="form-label">
+                                <i class="fas fa-calendar-plus me-1"></i>Start Date
+                                <small class="text-muted">(editable)</small>
+                            </label>
                             <input type="date" class="form-control" id="editStartDate" name="start_date" required>
+                            <small class="form-text text-info">
+                                <i class="fas fa-info-circle me-1"></i>Changing dates will update the schedule range
+                            </small>
                         </div>
                         <div class="col-md-6">
-                            <label for="editEndDate" class="form-label">End Date</label>
+                            <label for="editEndDate" class="form-label">
+                                <i class="fas fa-calendar-check me-1"></i>End Date
+                                <small class="text-muted">(editable)</small>
+                            </label>
                             <input type="date" class="form-control" id="editEndDate" name="end_date" required>
+                            <small class="form-text text-info">
+                                <i class="fas fa-info-circle me-1"></i>Will apply to all days in new range
+                            </small>
                         </div>
 
                         <div class="col-12">
