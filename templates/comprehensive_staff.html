@@ -1,8 +1,5 @@
-{% extends "base.html" %}
-
-{% block title %}Staff Management - Spa & Salon Management Suite{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Staff Management - Spa & Salon
+Management Suite{% endblock %} {% block content %}
 <div class="container-fluid">
     <!-- Header -->
     <div class="row mb-4">
@@ -12,13 +9,27 @@
                     <i class="fas fa-users-cog me-2"></i>Staff Management
                 </h1>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="showAddModal()">
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#staffModal"
+                        onclick="showAddModal()"
+                    >
                         <i class="fas fa-plus me-2"></i>Add New Staff
                     </button>
-                    <button type="button" class="btn btn-success" onclick="exportStaffData()">
+                    <button
+                        type="button"
+                        class="btn btn-success"
+                        onclick="exportStaffData()"
+                    >
                         <i class="fas fa-download me-2"></i>Export Data
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="refreshStaffData()">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="refreshStaffData()"
+                    >
                         <i class="fas fa-sync-alt me-2"></i>Refresh
                     </button>
                 </div>
@@ -98,25 +109,41 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Search Staff</label>
-                            <input type="text" class="form-control" id="searchInput" 
-                                   placeholder="Search by name, email, code..." 
-                                   onkeyup="filterStaff()">
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="searchInput"
+                                placeholder="Search by name, email, code..."
+                                onkeyup="filterStaff()"
+                            />
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Role</label>
-                            <select class="form-select" id="roleFilter" onchange="filterStaff()">
+                            <select
+                                class="form-select"
+                                id="roleFilter"
+                                onchange="filterStaff()"
+                            >
                                 <option value="">All Roles</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Department</label>
-                            <select class="form-select" id="departmentFilter" onchange="filterStaff()">
+                            <select
+                                class="form-select"
+                                id="departmentFilter"
+                                onchange="filterStaff()"
+                            >
                                 <option value="">All Departments</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Status</label>
-                            <select class="form-select" id="statusFilter" onchange="filterStaff()">
+                            <select
+                                class="form-select"
+                                id="statusFilter"
+                                onchange="filterStaff()"
+                            >
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
@@ -124,7 +151,11 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">&nbsp;</label>
-                            <button type="button" class="btn btn-outline-secondary d-block w-100" onclick="clearFilters()">
+                            <button
+                                type="button"
+                                class="btn btn-outline-secondary d-block w-100"
+                                onclick="clearFilters()"
+                            >
                                 <i class="fas fa-times me-1"></i>Clear
                             </button>
                         </div>
@@ -151,7 +182,7 @@
                     </div>
 
                     <!-- Staff Table -->
-                    <div id="staffTableContainer" style="display: none;">
+                    <div id="staffTableContainer" style="display: none">
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -173,11 +204,23 @@
                     </div>
 
                     <!-- Empty State -->
-                    <div id="emptyState" class="text-center py-5" style="display: none;">
+                    <div
+                        id="emptyState"
+                        class="text-center py-5"
+                        style="display: none"
+                    >
                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No staff members found</h5>
-                        <p class="text-muted">Add your first staff member to get started.</p>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="showAddModal()">
+                        <p class="text-muted">
+                            Add your first staff member to get started.
+                        </p>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#staffModal"
+                            onclick="showAddModal()"
+                        >
                             <i class="fas fa-plus me-2"></i>Add Staff Member
                         </button>
                     </div>
@@ -188,58 +231,111 @@
 </div>
 
 <!-- Staff Add/Edit Modal -->
-<div class="modal fade" id="staffModal" tabindex="-1" aria-labelledby="staffModalLabel" aria-hidden="true">
+<div
+    class="modal fade"
+    id="staffModal"
+    tabindex="-1"
+    aria-labelledby="staffModalLabel"
+    aria-hidden="true"
+>
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="staffModalLabel">Add New Staff Member</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="staffModalLabel">
+                    Add New Staff Member
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
             </div>
             <form id="staffForm">
                 <div class="modal-body">
-                    <input type="hidden" id="staffId" value="">
-                    <input type="hidden" id="formMode" value="add">
+                    <input type="hidden" id="staffId" value="" />
+                    <input type="hidden" id="formMode" value="add" />
 
                     <div class="row g-3">
                         <!-- Basic Information -->
                         <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Basic Information</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Basic Information
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Username *</label>
-                                <input type="text" class="form-control" id="username" required>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="username"
+                                    required
+                                />
                             </div>
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">First Name *</label>
-                                        <input type="text" class="form-control" id="firstName" required>
+                                        <label class="form-label"
+                                            >First Name *</label
+                                        >
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            id="firstName"
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Last Name *</label>
-                                        <input type="text" class="form-control" id="lastName" required>
+                                        <label class="form-label"
+                                            >Last Name *</label
+                                        >
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            id="lastName"
+                                            required
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Email *</label>
-                                <input type="email" class="form-control" id="email" required>
+                                <input
+                                    type="email"
+                                    class="form-control"
+                                    id="email"
+                                    required
+                                />
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Phone</label>
-                                <input type="text" class="form-control" id="phone">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="phone"
+                                />
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password">
-                                <small class="form-text text-muted" id="passwordHelp">Leave blank to keep current password</small>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="password"
+                                />
+                                <small
+                                    class="form-text text-muted"
+                                    id="passwordHelp"
+                                    >Leave blank to keep current password</small
+                                >
                             </div>
                         </div>
 
                         <!-- Role & Department -->
                         <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Role & Department</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Role & Department
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Role</label>
                                 <select class="form-select" id="roleId">
@@ -254,19 +350,40 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Designation</label>
-                                <input type="text" class="form-control" id="designation">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="designation"
+                                />
                             </div>
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Commission Rate (%)</label>
-                                        <input type="number" class="form-control" id="commissionRate" min="0" max="100" step="0.1">
+                                        <label class="form-label"
+                                            >Commission Rate (%)</label
+                                        >
+                                        <input
+                                            type="number"
+                                            class="form-control"
+                                            id="commissionRate"
+                                            min="0"
+                                            max="100"
+                                            step="0.1"
+                                        />
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Hourly Rate ($)</label>
-                                        <input type="number" class="form-control" id="hourlyRate" min="0" step="0.01">
+                                        <label class="form-label"
+                                            >Hourly Rate ($)</label
+                                        >
+                                        <input
+                                            type="number"
+                                            class="form-control"
+                                            id="hourlyRate"
+                                            min="0"
+                                            step="0.01"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -274,7 +391,9 @@
 
                         <!-- Personal Details -->
                         <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Personal Details</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Personal Details
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Gender</label>
                                 <select class="form-select" id="gender">
@@ -287,14 +406,26 @@
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Date of Birth</label>
-                                        <input type="date" class="form-control" id="dateOfBirth">
+                                        <label class="form-label"
+                                            >Date of Birth</label
+                                        >
+                                        <input
+                                            type="date"
+                                            class="form-control"
+                                            id="dateOfBirth"
+                                        />
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Date of Joining</label>
-                                        <input type="date" class="form-control" id="dateOfJoining">
+                                        <label class="form-label"
+                                            >Date of Joining</label
+                                        >
+                                        <input
+                                            type="date"
+                                            class="form-control"
+                                            id="dateOfJoining"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -302,56 +433,102 @@
 
                         <!-- Work Schedule (Basic) -->
                         <div hidden class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Work Schedule</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Work Schedule
+                            </h6>
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Shift Start</label>
-                                        <input type="time" class="form-control" id="shiftStart">
+                                        <label class="form-label"
+                                            >Shift Start</label
+                                        >
+                                        <input
+                                            type="time"
+                                            class="form-control"
+                                            id="shiftStart"
+                                        />
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Shift End</label>
-                                        <input type="time" class="form-control" id="shiftEnd">
+                                        <label class="form-label"
+                                            >Shift End</label
+                                        >
+                                        <input
+                                            type="time"
+                                            class="form-control"
+                                            id="shiftEnd"
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Working Days</label>
-                                <input type="text" class="form-control" id="workingDays" 
-                                       placeholder="e.g., Monday-Friday">
-                                <small class="text-muted">For detailed schedule management, use the Schedule button in the staff table.</small>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="workingDays"
+                                    placeholder="e.g., Monday-Friday"
+                                />
+                                <small class="text-muted"
+                                    >For detailed schedule management, use the
+                                    Schedule button in the staff table.</small
+                                >
                             </div>
                         </div>
 
                         <!-- Advanced Features -->
-                        <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Advanced Features</h6>
+                        <div hidden class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">
+                                Advanced Features
+                            </h6>
                             <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="enableFaceCheckin" checked>
-                                <label class="form-check-label" for="enableFaceCheckin">
-                                    <i class="fas fa-user-lock me-2"></i>Enable Face Check-in
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="enableFaceCheckin"
+                                    checked
+                                />
+                                <label
+                                    class="form-check-label"
+                                    for="enableFaceCheckin"
+                                >
+                                    <i class="fas fa-user-lock me-2"></i>Enable
+                                    Face Check-in
                                 </label>
                             </div>
                         </div>
 
                         <!-- Notes -->
                         <div class="col-12">
-                            <h6 class="text-primary border-bottom pb-2">Additional Information</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Additional Information
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Notes/Bio</label>
-                                <textarea class="form-control" id="notesBio" rows="3" 
-                                          placeholder="Additional notes or biography"></textarea>
+                                <textarea
+                                    class="form-control"
+                                    id="notesBio"
+                                    rows="3"
+                                    placeholder="Additional notes or biography"
+                                ></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
                         <i class="fas fa-times me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        id="submitBtn"
+                    >
                         <i class="fas fa-save me-1"></i>Save Staff
                     </button>
                 </div>
@@ -360,25 +537,49 @@
     </div>
 </div>
 
-
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<div
+    class="modal fade"
+    id="deleteModal"
+    tabindex="-1"
+    aria-labelledby="deleteModalLabel"
+    aria-hidden="true"
+>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="deleteModalLabel">
+                    Confirm Delete
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
             </div>
             <div class="modal-body">
                 <div class="text-center">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i
+                        class="fas fa-exclamation-triangle fa-3x text-warning mb-3"
+                    ></i>
                     <h5>Are you sure?</h5>
                     <p id="deleteMessage">This action cannot be undone.</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    id="confirmDeleteBtn"
+                >
                     <i class="fas fa-trash me-1"></i>Delete
                 </button>
             </div>
@@ -387,12 +588,25 @@
 </div>
 
 <!-- Performance Modal -->
-<div class="modal fade" id="performanceModal" tabindex="-1" aria-labelledby="performanceModalLabel" aria-hidden="true">
+<div
+    class="modal fade"
+    id="performanceModal"
+    tabindex="-1"
+    aria-labelledby="performanceModalLabel"
+    aria-hidden="true"
+>
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="performanceModalLabel">Staff Performance</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="performanceModalLabel">
+                    Staff Performance
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
             </div>
             <div class="modal-body">
                 <div id="performanceContent">
@@ -409,316 +623,325 @@
 </div>
 
 <!-- Alert Container -->
-<div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+<div
+    id="alertContainer"
+    class="position-fixed top-0 end-0 p-3"
+    style="z-index: 1050"
+>
     <!-- Alerts will be dynamically added here -->
 </div>
 
 <script>
-// Basic staff management JavaScript
-let allStaff = []; // Renamed from staffList to avoid conflict with filteredStaff
-let filteredStaff = []; // Declare filteredStaff variable
-let rolesData = []; // Renamed from roles
-let departmentsData = []; // Renamed from departments
-let services = []; // Assuming this is intended to be used elsewhere or is a placeholder
-let currentStaffId = null;
-let staffModal;
-let isEditing = false; // Added to track edit mode
-let currentDeleteId = null; // Added for delete confirmation
+    // Basic staff management JavaScript
+    let allStaff = []; // Renamed from staffList to avoid conflict with filteredStaff
+    let filteredStaff = []; // Declare filteredStaff variable
+    let rolesData = []; // Renamed from roles
+    let departmentsData = []; // Renamed from departments
+    let services = []; // Assuming this is intended to be used elsewhere or is a placeholder
+    let currentStaffId = null;
+    let staffModal;
+    let isEditing = false; // Added to track edit mode
+    let currentDeleteId = null; // Added for delete confirmation
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Bootstrap Modal Staff Management loaded');
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("Bootstrap Modal Staff Management loaded");
 
-    // Initialize modal
-    const modalElement = document.getElementById('staffModal');
-    if (modalElement) {
-        staffModal = new bootstrap.Modal(modalElement);
-    }
-
-    // Load initial data
-    loadStaffData();
-    loadMetadata();
-
-    // Setup form submission
-    const staffForm = document.getElementById('staffForm');
-    if (staffForm) {
-        staffForm.addEventListener('submit', handleFormSubmission);
-    }
-
-    // Setup delete confirmation button
-    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', () => {
-            performDelete(currentDeleteId);
-        });
-    }
-});
-
-async function handleFormSubmission(e) {
-    e.preventDefault();
-
-    const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.innerHTML;
-
-    try {
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
-
-        const formData = collectFormData();
-
-        // Validate required fields
-        const validation = validateFormData(formData);
-        if (!validation.isValid) {
-            showNotification(validation.message, 'error');
-            return;
+        // Initialize modal
+        const modalElement = document.getElementById("staffModal");
+        if (modalElement) {
+            staffModal = new bootstrap.Modal(modalElement);
         }
 
-        const mode = document.getElementById('formMode').value;
+        // Load initial data
+        loadStaffData();
+        loadMetadata();
 
-        let response;
-        if (mode === 'edit') {
-            response = await updateStaff(currentStaffId, formData);
-        } else {
-            response = await createStaff(formData);
+        // Setup form submission
+        const staffForm = document.getElementById("staffForm");
+        if (staffForm) {
+            staffForm.addEventListener("submit", handleFormSubmission);
         }
 
-        if (response && response.success) {
-            showNotification(response.message, 'success');
-            staffModal.hide();
-            loadStaffData(); // Reload staff list
-        } else {
-            const errorMsg = response?.error || 'An error occurred while saving';
-            showNotification(errorMsg, 'error');
+        // Setup delete confirmation button
+        const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+        if (confirmDeleteBtn) {
+            confirmDeleteBtn.addEventListener("click", () => {
+                performDelete(currentDeleteId);
+            });
         }
+    });
 
-    } catch (error) {
-        console.error('Form submission error:', error);
-        showNotification('Network error: ' + error.message, 'error');
-    } finally {
-        // Reset button state
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
+    async function handleFormSubmission(e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById("submitBtn");
+        const originalText = submitBtn.innerHTML;
+
+        try {
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+            const formData = collectFormData();
+
+            // Validate required fields
+            const validation = validateFormData(formData);
+            if (!validation.isValid) {
+                showNotification(validation.message, "error");
+                return;
+            }
+
+            const mode = document.getElementById("formMode").value;
+
+            let response;
+            if (mode === "edit") {
+                response = await updateStaff(currentStaffId, formData);
+            } else {
+                response = await createStaff(formData);
+            }
+
+            if (response && response.success) {
+                showNotification(response.message, "success");
+                staffModal.hide();
+                loadStaffData(); // Reload staff list
+            } else {
+                const errorMsg =
+                    response?.error || "An error occurred while saving";
+                showNotification(errorMsg, "error");
+            }
+        } catch (error) {
+            console.error("Form submission error:", error);
+            showNotification("Network error: " + error.message, "error");
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     }
-}
 
-function validateFormData(data) {
-    const required = ['username', 'first_name', 'last_name', 'email'];
+    function validateFormData(data) {
+        const required = ["username", "first_name", "last_name", "email"];
 
-    for (const field of required) {
-        if (!data[field] || data[field].trim() === '') {
+        for (const field of required) {
+            if (!data[field] || data[field].trim() === "") {
+                return {
+                    isValid: false,
+                    message: `${field.replace("_", " ").toUpperCase()} is required`,
+                };
+            }
+        }
+
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(data.email)) {
             return {
                 isValid: false,
-                message: `${field.replace('_', ' ').toUpperCase()} is required`
+                message: "Please enter a valid email address",
+            };
+        }
+
+        return { isValid: true };
+    }
+
+    async function createStaff(staffData) {
+        try {
+            console.log("Creating staff with data:", staffData);
+
+            const response = await fetch("/api/staff", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(staffData),
+            });
+
+            const result = await response.json();
+
+            console.log("API Response:", result);
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error ||
+                        `HTTP ${response.status}: ${response.statusText}`,
+                );
+            }
+
+            return result;
+        } catch (error) {
+            console.error("Error creating staff:", error);
+            return {
+                success: false,
+                error: error.message || "Failed to create staff member",
             };
         }
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
-        return {
-            isValid: false,
-            message: 'Please enter a valid email address'
+    function collectFormData() {
+        const data = {
+            username: getFieldValue("username"),
+            first_name: getFieldValue("firstName"),
+            last_name: getFieldValue("lastName"),
+            email: getFieldValue("email"),
+            phone: getFieldValue("phone"),
+            password: getFieldValue("password"),
+            role: getFieldValue("role") || "staff",
+            role_id: getFieldValue("roleId"),
+            department_id: getFieldValue("departmentId"),
+            designation: getFieldValue("designation"),
+            gender: getFieldValue("gender"),
+            date_of_birth: getFieldValue("dateOfBirth"),
+            date_of_joining: getFieldValue("dateOfJoining"),
+            shift_start_time: getFieldValue("shiftStart"),
+            shift_end_time: getFieldValue("shiftEnd"),
+            commission_rate: parseFloat(getFieldValue("commissionRate")) || 0,
+            hourly_rate: parseFloat(getFieldValue("hourlyRate")) || 0,
+            notes_bio: getFieldValue("notesBio"),
+            enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
+            verification_status: getCheckboxValue("verificationStatus"), // Assuming this field exists and is relevant
+            is_active: getCheckboxValue("isActive", true), // Assuming a default for isActive if not present
         };
+
+        console.log("Collected form data:", data);
+        return data;
     }
 
-    return { isValid: true };
-}
+    function getFieldValue(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (!field) {
+            console.warn(`Field ${fieldId} not found`);
+            return "";
+        }
+        return field.value?.trim() || "";
+    }
 
-async function createStaff(staffData) {
-    try {
-        console.log('Creating staff with data:', staffData);
+    function getCheckboxValue(fieldId, defaultValue = false) {
+        const element = document.getElementById(fieldId);
+        return element ? element.checked : defaultValue;
+    }
 
-        const response = await fetch('/api/staff', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(staffData)
+    // Load metadata (roles, departments, services)
+    async function loadMetadata() {
+        try {
+            // This function loads dropdown data and is called from loadStaffData
+            // The actual loading is handled in loadStaffData for efficiency
+            console.log("Metadata loading handled in loadStaffData");
+        } catch (error) {
+            console.error("Error in loadMetadata:", error);
+        }
+    }
+
+    // Load all staff data from API
+    async function loadStaffData() {
+        try {
+            showLoading(true);
+
+            const response = await fetch("/api/staff");
+            const data = await response.json();
+
+            if (data.success) {
+                allStaff = data.staff;
+                filteredStaff = [...allStaff]; // Initialize filtered staff
+                rolesData = data.roles;
+                departmentsData = data.departments;
+
+                populateDropdowns();
+                updateStats();
+                renderStaffTable();
+
+                // Show table if we have data
+                if (allStaff.length > 0) {
+                    showTable(true);
+                }
+
+                showAlert("Staff data loaded successfully", "success");
+            } else {
+                throw new Error(data.error || "Failed to load staff data");
+            }
+        } catch (error) {
+            console.error("Error loading staff data:", error);
+            showAlert("Error loading staff data: " + error.message, "danger");
+            showEmptyState();
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // Populate dropdown menus
+    function populateDropdowns() {
+        // Populate role dropdowns
+        const roleSelects = ["roleFilter", "roleId"];
+        roleSelects.forEach((selectId) => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                // Clear existing options (except first)
+                const firstOption = select.firstElementChild;
+                select.innerHTML = "";
+                if (firstOption) {
+                    select.appendChild(firstOption);
+                }
+
+                rolesData.forEach((role) => {
+                    const option = document.createElement("option");
+                    option.value = role.id;
+                    option.textContent = role.display_name;
+                    select.appendChild(option);
+                });
+            }
         });
 
-        const result = await response.json();
+        // Populate department dropdowns
+        const deptSelects = ["departmentFilter", "departmentId"];
+        deptSelects.forEach((selectId) => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                // Clear existing options (except first)
+                const firstOption = select.firstElementChild;
+                select.innerHTML = "";
+                if (firstOption) {
+                    select.appendChild(firstOption);
+                }
 
-        console.log('API Response:', result);
-
-        if (!response.ok) {
-            throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error('Error creating staff:', error);
-        return {
-            success: false,
-            error: error.message || 'Failed to create staff member'
-        };
-    }
-}
-
-function collectFormData() {
-    const data = {
-        username: getFieldValue('username'),
-        first_name: getFieldValue('firstName'),
-        last_name: getFieldValue('lastName'),
-        email: getFieldValue('email'),
-        phone: getFieldValue('phone'),
-        password: getFieldValue('password'),
-        role: getFieldValue('role') || 'staff',
-        role_id: getFieldValue('roleId'),
-        department_id: getFieldValue('departmentId'),
-        designation: getFieldValue('designation'),
-        gender: getFieldValue('gender'),
-        date_of_birth: getFieldValue('dateOfBirth'),
-        date_of_joining: getFieldValue('dateOfJoining'),
-        shift_start_time: getFieldValue('shiftStart'),
-        shift_end_time: getFieldValue('shiftEnd'),
-        commission_rate: parseFloat(getFieldValue('commissionRate')) || 0,
-        hourly_rate: parseFloat(getFieldValue('hourlyRate')) || 0,
-        notes_bio: getFieldValue('notesBio'),
-        enable_face_checkin: getCheckboxValue('enableFaceCheckin'),
-        verification_status: getCheckboxValue('verificationStatus'), // Assuming this field exists and is relevant
-        is_active: getCheckboxValue('isActive', true) // Assuming a default for isActive if not present
-    };
-
-    console.log('Collected form data:', data);
-    return data;
-}
-
-function getFieldValue(fieldId) {
-    const field = document.getElementById(fieldId);
-    if (!field) {
-        console.warn(`Field ${fieldId} not found`);
-        return '';
-    }
-    return field.value?.trim() || '';
-}
-
-
-function getCheckboxValue(fieldId, defaultValue = false) {
-    const element = document.getElementById(fieldId);
-    return element ? element.checked : defaultValue;
-}
-
-// Load metadata (roles, departments, services)
-async function loadMetadata() {
-    try {
-        // This function loads dropdown data and is called from loadStaffData
-        // The actual loading is handled in loadStaffData for efficiency
-        console.log('Metadata loading handled in loadStaffData');
-    } catch (error) {
-        console.error('Error in loadMetadata:', error);
-    }
-}
-
-// Load all staff data from API
-async function loadStaffData() {
-    try {
-        showLoading(true);
-
-        const response = await fetch('/api/staff');
-        const data = await response.json();
-
-        if (data.success) {
-            allStaff = data.staff;
-            filteredStaff = [...allStaff]; // Initialize filtered staff
-            rolesData = data.roles;
-            departmentsData = data.departments;
-
-            populateDropdowns();
-            updateStats();
-            renderStaffTable();
-
-            // Show table if we have data
-            if (allStaff.length > 0) {
-                showTable(true);
+                departmentsData.forEach((dept) => {
+                    const option = document.createElement("option");
+                    option.value = dept.id;
+                    option.textContent = dept.display_name;
+                    select.appendChild(option);
+                });
             }
-
-            showAlert('Staff data loaded successfully', 'success');
-        } else {
-            throw new Error(data.error || 'Failed to load staff data');
-        }
-    } catch (error) {
-        console.error('Error loading staff data:', error);
-        showAlert('Error loading staff data: ' + error.message, 'danger');
-        showEmptyState();
-    } finally {
-        showLoading(false);
+        });
     }
-}
 
-// Populate dropdown menus
-function populateDropdowns() {
-    // Populate role dropdowns
-    const roleSelects = ['roleFilter', 'roleId'];
-    roleSelects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    // Clear existing options (except first)
-                    const firstOption = select.firstElementChild;
-                    select.innerHTML = '';
-                    if (firstOption) {
-                        select.appendChild(firstOption);
-                    }
+    // Update statistics cards
+    function updateStats() {
+        const totalStaff = allStaff.length;
+        const activeStaff = allStaff.filter((s) => s.is_active).length;
 
-                    rolesData.forEach(role => {
-                        const option = document.createElement('option');
-                        option.value = role.id;
-                        option.textContent = role.display_name;
-                        select.appendChild(option);
-                    });
-                }
-            });
+        document.getElementById("totalStaffCount").textContent = totalStaff;
+        document.getElementById("activeStaffCount").textContent = activeStaff;
+        document.getElementById("departmentCount").textContent =
+            departmentsData.length;
+        document.getElementById("roleCount").textContent = rolesData.length;
+    }
 
-    // Populate department dropdowns
-    const deptSelects = ['departmentFilter', 'departmentId'];
-    deptSelects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    // Clear existing options (except first)
-                    const firstOption = select.firstElementChild;
-                    select.innerHTML = '';
-                    if (firstOption) {
-                        select.appendChild(firstOption);
-                    }
+    // Render staff table
+    function renderStaffTable() {
+        // Initialize filteredStaff with all staff data
+        filteredStaff = [...allStaff];
+        // Apply filters immediately after loading data
+        filterStaff();
+    }
 
-                    departmentsData.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.display_name;
-                        select.appendChild(option);
-                    });
-                }
-            });
-}
+    // Create staff table row
+    function createStaffRow(staff) {
+        const row = document.createElement("tr");
+        row.setAttribute("data-staff-id", staff.id);
 
-// Update statistics cards
-function updateStats() {
-    const totalStaff = allStaff.length;
-    const activeStaff = allStaff.filter(s => s.is_active).length;
+        // Generate initials
+        const initials =
+            (staff.first_name?.[0] || "S") + (staff.last_name?.[0] || "M");
 
-    document.getElementById('totalStaffCount').textContent = totalStaff;
-    document.getElementById('activeStaffCount').textContent = activeStaff;
-    document.getElementById('departmentCount').textContent = departmentsData.length;
-    document.getElementById('roleCount').textContent = rolesData.length;
-}
-
-// Render staff table
-function renderStaffTable() {
-    // Initialize filteredStaff with all staff data
-    filteredStaff = [...allStaff];
-    // Apply filters immediately after loading data
-    filterStaff(); 
-}
-
-// Create staff table row
-function createStaffRow(staff) {
-    const row = document.createElement('tr');
-    row.setAttribute('data-staff-id', staff.id);
-
-    // Generate initials
-    const initials = (staff.first_name?.[0] || 'S') + (staff.last_name?.[0] || 'M');
-
-    row.innerHTML = `
+        row.innerHTML = `
         <td>
             <div class="d-flex align-items-center">
                 <div class="avatar-circle me-3" style="width: 40px; height: 40px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
@@ -726,7 +949,7 @@ function createStaffRow(staff) {
                 </div>
                 <div>
                     <strong>${staff.full_name}</strong>
-                    <br><small class="text-muted">${staff.staff_code || ''}</small>
+                    <br><small class="text-muted">${staff.staff_code || ""}</small>
                     <br><small class="text-muted">${staff.username}</small>
                 </div>
             </div>
@@ -734,32 +957,33 @@ function createStaffRow(staff) {
         <td>
             <div><strong>${staff.role_display}</strong></div>
             <div><small class="text-muted">${staff.department_display}</small></div>
-            <div><span class="badge bg-secondary">${staff.designation || 'No Designation'}</span></div>
+            <div><span class="badge bg-secondary">${staff.designation || "No Designation"}</span></div>
         </td>
         <td>
-            <div>${staff.email || 'No email'}</div>
-            <div><small class="text-muted">${staff.phone || 'No phone'}</small></div>
-            ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ''}
+            <div>${staff.email || "No email"}</div>
+            <div><small class="text-muted">${staff.phone || "No phone"}</small></div>
+            ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ""}
         </td>
         <td>
             <div><strong>Commission:</strong> ${staff.commission_rate}%</div>
             <div><strong>Hourly:</strong> $${staff.hourly_rate}</div>
-            ${staff.shift_start_time && staff.shift_end_time ? 
-                `<div><small>Shift: ${staff.shift_start_time} - ${staff.shift_end_time}</small></div>` : 
-                '<div><small>No shift set</small></div>'
+            ${
+                staff.shift_start_time && staff.shift_end_time
+                    ? `<div><small>Shift: ${staff.shift_start_time} - ${staff.shift_end_time}</small></div>`
+                    : "<div><small>No shift set</small></div>"
             }
         </td>
         <td>
             <div><strong>Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
             <div><small>Clients: ${staff.total_clients_served}</small></div>
-            ${staff.average_rating > 0 ? `<div><small>Rating: ⭐${staff.average_rating.toFixed(1)}</small></div>` : ''}
+            ${staff.average_rating > 0 ? `<div><small>Rating: ⭐${staff.average_rating.toFixed(1)}</small></div>` : ""}
         </td>
         <td>
-            <span class="badge bg-${staff.is_active ? 'success' : 'danger'}">
-                ${staff.is_active ? 'Active' : 'Inactive'}
+            <span class="badge bg-${staff.is_active ? "success" : "danger"}">
+                ${staff.is_active ? "Active" : "Inactive"}
             </span>
-            ${staff.verification_status ? '<br><span class="badge bg-info mt-1">Verified</span>' : ''}
-            ${staff.enable_face_checkin ? '<br><span class="badge bg-primary mt-1">Face ID</span>' : ''}
+            ${staff.verification_status ? '<br><span class="badge bg-info mt-1">Verified</span>' : ""}
+            ${staff.enable_face_checkin ? '<br><span class="badge bg-primary mt-1">Face ID</span>' : ""}
         </td>
         <td>
             <div class="btn-group-vertical btn-group-sm">
@@ -776,319 +1000,361 @@ function createStaffRow(staff) {
         </td>
     `;
 
-    return row;
-}
-
-// Filter staff based on search and filters
-function filterStaff() {
-    console.log('Filtering staff. Total staff:', allStaff.length);
-    let filtered = [...allStaff];
-
-    // Search filter
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    if (searchTerm) {
-        filtered = filtered.filter(staff => 
-            staff.full_name.toLowerCase().includes(searchTerm) ||
-            staff.email.toLowerCase().includes(searchTerm) ||
-            (staff.staff_code && staff.staff_code.toLowerCase().includes(searchTerm)) ||
-            staff.username.toLowerCase().includes(searchTerm) ||
-            (staff.phone && staff.phone.includes(searchTerm))
-        );
-        console.log('After search filter:', filtered.length);
+        return row;
     }
 
-    // Role filter
-    const roleFilter = document.getElementById('roleFilter').value;
-    if (roleFilter) {
-        filtered = filtered.filter(staff => staff.role_id == roleFilter);
-        console.log('After role filter:', filtered.length);
+    // Filter staff based on search and filters
+    function filterStaff() {
+        console.log("Filtering staff. Total staff:", allStaff.length);
+        let filtered = [...allStaff];
+
+        // Search filter
+        const searchTerm = document
+            .getElementById("searchInput")
+            .value.toLowerCase();
+        if (searchTerm) {
+            filtered = filtered.filter(
+                (staff) =>
+                    staff.full_name.toLowerCase().includes(searchTerm) ||
+                    staff.email.toLowerCase().includes(searchTerm) ||
+                    (staff.staff_code &&
+                        staff.staff_code.toLowerCase().includes(searchTerm)) ||
+                    staff.username.toLowerCase().includes(searchTerm) ||
+                    (staff.phone && staff.phone.includes(searchTerm)),
+            );
+            console.log("After search filter:", filtered.length);
+        }
+
+        // Role filter
+        const roleFilter = document.getElementById("roleFilter").value;
+        if (roleFilter) {
+            filtered = filtered.filter((staff) => staff.role_id == roleFilter);
+            console.log("After role filter:", filtered.length);
+        }
+
+        // Department filter
+        const deptFilter = document.getElementById("departmentFilter").value;
+        if (deptFilter) {
+            filtered = filtered.filter(
+                (staff) => staff.department_id == deptFilter,
+            );
+            console.log("After department filter:", filtered.length);
+        }
+
+        // Status filter
+        const statusFilter = document.getElementById("statusFilter").value;
+        if (statusFilter === "active") {
+            filtered = filtered.filter((staff) => staff.is_active);
+            console.log("After status filter (active):", filtered.length);
+        } else if (statusFilter === "inactive") {
+            filtered = filtered.filter((staff) => !staff.is_active);
+            console.log("After status filter (inactive):", filtered.length);
+        }
+
+        // Update the global filteredStaff array
+        filteredStaff = filtered;
+        console.log("Final filtered staff count:", filteredStaff.length);
+        renderFilteredStaff(); // Render the filtered list
     }
 
-    // Department filter
-    const deptFilter = document.getElementById('departmentFilter').value;
-    if (deptFilter) {
-        filtered = filtered.filter(staff => staff.department_id == deptFilter);
-        console.log('After department filter:', filtered.length);
+    // Render filtered staff
+    function renderFilteredStaff() {
+        const tbody = document.getElementById("staffTableBody");
+        if (!tbody) {
+            console.error("Staff table body not found");
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        if (!filteredStaff || filteredStaff.length === 0) {
+            console.log("No filtered staff to display");
+            showEmptyState();
+            return;
+        }
+
+        console.log("Rendering", filteredStaff.length, "staff members");
+        filteredStaff.forEach((staff) => {
+            const row = createStaffRow(staff);
+            tbody.appendChild(row);
+        });
+
+        showTable(true);
     }
 
-    // Status filter
-    const statusFilter = document.getElementById('statusFilter').value;
-    if (statusFilter === 'active') {
-        filtered = filtered.filter(staff => staff.is_active);
-        console.log('After status filter (active):', filtered.length);
-    } else if (statusFilter === 'inactive') {
-        filtered = filtered.filter(staff => !staff.is_active);
-        console.log('After status filter (inactive):', filtered.length);
+    // Clear all filters
+    function clearFilters() {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("roleFilter").value = "";
+        document.getElementById("departmentFilter").value = "";
+        document.getElementById("statusFilter").value = "";
+        filterStaff(); // Re-apply filters (which will now be empty)
     }
 
-    // Update the global filteredStaff array
-    filteredStaff = filtered; 
-    console.log('Final filtered staff count:', filteredStaff.length);
-    renderFilteredStaff(); // Render the filtered list
-}
-
-// Render filtered staff
-function renderFilteredStaff() {
-    const tbody = document.getElementById('staffTableBody');
-    if (!tbody) {
-        console.error('Staff table body not found');
-        return;
+    // Show/hide loading state
+    function showLoading(show) {
+        document.getElementById("loadingState").style.display = show
+            ? "block"
+            : "none";
+        document.getElementById("staffTableContainer").style.display = "none"; // Hide table while loading
+        document.getElementById("emptyState").style.display = "none"; // Hide empty state while loading
     }
 
-    tbody.innerHTML = '';
-
-    if (!filteredStaff || filteredStaff.length === 0) {
-        console.log('No filtered staff to display');
-        showEmptyState();
-        return;
+    // Show/hide table
+    function showTable(show) {
+        document.getElementById("loadingState").style.display = "none";
+        document.getElementById("staffTableContainer").style.display = show
+            ? "block"
+            : "none";
+        document.getElementById("emptyState").style.display = show
+            ? "none"
+            : "block";
     }
 
-    console.log('Rendering', filteredStaff.length, 'staff members');
-    filteredStaff.forEach(staff => {
-        const row = createStaffRow(staff);
-        tbody.appendChild(row);
-    });
+    // Show empty state
+    function showEmptyState() {
+        document.getElementById("loadingState").style.display = "none";
+        document.getElementById("staffTableContainer").style.display = "none";
+        document.getElementById("emptyState").style.display = "block";
+    }
 
-    showTable(true);
-}
+    // Show add modal
+    function showAddModal() {
+        isEditing = false; // Ensure we are in add mode
+        document.getElementById("formMode").value = "add";
+        document.getElementById("staffModalLabel").textContent =
+            "Add New Staff Member";
+        document.getElementById("submitBtn").innerHTML =
+            '<i class="fas fa-save me-1"></i>Add Staff';
+        document.getElementById("passwordHelp").textContent =
+            "Password is required for new staff";
+        document.getElementById("password").required = true; // Make password required for new staff
 
-// Clear all filters
-function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('roleFilter').value = '';
-    document.getElementById('departmentFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    filterStaff(); // Re-apply filters (which will now be empty)
-}
+        clearForm(); // Clear any previous data
+        staffModal.show(); // Show the modal
+    }
 
-// Show/hide loading state
-function showLoading(show) {
-    document.getElementById('loadingState').style.display = show ? 'block' : 'none';
-    document.getElementById('staffTableContainer').style.display = 'none'; // Hide table while loading
-    document.getElementById('emptyState').style.display = 'none'; // Hide empty state while loading
-}
+    // Edit staff
+    async function editStaff(staffId) {
+        try {
+            isEditing = true; // Set editing mode
+            currentStaffId = staffId; // Store the ID of the staff being edited
 
-// Show/hide table
-function showTable(show) {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('staffTableContainer').style.display = show ? 'block' : 'none';
-    document.getElementById('emptyState').style.display = show ? 'none' : 'block';
-}
+            document.getElementById("formMode").value = "edit";
+            document.getElementById("staffModalLabel").textContent =
+                "Edit Staff Member";
+            document.getElementById("submitBtn").innerHTML =
+                '<i class="fas fa-save me-1"></i>Update Staff';
+            document.getElementById("passwordHelp").textContent =
+                "Leave blank to keep current password";
+            document.getElementById("password").required = false; // Password is not required for editing
 
-// Show empty state
-function showEmptyState() {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('staffTableContainer').style.display = 'none';
-    document.getElementById('emptyState').style.display = 'block';
-}
+            // Load staff data from API first
+            const response = await fetch(`/api/staff/${staffId}`);
+            const data = await response.json();
 
-// Show add modal
-function showAddModal() {
-    isEditing = false; // Ensure we are in add mode
-    document.getElementById('formMode').value = 'add';
-    document.getElementById('staffModalLabel').textContent = 'Add New Staff Member';
-    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
-    document.getElementById('passwordHelp').textContent = 'Password is required for new staff';
-    document.getElementById('password').required = true; // Make password required for new staff
-
-    clearForm(); // Clear any previous data
-    staffModal.show(); // Show the modal
-}
-
-// Edit staff
-async function editStaff(staffId) {
-    try {
-        isEditing = true; // Set editing mode
-        currentStaffId = staffId; // Store the ID of the staff being edited
-
-        document.getElementById('formMode').value = 'edit';
-        document.getElementById('staffModalLabel').textContent = 'Edit Staff Member';
-        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
-        document.getElementById('passwordHelp').textContent = 'Leave blank to keep current password';
-        document.getElementById('password').required = false; // Password is not required for editing
-
-        // Load staff data from API first
-        const response = await fetch(`/api/staff/${staffId}`);
-        const data = await response.json();
-
-        if (data.success) {
-            populateForm(data.staff); // Populate form with fetched data
-            staffModal.show(); // Show the modal
-        } else {
-            // Fallback: If API fails, try to get from local data (allStaff)
-            const staff = allStaff.find(s => s.id === staffId);
-            if (staff) {
-                populateForm(staff);
-                staffModal.show();
+            if (data.success) {
+                populateForm(data.staff); // Populate form with fetched data
+                staffModal.show(); // Show the modal
             } else {
-                throw new Error(data.error || 'Staff member not found via API or local data');
+                // Fallback: If API fails, try to get from local data (allStaff)
+                const staff = allStaff.find((s) => s.id === staffId);
+                if (staff) {
+                    populateForm(staff);
+                    staffModal.show();
+                } else {
+                    throw new Error(
+                        data.error ||
+                            "Staff member not found via API or local data",
+                    );
+                }
             }
+        } catch (error) {
+            console.error("Error editing staff:", error);
+            showAlert(
+                "Error loading staff data for editing: " + error.message,
+                "danger",
+            );
         }
-    } catch (error) {
-        console.error('Error editing staff:', error);
-        showAlert('Error loading staff data for editing: ' + error.message, 'danger');
-    }
-}
-
-// Populate form with staff data
-function populateForm(staff) {
-    document.getElementById('staffId').value = staff.id || '';
-    document.getElementById('username').value = staff.username || '';
-    document.getElementById('firstName').value = staff.first_name || '';
-    document.getElementById('lastName').value = staff.last_name || '';
-    document.getElementById('email').value = staff.email || '';
-    document.getElementById('phone').value = staff.phone || '';
-    document.getElementById('roleId').value = staff.role_id || '';
-    document.getElementById('departmentId').value = staff.department_id || '';
-    document.getElementById('designation').value = staff.designation || '';
-    document.getElementById('commissionRate').value = staff.commission_rate !== undefined ? staff.commission_rate : '';
-    document.getElementById('hourlyRate').value = staff.hourly_rate !== undefined ? staff.hourly_rate : '';
-    document.getElementById('gender').value = staff.gender || '';
-    document.getElementById('dateOfBirth').value = staff.date_of_birth || '';
-    document.getElementById('dateOfJoining').value = staff.date_of_joining || '';
-    document.getElementById('shiftStart').value = staff.shift_start_time || '';
-    document.getElementById('shiftEnd').value = staff.shift_end_time || '';
-    document.getElementById('workingDays').value = staff.working_days || '';
-    document.getElementById('enableFaceCheckin').checked = staff.enable_face_checkin || false;
-    document.getElementById('notesBio').value = staff.notes_bio || '';
-}
-
-// Clear form fields and reset state
-function clearForm() {
-    document.getElementById('staffForm').reset(); // Reset form to its initial state
-    document.getElementById('staffId').value = ''; // Clear hidden ID field
-    document.getElementById('formMode').value = 'add'; // Reset mode to add
-    document.getElementById('staffModalLabel').textContent = 'Add New Staff Member'; // Reset modal title
-    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff'; // Reset button text
-    document.getElementById('passwordHelp').textContent = 'Password is required for new staff'; // Reset password help text
-    document.getElementById('password').required = true; // Make password required again for add mode
-}
-
-
-// Save staff (add or update)
-async function saveStaff() {
-    try {
-        const formData = {
-            username: getFieldValue('username'),
-            first_name: getFieldValue('firstName'),
-            last_name: getFieldValue('lastName'),
-            email: getFieldValue('email'),
-            phone: getFieldValue('phone'),
-            role_id: parseInt(getFieldValue('roleId')) || null,
-            department_id: parseInt(getFieldValue('departmentId')) || null,
-            designation: getFieldValue('designation'),
-            commission_rate: parseFloat(getFieldValue('commissionRate')) || 0,
-            hourly_rate: parseFloat(getFieldValue('hourlyRate')) || 0,
-            gender: getFieldValue('gender'),
-            date_of_birth: getFieldValue('dateOfBirth'),
-            date_of_joining: getFieldValue('dateOfJoining'),
-            shift_start_time: getFieldValue('shiftStart'),
-            shift_end_time: getFieldValue('shiftEnd'),
-            working_days: getFieldValue('workingDays'),
-            enable_face_checkin: getCheckboxValue('enableFaceCheckin'),
-            notes_bio: getFieldValue('notesBio')
-        };
-
-        // Add password only if it's provided (for edit mode) or required (for add mode)
-        const passwordField = document.getElementById('password');
-        if (passwordField && passwordField.value) {
-            formData.password = passwordField.value;
-        } else if (document.getElementById('formMode').value === 'add' && !formData.password) {
-            // If in add mode and password is not provided, this will be caught by validation
-            // Or we can explicitly check here if needed.
-        }
-
-
-        let url, method;
-        if (isEditing) { // Use the isEditing flag
-            const staffId = document.getElementById('staffId').value;
-            url = `/api/staff/${staffId}`;
-            method = 'PUT';
-        } else {
-            url = '/api/staff';
-            method = 'POST';
-        }
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert(data.message, 'success');
-
-            // Hide modal
-            staffModal.hide(); // Use the globally initialized modal instance
-
-            loadStaffData(); // Refresh data
-        } else {
-            throw new Error(data.error || 'An unknown error occurred');
-        }
-    } catch (error) {
-        console.error('Error saving staff:', error);
-        showAlert('Error saving staff: ' + error.message, 'danger');
-    }
-}
-
-// Show delete modal with confirmation message
-function showDeleteModal(staffId) {
-    const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) return;
-
-    currentDeleteId = staffId; // Store the ID for confirmation
-    document.getElementById('deleteMessage').textContent = 
-        `Are you sure you want to delete ${staff.full_name} (${staff.username})? This action cannot be undone.`;
-
-    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    modal.show();
-}
-
-// Perform delete operation
-async function performDelete(staffId) {
-    if (!staffId) {
-        console.error("No staff ID provided for deletion.");
-        return;
-    }
-    try {
-        const response = await fetch(`/api/staff/${staffId}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert(data.message, 'success');
-
-            // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-            modal.hide();
-
-            currentDeleteId = null; // Clear the stored ID
-            loadStaffData(); // Refresh data
-        } else {
-            throw new Error(data.error || 'Failed to delete staff member');
-        }
-    } catch (error) {
-        console.error('Error deleting staff:', error);
-        showAlert('Error deleting staff: ' + error.message, 'danger');
-    }
-}
-
-// View performance details
-function viewPerformance(staffId) {
-    const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) {
-        showAlert('Staff member not found.', 'danger');
-        return;
     }
 
-    document.getElementById('performanceModalLabel').textContent = `${staff.full_name} - Performance`;
-    document.getElementById('performanceContent').innerHTML = `
+    // Populate form with staff data
+    function populateForm(staff) {
+        document.getElementById("staffId").value = staff.id || "";
+        document.getElementById("username").value = staff.username || "";
+        document.getElementById("firstName").value = staff.first_name || "";
+        document.getElementById("lastName").value = staff.last_name || "";
+        document.getElementById("email").value = staff.email || "";
+        document.getElementById("phone").value = staff.phone || "";
+        document.getElementById("roleId").value = staff.role_id || "";
+        document.getElementById("departmentId").value =
+            staff.department_id || "";
+        document.getElementById("designation").value = staff.designation || "";
+        document.getElementById("commissionRate").value =
+            staff.commission_rate !== undefined ? staff.commission_rate : "";
+        document.getElementById("hourlyRate").value =
+            staff.hourly_rate !== undefined ? staff.hourly_rate : "";
+        document.getElementById("gender").value = staff.gender || "";
+        document.getElementById("dateOfBirth").value =
+            staff.date_of_birth || "";
+        document.getElementById("dateOfJoining").value =
+            staff.date_of_joining || "";
+        document.getElementById("shiftStart").value =
+            staff.shift_start_time || "";
+        document.getElementById("shiftEnd").value = staff.shift_end_time || "";
+        document.getElementById("workingDays").value = staff.working_days || "";
+        document.getElementById("enableFaceCheckin").checked =
+            staff.enable_face_checkin || false;
+        document.getElementById("notesBio").value = staff.notes_bio || "";
+    }
+
+    // Clear form fields and reset state
+    function clearForm() {
+        document.getElementById("staffForm").reset(); // Reset form to its initial state
+        document.getElementById("staffId").value = ""; // Clear hidden ID field
+        document.getElementById("formMode").value = "add"; // Reset mode to add
+        document.getElementById("staffModalLabel").textContent =
+            "Add New Staff Member"; // Reset modal title
+        document.getElementById("submitBtn").innerHTML =
+            '<i class="fas fa-save me-1"></i>Add Staff'; // Reset button text
+        document.getElementById("passwordHelp").textContent =
+            "Password is required for new staff"; // Reset password help text
+        document.getElementById("password").required = true; // Make password required again for add mode
+    }
+
+    // Save staff (add or update)
+    async function saveStaff() {
+        try {
+            const formData = {
+                username: getFieldValue("username"),
+                first_name: getFieldValue("firstName"),
+                last_name: getFieldValue("lastName"),
+                email: getFieldValue("email"),
+                phone: getFieldValue("phone"),
+                role_id: parseInt(getFieldValue("roleId")) || null,
+                department_id: parseInt(getFieldValue("departmentId")) || null,
+                designation: getFieldValue("designation"),
+                commission_rate:
+                    parseFloat(getFieldValue("commissionRate")) || 0,
+                hourly_rate: parseFloat(getFieldValue("hourlyRate")) || 0,
+                gender: getFieldValue("gender"),
+                date_of_birth: getFieldValue("dateOfBirth"),
+                date_of_joining: getFieldValue("dateOfJoining"),
+                shift_start_time: getFieldValue("shiftStart"),
+                shift_end_time: getFieldValue("shiftEnd"),
+                working_days: getFieldValue("workingDays"),
+                enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
+                notes_bio: getFieldValue("notesBio"),
+            };
+
+            // Add password only if it's provided (for edit mode) or required (for add mode)
+            const passwordField = document.getElementById("password");
+            if (passwordField && passwordField.value) {
+                formData.password = passwordField.value;
+            } else if (
+                document.getElementById("formMode").value === "add" &&
+                !formData.password
+            ) {
+                // If in add mode and password is not provided, this will be caught by validation
+                // Or we can explicitly check here if needed.
+            }
+
+            let url, method;
+            if (isEditing) {
+                // Use the isEditing flag
+                const staffId = document.getElementById("staffId").value;
+                url = `/api/staff/${staffId}`;
+                method = "PUT";
+            } else {
+                url = "/api/staff";
+                method = "POST";
+            }
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showAlert(data.message, "success");
+
+                // Hide modal
+                staffModal.hide(); // Use the globally initialized modal instance
+
+                loadStaffData(); // Refresh data
+            } else {
+                throw new Error(data.error || "An unknown error occurred");
+            }
+        } catch (error) {
+            console.error("Error saving staff:", error);
+            showAlert("Error saving staff: " + error.message, "danger");
+        }
+    }
+
+    // Show delete modal with confirmation message
+    function showDeleteModal(staffId) {
+        const staff = allStaff.find((s) => s.id === staffId);
+        if (!staff) return;
+
+        currentDeleteId = staffId; // Store the ID for confirmation
+        document.getElementById("deleteMessage").textContent =
+            `Are you sure you want to delete ${staff.full_name} (${staff.username})? This action cannot be undone.`;
+
+        const modal = new bootstrap.Modal(
+            document.getElementById("deleteModal"),
+        );
+        modal.show();
+    }
+
+    // Perform delete operation
+    async function performDelete(staffId) {
+        if (!staffId) {
+            console.error("No staff ID provided for deletion.");
+            return;
+        }
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: "DELETE",
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showAlert(data.message, "success");
+
+                // Hide modal
+                const modal = bootstrap.Modal.getInstance(
+                    document.getElementById("deleteModal"),
+                );
+                modal.hide();
+
+                currentDeleteId = null; // Clear the stored ID
+                loadStaffData(); // Refresh data
+            } else {
+                throw new Error(data.error || "Failed to delete staff member");
+            }
+        } catch (error) {
+            console.error("Error deleting staff:", error);
+            showAlert("Error deleting staff: " + error.message, "danger");
+        }
+    }
+
+    // View performance details
+    function viewPerformance(staffId) {
+        const staff = allStaff.find((s) => s.id === staffId);
+        if (!staff) {
+            showAlert("Staff member not found.", "danger");
+            return;
+        }
+
+        document.getElementById("performanceModalLabel").textContent =
+            `${staff.full_name} - Performance`;
+        document.getElementById("performanceContent").innerHTML = `
         <div class="row">
             <div class="col-md-6">
                 <div class="card border-primary mb-3">
@@ -1096,9 +1362,9 @@ function viewPerformance(staffId) {
                         <h6 class="mb-0">Revenue & Commission</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated?.toFixed(2) ?? 'N/A'}</div>
-                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate !== undefined ? `${staff.commission_rate}%` : 'N/A'}</div>
-                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate !== undefined ? staff.hourly_rate.toFixed(2) : 'N/A'}</div>
+                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated?.toFixed(2) ?? "N/A"}</div>
+                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate !== undefined ? `${staff.commission_rate}%` : "N/A"}</div>
+                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate !== undefined ? staff.hourly_rate.toFixed(2) : "N/A"}</div>
                     </div>
                 </div>
             </div>
@@ -1108,9 +1374,9 @@ function viewPerformance(staffId) {
                         <h6 class="mb-0">Client Service</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served ?? 'N/A'}</div>
-                        <div class="mb-2"><strong>Average Rating:</strong> ${staff.average_rating > 0 ? `⭐${staff.average_rating.toFixed(1)}` : 'No rating yet'}</div>
-                        <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? 'success' : 'danger'}">${staff.is_active ? 'Active' : 'Inactive'}</span></div>
+                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served ?? "N/A"}</div>
+                        <div class="mb-2"><strong>Average Rating:</strong> ${staff.average_rating > 0 ? `⭐${staff.average_rating.toFixed(1)}` : "No rating yet"}</div>
+                        <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? "success" : "danger"}">${staff.is_active ? "Active" : "Inactive"}</span></div>
                     </div>
                 </div>
             </div>
@@ -1122,86 +1388,89 @@ function viewPerformance(staffId) {
                         <h6 class="mb-0">Work Schedule</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Shift:</strong> ${staff.shift_start_time && staff.shift_end_time ? `${staff.shift_start_time} - ${staff.shift_end_time}` : 'Not set'}</div>
-                        <div class="mb-2"><strong>Working Days:</strong> ${staff.working_days || 'Not set'}</div>
-                        <div class="mb-2"><strong>Last Login:</strong> ${staff.last_login ? new Date(staff.last_login).toLocaleDateString() : 'Never'}</div>
+                        <div class="mb-2"><strong>Shift:</strong> ${staff.shift_start_time && staff.shift_end_time ? `${staff.shift_start_time} - ${staff.shift_end_time}` : "Not set"}</div>
+                        <div class="mb-2"><strong>Working Days:</strong> ${staff.working_days || "Not set"}</div>
+                        <div class="mb-2"><strong>Last Login:</strong> ${staff.last_login ? new Date(staff.last_login).toLocaleDateString() : "Never"}</div>
                     </div>
                 </div>
             </div>
         </div>
     `;
 
-    const modal = new bootstrap.Modal(document.getElementById('performanceModal'));
-    modal.show();
-}
+        const modal = new bootstrap.Modal(
+            document.getElementById("performanceModal"),
+        );
+        modal.show();
+    }
 
-// Refresh staff data and show notification
-async function refreshStaffData() {
-    showAlert('Refreshing staff data...', 'info');
-    await loadStaffData();
-}
+    // Refresh staff data and show notification
+    async function refreshStaffData() {
+        showAlert("Refreshing staff data...", "info");
+        await loadStaffData();
+    }
 
-// Placeholder for export functionality
-function exportStaffData() {
-    showAlert('Export functionality - Feature coming soon!', 'info');
-}
+    // Placeholder for export functionality
+    function exportStaffData() {
+        showAlert("Export functionality - Feature coming soon!", "info");
+    }
 
-// Show a temporary alert message
-function showAlert(message, type = 'info') {
-    const alertContainer = document.getElementById('alertContainer');
-    const alertId = 'alert-' + Date.now(); // Unique ID for each alert
+    // Show a temporary alert message
+    function showAlert(message, type = "info") {
+        const alertContainer = document.getElementById("alertContainer");
+        const alertId = "alert-" + Date.now(); // Unique ID for each alert
 
-    const alertHtml = `
+        const alertHtml = `
         <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     `;
 
-    alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+        alertContainer.insertAdjacentHTML("beforeend", alertHtml);
 
-    // Automatically remove the alert after a few seconds
-    setTimeout(() => {
-        const alertElement = document.getElementById(alertId);
-        if (alertElement) {
-            // Use bootstrap's alert dismissal for proper animation
-            const alert = new bootstrap.Alert(alertElement);
-            alert.close();
-        }
-    }, 5000); // Alert disappears after 5 seconds
-}
-
-// Helper function to update staff data via API
-async function updateStaff(staffId, staffData) {
-    try {
-        console.log('Updating staff with data:', staffData);
-
-        const response = await fetch(`/api/staff/${staffId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(staffData)
-        });
-
-        const result = await response.json();
-        console.log('Update API Response:', result);
-
-        if (!response.ok) {
-            throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error('Error updating staff:', error);
-        return {
-            success: false,
-            error: error.message || 'Failed to update staff member'
-        };
+        // Automatically remove the alert after a few seconds
+        setTimeout(() => {
+            const alertElement = document.getElementById(alertId);
+            if (alertElement) {
+                // Use bootstrap's alert dismissal for proper animation
+                const alert = new bootstrap.Alert(alertElement);
+                alert.close();
+            }
+        }, 5000); // Alert disappears after 5 seconds
     }
-}
 
+    // Helper function to update staff data via API
+    async function updateStaff(staffId, staffData) {
+        try {
+            console.log("Updating staff with data:", staffData);
 
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(staffData),
+            });
+
+            const result = await response.json();
+            console.log("Update API Response:", result);
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error ||
+                        `HTTP ${response.status}: ${response.statusText}`,
+                );
+            }
+
+            return result;
+        } catch (error) {
+            console.error("Error updating staff:", error);
+            return {
+                success: false,
+                error: error.message || "Failed to update staff member",
+            };
+        }
+    }
 </script>
 
 {% endblock %}
