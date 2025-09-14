@@ -1,0 +1,158 @@
+Develop a World’s Best Spa Billing System — professional, user-friendly, and complete with all modules. It must integrate services, packages, inventory, staff commissions, and payments, while providing invoice generation, printing, and real-time tracking.
+
+🏗 System Plan
+1. Core Modules
+
+Invoice Management
+
+Create, edit, view, delete invoices
+
+Auto-invoice from bookings
+
+Multiple line items: services, packages, products (batch-wise)
+
+Taxes, discounts, tips, gratuity
+
+Notes & custom fields
+
+Auto invoice numbering
+
+Payment Management
+
+Cash, card, UPI/digital wallets
+
+Split payments across multiple methods
+
+Partial payments & outstanding balance tracking
+
+Transaction reference number & receipt integration
+
+Package Management
+
+Auto deduction of sessions during billing
+
+Show remaining sessions + expiry date at checkout
+
+Package savings displayed in invoice
+
+Package renewal upsell reminders
+
+Inventory Integration
+
+Batch-level product deduction when billed
+
+Prevent sale of expired batches
+
+Auto-pick FIFO batch for fast checkout
+
+Stock alerts in real-time
+
+Staff & Commission Tracking
+
+Link staff to services billed
+
+Auto calculate commission %
+
+Staff revenue/commission reports
+
+2. UI / Wireframe (Billing Dashboard)
++-------------------------------------------------------------+
+|                      INTEGRATED BILLING                     |
++-------------------------------------------------------------+
+| Customer: [ Dropdown v ]  Date: [2025-09-14]                |
+|-------------------------------------------------------------|
+| Services Section:                                            |
+|  ---------------------------------------------------------  |
+|  | Service        | Staff    | Qty | Rate   | Total        | |
+|  ---------------------------------------------------------  |
+|  | Hair Spa       | Alice    | 1   | ₹2000  | ₹2000        | |
+|  | Massage 60min  | John     | 1   | ₹1500  | ₹1500        | |
+|  ---------------------------------------------------------  |
+|  [ + Add Service Row ]                                      |
+|-------------------------------------------------------------|
+| Packages Section (auto-detect):                             |
+|  Active: “10 Massage Pack” → 4 left (Exp: Dec 2025)         |
+|  Deduct 1 session? [✔]                                      |
+|-------------------------------------------------------------|
+| Products & Inventory Section:                               |
+|  ---------------------------------------------------------  |
+|  | Product        | Batch   | Expiry | Qty | Rate | Total  | |
+|  ---------------------------------------------------------  |
+|  | Shampoo 200ml  | B123    | 12/25  | 2   | ₹500 | ₹1000  | |
+|  ---------------------------------------------------------  |
+|  [ + Add Product Row ]                                      |
+|-------------------------------------------------------------|
+| Subtotal: ₹4500  Tax(18%): ₹810  Discount: ₹0  Tips: ₹200   |
+| GRAND TOTAL: ₹5510                                          |
+|-------------------------------------------------------------|
+| Payment:                                                    |
+|  [✔] Cash ₹3000   [✔] Card ₹2510 (Txn# 889922)              |
+|-------------------------------------------------------------|
+| [ SAVE & PRINT INVOICE ]  [ SAVE DRAFT ]                    |
++-------------------------------------------------------------+
+
+3. Invoice Generation & Printing
+
+Auto-generate PDF invoice with spa branding, logo, customer details.
+
+Invoice fields: services, packages, products, discounts, tips, tax, staff names, expiry info.
+
+Options: Email invoice, WhatsApp invoice, Print invoice.
+
+QR code for UPI/online payment directly on invoice.
+
+4. Advanced Features
+
+Draft Mode → save invoice without finalizing payment.
+
+Reprint / Reissue → re-generate invoice anytime.
+
+Refunds & Voids → manage returns or incorrect entries.
+
+Customer Ledger → full history of payments, packages, invoices.
+
+Revenue Dashboard → today’s revenue, outstanding balances, package usage, staff commission, payment method breakdown.
+
+Search & Filter → by customer, staff, date, invoice#, service type.
+
+5. API Endpoints
+
+POST /billing/invoice/create → Create invoice
+
+GET /billing/invoice/<id> → Get invoice details (JSON/PDF)
+
+POST /billing/invoice/<id>/payment → Process payment
+
+GET /billing/invoices → List/filter invoices
+
+GET /billing/reports/revenue → Daily/weekly/monthly stats
+
+GET /billing/reports/staff → Commission breakdown
+
+6. Reports
+
+Revenue reports (daily, monthly, custom range)
+
+Pending payments & outstanding balances
+
+Package usage & expiry reports
+
+Staff performance/commission report
+
+Product sales by batch
+
+✅ Deliverables
+
+Professional billing dashboard UI (wireframe above).
+
+Invoice generation with PDF printing & sharing.
+
+Multi-payment method support with split & partial payments.
+
+Package deduction & inventory batch integration.
+
+Reports for revenue, staff, and packages.
+
+Security → CSRF, role-based access, audit logging.
+
+👉 Goal: Deliver a world-class, user-friendly spa billing system that is simple for staff, transparent for customers, and powerful for management — covering all billing modules end-to-end.

@@ -5,15 +5,9 @@ Supports services, packages, subscriptions, and inventory items
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-# Late imports to avoid circular dependency
-# from models import (Customer, Service, Appointment, 
-#                    Package, CustomerPackage, CustomerPackageSession)
-from modules.inventory.models import InventoryProduct
 from datetime import datetime
 import json
-
-# Late imports for billing models to avoid circular dependency
-# from billing_engine import BillingEngine  # Temporarily disabled
+from modules.inventory.models import InventoryProduct
 
 @app.route('/integrated-billing')
 @login_required
@@ -160,21 +154,20 @@ def create_integrated_invoice():
         total_amount = net_subtotal + tax_amount + tips_amount
 
         # Create enhanced invoice
-        invoice = EnhancedInvoice(
-            invoice_number=invoice_number,
-            client_id=int(client_id),
-            invoice_date=datetime.datetime.utcnow(),
-            services_subtotal=services_subtotal,
-            inventory_subtotal=inventory_subtotal,
-            gross_subtotal=gross_subtotal,
-            net_subtotal=net_subtotal,
-            tax_amount=tax_amount,
-            discount_amount=discount_amount,
-            tips_amount=tips_amount,
-            total_amount=total_amount,
-            balance_due=total_amount,
-            notes=request.form.get('notes', '')
-        )
+        invoice = EnhancedInvoice()
+        invoice.invoice_number = invoice_number
+        invoice.client_id = int(client_id)
+        invoice.invoice_date = datetime.datetime.utcnow()
+        invoice.services_subtotal = services_subtotal
+        invoice.inventory_subtotal = inventory_subtotal
+        invoice.gross_subtotal = gross_subtotal
+        invoice.net_subtotal = net_subtotal
+        invoice.tax_amount = tax_amount
+        invoice.discount_amount = discount_amount
+        invoice.tips_amount = tips_amount
+        invoice.total_amount = total_amount
+        invoice.balance_due = total_amount
+        invoice.notes = request.form.get('notes', '')
 
         db.session.add(invoice)
         db.session.flush()  # Get invoice ID
@@ -185,18 +178,17 @@ def create_integrated_invoice():
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
             if service:
-                item = InvoiceItem(
-                    invoice_id=invoice.id,
-                    item_type='service',
-                    item_id=service.id,
-                    appointment_id=service_data.get('appointment_id'),
-                    item_name=service.name,
-                    description=service.description,
-                    quantity=service_data['quantity'],
-                    unit_price=service.price,
-                    original_amount=service.price * service_data['quantity'],
-                    final_amount=service.price * service_data['quantity']
-                )
+                item = InvoiceItem()
+                item.invoice_id = invoice.id
+                item.item_type = 'service'
+                item.item_id = service.id
+                item.appointment_id = service_data.get('appointment_id')
+                item.item_name = service.name
+                item.description = service.description
+                item.quantity = service_data['quantity']
+                item.unit_price = service.price
+                item.original_amount = service.price * service_data['quantity']
+                item.final_amount = service.price * service_data['quantity']
                 db.session.add(item)
 
         # Create invoice items for inventory and reduce stock
@@ -206,20 +198,19 @@ def create_integrated_invoice():
 
             if batch and product:
                 # Create invoice item
-                item = InvoiceItem(
-                    invoice_id=invoice.id,
-                    item_type='inventory',
-                    item_id=product.id,
-                    product_id=product.id,
-                    batch_id=batch.id,
-                    item_name=product.name,
-                    description=f"Batch: {batch.batch_name}",
-                    batch_name=batch.batch_name,
-                    quantity=item_data['quantity'],
-                    unit_price=item_data['unit_price'],
-                    original_amount=item_data['unit_price'] * item_data['quantity'],
-                    final_amount=item_data['unit_price'] * item_data['quantity']
-                )
+                item = InvoiceItem()
+                item.invoice_id = invoice.id
+                item.item_type = 'inventory'
+                item.item_id = product.id
+                item.product_id = product.id
+                item.batch_id = batch.id
+                item.item_name = product.name
+                item.description = f"Batch: {batch.batch_name}"
+                item.batch_name = batch.batch_name
+                item.quantity = item_data['quantity']
+                item.unit_price = item_data['unit_price']
+                item.original_amount = item_data['unit_price'] * item_data['quantity']
+                item.final_amount = item_data['unit_price'] * item_data['quantity']
                 db.session.add(item)
 
                 # Reduce stock from batch via consumption record
@@ -314,10 +305,7 @@ def api_get_batches_for_product(product_id):
         from datetime import date
 
         # Get active batches for the product with stock, ordered by expiry (FIFO)
-        batches = InventoryBatch.query.options(
-            joinedload(InventoryBatch.product),
-            joinedload(InventoryBatch.location)
-        ).filter(
+        batches = InventoryBatch.query.filter(
             InventoryBatch.product_id == product_id,
             InventoryBatch.status == 'active',
             InventoryBatch.qty_available > 0
@@ -367,6 +355,7 @@ def process_payment(invoice_id):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
+        from models import EnhancedInvoice
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
 
         # Parse payment data
@@ -393,12 +382,16 @@ def process_payment(invoice_id):
             return jsonify({'success': False, 'message': 'Payment amount exceeds balance due'})
 
         # Create payment records
+        from models import InvoicePayment
         for payment_data in payments_data:
-            payment = InvoicePayment(
-                invoice_id=invoice_id,
-                processed_by=current_user.id,
-                **payment_data
-            )
+            payment = InvoicePayment()
+            payment.invoice_id = invoice_id
+            payment.processed_by = current_user.id
+            payment.payment_method = payment_data['payment_method']
+            payment.amount = payment_data['amount']
+            payment.transaction_id = payment_data.get('transaction_id', '')
+            payment.reference_number = payment_data.get('reference_number', '')
+            payment.card_last4 = payment_data.get('card_last4')
             db.session.add(payment)
 
         # Update invoice
@@ -442,6 +435,7 @@ def view_integrated_invoice(invoice_id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import EnhancedInvoice, InvoiceItem, InvoicePayment
     invoice = EnhancedInvoice.query.get_or_404(invoice_id)
     invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
     payments = InvoicePayment.query.filter_by(invoice_id=invoice_id).all()
@@ -464,6 +458,7 @@ def list_integrated_invoices():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
+    from models import EnhancedInvoice
     status_filter = request.args.get('status', 'all')
 
     query = EnhancedInvoice.query
