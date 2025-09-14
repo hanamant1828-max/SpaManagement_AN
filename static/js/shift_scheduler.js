@@ -927,12 +927,16 @@
                             </p>
                             ${schedule.description ? `<p class="card-text small text-muted">${schedule.description}</p>` : ''}
                             <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-sm btn-outline-primary view-schedule-btn" 
+                                        data-schedule-id="${schedule.id}" title="View Details">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </button>
                                 <button type="button" class="btn btn-sm btn-outline-warning edit-schedule-btn" 
-                                        data-schedule-id="${schedule.id}">
+                                        data-schedule-id="${schedule.id}" title="Edit Schedule">
                                     <i class="fas fa-edit me-1"></i>Edit
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-danger delete-schedule-btn" 
-                                        data-schedule-id="${schedule.id}">
+                                        data-schedule-id="${schedule.id}" title="Delete Schedule">
                                     <i class="fas fa-trash me-1"></i>Delete
                                 </button>
                             </div>
@@ -954,6 +958,12 @@
      * Setup event handlers for existing schedule cards
      */
     function setupExistingScheduleHandlers() {
+        // View schedule buttons
+        $('.view-schedule-btn').on('click', function() {
+            const scheduleId = $(this).data('schedule-id');
+            viewScheduleDetails(scheduleId);
+        });
+        
         // Edit schedule buttons
         $('.edit-schedule-btn').on('click', function() {
             const scheduleId = $(this).data('schedule-id');
@@ -995,7 +1005,10 @@
         const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         days.forEach(day => {
             const checkbox = $(`#edit${day.charAt(0).toUpperCase() + day.slice(1)}`);
-            checkbox.prop('checked', schedule.working_days.includes(day.substring(0, 3).charAt(0).toUpperCase() + day.substring(0, 3).slice(1)));
+            // Check if this day is in the working_days array or if the day property is true
+            const isWorking = schedule.working_days.includes(day.substring(0, 3).charAt(0).toUpperCase() + day.substring(0, 3).slice(1)) || 
+                             schedule[day] === true;
+            checkbox.prop('checked', isWorking);
         });
         
         // Show modal
@@ -1388,6 +1401,227 @@
     };
 
     /**
+     * View schedule details in read-only modal
+     */
+    window.viewScheduleDetails = function(scheduleId) {
+        console.log('Viewing schedule details for ID:', scheduleId);
+        
+        showLoadingModal('Loading schedule details...');
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}/details`,
+            method: 'GET',
+            success: function(response) {
+                hideLoadingModal();
+                if (response.success) {
+                    showScheduleViewModal(response.schedule);
+                } else {
+                    showAlert('Error loading schedule details: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error loading schedule details:', error);
+                showAlert('Error loading schedule details. Please try again.', 'danger');
+            }
+        });
+    };
+
+    /**
+     * Show schedule details in view-only modal
+     */
+    function showScheduleViewModal(schedule) {
+        // Get staff name from existing data or make API call
+        const staffSelect = $('#staffSelect');
+        const staffName = staffSelect.find('option:selected').text() || 'Unknown Staff';
+        
+        // Create working days display
+        const workingDays = [];
+        if (schedule.monday) workingDays.push('Monday');
+        if (schedule.tuesday) workingDays.push('Tuesday');
+        if (schedule.wednesday) workingDays.push('Wednesday');
+        if (schedule.thursday) workingDays.push('Thursday');
+        if (schedule.friday) workingDays.push('Friday');
+        if (schedule.saturday) workingDays.push('Saturday');
+        if (schedule.sunday) workingDays.push('Sunday');
+        
+        const workingDaysText = workingDays.length > 0 ? workingDays.join(', ') : 'No working days';
+        const timeRange = schedule.shift_start_time && schedule.shift_end_time ? 
+            `${schedule.shift_start_time} - ${schedule.shift_end_time}` : 'Not specified';
+        
+        const modalHtml = `
+            <div class="modal fade" id="viewScheduleModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-eye me-2"></i>View Schedule Details
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <div class="card border-primary">
+                                        <div class="card-header bg-primary text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-info-circle me-2"></i>Schedule Information
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <table class="table table-borderless">
+                                                        <tr>
+                                                            <td class="fw-bold">Schedule Name:</td>
+                                                            <td>${schedule.schedule_name}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="fw-bold">Staff Member:</td>
+                                                            <td>${staffName}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="fw-bold">From Date:</td>
+                                                            <td>${formatDate(schedule.start_date)}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="fw-bold">To Date:</td>
+                                                            <td>${formatDate(schedule.end_date)}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="fw-bold">Priority:</td>
+                                                            <td>
+                                                                <span class="badge bg-${schedule.priority >= 3 ? 'danger' : schedule.priority >= 2 ? 'warning' : 'success'}">
+                                                                    ${schedule.priority >= 3 ? 'High' : schedule.priority >= 2 ? 'Medium' : 'Low'}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <table class="table table-borderless">
+                                                        <tr>
+                                                            <td class="fw-bold">Working Days:</td>
+                                                            <td>
+                                                                <span class="badge bg-primary">${workingDaysText}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="fw-bold">Shift Timing:</td>
+                                                            <td>
+                                                                <span class="badge bg-success">${timeRange}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="fw-bold">Break Time:</td>
+                                                            <td>${schedule.break_time || 'Not specified'}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="fw-bold">Status:</td>
+                                                            <td>
+                                                                <span class="badge bg-${schedule.is_active ? 'success' : 'secondary'}">
+                                                                    ${schedule.is_active ? 'Active' : 'Inactive'}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            
+                                            ${schedule.description ? `
+                                            <div class="row mt-3">
+                                                <div class="col-12">
+                                                    <div class="border rounded p-3 bg-light">
+                                                        <h6 class="fw-bold mb-2">Description:</h6>
+                                                        <p class="mb-0">${schedule.description}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Close
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="editScheduleFromView(${schedule.id})">
+                                <i class="fas fa-edit me-2"></i>Edit Schedule
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="deleteScheduleFromView(${schedule.id})">
+                                <i class="fas fa-trash me-2"></i>Delete Schedule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if present
+        $('#viewScheduleModal').remove();
+        
+        // Add new modal to body
+        $('body').append(modalHtml);
+        
+        // Show modal
+        $('#viewScheduleModal').modal('show');
+        
+        // Clean up modal when closed
+        $('#viewScheduleModal').on('hidden.bs.modal', function() {
+            $(this).remove();
+        });
+    }
+
+    /**
+     * Edit schedule from view modal
+     */
+    window.editScheduleFromView = function(scheduleId) {
+        $('#viewScheduleModal').modal('hide');
+        setTimeout(() => {
+            openEditScheduleModal(scheduleId);
+        }, 300);
+    };
+
+    /**
+     * Delete schedule from view modal
+     */
+    window.deleteScheduleFromView = function(scheduleId) {
+        if (!confirm('Are you sure you want to delete this schedule? This action cannot be undone.')) {
+            return;
+        }
+        
+        $('#viewScheduleModal').modal('hide');
+        
+        showLoadingModal('Deleting schedule...');
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}`,
+            method: 'DELETE',
+            success: function(response) {
+                hideLoadingModal();
+                if (response.success) {
+                    showAlert('Schedule deleted successfully', 'success');
+                    loadAllSchedules(); // Refresh main table
+                    // Refresh existing schedules if staff is selected
+                    const mainStaffId = $('#staffSelect').val();
+                    if (mainStaffId) {
+                        loadExistingSchedules(mainStaffId);
+                    }
+                } else {
+                    showAlert('Error deleting schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error deleting schedule:', error);
+                showAlert('Error deleting schedule. Please try again.', 'danger');
+            }
+        });
+    };
+
+    /**
      * Load staff details modal with complete information
      */
     function loadStaffDetailsModal(staffId) {
@@ -1447,12 +1681,19 @@
                         <td>${timeStr}</td>
                         <td>${schedule.break_time || 'N/A'}</td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-outline-warning" 
-                                    onclick="editScheduleFromDetails(${schedule.id})">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                    onclick="viewScheduleDetails(${schedule.id})"
+                                    title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-warning me-1" 
+                                    onclick="editScheduleFromDetails(${schedule.id})"
+                                    title="Edit Schedule">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
-                                    onclick="deleteScheduleFromDetails(${schedule.id})">
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    onclick="deleteScheduleFromDetails(${schedule.id})"
+                                    title="Delete Schedule">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>

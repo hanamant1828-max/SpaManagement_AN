@@ -233,7 +233,7 @@
             <form id="editScheduleForm">
                 <div class="modal-body">
                     <input type="hidden" id="editScheduleId" name="schedule_id">
-                    
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="editScheduleName" class="form-label">Schedule Name</label>
@@ -247,7 +247,7 @@
                                 <option value="3">High</option>
                             </select>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label for="editStartDate" class="form-label">Start Date</label>
                             <input type="date" class="form-control" id="editStartDate" name="start_date" required>
@@ -256,7 +256,7 @@
                             <label for="editEndDate" class="form-label">End Date</label>
                             <input type="date" class="form-control" id="editEndDate" name="end_date" required>
                         </div>
-                        
+
                         <div class="col-12">
                             <label class="form-label">Working Days</label>
                             <div class="d-flex gap-3 flex-wrap">
@@ -290,7 +290,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-4">
                             <label for="editShiftStart" class="form-label">Shift Start</label>
                             <input type="time" class="form-control" id="editShiftStart" name="shift_start_time">
@@ -303,7 +303,7 @@
                             <label for="editBreakTime" class="form-label">Break Time</label>
                             <input type="text" class="form-control" id="editBreakTime" name="break_time" placeholder="e.g., 1hr lunch">
                         </div>
-                        
+
                         <div class="col-12">
                             <label for="editDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="editDescription" name="description" rows="2" placeholder="Schedule notes..."></textarea>
@@ -366,7 +366,7 @@
                         </div>
                     </div>
                 </form>
-                
+
                 <!-- Shift Table Section (Hidden by default) -->
                 <div id="shiftTableSection" style="display: none;" class="mt-4">
                     <div class="card">
@@ -524,11 +524,11 @@
 <script>
 $(document).ready(function() {
     console.log('Shift Scheduler initialized');
-    
+
     // Initialize modal date inputs
     const today = new Date();
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
+
     if (!$('#modalFromDate').val()) {
         $('#modalFromDate').val(today.toISOString().split('T')[0]);
     }

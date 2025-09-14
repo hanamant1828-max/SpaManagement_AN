@@ -386,6 +386,64 @@ def api_delete_schedule(schedule_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# Get single schedule details
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>/details', methods=['GET'])
+@login_required
+def api_get_schedule_details(schedule_id):
+    """Get detailed information for a single schedule"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        schedule = StaffScheduleRange.query.get(schedule_id)
+        if not schedule:
+            return jsonify({'error': 'Schedule not found'}), 404
+        
+        # Get staff information
+        staff = User.query.get(schedule.staff_id)
+        
+        # Get working days list
+        working_days = []
+        if schedule.monday: working_days.append('Mon')
+        if schedule.tuesday: working_days.append('Tue') 
+        if schedule.wednesday: working_days.append('Wed')
+        if schedule.thursday: working_days.append('Thu')
+        if schedule.friday: working_days.append('Fri')
+        if schedule.saturday: working_days.append('Sat')
+        if schedule.sunday: working_days.append('Sun')
+        
+        schedule_data = {
+            'id': schedule.id,
+            'schedule_name': schedule.schedule_name,
+            'description': schedule.description or '',
+            'start_date': schedule.start_date.strftime('%Y-%m-%d'),
+            'end_date': schedule.end_date.strftime('%Y-%m-%d'),
+            'monday': schedule.monday,
+            'tuesday': schedule.tuesday,
+            'wednesday': schedule.wednesday,
+            'thursday': schedule.thursday,
+            'friday': schedule.friday,
+            'saturday': schedule.saturday,
+            'sunday': schedule.sunday,
+            'working_days': working_days,
+            'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
+            'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+            'break_time': schedule.break_time or '',
+            'priority': schedule.priority or 1,
+            'is_active': schedule.is_active,
+            'staff_id': schedule.staff_id,
+            'staff_name': f"{staff.first_name} {staff.last_name}" if staff else 'Unknown',
+            'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
+        }
+        
+        return jsonify({
+            'success': True,
+            'schedule': schedule_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Get staff details with schedules
 @shift_scheduler_bp.route('/api/staff/<int:staff_id>/details', methods=['GET'])
 @login_required
