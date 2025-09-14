@@ -538,36 +538,26 @@
                     return;
                 }
 
-                // Populate view modal with data using correct API field names
+                // Populate view modal with data using correct API field names and only existing HTML elements
                 document.getElementById('viewProductSku').textContent = data.sku || '-';
                 document.getElementById('viewProductName').textContent = data.name || '-';
                 document.getElementById('viewProductCategory').textContent = data.category_name || 'No category';
                 document.getElementById('viewProductUnit').textContent = data.unit_of_measure || 'pcs';
-                
-                // Use total_stock from API response
-                document.getElementById('viewProductStock').textContent = (data.total_stock || 0) + ' ' + (data.unit_of_measure || 'pcs');
-                
-                // These fields may not be available in the API response, so handle gracefully
-                const minStockEl = document.getElementById('viewProductMinStock');
-                if (minStockEl) {
-                    minStockEl.textContent = '0 ' + (data.unit_of_measure || 'pcs'); // Default since not in API
-                }
-                
-                const costEl = document.getElementById('viewProductCost');
-                if (costEl) {
-                    costEl.textContent = '$0.00'; // Default since not in API
-                }
-                
                 document.getElementById('viewProductLocation').textContent = data.location_name || 'No location specified';
                 
-                // Determine status based on stock levels
+                // Determine status based on stock levels and show in the status field
                 let status = 'in_stock';
+                let statusText = `In Stock (${data.total_stock || 0} ${data.unit_of_measure || 'pcs'})`;
+                
                 if (data.total_stock <= 0) {
                     status = 'out_of_stock';
-                } else if (data.total_stock <= 5) { // Arbitrary low stock threshold
+                    statusText = `Out of Stock (${data.total_stock || 0} ${data.unit_of_measure || 'pcs'})`;
+                } else if (data.total_stock <= 5) {
                     status = 'low_stock';
+                    statusText = `Low Stock (${data.total_stock || 0} ${data.unit_of_measure || 'pcs'})`;
                 }
-                document.getElementById('viewProductStatus').innerHTML = getStatusBadge(status);
+                
+                document.getElementById('viewProductStatus').innerHTML = getStatusBadge(status) + ' ' + statusText;
                 document.getElementById('viewProductDescription').textContent = data.description || 'No description available';
 
                 // Show modal
