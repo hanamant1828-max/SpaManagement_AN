@@ -1962,25 +1962,20 @@
                     </td>
                     <td>
                         <div class="action-buttons-group">
+                            <button type="button" class="btn btn-sm btn-outline-info me-1" 
+                                    onclick="showInlineFormForView(${staffGroup.schedules[0].id})" 
+                                    title="View Schedule">
+                                <i class="fas fa-eye me-1"></i>View
+                            </button>
                             <button type="button" class="btn btn-sm btn-outline-warning me-1" 
-                                    onclick="editStaffSchedules(${staffGroup.staff_id})" 
-                                    data-staff-id="${staffGroup.staff_id}"
-                                    title="Edit Schedules">
-                                🖊️ Edit
+                                    onclick="showInlineFormForEdit(${staffGroup.schedules[0].id})" 
+                                    title="Edit Schedule">
+                                <i class="fas fa-edit me-1"></i>Edit
                             </button>
-                            <span class="text-muted">•</span>
-                            <button type="button" class="btn btn-sm btn-outline-danger me-1 ms-1" 
-                                    onclick="deleteStaffSchedules(${staffGroup.staff_id})" 
-                                    data-staff-id="${staffGroup.staff_id}"
-                                    title="Delete All Schedules">
-                                🗑️ Delete
-                            </button>
-                            <span class="text-muted">•</span>
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
-                                    onclick="viewStaffScheduleDetails(${staffGroup.staff_id})" 
-                                    data-staff-id="${staffGroup.staff_id}"
-                                    title="View Details">
-                                🔍 View
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    onclick="deleteScheduleWithConfirmation(${staffGroup.schedules[0].id})" 
+                                    title="Delete Schedule">
+                                <i class="fas fa-trash me-1"></i>Delete
                             </button>
                         </div>
                     </td>
