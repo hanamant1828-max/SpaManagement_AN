@@ -25,6 +25,6 @@ def get_active_user_by_username(username):
 def validate_user_credentials(username, password):
     """Validate user credentials"""
     user = get_active_user_by_username(username)
-    if user and user.check_password(password):
+    if user and hasattr(user, 'check_password') and user.check_password(password):
         return user
     return None

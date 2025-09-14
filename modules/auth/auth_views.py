@@ -5,10 +5,6 @@ from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user
 from app import app
 from forms import LoginForm
-from .auth_queries import validate_user_credentials
-# Assuming User model is available, e.g., from app.models import User
-# If not, this import needs to be adjusted or the logic in the login route needs to be adapted.
-# For the purpose of this change, we will assume 'User' is correctly imported or available.
 @app.route('/test')
 def test_route():
     """Simple test route to check connectivity"""
