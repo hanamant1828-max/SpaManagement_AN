@@ -386,4 +386,67 @@ def api_delete_schedule(schedule_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# Get all schedules from all staff members for management table
+@shift_scheduler_bp.route('/api/all-schedules', methods=['GET'])
+@login_required
+def api_get_all_schedules():
+    """Get all existing schedules from all staff members for the management table"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        # Get all active schedules with staff information
+        schedules = db.session.query(StaffScheduleRange, User).join(
+            User, StaffScheduleRange.staff_id == User.id
+        ).filter(
+            StaffScheduleRange.is_active == True,
+            User.is_active == True
+        ).order_by(User.first_name, User.last_name, StaffScheduleRange.start_date).all()
+        
+        schedule_list = []
+        for schedule, staff in schedules:
+            # Get working days list
+            working_days = []
+            if schedule.monday: working_days.append('Mon')
+            if schedule.tuesday: working_days.append('Tue') 
+            if schedule.wednesday: working_days.append('Wed')
+            if schedule.thursday: working_days.append('Thu')
+            if schedule.friday: working_days.append('Fri')
+            if schedule.saturday: working_days.append('Sat')
+            if schedule.sunday: working_days.append('Sun')
+            
+            # Format working days string
+            if len(working_days) == 7:
+                working_days_str = "All Days"
+            elif len(working_days) == 5 and 'Sat' not in working_days and 'Sun' not in working_days:
+                working_days_str = "Mon to Fri"
+            else:
+                working_days_str = ", ".join(working_days)
+            
+            schedule_list.append({
+                'id': schedule.id,
+                'staff_id': staff.id,
+                'staff_name': f"{staff.first_name} {staff.last_name}",
+                'schedule_name': schedule.schedule_name,
+                'description': schedule.description or '',
+                'start_date': schedule.start_date.strftime('%Y-%m-%d'),
+                'end_date': schedule.end_date.strftime('%Y-%m-%d'),
+                'working_days': working_days,
+                'working_days_str': working_days_str,
+                'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
+                'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+                'break_time': schedule.break_time or '',
+                'priority': schedule.priority or 1,
+                'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
+            })
+        
+        return jsonify({
+            'success': True,
+            'schedules': schedule_list,
+            'total_count': len(schedule_list)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 print("Shift Scheduler views registered successfully")

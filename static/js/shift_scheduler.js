@@ -69,7 +69,7 @@
         });
         
         // Existing schedules refresh
-        $('#refreshExistingBtn').on('click', function() {
+        $('#refreshAllSchedulesBtn').on('click', function() {
             const staffId = $('#staffSelect').val();
             if (staffId) {
                 loadExistingSchedules(staffId);
@@ -1183,6 +1183,154 @@
             $('.alert').first().alert('close');
         }, 5000);
     }
+
+    /**
+     * Load all schedules for the management table
+     */
+    function loadAllSchedules() {
+        $.ajax({
+            url: '/api/all-schedules',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    renderAllSchedulesTable(response.schedules);
+                    $('#allSchedulesCount').text(response.total_count);
+                } else {
+                    showAlert('Error loading schedules: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading all schedules:', error);
+                showAlert('Error loading schedules. Please try again.', 'danger');
+            }
+        });
+    }
+
+    /**
+     * Render all schedules in the management table
+     */
+    function renderAllSchedulesTable(schedules) {
+        const tbody = $('#allSchedulesTableBody');
+        tbody.empty();
+        
+        if (schedules.length === 0) {
+            $('#allSchedulesTable').hide();
+            $('#noAllSchedules').show();
+            return;
+        }
+        
+        $('#allSchedulesTable').show();
+        $('#noAllSchedules').hide();
+        
+        schedules.forEach((schedule, index) => {
+            const shiftTime = schedule.shift_start_time && schedule.shift_end_time 
+                ? `${schedule.shift_start_time} - ${schedule.shift_end_time}` 
+                : 'Not set';
+                
+            const row = `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>
+                        <strong>${schedule.staff_name}</strong>
+                    </td>
+                    <td>${formatDate(schedule.start_date)}</td>
+                    <td>${formatDate(schedule.end_date)}</td>
+                    <td>
+                        <span class="badge bg-info">${schedule.working_days_str}</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">${shiftTime}</small>
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                    onclick="viewScheduleDetails(${schedule.id})" 
+                                    title="View Details">
+                                🔍 View
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" 
+                                    onclick="editScheduleFromTable(${schedule.id})" 
+                                    title="Edit Schedule">
+                                🖊️ Edit
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                    onclick="deleteScheduleFromTable(${schedule.id})" 
+                                    title="Delete Schedule">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    /**
+     * Format date for display
+     */
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    /**
+     * View schedule details - Make globally accessible
+     */
+    window.viewScheduleDetails = function(scheduleId) {
+        // Find the schedule in existing data or make API call
+        showAlert('View functionality - Schedule ID: ' + scheduleId, 'info');
+    };
+
+    /**
+     * Edit schedule from table view - Make globally accessible
+     */
+    window.editScheduleFromTable = function(scheduleId) {
+        // Use the existing edit functionality but adapt for global schedules
+        openEditScheduleModal(scheduleId);
+    };
+
+    /**
+     * Delete schedule from table view - Make globally accessible
+     */
+    window.deleteScheduleFromTable = function(scheduleId) {
+        if (!confirm('Are you sure you want to delete this schedule? This action cannot be undone.')) {
+            return;
+        }
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Schedule deleted successfully', 'success');
+                    loadAllSchedules(); // Refresh the table
+                } else {
+                    showAlert('Error deleting schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error deleting schedule:', error);
+                showAlert('Error deleting schedule. Please try again.', 'danger');
+            }
+        });
+    };
+
+    // Initialize the management table when page loads
+    $(document).ready(function() {
+        // Load all schedules on page load
+        loadAllSchedules();
+        
+        // Refresh button handler
+        $('#refreshAllSchedulesBtn').click(function() {
+            loadAllSchedules();
+            showAlert('Schedules refreshed', 'info');
+        });
+    });
 
     console.log('Shift Scheduler JavaScript fully loaded');
 
