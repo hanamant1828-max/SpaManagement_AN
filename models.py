@@ -554,9 +554,14 @@ class InvoiceItem(db.Model):
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))  # For service items
     package_id = db.Column(db.Integer, db.ForeignKey('package.id'))  # For package-related items
 
+    # Batch-level inventory integration
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'))  # For inventory items
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'))  # For batch tracking
+
     # Descriptions
     item_name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
+    batch_name = db.Column(db.String(100))  # Store batch name for display
 
     # Pricing
     quantity = db.Column(db.Float, default=1.0)
@@ -573,6 +578,8 @@ class InvoiceItem(db.Model):
     # Relationships
     appointment = db.relationship('Appointment', backref='invoice_items')
     package = db.relationship('Package', backref='invoice_items')
+    product = db.relationship('InventoryProduct', foreign_keys=[product_id])
+    batch = db.relationship('InventoryBatch', foreign_keys=[batch_id])
 
 class InvoicePayment(db.Model):
     """Multiple payment records for a single invoice supporting mixed payment methods"""

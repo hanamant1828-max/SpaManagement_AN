@@ -27,7 +27,14 @@ def integrated_billing():
     from models import Customer, Service
     customers = Customer.query.filter_by(is_active=True).all()
     services = Service.query.filter_by(is_active=True).all()
-    inventory_items = InventoryProduct.query.filter_by(is_active=True).all()
+    
+    # Get inventory products with stock information
+    inventory_products = InventoryProduct.query.filter_by(is_active=True).all()
+    inventory_items = []
+    for product in inventory_products:
+        # Only include products that have stock available
+        if product.total_stock > 0:
+            inventory_items.append(product)
     
     # Get recent invoices
     from models import EnhancedInvoice
@@ -59,15 +66,24 @@ def integrated_billing():
 @app.route('/integrated-billing/create', methods=['POST'])
 @login_required
 def create_integrated_invoice():
-    """Create new integrated invoice"""
+    """Create new integrated invoice with batch-wise inventory integration"""
     if not current_user.can_access('billing'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     try:
+        from models import Customer, Service, EnhancedInvoice, InvoiceItem
+        from modules.inventory.models import InventoryBatch, InventoryProduct
+        from modules.inventory.queries import create_consumption_record
+        import datetime
+        
         # Parse form data
         client_id = request.form.get('client_id')
         if not client_id:
             return jsonify({'success': False, 'message': 'Client is required'})
+        
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'})
         
         # Parse services data
         services_data = []
@@ -83,43 +99,161 @@ def create_integrated_invoice():
                     'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None
                 })
         
-        # Parse inventory data
+        # Parse batch-wise inventory data
         inventory_data = []
-        inventory_ids = request.form.getlist('inventory_ids[]')
-        inventory_quantities = request.form.getlist('inventory_quantities[]')
+        product_ids = request.form.getlist('product_ids[]')
+        batch_ids = request.form.getlist('batch_ids[]')
+        product_quantities = request.form.getlist('product_quantities[]')
+        product_prices = request.form.getlist('product_prices[]')
         
-        for i, inventory_id in enumerate(inventory_ids):
-            if inventory_id:
+        for i, product_id in enumerate(product_ids):
+            if product_id and i < len(batch_ids) and batch_ids[i]:
                 inventory_data.append({
-                    'product_id': int(inventory_id),
-                    'quantity': float(inventory_quantities[i]) if i < len(inventory_quantities) else 1
+                    'product_id': int(product_id),
+                    'batch_id': int(batch_ids[i]),
+                    'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
+                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0
                 })
         
-        # Other billing parameters
-        billing_data = {
-            'services': services_data,
-            'inventory_items': inventory_data,
-            'tax_rate': float(request.form.get('tax_rate', 0.18)),
-            'discount_amount': float(request.form.get('discount_amount', 0)),
-            'tips_amount': float(request.form.get('tips_amount', 0)),
-            'notes': request.form.get('notes', '')
-        }
-        
-        # Create invoice using billing engine
-        result = BillingEngine.create_comprehensive_invoice(client_id, billing_data)
-        
-        if result.get('success'):
-            return jsonify({
-                'success': True,
-                'message': result['message'],
-                'invoice_id': result['invoice'].id,
-                'total_amount': result['total_amount'],
-                'deductions_applied': result['deductions_applied']
-            })
-        else:
-            return jsonify({'success': False, 'message': result.get('error', 'Unknown error')})
+        # Validate stock availability for all inventory items
+        for item in inventory_data:
+            batch = InventoryBatch.query.get(item['batch_id'])
+            if not batch:
+                return jsonify({'success': False, 'message': f'Batch not found for product ID {item["product_id"]}'})
             
+            if batch.is_expired:
+                return jsonify({'success': False, 'message': f'Cannot use expired batch: {batch.batch_name}'})
+            
+            if float(batch.qty_available) < item['quantity']:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
+                })
+        
+        # Generate invoice number
+        invoice_count = EnhancedInvoice.query.count() + 1
+        invoice_number = f"INV-{datetime.datetime.now().strftime('%Y%m%d')}-{invoice_count:04d}"
+        
+        # Calculate totals
+        services_subtotal = 0
+        inventory_subtotal = 0
+        
+        # Calculate services subtotal
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                services_subtotal += service.price * service_data['quantity']
+        
+        # Calculate inventory subtotal
+        for item in inventory_data:
+            inventory_subtotal += item['unit_price'] * item['quantity']
+        
+        gross_subtotal = services_subtotal + inventory_subtotal
+        
+        # Apply tax and discounts
+        tax_rate = float(request.form.get('tax_rate', 0.18))
+        discount_amount = float(request.form.get('discount_amount', 0))
+        tips_amount = float(request.form.get('tips_amount', 0))
+        
+        net_subtotal = gross_subtotal - discount_amount
+        tax_amount = net_subtotal * (tax_rate / 100)
+        total_amount = net_subtotal + tax_amount + tips_amount
+        
+        # Create enhanced invoice
+        invoice = EnhancedInvoice(
+            invoice_number=invoice_number,
+            client_id=int(client_id),
+            invoice_date=datetime.datetime.utcnow(),
+            services_subtotal=services_subtotal,
+            inventory_subtotal=inventory_subtotal,
+            gross_subtotal=gross_subtotal,
+            net_subtotal=net_subtotal,
+            tax_amount=tax_amount,
+            discount_amount=discount_amount,
+            tips_amount=tips_amount,
+            total_amount=total_amount,
+            balance_due=total_amount,
+            notes=request.form.get('notes', '')
+        )
+        
+        db.session.add(invoice)
+        db.session.flush()  # Get invoice ID
+        
+        stock_reduced_count = 0
+        
+        # Create invoice items for services
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                item = InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_type='service',
+                    item_id=service.id,
+                    appointment_id=service_data.get('appointment_id'),
+                    item_name=service.name,
+                    description=service.description,
+                    quantity=service_data['quantity'],
+                    unit_price=service.price,
+                    original_amount=service.price * service_data['quantity'],
+                    final_amount=service.price * service_data['quantity']
+                )
+                db.session.add(item)
+        
+        # Create invoice items for inventory and reduce stock
+        for item_data in inventory_data:
+            batch = InventoryBatch.query.get(item_data['batch_id'])
+            product = InventoryProduct.query.get(item_data['product_id'])
+            
+            if batch and product:
+                # Create invoice item
+                item = InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_type='inventory',
+                    item_id=product.id,
+                    product_id=product.id,
+                    batch_id=batch.id,
+                    item_name=product.name,
+                    description=f"Batch: {batch.batch_name}",
+                    batch_name=batch.batch_name,
+                    quantity=item_data['quantity'],
+                    unit_price=item_data['unit_price'],
+                    original_amount=item_data['unit_price'] * item_data['quantity'],
+                    final_amount=item_data['unit_price'] * item_data['quantity']
+                )
+                db.session.add(item)
+                
+                # Reduce stock from batch via consumption record
+                try:
+                    create_consumption_record(
+                        batch_id=batch.id,
+                        quantity=item_data['quantity'],
+                        issued_to=f"Invoice {invoice_number} - {customer.full_name}",
+                        reference=invoice_number,
+                        notes=f"Sold via billing system - Invoice {invoice_number}",
+                        user_id=current_user.id
+                    )
+                    stock_reduced_count += 1
+                except Exception as e:
+                    db.session.rollback()
+                    return jsonify({
+                        'success': False, 
+                        'message': f'Error reducing stock for batch {batch.batch_name}: {str(e)}'
+                    })
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Invoice {invoice_number} created successfully',
+            'invoice_id': invoice.id,
+            'invoice_number': invoice_number,
+            'total_amount': float(total_amount),
+            'stock_reduced': stock_reduced_count,
+            'deductions_applied': 0  # Future enhancement for package deductions
+        })
+        
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': f'Error creating invoice: {str(e)}'})
 
 @app.route('/integrated-billing/customer-packages/<int:client_id>')
@@ -147,6 +281,65 @@ def get_customer_packages(client_id):
             for session in sessions:
                 session_details.append({
                     'service_id': session.service_id,
+
+@app.route('/api/inventory/batches/for-product/<int:product_id>')
+@login_required
+def api_get_batches_for_product(product_id):
+    """Get batches for a specific product ordered by FIFO (expiry date)"""
+    if not current_user.can_access('billing'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from modules.inventory.models import InventoryBatch
+        from sqlalchemy.orm import joinedload
+        from datetime import date
+        
+        # Get active batches for the product with stock, ordered by expiry (FIFO)
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).filter(
+            InventoryBatch.product_id == product_id,
+            InventoryBatch.status == 'active',
+            InventoryBatch.qty_available > 0
+        ).order_by(
+            InventoryBatch.expiry_date.asc().nullslast(),
+            InventoryBatch.batch_name
+        ).all()
+        
+        batch_data = []
+        for batch in batches:
+            # Check if batch is expired
+            is_expired = batch.expiry_date and batch.expiry_date < date.today()
+            if is_expired:
+                continue  # Skip expired batches
+                
+            batch_info = {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'qty_available': float(batch.qty_available),
+                'unit_cost': float(batch.unit_cost or 0),
+                'selling_price': float(batch.selling_price or 0) if batch.selling_price else float(batch.unit_cost or 0),
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'days_to_expiry': batch.days_to_expiry,
+                'location_name': batch.location.name if batch.location else 'Unknown',
+                'is_near_expiry': batch.is_near_expiry
+            }
+            batch_data.append(batch_info)
+        
+        return jsonify({
+            'success': True,
+            'batches': batch_data,
+            'total_batches': len(batch_data)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Error fetching batches: {str(e)}'
+        }), 500
+
+
                     'service_name': session.service.name,
                     'sessions_total': session.sessions_total,
                     'sessions_used': session.sessions_used,

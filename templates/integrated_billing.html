@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Integrated Billing & Service Management{% endblock %}
@@ -32,6 +33,26 @@
     border-left-color: #dc3545;
     background-color: rgba(220, 53, 69, 0.1);
 }
+.batch-info {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 2px;
+}
+.batch-warning {
+    color: #dc3545;
+    font-weight: 500;
+}
+.batch-success {
+    color: #28a745;
+    font-weight: 500;
+}
+.product-row {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
 </style>
 {% endblock %}
 
@@ -42,7 +63,7 @@
             <h1 class="h3 mb-4">
                 <i class="fas fa-cash-register me-2 text-primary"></i>Integrated Billing & Service Management
             </h1>
-            <p class="text-muted">Complete billing solution with package deductions, subscription management, and inventory sales</p>
+            <p class="text-muted">Complete billing solution with package deductions, subscription management, and batch-wise inventory sales</p>
         </div>
     </div>
 
@@ -111,7 +132,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-plus-circle me-2"></i>Create New Invoice
                     </h6>
-                    <span class="badge badge-info">Services • Packages • Inventory</span>
+                    <span class="badge badge-info">Services • Packages • Batch-wise Inventory</span>
                 </div>
                 <div class="card-body">
                     <form id="billingForm">
@@ -167,31 +188,46 @@
                             </div>
                         </div>
 
-                        <!-- Inventory Section -->
+                        <!-- Products & Inventory Section (Batch-wise) -->
                         <div class="mb-4">
                             <h6 class="text-primary mb-3">
-                                <i class="fas fa-shopping-bag me-2"></i>Products & Inventory
-                                <small class="text-muted">(Stock will be automatically reduced)</small>
+                                <i class="fas fa-shopping-bag me-2"></i>Products & Inventory 
+                                <small class="text-muted">(Stock will be automatically reduced from batches - FIFO by expiry)</small>
                             </h6>
-                            <div id="inventoryContainer">
-                                <div class="inventory-row row mb-2">
-                                    <div class="col-md-6">
-                                        <select class="form-select" name="inventory_ids[]">
-                                            <option value="">Select Product</option>
-                                            {% for item in inventory_items %}
-                                            <option value="{{ item.product_id }}" data-price="{{ item.selling_price }}" data-stock="{{ item.current_stock }}">
-                                                {{ item.name }} - ₹{{ item.selling_price }} (Stock: {{ item.current_stock }})
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <input type="number" class="form-control" name="inventory_quantities[]" placeholder="Quantity" min="1" value="1" step="0.5">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button type="button" class="btn btn-success btn-sm" onclick="addInventoryRow()">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
+                            <div id="productsContainer">
+                                <div class="product-row">
+                                    <div class="row mb-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Product</label>
+                                            <select class="form-select product-select" name="product_ids[]" onchange="loadBatchesForProduct(this)">
+                                                <option value="">Select Product</option>
+                                                {% for product in inventory_items %}
+                                                <option value="{{ product.id }}">{{ product.name }} (Total Stock: {{ product.total_stock }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Batch (Auto-selected FIFO)</label>
+                                            <select class="form-select batch-select" name="batch_ids[]" disabled>
+                                                <option value="">Select Product First</option>
+                                            </select>
+                                            <div class="batch-info"></div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Quantity</label>
+                                            <input type="number" class="form-control quantity-input" name="product_quantities[]" placeholder="Qty" min="1" value="1" step="0.5" onchange="validateStock(this)">
+                                            <small class="text-muted available-stock"></small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Unit Price</label>
+                                            <input type="number" class="form-control unit-price" name="product_prices[]" placeholder="Price" step="0.01" readonly>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="button" class="btn btn-success btn-sm w-100" onclick="addProductRow()">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -222,7 +258,7 @@
                         <!-- Action Buttons -->
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-calculator me-2"></i>Create Invoice with Package Deductions
+                                <i class="fas fa-calculator me-2"></i>Create Invoice with Batch Stock Reduction
                             </button>
                         </div>
                     </form>
@@ -321,27 +357,134 @@ function addServiceRow() {
     container.appendChild(newRow);
 }
 
-// Add inventory row
-function addInventoryRow() {
-    const container = document.getElementById('inventoryContainer');
+// Add product row
+function addProductRow() {
+    const container = document.getElementById('productsContainer');
     const newRow = container.children[0].cloneNode(true);
     
-    // Clear values
+    // Clear values and reset state
     newRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
-            input.value = '1';
+            input.value = input.name.includes('quantities') ? '1' : '';
         } else {
             input.value = '';
         }
     });
     
+    // Reset batch dropdown
+    const batchSelect = newRow.querySelector('.batch-select');
+    batchSelect.innerHTML = '<option value="">Select Product First</option>';
+    batchSelect.disabled = true;
+    
+    // Reset info divs
+    newRow.querySelector('.batch-info').innerHTML = '';
+    newRow.querySelector('.available-stock').innerHTML = '';
+    
     // Change button to remove
     const button = newRow.querySelector('button');
-    button.className = 'btn btn-danger btn-sm';
+    button.className = 'btn btn-danger btn-sm w-100';
     button.innerHTML = '<i class="fas fa-minus"></i>';
-    button.onclick = function() { this.closest('.inventory-row').remove(); };
+    button.onclick = function() { this.closest('.product-row').remove(); };
     
     container.appendChild(newRow);
+}
+
+// Load batches for selected product (FIFO by expiry)
+function loadBatchesForProduct(productSelect) {
+    const productId = productSelect.value;
+    const productRow = productSelect.closest('.product-row');
+    const batchSelect = productRow.querySelector('.batch-select');
+    const batchInfo = productRow.querySelector('.batch-info');
+    const availableStock = productRow.querySelector('.available-stock');
+    const unitPrice = productRow.querySelector('.unit-price');
+    
+    if (!productId) {
+        batchSelect.innerHTML = '<option value="">Select Product First</option>';
+        batchSelect.disabled = true;
+        batchInfo.innerHTML = '';
+        availableStock.innerHTML = '';
+        unitPrice.value = '';
+        return;
+    }
+    
+    // Fetch batches for this product (FIFO by expiry)
+    fetch(`/api/inventory/batches/for-product/${productId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.batches.length > 0) {
+                batchSelect.innerHTML = '<option value="">Select Batch</option>';
+                
+                data.batches.forEach(batch => {
+                    const option = document.createElement('option');
+                    option.value = batch.id;
+                    option.dataset.stock = batch.qty_available;
+                    option.dataset.price = batch.selling_price || batch.unit_cost || 0;
+                    option.dataset.expiry = batch.expiry_date;
+                    option.dataset.batchName = batch.batch_name;
+                    
+                    const expiryText = batch.expiry_date ? ` (Exp: ${new Date(batch.expiry_date).toLocaleDateString()})` : '';
+                    const stockText = ` - Stock: ${batch.qty_available}`;
+                    option.textContent = `${batch.batch_name}${expiryText}${stockText}`;
+                    
+                    batchSelect.appendChild(option);
+                });
+                
+                // Auto-select first batch (FIFO)
+                if (data.batches.length > 0) {
+                    const firstBatch = data.batches[0];
+                    batchSelect.value = firstBatch.id;
+                    
+                    // Update info displays
+                    const expiry = firstBatch.expiry_date ? new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
+                    const daysToExpiry = firstBatch.days_to_expiry;
+                    const expiryClass = daysToExpiry <= 30 ? 'batch-warning' : 'batch-success';
+                    
+                    batchInfo.innerHTML = `
+                        <strong>Auto-selected (FIFO):</strong> ${firstBatch.batch_name}<br>
+                        <span class="${expiryClass}">Expiry: ${expiry}</span>
+                    `;
+                    
+                    availableStock.innerHTML = `Available: ${firstBatch.qty_available}`;
+                    unitPrice.value = firstBatch.selling_price || firstBatch.unit_cost || 0;
+                }
+                
+                batchSelect.disabled = false;
+            } else {
+                batchSelect.innerHTML = '<option value="">No batches with stock</option>';
+                batchSelect.disabled = true;
+                batchInfo.innerHTML = '<span class="batch-warning">No stock available for this product</span>';
+                availableStock.innerHTML = '';
+                unitPrice.value = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading batches:', error);
+            batchSelect.innerHTML = '<option value="">Error loading batches</option>';
+            batchSelect.disabled = true;
+        });
+}
+
+// Validate stock availability
+function validateStock(quantityInput) {
+    const productRow = quantityInput.closest('.product-row');
+    const batchSelect = productRow.querySelector('.batch-select');
+    const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+    const availableStock = productRow.querySelector('.available-stock');
+    
+    if (selectedOption && selectedOption.dataset.stock) {
+        const available = parseFloat(selectedOption.dataset.stock);
+        const requested = parseFloat(quantityInput.value) || 0;
+        
+        if (requested > available) {
+            quantityInput.style.borderColor = '#dc3545';
+            availableStock.innerHTML = `<span class="batch-warning">Available: ${available} (Insufficient stock!)</span>`;
+            quantityInput.setCustomValidity('Insufficient stock');
+        } else {
+            quantityInput.style.borderColor = '#28a745';
+            availableStock.innerHTML = `<span class="batch-success">Available: ${available}</span>`;
+            quantityInput.setCustomValidity('');
+        }
+    }
 }
 
 // Load customer packages
@@ -381,6 +524,22 @@ document.getElementById('client_id').addEventListener('change', function() {
 document.getElementById('billingForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    // Validate all stock quantities before submission
+    const quantityInputs = document.querySelectorAll('.quantity-input');
+    let hasStockErrors = false;
+    
+    quantityInputs.forEach(input => {
+        validateStock(input);
+        if (!input.checkValidity()) {
+            hasStockErrors = true;
+        }
+    });
+    
+    if (hasStockErrors) {
+        alert('Please check stock availability for all products before submitting.');
+        return;
+    }
+    
     const formData = new FormData(this);
     
     fetch('/integrated-billing/create', {
@@ -408,6 +567,10 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 message += `<p class="text-success"><strong>Package Deductions Applied:</strong> ₹${data.deductions_applied.toLocaleString()}</p>`;
             }
             
+            if (data.stock_reduced) {
+                message += `<p class="text-info"><strong>Stock Reduced:</strong> ${data.stock_reduced} items from batches</p>`;
+            }
+            
             message += '</div>';
             body.innerHTML = message;
             
@@ -417,6 +580,20 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             // Reset form
             this.reset();
             document.getElementById('customerPackages').innerHTML = '<small>Select a customer to view their active packages</small>';
+            
+            // Reset all product rows to initial state
+            const productRows = document.querySelectorAll('.product-row');
+            productRows.forEach((row, index) => {
+                if (index > 0) {
+                    row.remove();
+                } else {
+                    row.querySelector('.batch-select').innerHTML = '<option value="">Select Product First</option>';
+                    row.querySelector('.batch-select').disabled = true;
+                    row.querySelector('.batch-info').innerHTML = '';
+                    row.querySelector('.available-stock').innerHTML = '';
+                    row.querySelector('.unit-price').value = '';
+                }
+            });
             
         } else {
             title.textContent = 'Error Creating Invoice';
