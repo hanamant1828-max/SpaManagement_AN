@@ -409,7 +409,13 @@
                 data.batches.forEach(batch => {
                     const option = document.createElement('option');
                     option.value = batch.id;
-                    option.textContent = `${batch.batch_name} (${batch.product_name}) - Available: ${batch.quantity_remaining} ${batch.unit_of_measure}`;
+                    option.textContent = batch.dropdown_display;
+                    
+                    // Set data attributes for stock info
+                    option.dataset.currentQty = batch.qty_available;
+                    option.dataset.unit = batch.unit;
+                    option.dataset.productName = batch.product_name;
+                    
                     if (selectedBatchId && batch.id == selectedBatchId) {
                         option.selected = true;
                     }
