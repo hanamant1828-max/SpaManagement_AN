@@ -13,6 +13,22 @@ import json
 # Create Blueprint for shift scheduler
 shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
 
+# Add shift scheduler page
+@shift_scheduler_bp.route('/shift-scheduler/add')
+@login_required 
+def add_shift_scheduler():
+    """Add shift scheduler page with day-by-day configuration"""
+    if not current_user.can_access('staff'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all active staff members
+    staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
+    
+    return render_template('add_shift_scheduler.html', 
+                         staff_members=staff_members,
+                         today=date.today().strftime('%Y-%m-%d'))
+
 # Main shift scheduler interface
 @shift_scheduler_bp.route('/shift-scheduler')
 @login_required 
@@ -619,6 +635,129 @@ def api_get_staff_details(staff_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Save daily schedule with day-by-day configuration
+@shift_scheduler_bp.route('/api/shift-scheduler/save-daily-schedule', methods=['POST'])
+@login_required
+def save_daily_schedule():
+    """Save schedule with day-by-day configuration"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        schedule_name = data.get('schedule_name')
+        description = data.get('description', '')
+        priority = data.get('priority', 1)
+        schedule_days = data.get('schedule_days', [])
+        
+        if not staff_id or not schedule_name or not schedule_days:
+            return jsonify({'error': 'Missing required data'}), 400
+        
+        # Verify staff member exists
+        staff = User.query.get(staff_id)
+        if not staff:
+            return jsonify({'error': 'Staff member not found'}), 404
+        
+        # Group consecutive days with same settings into ranges
+        ranges_created = 0
+        current_range = None
+        
+        for day in schedule_days:
+            if not day.get('working', False):
+                continue  # Skip non-working days
+            
+            day_date = datetime.strptime(day['date'], '%Y-%m-%d').date()
+            
+            # Convert day of week to boolean fields
+            day_of_week = day_date.weekday()  # Monday = 0, Sunday = 6
+            day_booleans = {
+                'monday': day_of_week == 0,
+                'tuesday': day_of_week == 1,
+                'wednesday': day_of_week == 2,
+                'thursday': day_of_week == 3,
+                'friday': day_of_week == 4,
+                'saturday': day_of_week == 5,
+                'sunday': day_of_week == 6
+            }
+            
+            # Check if we can extend current range or need to create new one
+            if (current_range and 
+                current_range['end_date'] == day_date - timedelta(days=1) and
+                current_range['start_time'] == day.get('startTime') and
+                current_range['end_time'] == day.get('endTime') and
+                current_range['break_minutes'] == day.get('breakMinutes')):
+                
+                # Extend current range
+                current_range['end_date'] = day_date
+                # Update day boolean
+                for day_key, day_val in day_booleans.items():
+                    if day_val:
+                        current_range[day_key] = True
+            else:
+                # Save previous range if exists
+                if current_range:
+                    save_range(current_range, staff_id, schedule_name, description, priority)
+                    ranges_created += 1
+                
+                # Start new range
+                current_range = {
+                    'start_date': day_date,
+                    'end_date': day_date,
+                    'start_time': day.get('startTime'),
+                    'end_time': day.get('endTime'),
+                    'break_minutes': day.get('breakMinutes', 60),
+                    **day_booleans
+                }
+        
+        # Save final range
+        if current_range:
+            save_range(current_range, staff_id, schedule_name, description, priority)
+            ranges_created += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Schedule saved successfully! Created {ranges_created} schedule range(s)',
+            'ranges_created': ranges_created
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+def save_range(range_data, staff_id, schedule_name, description, priority):
+    """Helper function to save a schedule range"""
+    shift_start_time = None
+    shift_end_time = None
+    
+    if range_data.get('start_time'):
+        shift_start_time = datetime.strptime(range_data['start_time'], '%H:%M').time()
+    if range_data.get('end_time'):
+        shift_end_time = datetime.strptime(range_data['end_time'], '%H:%M').time()
+    
+    schedule_range = StaffScheduleRange(
+        staff_id=staff_id,
+        schedule_name=f"{schedule_name} ({range_data['start_date']} to {range_data['end_date']})",
+        description=description,
+        start_date=range_data['start_date'],
+        end_date=range_data['end_date'],
+        monday=range_data.get('monday', False),
+        tuesday=range_data.get('tuesday', False),
+        wednesday=range_data.get('wednesday', False),
+        thursday=range_data.get('thursday', False),
+        friday=range_data.get('friday', False),
+        saturday=range_data.get('saturday', False),
+        sunday=range_data.get('sunday', False),
+        shift_start_time=shift_start_time,
+        shift_end_time=shift_end_time,
+        break_time=f"{range_data.get('break_minutes', 60)} minutes",
+        priority=priority
+    )
+    
+    db.session.add(schedule_range)
 
 # Get all schedules from all staff members for management table
 @shift_scheduler_bp.route('/api/all-schedules', methods=['GET'])
