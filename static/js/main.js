@@ -68,6 +68,9 @@ function setupGlobalEventListeners() {
     // Handle connection status
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOfflineStatus);
+
+    // Setup right-click context menu
+    setupContextMenu();
 }
 
 // Face Capture Functionality - only initialize when needed
@@ -87,8 +90,10 @@ function initializeFaceCapture() {
 }
 
 let currentStream = null;
-let currentStaffId = null;
 let faceStream = null;
+
+// Declare currentStaffId only once globally
+// currentStaffId moved to specific modules to avoid conflicts
 
 function setupCameraButtons() {
     // Only run on pages that actually have camera buttons
@@ -2041,7 +2046,16 @@ function handleEditCustomerSubmit(event) {
     form.submit();
 }
 
-// Make functions globally available
+// Load metadata function for staff management - defined early
+function loadMetadata() {
+    console.log('Metadata loading handled in loadStaffData');
+    // This function is called from comprehensive_staff.html
+    // The actual metadata loading is handled in the loadStaffData function
+    return Promise.resolve();
+}
+
+// Make functions globally available immediately
+window.loadMetadata = loadMetadata;
 window.showNotification = showNotification;
 window.exportTableData = exportTableData;
 window.printElement = printElement;
@@ -2052,8 +2066,167 @@ window.bookAppointment = bookAppointment;
 window.editCustomer = editCustomer;
 window.viewCustomer = viewCustomer;
 window.bookAppointmentFromModal = bookAppointmentFromModal;
+window.showContextMenu = showContextMenu;
+window.hideContextMenu = hideContextMenu;
 // window.handleEditCustomerSubmit = handleEditCustomerSubmit; // Not needed globally if called by form submission
 
+
+// Context Menu Functionality
+function setupContextMenu() {
+    createContextMenuHTML();
+    
+    // Prevent default context menu and show custom menu
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        showContextMenu(e.pageX, e.pageY);
+    });
+
+    // Hide context menu on click or scroll
+    document.addEventListener('click', hideContextMenu);
+    document.addEventListener('scroll', hideContextMenu);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideContextMenu();
+        }
+    });
+}
+
+function createContextMenuHTML() {
+    // Remove existing context menu if present
+    const existingMenu = document.getElementById('spaContextMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const contextMenu = document.createElement('div');
+    contextMenu.id = 'spaContextMenu';
+    contextMenu.className = 'spa-context-menu';
+    contextMenu.innerHTML = `
+        <div class="context-menu-header">
+            <i class="fas fa-spa me-2"></i>Quick Navigation
+        </div>
+        <div class="context-menu-item" data-url="/dashboard">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </div>
+        <div class="context-menu-item" data-url="/bookings">
+            <i class="fas fa-calendar-alt me-2"></i>Smart Booking & Calendar
+        </div>
+        <div class="context-menu-item" data-url="/staff_availability">
+            <i class="fas fa-users-cog me-2"></i>Staff Availability
+        </div>
+        <div class="context-menu-item" data-url="/appointments_management">
+            <i class="fas fa-calendar-check me-2"></i>Manage Appointments
+        </div>
+        <div class="context-menu-item" data-url="/customers">
+            <i class="fas fa-users me-2"></i>Client History & Loyalty
+        </div>
+        <div class="context-menu-item" data-url="/comprehensive_staff">
+            <i class="fas fa-users me-2"></i>Staff Management
+        </div>
+        <div class="context-menu-item" data-url="/checkin">
+            <i class="fas fa-user-check me-2"></i>Check-In
+        </div>
+        <div class="context-menu-item" data-url="/notifications">
+            <i class="fas fa-bell me-2"></i>WhatsApp Notifications
+        </div>
+        <div class="context-menu-item" data-url="/integrated_billing">
+            <i class="fas fa-cash-register me-2"></i>Billing System
+        </div>
+        <div class="context-menu-item" data-url="/services">
+            <i class="fas fa-spa me-2"></i>Services Management
+        </div>
+        <div class="context-menu-item" data-url="/packages">
+            <i class="fas fa-gift me-2"></i>Package Management
+        </div>
+        <div class="context-menu-item" data-url="/reports">
+            <i class="fas fa-chart-bar me-2"></i>Reports & Insights
+        </div>
+        <div class="context-menu-item" data-url="/expenses">
+            <i class="fas fa-receipt me-2"></i>Daily Expense Tracker
+        </div>
+        <div class="context-menu-item" data-url="/inventory_dashboard">
+            <i class="fas fa-boxes me-2"></i>Inventory Management
+        </div>
+        <div class="context-menu-item" data-url="/alerts">
+            <i class="fas fa-exclamation-triangle me-2"></i>Expiring Product Alerts
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-url="/system_management">
+            <i class="fas fa-server me-2"></i>System Management
+        </div>
+        <div class="context-menu-item" data-url="/role_management">
+            <i class="fas fa-users-cog me-2"></i>Role Management
+        </div>
+        <div class="context-menu-item" data-url="/settings">
+            <i class="fas fa-user-cog me-2"></i>User & Access Control
+        </div>
+    `;
+
+    // Add click handlers to menu items
+    contextMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const item = e.target.closest('.context-menu-item');
+        if (item && item.dataset.url) {
+            const url = item.dataset.url;
+            hideContextMenu();
+            
+            // Add loading feedback
+            showNotification('Navigating...', 'info', 1000);
+            
+            // Navigate to the selected page
+            window.location.href = url;
+        }
+    });
+
+    document.body.appendChild(contextMenu);
+}
+
+function showContextMenu(x, y) {
+    const contextMenu = document.getElementById('spaContextMenu');
+    if (!contextMenu) return;
+
+    // Calculate position to keep menu within viewport
+    const menuWidth = 250;
+    const menuHeight = 400;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let posX = x;
+    let posY = y;
+
+    // Adjust horizontal position
+    if (x + menuWidth > viewportWidth) {
+        posX = x - menuWidth;
+    }
+
+    // Adjust vertical position
+    if (y + menuHeight > viewportHeight) {
+        posY = y - menuHeight;
+    }
+
+    // Ensure menu doesn't go off-screen
+    posX = Math.max(10, Math.min(posX, viewportWidth - menuWidth - 10));
+    posY = Math.max(10, Math.min(posY, viewportHeight - menuHeight - 10));
+
+    contextMenu.style.left = posX + 'px';
+    contextMenu.style.top = posY + 'px';
+    contextMenu.style.display = 'block';
+
+    // Add animation class
+    setTimeout(() => {
+        contextMenu.classList.add('show');
+    }, 10);
+}
+
+function hideContextMenu() {
+    const contextMenu = document.getElementById('spaContextMenu');
+    if (contextMenu) {
+        contextMenu.classList.remove('show');
+        setTimeout(() => {
+            contextMenu.style.display = 'none';
+        }, 200);
+    }
+}
 
 // CSS for dynamic features
 const additionalStyles = `
@@ -2117,9 +2290,101 @@ th[data-sortable]:hover {
     z-index: 9999;
 }
 
+/* Context Menu Styles */
+.spa-context-menu {
+    position: fixed;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    min-width: 250px;
+    max-width: 300px;
+    z-index: 10000;
+    display: none;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.2s ease-out;
+    backdrop-filter: blur(10px);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.spa-context-menu.show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.context-menu-header {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.context-menu-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
+}
+
+.context-menu-item:hover {
+    background: #f8f9fa;
+    border-left-color: #007bff;
+    color: #007bff;
+    transform: translateX(2px);
+}
+
+.context-menu-item:active {
+    background: #e9ecef;
+}
+
+.context-menu-item i {
+    width: 16px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+.context-menu-item:hover i {
+    opacity: 1;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 8px 0;
+}
+
 @media print {
-    .no-print {
+    .no-print, .spa-context-menu {
         display: none !important;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .spa-context-menu {
+        background: #2c2c2c;
+        border-color: #444;
+        color: #fff;
+    }
+    
+    .context-menu-item {
+        color: #fff;
+    }
+    
+    .context-menu-item:hover {
+        background: #3c3c3c;
+    }
+    
+    .context-menu-divider {
+        background: #444;
     }
 }
 </style>

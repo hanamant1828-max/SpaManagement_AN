@@ -1,10 +1,12 @@
 import os
+import sys
 import logging
 import secrets
-from flask import Flask, request
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_wtf.csrf import CSRFProtect
+from flask_login import LoginManager, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, date, timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.orm import DeclarativeBase
 
@@ -21,12 +23,11 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
 app.config['WTF_CSRF_ENABLED'] = False
-app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS for development
-app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow access for webview
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site for Replit
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
 
 # Configure the database - PostgreSQL
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
@@ -41,11 +42,9 @@ db.init_app(app)
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'  # type: ignore
+login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
-
-# Initialize CSRF protection
-csrf = CSRFProtect(app)
+login_manager.login_message_category = 'info'
 
 # Add headers for webview compatibility and caching control
 @app.after_request
@@ -55,13 +54,17 @@ def after_request(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
 
-    # CORS headers for webview compatibility
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    # Security headers
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'  # Prevent clickjacking
+    response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME sniffing
+    response.headers['X-XSS-Protection'] = '1; mode=block'  # Enable XSS protection
+    # Restrict CORS for security (remove wildcard in production)
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    response.headers['X-Frame-Options'] = 'ALLOWALL'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
     return response
 
+# User loader for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     from models import User
@@ -78,7 +81,7 @@ with app.app_context():
     from modules.staff import staff_views
     from modules.checkin import checkin_views
     from modules.notifications import notifications_views
-    from modules.billing import billing_views, integrated_billing_views
+    from modules.billing import integrated_billing_views
     from modules.services import services_views
     from modules.packages import packages_views
     from modules.reports import reports_views
@@ -103,3 +106,23 @@ with app.app_context():
             logging.warning("Application starting with limited functionality")
 
     # Professional inventory views removed
+
+    # Import routes.py to register root routes and error handlers
+    try:
+        import routes  # registers root, system, error routes
+        print("routes.py imported successfully")
+    except Exception as e:
+        logging.exception(f"Failed importing routes.py: {e}")
+        print("Running without core routes - some pages may not work")
+
+    # Log registered routes for debugging
+    print("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"  {rule.rule} -> {rule.endpoint}")
+
+# Run the Flask app when called directly
+if __name__ == "__main__":
+    # Fix: Prevent double Flask instance creation from circular imports
+    sys.modules['app'] = sys.modules[__name__]
+    print("Starting Flask development server on 0.0.0.0:5000")
+    app.run(host="0.0.0.0", port=5000, debug=False)

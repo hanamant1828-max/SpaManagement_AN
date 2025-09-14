@@ -50,6 +50,16 @@
                 <i class="fas fa-boxes me-1"></i>Batches
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button">
+                <i class="fas fa-chart-line me-1"></i>Status Overview
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="{{ url_for('inventory_reports') }}">
+                <i class="fas fa-chart-bar me-1"></i>Reports
+            </a>
+        </li>
     </ul>
 
     <!-- Tab Content -->
@@ -105,6 +115,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- Status Overview Tab -->
+        <div class="tab-pane fade" id="status" role="tabpanel">
+            <div id="status-content">
+                <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -137,6 +158,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 console.log(`${tabName} content loaded successfully`);
+                
+                // Call specific initialization functions after content loads
+                if (tabName === 'batches' && window.initializeBatchManagement) {
+                    console.log('🔧 Calling batch initialization after dynamic loading...');
+                    window.initializeBatchManagement();
+                }
             })
             .catch(error => {
                 console.error(`Error loading ${tabName}:`, error);
@@ -173,7 +200,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     'adjustments': 'adjustments',
                     'consumption': 'consumption',
                     'transfers': 'transfers',
-                    'batches': 'batches'
+                    'batches': 'batches',
+                    'status': 'status'
                 };
 
                 const fileName = fileMap[tabName] || tabName.replace('_', '-');

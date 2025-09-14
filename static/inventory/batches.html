@@ -61,7 +61,7 @@
                         </tr>
                     </thead>
                     <tbody id="batchesTableBody">
-                        <!-- Dynamic content -->
+                        <tr><td colspan="9" class="text-center text-muted">Loading batches...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -83,22 +83,24 @@
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Product *</label>
-                            <select class="form-select" id="batchProduct" required>
-                                <option value="">Select Product</option>
+                            <label class="form-label">Product</label>
+                            <select class="form-select" id="batchProduct">
+                                <option value="">Select Product (Optional)</option>
                             </select>
+                            <div class="form-text">Product can be assigned later</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Location *</label>
-                            <select class="form-select" id="batchLocation" required>
-                                <option value="">Select Location</option>
+                            <label class="form-label">Location</label>
+                            <select class="form-select" id="batchLocation">
+                                <option value="">Select Location (Optional)</option>
                             </select>
+                            <div class="form-text">Location can be assigned later</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Batch Name *</label>
                             <input type="text" class="form-control" id="batchName" required 
                                    placeholder="Enter unique batch identifier">
-                            <div class="form-text">Must be unique for this product</div>
+                            <div class="form-text">Must be globally unique</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Created Date</label>
@@ -149,180 +151,150 @@
     </div>
 </div>
 
-<!-- Add Batch Modal -->
-<div class="modal fade" id="addBatchModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Batch</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addBatchForm">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Product</label>
-                            <select class="form-select" id="addBatchProduct" name="product_id">
-                                <option value="">Select Product (Optional)</option>
-                            </select>
-                            <div class="form-text">Product can be assigned later during adjustments</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Location</label>
-                            <select class="form-select" id="addBatchLocation" name="location_id">
-                                <option value="">Select Location (Optional)</option>
-                            </select>
-                            <div class="form-text">Location can be assigned later during adjustments</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Batch Name *</label>
-                            <input type="text" class="form-control" id="batchName" name="batch_name" required 
-                                   placeholder="Enter unique batch identifier">
-                            <div class="form-text">Must be globally unique</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Created Date</label>
-                            <input type="date" class="form-control" id="batchCreatedDate" name="created_date">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Manufacturing Date *</label>
-                            <input type="date" class="form-control" id="batchMfgDate" name="mfg_date" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Expiry Date *</label>
-                            <input type="date" class="form-control" id="batchExpiryDate" name="expiry_date" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Unit Cost</label>
-                            <input type="number" class="form-control" id="batchUnitCost" name="unit_cost" 
-                                   step="0.01" min="0" placeholder="0.00">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Selling Price</label>
-                            <input type="number" class="form-control" id="batchSellingPrice" name="selling_price" 
-                                   step="0.01" min="0" placeholder="0.00">
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveNewBatch()">Save Batch</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
+// Global variables
 let allBatches = [];
 let allProducts = [];
 let allLocations = [];
+let batchModal = null;
+let editingBatchId = null; // Added to keep track of the batch being edited
 
-// Initialize batch management
+// Initialize batch management system
 function initializeBatchManagement() {
-    console.log('🔧 Initializing Batch Management...');
-    loadProducts();
-    loadLocations();
-    loadBatches();
-}
+    console.log('🔧 Initializing Batch Management System...');
 
-// Load products for dropdowns
-function loadProducts() {
-    fetch('/api/inventory/products')
-        .then(response => response.json())
-        .then(data => {
-            console.log('Products API response:', data);
-            allProducts = data; // data is already an array
-            populateProductDropdowns();
-        })
-        .catch(error => console.error('Error loading products:', error));
-}
+    // Initialize modal
+    const modalElement = document.getElementById('batchModal');
+    if (modalElement) {
+        batchModal = new bootstrap.Modal(modalElement);
+    }
 
-// Load locations for dropdowns
-function loadLocations() {
-    fetch('/api/inventory/locations')
-        .then(response => response.json())
-        .then(data => {
-            allLocations = data.locations || [];
-            populateLocationDropdowns();
-        })
-        .catch(error => console.error('Error loading locations:', error));
-}
-
-// Load all batches
-function loadBatches() {
-    fetch('/api/inventory/batches')
-        .then(response => response.json())
-        .then(data => {
-            allBatches = data.batches || [];
-            renderBatchesTable();
-            console.log('Batches loaded:', allBatches.length);
-        })
-        .catch(error => console.error('Error loading batches:', error));
-}
-
-// Populate product dropdowns
-function populateProductDropdowns() {
-    const dropdowns = ['filterProduct', 'batchProduct', 'addBatchProduct'];
-
-    dropdowns.forEach(dropdownId => {
-        const dropdown = document.getElementById(dropdownId);
-        if (dropdown) {
-            console.log(`Populating dropdown: ${dropdownId}`, allProducts);
-            // Keep first option for filter dropdown
-            if (dropdownId === 'filterProduct') {
-                dropdown.innerHTML = '<option value="">All Products</option>';
-            } else {
-                dropdown.innerHTML = '<option value="">Select Product</option>';
-            }
-
-            allProducts.forEach(product => {
-                const option = document.createElement('option');
-                option.value = product.id;
-                option.textContent = `${product.name}${product.sku ? ` (${product.sku})` : ''}`;
-                dropdown.appendChild(option);
-            });
-            console.log(`Dropdown ${dropdownId} populated with ${allProducts.length} products`);
-        } else {
-            console.warn(`Dropdown element not found: ${dropdownId}`);
-        }
+    // Load all data
+    Promise.all([
+        loadProducts(),
+        loadLocations(),
+        loadBatches()
+    ]).then(() => {
+        console.log('✅ Batch Management System initialized successfully');
+        console.log(`📊 Loaded: ${allProducts.length} products, ${allLocations.length} locations, ${allBatches.length} batches`);
+    }).catch(error => {
+        console.error('❌ Error initializing Batch Management:', error);
+        showToast('Error loading data. Please refresh the page.', 'danger');
     });
 }
 
-// Populate location dropdowns
-function populateLocationDropdowns() {
-    const dropdowns = ['filterLocation', 'batchLocation', 'addBatchLocation'];
+// Load products from API
+async function loadProducts() {
+    try {
+        console.log('📦 Loading products...');
+        const response = await fetch('/api/inventory/products');
 
-    dropdowns.forEach(dropdownId => {
-        const dropdown = document.getElementById(dropdownId);
-        if (dropdown) {
-            console.log(`Populating location dropdown: ${dropdownId}`, allLocations);
-            // Keep first option for filter dropdown
-            if (dropdownId === 'filterLocation') {
-                dropdown.innerHTML = '<option value="">All Locations</option>';
-            } else {
-                dropdown.innerHTML = '<option value="">Select Location</option>';
-            }
-
-            allLocations.forEach(location => {
-                const option = document.createElement('option');
-                option.value = location.id;
-                option.textContent = location.name;
-                dropdown.appendChild(option);
-            });
-            console.log(`Location dropdown ${dropdownId} populated with ${allLocations.length} locations`);
-        } else {
-            console.warn(`Location dropdown element not found: ${dropdownId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        allProducts = Array.isArray(data) ? data : (data.products || []);
+
+        populateProductDropdown();
+        console.log(`✅ Loaded ${allProducts.length} products`);
+        return allProducts;
+    } catch (error) {
+        console.error('❌ Error loading products:', error);
+        allProducts = [];
+        populateProductDropdown();
+        throw error;
+    }
+}
+
+// Load locations from API
+async function loadLocations() {
+    try {
+        console.log('📍 Loading locations...');
+        const response = await fetch('/api/inventory/locations');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        allLocations = data.locations || [];
+
+        populateLocationDropdown();
+        console.log(`✅ Loaded ${allLocations.length} locations`);
+        return allLocations;
+    } catch (error) {
+        console.error('❌ Error loading locations:', error);
+        allLocations = [];
+        populateLocationDropdown();
+        throw error;
+    }
+}
+
+// Load batches from API
+async function loadBatches() {
+    try {
+        console.log('📋 Loading batches...');
+        const response = await fetch('/api/inventory/batches');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        allBatches = data.batches || [];
+
+        renderBatchesTable();
+        console.log(`✅ Loaded ${allBatches.length} batches`);
+        return allBatches;
+    } catch (error) {
+        console.error('❌ Error loading batches:', error);
+        const tbody = document.getElementById('batchesTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error loading batches. Please refresh.</td></tr>';
+        }
+        throw error;
+    }
+}
+
+// Populate product dropdown
+function populateProductDropdown() {
+    const dropdown = document.getElementById('batchProduct');
+    if (!dropdown) return;
+
+    dropdown.innerHTML = '<option value="">Select Product (Optional)</option>';
+
+    allProducts.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = `${product.name}${product.sku ? ` (${product.sku})` : ''}`;
+        dropdown.appendChild(option);
     });
+
+    console.log(`📦 Product dropdown populated with ${allProducts.length} products`);
+}
+
+// Populate location dropdown
+function populateLocationDropdown() {
+    const dropdown = document.getElementById('batchLocation');
+    if (!dropdown) return;
+
+    dropdown.innerHTML = '<option value="">Select Location (Optional)</option>';
+
+    allLocations.filter(loc => loc.status === 'active').forEach(location => {
+        const option = document.createElement('option');
+        option.value = location.id;
+        option.textContent = location.name;
+        dropdown.appendChild(option);
+    });
+
+    console.log(`📍 Location dropdown populated with ${allLocations.length} locations`);
 }
 
 // Render batches table
 function renderBatchesTable() {
     const tbody = document.getElementById('batchesTableBody');
     if (!tbody) return;
-
-    tbody.innerHTML = '';
 
     const filteredBatches = getFilteredBatches();
 
@@ -331,42 +303,40 @@ function renderBatchesTable() {
         return;
     }
 
+    let tableHTML = '';
     filteredBatches.forEach(batch => {
-        const row = document.createElement('tr');
-
-        // Get product and location names
-        const product = allProducts.find(p => p.id === batch.product_id);
-        const location = allLocations.find(l => l.id === batch.location_id);
-
-        // Status badge class
         const statusClass = getStatusBadgeClass(batch.status, batch.is_expired);
+        const product = allProducts.find(p => p.id === batch.product_id);
+        const unitOfMeasure = product ? product.unit_of_measure : 'pcs';
 
-        row.innerHTML = `
-            <td><strong>${batch.batch_name}</strong></td>
-            <td>${product ? product.name : 'Unknown'}</td>
-            <td>${location ? location.name : 'Unknown'}</td>
-            <td>${batch.qty_available} ${product ? product.unit_of_measure : 'pcs'}</td>
-            <td>${batch.created_date ? formatDate(batch.created_date) : '-'}</td>
-            <td>${batch.mfg_date ? formatDate(batch.mfg_date) : '-'}</td>
-            <td>${batch.expiry_date ? formatDate(batch.expiry_date) : '-'}</td>
-            <td><span class="badge ${statusClass}">${batch.status}</span></td>
-            <td>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" onclick="viewBatch(${batch.id})" title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-outline-warning" onclick="editBatch(${batch.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline-danger" onclick="deleteBatch(${batch.id})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
+        tableHTML += `
+            <tr>
+                <td><strong>${batch.batch_name}</strong></td>
+                <td>${batch.product_name}</td>
+                <td>${batch.location_name}</td>
+                <td>${batch.qty_available} ${unitOfMeasure}</td>
+                <td>${formatDate(batch.created_date)}</td>
+                <td>${formatDate(batch.mfg_date)}</td>
+                <td>${formatDate(batch.expiry_date)}</td>
+                <td><span class="badge ${statusClass}">${batch.status}</span></td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="viewBatch(${batch.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="editBatch(${batch.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="deleteBatch(${batch.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
         `;
-
-        tbody.appendChild(row);
     });
+
+    tbody.innerHTML = tableHTML;
 }
 
 // Get status badge class
@@ -384,13 +354,9 @@ function getStatusBadgeClass(status, isExpired) {
 function getFilteredBatches() {
     let filtered = [...allBatches];
 
-    const productFilter = document.getElementById('filterProduct')?.value;
-    const locationFilter = document.getElementById('filterLocation')?.value;
     const statusFilter = document.getElementById('filterStatus')?.value;
     const assignmentFilter = document.getElementById('filterAssignment')?.value;
     const searchTerm = document.getElementById('searchBatch')?.value?.toLowerCase();
-
-    // Product and location filters are removed as per requirements
 
     if (statusFilter) {
         filtered = filtered.filter(batch => batch.status === statusFilter);
@@ -418,90 +384,165 @@ function filterBatches() {
 
 // Open add batch modal
 function openAddBatchModal() {
+    console.log('➕ Opening Add Batch modal...');
+
+    // Reset form
     document.getElementById('batchModalTitle').textContent = 'Add Batch';
     document.getElementById('batchForm').reset();
     document.getElementById('batchId').value = '';
+    editingBatchId = null; // Reset editing state
 
     // Set default created date to today
-    document.getElementById('batchCreatedDate').value = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('batchCreatedDate').value = today;
 
-    const modal = new bootstrap.Modal(document.getElementById('batchModal'));
-    modal.show();
+    // Show modal
+    if (batchModal) {
+        batchModal.show();
+    }
 }
 
 // Edit batch
 function editBatch(batchId) {
-    const batch = allBatches.find(b => b.id === batchId);
-    if (!batch) return;
+    console.log('🔧 Opening Edit Batch modal for ID:', batchId);
 
-    document.getElementById('batchModalTitle').textContent = 'Edit Batch';
-    document.getElementById('batchId').value = batch.id;
-    document.getElementById('batchProduct').value = batch.product_id;
-    document.getElementById('batchLocation').value = batch.location_id;
-    document.getElementById('batchName').value = batch.batch_name;
-    document.getElementById('batchCreatedDate').value = batch.created_date || '';
-    document.getElementById('batchMfgDate').value = batch.mfg_date || '';
-    document.getElementById('batchExpiryDate').value = batch.expiry_date || '';
-    document.getElementById('batchUnitCost').value = batch.unit_cost || 0;
-    document.getElementById('batchSellingPrice').value = batch.selling_price || '';
+    // Fetch fresh batch data from API to ensure we have the latest information
+    fetch(`/api/inventory/batches/${batchId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error loading batch: ' + data.error);
+                return;
+            }
 
-    const modal = new bootstrap.Modal(document.getElementById('batchModal'));
-    modal.show();
+            const batch = data.batch;
+
+            // Set modal title and form data
+            document.getElementById('batchModalTitle').textContent = 'Edit Batch';
+            document.getElementById('batchId').value = batch.id;
+            document.getElementById('batchName').value = batch.batch_name || '';
+            document.getElementById('batchMfgDate').value = batch.mfg_date || '';
+            document.getElementById('batchExpiryDate').value = batch.expiry_date || '';
+            document.getElementById('batchCreatedDate').value = batch.created_date || '';
+            document.getElementById('batchUnitCost').value = batch.unit_cost || '';
+            document.getElementById('batchSellingPrice').value = batch.selling_price || '';
+
+            // Set editing state
+            editingBatchId = batchId;
+
+            // Show modal
+            if (!batchModal) {
+                batchModal = new bootstrap.Modal(document.getElementById('batchModal'));
+            }
+            batchModal.show();
+
+            // Set dropdowns after modal is shown and data is loaded
+            // Use a small delay to ensure the modal and its elements are fully rendered
+            setTimeout(() => {
+                if (batch.product_id) {
+                    const productSelect = document.getElementById('batchProduct');
+                    if (productSelect) {
+                        productSelect.value = batch.product_id;
+                        console.log('Product set to:', batch.product_id, '(' + batch.product_name + ')');
+                    }
+                }
+
+                if (batch.location_id) {
+                    const locationSelect = document.getElementById('batchLocation');
+                    if (locationSelect) {
+                        locationSelect.value = batch.location_id;
+                        console.log('Location set to:', batch.location_id, '(' + batch.location_name + ')');
+                    }
+                }
+            }, 500); // Timeout to ensure dropdowns are loaded
+        })
+        .catch(error => {
+            console.error('Error loading batch for edit:', error);
+            alert('Error loading batch data. Please try again.');
+        });
 }
+
 
 // Save batch
 function saveBatch(event) {
     event.preventDefault();
+    console.log('💾 Saving batch...');
 
     const batchId = document.getElementById('batchId').value;
     const isEdit = !!batchId;
 
-    // Determine which form we're using based on modal
-    const isAddModal = document.getElementById('addBatchModal').style.display !== 'none';
-    const productSelect = isAddModal ? 'addBatchProduct' : 'batchProduct';
-    const locationSelect = isAddModal ? 'addBatchLocation' : 'batchLocation';
+    // Get form values with proper validation
+    const batchName = document.getElementById('batchName').value.trim();
+    const productSelect = document.getElementById('batchProduct');
+    const locationSelect = document.getElementById('batchLocation');
+    const createdDate = document.getElementById('batchCreatedDate').value;
+    const mfgDate = document.getElementById('batchMfgDate').value;
+    const expiryDate = document.getElementById('batchExpiryDate').value;
+    const unitCost = document.getElementById('batchUnitCost').value;
+    const sellingPrice = document.getElementById('batchSellingPrice').value;
 
+    // Validate required fields
+    if (!batchName) {
+        showToast('Please enter a batch name', 'danger');
+        document.getElementById('batchName').focus();
+        return;
+    }
+
+    if (!mfgDate) {
+        showToast('Please enter manufacturing date', 'danger');
+        document.getElementById('batchMfgDate').focus();
+        return;
+    }
+
+    if (!expiryDate) {
+        showToast('Please enter expiry date', 'danger');
+        document.getElementById('batchExpiryDate').focus();
+        return;
+    }
+
+    // Date validation
+    if (expiryDate <= mfgDate) {
+        showToast('Expiry date must be later than manufacturing date', 'danger');
+        document.getElementById('batchExpiryDate').focus();
+        return;
+    }
+
+    // Prepare batch data
     const batchData = {
-        product_id: parseInt(document.getElementById(productSelect).value) || null, // Set to null if not selected
-        location_id: document.getElementById(locationSelect).value || null, // Set to null if not selected
-        batch_name: document.getElementById('batchName').value.trim(),
-        created_date: document.getElementById('batchCreatedDate').value || null,
-        mfg_date: document.getElementById('batchMfgDate').value || null,
-        expiry_date: document.getElementById('batchExpiryDate').value || null,
-        unit_cost: parseFloat(document.getElementById('batchUnitCost').value) || 0,
-        selling_price: parseFloat(document.getElementById('batchSellingPrice').value) || null,
+        batch_name: batchName,
+        mfg_date: mfgDate,
+        expiry_date: expiryDate,
+        unit_cost: parseFloat(unitCost) || 0,
         status: 'active'
     };
 
-    // Validation
-    if (!batchData.batch_name) {
-        alert('Please enter a batch name');
-        return;
+    // Add optional fields only if they have values
+    if (productSelect.value && productSelect.value !== '') {
+        batchData.product_id = parseInt(productSelect.value);
     }
 
-    if (!batchData.mfg_date) {
-        alert('Please enter manufacturing date');
-        return;
+    if (locationSelect.value && locationSelect.value !== '') {
+        batchData.location_id = locationSelect.value;
     }
 
-    if (!batchData.expiry_date) {
-        alert('Please enter expiry date');
-        return;
+    if (createdDate && createdDate !== '') {
+        batchData.created_date = createdDate;
     }
 
-    // Validation: Expiry must be later than Mfg Date
-    if (batchData.mfg_date && batchData.expiry_date && batchData.expiry_date <= batchData.mfg_date) {
-        alert('Expiry date must be later than manufacturing date.');
-        return;
+    if (sellingPrice && sellingPrice !== '' && parseFloat(sellingPrice) > 0) {
+        batchData.selling_price = parseFloat(sellingPrice);
     }
 
-    // If product_id and location_id are not selected, set them to null
-    if (!batchData.product_id) batchData.product_id = null;
-    if (!batchData.location_id) batchData.location_id = null;
-
+    console.log('📤 Sending batch data:', batchData);
 
     const url = isEdit ? `/api/inventory/batches/${batchId}` : '/api/inventory/batches';
     const method = isEdit ? 'PUT' : 'POST';
+
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
 
     fetch(url, {
         method: method,
@@ -510,36 +551,61 @@ function saveBatch(event) {
         },
         body: JSON.stringify(batchData)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('📥 Response status:', response.status);
+        // Handle potential non-JSON responses or errors before parsing JSON
+        if (!response.ok) {
+            // Try to get error message from response body if available
+            return response.text().then(text => {
+                throw new Error(`HTTP error ${response.status}: ${text || response.statusText}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('📥 Response data:', data);
+
         if (data.success) {
-            alert(data.message);
-            bootstrap.Modal.getInstance(document.getElementById('batchModal')).hide();
+            showToast(data.message || 'Batch saved successfully!', 'success');
+            if (batchModal) {
+                batchModal.hide();
+            }
             loadBatches(); // Reload data
         } else {
-            alert('Error: ' + data.error);
+            // If success is false but no explicit error message, provide a generic one
+            showToast('Error: ' + (data.error || 'Failed to save batch. Please check the data.'), 'danger');
         }
     })
     .catch(error => {
-        console.error('Error saving batch:', error);
-        alert('Error saving batch');
+        console.error('❌ Error saving batch:', error);
+        showToast('Error saving batch: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        // Restore button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     });
 }
 
 // View batch details
 function viewBatch(batchId) {
+    console.log(`👁️ Viewing batch: ${batchId}`);
+
     const batch = allBatches.find(b => b.id === batchId);
-    if (!batch) return;
+    if (!batch) {
+        showToast('Batch not found', 'danger');
+        return;
+    }
 
     const product = allProducts.find(p => p.id === batch.product_id);
-    const location = allLocations.find(l => l.id === batch.location_id);
+    const unitOfMeasure = product ? product.unit_of_measure : 'pcs';
 
     const content = document.getElementById('batchDetailsContent');
     content.innerHTML = `
         <div class="row g-3">
             <div class="col-md-6">
                 <strong>Product:</strong><br>
-                ${product ? product.name : 'Not Assigned'} (${product ? product.sku : 'N/A'})
+                ${batch.product_name ? batch.product_name + (product && product.sku ? ` (${product.sku})` : '') : 'N/A'}
             </div>
             <div class="col-md-6">
                 <strong>Batch Name:</strong><br>
@@ -547,23 +613,23 @@ function viewBatch(batchId) {
             </div>
             <div class="col-md-6">
                 <strong>Location:</strong><br>
-                ${location ? location.name : 'Not Assigned'}
+                ${batch.location_name || 'N/A'}
             </div>
             <div class="col-md-6">
                 <strong>Quantity Available:</strong><br>
-                ${batch.qty_available} ${product ? product.unit_of_measure : 'pcs'}
+                ${batch.qty_available} ${unitOfMeasure}
             </div>
             <div class="col-md-6">
                 <strong>Created Date:</strong><br>
-                ${batch.created_date ? formatDate(batch.created_date) : 'Not specified'}
+                ${formatDate(batch.created_date)}
             </div>
             <div class="col-md-6">
                 <strong>Manufacturing Date:</strong><br>
-                ${batch.mfg_date ? formatDate(batch.mfg_date) : 'Not specified'}
+                ${formatDate(batch.mfg_date)}
             </div>
             <div class="col-md-6">
                 <strong>Expiry Date:</strong><br>
-                ${batch.expiry_date ? formatDate(batch.expiry_date) : 'Not specified'}
+                ${formatDate(batch.expiry_date)}
             </div>
             <div class="col-md-6">
                 <strong>Unit Cost:</strong><br>
@@ -575,7 +641,7 @@ function viewBatch(batchId) {
             </div>
             <div class="col-md-6">
                 <strong>Days to Expiry:</strong><br>
-                ${batch.days_to_expiry !== null ? batch.days_to_expiry + ' days' : 'No expiry set'}
+                ${batch.days_to_expiry !== null && batch.days_to_expiry !== undefined ? batch.days_to_expiry + ' days' : 'N/A'}
             </div>
         </div>
     `;
@@ -586,100 +652,106 @@ function viewBatch(batchId) {
 
 // Delete batch
 function deleteBatch(batchId) {
-    if (!confirm('Are you sure you want to delete this batch?')) return;
+    console.log(`🗑️ Deleting batch: ${batchId}`);
+
+    const batch = allBatches.find(b => b.id === batchId);
+    if (!batch) {
+        showToast('Batch not found', 'danger');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete batch "${batch.batch_name}"?`)) {
+        return;
+    }
 
     fetch(`/api/inventory/batches/${batchId}`, {
         method: 'DELETE'
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            alert(data.message);
+            showToast(data.message || 'Batch deleted successfully!', 'success');
             loadBatches(); // Reload data
         } else {
-            alert('Error: ' + data.error);
+            showToast('Error: ' + (data.error || 'Unknown error'), 'danger');
         }
     })
     .catch(error => {
         console.error('Error deleting batch:', error);
-        alert('Error deleting batch');
+        showToast('Error deleting batch: ' + error.message, 'danger');
     });
 }
 
 // Format date for display
 function formatDate(dateString) {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-GB');
+    try {
+        // Attempt to parse and format date
+        const date = new Date(dateString);
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+        return date.toLocaleDateString('en-GB');
+    } catch (error) {
+        console.error("Error formatting date:", dateString, error);
+        return '-';
+    }
 }
 
-// Save new batch from Add Batch modal
-function saveNewBatch() {
-    const batchData = {
-        product_id: parseInt(document.getElementById('addBatchProduct').value) || null,
-        location_id: document.getElementById('addBatchLocation').value || null,
-        batch_name: document.getElementById('batchName').value.trim(),
-        created_date: document.getElementById('batchCreatedDate').value || null,
-        mfg_date: document.getElementById('batchMfgDate').value || null,
-        expiry_date: document.getElementById('batchExpiryDate').value || null,
-        unit_cost: parseFloat(document.getElementById('batchUnitCost').value) || 0,
-        selling_price: parseFloat(document.getElementById('batchSellingPrice').value) || null,
-        status: 'active'
-    };
+// Toast notification system
+function showToast(message, type = 'info') {
+    const toastContainer = getOrCreateToastContainer();
+    const toastId = `toast_${Date.now()}`;
 
-    // Validation
-    if (!batchData.batch_name) {
-        alert('Please enter a batch name');
-        return;
-    }
+    const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
 
-    if (!batchData.mfg_date) {
-        alert('Please enter manufacturing date');
-        return;
-    }
+    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
 
-    if (!batchData.expiry_date) {
-        alert('Please enter expiry date');
-        return;
-    }
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
 
-    // Validation: Expiry must be later than Mfg Date
-    if (batchData.mfg_date && batchData.expiry_date && batchData.expiry_date <= batchData.mfg_date) {
-        alert('Expiry date must be later than manufacturing date.');
-        return;
-    }
-
-    fetch('/api/inventory/batches', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(batchData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            bootstrap.Modal.getInstance(document.getElementById('addBatchModal')).hide();
-            loadBatches(); // Reload data
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error saving batch:', error);
-        alert('Error saving batch');
+    // Remove from DOM after hiding
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
     });
+}
+
+function getOrCreateToastContainer() {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '1055'; // Ensure it's above other content
+        document.body.appendChild(container);
+    }
+    return container;
 }
 
 // Initialize when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔧 Batch Management DOM loaded');
-        initializeBatchManagement();
-    });
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeBatchManagement);
+} else {
+    // If the DOM is already ready, initialize immediately
+    initializeBatchManagement();
+}
 
-    // Filter batches function (placeholder)
-    function filterBatches() {
-        console.log('Filtering batches...');
-        // Implementation for filtering will be added
-    }
+// Export for dashboard.js if needed, otherwise this line can be removed.
+// window.initializeBatchManagement = initializeBatchManagement;
 </script>

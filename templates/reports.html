@@ -15,30 +15,56 @@
     <!-- Date Range Filter -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calendar-alt me-2"></i>Select Date Range for Reports
+                    </h6>
+                </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3 align-items-end">
                         <div class="col-md-3">
-                            <label for="start_date" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" name="start_date" 
-                                   value="{{ start_date.strftime('%Y-%m-%d') }}" onchange="this.form.submit()">
+                            <label for="start_date" class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control form-control-lg" name="start_date" 
+                                   id="start_date" value="{{ start_date.strftime('%Y-%m-%d') }}" 
+                                   onchange="validateDateRange()">
                         </div>
                         <div class="col-md-3">
-                            <label for="end_date" class="form-label">End Date</label>
-                            <input type="date" class="form-control" name="end_date" 
-                                   value="{{ end_date.strftime('%Y-%m-%d') }}" onchange="this.form.submit()">
+                            <label for="end_date" class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control form-control-lg" name="end_date" 
+                                   id="end_date" value="{{ end_date.strftime('%Y-%m-%d') }}" 
+                                   onchange="validateDateRange()">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('today')">
+                                    <i class="fas fa-calendar-day me-1"></i>Today
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('week')">
+                                    <i class="fas fa-calendar-week me-1"></i>This Week
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('month')">
+                                    <i class="fas fa-calendar me-1"></i>This Month
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('today')">Today</button>
-                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('week')">This Week</button>
-                                <button type="button" class="btn btn-outline-primary" onclick="setDateRange('month')">This Month</button>
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-search me-1"></i>Apply Filter
+                                </button>
                                 <button type="button" class="btn btn-outline-secondary" onclick="exportReport()">
                                     <i class="fas fa-download me-1"></i>Export
                                 </button>
                             </div>
                         </div>
                     </form>
+                    <div class="mt-3">
+                        <div class="alert alert-info d-flex align-items-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span>Showing data from <strong>{{ start_date.strftime('%B %d, %Y') }}</strong> to <strong>{{ end_date.strftime('%B %d, %Y') }}</strong></span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -440,7 +466,25 @@ function setDateRange(period) {
     
     document.querySelector('input[name="start_date"]').value = startDate.toISOString().split('T')[0];
     document.querySelector('input[name="end_date"]').value = endDate.toISOString().split('T')[0];
+    
+    // Auto-submit the form
     document.querySelector('form').submit();
+}
+
+function validateDateRange() {
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        alert('Start date cannot be after end date. Please select a valid date range.');
+        // Reset to valid range
+        const today = new Date();
+        const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        document.getElementById('start_date').value = oneWeekAgo.toISOString().split('T')[0];
+        document.getElementById('end_date').value = today.toISOString().split('T')[0];
+        return false;
+    }
+    return true;
 }
 
 function exportReport() {

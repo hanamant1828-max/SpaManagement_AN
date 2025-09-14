@@ -322,19 +322,28 @@
                 const batchSelect = document.getElementById('adjustmentBatch');
                 batchSelect.innerHTML = '<option value="">Select Batch</option>';
 
-                data.batches.forEach(batch => {
-                    const option = document.createElement('option');
-                    option.value = batch.id;
-                    const expiryText = batch.expiry_date ?
-                        `, Exp: ${new Date(batch.expiry_date).toLocaleDateString('en-GB')}` : '';
-                    option.textContent = `${batch.batch_name} (${batch.product_name}${expiryText}, Current: ${batch.qty_available})`;
-                    option.dataset.productName = batch.product_name;
-                    option.dataset.currentQty = batch.qty_available;
-                    option.dataset.unit = batch.unit;
-                    batchSelect.appendChild(option);
-                });
+                if (data.success && data.batches) {
+                    data.batches.forEach(batch => {
+                        const option = document.createElement('option');
+                        option.value = batch.id;
+                        const expiryText = batch.expiry_date ?
+                            `, Exp: ${new Date(batch.expiry_date).toLocaleDateString('en-GB')}` : '';
+                        option.textContent = `${batch.batch_name} (${batch.product_name}${expiryText}, Stock: ${batch.qty_available})`;
+                        option.dataset.productName = batch.product_name;
+                        option.dataset.productId = batch.product_id || '';
+                        option.dataset.locationId = batch.location_id || '';
+                        option.dataset.locationName = batch.location_name;
+                        option.dataset.currentQty = batch.qty_available;
+                        option.dataset.unit = batch.unit;
+                        option.dataset.unitCost = batch.unit_cost;
+                        batchSelect.appendChild(option);
+                    });
+                }
             })
-            .catch(error => console.error('Error loading batches:', error));
+            .catch(error => {
+                console.error('Error loading batches:', error);
+                alert('Error loading batches. Please try again.');
+            });
     }
 
     function updateCurrentStockDisplay(batchId) {
@@ -372,16 +381,10 @@
         }
     }
     
-    // Function to update batch info and product/location assignment panels
+    // Function to update batch info when batch is selected
     window.updateBatchInfo = function() {
         const batchSelect = document.getElementById('adjustmentBatch');
         const selectedBatchId = batchSelect.value;
-        const batchInfoPanel = document.getElementById('batchInfoPanel');
-        const batchInfoText = document.getElementById('batchInfoText');
-        const productAssignmentPanel = document.getElementById('productAssignmentPanel');
-        const adjustmentProduct = document.getElementById('adjustmentProduct');
-        const locationAssignmentPanel = document.getElementById('locationAssignmentPanel');
-        const adjustmentLocation = document.getElementById('adjustmentLocation');
 
         updateCurrentStockDisplay(selectedBatchId);
 
@@ -389,55 +392,40 @@
             const selectedOption = batchSelect.querySelector(`option[value="${selectedBatchId}"]`);
             if (selectedOption) {
                 const productName = selectedOption.dataset.productName;
-                const expiryDate = selectedOption.dataset.expiryDate ? new Date(selectedOption.dataset.expiryDate).toLocaleDateString('en-GB') : 'N/A';
+                const locationName = selectedOption.dataset.locationName;
                 const currentQty = selectedOption.dataset.currentQty;
+                const unitCost = selectedOption.dataset.unitCost;
 
-                batchInfoText.textContent = `Name: ${selectedOption.text.split('(')[0].trim()}, Product: ${productName}, Exp: ${expiryDate}, Current Stock: ${currentQty}`;
-                batchInfoPanel.style.display = 'block';
+                // Update batch info display
+                const batchInfo = document.getElementById('batchInfo');
+                if (batchInfo) {
+                    batchInfo.textContent = `Product: ${productName}, Location: ${locationName}, Current Stock: ${currentQty}`;
+                }
 
-                // Populate product and location dropdowns based on the selected batch
-                // In a real scenario, you might fetch this data based on the batch or product
-                // For now, we'll use placeholder data or assume it's available globally.
+                // Set unit cost if available
+                const unitCostInput = document.getElementById('adjustmentUnitCost');
+                if (unitCostInput && unitCost) {
+                    unitCostInput.value = parseFloat(unitCost).toFixed(2);
+                }
 
-                // Example: Assuming products and locations are fetched elsewhere or globally available
-                // Replace with actual logic to populate these dropdowns
-                fetch('/api/products') // Assuming an endpoint to get products
-                    .then(res => res.json())
-                    .then(products => {
-                        adjustmentProduct.innerHTML = '<option value="">Select Product</option>';
-                        products.forEach(product => {
-                            const option = document.createElement('option');
-                            option.value = product.id;
-                            option.textContent = product.name;
-                            if (product.name === productName) {
-                                option.selected = true;
-                            }
-                            adjustmentProduct.appendChild(option);
-                        });
-                        productAssignmentPanel.style.display = 'block';
-                    })
-                    .catch(error => console.error('Error fetching products:', error));
-
-                fetch('/api/locations') // Assuming an endpoint to get locations
-                    .then(res => res.json())
-                    .then(locations => {
-                        adjustmentLocation.innerHTML = '<option value="">Select Location</option>';
-                        locations.forEach(location => {
-                            const option = document.createElement('option');
-                            option.value = location.id;
-                            option.textContent = location.name;
-                            // You might have logic here to pre-select a default location if applicable
-                            adjustmentLocation.appendChild(option);
-                        });
-                        locationAssignmentPanel.style.display = 'block';
-                    })
-                    .catch(error => console.error('Error fetching locations:', error));
+                // Store product and location IDs for form submission
+                const form = document.getElementById('adjustmentForm');
+                if (form) {
+                    form.dataset.selectedProductId = selectedOption.dataset.productId || '';
+                    form.dataset.selectedLocationId = selectedOption.dataset.locationId || '';
+                }
             }
         } else {
-            batchInfoPanel.style.display = 'none';
-            productAssignmentPanel.style.display = 'none';
-            locationAssignmentPanel.style.display = 'none';
-            batchInfoText.textContent = '';
+            const batchInfo = document.getElementById('batchInfo');
+            if (batchInfo) {
+                batchInfo.textContent = '';
+            }
+            
+            const form = document.getElementById('adjustmentForm');
+            if (form) {
+                form.dataset.selectedProductId = '';
+                form.dataset.selectedLocationId = '';
+            }
         }
     }
 
@@ -455,15 +443,21 @@
         document.getElementById('adjustmentForm').reset();
         document.getElementById('adjustmentReferenceId').value = generateReferenceId();
         document.getElementById('adjustmentDate').value = new Date().toISOString().split('T')[0];
-
-        // Reset and hide assignment panels
-        document.getElementById('batchInfoPanel').style.display = 'none';
-        document.getElementById('productAssignmentPanel').style.display = 'none';
-        document.getElementById('locationAssignmentPanel').style.display = 'none';
-        document.getElementById('adjustmentProduct').innerHTML = '<option value="">Select Product</option>';
-        document.getElementById('adjustmentLocation').innerHTML = '<option value="">Select Location</option>';
-        document.getElementById('batchInfoText').textContent = '';
-
+        
+        // Clear batch info
+        const batchInfo = document.getElementById('batchInfo');
+        if (batchInfo) {
+            batchInfo.textContent = '';
+        }
+        
+        // Reset current stock display
+        const currentStockDisplay = document.getElementById('currentStockDisplay');
+        const currentStockUnit = document.getElementById('currentStockUnit');
+        if (currentStockDisplay && currentStockUnit) {
+            currentStockDisplay.value = '';
+            currentStockDisplay.className = 'form-control';
+            currentStockUnit.textContent = 'pcs';
+        }
 
         loadBatchesForAdjustments();
 
@@ -472,62 +466,69 @@
     }
 
     window.saveAdjustment = function() {
-        const adjustmentData = {
-            reference_no: document.getElementById('adjustmentReferenceId').value,
-            adjustment_date: document.getElementById('adjustmentDate').value,
-            notes: document.getElementById('adjustmentRemarks').value,
-            items: [{
-                batch_id: document.getElementById('adjustmentBatch').value,
-                quantity_in: parseFloat(document.getElementById('adjustmentQuantity').value),
-                unit_cost: parseFloat(document.getElementById('adjustmentUnitCost').value) || 0,
-                product_id: document.getElementById('adjustmentProduct').value, // Added product_id
-                location_id: document.getElementById('adjustmentLocation').value // Added location_id
-            }]
-        };
+        const form = document.getElementById('adjustmentForm');
+        const batchId = document.getElementById('adjustmentBatch').value;
+        const quantity = parseFloat(document.getElementById('adjustmentQuantity').value);
+        const unitCost = parseFloat(document.getElementById('adjustmentUnitCost').value) || 0;
+        const remarks = document.getElementById('adjustmentRemarks').value;
 
         // Basic validation
-        if (!adjustmentData.adjustment_date) {
+        if (!document.getElementById('adjustmentDate').value) {
             alert('Adjustment date is required.');
             return;
         }
-        if (!adjustmentData.items[0].batch_id) {
-            alert('Batch is required.');
+        if (!batchId) {
+            alert('Please select a batch.');
             return;
         }
-        if (isNaN(adjustmentData.items[0].quantity_in) || adjustmentData.items[0].quantity_in <= 0) {
-            alert('Quantity is required and must be positive.');
-            return;
-        }
-        // Additional validation for product and location if they are required
-        if (!adjustmentData.items[0].product_id) {
-            alert('Product assignment is required.');
-            return;
-        }
-        if (!adjustmentData.items[0].location_id) {
-            alert('Location assignment is required.');
+        if (isNaN(quantity) || quantity <= 0) {
+            alert('Please enter a valid positive quantity.');
             return;
         }
 
+        // Prepare adjustment data
+        const adjustmentData = {
+            reference_no: document.getElementById('adjustmentReferenceId').value,
+            adjustment_date: document.getElementById('adjustmentDate').value,
+            batch_id: batchId,
+            quantity: quantity,
+            unit_cost: unitCost,
+            notes: remarks || 'Stock added via adjustment',
+            // Include product and location IDs from selected batch
+            product_id: form.dataset.selectedProductId || null,
+            location_id: form.dataset.selectedLocationId || null
+        };
+
+        console.log('Sending adjustment data:', adjustmentData);
 
         fetch('/api/inventory/adjustments', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(adjustmentData)
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(result => {
+            console.log('Adjustment result:', result);
             if (result.success) {
-                alert('Adjustment saved successfully!');
+                alert('✅ Adjustment saved successfully!');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addAdjustmentModal'));
                 modal.hide();
                 loadAdjustments();
             } else {
-                alert('Error saving adjustment: ' + result.error);
+                alert('❌ Error saving adjustment: ' + (result.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error saving adjustment:', error);
-            alert('An error occurred. Please try again.');
+            alert('❌ An error occurred while saving: ' + error.message);
         });
     }
 
