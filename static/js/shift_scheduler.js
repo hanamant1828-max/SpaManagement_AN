@@ -9,7 +9,7 @@
     'use strict';
 
     // Global variables - scoped within IIFE
-    let currentStaffId = null;
+    let selectedStaffId = null;
     let scheduleData = [];
     let existingSchedules = [];
 
@@ -89,9 +89,9 @@
         
         // Staff selection change
         $('#staffSelect').on('change', function() {
-            currentStaffId = $(this).val();
-            if (currentStaffId) {
-                loadExistingSchedules(currentStaffId);
+            selectedStaffId = $(this).val();
+            if (selectedStaffId) {
+                loadExistingSchedules(selectedStaffId);
                 $('#selectedStaffName').text(' - ' + $(this).find('option:selected').data('name'));
             } else {
                 clearExistingSchedules();
@@ -1145,7 +1145,7 @@
                 if (response.success) {
                     showAlert('Schedule updated successfully', 'success');
                     $('#editScheduleModal').modal('hide');
-                    loadExistingSchedules(currentStaffId);
+                    loadExistingSchedules(selectedStaffId);
                 } else {
                     showAlert('Error updating schedule: ' + response.error, 'danger');
                 }
@@ -1171,7 +1171,7 @@
             success: function(response) {
                 if (response.success) {
                     showAlert('Schedule deleted successfully', 'success');
-                    loadExistingSchedules(currentStaffId);
+                    loadExistingSchedules(selectedStaffId);
                 } else {
                     showAlert('Error deleting schedule: ' + response.error, 'danger');
                 }
@@ -1210,7 +1210,7 @@
             success: function(response) {
                 if (response.success) {
                     showAlert(`${response.deleted_count} schedule(s) deleted successfully`, 'success');
-                    loadExistingSchedules(currentStaffId);
+                    loadExistingSchedules(selectedStaffId);
                     $('#deleteSelectedBtn').hide();
                 } else {
                     showAlert('Error deleting schedules: ' + response.error, 'danger');
@@ -1812,7 +1812,7 @@
      */
     window.editStaffSchedules = function(staffId) {
         // Set the staff in the main form and load their schedules for editing
-        currentStaffId = staffId;
+        selectedStaffId = staffId;
         $('#staffSelect').val(staffId).trigger('change');
         showAlert('Staff schedules loaded for editing. Use the configuration section above.', 'info');
         
