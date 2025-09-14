@@ -1016,32 +1016,99 @@
      * Open edit schedule modal
      */
     function openEditScheduleModal(scheduleId) {
+        console.log('openEditScheduleModal called with ID:', scheduleId);
+        console.log('existingSchedules array:', existingSchedules);
+        
+        // First check if modal exists
+        if (!$('#editScheduleModal').length) {
+            console.error('Edit modal not found in DOM!');
+            showAlert('Edit modal not found. Please refresh the page.', 'danger');
+            return;
+        }
+        
         const schedule = existingSchedules.find(s => s.id == scheduleId);
-        if (!schedule) return;
+        console.log('Found schedule:', schedule);
+        
+        if (!schedule) {
+            console.error('Schedule not found with ID:', scheduleId);
+            // Try to fetch schedule details from server
+            fetchAndPopulateScheduleDetails(scheduleId);
+            return;
+        }
+        
+        populateEditModalWithSchedule(schedule);
+    }
+    
+    /**
+     * Fetch schedule details from server and populate modal
+     */
+    function fetchAndPopulateScheduleDetails(scheduleId) {
+        console.log('Fetching schedule details from server for ID:', scheduleId);
+        showLoadingModal('Loading schedule details...');
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}/details`,
+            method: 'GET',
+            success: function(response) {
+                hideLoadingModal();
+                if (response.success && response.schedule) {
+                    console.log('Fetched schedule from server:', response.schedule);
+                    populateEditModalWithSchedule(response.schedule);
+                } else {
+                    console.error('Failed to fetch schedule details:', response.error);
+                    showAlert('Could not load schedule details: ' + (response.error || 'Unknown error'), 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error fetching schedule details:', error);
+                showAlert('Error loading schedule details. Please try again.', 'danger');
+            }
+        });
+    }
+    
+    /**
+     * Populate edit modal with schedule data
+     */
+    function populateEditModalWithSchedule(schedule) {
+        console.log('Populating modal with schedule:', schedule);
         
         // Populate form
         $('#editScheduleId').val(schedule.id);
-        $('#editScheduleName').val(schedule.schedule_name);
-        $('#editPriority').val(schedule.priority);
-        $('#editStartDate').val(schedule.start_date);
-        $('#editEndDate').val(schedule.end_date);
-        $('#editShiftStart').val(schedule.shift_start_time);
-        $('#editShiftEnd').val(schedule.shift_end_time);
-        $('#editBreakTime').val(schedule.break_time);
-        $('#editDescription').val(schedule.description);
+        $('#editScheduleName').val(schedule.schedule_name || '');
+        $('#editPriority').val(schedule.priority || 1);
+        $('#editStartDate').val(schedule.start_date || '');
+        $('#editEndDate').val(schedule.end_date || '');
+        $('#editShiftStart').val(schedule.shift_start_time || '');
+        $('#editShiftEnd').val(schedule.shift_end_time || '');
+        $('#editBreakTime').val(schedule.break_time || '');
+        $('#editDescription').val(schedule.description || '');
         
-        // Set working days checkboxes
+        // Set working days checkboxes with better error handling
         const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         days.forEach(day => {
             const checkbox = $(`#edit${day.charAt(0).toUpperCase() + day.slice(1)}`);
-            // Check if this day is in the working_days array or if the day property is true
-            const isWorking = schedule.working_days.includes(day.substring(0, 3).charAt(0).toUpperCase() + day.substring(0, 3).slice(1)) || 
-                             schedule[day] === true;
+            let isWorking = false;
+            
+            // Multiple ways to check if day is working
+            if (schedule.working_days && Array.isArray(schedule.working_days)) {
+                // If working_days is an array, check if it contains the day
+                const dayAbbr = day.substring(0, 3).charAt(0).toUpperCase() + day.substring(0, 3).slice(1);
+                isWorking = schedule.working_days.includes(dayAbbr) || schedule.working_days.includes(day);
+            } else if (schedule[day] !== undefined) {
+                // If day property exists directly
+                isWorking = schedule[day] === true || schedule[day] === 1 || schedule[day] === '1';
+            }
+            
             checkbox.prop('checked', isWorking);
         });
         
-        // Show modal
-        $('#editScheduleModal').modal('show');
+        console.log('About to show modal...');
+        // Show modal with Bootstrap 5 syntax
+        const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+        modal.show();
+        
+        console.log('Modal show() called');
     }
 
     /**
