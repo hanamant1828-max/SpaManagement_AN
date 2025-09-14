@@ -1104,37 +1104,66 @@
         });
         
         console.log('About to show modal...');
-        // Show modal with Bootstrap 5 syntax
-        const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
-        modal.show();
-        
-        console.log('Modal show() called');
+        // Show modal with proper Bootstrap initialization
+        try {
+            const modalElement = document.getElementById('editScheduleModal');
+            if (modalElement) {
+                // Remove any existing modal instances
+                const existingModal = bootstrap.Modal.getInstance(modalElement);
+                if (existingModal) {
+                    existingModal.dispose();
+                }
+                
+                // Create new modal instance and show
+                const modal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                modal.show();
+                console.log('Modal show() called successfully');
+            } else {
+                console.error('Modal element not found!');
+                showAlert('Edit modal not available. Please refresh the page.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error showing modal:', error);
+            showAlert('Error opening edit modal: ' + error.message, 'danger');
+        }
     }
 
     /**
      * Update schedule
      */
     function updateSchedule() {
-        const formData = new FormData($('#editScheduleForm')[0]);
-        const scheduleId = formData.get('schedule_id');
+        console.log('updateSchedule called');
+        
+        const scheduleId = $('#editScheduleId').val();
+        if (!scheduleId) {
+            showAlert('Schedule ID missing. Please try again.', 'danger');
+            return;
+        }
         
         const data = {
-            schedule_name: formData.get('schedule_name'),
-            description: formData.get('description'),
-            start_date: formData.get('start_date'),
-            end_date: formData.get('end_date'),
-            shift_start_time: formData.get('shift_start_time'),
-            shift_end_time: formData.get('shift_end_time'),
-            break_time: formData.get('break_time'),
-            priority: parseInt(formData.get('priority')),
-            monday: formData.has('monday'),
-            tuesday: formData.has('tuesday'),
-            wednesday: formData.has('wednesday'),
-            thursday: formData.has('thursday'),
-            friday: formData.has('friday'),
-            saturday: formData.has('saturday'),
-            sunday: formData.has('sunday')
+            schedule_name: $('#editScheduleName').val(),
+            description: $('#editDescription').val(),
+            start_date: $('#editStartDate').val(),
+            end_date: $('#editEndDate').val(),
+            shift_start_time: $('#editShiftStart').val(),
+            shift_end_time: $('#editShiftEnd').val(),
+            break_time: $('#editBreakTime').val(),
+            priority: parseInt($('#editPriority').val()) || 1,
+            monday: $('#editMonday').is(':checked'),
+            tuesday: $('#editTuesday').is(':checked'),
+            wednesday: $('#editWednesday').is(':checked'),
+            thursday: $('#editThursday').is(':checked'),
+            friday: $('#editFriday').is(':checked'),
+            saturday: $('#editSaturday').is(':checked'),
+            sunday: $('#editSunday').is(':checked')
         };
+        
+        console.log('Updating schedule with data:', data);
+        
+        showLoadingModal('Updating schedule...');
         
         $.ajax({
             url: `/api/schedule/${scheduleId}`,
@@ -1142,16 +1171,31 @@
             contentType: 'application/json',
             data: JSON.stringify(data),
             success: function(response) {
+                hideLoadingModal();
+                console.log('Update response:', response);
                 if (response.success) {
                     showAlert('Schedule updated successfully', 'success');
-                    $('#editScheduleModal').modal('hide');
-                    loadExistingSchedules(selectedStaffId);
+                    
+                    // Close modal properly
+                    const modalElement = document.getElementById('editScheduleModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    // Refresh schedules list
+                    if (selectedStaffId) {
+                        loadExistingSchedules(selectedStaffId);
+                    }
+                    loadAllSchedules(); // Refresh the main management table
                 } else {
-                    showAlert('Error updating schedule: ' + response.error, 'danger');
+                    showAlert('Error updating schedule: ' + (response.error || 'Unknown error'), 'danger');
                 }
             },
             error: function(xhr, status, error) {
+                hideLoadingModal();
                 console.error('Error updating schedule:', error);
+                console.error('Response:', xhr.responseText);
                 showAlert('Error updating schedule. Please try again.', 'danger');
             }
         });

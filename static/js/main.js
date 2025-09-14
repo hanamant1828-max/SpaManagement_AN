@@ -90,7 +90,7 @@ let currentStream = null;
 let faceStream = null;
 
 // Declare currentStaffId only once globally
-let currentStaffId = null;
+// currentStaffId moved to specific modules to avoid conflicts
 
 function setupCameraButtons() {
     // Only run on pages that actually have camera buttons

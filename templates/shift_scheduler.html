@@ -535,6 +535,23 @@ $(document).ready(function() {
     if (!$('#modalToDate').val()) {
         $('#modalToDate').val(nextWeek.toISOString().split('T')[0]);
     }
+
+    // Edit schedule form submission
+    $(document).on('submit', '#editScheduleForm', function(e) {
+        e.preventDefault();
+        updateSchedule();
+    });
+
+    // Edit schedule button click handler
+    $(document).on('click', '.edit-schedule-btn', function(e) {
+        e.preventDefault();
+        const scheduleId = $(this).data('schedule-id');
+        if (scheduleId) {
+            openEditScheduleModal(scheduleId);
+        } else {
+            showAlert('Schedule ID not found', 'danger');
+        }
+    });
 });
 </script>
 
