@@ -1223,40 +1223,50 @@
         $('#noAllSchedules').hide();
         
         schedules.forEach((schedule, index) => {
-            const shiftTime = schedule.shift_start_time && schedule.shift_end_time 
-                ? `${schedule.shift_start_time} - ${schedule.shift_end_time}` 
-                : 'Not set';
+            // Format the dates properly
+            const fromDate = formatScheduleDate(schedule.start_date);
+            const toDate = formatScheduleDate(schedule.end_date);
+            
+            // Create a more readable office days string
+            const officeDays = formatOfficeDays(schedule.working_days);
                 
             const row = `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>
-                        <strong>${schedule.staff_name}</strong>
-                    </td>
-                    <td>${formatDate(schedule.start_date)}</td>
-                    <td>${formatDate(schedule.end_date)}</td>
-                    <td>
-                        <span class="badge bg-info">${schedule.working_days_str}</span>
+                <tr class="schedule-management-row">
+                    <td class="text-center">
+                        <strong>${index + 1}</strong>
                     </td>
                     <td>
-                        <small class="text-muted">${shiftTime}</small>
+                        <div class="staff-info">
+                            <strong class="text-primary">${schedule.staff_name}</strong>
+                        </div>
                     </td>
                     <td>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-primary btn-sm" 
-                                    onclick="viewScheduleDetails(${schedule.id})" 
-                                    title="View Details">
-                                🔍 View
-                            </button>
-                            <button type="button" class="btn btn-outline-warning btn-sm" 
+                        <span class="date-display">${fromDate}</span>
+                    </td>
+                    <td>
+                        <span class="date-display">${toDate}</span>
+                    </td>
+                    <td>
+                        <span class="office-days-badge">${officeDays}</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons-group">
+                            <button type="button" class="btn btn-sm btn-outline-warning me-1" 
                                     onclick="editScheduleFromTable(${schedule.id})" 
                                     title="Edit Schedule">
                                 🖊️ Edit
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                            <span class="text-muted">•</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger me-1 ms-1" 
                                     onclick="deleteScheduleFromTable(${schedule.id})" 
                                     title="Delete Schedule">
                                 🗑️ Delete
+                            </button>
+                            <span class="text-muted">•</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
+                                    onclick="viewScheduleDetails(${schedule.id})" 
+                                    title="View Details">
+                                🔍 View
                             </button>
                         </div>
                     </td>
@@ -1264,6 +1274,62 @@
             `;
             tbody.append(row);
         });
+    }
+
+    /**
+     * Format date for schedule display (e.g., 2025-09-01)
+     */
+    function formatScheduleDate(dateString) {
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+    }
+
+    /**
+     * Format office days for better display
+     */
+    function formatOfficeDays(workingDays) {
+        if (!workingDays || workingDays.length === 0) {
+            return 'No working days';
+        }
+        
+        // Convert 3-letter day names to full names for comparison
+        const dayMap = {
+            'Mon': 'Monday',
+            'Tue': 'Tuesday', 
+            'Wed': 'Wednesday',
+            'Thu': 'Thursday',
+            'Fri': 'Friday',
+            'Sat': 'Saturday',
+            'Sun': 'Sunday'
+        };
+        
+        const fullDays = workingDays.map(day => dayMap[day] || day);
+        
+        // Check for common patterns
+        if (workingDays.length === 7) {
+            return 'All Days';
+        }
+        
+        // Check for Monday to Friday pattern
+        const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        const isWeekdaysOnly = workingDays.length === 5 && 
+            weekdays.every(day => fullDays.includes(day));
+        
+        if (isWeekdaysOnly) {
+            return 'Mon to Fri';
+        }
+        
+        // Check for weekend only
+        const weekends = ['Saturday', 'Sunday'];
+        const isWeekendsOnly = workingDays.length === 2 && 
+            weekends.every(day => fullDays.includes(day));
+            
+        if (isWeekendsOnly) {
+            return 'Weekends';
+        }
+        
+        // Return comma-separated list for other patterns
+        return workingDays.join(', ');
     }
 
     /**

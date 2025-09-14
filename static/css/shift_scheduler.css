@@ -580,6 +580,92 @@ input[type="time"] {
 }
 
 /* ============================
+   Schedule Management Table
+   ============================ */
+
+.schedule-management-row {
+    transition: background-color 0.2s ease;
+}
+
+.schedule-management-row:hover {
+    background-color: #f8f9fa;
+}
+
+.staff-info strong {
+    font-size: 0.95rem;
+}
+
+.date-display {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.office-days-badge {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: 1px solid #bbdefb;
+}
+
+.action-buttons-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.action-buttons-group .btn {
+    border: none;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+}
+
+.action-buttons-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.action-buttons-group .text-muted {
+    margin: 0 4px;
+    font-size: 0.9rem;
+}
+
+/* Responsive adjustments for schedule table */
+@media (max-width: 768px) {
+    .action-buttons-group {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .action-buttons-group .text-muted {
+        display: none;
+    }
+    
+    .action-buttons-group .btn {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+    }
+    
+    .date-display {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+    }
+    
+    .office-days-badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+}
+
+/* ============================
    Utility Classes
    ============================ */
 
