@@ -361,6 +361,11 @@
         }
         
         showLoadingModal('Saving shift schedule...');
+        console.log('Starting AJAX request to /shift-scheduler/save');
+        console.log('Request data:', {
+            staff_id: parseInt(staffId),
+            schedule_data: modalScheduleData
+        });
         
         $.ajax({
             url: '/shift-scheduler/save',
@@ -370,7 +375,12 @@
                 staff_id: parseInt(staffId),
                 schedule_data: modalScheduleData
             }),
+            timeout: 30000, // 30 second timeout
+            beforeSend: function(xhr) {
+                console.log('Before sending request...');
+            },
             success: function(response) {
+                console.log('AJAX success:', response);
                 hideLoadingModal();
                 if (response.success) {
                     showAlert(response.message, 'success');
@@ -388,9 +398,28 @@
                 }
             },
             error: function(xhr, status, error) {
+                console.error('AJAX error details:');
+                console.error('Status:', status);
+                console.error('Error:', error);
+                console.error('Response status:', xhr.status);
+                console.error('Response text:', xhr.responseText);
                 hideLoadingModal();
-                console.error('Error saving schedule:', error);
-                showAlert('Error saving schedule. Please try again.', 'danger');
+                
+                let errorMessage = 'Error saving schedule.';
+                if (xhr.status === 401) {
+                    errorMessage = 'Please log in and try again.';
+                } else if (xhr.status === 403) {
+                    errorMessage = 'You do not have permission to save schedules.';
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Server error. Please try again.';
+                } else if (status === 'timeout') {
+                    errorMessage = 'Request timed out. Please try again.';
+                }
+                
+                showAlert(errorMessage, 'danger');
+            },
+            complete: function(xhr, status) {
+                console.log('AJAX complete. Status:', status);
             }
         });
     };

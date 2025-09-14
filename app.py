@@ -20,18 +20,17 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET") or "dev-testing-key"
-# Disable CSRF and auth for testing
+app.secret_key = os.environ.get("SESSION_SECRET")
+app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
 app.config['WTF_CSRF_ENABLED'] = False
-app.config['TESTING'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database - SQLite for testing
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventory_testing.db'
+# Configure the database - PostgreSQL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
