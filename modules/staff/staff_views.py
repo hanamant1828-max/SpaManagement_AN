@@ -187,9 +187,6 @@ def create_comprehensive_staff():
             is_active=data.get('is_active', True),
             staff_code=data.get('staff_code'),
             verification_status=data.get('verification_status', False),
-            shift_start_time=datetime.strptime(data.get('shift_start_time'), '%H:%M').time() if data.get('shift_start_time') else None,
-            shift_end_time=datetime.strptime(data.get('shift_end_time'), '%H:%M').time() if data.get('shift_end_time') else None,
-            working_days=data.get('working_days', '1111100'),
             enable_face_checkin=data.get('enable_face_checkin', False),
         )
 
