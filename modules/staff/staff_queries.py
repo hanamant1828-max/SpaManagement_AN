@@ -374,13 +374,6 @@ def create_comprehensive_staff(form_data):
             facial_encoding=form_data.get('facial_encoding'),
             enable_face_checkin=form_data.get('enable_face_checkin', True),
 
-            # Work Schedule - Removed these fields as per request
-            # working_days=form_data.get('working_days', '1111100'),
-            # shift_start_time=form_data.get('shift_start_time'),
-            # shift_end_time=form_data.get('shift_end_time'),
-            # break_time=form_data.get('break_time'),
-            # weekly_off_days=form_data.get('weekly_off_days'),
-
             # Commission
             commission_percentage=float(form_data.get('commission_percentage') or 0.0),
             fixed_commission=float(form_data.get('fixed_commission') or 0.0),
@@ -415,3 +408,56 @@ def create_comprehensive_staff(form_data):
         db.session.rollback()
         print(f"Error creating comprehensive staff: {e}")
         return None
+
+def get_staff_schedule_ranges(staff_id):
+    """Get all schedule ranges for a staff member"""
+    try:
+        from models import StaffScheduleRange
+        return StaffScheduleRange.query.filter_by(
+            staff_id=staff_id,
+            is_active=True
+        ).order_by(StaffScheduleRange.start_date).all()
+    except Exception as e:
+        print(f"Error getting staff schedule ranges: {e}")
+        return []
+
+def get_schedule_range_by_id(schedule_id):
+    """Get a specific schedule range by ID"""
+    try:
+        from models import StaffScheduleRange
+        return StaffScheduleRange.query.get(schedule_id)
+    except Exception as e:
+        print(f"Error getting schedule range by ID: {e}")
+        return None
+
+def update_schedule_range(schedule_id, update_data):
+    """Update a schedule range"""
+    try:
+        from models import StaffScheduleRange
+        schedule = StaffScheduleRange.query.get(schedule_id)
+        if schedule:
+            for key, value in update_data.items():
+                if hasattr(schedule, key):
+                    setattr(schedule, key, value)
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error updating schedule range: {e}")
+        db.session.rollback()
+        return False
+
+def delete_schedule_range(schedule_id):
+    """Soft delete a schedule range"""
+    try:
+        from models import StaffScheduleRange
+        schedule = StaffScheduleRange.query.get(schedule_id)
+        if schedule:
+            schedule.is_active = False
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error deleting schedule range: {e}")
+        db.session.rollback()
+        return False
