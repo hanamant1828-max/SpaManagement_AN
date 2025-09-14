@@ -109,7 +109,7 @@ def create_integrated_invoice():
                     'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0
                 })
 
-        # Validate stock availability for all inventory items
+        # Validate stock availability and prices for all inventory items
         for item in inventory_data:
             batch = InventoryBatch.query.get(item['batch_id'])
             if not batch:
@@ -124,97 +124,155 @@ def create_integrated_invoice():
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
-        # Generate invoice number
-        invoice_count = EnhancedInvoice.query.count() + 1
-        invoice_number = f"INV-{datetime.datetime.now().strftime('%Y%m%d')}-{invoice_count:04d}"
+            # Server-side price validation - prevent price manipulation
+            if batch.selling_price:
+                actual_price = float(batch.selling_price)
+                submitted_price = item['unit_price']
+                
+                # Allow up to 50% discount, but prevent price inflation or excessive discounts
+                min_allowed_price = actual_price * 0.5  # 50% discount max
+                max_allowed_price = actual_price * 1.1   # 10% markup max for rounding
+                
+                if submitted_price < min_allowed_price or submitted_price > max_allowed_price:
+                    # Log suspicious price manipulation attempt
+                    app.logger.warning(f"Price manipulation attempt detected: User {current_user.id} tried to set price {submitted_price} for batch {batch.batch_name} (actual: {actual_price})")
+                    return jsonify({
+                        'success': False,
+                        'message': f'Invalid price for {batch.product.name} (Batch: {batch.batch_name}). Expected: ${actual_price:.2f}, Submitted: ${submitted_price:.2f}'
+                    })
+            else:
+                # If no selling price set, require manual approval for non-zero prices
+                if item['unit_price'] > 0:
+                    return jsonify({
+                        'success': False,
+                        'message': f'Product {batch.product.name} has no selling price configured. Please set selling price first.'
+                    })
 
-        # Calculate totals
-        services_subtotal = 0
-        inventory_subtotal = 0
-
-        # Calculate services subtotal
+        # Validate service prices to prevent manipulation
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
-            if service:
-                services_subtotal += service.price * service_data['quantity']
+            if not service:
+                return jsonify({'success': False, 'message': f'Service not found: {service_data["service_id"]}'})
+            
+            # For services, we don't accept client price input - always use actual service price
+            # This prevents any service price manipulation
+            # Note: If custom service pricing is needed in the future, implement proper authorization checks
 
-        # Calculate inventory subtotal
-        for item in inventory_data:
-            inventory_subtotal += item['unit_price'] * item['quantity']
+        # CRITICAL: Start database transaction for complete atomic operation
+        try:
+            # Use database transaction to ensure atomicity
+            # Calculate totals first (before any database operations)
+            services_subtotal = 0
+            inventory_subtotal = 0
 
-        gross_subtotal = services_subtotal + inventory_subtotal
+            # Calculate services subtotal
+            for service_data in services_data:
+                service = Service.query.get(service_data['service_id'])
+                if service:
+                    services_subtotal += service.price * service_data['quantity']
 
-        # Apply tax and discounts
-        tax_rate = float(request.form.get('tax_rate', 0.18))
-        discount_amount = float(request.form.get('discount_amount', 0))
-        tips_amount = float(request.form.get('tips_amount', 0))
+            # Calculate inventory subtotal
+            for item in inventory_data:
+                inventory_subtotal += item['unit_price'] * item['quantity']
 
-        net_subtotal = gross_subtotal - discount_amount
-        tax_amount = net_subtotal * (tax_rate / 100)
-        total_amount = net_subtotal + tax_amount + tips_amount
+            gross_subtotal = services_subtotal + inventory_subtotal
 
-        # Create enhanced invoice
-        invoice = EnhancedInvoice()
-        invoice.invoice_number = invoice_number
-        invoice.client_id = int(client_id)
-        invoice.invoice_date = datetime.datetime.utcnow()
-        invoice.services_subtotal = services_subtotal
-        invoice.inventory_subtotal = inventory_subtotal
-        invoice.gross_subtotal = gross_subtotal
-        invoice.net_subtotal = net_subtotal
-        invoice.tax_amount = tax_amount
-        invoice.discount_amount = discount_amount
-        invoice.tips_amount = tips_amount
-        invoice.total_amount = total_amount
-        invoice.balance_due = total_amount
-        invoice.notes = request.form.get('notes', '')
+            # Apply tax and discounts
+            tax_rate = float(request.form.get('tax_rate', 0.18))
+            discount_amount = float(request.form.get('discount_amount', 0))
+            tips_amount = float(request.form.get('tips_amount', 0))
 
-        db.session.add(invoice)
-        db.session.flush()  # Get invoice ID
+            net_subtotal = gross_subtotal - discount_amount
+            # Fix: tax_rate is already a decimal (e.g., 0.18 for 18%), no need to divide by 100
+            tax_amount = net_subtotal * tax_rate
+            total_amount = net_subtotal + tax_amount + tips_amount
 
-        stock_reduced_count = 0
+            # Generate atomic invoice number to prevent race conditions
+            with db.session.begin():
+                # Lock the table to prevent concurrent invoice number generation
+                latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).with_for_update().first()
+                
+                if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{datetime.datetime.now().strftime('%Y%m%d')}"):
+                    # Extract sequence number from existing invoice number
+                    try:
+                        last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
+                        invoice_sequence = last_sequence + 1
+                    except (ValueError, IndexError):
+                        invoice_sequence = 1
+                else:
+                    # First invoice of the day
+                    invoice_sequence = 1
+                
+                invoice_number = f"INV-{datetime.datetime.now().strftime('%Y%m%d')}-{invoice_sequence:04d}"
 
-        # Create invoice items for services
-        for service_data in services_data:
-            service = Service.query.get(service_data['service_id'])
-            if service:
-                item = InvoiceItem()
-                item.invoice_id = invoice.id
-                item.item_type = 'service'
-                item.item_id = service.id
-                item.appointment_id = service_data.get('appointment_id')
-                item.item_name = service.name
-                item.description = service.description
-                item.quantity = service_data['quantity']
-                item.unit_price = service.price
-                item.original_amount = service.price * service_data['quantity']
-                item.final_amount = service.price * service_data['quantity']
-                db.session.add(item)
+                # Create enhanced invoice
+                invoice = EnhancedInvoice()
+                invoice.invoice_number = invoice_number
+                invoice.client_id = int(client_id)
+                invoice.invoice_date = datetime.datetime.utcnow()
+                invoice.services_subtotal = services_subtotal
+                invoice.inventory_subtotal = inventory_subtotal
+                invoice.gross_subtotal = gross_subtotal
+                invoice.net_subtotal = net_subtotal
+                invoice.tax_amount = tax_amount
+                invoice.discount_amount = discount_amount
+                invoice.tips_amount = tips_amount
+                invoice.total_amount = total_amount
+                invoice.balance_due = total_amount
+                invoice.notes = request.form.get('notes', '')
 
-        # Create invoice items for inventory and reduce stock
-        for item_data in inventory_data:
-            batch = InventoryBatch.query.get(item_data['batch_id'])
-            product = InventoryProduct.query.get(item_data['product_id'])
+                db.session.add(invoice)
+                db.session.flush()  # Get invoice ID
 
-            if batch and product:
-                # Create invoice item
-                item = InvoiceItem()
-                item.invoice_id = invoice.id
-                item.item_type = 'inventory'
-                item.item_id = product.id
-                item.product_id = product.id
-                item.batch_id = batch.id
-                item.item_name = product.name
-                item.description = f"Batch: {batch.batch_name}"
-                item.batch_name = batch.batch_name
-                item.quantity = item_data['quantity']
-                item.unit_price = item_data['unit_price']
-                item.original_amount = item_data['unit_price'] * item_data['quantity']
-                item.final_amount = item_data['unit_price'] * item_data['quantity']
-                db.session.add(item)
+                # Create invoice items for services
+                service_items_created = 0
+                for service_data in services_data:
+                    service = Service.query.get(service_data['service_id'])
+                    if service:
+                        item = InvoiceItem()
+                        item.invoice_id = invoice.id
+                        item.item_type = 'service'
+                        item.item_id = service.id
+                        item.appointment_id = service_data.get('appointment_id')
+                        item.item_name = service.name
+                        item.description = service.description
+                        item.quantity = service_data['quantity']
+                        item.unit_price = service.price
+                        item.original_amount = service.price * service_data['quantity']
+                        item.final_amount = service.price * service_data['quantity']
+                        db.session.add(item)
+                        service_items_created += 1
 
-                # Reduce stock from batch via consumption record
-                try:
+                # Create invoice items for inventory and reduce stock atomically
+                inventory_items_created = 0
+                stock_reduced_count = 0
+                stock_operations = []  # Track all operations for potential rollback
+                
+                for item_data in inventory_data:
+                    batch = InventoryBatch.query.get(item_data['batch_id'])
+                    product = InventoryProduct.query.get(item_data['product_id'])
+
+                    if not batch or not product:
+                        raise Exception(f"Batch or product not found for item {item_data}")
+
+                    # Create invoice item
+                    item = InvoiceItem()
+                    item.invoice_id = invoice.id
+                    item.item_type = 'inventory'
+                    item.item_id = product.id
+                    item.product_id = product.id
+                    item.batch_id = batch.id
+                    item.item_name = product.name
+                    item.description = f"Batch: {batch.batch_name}"
+                    item.batch_name = batch.batch_name
+                    item.quantity = item_data['quantity']
+                    item.unit_price = item_data['unit_price']
+                    item.original_amount = item_data['unit_price'] * item_data['quantity']
+                    item.final_amount = item_data['unit_price'] * item_data['quantity']
+                    db.session.add(item)
+                    inventory_items_created += 1
+
+                    # Reduce stock from batch via consumption record
                     create_consumption_record(
                         batch_id=batch.id,
                         quantity=item_data['quantity'],
@@ -224,24 +282,36 @@ def create_integrated_invoice():
                         user_id=current_user.id
                     )
                     stock_reduced_count += 1
-                except Exception as e:
-                    db.session.rollback()
-                    return jsonify({
-                        'success': False, 
-                        'message': f'Error reducing stock for batch {batch.batch_name}: {str(e)}'
+                    stock_operations.append({
+                        'batch_id': batch.id, 
+                        'quantity': item_data['quantity'],
+                        'batch_name': batch.batch_name
                     })
 
-        db.session.commit()
+                # If we reach here, all operations succeeded
+                # Commit the entire transaction
+                db.session.commit()
 
-        return jsonify({
-            'success': True,
-            'message': f'Invoice {invoice_number} created successfully',
-            'invoice_id': invoice.id,
-            'invoice_number': invoice_number,
-            'total_amount': float(total_amount),
-            'stock_reduced': stock_reduced_count,
-            'deductions_applied': 0  # Future enhancement for package deductions
-        })
+                return jsonify({
+                    'success': True,
+                    'message': f'Invoice {invoice_number} created successfully',
+                    'invoice_id': invoice.id,
+                    'invoice_number': invoice_number,
+                    'total_amount': float(total_amount),
+                    'service_items_created': service_items_created,
+                    'inventory_items_created': inventory_items_created,
+                    'stock_reduced': stock_reduced_count,
+                    'deductions_applied': 0  # Future enhancement for package deductions
+                })
+
+        except Exception as e:
+            # CRITICAL: Ensure complete rollback on any failure
+            db.session.rollback()
+            app.logger.error(f"Invoice creation failed for user {current_user.id}: {str(e)}")
+            return jsonify({
+                'success': False, 
+                'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
+            })
 
     except Exception as e:
         db.session.rollback()

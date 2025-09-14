@@ -180,10 +180,55 @@ class User(UserMixin, db.Model):
         return self.role == role
 
     def can_access(self, resource):
-        """Check if user can access a specific resource"""
-        # For now, allow all authenticated users to access all resources
-        # This can be enhanced with proper role-based permissions later
-        return True
+        """Check if user can access a specific resource based on role permissions"""
+        if not self.is_active:
+            return False
+        
+        # Super admin has access to everything
+        if self.has_role('admin') or self.has_role('super_admin') or self.role == 'admin':
+            return True
+        
+        # Resource to permission mapping
+        resource_permissions = {
+            'dashboard': ['dashboard_view'],
+            'billing': ['billing_view', 'billing_create', 'billing_edit'],
+            'inventory': ['inventory_view', 'inventory_create', 'inventory_edit'],
+            'staff': ['staff_view', 'staff_create', 'staff_edit'],
+            'clients': ['clients_view', 'clients_create', 'clients_edit'],
+            'services': ['services_view', 'services_create', 'services_edit'],
+            'packages': ['packages_view', 'packages_create', 'packages_edit'],
+            'reports': ['reports_view'],
+            'appointments': ['appointments_view', 'appointments_create', 'appointments_edit'],
+            'expenses': ['expenses_view', 'expenses_create', 'expenses_edit'],
+            'settings': ['settings_view', 'settings_edit']
+        }
+        
+        # Get required permissions for resource
+        required_permissions = resource_permissions.get(resource, [])
+        if not required_permissions:
+            # If resource not defined, check basic role access
+            return self.role in ['manager', 'staff'] or (self.user_role and self.user_role.is_active)
+        
+        # Check dynamic role system first
+        if self.user_role and self.user_role.is_active:
+            user_permissions = []
+            for role_permission in self.user_role.permissions:
+                if role_permission.permission.is_active:
+                    user_permissions.append(role_permission.permission.name)
+            
+            # Check if user has any of the required permissions
+            return any(perm in user_permissions for perm in required_permissions)
+        
+        # Fallback to legacy role system
+        role_access_map = {
+            'admin': True,  # Admin can access everything
+            'manager': resource in ['dashboard', 'billing', 'inventory', 'staff', 'clients', 
+                                   'services', 'packages', 'reports', 'appointments', 'expenses'],
+            'staff': resource in ['dashboard', 'clients', 'appointments', 'services'],
+            'receptionist': resource in ['dashboard', 'clients', 'appointments', 'billing']
+        }
+        
+        return role_access_map.get(self.role, False)
 
     def __repr__(self):
         return f'<User {self.username}>'
