@@ -19,6 +19,15 @@
         
         // Initialize loading modal
         loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        
+        // Check if we're in view/edit mode and load existing data
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        const scheduleId = urlParams.get('id');
+        
+        if (action && scheduleId && (action === 'view' || action === 'edit')) {
+            loadExistingSchedule(action, scheduleId);
+        }
     });
 
     /**
@@ -545,6 +554,123 @@
             updateReviewSection();
         }
     });
+
+    /**
+     * Load existing schedule data for view/edit mode
+     */
+    function loadExistingSchedule(action, scheduleId) {
+        showLoadingModal('Loading schedule data...');
+        
+        $.ajax({
+            url: `/api/schedule/${scheduleId}/details`,
+            method: 'GET',
+            success: function(response) {
+                hideLoadingModal();
+                if (response.success) {
+                    const schedule = response.schedule;
+                    
+                    // Pre-fill basic information
+                    $('#staffSelect').val(schedule.staff_id);
+                    $('#scheduleName').val(schedule.schedule_name);
+                    $('#fromDate').val(schedule.start_date);
+                    $('#toDate').val(schedule.end_date);
+                    $('#priority').val(schedule.priority);
+                    $('#description').val(schedule.description);
+                    
+                    // If view mode, disable all inputs
+                    if (action === 'view') {
+                        $('#basicInfoForm input, #basicInfoForm select, #basicInfoForm textarea').prop('disabled', true);
+                        $('#generateDaysBtn').hide();
+                        
+                        // Change button text
+                        $('#generateDaysBtn').text('Schedule Details').show().prop('disabled', false);
+                    } else if (action === 'edit') {
+                        // Change button text for edit mode
+                        $('#generateDaysBtn').text('Load Schedule for Edit');
+                    }
+                    
+                    // Auto-generate days for view/edit
+                    generateDaysFromExisting(schedule);
+                    
+                } else {
+                    showAlert('Error loading schedule: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error loading schedule:', error);
+                showAlert('Error loading schedule data. Please try again.', 'danger');
+            }
+        });
+    }
+
+    /**
+     * Generate days table from existing schedule data
+     */
+    function generateDaysFromExisting(schedule) {
+        const fromDate = schedule.start_date;
+        const toDate = schedule.end_date;
+        
+        if (!fromDate || !toDate) {
+            showAlert('Invalid date range in schedule', 'warning');
+            return;
+        }
+
+        // Generate days array
+        const days = [];
+        let current = new Date(fromDate);
+        const end = new Date(toDate);
+
+        while (current <= end) {
+            const dayOfWeek = current.getDay(); // 0 = Sunday, 6 = Saturday
+            const dayName = current.toLocaleDateString('en-US', { weekday: 'long' });
+            
+            // Check if this day is a working day according to schedule
+            const dayMapping = {
+                0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+                4: 'thursday', 5: 'friday', 6: 'saturday'
+            };
+            const dayKey = dayMapping[dayOfWeek];
+            const isWorking = schedule[dayKey];
+
+            days.push({
+                date: formatDateForInput(current),
+                dayName: dayName,
+                dayOfWeek: dayOfWeek,
+                working: isWorking,
+                startTime: schedule.shift_start_time,
+                endTime: schedule.shift_end_time,
+                breakMinutes: parseInt(schedule.break_time.match(/\d+/)?.[0] || '60'),
+                notes: ''
+            });
+            current.setDate(current.getDate() + 1);
+        }
+
+        currentScheduleDays = days;
+        renderDaysConfigTable();
+        
+        // Show sections
+        $('#dayConfigSection').slideDown(500);
+        $('#reviewSection').slideDown(500);
+        updateReviewSection();
+
+        // Update day count
+        $('#dayCount').text(`${days.length} days`);
+        
+        // Check URL action and disable inputs if view mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        
+        if (action === 'view') {
+            // Disable all day configuration inputs
+            $('#daysConfigTable input, #daysConfigTable select').prop('disabled', true);
+            $('#applyToAllBtn, #markWeekendsOffBtn, #applyDefaultsBtn').hide();
+            $('#saveScheduleBtn').hide();
+            
+            // Change bulk config panel for view mode
+            $('#bulkConfigPanel').hide();
+        }
+    }
 
     console.log('Add Shift Scheduler JavaScript fully loaded');
 

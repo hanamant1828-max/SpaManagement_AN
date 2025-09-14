@@ -25,9 +25,41 @@ def add_shift_scheduler():
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
     
+    # Check if this is view/edit mode from URL parameters
+    action = request.args.get('action', 'add')  # add, edit, view
+    schedule_id = request.args.get('id', None)
+    schedule_data = None
+    
+    if action in ['edit', 'view'] and schedule_id:
+        # Load existing schedule data
+        schedule = StaffScheduleRange.query.get(schedule_id)
+        if schedule:
+            schedule_data = {
+                'id': schedule.id,
+                'staff_id': schedule.staff_id,
+                'staff_name': schedule.staff_member.full_name if schedule.staff_member else 'Unknown',
+                'schedule_name': schedule.schedule_name,
+                'description': schedule.description or '',
+                'start_date': schedule.start_date.strftime('%Y-%m-%d'),
+                'end_date': schedule.end_date.strftime('%Y-%m-%d'),
+                'monday': schedule.monday,
+                'tuesday': schedule.tuesday,
+                'wednesday': schedule.wednesday,
+                'thursday': schedule.thursday,
+                'friday': schedule.friday,
+                'saturday': schedule.saturday,
+                'sunday': schedule.sunday,
+                'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '09:00',
+                'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '17:00',
+                'break_time': schedule.break_time or '1 hour lunch',
+                'priority': schedule.priority or 1
+            }
+    
     return render_template('add_shift_scheduler.html', 
                          staff_members=staff_members,
-                         today=date.today().strftime('%Y-%m-%d'))
+                         today=date.today().strftime('%Y-%m-%d'),
+                         action=action,
+                         schedule_data=schedule_data)
 
 # Main shift scheduler interface
 @shift_scheduler_bp.route('/shift-scheduler')

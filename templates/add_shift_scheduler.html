@@ -17,16 +17,27 @@
                 <div class="row align-items-center">
                     <div class="col-lg-8">
                         <h1 class="mb-2">
-                            <i class="fas fa-calendar-plus me-3"></i>
-                            Add Shift Schedule
+                            {% if action == 'view' %}
+                                <i class="fas fa-eye me-3"></i>View Shift Schedule
+                            {% elif action == 'edit' %}
+                                <i class="fas fa-edit me-3"></i>Edit Shift Schedule
+                            {% else %}
+                                <i class="fas fa-calendar-plus me-3"></i>Add Shift Schedule
+                            {% endif %}
                         </h1>
                         <p class="mb-0">
-                            Create detailed shift schedules with day-by-day configuration
+                            {% if action == 'view' %}
+                                Read-only display of the schedule details
+                            {% elif action == 'edit' %}
+                                Modify existing shift schedule with day-by-day configuration
+                            {% else %}
+                                Create detailed shift schedules with day-by-day configuration
+                            {% endif %}
                         </p>
                     </div>
                     <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                         <a href="{{ url_for('shift_scheduler.shift_scheduler') }}" class="btn btn-outline-light btn-lg hover-lift">
-                            <i class="fas fa-arrow-left me-2"></i>Back to Schedule Management
+                            <i class="fas fa-arrow-left me-2"></i>Back to Shift Management
                         </a>
                     </div>
                 </div>
