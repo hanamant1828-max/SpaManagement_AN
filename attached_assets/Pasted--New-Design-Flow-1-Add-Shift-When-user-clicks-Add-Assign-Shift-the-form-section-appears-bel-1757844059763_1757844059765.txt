@@ -1,0 +1,216 @@
+🔹 New Design Flow
+1. Add Shift
+
+When user clicks “+ Add Assign Shift”, the form section appears below (not modal).
+
+The form is empty → staff select, date range, office days, times, breaks.
+
+On save → adds new schedule and updates the table.
+
+2. Edit Shift
+
+When user clicks Edit, the same form is shown, but:
+
+Pre-filled with the selected staff’s schedule details.
+
+“Save Changes” button instead of “Add Schedule”.
+
+On submit → updates the record and refreshes the table.
+
+3. View Shift
+
+When user clicks View, the same form appears, but:
+
+All fields are disabled (readonly).
+
+Action button hidden.
+
+This way, user can review details without editing.
+
+4. Delete Shift
+
+When user clicks Delete, confirmation dialog → removes schedule from table.
+
+🔹 Suggested Frontend Structure
+<!-- Shift Management Section -->
+<div id="shiftScheduler">
+
+  <!-- Add / Edit / View Form -->
+  <div id="shiftFormSection" style="display:none;">
+    <h3 id="formTitle">Add Shift</h3>
+    <form id="shiftForm">
+      <label>Staff Member</label>
+      <select id="staffSelect">
+        <option value="admin">Admin User</option>
+        <option value="staff1">Staff A</option>
+      </select>
+
+      <label>From Date</label>
+      <input type="date" id="fromDate" required />
+
+      <label>To Date</label>
+      <input type="date" id="toDate" required />
+
+      <label>Office Days</label>
+      <select id="officeDays">
+        <option value="Mon-Fri">Mon to Fri</option>
+        <option value="All">All Days</option>
+        <option value="Weekends">Weekends</option>
+      </select>
+
+      <label>Shift Start Time</label>
+      <input type="time" id="startTime" required />
+
+      <label>Shift End Time</label>
+      <input type="time" id="endTime" required />
+
+      <label>Break</label>
+      <input type="text" id="breakTime" placeholder="e.g. 1 hr lunch" />
+
+      <label>Description</label>
+      <textarea id="description"></textarea>
+
+      <button type="submit" id="saveBtn">Save</button>
+      <button type="button" onclick="cancelForm()">Cancel</button>
+    </form>
+  </div>
+
+  <!-- Schedule Management Table -->
+  <div id="scheduleTableSection">
+    <h3>Schedule Management</h3>
+    <button onclick="openForm('add')">+ Add Assign Shift</button>
+    <table id="scheduleTable">
+      <thead>
+        <tr>
+          <th>Staff</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Office Days</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="scheduleBody">
+        <!-- JS will populate rows -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+🔹 JavaScript Logic (Frontend Only)
+let schedules = []; // store schedules
+
+function openForm(mode, index = null) {
+  const form = document.getElementById("shiftFormSection");
+  const formTitle = document.getElementById("formTitle");
+  const saveBtn = document.getElementById("saveBtn");
+  form.style.display = "block";
+
+  if (mode === "add") {
+    formTitle.textContent = "Add Shift";
+    saveBtn.textContent = "Save";
+    saveBtn.onclick = () => saveSchedule();
+    document.getElementById("shiftForm").reset();
+  } 
+  else if (mode === "edit") {
+    formTitle.textContent = "Edit Shift";
+    saveBtn.textContent = "Update";
+    fillForm(schedules[index]);
+    saveBtn.onclick = () => updateSchedule(index);
+  } 
+  else if (mode === "view") {
+    formTitle.textContent = "View Shift";
+    fillForm(schedules[index], true);
+    saveBtn.style.display = "none"; // hide button
+  }
+}
+
+function fillForm(data, readonly=false) {
+  document.getElementById("staffSelect").value = data.staff;
+  document.getElementById("fromDate").value = data.from;
+  document.getElementById("toDate").value = data.to;
+  document.getElementById("officeDays").value = data.days;
+  document.getElementById("startTime").value = data.start;
+  document.getElementById("endTime").value = data.end;
+  document.getElementById("breakTime").value = data.break;
+  document.getElementById("description").value = data.desc;
+
+  // readonly mode
+  document.querySelectorAll("#shiftForm input, #shiftForm select, #shiftForm textarea")
+    .forEach(el => el.disabled = readonly);
+}
+
+function saveSchedule() {
+  let newSchedule = {
+    staff: document.getElementById("staffSelect").value,
+    from: document.getElementById("fromDate").value,
+    to: document.getElementById("toDate").value,
+    days: document.getElementById("officeDays").value,
+    start: document.getElementById("startTime").value,
+    end: document.getElementById("endTime").value,
+    break: document.getElementById("breakTime").value,
+    desc: document.getElementById("description").value
+  };
+  schedules.push(newSchedule);
+  renderTable();
+  cancelForm();
+}
+
+function updateSchedule(index) {
+  schedules[index] = {
+    staff: document.getElementById("staffSelect").value,
+    from: document.getElementById("fromDate").value,
+    to: document.getElementById("toDate").value,
+    days: document.getElementById("officeDays").value,
+    start: document.getElementById("startTime").value,
+    end: document.getElementById("endTime").value,
+    break: document.getElementById("breakTime").value,
+    desc: document.getElementById("description").value
+  };
+  renderTable();
+  cancelForm();
+}
+
+function renderTable() {
+  const body = document.getElementById("scheduleBody");
+  body.innerHTML = "";
+  schedules.forEach((s, i) => {
+    body.innerHTML += `
+      <tr>
+        <td>${s.staff}</td>
+        <td>${s.from}</td>
+        <td>${s.to}</td>
+        <td>${s.days}</td>
+        <td>
+          <button onclick="openForm('view', ${i})">View</button>
+          <button onclick="openForm('edit', ${i})">Edit</button>
+          <button onclick="deleteSchedule(${i})">Delete</button>
+        </td>
+      </tr>`;
+  });
+}
+
+function deleteSchedule(index) {
+  if (confirm("Are you sure to delete?")) {
+    schedules.splice(index, 1);
+    renderTable();
+  }
+}
+
+function cancelForm() {
+  document.getElementById("shiftFormSection").style.display = "none";
+  document.getElementById("saveBtn").style.display = "inline-block";
+  document.querySelectorAll("#shiftForm input, #shiftForm select, #shiftForm textarea")
+    .forEach(el => el.disabled = false);
+}
+
+🔹 Summary
+
+✅ One form-based system (no modal).
+
+✅ Same form used for Add, Edit, View.
+
+✅ View mode → disables fields.
+
+✅ Edit mode → pre-fills with existing values.
+
+✅ Delete → removes row after confirmation.
