@@ -523,23 +523,51 @@
         console.log('Viewing product:', productId);
 
         fetch(`/api/inventory/products/${productId}`)
-            .then(response => response.json())
+            .then(response => {
+                console.log('View API Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Received view product data:', data);
+                
                 if (data.error) {
                     alert('Error loading product details: ' + data.error);
                     return;
                 }
 
-                // Populate view modal with data
+                // Populate view modal with data using correct API field names
                 document.getElementById('viewProductSku').textContent = data.sku || '-';
                 document.getElementById('viewProductName').textContent = data.name || '-';
-                document.getElementById('viewProductCategory').textContent = data.category || 'No category';
-                document.getElementById('viewProductUnit').textContent = data.unit_of_measure || data.unit || 'pcs';
-                document.getElementById('viewProductStock').textContent = (calculateTotalStock(data) || 0) + ' ' + (data.unit_of_measure || data.unit || 'pcs');
-                document.getElementById('viewProductMinStock').textContent = (data.min_stock || data.minStock || 0) + ' ' + (data.unit_of_measure || data.unit || 'pcs');
-                document.getElementById('viewProductCost').textContent = '$' + (data.cost_price || data.costPrice || 0).toFixed(2);
-                document.getElementById('viewProductLocation').textContent = data.location || data.primaryLocation || 'No location specified';
-                document.getElementById('viewProductStatus').innerHTML = getStatusBadge(data.status || 'in_stock');
+                document.getElementById('viewProductCategory').textContent = data.category_name || 'No category';
+                document.getElementById('viewProductUnit').textContent = data.unit_of_measure || 'pcs';
+                
+                // Use total_stock from API response
+                document.getElementById('viewProductStock').textContent = (data.total_stock || 0) + ' ' + (data.unit_of_measure || 'pcs');
+                
+                // These fields may not be available in the API response, so handle gracefully
+                const minStockEl = document.getElementById('viewProductMinStock');
+                if (minStockEl) {
+                    minStockEl.textContent = '0 ' + (data.unit_of_measure || 'pcs'); // Default since not in API
+                }
+                
+                const costEl = document.getElementById('viewProductCost');
+                if (costEl) {
+                    costEl.textContent = '$0.00'; // Default since not in API
+                }
+                
+                document.getElementById('viewProductLocation').textContent = data.location_name || 'No location specified';
+                
+                // Determine status based on stock levels
+                let status = 'in_stock';
+                if (data.total_stock <= 0) {
+                    status = 'out_of_stock';
+                } else if (data.total_stock <= 5) { // Arbitrary low stock threshold
+                    status = 'low_stock';
+                }
+                document.getElementById('viewProductStatus').innerHTML = getStatusBadge(status);
                 document.getElementById('viewProductDescription').textContent = data.description || 'No description available';
 
                 // Show modal
@@ -548,7 +576,7 @@
             })
             .catch(error => {
                 console.error('Error loading product details:', error);
-                alert('Error loading product details. Please try again.');
+                alert(`Error loading product details: ${error.message}. Please try again.`);
             });
     }
 
