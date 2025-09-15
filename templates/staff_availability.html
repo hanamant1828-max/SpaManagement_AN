@@ -119,15 +119,15 @@
                                             <div class="fw-bold">{{ availability.client_name }}</div>
                                             <div>{{ availability.service_name }}</div>
                                         </div>
+                                        {% elif availability.status == 'unavailable' and 'Break time' in availability.reason %}
+                                        <div class="bg-warning text-dark p-2 rounded small" title="{{ availability.reason }}">
+                                            <i class="fas fa-coffee"></i>
+                                            <div class="small">Break Time</div>
+                                        </div>
                                         {% elif availability.status == 'unavailable' %}
                                         <div class="bg-secondary text-white p-2 rounded small" title="{{ availability.reason }}">
                                             <i class="fas fa-ban"></i>
                                             <div class="small">{{ availability.reason }}</div>
-                                        </div>
-                                        {% elif availability.status == 'break' %}
-                                        <div class="bg-warning text-dark p-2 rounded small" title="{{ availability.reason }}">
-                                            <i class="fas fa-coffee"></i>
-                                            <div class="small">Break Time</div>
                                         </div>
                                         {% else %}
                                         <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn" 
@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('selectedStaffId').value = this.dataset.staffId;
             document.getElementById('selectedDate').value = this.dataset.date;
             document.getElementById('selectedTime').value = this.dataset.time;
-            
+
             // Update modal title with staff and time info
             const modalTitle = document.querySelector('#quickBookModal .modal-title');
             modalTitle.textContent = `Quick Book - ${this.dataset.staffName} at ${this.dataset.time}`;
@@ -290,7 +290,7 @@ function submitQuickBook() {
 
 function showAppointmentDetails(appointmentId) {
     if (!appointmentId) return;
-    
+
     fetch(`/api/appointment/${appointmentId}`)
     .then(response => response.json())
     .then(data => {
@@ -298,7 +298,7 @@ function showAppointmentDetails(appointmentId) {
             alert('Error: ' + data.error);
             return;
         }
-        
+
         const appointment = data;
         const details = `
 Appointment Details:
@@ -310,7 +310,7 @@ Appointment Details:
 - Amount: $${appointment.amount}
 ${appointment.notes ? '- Notes: ' + appointment.notes : ''}
         `;
-        
+
         if (confirm(details + '\n\nWould you like to edit or cancel this appointment?')) {
             // Redirect to appointment management or show edit options
             window.location.href = `/appointments/edit/${appointmentId}`;

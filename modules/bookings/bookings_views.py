@@ -283,19 +283,30 @@ def calendar_booking():
         ).first()
 
         if schedule:
-            # Parse break time
+            # Parse break time with improved logic
             break_start_time = None
             break_end_time = None
             if schedule.break_time:
                 import re
-                time_pattern = r'(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})'
-                match = re.search(time_pattern, schedule.break_time)
-                if match:
-                    try:
-                        break_start_time = datetime.strptime(match.group(1), '%H:%M').time()
-                        break_end_time = datetime.strptime(match.group(2), '%H:%M').time()
-                    except ValueError:
-                        pass
+                print(f"Parsing break time for staff {staff.id}: {schedule.break_time}")
+                
+                # Try multiple patterns for break time
+                patterns = [
+                    r'(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})',  # HH:MM - HH:MM
+                    r'\((\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\)',  # (HH:MM - HH:MM)
+                ]
+                
+                for pattern in patterns:
+                    match = re.search(pattern, schedule.break_time)
+                    if match:
+                        try:
+                            break_start_time = datetime.strptime(match.group(1), '%H:%M').time()
+                            break_end_time = datetime.strptime(match.group(2), '%H:%M').time()
+                            print(f"Successfully parsed break time: {break_start_time} - {break_end_time}")
+                            break
+                        except ValueError as e:
+                            print(f"Error parsing break time: {e}")
+                            continue
             
             staff_schedules[staff.id] = {
                 'break_start': break_start_time,
@@ -313,12 +324,16 @@ def calendar_booking():
                 break_start = schedule.get('break_start')
                 break_end = schedule.get('break_end')
                 
-                if break_start and break_end and break_start <= slot_time < break_end:
-                    staff_availability[slot_key] = {
-                        'status': 'break',
-                        'reason': f'Break time ({break_start.strftime("%H:%M")} - {break_end.strftime("%H:%M")})'
-                    }
-                    continue
+                if break_start and break_end:
+                    # Check if the current slot time falls within break time
+                    print(f"Checking slot {slot_time} against break {break_start} - {break_end}")
+                    if break_start <= slot_time < break_end:
+                        print(f"Slot {slot_time} is during break time for staff {staff.id}")
+                        staff_availability[slot_key] = {
+                            'status': 'unavailable',
+                            'reason': f'Break time ({break_start.strftime("%H:%M")} - {break_end.strftime("%H:%M")})'
+                        }
+                        continue
 
             # Check if this time slot is booked
             booked_appointment = None
