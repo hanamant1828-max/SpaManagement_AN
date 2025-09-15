@@ -1,0 +1,726 @@
+
+{% extends "base.html" %}
+
+{% block title %}Professional Package Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header Section -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">🎯 Professional Package Management</h1>
+                    <p class="text-muted">Unified system for all package types: Regular, Prepaid, Memberships & More</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createPackageModal">
+                        <i class="fas fa-plus"></i> Create Package
+                    </button>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-magic"></i> Quick Templates
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="createQuickTemplates('prepaid_credit')">💳 Prepaid Credit Templates</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="createQuickTemplates('prepaid_service')">🎁 Prepaid Service Templates</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="createQuickTemplates('membership')">👑 Membership Templates</a></li>
+                        </ul>
+                    </div>
+                    <a href="{{ url_for('export_packages') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download"></i> Export
+                    </a>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-2">
+                    <div class="card text-center bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.total_packages }}</h5>
+                            <p class="card-text small">Total Packages</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card text-center bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.prepaid_credit_packages }}</h5>
+                            <p class="card-text small">Prepaid Credit</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card text-center bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.prepaid_service_packages }}</h5>
+                            <p class="card-text small">Prepaid Service</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card text-center bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.membership_packages }}</h5>
+                            <p class="card-text small">Memberships</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card text-center bg-secondary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.regular_packages }}</h5>
+                            <p class="card-text small">Regular</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card text-center bg-dark text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.client_assignments }}</h5>
+                            <p class="card-text small">Active Assignments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Package Filter Tabs -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <ul class="nav nav-pills" id="packageTypeFilter" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" onclick="filterPackages('all')">All Packages</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" onclick="filterPackages('regular')">Regular</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" onclick="filterPackages('prepaid_credit')">💳 Prepaid Credit</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" onclick="filterPackages('prepaid_service')">🎁 Prepaid Service</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" onclick="filterPackages('membership')">👑 Membership</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" onclick="filterPackages('student_offer')">🎓 Student Offers</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" onclick="filterPackages('kitty_party')">🎉 Kitty Party</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Packages Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📦 Professional Package Management</h5>
+                </div>
+                <div class="card-body">
+                    {% if packages %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Package Details</th>
+                                        <th>Type</th>
+                                        <th>Pricing</th>
+                                        <th>Validity</th>
+                                        <th>Services/Benefits</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for package in packages %}
+                                    <tr data-package-type="{{ package.package_type }}">
+                                        <td>
+                                            <div>
+                                                <strong>{{ package.name }}</strong>
+                                                {% if package.description %}
+                                                    <br><small class="text-muted">{{ package.description[:60] }}...</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if package.package_type == 'prepaid_credit' %}
+                                                <span class="badge bg-success">💳 Prepaid Credit</span>
+                                            {% elif package.package_type == 'prepaid_service' %}
+                                                <span class="badge bg-info">🎁 Prepaid Service</span>
+                                            {% elif package.package_type == 'membership' %}
+                                                <span class="badge bg-warning">👑 Membership</span>
+                                            {% elif package.package_type == 'student_offer' %}
+                                                <span class="badge bg-primary">🎓 Student Offer</span>
+                                            {% elif package.package_type == 'kitty_party' %}
+                                                <span class="badge bg-danger">🎉 Kitty Party</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">📋 Regular</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if package.package_type == 'prepaid_credit' %}
+                                                <strong>Pay: ₹{{ "{:,.0f}".format(package.prepaid_amount) }}</strong><br>
+                                                <span class="text-success">Get: ₹{{ "{:,.0f}".format(package.credit_amount) }}</span><br>
+                                                <small class="text-warning">{{ package.bonus_percentage }}% Bonus</small>
+                                            {% elif package.package_type == 'prepaid_service' %}
+                                                <strong>Pay: {{ package.paid_sessions }} sessions</strong><br>
+                                                <span class="text-success">Get: {{ package.total_sessions }} total</span><br>
+                                                <small class="text-warning">{{ package.bonus_percentage }}% Benefit</small>
+                                            {% else %}
+                                                <strong>₹{{ "{:,.2f}".format(package.total_price) }}</strong>
+                                                {% if package.discount_percentage %}
+                                                    <br><small class="text-success">{{ package.discount_percentage }}% off</small>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">{{ package.validity_days }} days</span>
+                                            {% if package.start_date and package.end_date %}
+                                                <br><small>{{ package.start_date }} to {{ package.end_date }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if package.package_type == 'prepaid_credit' %}
+                                                <small class="text-muted">Credit-based services</small>
+                                            {% elif package.services %}
+                                                <small>
+                                                    {% for ps in package.services[:2] %}
+                                                        {{ ps.service.name }}
+                                                        {% if ps.is_unlimited %}
+                                                            (Unlimited)
+                                                        {% else %}
+                                                            ({{ ps.sessions_included }})
+                                                        {% endif %}<br>
+                                                    {% endfor %}
+                                                    {% if package.services|length > 2 %}
+                                                        <span class="text-muted">+{{ package.services|length - 2 }} more</span>
+                                                    {% endif %}
+                                                </small>
+                                            {% else %}
+                                                <small class="text-muted">No services configured</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if package.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editPackage({{ package.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" onclick="assignPackage({{ package.id }}, '{{ package.name }}', '{{ package.package_type }}')">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning" onclick="togglePackage({{ package.id }})">
+                                                    <i class="fas fa-toggle-{% if package.is_active %}on{% else %}off{% endif %}"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="deletePackage({{ package.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-gift fa-3x text-muted mb-3"></i>
+                            <h5>No packages found</h5>
+                            <p class="text-muted">Create your first package to get started.</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPackageModal">
+                                <i class="fas fa-plus"></i> Create First Package
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Client Package Usage -->
+            {% if client_packages %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">📊 Recent Package Assignments</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Package</th>
+                                    <th>Type</th>
+                                    <th>Usage</th>
+                                    <th>Expiry</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cp in client_packages %}
+                                <tr>
+                                    <td>{{ cp.customer.full_name }}</td>
+                                    <td>{{ cp.package.name }}</td>
+                                    <td>
+                                        {% if cp.package.package_type == 'prepaid_credit' %}
+                                            <span class="badge bg-success">Credit</span>
+                                        {% elif cp.package.package_type == 'prepaid_service' %}
+                                            <span class="badge bg-info">Service</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ cp.package.package_type.title() }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if cp.package.package_type == 'prepaid_credit' %}
+                                            Credit-based
+                                        {% else %}
+                                            {{ cp.sessions_used }}/{{ cp.total_sessions }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ cp.expiry_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if cp.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Expired</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Create Package Modal -->
+<div class="modal fade" id="createPackageModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Professional Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_package') }}">
+                <div class="modal-body">
+                    <!-- Package Type Selection -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label class="form-label">Package Type</label>
+                            <select name="package_type" id="package_type" class="form-select" required onchange="togglePackageFields()">
+                                <option value="">Select Package Type</option>
+                                <option value="regular">📋 Regular Package</option>
+                                <option value="prepaid_credit">💳 Prepaid Credit Package</option>
+                                <option value="prepaid_service">🎁 Prepaid Service Package</option>
+                                <option value="membership">👑 Membership Package</option>
+                                <option value="student_offer">🎓 Student Offer</option>
+                                <option value="kitty_party">🎉 Kitty Party Package</option>
+                                <option value="yearly_membership">📅 Yearly Membership</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Basic Information -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Package Name</label>
+                            <input type="text" name="name" class="form-control" required placeholder="e.g., Premium Spa Package">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Validity (Days)</label>
+                            <input type="number" name="validity_days" class="form-control" required value="90" min="1" max="365">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Package description for clients"></textarea>
+                    </div>
+
+                    <!-- Prepaid Credit Fields -->
+                    <div id="prepaid_credit_fields" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">💳 Prepaid Credit Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Amount Customer Pays (₹)</label>
+                                        <input type="number" name="prepaid_amount" class="form-control" step="0.01" onchange="calculateCredit()">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Bonus Percentage (%)</label>
+                                        <input type="number" name="bonus_percentage" class="form-control" step="0.01" onchange="calculateCredit()">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Credit Amount (₹)</label>
+                                        <input type="number" name="credit_amount" class="form-control" step="0.01" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prepaid Service Fields -->
+                    <div id="prepaid_service_fields" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">🎁 Prepaid Service Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Paid Sessions</label>
+                                        <input type="number" name="paid_sessions" class="form-control" min="1" onchange="calculateServiceTotal()">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Free Sessions</label>
+                                        <input type="number" name="free_sessions" class="form-control" min="0" onchange="calculateServiceTotal()">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Total Sessions</label>
+                                        <input type="number" name="total_sessions_display" class="form-control" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Membership Fields -->
+                    <div id="membership_fields" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">👑 Membership Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Minimum Guests</label>
+                                        <input type="number" name="min_guests" class="form-control" min="1" value="1">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Student Discount (%)</label>
+                                        <input type="number" name="student_discount" class="form-control" step="0.01" min="0" max="100">
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label">Membership Benefits</label>
+                                    <textarea name="membership_benefits" class="form-control" rows="3" placeholder="List membership benefits..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Regular Package Pricing -->
+                    <div id="regular_pricing" class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Package Price (₹)</label>
+                            <input type="number" name="total_price" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Discount (%)</label>
+                            <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <!-- Service Selection -->
+                    <div id="service_selection" class="mb-3">
+                        <label class="form-label">Services Included</label>
+                        <div class="card">
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                {% for service in services %}
+                                <div class="service-item mb-2 p-2 border rounded">
+                                    <div class="form-check">
+                                        <input class="form-check-input service-checkbox" type="checkbox" 
+                                               value="{{ service.id }}" id="service_{{ service.id }}">
+                                        <label class="form-check-label" for="service_{{ service.id }}">
+                                            <strong>{{ service.name }}</strong> - ₹{{ service.price }}
+                                            <small class="text-muted d-block">{{ service.duration }} minutes</small>
+                                        </label>
+                                    </div>
+                                    <div class="service-options mt-2" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-4">
+                                                <label class="form-label">Sessions</label>
+                                                <input type="number" class="form-control sessions-input" min="1" value="1">
+                                            </div>
+                                            <div class="col-4">
+                                                <label class="form-label">Discount (%)</label>
+                                                <input type="number" class="form-control discount-input" min="0" max="100" value="0">
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="form-check mt-4">
+                                                    <input class="form-check-input unlimited-checkbox" type="checkbox">
+                                                    <label class="form-check-label">Unlimited</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="has_unlimited_sessions" id="unlimited_sessions">
+                                <label class="form-check-label" for="unlimited_sessions">
+                                    Unlimited Sessions Package
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" checked id="is_active">
+                                <label class="form-check-label" for="is_active">
+                                    Package is active
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Date Range (Optional) -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Start Date (Optional)</label>
+                            <input type="date" name="start_date" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">End Date (Optional)</label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Package</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Package Modal -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Package to Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPackageForm">
+                    <input type="hidden" id="assign_package_id">
+                    <div class="mb-3">
+                        <label class="form-label">Select Customer</label>
+                        <select name="customer_id" class="form-select" required>
+                            <option value="">Choose customer...</option>
+                            {% for customer in clients %}
+                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Custom Amount (Optional)</label>
+                        <input type="number" name="custom_amount" class="form-control" step="0.01">
+                        <small class="text-muted">Leave empty to use standard package amount</small>
+                    </div>
+                    <div id="package_info"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAssignment()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Package type field toggling
+function togglePackageFields() {
+    const packageType = document.getElementById('package_type').value;
+    
+    // Hide all type-specific fields
+    document.getElementById('prepaid_credit_fields').style.display = 'none';
+    document.getElementById('prepaid_service_fields').style.display = 'none';
+    document.getElementById('membership_fields').style.display = 'none';
+    
+    // Show relevant fields based on package type
+    if (packageType === 'prepaid_credit') {
+        document.getElementById('prepaid_credit_fields').style.display = 'block';
+        document.getElementById('regular_pricing').style.display = 'none';
+        document.getElementById('service_selection').style.display = 'none';
+    } else if (packageType === 'prepaid_service') {
+        document.getElementById('prepaid_service_fields').style.display = 'block';
+        document.getElementById('service_selection').style.display = 'block';
+    } else if (packageType === 'membership') {
+        document.getElementById('membership_fields').style.display = 'block';
+        document.getElementById('service_selection').style.display = 'block';
+    } else {
+        document.getElementById('service_selection').style.display = 'block';
+    }
+}
+
+// Calculate credit for prepaid packages
+function calculateCredit() {
+    const prepaidAmount = parseFloat(document.querySelector('input[name="prepaid_amount"]').value) || 0;
+    const bonusPercentage = parseFloat(document.querySelector('input[name="bonus_percentage"]').value) || 0;
+    
+    const bonusAmount = (prepaidAmount * bonusPercentage) / 100;
+    const creditAmount = prepaidAmount + bonusAmount;
+    
+    document.querySelector('input[name="credit_amount"]').value = creditAmount.toFixed(2);
+}
+
+// Calculate total sessions for service packages
+function calculateServiceTotal() {
+    const paidSessions = parseInt(document.querySelector('input[name="paid_sessions"]').value) || 0;
+    const freeSessions = parseInt(document.querySelector('input[name="free_sessions"]').value) || 0;
+    
+    const totalSessions = paidSessions + freeSessions;
+    document.querySelector('input[name="total_sessions_display"]').value = totalSessions;
+}
+
+// Service selection functionality
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.service-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const serviceOptions = this.closest('.service-item').querySelector('.service-options');
+            if (this.checked) {
+                serviceOptions.style.display = 'block';
+            } else {
+                serviceOptions.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Package filtering
+function filterPackages(type) {
+    const rows = document.querySelectorAll('[data-package-type]');
+    const buttons = document.querySelectorAll('#packageTypeFilter .nav-link');
+    
+    // Update active button
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter rows
+    rows.forEach(row => {
+        if (type === 'all' || row.dataset.packageType === type) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Quick template creation
+function createQuickTemplates(type) {
+    if (confirm(`Create all standard ${type.replace('_', ' ')} packages?`)) {
+        const formData = new FormData();
+        formData.append('template_type', type);
+        
+        fetch('/packages/create-quick-templates', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+
+// Package assignment
+function assignPackage(packageId, packageName, packageType) {
+    document.getElementById('assign_package_id').value = packageId;
+    document.querySelector('#assignPackageModal .modal-title').textContent = `Assign ${packageName}`;
+    
+    // Show package type specific info
+    let infoHtml = `<div class="alert alert-info">Package Type: <strong>${packageType.replace('_', ' ').toUpperCase()}</strong></div>`;
+    document.getElementById('package_info').innerHTML = infoHtml;
+    
+    new bootstrap.Modal(document.getElementById('assignPackageModal')).show();
+}
+
+function submitAssignment() {
+    const form = document.getElementById('assignPackageForm');
+    const formData = new FormData(form);
+    const packageId = document.getElementById('assign_package_id').value;
+    
+    fetch(`/packages/${packageId}/assign`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+
+// Package management functions
+function editPackage(packageId) {
+    // Implement edit functionality
+    alert('Edit functionality will be implemented in the next update');
+}
+
+function togglePackage(packageId) {
+    fetch(`/packages/${packageId}/toggle`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+
+function deletePackage(packageId) {
+    if (confirm('Are you sure you want to delete this package?')) {
+        fetch(`/packages/${packageId}/delete`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
