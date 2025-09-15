@@ -139,7 +139,8 @@ cython_debug/
 .pythonlibs/
 uv.lock
 
-# Keep SQLite databases in the project for sharing
+# Allow SQLite databases to be pushed to GitHub for data sharing
+# Uncomment the lines below if you want to keep databases local:
 # *.db
 # *.sqlite
 # *.sqlite3
