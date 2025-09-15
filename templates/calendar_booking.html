@@ -118,6 +118,28 @@
                                         <div class="d-flex flex-column align-items-center">
                                             <div class="fw-bold">{{ staff_member.first_name }} {{ staff_member.last_name }}</div>
                                             <small class="text-muted">{{ staff_member.role }}</small>
+                                            {% set schedule = staff_schedules.get(staff_member.id) %}
+                                            {% if schedule and schedule.has_shift %}
+                                                {% if schedule.is_absent %}
+                                                <div class="badge bg-dark mt-1">
+                                                    <i class="fas fa-user-times me-1"></i>Absent Today
+                                                </div>
+                                                {% else %}
+                                                <div class="badge bg-info mt-1">
+                                                    {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} – 
+                                                    {{ schedule.shift_end.strftime('%I:%M %p') if schedule.shift_end else 'N/A' }}
+                                                </div>
+                                                {% if schedule.break_start and schedule.break_end %}
+                                                <div class="badge bg-warning text-dark mt-1">
+                                                    Break: {{ schedule.break_start.strftime('%I:%M %p') }} – {{ schedule.break_end.strftime('%I:%M %p') }}
+                                                </div>
+                                                {% endif %}
+                                                {% endif %}
+                                            {% else %}
+                                            <div class="badge bg-secondary mt-1">
+                                                <i class="fas fa-ban me-1"></i>Not Scheduled
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </th>
                                     {% endfor %}
@@ -131,82 +153,69 @@
                                     </td>
                                     {% for staff_member in staff_members %}
                                     {% set slot_key = (staff_member.id, time_slot.start_time) %}
-                                    {# Fetch staff schedule and determine availability status #}
-                                    {% set staff_schedule_info = staff_schedules.get(staff_member.id, {}) %}
-                                    {% set availability = {} %}
-
-                                    {% if staff_schedule_info.get('is_absent') %}
-                                        {% set availability = {'status': 'absent', 'reason': 'Absent'} %}
-                                    {% elif staff_schedule_info.get('has_shift') %}
-                                        {% set shift_start = staff_schedule_info.get('shift_start') %}
-                                        {% set shift_end = staff_schedule_info.get('shift_end') %}
-                                        {% set break_start = staff_schedule_info.get('break_start') %}
-                                        {% set break_end = staff_schedule_info.get('break_end') %}
-                                        {% set current_time = time_slot.start_time %}
-
-                                        {% if shift_start and shift_end and current_time >= shift_start and current_time < shift_end %}
-                                            {% if break_start and break_end and current_time >= break_start and current_time < break_end %}
-                                                {% set availability = {'status': 'break', 'reason': 'Break'} %}
-                                            {% else %}
-                                                {% set availability = {'status': 'available', 'reason': 'Available'} %}
-                                            {% endif %}
-                                        {% else %}
-                                            {% set availability = {'status': 'off_duty', 'reason': 'Off Duty'} %}
-                                        {% endif %}
-                                    {% else %}
-                                        {% set availability = {'status': 'not_available', 'reason': 'Not Available'} %}
-                                    {% endif %}
-
-                                    {# Check for existing appointments to mark as booked #}
-                                    {% for appt_staff_id, appt_time, appt_status, appt_client_name, appt_service_name, appt_id in existing_appointments %}
-                                        {% if staff_member.id == appt_staff_id and time_slot.start_time == appt_time %}
-                                            {% set availability = {'status': 'booked', 'appointment': {'id': appt_id}, 'client_name': appt_client_name, 'service_name': appt_service_name} %}
-                                            {% break %}
-                                        {% endif %}
-                                    {% endfor %}
+                                    {% set availability = staff_availability.get(slot_key, {'status': 'unknown'}) %}
 
                                     <td class="text-center p-1">
                                         {% if availability.status == 'booked' %}
-                                        <div class="bg-danger text-white p-2 rounded small appointment-slot"
+                                        <div class="{{ availability.css_class }} p-2 rounded small appointment-slot"
                                              data-appointment-id="{{ availability.appointment.id if availability.appointment else '' }}"
-                                             style="cursor: pointer;"
+                                             style="cursor: pointer; min-height: 60px; display: flex; flex-direction: column; justify-content: center;"
                                              onclick="showAppointmentDetails({{ availability.appointment.id if availability.appointment else 'null' }})">
                                             <div class="fw-bold">{{ availability.client_name }}</div>
                                             <div>{{ availability.service_name }}</div>
                                         </div>
                                         {% elif availability.status == 'break' %}
-                                        <div class="bg-warning text-dark p-2 rounded small" title="{{ availability.reason }}">
-                                            <i class="fas fa-coffee"></i>
-                                            <div class="small">Break</div>
+                                        <div class="{{ availability.css_class }} p-2 rounded small" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-coffee"></i></div>
+                                            <div class="small fw-bold">Break Time</div>
+                                            {% if availability.break_times %}
+                                            <div class="small">{{ availability.break_times }}</div>
+                                            {% endif %}
                                         </div>
                                         {% elif availability.status == 'absent' %}
-                                        <div class="bg-dark text-white p-2 rounded small" title="{{ availability.reason }}">
-                                            <i class="fas fa-user-times"></i>
-                                            <div class="small">Absent</div>
+                                        <div class="{{ availability.css_class }} p-2 rounded small" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-user-times"></i></div>
+                                            <div class="small fw-bold">Absent</div>
                                         </div>
                                         {% elif availability.status == 'not_available' %}
-                                        <div class="bg-secondary text-white p-2 rounded small" title="{{ availability.reason }}">
-                                            <i class="fas fa-ban"></i>
-                                            <div class="small">Not Available</div>
+                                        <div class="{{ availability.css_class }} p-2 rounded small" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-ban"></i></div>
+                                            <div class="small fw-bold">Not Available</div>
+                                            <div class="small">No Shift</div>
                                         </div>
                                         {% elif availability.status == 'off_duty' %}
-                                        <div class="bg-secondary text-white p-2 rounded small" title="{{ availability.reason }}">
-                                            <i class="fas fa-clock"></i>
-                                            <div class="small">Off Duty</div>
+                                        <div class="{{ availability.css_class }} p-2 rounded small border" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-clock"></i></div>
+                                            <div class="small fw-bold">Off Duty</div>
+                                            {% if availability.shift_times %}
+                                            <div class="small">Shift: {{ availability.shift_times }}</div>
+                                            {% endif %}
                                         </div>
                                         {% elif availability.status == 'available' %}
                                         <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn"
                                                 data-staff-id="{{ staff_member.id }}"
                                                 data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
                                                 data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
-                                                data-time="{{ time_slot['start_time'].strftime('%H:%M') }}"
-                                                data-display-time="{{ time_slot['start_time'].strftime('%I:%M %p') }}"
-                                                data-bs-toggle="modal" data-bs-target="#quickBookModal">
-                                            <i class="fas fa-plus"></i> Book
+                                                data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
+                                                data-display-time="{{ time_slot.start_time.strftime('%I:%M %p') }}"
+                                                data-bs-toggle="modal" data-bs-target="#quickBookModal"
+                                                title="Available during shift: {{ availability.shift_times if availability.shift_times else 'Full day' }}"
+                                                style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-plus"></i></div>
+                                            <div class="small">Book</div>
                                         </button>
                                         {% else %}
-                                        <div class="bg-light text-muted p-2 rounded small">
-                                            <i class="fas fa-question"></i>
+                                        <div class="bg-light text-muted p-2 rounded small border" 
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-question"></i></div>
                                             <div class="small">Unknown</div>
                                         </div>
                                         {% endif %}
