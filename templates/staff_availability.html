@@ -98,13 +98,28 @@
                                         <div>{{ staff_member.first_name }} {{ staff_member.last_name }}</div>
                                         <small class="text-muted">{{ staff_member.role }}</small>
                                         {% set schedule = staff_schedules.get(staff_member.id) %}
-                                        {% if schedule %}
-                                        <div class="badge bg-info mt-1">
-                                            {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} -
-                                            {{ schedule.shift_end.strftime('%I:%M %p') if schedule.shift_end else 'N/A' }}
-                                        </div>
+                                        {% if schedule and schedule.has_shift %}
+                                            {% if schedule.is_absent %}
+                                            <div class="badge bg-dark mt-1">
+                                                <i class="fas fa-user-times me-1"></i>Absent Today
+                                            </div>
+                                            {% else %}
+                                            <div class="badge bg-info mt-1">
+                                                <i class="fas fa-clock me-1"></i>
+                                                {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} -
+                                                {{ schedule.shift_end.strftime('%I:%M %p') if schedule.shift_end else 'N/A' }}
+                                            </div>
+                                            {% if schedule.break_start and schedule.break_end %}
+                                            <div class="badge bg-warning text-dark mt-1">
+                                                <i class="fas fa-coffee me-1"></i>
+                                                Break: {{ schedule.break_start.strftime('%I:%M %p') }} - {{ schedule.break_end.strftime('%I:%M %p') }}
+                                            </div>
+                                            {% endif %}
+                                            {% endif %}
                                         {% else %}
-                                        <div class="badge bg-secondary mt-1">Not Scheduled</div>
+                                        <div class="badge bg-secondary mt-1">
+                                            <i class="fas fa-ban me-1"></i>Not Scheduled
+                                        </div>
                                         {% endif %}
                                     </td>
                                     {% for time_slot in time_slots %}
@@ -119,26 +134,48 @@
                                             <div class="fw-bold">{{ availability.client_name }}</div>
                                             <div>{{ availability.service_name }}</div>
                                         </div>
-                                        {% elif availability.status == 'unavailable' and 'Break time' in availability.reason %}
+                                        {% elif availability.status == 'break' %}
                                         <div class="bg-warning text-dark p-2 rounded small" title="{{ availability.reason }}">
                                             <i class="fas fa-coffee"></i>
-                                            <div class="small">Break Time</div>
+                                            <div class="small">Break</div>
+                                            {% if availability.break_times %}
+                                            <div class="small">{{ availability.break_times }}</div>
+                                            {% endif %}
                                         </div>
-                                        {% elif availability.status == 'unavailable' %}
+                                        {% elif availability.status == 'absent' %}
+                                        <div class="bg-dark text-white p-2 rounded small" title="{{ availability.reason }}">
+                                            <i class="fas fa-user-times"></i>
+                                            <div class="small">Absent</div>
+                                        </div>
+                                        {% elif availability.status == 'not_available' %}
                                         <div class="bg-secondary text-white p-2 rounded small" title="{{ availability.reason }}">
                                             <i class="fas fa-ban"></i>
-                                            <div class="small">{{ availability.reason }}</div>
+                                            <div class="small">Not Available</div>
                                         </div>
-                                        {% else %}
+                                        {% elif availability.status == 'off_duty' %}
+                                        <div class="bg-secondary text-white p-2 rounded small" title="{{ availability.reason }}">
+                                            <i class="fas fa-clock"></i>
+                                            <div class="small">Off Duty</div>
+                                            {% if availability.shift_times %}
+                                            <div class="small">{{ availability.shift_times }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% elif availability.status == 'available' %}
                                         <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn"
                                                 data-staff-id="{{ staff_member.id }}"
                                                 data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
                                                 data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
                                                 data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
                                                 data-display-time="{{ time_slot.start_time.strftime('%I:%M %p') }}"
-                                                data-bs-toggle="modal" data-bs-target="#quickBookModal">
+                                                data-bs-toggle="modal" data-bs-target="#quickBookModal"
+                                                title="Available: {{ availability.shift_times if availability.shift_times else 'Full day' }}">
                                             <i class="fas fa-plus"></i> Book
                                         </button>
+                                        {% else %}
+                                        <div class="bg-light text-muted p-2 rounded small">
+                                            <i class="fas fa-question"></i>
+                                            <div class="small">Unknown</div>
+                                        </div>
                                         {% endif %}
                                     </td>
                                     {% endfor %}
