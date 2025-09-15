@@ -72,23 +72,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Spa Management System"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Flask App"
-
-[[workflows.workflow]]
-name = "Spa Management System"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Flask App"
