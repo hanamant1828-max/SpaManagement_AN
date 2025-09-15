@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 
 [workflows]
-runButton = "Project"
+runButton = "Run Spa Management System"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -129,13 +129,18 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[[workflows.workflow]]
+name = "Run Spa Management System"
+author = 47434506
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 40003
-externalPort = 3001
 
 [[ports]]
 localPort = 46583
