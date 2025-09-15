@@ -261,9 +261,64 @@ def calendar_booking():
     staff_availability = {}
     existing_appointments = get_appointments_by_date(selected_date)
 
+    # Get staff schedules for break time checking
+    day_of_week = selected_date.weekday()
+    day_mapping = {
+        0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
+        4: 'friday', 5: 'saturday', 6: 'sunday'
+    }
+    selected_day_field = day_mapping[day_of_week]
+
+    # Import StaffScheduleRange model
+    from models import StaffScheduleRange
+
+    staff_schedules = {}
+    for staff in staff_members:
+        schedule = StaffScheduleRange.query.filter(
+            StaffScheduleRange.staff_id == staff.id,
+            StaffScheduleRange.is_active == True,
+            StaffScheduleRange.start_date <= selected_date,
+            StaffScheduleRange.end_date >= selected_date,
+            getattr(StaffScheduleRange, selected_day_field) == True
+        ).first()
+
+        if schedule:
+            # Parse break time
+            break_start_time = None
+            break_end_time = None
+            if schedule.break_time:
+                import re
+                time_pattern = r'(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})'
+                match = re.search(time_pattern, schedule.break_time)
+                if match:
+                    try:
+                        break_start_time = datetime.strptime(match.group(1), '%H:%M').time()
+                        break_end_time = datetime.strptime(match.group(2), '%H:%M').time()
+                    except ValueError:
+                        pass
+            
+            staff_schedules[staff.id] = {
+                'break_start': break_start_time,
+                'break_end': break_end_time
+            }
+
     for staff in staff_members:
         for time_slot in time_slots:
             slot_key = (staff.id, time_slot['start_time'])
+            slot_time = time_slot['start_time'].time()
+
+            # Check if this time slot is during break time
+            if staff.id in staff_schedules:
+                schedule = staff_schedules[staff.id]
+                break_start = schedule.get('break_start')
+                break_end = schedule.get('break_end')
+                
+                if break_start and break_end and break_start <= slot_time < break_end:
+                    staff_availability[slot_key] = {
+                        'status': 'break',
+                        'reason': f'Break time ({break_start.strftime("%H:%M")} - {break_end.strftime("%H:%M")})'
+                    }
+                    continue
 
             # Check if this time slot is booked
             booked_appointment = None
@@ -467,11 +522,28 @@ def staff_availability():
         ).first()
 
         if schedule:
+            # Parse break time to extract start and end times
+            break_start_time = None
+            break_end_time = None
+            if schedule.break_time:
+                # Extract break times from format like "60 minutes (13:00 - 14:00)"
+                import re
+                time_pattern = r'(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})'
+                match = re.search(time_pattern, schedule.break_time)
+                if match:
+                    try:
+                        break_start_time = datetime.strptime(match.group(1), '%H:%M').time()
+                        break_end_time = datetime.strptime(match.group(2), '%H:%M').time()
+                    except ValueError:
+                        pass
+            
             staff_schedules[staff.id] = {
                 'shift_start': schedule.shift_start_time,
                 'shift_end': schedule.shift_end_time,
                 'schedule_name': schedule.schedule_name,
-                'break_time': schedule.break_time
+                'break_time': schedule.break_time,
+                'break_start': break_start_time,
+                'break_end': break_end_time
             }
         else:
             # No schedule found - staff is not available
@@ -526,6 +598,8 @@ def staff_availability():
             slot_time = time_slot['start_time'].time()
             shift_start = staff_schedule['shift_start']
             shift_end = staff_schedule['shift_end']
+            break_start = staff_schedule.get('break_start')
+            break_end = staff_schedule.get('break_end')
 
             if shift_start and shift_end:
                 if slot_time < shift_start or slot_time >= shift_end:
@@ -535,6 +609,15 @@ def staff_availability():
                         'reason': f'Off duty ({shift_start.strftime("%H:%M")} - {shift_end.strftime("%H:%M")})'
                     }
                     continue
+                
+                # Check if time slot is during break time
+                if break_start and break_end:
+                    if break_start <= slot_time < break_end:
+                        staff_availability[slot_key] = {
+                            'status': 'unavailable',
+                            'reason': f'Break time ({break_start.strftime("%H:%M")} - {break_end.strftime("%H:%M")})'
+                        }
+                        continue
 
             # Check if this time slot is booked
             booked_appointment = None

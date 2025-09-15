@@ -144,6 +144,11 @@
                                                 {% endif %}
                                             </div>
                                         </div>
+                                        {% elif availability.status == 'break' %}
+                                        <div class="bg-warning text-dark p-2 rounded small">
+                                            <i class="fas fa-coffee"></i>
+                                            <div class="small">Break Time</div>
+                                        </div>
                                         {% else %}
                                         <button type="button" class="btn btn-success btn-sm w-100 book-slot-btn" 
                                                 data-staff-id="{{ staff_member.id }}"

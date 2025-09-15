@@ -55,6 +55,14 @@
                         <div class="col-md-3">
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
+                                    <div class="bg-warning rounded" style="width: 20px; height: 20px;"></div>
+                                </div>
+                                <span>Break Time</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
                                     <div class="bg-info rounded" style="width: 20px; height: 20px;"></div>
                                 </div>
                                 <span>Shift Hours</span>
@@ -115,6 +123,11 @@
                                         <div class="bg-secondary text-white p-2 rounded small" title="{{ availability.reason }}">
                                             <i class="fas fa-ban"></i>
                                             <div class="small">{{ availability.reason }}</div>
+                                        </div>
+                                        {% elif availability.status == 'break' %}
+                                        <div class="bg-warning text-dark p-2 rounded small" title="{{ availability.reason }}">
+                                            <i class="fas fa-coffee"></i>
+                                            <div class="small">Break Time</div>
                                         </div>
                                         {% else %}
                                         <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn" 
