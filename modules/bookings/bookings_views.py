@@ -425,7 +425,7 @@ def api_quick_book():
 @app.route('/staff-availability')
 @login_required
 def staff_availability():
-    """New streamlined staff availability view for quick booking"""
+    """Staff availability view integrated with shift scheduler"""
     if not current_user.can_access('bookings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
@@ -443,13 +443,58 @@ def staff_availability():
     # Get staff members
     staff_members = get_staff_members()
     
-    # Generate time slots for the day (9 AM to 6 PM, 30-minute intervals)
-    time_slots = []
-    start_time = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
-    end_time = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
+    # Get day of week for schedule checking
+    day_of_week = selected_date.weekday()  # Monday = 0, Sunday = 6
+    day_mapping = {
+        0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
+        4: 'friday', 5: 'saturday', 6: 'sunday'
+    }
+    selected_day_field = day_mapping[day_of_week]
     
-    current_time = start_time
-    while current_time < end_time:
+    # Import StaffScheduleRange model
+    from models import StaffScheduleRange
+    
+    # Get staff schedules for the selected date
+    staff_schedules = {}
+    for staff in staff_members:
+        # Find active schedules that cover the selected date and include the day of week
+        schedule = StaffScheduleRange.query.filter(
+            StaffScheduleRange.staff_id == staff.id,
+            StaffScheduleRange.is_active == True,
+            StaffScheduleRange.start_date <= selected_date,
+            StaffScheduleRange.end_date >= selected_date,
+            getattr(StaffScheduleRange, selected_day_field) == True
+        ).first()
+        
+        if schedule:
+            staff_schedules[staff.id] = {
+                'shift_start': schedule.shift_start_time,
+                'shift_end': schedule.shift_end_time,
+                'schedule_name': schedule.schedule_name,
+                'break_time': schedule.break_time
+            }
+        else:
+            # No schedule found - staff is not available
+            staff_schedules[staff.id] = None
+    
+    # Generate time slots based on earliest start and latest end of all staff
+    earliest_start = datetime.combine(selected_date, datetime.min.time().replace(hour=9))
+    latest_end = datetime.combine(selected_date, datetime.min.time().replace(hour=18))
+    
+    # Adjust based on actual staff schedules
+    for staff_id, schedule in staff_schedules.items():
+        if schedule and schedule['shift_start'] and schedule['shift_end']:
+            staff_start = datetime.combine(selected_date, schedule['shift_start'])
+            staff_end = datetime.combine(selected_date, schedule['shift_end'])
+            if staff_start < earliest_start:
+                earliest_start = staff_start
+            if staff_end > latest_end:
+                latest_end = staff_end
+    
+    # Generate 30-minute time slots
+    time_slots = []
+    current_time = earliest_start
+    while current_time < latest_end:
         time_slots.append({
             'start_time': current_time,
             'end_time': current_time + timedelta(minutes=30),
@@ -460,11 +505,36 @@ def staff_availability():
     # Get existing appointments for the selected date
     existing_appointments = get_appointments_by_date(selected_date)
     
-    # Create staff availability grid
+    # Create staff availability grid with shift integration
     staff_availability = {}
     for staff in staff_members:
+        staff_schedule = staff_schedules.get(staff.id)
+        
         for time_slot in time_slots:
             slot_key = (staff.id, time_slot['start_time'])
+            
+            # Check if staff is scheduled to work at this time
+            if not staff_schedule:
+                # Staff not scheduled to work today
+                staff_availability[slot_key] = {
+                    'status': 'unavailable',
+                    'reason': 'Not scheduled'
+                }
+                continue
+            
+            # Check if time slot is within staff's working hours
+            slot_time = time_slot['start_time'].time()
+            shift_start = staff_schedule['shift_start']
+            shift_end = staff_schedule['shift_end']
+            
+            if shift_start and shift_end:
+                if slot_time < shift_start or slot_time >= shift_end:
+                    # Outside working hours
+                    staff_availability[slot_key] = {
+                        'status': 'unavailable',
+                        'reason': f'Off duty ({shift_start.strftime("%H:%M")} - {shift_end.strftime("%H:%M")})'
+                    }
+                    continue
             
             # Check if this time slot is booked
             booked_appointment = None
@@ -484,20 +554,28 @@ def staff_availability():
                 }
             else:
                 staff_availability[slot_key] = {
-                    'status': 'available'
+                    'status': 'available',
+                    'schedule_info': staff_schedule['schedule_name'] if staff_schedule else None
                 }
     
     # Get clients and services for booking form
     clients = get_active_clients()
     services = get_active_services()
     
+    # Get today's stats for selected date
+    today_appointments = get_appointments_by_date(selected_date)
+    today_revenue = sum(apt.amount for apt in today_appointments if apt.amount and getattr(apt, 'payment_status', 'pending') == 'paid')
+    
     return render_template('staff_availability.html',
                          selected_date=selected_date,
                          staff_members=staff_members,
                          time_slots=time_slots,
                          staff_availability=staff_availability,
+                         staff_schedules=staff_schedules,
                          clients=clients,
-                         services=services)
+                         services=services,
+                         today_appointments=today_appointments,
+                         today_revenue=today_revenue)
 
 @app.route('/api/appointment/<int:appointment_id>')
 @login_required

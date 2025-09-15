@@ -28,15 +28,15 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ selected_date.strftime('%A, %B %d, %Y') }}</h5>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
                                     <div class="bg-success rounded" style="width: 20px; height: 20px;"></div>
                                 </div>
-                                <span>Available</span>
+                                <span>Available & On Duty</span>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
                                     <div class="bg-danger rounded" style="width: 20px; height: 20px;"></div>
@@ -44,12 +44,20 @@
                                 <span>Booked</span>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
                                     <div class="bg-secondary rounded" style="width: 20px; height: 20px;"></div>
                                 </div>
-                                <span>Unavailable</span>
+                                <span>Off Duty</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-info rounded" style="width: 20px; height: 20px;"></div>
+                                </div>
+                                <span>Shift Hours</span>
                             </div>
                         </div>
                     </div>
@@ -72,6 +80,15 @@
                                     <th class="text-center">
                                         <div>{{ staff_member.first_name }} {{ staff_member.last_name }}</div>
                                         <small class="text-muted">{{ staff_member.role }}</small>
+                                        {% set schedule = staff_schedules.get(staff_member.id) %}
+                                        {% if schedule %}
+                                        <div class="badge bg-info mt-1">
+                                            {{ schedule.shift_start.strftime('%H:%M') if schedule.shift_start else 'N/A' }} - 
+                                            {{ schedule.shift_end.strftime('%H:%M') if schedule.shift_end else 'N/A' }}
+                                        </div>
+                                        {% else %}
+                                        <div class="badge bg-secondary mt-1">Not Scheduled</div>
+                                        {% endif %}
                                     </th>
                                     {% endfor %}
                                 </tr>
@@ -87,9 +104,17 @@
                                     {% set availability = staff_availability.get(slot_key, {'status': 'available'}) %}
                                     <td class="text-center p-1">
                                         {% if availability.status == 'booked' %}
-                                        <div class="bg-danger text-white p-2 rounded small">
+                                        <div class="bg-danger text-white p-2 rounded small appointment-slot" 
+                                             data-appointment-id="{{ availability.appointment.id if availability.appointment else '' }}"
+                                             style="cursor: pointer;"
+                                             onclick="showAppointmentDetails({{ availability.appointment.id if availability.appointment else 'null' }})">
                                             <div class="fw-bold">{{ availability.client_name }}</div>
                                             <div>{{ availability.service_name }}</div>
+                                        </div>
+                                        {% elif availability.status == 'unavailable' %}
+                                        <div class="bg-secondary text-white p-2 rounded small" title="{{ availability.reason }}">
+                                            <i class="fas fa-ban"></i>
+                                            <div class="small">{{ availability.reason }}</div>
                                         </div>
                                         {% else %}
                                         <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn" 
@@ -247,6 +272,40 @@ function submitQuickBook() {
     })
     .catch(error => {
         alert('Error booking appointment: ' + error);
+    });
+}
+
+function showAppointmentDetails(appointmentId) {
+    if (!appointmentId) return;
+    
+    fetch(`/api/appointment/${appointmentId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        
+        const appointment = data;
+        const details = `
+Appointment Details:
+- Client: ${appointment.client.name}
+- Service: ${appointment.service.name}
+- Staff: ${appointment.staff.name}
+- Time: ${appointment.appointment_date}
+- Status: ${appointment.status}
+- Amount: $${appointment.amount}
+${appointment.notes ? '- Notes: ' + appointment.notes : ''}
+        `;
+        
+        if (confirm(details + '\n\nWould you like to edit or cancel this appointment?')) {
+            // Redirect to appointment management or show edit options
+            window.location.href = `/appointments/edit/${appointmentId}`;
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching appointment details:', error);
+        alert('Error loading appointment details');
     });
 }
 </script>
