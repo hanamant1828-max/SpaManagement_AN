@@ -101,7 +101,7 @@
                                         {% if schedule and schedule.has_shift %}
                                             {% if schedule.is_absent %}
                                             <div class="badge bg-dark mt-1">
-                                                <i class="fas fa-user-times me-1"></i>Absent Today
+                                                <i class="fas fa-user-times me-1"></i>{{ schedule.schedule_name }}
                                             </div>
                                             {% else %}
                                             <div class="badge bg-info mt-1">
@@ -115,10 +115,15 @@
                                                 Break: {{ schedule.break_start.strftime('%I:%M %p') }} - {{ schedule.break_end.strftime('%I:%M %p') }}
                                             </div>
                                             {% endif %}
+                                            {% if schedule.schedule_name %}
+                                            <div class="badge bg-light text-dark mt-1">
+                                                <i class="fas fa-calendar me-1"></i>{{ schedule.schedule_name }}
+                                            </div>
+                                            {% endif %}
                                             {% endif %}
                                         {% else %}
                                         <div class="badge bg-secondary mt-1">
-                                            <i class="fas fa-ban me-1"></i>Not Scheduled
+                                            <i class="fas fa-ban me-1"></i>{{ schedule.schedule_name if schedule else 'Not Scheduled' }}
                                         </div>
                                         {% endif %}
                                     </td>
