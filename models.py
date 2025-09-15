@@ -443,6 +443,16 @@ class Package(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Enhanced prepaid package fields
+    prepaid_amount = db.Column(db.Float, default=0.0)  # Amount customer actually pays
+    bonus_percentage = db.Column(db.Float, default=0.0)  # Bonus percentage for prepaid
+    bonus_amount = db.Column(db.Float, default=0.0)  # Calculated bonus amount
+    prepaid_balance = db.Column(db.Float, default=0.0)  # Current balance for credit-based prepaid
+    
+    # Service-based package fields
+    free_sessions = db.Column(db.Integer, default=0)  # Free sessions in service packages
+    paid_sessions = db.Column(db.Integer, default=0)  # Paid sessions in service packages
 
     # New fields for unlimited sessions and date ranges
     has_unlimited_sessions = db.Column(db.Boolean, default=False)  # True for unlimited packages

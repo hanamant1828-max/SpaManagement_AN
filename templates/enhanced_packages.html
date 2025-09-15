@@ -274,9 +274,10 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Package Type</label>
-                            <select name="package_type" class="form-select" required>
+                            <select name="package_type" id="package_type_select" class="form-select" required>
                                 <option value="regular">Regular Package</option>
-                                <option value="prepaid">Prepaid Package</option>
+                                <option value="prepaid_credit">Prepaid Credit Package</option>
+                                <option value="prepaid_service">Prepaid Service Package</option>
                                 <option value="service_package">Service Package</option>
                                 <option value="membership">Membership</option>
                                 <option value="student_offer">Student Offer</option>
@@ -359,6 +360,50 @@
                         <div class="col-md-3">
                             <label class="form-label">Package Discount (%)</label>
                             <input type="number" name="discount_percentage_dates" class="form-control" step="0.01" min="0" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <!-- Prepaid Credit Package -->
+                    <div id="prepaid_credit_section" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Pay Amount (₹)</label>
+                                <input type="number" id="prepaid_amount_input" name="prepaid_amount" class="form-control" step="0.01" min="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Bonus Benefit (%)</label>
+                                <input type="number" id="bonus_percentage_input" name="bonus_percentage" class="form-control" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Total Credit Amount (₹)</label>
+                                <input type="text" id="credit_amount_display" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Validity</label>
+                            <input type="text" name="prepaid_credit_validity" class="form-control" placeholder="e.g., 2 months">
+                        </div>
+                    </div>
+
+                    <!-- Prepaid Service Package -->
+                    <div id="prepaid_service_section" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Pay for Sessions</label>
+                                <input type="number" id="paid_sessions_input" name="paid_sessions" class="form-control" min="1">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Get Free Sessions</label>
+                                <input type="number" id="free_sessions_input" name="free_sessions" class="form-control" min="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Total Sessions</label>
+                                <input type="text" id="total_sessions_display" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Validity</label>
+                            <input type="text" name="prepaid_service_validity" class="form-control" placeholder="e.g., 3 months">
                         </div>
                     </div>
 
@@ -977,31 +1022,22 @@ function assignPackage() {
         });
 
         // Filter packages function
-        function filterPackages(status) {
-            const rows = document.querySelectorAll('#packagesTable tbody tr');
+        function filterPackages(type) {
+            const rows = document.querySelectorAll('[data-package-type]');
+            const buttons = document.querySelectorAll('.btn-group .btn');
 
+            // Update active button
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Filter rows
             rows.forEach(row => {
-                if (status === 'all') {
+                if (type === 'all' || row.dataset.packageType === type) {
                     row.style.display = '';
                 } else {
-                    const statusBadge = row.querySelector('.badge');
-                    const packageStatus = statusBadge ? statusBadge.textContent.toLowerCase() : '';
-
-                    if (status === 'active' && packageStatus === 'active') {
-                        row.style.display = '';
-                    } else if (status === 'inactive' && packageStatus === 'inactive') {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
+                    row.style.display = 'none';
                 }
             });
-
-            // Update active filter button
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelector(`[onclick="filterPackages('${status}')"]`).classList.add('active');
         }
 
         // Search packages function
@@ -1020,7 +1056,68 @@ function assignPackage() {
                 }
             });
         }
-    </script>
+
+    // Prepaid package type handling
+    document.addEventListener('DOMContentLoaded', function() {
+        const packageTypeSelect = document.getElementById('package_type_select');
+        const prepaidCreditSection = document.getElementById('prepaid_credit_section');
+        const prepaidServiceSection = document.getElementById('prepaid_service_section');
+
+        if (packageTypeSelect) {
+            packageTypeSelect.addEventListener('change', function() {
+                const selectedType = this.value;
+
+                // Hide all prepaid sections first
+                if (prepaidCreditSection) prepaidCreditSection.style.display = 'none';
+                if (prepaidServiceSection) prepaidServiceSection.style.display = 'none';
+
+                // Show relevant section
+                if (selectedType === 'prepaid_credit') {
+                    prepaidCreditSection.style.display = 'block';
+                } else if (selectedType === 'prepaid_service') {
+                    prepaidServiceSection.style.display = 'block';
+                }
+            });
+        }
+
+        // Credit amount calculation
+        const prepaidAmountInput = document.getElementById('prepaid_amount_input');
+        const bonusPercentageInput = document.getElementById('bonus_percentage_input');
+        const creditAmountDisplay = document.getElementById('credit_amount_display');
+
+        function calculateCreditAmount() {
+            if (prepaidAmountInput && bonusPercentageInput && creditAmountDisplay) {
+                const payAmount = parseFloat(prepaidAmountInput.value) || 0;
+                const bonusPercent = parseFloat(bonusPercentageInput.value) || 0;
+                const bonusAmount = (payAmount * bonusPercent) / 100;
+                const creditAmount = payAmount + bonusAmount;
+
+                creditAmountDisplay.value = creditAmount.toFixed(2);
+            }
+        }
+
+        if (prepaidAmountInput) prepaidAmountInput.addEventListener('input', calculateCreditAmount);
+        if (bonusPercentageInput) bonusPercentageInput.addEventListener('input', calculateCreditAmount);
+
+        // Service sessions calculation
+        const paidSessionsInput = document.getElementById('paid_sessions_input');
+        const freeSessionsInput = document.getElementById('free_sessions_input');
+        const totalSessionsDisplay = document.getElementById('total_sessions_display');
+
+        function calculateTotalSessions() {
+            if (paidSessionsInput && freeSessionsInput && totalSessionsDisplay) {
+                const paidSessions = parseInt(paidSessionsInput.value) || 0;
+                const freeSessions = parseInt(freeSessionsInput.value) || 0;
+                const totalSessions = paidSessions + freeSessions;
+
+                totalSessionsDisplay.value = totalSessions;
+            }
+        }
+
+        if (paidSessionsInput) paidSessionsInput.addEventListener('input', calculateTotalSessions);
+        if (freeSessionsInput) freeSessionsInput.addEventListener('input', calculateTotalSessions);
+    });
+</script>
 
 <!-- Edit Package Modals (Generated for each package) -->
 {% for package in packages %}
@@ -1043,7 +1140,8 @@ function assignPackage() {
                             <label class="form-label">Package Type</label>
                             <select name="package_type" class="form-select" required>
                                 <option value="regular" {% if package.package_type == 'regular' %}selected{% endif %}>Regular Package</option>
-                                <option value="prepaid" {% if package.package_type == 'prepaid' %}selected{% endif %}>Prepaid Package</option>
+                                <option value="prepaid_credit" {% if package.package_type == 'prepaid_credit' %}selected{% endif %}>Prepaid Credit Package</option>
+                                <option value="prepaid_service" {% if package.package_type == 'prepaid_service' %}selected{% endif %}>Prepaid Service Package</option>
                                 <option value="service_package" {% if package.package_type == 'service_package' %}selected{% endif %}>Service Package</option>
                                 <option value="membership" {% if package.package_type == 'membership' %}selected{% endif %}>Membership</option>
                                 <option value="student_offer" {% if package.package_type == 'student_offer' %}selected{% endif %}>Student Offer</option>
@@ -1072,6 +1170,50 @@ function assignPackage() {
                             <label class="form-label">Package Discount (%)</label>
                             <input type="number" name="discount_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ package.discount_percentage or 0 }}">
                             <small class="text-muted">Applied after service discounts</small>
+                        </div>
+                    </div>
+
+                    <!-- Prepaid Credit Package -->
+                    <div id="prepaid_credit_section_edit-{{ package.id }}" {% if package.package_type != 'prepaid_credit' %}style="display: none;"{% endif %}>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Pay Amount (₹)</label>
+                                <input type="number" name="prepaid_amount" class="form-control" step="0.01" min="0" value="{{ package.prepaid_amount }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Bonus Benefit (%)</label>
+                                <input type="number" name="bonus_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ package.bonus_percentage }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Total Credit Amount (₹)</label>
+                                <input type="text" class="form-control" value="{{ package.credit_amount }}" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Validity</label>
+                            <input type="text" name="prepaid_credit_validity" class="form-control" value="{{ package.prepaid_credit_validity }}">
+                        </div>
+                    </div>
+
+                    <!-- Prepaid Service Package -->
+                    <div id="prepaid_service_section_edit-{{ package.id }}" {% if package.package_type != 'prepaid_service' %}style="display: none;"{% endif %}>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Pay for Sessions</label>
+                                <input type="number" name="paid_sessions" class="form-control" min="1" value="{{ package.paid_sessions }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Get Free Sessions</label>
+                                <input type="number" name="free_sessions" class="form-control" min="0" value="{{ package.free_sessions }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Total Sessions</label>
+                                <input type="text" class="form-control" value="{{ package.total_sessions }}" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Validity</label>
+                            <input type="text" name="prepaid_service_validity" class="form-control" value="{{ package.prepaid_service_validity }}">
                         </div>
                     </div>
 
@@ -1139,6 +1281,24 @@ function assignPackage() {
 {% for package in packages %}
 document.addEventListener('DOMContentLoaded', function() {
     const editModal{{ package.id }} = document.getElementById('editPackageModal{{ package.id }}');
+    const packageTypeSelectEdit = editModal{{ package.id }}.querySelector('select[name="package_type"]');
+    const prepaidCreditSectionEdit = editModal{{ package.id }}.querySelector('#prepaid_credit_section_edit-{{ package.id }}');
+    const prepaidServiceSectionEdit = editModal{{ package.id }}.querySelector('#prepaid_service_section_edit-{{ package.id }}');
+
+    if (packageTypeSelectEdit) {
+        packageTypeSelectEdit.addEventListener('change', function() {
+            const selectedType = this.value;
+            if (prepaidCreditSectionEdit) prepaidCreditSectionEdit.style.display = 'none';
+            if (prepaidServiceSectionEdit) prepaidServiceSectionEdit.style.display = 'none';
+
+            if (selectedType === 'prepaid_credit') {
+                if (prepaidCreditSectionEdit) prepaidCreditSectionEdit.style.display = 'block';
+            } else if (selectedType === 'prepaid_service') {
+                if (prepaidServiceSectionEdit) prepaidServiceSectionEdit.style.display = 'block';
+            }
+        });
+    }
+
     if (editModal{{ package.id }}) {
 
         // Handle service checkbox changes for edit modal {{ package.id }}

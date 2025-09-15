@@ -62,6 +62,11 @@ def create_package():
         total_price = float(request.form.get('total_price'))
         discount_percentage = float(request.form.get('discount_percentage', 0))
         is_active = request.form.get('is_active') == 'on'
+        
+        # Handle prepaid package specific fields
+        prepaid_amount = float(request.form.get('prepaid_amount', 0))  # Amount customer pays
+        credit_amount = float(request.form.get('credit_amount', 0))   # Credit they receive
+        bonus_percentage = float(request.form.get('bonus_percentage', 0))  # Bonus percentage
 
         # Handle validity type and unlimited sessions
         validity_type = request.form.get('validity_type', 'days')
