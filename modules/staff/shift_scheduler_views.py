@@ -15,7 +15,7 @@ shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
 
 # Add shift scheduler page
 @shift_scheduler_bp.route('/shift-scheduler/add')
-@login_required 
+@login_required
 def add_shift_scheduler():
     """Add shift scheduler page with day-by-day configuration"""
     if not current_user.can_access('staff'):
@@ -55,7 +55,7 @@ def add_shift_scheduler():
                 'priority': schedule.priority or 1
             }
 
-    return render_template('add_shift_scheduler.html', 
+    return render_template('add_shift_scheduler.html',
                          staff_members=staff_members,
                          today=date.today().strftime('%Y-%m-%d'),
                          action=action,
@@ -63,7 +63,7 @@ def add_shift_scheduler():
 
 # Main shift scheduler interface
 @shift_scheduler_bp.route('/shift-scheduler')
-@login_required 
+@login_required
 def shift_scheduler():
     """Main shift scheduler interface"""
     if not current_user.can_access('staff'):
@@ -73,7 +73,7 @@ def shift_scheduler():
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
-    return render_template('shift_scheduler.html', 
+    return render_template('shift_scheduler.html',
                          staff_members=staff_members,
                          today=date.today().strftime('%Y-%m-%d'))
 
@@ -342,7 +342,7 @@ def api_get_all_staff_schedules(staff_id):
 
     try:
         schedules = StaffScheduleRange.query.filter_by(
-            staff_id=staff_id, 
+            staff_id=staff_id,
             is_active=True
         ).order_by(StaffScheduleRange.start_date).all()
 
@@ -351,7 +351,7 @@ def api_get_all_staff_schedules(staff_id):
             # Get working days list
             working_days = []
             if schedule.monday: working_days.append('Mon')
-            if schedule.tuesday: working_days.append('Tue') 
+            if schedule.tuesday: working_days.append('Tue')
             if schedule.wednesday: working_days.append('Wed')
             if schedule.thursday: working_days.append('Thu')
             if schedule.friday: working_days.append('Fri')
@@ -384,7 +384,7 @@ def api_get_all_staff_schedules(staff_id):
 
 # Update single schedule
 @shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['PUT'])
-@login_required 
+@login_required
 def api_update_schedule(schedule_id):
     """Update a single schedule"""
     if not current_user.can_access('staff'):
@@ -433,7 +433,7 @@ def api_update_schedule(schedule_id):
 
 # Enhanced update that supports date range changes
 @shift_scheduler_bp.route('/api/schedule/<int:schedule_id>/update-with-range', methods=['PUT'])
-@login_required 
+@login_required
 def api_update_schedule_with_range(schedule_id):
     """Update a schedule with support for date range changes"""
     if not current_user.can_access('staff'):
@@ -570,7 +570,7 @@ def api_get_schedule_details(schedule_id):
         # Get working days list
         working_days = []
         if schedule.monday: working_days.append('Mon')
-        if schedule.tuesday: working_days.append('Tue') 
+        if schedule.tuesday: working_days.append('Tue')
         if schedule.wednesday: working_days.append('Wed')
         if schedule.thursday: working_days.append('Thu')
         if schedule.friday: working_days.append('Fri')
@@ -625,7 +625,7 @@ def api_get_staff_details(staff_id):
 
         # Get all schedules for this staff member
         schedules = StaffScheduleRange.query.filter_by(
-            staff_id=staff_id, 
+            staff_id=staff_id,
             is_active=True
         ).order_by(StaffScheduleRange.start_date).all()
 
@@ -649,7 +649,7 @@ def api_get_staff_details(staff_id):
             # Get working days list
             working_days = []
             if schedule.monday: working_days.append('Mon')
-            if schedule.tuesday: working_days.append('Tue') 
+            if schedule.tuesday: working_days.append('Tue')
             if schedule.wednesday: working_days.append('Wed')
             if schedule.thursday: working_days.append('Thu')
             if schedule.friday: working_days.append('Fri')
@@ -825,7 +825,7 @@ def api_get_all_schedules():
             # Get working days list
             working_days = []
             if schedule.monday: working_days.append('Mon')
-            if schedule.tuesday: working_days.append('Tue') 
+            if schedule.tuesday: working_days.append('Tue')
             if schedule.wednesday: working_days.append('Wed')
             if schedule.thursday: working_days.append('Thu')
             if schedule.friday: working_days.append('Fri')
@@ -863,6 +863,67 @@ def api_get_all_schedules():
             'success': True,
             'schedules': schedule_list,
             'total_count': len(schedule_list)
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get detailed daily schedules for a staff member and date range
+@shift_scheduler_bp.route('/api/staff/<int:staff_id>/daily-schedules', methods=['GET'])
+@login_required
+def api_get_daily_schedules(staff_id):
+    """Get detailed daily schedules for a staff member within date range"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from models import StaffDailySchedule
+
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        if not start_date_str or not end_date_str:
+            return jsonify({'error': 'start_date and end_date parameters required'}), 400
+
+        # Parse dates
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+
+        # Get daily schedules for the date range
+        daily_schedules = StaffDailySchedule.query.filter(
+            StaffDailySchedule.staff_id == staff_id,
+            StaffDailySchedule.schedule_date >= start_date,
+            StaffDailySchedule.schedule_date <= end_date,
+            StaffDailySchedule.is_active == True
+        ).order_by(StaffDailySchedule.schedule_date).all()
+
+        # Format response
+        schedule_data = []
+        for daily in daily_schedules:
+            schedule_data.append({
+                'id': daily.id,
+                'date': daily.schedule_date.strftime('%Y-%m-%d'),
+                'is_working': daily.is_working,
+                'start_time': daily.start_time.strftime('%H:%M') if daily.start_time else None,
+                'end_time': daily.end_time.strftime('%H:%M') if daily.end_time else None,
+                'start_time_12h': daily.start_time.strftime('%I:%M %p') if daily.start_time else None,
+                'end_time_12h': daily.end_time.strftime('%I:%M %p') if daily.end_time else None,
+                'break_start_time': daily.break_start_time.strftime('%H:%M') if daily.break_start_time else None,
+                'break_end_time': daily.break_end_time.strftime('%H:%M') if daily.break_end_time else None,
+                'break_start_time_12h': daily.break_start_time.strftime('%I:%M %p') if daily.break_start_time else None,
+                'break_end_time_12h': daily.break_end_time.strftime('%I:%M %p') if daily.break_end_time else None,
+                'break_duration_minutes': daily.break_duration_minutes,
+                'break_time_display': daily.get_break_time_display(),
+                'notes': daily.notes or '',
+                'schedule_range_id': daily.schedule_range_id
+            })
+
+        return jsonify({
+            'success': True,
+            'daily_schedules': schedule_data,
+            'staff_id': staff_id,
+            'date_range': f"{start_date} to {end_date}",
+            'total_days': len(schedule_data)
         })
 
     except Exception as e:
