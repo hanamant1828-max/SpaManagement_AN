@@ -715,9 +715,8 @@ def save_daily_schedule():
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
 
-        # Group consecutive days with same settings into ranges
+        # Create individual date entries instead of ranges for precise control
         ranges_created = 0
-        current_range = None
 
         for day in schedule_days:
             if not day.get('working', False):
@@ -737,38 +736,20 @@ def save_daily_schedule():
                 'sunday': day_of_week == 6
             }
 
-            # Check if we can extend current range or need to create new one
-            if (current_range and 
-                current_range['end_date'] == day_date - timedelta(days=1) and
-                current_range['start_time'] == day.get('startTime') and
-                current_range['end_time'] == day.get('endTime') and
-                current_range['break_minutes'] == day.get('breakMinutes')):
+            # Create individual date entry with specific times
+            day_data = {
+                'start_date': day_date,
+                'end_date': day_date,  # Single day entry
+                'start_time': day.get('startTime'),
+                'end_time': day.get('endTime'),
+                'break_minutes': day.get('breakMinutes', 60),
+                'break_start': day.get('breakStart'),
+                'break_end': day.get('breakEnd'),
+                **day_booleans
+            }
 
-                # Extend current range
-                current_range['end_date'] = day_date
-                # Update day boolean
-                for day_key, day_val in day_booleans.items():
-                    if day_val:
-                        current_range[day_key] = True
-            else:
-                # Save previous range if exists
-                if current_range:
-                    save_range(current_range, staff_id, schedule_name, description, priority)
-                    ranges_created += 1
-
-                # Start new range
-                current_range = {
-                    'start_date': day_date,
-                    'end_date': day_date,
-                    'start_time': day.get('startTime'),
-                    'end_time': day.get('endTime'),
-                    'break_minutes': day.get('breakMinutes', 60),
-                    **day_booleans
-                }
-
-        # Save final range
-        if current_range:
-            save_range(current_range, staff_id, schedule_name, description, priority)
+            # Save individual day schedule
+            save_range(day_data, staff_id, schedule_name, description, priority)
             ranges_created += 1
 
         db.session.commit()
@@ -793,6 +774,14 @@ def save_range(range_data, staff_id, schedule_name, description, priority):
     if range_data.get('end_time'):
         shift_end_time = datetime.strptime(range_data['end_time'], '%H:%M').time()
 
+    # Format break time with specific start and end times if provided
+    break_time_str = ""
+    if range_data.get('break_start') and range_data.get('break_end'):
+        break_minutes = range_data.get('break_minutes', 60)
+        break_time_str = f"{break_minutes} minutes ({range_data['break_start']} - {range_data['break_end']})"
+    elif range_data.get('break_minutes'):
+        break_time_str = f"{range_data.get('break_minutes', 60)} minutes"
+
     schedule_range = StaffScheduleRange(
         staff_id=staff_id,
         schedule_name=f"{schedule_name} ({range_data['start_date']} to {range_data['end_date']})",
@@ -808,7 +797,7 @@ def save_range(range_data, staff_id, schedule_name, description, priority):
         sunday=range_data.get('sunday', False),
         shift_start_time=shift_start_time,
         shift_end_time=shift_end_time,
-        break_time=f"{range_data.get('break_minutes', 60)} minutes",
+        break_time=break_time_str,
         priority=priority
     )
 

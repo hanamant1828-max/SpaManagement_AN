@@ -1,4 +1,3 @@
-
 /**
  * Add Shift Scheduler JavaScript - Day-by-Day Configuration
  * Implements the updated workflow with Generate Days functionality
@@ -16,15 +15,15 @@
         console.log('Add Shift Scheduler JavaScript loaded');
         initializeEventHandlers();
         initializeDefaultDates();
-        
+
         // Initialize loading modal
         loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
-        
+
         // Check if we're in view/edit mode and load existing data
         const urlParams = new URLSearchParams(window.location.search);
         const action = urlParams.get('action');
         const scheduleId = urlParams.get('id');
-        
+
         if (action && scheduleId && (action === 'view' || action === 'edit')) {
             loadExistingSchedule(action, scheduleId);
         }
@@ -59,6 +58,22 @@
         $('#daysConfigBody').on('change', '.time-input, .break-input, .notes-input', function() {
             updateReviewSection();
         });
+
+        // Default time input change handlers
+        $('#defaultStartTime').on('change', function() {
+            updateDefaultTimeDisplays();
+        });
+        $('#defaultEndTime').on('change', function() {
+            updateDefaultTimeDisplays();
+        });
+        $('#defaultBreakStart').on('change', function() {
+            updateDefaultTimeDisplays();
+            updateDefaultBreakMinutes();
+        });
+        $('#defaultBreakEnd').on('change', function() {
+            updateDefaultTimeDisplays();
+            updateDefaultBreakMinutes();
+        });
     }
 
     /**
@@ -68,8 +83,29 @@
         const today = new Date();
         const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-        $('#fromDate').val(today.toISOString().split('T')[0]);
-        $('#toDate').val(nextWeek.toISOString().split('T')[0]);
+        $('#fromDate').val(formatDateForInput(today));
+        $('#toDate').val(formatDateForInput(nextWeek));
+        updateGenerateButton(); // Ensure button is enabled if defaults are valid
+    }
+
+    /**
+     * Update default time and break displays
+     */
+    function updateDefaultTimeDisplays() {
+        $('#defaultStartTimeDisplay').text(convert24To12Hour($('#defaultStartTime').val()));
+        $('#defaultEndTimeDisplay').text(convert24To12Hour($('#defaultEndTime').val()));
+        $('#defaultBreakStartDisplay').text(convert24To12Hour($('#defaultBreakStart').val()));
+        $('#defaultBreakEndDisplay').text(convert24To12Hour($('#defaultBreakEnd').val()));
+    }
+
+    /**
+     * Update default break minutes based on selected break times
+     */
+    function updateDefaultBreakMinutes() {
+        const breakStart = $('#defaultBreakStart').val();
+        const breakEnd = $('#defaultBreakEnd').val();
+        const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
+        $('#defaultBreak').val(breakMinutes);
     }
 
     /**
@@ -150,7 +186,7 @@
 
         currentScheduleDays = days;
         renderDaysConfigTable();
-        
+
         // Show sections
         $('#dayConfigSection').slideDown(500);
         $('#reviewSection').slideDown(500);
@@ -200,7 +236,10 @@
      * Format date for input
      */
     function formatDateForInput(date) {
-        return date.toISOString().split('T')[0];
+        const d = new Date(date);
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const day = d.getDate().toString().padStart(2, '0');
+        return `${d.getFullYear()}-${month}-${day}`;
     }
 
     /**
@@ -226,48 +265,48 @@
         currentScheduleDays.forEach((day, index) => {
             const row = `
                 <tr class="day-config-row ${day.working ? '' : 'table-secondary'}" data-index="${index}">
-                    <td class="text-center">
+                    <td class="text-center align-middle">
                         <strong>${index + 1}</strong>
                     </td>
-                    <td>
+                    <td class="align-middle">
                         <strong class="text-primary">${formatDateForDisplay(day.date)}</strong>
                         <br><small class="text-muted">${day.date}</small>
                     </td>
-                    <td>
+                    <td class="align-middle">
                         <span class="badge ${getDayBadgeClass(day.dayOfWeek)}">${day.dayName}</span>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input" 
-                               data-field="startTime" data-index="${index}" 
+                        <input type="time" class="form-control form-control-sm time-input"
+                               data-field="startTime" data-index="${index}"
                                value="${day.startTime}" ${day.working ? '' : 'disabled'}>
                         <small class="text-muted d-block">${convert24To12Hour(day.startTime)}</small>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input" 
-                               data-field="endTime" data-index="${index}" 
+                        <input type="time" class="form-control form-control-sm time-input"
+                               data-field="endTime" data-index="${index}"
                                value="${day.endTime}" ${day.working ? '' : 'disabled'}>
                         <small class="text-muted d-block">${convert24To12Hour(day.endTime)}</small>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input" 
-                               data-field="breakStart" data-index="${index}" 
-                               value="${day.breakStart}" ${day.working ? '' : 'disabled'}>
+                        <input type="time" class="form-control form-control-sm time-input break-start"
+                               data-field="breakStart" data-index="${index}"
+                               value="${day.breakStart}" ${day.working ? '' : 'disabled'} onchange="updateBreakTime(this)">
                         <small class="text-muted d-block">${convert24To12Hour(day.breakStart)}</small>
                     </td>
                     <td>
-                        <input type="time" class="form-control form-control-sm time-input" 
-                               data-field="breakEnd" data-index="${index}" 
-                               value="${day.breakEnd}" ${day.working ? '' : 'disabled'}>
+                        <input type="time" class="form-control form-control-sm time-input break-end"
+                               data-field="breakEnd" data-index="${index}"
+                               value="${day.breakEnd}" ${day.working ? '' : 'disabled'} onchange="updateBreakTime(this)">
                         <small class="text-muted d-block">${convert24To12Hour(day.breakEnd)}</small>
                     </td>
                     <td>
-                        <input type="number" class="form-control form-control-sm break-input" 
-                               data-field="breakMinutes" data-index="${index}" 
-                               value="${day.breakMinutes}" min="0" max="480" readonly ${day.working ? '' : 'disabled'}>
+                        <input type="number" class="form-control form-control-sm break-input"
+                               data-field="breakMinutes" data-index="${index}"
+                               value="${day.breakMinutes}" min="0" max="480" ${day.working ? '' : 'disabled'} readonly>
                     </td>
-                    <td class="text-center">
+                    <td class="text-center align-middle">
                         <div class="form-check form-switch">
-                            <input class="form-check-input working-toggle" type="checkbox" 
+                            <input class="form-check-input working-toggle" type="checkbox"
                                    data-index="${index}" ${day.working ? 'checked' : ''}>
                             <label class="form-check-label text-sm">
                                 ${day.working ? 'Yes' : 'No'}
@@ -275,8 +314,8 @@
                         </div>
                     </td>
                     <td>
-                        <input type="text" class="form-control form-control-sm notes-input" 
-                               data-field="notes" data-index="${index}" 
+                        <input type="text" class="form-control form-control-sm notes-input"
+                               data-field="notes" data-index="${index}"
                                value="${day.notes}" placeholder="Notes..." ${day.working ? '' : 'disabled'}>
                     </td>
                 </tr>
@@ -307,14 +346,14 @@
     function toggleDayWorking($toggle) {
         const index = parseInt($toggle.data('index'));
         const isWorking = $toggle.is(':checked');
-        
+
         // Update data
         currentScheduleDays[index].working = isWorking;
-        
+
         // Update row appearance and inputs
         const $row = $toggle.closest('tr');
         const $inputs = $row.find('input:not(.working-toggle)');
-        
+
         if (isWorking) {
             $row.removeClass('table-secondary');
             $inputs.prop('disabled', false);
@@ -364,11 +403,18 @@
                 day.breakMinutes = breakMinutes;
 
                 // Update inputs
-                $(`input[data-field="startTime"][data-index="${index}"]`).val(startTime);
-                $(`input[data-field="endTime"][data-index="${index}"]`).val(endTime);
-                $(`input[data-field="breakStart"][data-index="${index}"]`).val(breakStart);
-                $(`input[data-field="breakEnd"][data-index="${index}"]`).val(breakEnd);
-                $(`input[data-field="breakMinutes"][data-index="${index}"]`).val(breakMinutes);
+                const $row = $(`tr[data-index="${index}"]`);
+                $row.find('input[data-field="startTime"]').val(startTime);
+                $row.find('input[data-field="endTime"]').val(endTime);
+                $row.find('input[data-field="breakStart"]').val(breakStart);
+                $row.find('input[data-field="breakEnd"]').val(breakEnd);
+                $row.find('input[data-field="breakMinutes"]').val(breakMinutes);
+
+                // Update the 12-hour displays
+                updateTimeDisplay($row.find('input[data-field="startTime"]'));
+                updateTimeDisplay($row.find('input[data-field="endTime"]'));
+                updateTimeDisplay($row.find('input[data-field="breakStart"]'));
+                updateTimeDisplay($row.find('input[data-field="breakEnd"]'));
             }
         });
 
@@ -381,13 +427,13 @@
      */
     function calculateBreakMinutes(startTime, endTime) {
         if (!startTime || !endTime) return 0;
-        
+
         const start = new Date(`2000-01-01T${startTime}:00`);
         const end = new Date(`2000-01-01T${endTime}:00`);
-        
+
         const diffMs = end - start;
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        
+
         return diffMinutes > 0 ? diffMinutes : 0;
     }
 
@@ -399,15 +445,22 @@
 
         currentScheduleDays.forEach((day, index) => {
             if (day.dayOfWeek === 0 || day.dayOfWeek === 6) { // Sunday or Saturday
-                day.working = false;
-                weekendCount++;
+                if (day.working) { // Only count if it was previously working
+                    day.working = false;
+                    weekendCount++;
 
-                // Update checkbox
-                $(`.working-toggle[data-index="${index}"]`).prop('checked', false).trigger('change');
+                    // Update checkbox and row appearance
+                    const $toggle = $(`.working-toggle[data-index="${index}"]`);
+                    $toggle.prop('checked', false).trigger('change');
+                }
             }
         });
 
-        showAlert(`Marked ${weekendCount} weekend days as non-working`, 'success');
+        if (weekendCount > 0) {
+            showAlert(`Marked ${weekendCount} weekend days as non-working`, 'success');
+        } else {
+            showAlert('No working weekend days found to mark off', 'info');
+        }
         updateReviewSection();
     }
 
@@ -415,31 +468,41 @@
      * Apply default values to inputs
      */
     function applyDefaults() {
-        const startTime = $('#defaultStartTime').val();
-        const endTime = $('#defaultEndTime').val();
-        const breakStart = $('#defaultBreakStart').val();
-        const breakEnd = $('#defaultBreakEnd').val();
-        const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
+        const defaultStart = $('#defaultStartTime').val();
+        const defaultEnd = $('#defaultEndTime').val();
+        const defaultBreakStart = $('#defaultBreakStart').val();
+        const defaultBreakEnd = $('#defaultBreakEnd').val();
+        const defaultBreak = $('#defaultBreak').val();
 
-        // Update all time inputs with defaults
-        $('.time-input[data-field="startTime"]').val(startTime);
-        $('.time-input[data-field="endTime"]').val(endTime);
-        $('.time-input[data-field="breakStart"]').val(breakStart);
-        $('.time-input[data-field="breakEnd"]').val(breakEnd);
-        $('.break-input').val(breakMinutes);
+        $('#daysConfigBody tr').each(function() {
+            const $row = $(this);
+            const workingCheckbox = $row.find('.working-toggle');
 
-        // Update data
-        currentScheduleDays.forEach(day => {
-            if (day.working) {
-                day.startTime = startTime;
-                day.endTime = endTime;
-                day.breakStart = breakStart;
-                day.breakEnd = breakEnd;
-                day.breakMinutes = breakMinutes;
+            if (workingCheckbox.is(':checked')) {
+                // Update input values
+                $row.find('.time-input[data-field="startTime"]').val(defaultStart);
+                $row.find('.time-input[data-field="endTime"]').val(defaultEnd);
+                $row.find('.time-input[data-field="breakStart"]').val(defaultBreakStart);
+                $row.find('.time-input[data-field="breakEnd"]').val(defaultBreakEnd);
+                $row.find('.break-input').val(defaultBreak);
+
+                // Update data array
+                const index = parseInt($row.data('index'));
+                currentScheduleDays[index].startTime = defaultStart;
+                currentScheduleDays[index].endTime = defaultEnd;
+                currentScheduleDays[index].breakStart = defaultBreakStart;
+                currentScheduleDays[index].breakEnd = defaultBreakEnd;
+                currentScheduleDays[index].breakMinutes = parseInt(defaultBreak);
+
+                // Update time displays
+                updateTimeDisplay($row.find('.time-input[data-field="startTime"]'));
+                updateTimeDisplay($row.find('.time-input[data-field="endTime"]'));
+                updateTimeDisplay($row.find('.time-input[data-field="breakStart"]'));
+                updateTimeDisplay($row.find('.time-input[data-field="breakEnd"]'));
             }
         });
 
-        showAlert('Default values applied to all inputs', 'success');
+        showAlert('Default values applied to all working days', 'success');
         updateReviewSection();
     }
 
@@ -489,12 +552,28 @@
         showLoadingModal('Saving schedule...');
 
         // Prepare schedule data
-        const scheduleData = {
+        const scheduleData = [];
+        currentScheduleDays.forEach((day) => {
+            if (day.working) {
+                scheduleData.push({
+                    date: day.date,
+                    working: day.working,
+                    startTime: day.startTime,
+                    endTime: day.endTime,
+                    breakStart: day.breakStart,
+                    breakEnd: day.breakEnd,
+                    breakMinutes: day.breakMinutes,
+                    notes: day.notes
+                });
+            }
+        });
+
+        const requestData = {
             staff_id: parseInt($('#staffSelect').val()),
             schedule_name: $('#scheduleName').val(),
             description: $('#description').val(),
             priority: parseInt($('#priority').val()),
-            schedule_days: currentScheduleDays
+            schedule_days: scheduleData
         };
 
         // Send to server
@@ -502,12 +581,12 @@
             url: '/api/shift-scheduler/save-daily-schedule',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify(scheduleData),
+            data: JSON.stringify(requestData),
             success: function(response) {
                 hideLoadingModal();
                 if (response.success) {
                     showAlert('Schedule saved successfully!', 'success');
-                    
+
                     // Redirect after short delay
                     setTimeout(() => {
                         window.location.href = '/shift-scheduler';
@@ -529,7 +608,7 @@
      */
     function validateFinalSchedule() {
         const workingDays = currentScheduleDays.filter(day => day.working);
-        
+
         if (workingDays.length === 0) {
             showAlert('At least one working day must be selected', 'warning');
             return false;
@@ -538,7 +617,11 @@
         // Validate time ranges for working days
         for (let day of workingDays) {
             if (day.startTime >= day.endTime) {
-                showAlert(`Invalid time range for ${day.dayName} (${day.date})`, 'warning');
+                showAlert(`Invalid time range for ${day.dayName} (${day.date}): Start time must be before end time.`, 'warning');
+                return false;
+            }
+            if (day.breakStart && day.breakEnd && day.breakStart >= day.breakEnd) {
+                showAlert(`Invalid break time range for ${day.dayName} (${day.date}): Break start time must be before break end time.`, 'warning');
                 return false;
             }
         }
@@ -565,10 +648,10 @@
      * Show alert message
      */
     function showAlert(message, type = 'success') {
-        const alertClass = type === 'danger' ? 'alert-danger' : 
+        const alertClass = type === 'danger' ? 'alert-danger' :
                           type === 'warning' ? 'alert-warning' :
                           type === 'info' ? 'alert-info' : 'alert-success';
-        const iconClass = type === 'danger' ? 'fa-exclamation-triangle' : 
+        const iconClass = type === 'danger' ? 'fa-exclamation-triangle' :
                          type === 'warning' ? 'fa-exclamation-circle' :
                          type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
 
@@ -592,53 +675,40 @@
         }, 5000);
     }
 
-    // Auto-calculate break minutes when break start/end times change
-    $(document).on('change', '#defaultBreakStart, #defaultBreakEnd', function() {
-        const breakStart = $('#defaultBreakStart').val();
-        const breakEnd = $('#defaultBreakEnd').val();
-        const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
-        $('#defaultBreak').val(breakMinutes);
-        
-        // Update 12-hour displays
-        $('#defaultBreakStartDisplay').text(convert24To12Hour(breakStart));
-        $('#defaultBreakEndDisplay').text(convert24To12Hour(breakEnd));
+    // Event handlers for default time inputs and updates
+    $(document).on('change', '#defaultStartTime, #defaultEndTime, #defaultBreakStart, #defaultBreakEnd', function() {
+        updateDefaultTimeDisplays();
+        updateDefaultBreakMinutes();
     });
 
-    // Update 12-hour displays for default time inputs
-    $(document).on('change', '#defaultStartTime', function() {
-        $('#defaultStartTimeDisplay').text(convert24To12Hour($(this).val()));
-    });
-
-    $(document).on('change', '#defaultEndTime', function() {
-        $('#defaultEndTimeDisplay').text(convert24To12Hour($(this).val()));
-    });
-
-    // Update inputs when changed
-    $(document).on('change', '.time-input, .break-input, .notes-input', function() {
+    // Update time display and break minutes for row inputs
+    $(document).on('change', '.time-input, .break-input', function() {
         const $input = $(this);
-        const index = parseInt($input.data('index'));
+        const $row = $input.closest('tr');
+        const index = parseInt($row.data('index'));
         const field = $input.data('field');
-        const value = field === 'breakMinutes' ? parseInt($input.val()) : $input.val();
-        
+        const value = $input.val();
+
         if (currentScheduleDays[index]) {
+            // Update the data array
             currentScheduleDays[index][field] = value;
-            
+
             // Update the 12-hour display next to time inputs
             if (field === 'startTime' || field === 'endTime' || field === 'breakStart' || field === 'breakEnd') {
-                $input.next('small').text(convert24To12Hour(value));
+                updateTimeDisplay($input);
             }
-            
+
             // Auto-calculate break minutes when break times change
             if (field === 'breakStart' || field === 'breakEnd') {
                 const breakStart = currentScheduleDays[index].breakStart;
                 const breakEnd = currentScheduleDays[index].breakEnd;
                 const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
                 currentScheduleDays[index].breakMinutes = breakMinutes;
-                
+
                 // Update the break minutes input
-                $(`input[data-field="breakMinutes"][data-index="${index}"]`).val(breakMinutes);
+                $row.find('input[data-field="breakMinutes"]').val(breakMinutes);
             }
-            
+
             updateReviewSection();
         }
     });
@@ -648,7 +718,7 @@
      */
     function loadExistingSchedule(action, scheduleId) {
         showLoadingModal('Loading schedule data...');
-        
+
         $.ajax({
             url: `/api/schedule/${scheduleId}/details`,
             method: 'GET',
@@ -656,7 +726,7 @@
                 hideLoadingModal();
                 if (response.success) {
                     const schedule = response.schedule;
-                    
+
                     // Pre-fill basic information
                     $('#staffSelect').val(schedule.staff_id);
                     $('#scheduleName').val(schedule.schedule_name);
@@ -664,22 +734,33 @@
                     $('#toDate').val(schedule.end_date);
                     $('#priority').val(schedule.priority);
                     $('#description').val(schedule.description);
-                    
+
+                    // Update default time inputs from loaded schedule if they exist
+                    if (schedule.shift_start_time) $('#defaultStartTime').val(schedule.shift_start_time);
+                    if (schedule.shift_end_time) $('#defaultEndTime').val(schedule.shift_end_time);
+                    // For breaks, we'll use defaults from the table if not explicitly loaded, as they are per day
+                    // If backend provides default break times, they can be set here similarly.
+
+                    // Update displays for default times
+                    updateDefaultTimeDisplays();
+                    updateDefaultBreakMinutes();
+
+
                     // If view mode, disable all inputs
                     if (action === 'view') {
                         $('#basicInfoForm input, #basicInfoForm select, #basicInfoForm textarea').prop('disabled', true);
                         $('#generateDaysBtn').hide();
-                        
+
                         // Change button text
                         $('#generateDaysBtn').text('Schedule Details').show().prop('disabled', false);
                     } else if (action === 'edit') {
                         // Change button text for edit mode
                         $('#generateDaysBtn').text('Load Schedule for Edit');
                     }
-                    
+
                     // Auto-generate days for view/edit
                     generateDaysFromExisting(schedule);
-                    
+
                 } else {
                     showAlert('Error loading schedule: ' + response.error, 'danger');
                 }
@@ -698,7 +779,7 @@
     function generateDaysFromExisting(schedule) {
         const fromDate = schedule.start_date;
         const toDate = schedule.end_date;
-        
+
         if (!fromDate || !toDate) {
             showAlert('Invalid date range in schedule', 'warning');
             return;
@@ -712,38 +793,70 @@
         while (current <= end) {
             const dayOfWeek = current.getDay(); // 0 = Sunday, 6 = Saturday
             const dayName = current.toLocaleDateString('en-US', { weekday: 'long' });
-            
+
             // Check if this day is a working day according to schedule
             const dayMapping = {
                 0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
                 4: 'thursday', 5: 'friday', 6: 'saturday'
             };
             const dayKey = dayMapping[dayOfWeek];
-            const isWorking = schedule[dayKey];
+            // Schedule object might not have direct keys for days of week, assuming backend returns array `schedule_days`
+            // If schedule has direct keys like schedule.monday, use that.
+            // For now, let's assume schedule.schedule_days is an array of objects with date and working status.
+            // This part needs adjustment based on the actual structure of the `schedule` object from the backend.
 
-            const breakMinutes = parseInt(schedule.break_time.match(/\d+/)?.[0] || '60');
-            // Default break times - can be enhanced later with actual break start/end from backend
-            const breakStart = '13:00';
-            const breakEnd = addMinutesToTime(breakStart, breakMinutes);
+            // Placeholder for actual day-specific data from backend
+            let dayData = {
+                working: false,
+                startTime: schedule.shift_start_time || '09:00',
+                endTime: schedule.shift_end_time || '17:00',
+                breakStart: '13:00', // Default break start
+                breakEnd: '14:00',   // Default break end
+                breakMinutes: 60,
+                notes: ''
+            };
+
+            // If schedule object contains an array of schedule_days, loop through to find the entry for the current date
+            if (schedule.schedule_days && Array.isArray(schedule.schedule_days)) {
+                const matchingDay = schedule.schedule_days.find(d => d.date === formatDateForInput(current));
+                if (matchingDay) {
+                    dayData = {
+                        working: matchingDay.working,
+                        startTime: matchingDay.startTime,
+                        endTime: matchingDay.endTime,
+                        breakStart: matchingDay.breakStart,
+                        breakEnd: matchingDay.breakEnd,
+                        breakMinutes: matchingDay.breakMinutes,
+                        notes: matchingDay.notes
+                    };
+                } else {
+                    // If day not found in schedule_days, use general schedule times and default working status
+                    dayData.working = (dayOfWeek !== 0 && dayOfWeek !== 6); // Default to weekday working if not specified
+                }
+            } else {
+                // Fallback if schedule.schedule_days is not in expected format
+                dayData.working = (dayOfWeek !== 0 && dayOfWeek !== 6); // Default to weekday working
+            }
+
 
             days.push({
                 date: formatDateForInput(current),
                 dayName: dayName,
                 dayOfWeek: dayOfWeek,
-                working: isWorking,
-                startTime: schedule.shift_start_time,
-                endTime: schedule.shift_end_time,
-                breakStart: breakStart,
-                breakEnd: breakEnd,
-                breakMinutes: breakMinutes,
-                notes: ''
+                working: dayData.working,
+                startTime: dayData.startTime,
+                endTime: dayData.endTime,
+                breakStart: dayData.breakStart,
+                breakEnd: dayData.breakEnd,
+                breakMinutes: dayData.breakMinutes,
+                notes: dayData.notes
             });
             current.setDate(current.getDate() + 1);
         }
 
         currentScheduleDays = days;
         renderDaysConfigTable();
-        
+
         // Show sections
         $('#dayConfigSection').slideDown(500);
         $('#reviewSection').slideDown(500);
@@ -751,17 +864,17 @@
 
         // Update day count
         $('#dayCount').text(`${days.length} days`);
-        
+
         // Check URL action and disable inputs if view mode
         const urlParams = new URLSearchParams(window.location.search);
         const action = urlParams.get('action');
-        
+
         if (action === 'view') {
             // Disable all day configuration inputs
             $('#daysConfigTable input, #daysConfigTable select').prop('disabled', true);
             $('#applyToAllBtn, #markWeekendsOffBtn, #applyDefaultsBtn').hide();
             $('#saveScheduleBtn').hide();
-            
+
             // Change bulk config panel for view mode
             $('#bulkConfigPanel').hide();
         }
@@ -775,7 +888,7 @@
         const totalMinutes = hours * 60 + mins + minutes;
         const newHours = Math.floor(totalMinutes / 60) % 24;
         const newMins = totalMinutes % 60;
-        
+
         return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
     }
 
@@ -784,18 +897,18 @@
      */
     function convert24To12Hour(time24) {
         if (!time24) return '';
-        
+
         try {
             const [hours, minutes] = time24.split(':');
             const hour24 = parseInt(hours, 10);
             const min = parseInt(minutes, 10);
-            
+
             if (isNaN(hour24) || isNaN(min)) return time24;
-            
+
             const hour12 = hour24 === 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
             const ampm = hour24 >= 12 ? 'PM' : 'AM';
-            
-            return `${hour12}:${min.toString().padStart(2, '0')} ${ampm}`;
+
+            return `${hour12.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')} ${ampm}`;
         } catch (error) {
             console.error('Time conversion error:', error);
             return time24;
@@ -803,31 +916,53 @@
     }
 
     /**
-     * Convert 12-hour time with AM/PM to 24-hour format
+     * Update the 12-hour display next to a time input
      */
-    function convert12To24Hour(time12) {
-        if (!time12) return '';
-        
-        try {
-            const match = time12.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-            if (!match) return time12;
-            
-            let hour = parseInt(match[1], 10);
-            const minute = match[2];
-            const ampm = match[3].toUpperCase();
-            
-            if (ampm === 'PM' && hour !== 12) {
-                hour += 12;
-            } else if (ampm === 'AM' && hour === 12) {
-                hour = 0;
-            }
-            
-            return `${hour.toString().padStart(2, '0')}:${minute}`;
-        } catch (error) {
-            console.error('Time conversion error:', error);
-            return time12;
+    window.updateTimeDisplay = function(element) { // Make globally accessible for inline onchange
+        const timeValue = $(element).val();
+        if (timeValue) {
+            const displayTime = convert24To12Hour(timeValue);
+            $(element).siblings('.time-display').text(displayTime);
         }
-    }
+    };
+
+    /**
+     * Update break time and calculate break minutes
+     */
+    window.updateBreakTime = function(element) { // Make globally accessible for inline onchange
+        updateTimeDisplay(element); // Update the 12hr format display
+
+        const $row = $(element).closest('tr');
+        const index = parseInt($row.data('index'));
+        const breakStart = $row.find('.break-start').val();
+        const breakEnd = $row.find('.break-end').val();
+
+        if (breakStart && breakEnd) {
+            const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
+            $row.find('.break-minutes').val(breakMinutes);
+
+            // Update the data array
+            if (currentScheduleDays[index]) {
+                currentScheduleDays[index].breakStart = breakStart;
+                currentScheduleDays[index].breakEnd = breakEnd;
+                currentScheduleDays[index].breakMinutes = breakMinutes;
+            }
+        } else {
+            // Clear break minutes if start or end is missing
+            $row.find('.break-minutes').val('');
+            if (currentScheduleDays[index]) {
+                currentScheduleDays[index].breakStart = breakStart;
+                currentScheduleDays[index].breakEnd = breakEnd;
+                currentScheduleDays[index].breakMinutes = 0;
+            }
+        }
+        updateReviewSection();
+    };
+
+    // Update summary when any input changes
+    $(document).on('change input', '#daysConfigBody input, #daysConfigBody select', function() {
+        updateReviewSection();
+    });
 
     console.log('Add Shift Scheduler JavaScript fully loaded');
 
