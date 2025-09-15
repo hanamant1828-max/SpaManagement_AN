@@ -67,20 +67,20 @@ def create_package():
         validity_type = request.form.get('validity_type', 'days')
         session_type = request.form.get('session_type', 'limited')
         has_unlimited_sessions = session_type == 'unlimited'
-        
+
         start_date = None
         end_date = None
-        
+
         if validity_type == 'dates':
             start_date_str = request.form.get('start_date')
             end_date_str = request.form.get('end_date')
-            
+
             if start_date_str:
                 from datetime import datetime
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             if end_date_str:
                 end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-                
+
             # Update validity_days and total_price for date range
             if start_date and end_date:
                 validity_days = (end_date - start_date).days
@@ -112,7 +112,7 @@ def create_package():
             if 'service_id' in service_data:
                 is_unlimited = service_data.get('unlimited') == 'on'
                 sessions = 999 if is_unlimited else int(service_data.get('sessions', 1))
-                
+
                 services_data.append({
                     'service_id': int(service_data['service_id']),
                     'sessions': sessions,
@@ -122,7 +122,7 @@ def create_package():
 
         # Calculate duration_months from validity_days
         duration_months = max(1, validity_days // 30)
-        
+
         # Create the package with unlimited and date range support
         package = create_package_with_services(
             name=name,
@@ -355,7 +355,7 @@ def update_package_ajax(package_id):
 
     try:
         package = Package.query.get_or_404(package_id)
-        
+
         # Get JSON data if available, otherwise use form data
         if request.is_json:
             data = request.get_json()
@@ -374,7 +374,7 @@ def update_package_ajax(package_id):
         # Handle services update
         if 'services' in data:
             services_data = data['services'] if isinstance(data['services'], list) else []
-            
+
             # Remove existing services
             PackageService.query.filter_by(package_id=package_id).delete()
 
@@ -411,11 +411,11 @@ def update_package_ajax(package_id):
             else:
                 total_discount_amount = (total_original_price * package.discount_percentage) / 100
                 package.total_price = total_original_price - total_discount_amount
-            
+
             package.total_sessions = total_sessions
 
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Package "{package.name}" updated successfully'
@@ -549,7 +549,7 @@ def assign_package_to_client_route():
 
         db.session.add(client_package)
         db.session.flush()  # Flush to get the client_package.id
-        
+
         # Create session tracking for each service in the package
         for package_service in package.services:
             client_session = CustomerPackageSession(
@@ -559,7 +559,7 @@ def assign_package_to_client_route():
                 sessions_used=0
             )
             db.session.add(client_session)
-        
+
         db.session.commit()
 
         return jsonify({
@@ -582,3 +582,85 @@ def add_package():
 def delete_package_route(package_id):
     """Delete package route"""
     return delete_package(package_id)
+
+@app.route('/packages/create-simple', methods=['GET'])
+@login_required
+def simple_package_creation():
+    """Simple package creation interface"""
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    services = Service.query.filter_by(is_active=True).all()
+    categories = Category.query.filter_by(category_type='service', is_active=True).all()
+    clients = Customer.query.filter_by(is_active=True).all()
+
+    return render_template('packages/simple_creation.html', 
+                         services=services,
+                         categories=categories,
+                         clients=clients)
+
+@app.route('/packages/create-simple', methods=['POST'])
+@login_required
+def simple_package_creation_submit():
+    """Submit simple package creation form"""
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('packages'))
+
+    try:
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        package_type = 'simple' # Hardcoded for simple creation
+        validity_days = int(request.form.get('validity_days', 90))
+        total_price = float(request.form.get('total_price', 0))
+        discount_percentage = float(request.form.get('discount_percentage', 0))
+        is_active = request.form.get('is_active') == 'on'
+        
+        # Extract single service data for simple creation
+        service_id = int(request.form.get('service_id'))
+        sessions = int(request.form.get('sessions', 1))
+        service_discount = float(request.form.get('service_discount', 0))
+
+        service = Service.query.get(service_id)
+        if not service:
+            flash('Selected service not found', 'danger')
+            return redirect(url_for('simple_package_creation'))
+
+        # Calculate package price based on the single service
+        original_service_price = service.price * sessions
+        service_discount_amount = (original_service_price * service_discount) / 100
+        discounted_service_price = original_service_price - service_discount_amount
+
+        # Use discounted service price as total price for the package
+        final_package_price = discounted_service_price
+        
+        # Apply package-level discount on the final price if applicable
+        final_package_price = final_package_price - (final_package_price * discount_percentage / 100)
+
+        # Create the package
+        package = create_package_with_services(
+            name=name,
+            description=description,
+            package_type=package_type,
+            validity_days=validity_days,
+            total_price=final_package_price,
+            discount_percentage=discount_percentage,
+            is_active=is_active,
+            services_data=[{
+                'service_id': service_id,
+                'sessions': sessions,
+                'service_discount': service_discount
+            }],
+            has_unlimited_sessions=False # Simple packages are not unlimited by default
+        )
+
+        if package:
+            flash('Simple package created successfully!', 'success')
+        else:
+            flash('Failed to create simple package', 'danger')
+
+    except Exception as e:
+        flash(f'Error creating simple package: {str(e)}', 'danger')
+
+    return redirect(url_for('packages'))
