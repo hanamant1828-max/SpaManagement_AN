@@ -135,7 +135,7 @@
                         </div>
                         ${schedule.break_time ? `<small class="text-muted d-block mt-1"><i class="fas fa-coffee me-1"></i>${schedule.break_time}</small>` : ''}
                         <div class="mt-1">
-                            ${getStatusBadge(schedule.is_active !== false && schedule.status !== 'inactive')}
+                            ${getStatusBadge(schedule.is_active)}
                         </div>
                     </td>
                     <td>
@@ -262,10 +262,11 @@
      * Generate status badge HTML based on active status
      */
     function getStatusBadge(isActive) {
-        if (isActive) {
-            return '<span class="badge-status-active">Active</span>';
+        // Default to active if status is undefined/null
+        if (isActive !== false) {
+            return '<span class="badge bg-success">Active</span>';
         } else {
-            return '<span class="badge-status-inactive">Inactive</span>';
+            return '<span class="badge bg-secondary">Inactive</span>';
         }
     }
 
