@@ -11,6 +11,61 @@ import utils
 import base64
 import os
 
+def create_default_data():
+    """Create default data for the application"""
+    try:
+        from models import User, Role, Permission, Category, Department, Service, Customer
+        
+        # Create default admin user if it doesn't exist
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
+            admin_user = User(
+                username='admin',
+                email='admin@spa.com',
+                first_name='System',
+                last_name='Administrator',
+                role='admin',
+                is_active=True
+            )
+            admin_user.set_password('admin123')
+            db.session.add(admin_user)
+            print("Created default admin user")
+        
+        # Create default categories
+        categories = [
+            {'name': 'facial', 'display_name': 'Facial Services', 'category_type': 'service'},
+            {'name': 'massage', 'display_name': 'Massage Services', 'category_type': 'service'},
+            {'name': 'beauty', 'display_name': 'Beauty Services', 'category_type': 'service'},
+            {'name': 'supplies', 'display_name': 'Supplies', 'category_type': 'expense'},
+            {'name': 'utilities', 'display_name': 'Utilities', 'category_type': 'expense'}
+        ]
+        
+        for cat_data in categories:
+            category = Category.query.filter_by(name=cat_data['name']).first()
+            if not category:
+                category = Category(**cat_data)
+                db.session.add(category)
+        
+        # Create default services
+        services = [
+            {'name': 'Basic Facial', 'price': 50.0, 'duration': 60, 'category': 'facial'},
+            {'name': 'Deep Tissue Massage', 'price': 80.0, 'duration': 90, 'category': 'massage'},
+            {'name': 'Manicure', 'price': 25.0, 'duration': 45, 'category': 'beauty'}
+        ]
+        
+        for service_data in services:
+            service = Service.query.filter_by(name=service_data['name']).first()
+            if not service:
+                service = Service(**service_data, is_active=True)
+                db.session.add(service)
+        
+        db.session.commit()
+        print("Default data created successfully")
+        
+    except Exception as e:
+        print(f"Error creating default data: {e}")
+        db.session.rollback()
+
 # Import module views individually to avoid conflicts
 try:
     from modules.auth import auth_views
@@ -19,7 +74,6 @@ try:
     from modules.clients import clients_views
     from modules.services import services_views
     from modules.inventory import views as inventory_views
-    # from modules.billing import billing_views  # Removed - billing_views.py deleted
     from modules.staff.shift_scheduler_views import shift_scheduler_bp
     app.register_blueprint(shift_scheduler_bp)
     from modules.expenses import expenses_views
@@ -30,7 +84,6 @@ try:
     from modules.settings import settings_views
     from modules.staff import staff_views
     from modules.staff import shift_scheduler_views
-    # from modules.hanamantinventory import views as hanaman_views  # Removed
     print("All modules imported successfully")
 except ImportError as e:
     print(f"Module import error: {e}")
