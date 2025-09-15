@@ -21,15 +21,15 @@ def add_shift_scheduler():
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
-    
+
     # Check if this is view/edit mode from URL parameters
     action = request.args.get('action', 'add')  # add, edit, view
     schedule_id = request.args.get('id', None)
     schedule_data = None
-    
+
     if action in ['edit', 'view'] and schedule_id:
         # Load existing schedule data
         schedule = StaffScheduleRange.query.get(schedule_id)
@@ -54,7 +54,7 @@ def add_shift_scheduler():
                 'break_time': schedule.break_time or '1 hour lunch',
                 'priority': schedule.priority or 1
             }
-    
+
     return render_template('add_shift_scheduler.html', 
                          staff_members=staff_members,
                          today=date.today().strftime('%Y-%m-%d'),
@@ -69,10 +69,10 @@ def shift_scheduler():
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
-    
+
     return render_template('shift_scheduler.html', 
                          staff_members=staff_members,
                          today=date.today().strftime('%Y-%m-%d'))
@@ -84,19 +84,19 @@ def api_get_shift_schedules():
     """Get existing shift schedules for a staff member in date range"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         staff_id = request.args.get('staff_id', type=int)
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
-        
+
         if not staff_id or not start_date_str or not end_date_str:
             return jsonify({'error': 'Missing required parameters'}), 400
-        
+
         # Parse dates
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        
+
         # Get all schedule ranges that overlap with the requested date range
         schedules = StaffScheduleRange.query.filter(
             StaffScheduleRange.staff_id == staff_id,
@@ -104,7 +104,7 @@ def api_get_shift_schedules():
             StaffScheduleRange.start_date <= end_date,
             StaffScheduleRange.end_date >= start_date
         ).order_by(StaffScheduleRange.start_date).all()
-        
+
         schedule_data = []
         for schedule in schedules:
             schedule_data.append({
@@ -122,16 +122,18 @@ def api_get_shift_schedules():
                 'sunday': schedule.sunday,
                 'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
                 'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+                'shift_start_time_12h': schedule.shift_start_time.strftime('%I:%M %p') if schedule.shift_start_time else '',
+                'shift_end_time_12h': schedule.shift_end_time.strftime('%I:%M %p') if schedule.shift_end_time else '',
                 'break_time': schedule.break_time or '',
                 'priority': schedule.priority or 1
             })
-        
+
         return jsonify({
             'success': True,
             'schedules': schedule_data,
             'staff_id': staff_id
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -142,43 +144,43 @@ def save_shift_schedule():
     """Bulk save/update shift schedules"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
 
-    
+
+
     try:
         data = request.get_json()
         staff_id = data.get('staff_id')
         schedule_data = data.get('schedule_data', [])
-        
+
         if not staff_id or not schedule_data:
             return jsonify({'error': 'Missing required data'}), 400
-        
+
         # Verify staff member exists
         staff = User.query.get(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         created_count = 0
         updated_count = 0
         errors = []
-        
+
         for item in schedule_data:
             try:
                 # Handle date field normalization (date -> start_date/end_date)
                 if 'date' in item and ('start_date' not in item or 'end_date' not in item):
                     item['start_date'] = item['date']
                     item['end_date'] = item['date']
-                
+
                 # Parse dates
                 start_date = datetime.strptime(item['start_date'], '%Y-%m-%d').date()
                 end_date = datetime.strptime(item['end_date'], '%Y-%m-%d').date()
-                
+
                 # Parse times
                 shift_start_time = None
                 shift_end_time = None
                 break_start_time = None
                 break_end_time = None
-                
+
                 if item.get('shift_start_time'):
                     shift_start_time = datetime.strptime(item['shift_start_time'], '%H:%M').time()
                 if item.get('shift_end_time'):
@@ -187,7 +189,7 @@ def save_shift_schedule():
                     break_start_time = datetime.strptime(item['breakStart'], '%H:%M').time()
                 if item.get('breakEnd'):
                     break_end_time = datetime.strptime(item['breakEnd'], '%H:%M').time()
-                
+
                 # Check if schedule already exists for this date range
                 existing_schedule = StaffScheduleRange.query.filter(
                     StaffScheduleRange.staff_id == staff_id,
@@ -195,7 +197,7 @@ def save_shift_schedule():
                     StaffScheduleRange.end_date == end_date,
                     StaffScheduleRange.is_active == True
                 ).first()
-                
+
                 if existing_schedule:
                     # Update existing schedule
                     existing_schedule.schedule_name = item.get('schedule_name', 'Updated Schedule')
@@ -213,7 +215,7 @@ def save_shift_schedule():
                     break_start = item.get('breakStart', '')
                     break_end = item.get('breakEnd', '')
                     break_minutes = item.get('breakMinutes', 60)
-                    
+
                     if break_start and break_end:
                         existing_schedule.break_time = f"{break_minutes} minutes ({break_start} - {break_end})"
                     else:
@@ -243,13 +245,13 @@ def save_shift_schedule():
                     )
                     db.session.add(new_schedule)
                     created_count += 1
-                    
+
             except Exception as item_error:
                 errors.append(f"Error processing item: {str(item_error)}")
                 continue
-        
+
         db.session.commit()
-        
+
         # If no schedules were created or updated, return error instead of success
         if created_count == 0 and updated_count == 0:
             return jsonify({
@@ -257,7 +259,7 @@ def save_shift_schedule():
                 'error': 'No schedules were saved. Please check your data and try again.',
                 'errors': errors
             }), 400
-        
+
         return jsonify({
             'success': True,
             'message': f'Schedule saved successfully. Created: {created_count}, Updated: {updated_count}',
@@ -265,7 +267,7 @@ def save_shift_schedule():
             'updated_count': updated_count,
             'errors': errors
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -277,55 +279,55 @@ def delete_shift_schedules():
     """Bulk delete shift schedules by IDs or date range"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
 
-    
+
+
     try:
         data = request.get_json()
         schedule_ids = data.get('schedule_ids', [])
         staff_id = data.get('staff_id')
         start_date_str = data.get('start_date')
         end_date_str = data.get('end_date')
-        
+
         deleted_count = 0
-        
+
         if schedule_ids:
             # Delete by specific IDs
             schedules = StaffScheduleRange.query.filter(
                 StaffScheduleRange.id.in_(schedule_ids),
                 StaffScheduleRange.is_active == True
             ).all()
-            
+
             for schedule in schedules:
                 schedule.is_active = False
                 deleted_count += 1
-                
+
         elif staff_id and start_date_str and end_date_str:
             # Delete by date range
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            
+
             schedules = StaffScheduleRange.query.filter(
                 StaffScheduleRange.staff_id == staff_id,
                 StaffScheduleRange.start_date >= start_date,
                 StaffScheduleRange.end_date <= end_date,
                 StaffScheduleRange.is_active == True
             ).all()
-            
+
             for schedule in schedules:
                 schedule.is_active = False
                 deleted_count += 1
         else:
             return jsonify({'error': 'Must provide either schedule_ids or staff_id with date range'}), 400
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Successfully deleted {deleted_count} schedule(s)',
             'deleted_count': deleted_count
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -337,13 +339,13 @@ def api_get_all_staff_schedules(staff_id):
     """Get all existing schedules for a staff member"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         schedules = StaffScheduleRange.query.filter_by(
             staff_id=staff_id, 
             is_active=True
         ).order_by(StaffScheduleRange.start_date).all()
-        
+
         schedule_list = []
         for schedule in schedules:
             # Get working days list
@@ -355,7 +357,7 @@ def api_get_all_staff_schedules(staff_id):
             if schedule.friday: working_days.append('Fri')
             if schedule.saturday: working_days.append('Sat')
             if schedule.sunday: working_days.append('Sun')
-            
+
             schedule_list.append({
                 'id': schedule.id,
                 'schedule_name': schedule.schedule_name,
@@ -365,16 +367,18 @@ def api_get_all_staff_schedules(staff_id):
                 'working_days': working_days,
                 'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
                 'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+                'shift_start_time_12h': schedule.shift_start_time.strftime('%I:%M %p') if schedule.shift_start_time else '',
+                'shift_end_time_12h': schedule.shift_end_time.strftime('%I:%M %p') if schedule.shift_end_time else '',
                 'break_time': schedule.break_time or '',
                 'priority': schedule.priority or 1,
                 'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
             })
-        
+
         return jsonify({
             'success': True,
             'schedules': schedule_list
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -385,11 +389,11 @@ def api_update_schedule(schedule_id):
     """Update a single schedule"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         schedule = StaffScheduleRange.query.get_or_404(schedule_id)
         data = request.get_json()
-        
+
         # Update fields
         if 'schedule_name' in data:
             schedule.schedule_name = data['schedule_name']
@@ -399,12 +403,12 @@ def api_update_schedule(schedule_id):
             schedule.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
         if 'end_date' in data:
             schedule.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-        
+
         # Update working days
         for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
             if day in data:
                 setattr(schedule, day, data[day])
-        
+
         # Update times
         if 'shift_start_time' in data and data['shift_start_time']:
             schedule.shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
@@ -414,15 +418,15 @@ def api_update_schedule(schedule_id):
             schedule.break_time = data['break_time']
         if 'priority' in data:
             schedule.priority = data['priority']
-        
+
         schedule.updated_at = datetime.utcnow()
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Schedule updated successfully'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -434,26 +438,26 @@ def api_update_schedule_with_range(schedule_id):
     """Update a schedule with support for date range changes"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         schedule = StaffScheduleRange.query.get_or_404(schedule_id)
         data = request.get_json()
-        
+
         # Get original dates for comparison
         original_start = schedule.start_date
         original_end = schedule.end_date
-        
+
         # Parse new dates
         new_start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date() if data.get('start_date') else original_start
         new_end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date() if data.get('end_date') else original_end
-        
+
         # Check if this is a date range update
         date_range_changed = (new_start_date != original_start or new_end_date != original_end)
-        
+
         if date_range_changed:
             # Create a new schedule with the new date range and delete the old one
             # This ensures proper date range handling
-            
+
             # Create new schedule with updated data
             new_schedule = StaffScheduleRange(
                 staff_id=schedule.staff_id,
@@ -476,14 +480,14 @@ def api_update_schedule_with_range(schedule_id):
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )
-            
+
             # Add new schedule and mark old one as inactive
             db.session.add(new_schedule)
             schedule.is_active = False
             schedule.updated_at = datetime.utcnow()
-            
+
             db.session.commit()
-            
+
             return jsonify({
                 'success': True,
                 'message': f'Schedule updated with new date range ({new_start_date} to {new_end_date})',
@@ -496,12 +500,12 @@ def api_update_schedule_with_range(schedule_id):
                 schedule.schedule_name = data['schedule_name']
             if 'description' in data:
                 schedule.description = data['description']
-            
+
             # Update working days
             for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']:
                 if day in data:
                     setattr(schedule, day, data[day])
-            
+
             # Update times
             if 'shift_start_time' in data and data['shift_start_time']:
                 schedule.shift_start_time = datetime.strptime(data['shift_start_time'], '%H:%M').time()
@@ -511,16 +515,16 @@ def api_update_schedule_with_range(schedule_id):
                 schedule.break_time = data['break_time']
             if 'priority' in data:
                 schedule.priority = data['priority']
-            
+
             schedule.updated_at = datetime.utcnow()
             db.session.commit()
-            
+
             return jsonify({
                 'success': True,
                 'message': 'Schedule updated successfully',
                 'date_range_changed': False
             })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -532,17 +536,17 @@ def api_delete_schedule(schedule_id):
     """Delete a single schedule"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         schedule = StaffScheduleRange.query.get_or_404(schedule_id)
         schedule.is_active = False
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Schedule deleted successfully'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -554,15 +558,15 @@ def api_get_schedule_details(schedule_id):
     """Get detailed information for a single schedule"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         schedule = StaffScheduleRange.query.get(schedule_id)
         if not schedule:
             return jsonify({'error': 'Schedule not found'}), 404
-        
+
         # Get staff information
         staff = User.query.get(schedule.staff_id)
-        
+
         # Get working days list
         working_days = []
         if schedule.monday: working_days.append('Mon')
@@ -572,7 +576,7 @@ def api_get_schedule_details(schedule_id):
         if schedule.friday: working_days.append('Fri')
         if schedule.saturday: working_days.append('Sat')
         if schedule.sunday: working_days.append('Sun')
-        
+
         schedule_data = {
             'id': schedule.id,
             'schedule_name': schedule.schedule_name,
@@ -589,6 +593,8 @@ def api_get_schedule_details(schedule_id):
             'working_days': working_days,
             'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
             'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+            'shift_start_time_12h': schedule.shift_start_time.strftime('%I:%M %p') if schedule.shift_start_time else '',
+            'shift_end_time_12h': schedule.shift_end_time.strftime('%I:%M %p') if schedule.shift_end_time else '',
             'break_time': schedule.break_time or '',
             'priority': schedule.priority or 1,
             'is_active': schedule.is_active,
@@ -596,12 +602,12 @@ def api_get_schedule_details(schedule_id):
             'staff_name': f"{staff.first_name} {staff.last_name}" if staff else 'Unknown',
             'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
         }
-        
+
         return jsonify({
             'success': True,
             'schedule': schedule_data
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -612,17 +618,17 @@ def api_get_staff_details(staff_id):
     """Get complete staff details including schedules"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         # Get staff information
         staff = User.query.get_or_404(staff_id)
-        
+
         # Get all schedules for this staff member
         schedules = StaffScheduleRange.query.filter_by(
             staff_id=staff_id, 
             is_active=True
         ).order_by(StaffScheduleRange.start_date).all()
-        
+
         # Format staff data
         staff_data = {
             'id': staff.id,
@@ -636,7 +642,7 @@ def api_get_staff_details(staff_id):
             'is_active': staff.is_active,
             'created_at': staff.created_at.strftime('%Y-%m-%d') if hasattr(staff, 'created_at') and staff.created_at else None
         }
-        
+
         # Format schedules data
         schedule_list = []
         for schedule in schedules:
@@ -649,7 +655,7 @@ def api_get_staff_details(staff_id):
             if schedule.friday: working_days.append('Fri')
             if schedule.saturday: working_days.append('Sat')
             if schedule.sunday: working_days.append('Sun')
-            
+
             # Format working days string
             if len(working_days) == 7:
                 working_days_str = "All Days"
@@ -657,7 +663,7 @@ def api_get_staff_details(staff_id):
                 working_days_str = "Mon to Fri"
             else:
                 working_days_str = ", ".join(working_days)
-            
+
             schedule_list.append({
                 'id': schedule.id,
                 'schedule_name': schedule.schedule_name,
@@ -668,18 +674,20 @@ def api_get_staff_details(staff_id):
                 'working_days_str': working_days_str,
                 'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
                 'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+                'shift_start_time_12h': schedule.shift_start_time.strftime('%I:%M %p') if schedule.shift_start_time else '',
+                'shift_end_time_12h': schedule.shift_end_time.strftime('%I:%M %p') if schedule.shift_end_time else '',
                 'break_time': schedule.break_time or '',
                 'priority': schedule.priority or 1,
                 'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
             })
-        
+
         return jsonify({
             'success': True,
             'staff': staff_data,
             'schedules': schedule_list,
             'schedules_count': len(schedule_list)
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -690,7 +698,7 @@ def save_daily_schedule():
     """Save schedule with day-by-day configuration"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         data = request.get_json()
         staff_id = data.get('staff_id')
@@ -698,25 +706,25 @@ def save_daily_schedule():
         description = data.get('description', '')
         priority = data.get('priority', 1)
         schedule_days = data.get('schedule_days', [])
-        
+
         if not staff_id or not schedule_name or not schedule_days:
             return jsonify({'error': 'Missing required data'}), 400
-        
+
         # Verify staff member exists
         staff = User.query.get(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         # Group consecutive days with same settings into ranges
         ranges_created = 0
         current_range = None
-        
+
         for day in schedule_days:
             if not day.get('working', False):
                 continue  # Skip non-working days
-            
+
             day_date = datetime.strptime(day['date'], '%Y-%m-%d').date()
-            
+
             # Convert day of week to boolean fields
             day_of_week = day_date.weekday()  # Monday = 0, Sunday = 6
             day_booleans = {
@@ -728,14 +736,14 @@ def save_daily_schedule():
                 'saturday': day_of_week == 5,
                 'sunday': day_of_week == 6
             }
-            
+
             # Check if we can extend current range or need to create new one
             if (current_range and 
                 current_range['end_date'] == day_date - timedelta(days=1) and
                 current_range['start_time'] == day.get('startTime') and
                 current_range['end_time'] == day.get('endTime') and
                 current_range['break_minutes'] == day.get('breakMinutes')):
-                
+
                 # Extend current range
                 current_range['end_date'] = day_date
                 # Update day boolean
@@ -747,7 +755,7 @@ def save_daily_schedule():
                 if current_range:
                     save_range(current_range, staff_id, schedule_name, description, priority)
                     ranges_created += 1
-                
+
                 # Start new range
                 current_range = {
                     'start_date': day_date,
@@ -757,20 +765,20 @@ def save_daily_schedule():
                     'break_minutes': day.get('breakMinutes', 60),
                     **day_booleans
                 }
-        
+
         # Save final range
         if current_range:
             save_range(current_range, staff_id, schedule_name, description, priority)
             ranges_created += 1
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Schedule saved successfully! Created {ranges_created} schedule range(s)',
             'ranges_created': ranges_created
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -779,12 +787,12 @@ def save_range(range_data, staff_id, schedule_name, description, priority):
     """Helper function to save a schedule range"""
     shift_start_time = None
     shift_end_time = None
-    
+
     if range_data.get('start_time'):
         shift_start_time = datetime.strptime(range_data['start_time'], '%H:%M').time()
     if range_data.get('end_time'):
         shift_end_time = datetime.strptime(range_data['end_time'], '%H:%M').time()
-    
+
     schedule_range = StaffScheduleRange(
         staff_id=staff_id,
         schedule_name=f"{schedule_name} ({range_data['start_date']} to {range_data['end_date']})",
@@ -803,7 +811,7 @@ def save_range(range_data, staff_id, schedule_name, description, priority):
         break_time=f"{range_data.get('break_minutes', 60)} minutes",
         priority=priority
     )
-    
+
     db.session.add(schedule_range)
 
 # Get all schedules from all staff members for management table
@@ -813,7 +821,7 @@ def api_get_all_schedules():
     """Get all existing schedules from all staff members for the management table"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         # Get all active schedules with staff information
         schedules = db.session.query(StaffScheduleRange, User).join(
@@ -822,7 +830,7 @@ def api_get_all_schedules():
             StaffScheduleRange.is_active == True,
             User.is_active == True
         ).order_by(User.first_name, User.last_name, StaffScheduleRange.start_date).all()
-        
+
         schedule_list = []
         for schedule, staff in schedules:
             # Get working days list
@@ -834,7 +842,7 @@ def api_get_all_schedules():
             if schedule.friday: working_days.append('Fri')
             if schedule.saturday: working_days.append('Sat')
             if schedule.sunday: working_days.append('Sun')
-            
+
             # Format working days string
             if len(working_days) == 7:
                 working_days_str = "All Days"
@@ -842,7 +850,7 @@ def api_get_all_schedules():
                 working_days_str = "Mon to Fri"
             else:
                 working_days_str = ", ".join(working_days)
-            
+
             schedule_list.append({
                 'id': schedule.id,
                 'staff_id': staff.id,
@@ -855,17 +863,19 @@ def api_get_all_schedules():
                 'working_days_str': working_days_str,
                 'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
                 'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
+                'shift_start_time_12h': schedule.shift_start_time.strftime('%I:%M %p') if schedule.shift_start_time else '',
+                'shift_end_time_12h': schedule.shift_end_time.strftime('%I:%M %p') if schedule.shift_end_time else '',
                 'break_time': schedule.break_time or '',
                 'priority': schedule.priority or 1,
                 'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
             })
-        
+
         return jsonify({
             'success': True,
             'schedules': schedule_list,
             'total_count': len(schedule_list)
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

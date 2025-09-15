@@ -129,9 +129,9 @@
                     <td>
                         <div class="time-range">
                             <i class="fas fa-clock me-1"></i>
-                            <span class="fw-bold">${formatTime12h(schedule.shift_start_time)}</span>
+                            <span class="fw-bold">${convert24To12Hour(schedule.shift_start_time)}</span>
                             <span class="text-muted mx-1">to</span>
-                            <span class="fw-bold">${formatTime12h(schedule.shift_end_time)}</span>
+                            <span class="fw-bold">${convert24To12Hour(schedule.shift_end_time)}</span>
                         </div>
                         ${schedule.break_time ? `<small class="text-muted d-block mt-1"><i class="fas fa-coffee me-1"></i>${schedule.break_time}</small>` : ''}
                         <div class="mt-1">
@@ -280,6 +280,29 @@
         } catch (error) {
             console.error('Time formatting error:', error);
             return timeString;
+        }
+    }
+
+    /**
+     * Convert 24-hour time to 12-hour format with AM/PM
+     */
+    function convert24To12Hour(time24) {
+        if (!time24) return '';
+        
+        try {
+            const [hours, minutes] = time24.split(':');
+            const hour24 = parseInt(hours, 10);
+            const min = parseInt(minutes, 10);
+            
+            if (isNaN(hour24) || isNaN(min)) return time24;
+            
+            const hour12 = hour24 === 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
+            const ampm = hour24 >= 12 ? 'PM' : 'AM';
+            
+            return `${hour12}:${min.toString().padStart(2, '0')} ${ampm}`;
+        } catch (error) {
+            console.error('Time conversion error:', error);
+            return time24;
         }
     }
 

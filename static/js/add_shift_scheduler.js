@@ -240,21 +240,25 @@
                         <input type="time" class="form-control form-control-sm time-input" 
                                data-field="startTime" data-index="${index}" 
                                value="${day.startTime}" ${day.working ? '' : 'disabled'}>
+                        <small class="text-muted d-block">${convert24To12Hour(day.startTime)}</small>
                     </td>
                     <td>
                         <input type="time" class="form-control form-control-sm time-input" 
                                data-field="endTime" data-index="${index}" 
                                value="${day.endTime}" ${day.working ? '' : 'disabled'}>
+                        <small class="text-muted d-block">${convert24To12Hour(day.endTime)}</small>
                     </td>
                     <td>
                         <input type="time" class="form-control form-control-sm time-input" 
                                data-field="breakStart" data-index="${index}" 
                                value="${day.breakStart}" ${day.working ? '' : 'disabled'}>
+                        <small class="text-muted d-block">${convert24To12Hour(day.breakStart)}</small>
                     </td>
                     <td>
                         <input type="time" class="form-control form-control-sm time-input" 
                                data-field="breakEnd" data-index="${index}" 
                                value="${day.breakEnd}" ${day.working ? '' : 'disabled'}>
+                        <small class="text-muted d-block">${convert24To12Hour(day.breakEnd)}</small>
                     </td>
                     <td>
                         <input type="number" class="form-control form-control-sm break-input" 
@@ -594,6 +598,19 @@
         const breakEnd = $('#defaultBreakEnd').val();
         const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
         $('#defaultBreak').val(breakMinutes);
+        
+        // Update 12-hour displays
+        $('#defaultBreakStartDisplay').text(convert24To12Hour(breakStart));
+        $('#defaultBreakEndDisplay').text(convert24To12Hour(breakEnd));
+    });
+
+    // Update 12-hour displays for default time inputs
+    $(document).on('change', '#defaultStartTime', function() {
+        $('#defaultStartTimeDisplay').text(convert24To12Hour($(this).val()));
+    });
+
+    $(document).on('change', '#defaultEndTime', function() {
+        $('#defaultEndTimeDisplay').text(convert24To12Hour($(this).val()));
     });
 
     // Update inputs when changed
@@ -605,6 +622,11 @@
         
         if (currentScheduleDays[index]) {
             currentScheduleDays[index][field] = value;
+            
+            // Update the 12-hour display next to time inputs
+            if (field === 'startTime' || field === 'endTime' || field === 'breakStart' || field === 'breakEnd') {
+                $input.next('small').text(convert24To12Hour(value));
+            }
             
             // Auto-calculate break minutes when break times change
             if (field === 'breakStart' || field === 'breakEnd') {
@@ -755,6 +777,56 @@
         const newMins = totalMinutes % 60;
         
         return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
+    }
+
+    /**
+     * Convert 24-hour time to 12-hour format with AM/PM
+     */
+    function convert24To12Hour(time24) {
+        if (!time24) return '';
+        
+        try {
+            const [hours, minutes] = time24.split(':');
+            const hour24 = parseInt(hours, 10);
+            const min = parseInt(minutes, 10);
+            
+            if (isNaN(hour24) || isNaN(min)) return time24;
+            
+            const hour12 = hour24 === 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
+            const ampm = hour24 >= 12 ? 'PM' : 'AM';
+            
+            return `${hour12}:${min.toString().padStart(2, '0')} ${ampm}`;
+        } catch (error) {
+            console.error('Time conversion error:', error);
+            return time24;
+        }
+    }
+
+    /**
+     * Convert 12-hour time with AM/PM to 24-hour format
+     */
+    function convert12To24Hour(time12) {
+        if (!time12) return '';
+        
+        try {
+            const match = time12.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+            if (!match) return time12;
+            
+            let hour = parseInt(match[1], 10);
+            const minute = match[2];
+            const ampm = match[3].toUpperCase();
+            
+            if (ampm === 'PM' && hour !== 12) {
+                hour += 12;
+            } else if (ampm === 'AM' && hour === 12) {
+                hour = 0;
+            }
+            
+            return `${hour.toString().padStart(2, '0')}:${minute}`;
+        } catch (error) {
+            console.error('Time conversion error:', error);
+            return time12;
+        }
     }
 
     console.log('Add Shift Scheduler JavaScript fully loaded');

@@ -11,7 +11,7 @@
                     <i class="fas fa-users-cog me-2"></i>Staff Availability - Quick Book
                 </h1>
                 <div class="d-flex gap-2">
-                    <input type="date" class="form-control" id="dateSelector" value="{{ selected_date.strftime('%Y-%m-%d') }}" 
+                    <input type="date" class="form-control" id="dateSelector" value="{{ selected_date.strftime('%Y-%m-%d') }}"
                            onchange="window.location.href='{{ url_for('staff_availability') }}?date=' + this.value">
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#quickBookModal">
                         <i class="fas fa-plus me-2"></i>Quick Book
@@ -100,7 +100,7 @@
                                         {% set schedule = staff_schedules.get(staff_member.id) %}
                                         {% if schedule %}
                                         <div class="badge bg-info mt-1">
-                                            {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} - 
+                                            {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} -
                                             {{ schedule.shift_end.strftime('%I:%M %p') if schedule.shift_end else 'N/A' }}
                                         </div>
                                         {% else %}
@@ -112,7 +112,7 @@
                                     {% set availability = staff_availability.get(slot_key, {'status': 'available'}) %}
                                     <td class="text-center p-1">
                                         {% if availability.status == 'booked' %}
-                                        <div class="bg-danger text-white p-2 rounded small appointment-slot" 
+                                        <div class="bg-danger text-white p-2 rounded small appointment-slot"
                                              data-appointment-id="{{ availability.appointment.id if availability.appointment else '' }}"
                                              style="cursor: pointer;"
                                              onclick="showAppointmentDetails({{ availability.appointment.id if availability.appointment else 'null' }})">
@@ -130,7 +130,7 @@
                                             <div class="small">{{ availability.reason }}</div>
                                         </div>
                                         {% else %}
-                                        <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn" 
+                                        <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn"
                                                 data-staff-id="{{ staff_member.id }}"
                                                 data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
                                                 data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
@@ -301,12 +301,21 @@ function showAppointmentDetails(appointmentId) {
         }
 
         const appointment = data;
+        // Convert times to 12-hour format with AM/PM
+        const formatTime = (timeString) => {
+            if (!timeString) return 'N/A';
+            const [hours, minutes] = timeString.split(':').map(Number);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+            return `${formattedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+        };
+
         const details = `
 Appointment Details:
 - Client: ${appointment.client.name}
 - Service: ${appointment.service.name}
 - Staff: ${appointment.staff.name}
-- Time: ${appointment.appointment_date}
+- Time: ${formatTime(appointment.appointment_time)}
 - Status: ${appointment.status}
 - Amount: $${appointment.amount}
 ${appointment.notes ? '- Notes: ' + appointment.notes : ''}

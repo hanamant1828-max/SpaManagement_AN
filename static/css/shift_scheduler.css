@@ -1019,3 +1019,25 @@ body {
     border-color: var(--primary-color);
     background: var(--surface-tertiary);
 }
+
+/* Custom styles for shift scheduler */
+.shift-scheduler-container {
+    padding: 0;
+}
+
+/* 12-hour time display styles */
+.time-display-12h {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+.time-input-group {
+    position: relative;
+}
+
+.time-input-group small {
+    font-size: 0.75em;
+    color: #6c757d;
+    margin-top: 2px;
+}
