@@ -277,14 +277,14 @@ def calendar_booking():
                 # Extract break times from format like "60 minutes (13:00 - 14:00)"
                 import re
                 print(f"Parsing break time for staff {staff.id}: {schedule.break_time}")
-                
+
                 # Try multiple patterns for break time parsing
                 patterns = [
                     r'(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})',  # HH:MM - HH:MM
                     r'\((\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\)',  # (HH:MM - HH:MM)
                     r'(\d{1,2}:\d{2})\s*to\s*(\d{1,2}:\d{2})',  # HH:MM to HH:MM
                 ]
-                
+
                 for pattern in patterns:
                     match = re.search(pattern, schedule.break_time)
                     if match:
@@ -296,10 +296,10 @@ def calendar_booking():
                         except ValueError as e:
                             print(f"Error parsing break time: {e}")
                             continue
-            
+
             # Check for absence status (could be added as a field later)
             is_absent = False  # This could be enhanced with absence tracking
-            
+
             staff_schedules[staff.id] = {
                 'shift_start': schedule.shift_start_time,
                 'shift_end': schedule.shift_end_time,
@@ -329,7 +329,7 @@ def calendar_booking():
     time_slots = []
     start_hour = 8
     end_hour = 20
-    
+
     for hour in range(start_hour, end_hour):
         for minutes in [0, 30]:
             slot_time = datetime.combine(selected_date, datetime.min.time().replace(hour=hour, minute=minutes))
@@ -392,7 +392,7 @@ def calendar_booking():
                     }
                     continue
 
-            # Check if time slot is during break time (BEFORE checking for bookings)
+            # Check if time slot is during break time (CRITICAL: MUST BE BEFORE booking checks)
             if break_start and break_end:
                 if break_start <= slot_time < break_end:
                     break_start_12h = break_start.strftime('%I:%M %p')
@@ -406,7 +406,7 @@ def calendar_booking():
                     }
                     continue
 
-            # Check if this time slot is booked
+            # Check if this time slot is booked (only after break time check)
             booked_appointment = None
             for appointment in existing_appointments:
                 if (appointment.staff_id == staff.id and 
@@ -478,7 +478,7 @@ def book_appointment_api():
 
         # Validate staff availability against shift scheduler
         from models import StaffScheduleRange, User
-        
+
         staff = User.query.get(data['staff_id'])
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
@@ -517,14 +517,14 @@ def book_appointment_api():
                 r'(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})',  # HH:MM - HH:MM
                 r'\((\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\)',  # (HH:MM - HH:MM)
             ]
-            
+
             for pattern in patterns:
                 match = re.search(pattern, schedule.break_time)
                 if match:
                     try:
                         break_start = datetime.strptime(match.group(1), '%H:%M').time()
                         break_end = datetime.strptime(match.group(2), '%H:%M').time()
-                        
+
                         if break_start <= appointment_time < break_end:
                             break_start_12h = break_start.strftime('%I:%M %p')
                             break_end_12h = break_end.strftime('%I:%M %p')
@@ -693,14 +693,14 @@ def staff_availability():
                 # Extract break times from format like "60 minutes (13:00 - 14:00)"
                 import re
                 print(f"Parsing break time for staff {staff.id}: {schedule.break_time}")
-                
+
                 # Try multiple patterns for break time parsing
                 patterns = [
                     r'(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})',  # HH:MM - HH:MM
                     r'\((\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\)',  # (HH:MM - HH:MM)
                     r'(\d{1,2}:\d{2})\s*to\s*(\d{1,2}:\d{2})',  # HH:MM to HH:MM
                 ]
-                
+
                 for pattern in patterns:
                     match = re.search(pattern, schedule.break_time)
                     if match:
@@ -712,10 +712,10 @@ def staff_availability():
                         except ValueError as e:
                             print(f"Error parsing break time: {e}")
                             continue
-            
+
             # Check for absence status (could be added as a field later)
             is_absent = False  # This could be enhanced with absence tracking
-            
+
             staff_schedules[staff.id] = {
                 'shift_start': schedule.shift_start_time,
                 'shift_end': schedule.shift_end_time,
@@ -820,7 +820,7 @@ def staff_availability():
                     }
                     continue
 
-            # Check if time slot is during break time (BEFORE checking for bookings)
+            # Check if time slot is during break time (CRITICAL: MUST BE BEFORE booking checks)
             if break_start and break_end:
                 if break_start <= slot_time < break_end:
                     break_start_12h = break_start.strftime('%I:%M %p')
@@ -834,7 +834,7 @@ def staff_availability():
                     }
                     continue
 
-            # Check if this time slot is booked
+            # Check if this time slot is booked (only after break time check)
             booked_appointment = None
             for appointment in existing_appointments:
                 if (appointment.staff_id == staff.id and 
