@@ -407,6 +407,46 @@ def edit_package(package_id):
 
             package.total_price = float(request.form.get('total_price', package.total_price))
 
+            # Handle services update
+            selected_services_json = request.form.get('selected_services')
+            if selected_services_json:
+                try:
+                    import json
+                    services_data = json.loads(selected_services_json)
+                    
+                    # Remove existing package services
+                    PackageService.query.filter_by(package_id=package_id).delete()
+                    
+                    # Add updated services
+                    total_sessions = 0
+                    for service_data in services_data:
+                        service = Service.query.get(service_data['service_id'])
+                        if service:
+                            sessions = service_data['sessions']
+                            service_discount = service_data['discount']
+                            
+                            original_price = service.price * sessions
+                            service_discount_amount = (original_price * service_discount) / 100
+                            discounted_price = original_price - service_discount_amount
+                            
+                            package_service = PackageService(
+                                package_id=package_id,
+                                service_id=service.id,
+                                sessions_included=sessions,
+                                service_discount=service_discount,
+                                original_price=original_price,
+                                discounted_price=discounted_price
+                            )
+                            db.session.add(package_service)
+                            total_sessions += sessions
+                    
+                    # Update total sessions if not prepaid credit
+                    if package.package_type != 'prepaid_credit':
+                        package.total_sessions = total_sessions
+                        
+                except json.JSONDecodeError:
+                    flash('Invalid services data format', 'warning')
+
             db.session.commit()
             flash(f'Package "{package.name}" updated successfully', 'success')
             return redirect(url_for('packages'))

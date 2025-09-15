@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}✅ Package Subscription Management{% endblock %}
@@ -390,14 +389,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const serviceItem = checkbox.closest('.service-item');
             const sessions = serviceItem.querySelector('.sessions-input').value || 1;
             const discount = serviceItem.querySelector('.discount-input').value || 0;
-            
+
             selectedServices.push({
                 service_id: parseInt(checkbox.value),
                 sessions: parseInt(sessions),
                 discount: parseFloat(discount)
             });
         });
-        
+
         document.getElementById('selected_services_json').value = JSON.stringify(selectedServices);
     }
 });
@@ -406,11 +405,11 @@ document.addEventListener('DOMContentLoaded', function() {
 function filterPackages(type) {
     const rows = document.querySelectorAll('[data-package-type]');
     const buttons = document.querySelectorAll('.btn-group .btn');
-    
+
     // Update active button
     buttons.forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
-    
+
     // Filter rows
     rows.forEach(row => {
         if (type === 'all' || row.dataset.packageType === type) {
@@ -426,7 +425,7 @@ document.getElementById('assignPackageModal').addEventListener('show.bs.modal', 
     const button = event.relatedTarget;
     const packageId = button.getAttribute('data-package-id');
     const packageName = button.getAttribute('data-package-name');
-    
+
     document.getElementById('assign_package_id').value = packageId;
     this.querySelector('.modal-title').textContent = 'Assign ' + packageName + ' to Client';
 });
@@ -434,14 +433,14 @@ document.getElementById('assignPackageModal').addEventListener('show.bs.modal', 
 function assignPackage() {
     const form = document.getElementById('assignPackageForm');
     const formData = new FormData(form);
-    
+
     const data = {};
     formData.forEach((value, key) => {
         if (value) data[key] = value;
     });
-    
+
     const packageId = document.getElementById('assign_package_id').value;
-    
+
     fetch('/packages/assign', {
         method: 'POST',
         headers: {
@@ -581,52 +580,57 @@ function assignPackage() {
 <script>
 // Edit package functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle edit package modals
     {% for package in packages %}
-    const editModal{{ package.id }} = document.getElementById('editPackageModal{{ package.id }}');
-    if (editModal{{ package.id }}) {
-        // Handle service checkbox changes for edit modal
-        editModal{{ package.id }}.querySelectorAll('.service-checkbox-edit').forEach(function(checkbox) {
-            checkbox.addEventListener('change', function() {
-                const serviceOptions = this.closest('.service-item').querySelector('.service-options');
-                if (this.checked) {
-                    serviceOptions.style.display = 'block';
-                } else {
-                    serviceOptions.style.display = 'none';
-                }
-                updateSelectedServicesEdit{{ package.id }}();
+    (function(packageId) {
+        const editModal = document.getElementById('editPackageModal' + packageId);
+        if (editModal) {
+            // Handle service checkbox changes for edit modal
+            editModal.querySelectorAll('.service-checkbox-edit').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    const serviceOptions = this.closest('.service-item').querySelector('.service-options');
+                    if (this.checked) {
+                        serviceOptions.style.display = 'block';
+                    } else {
+                        serviceOptions.style.display = 'none';
+                    }
+                    updateSelectedServicesEdit(packageId);
+                });
             });
-        });
 
-        // Update selected services when inputs change
-        editModal{{ package.id }}.querySelectorAll('.sessions-input-edit, .discount-input-edit').forEach(function(input) {
-            input.addEventListener('input', function() {
-                updateSelectedServicesEdit{{ package.id }}();
+            // Update selected services when inputs change
+            editModal.querySelectorAll('.sessions-input-edit, .discount-input-edit').forEach(function(input) {
+                input.addEventListener('input', function() {
+                    updateSelectedServicesEdit(packageId);
+                });
             });
-        });
 
-        function updateSelectedServicesEdit{{ package.id }}() {
+            // Initialize on modal show
+            editModal.addEventListener('shown.bs.modal', function() {
+                updateSelectedServicesEdit(packageId);
+            });
+        }
+
+        function updateSelectedServicesEdit(pkgId) {
+            const modal = document.getElementById('editPackageModal' + pkgId);
             const selectedServices = [];
-            editModal{{ package.id }}.querySelectorAll('.service-checkbox-edit:checked').forEach(function(checkbox) {
+            modal.querySelectorAll('.service-checkbox-edit:checked').forEach(function(checkbox) {
                 const serviceItem = checkbox.closest('.service-item');
                 const sessions = serviceItem.querySelector('.sessions-input-edit').value || 1;
                 const discount = serviceItem.querySelector('.discount-input-edit').value || 0;
-                
+
                 selectedServices.push({
                     service_id: parseInt(checkbox.value),
                     sessions: parseInt(sessions),
                     discount: parseFloat(discount)
                 });
             });
-            
-            document.getElementById('selected_services_json_edit_{{ package.id }}').value = JSON.stringify(selectedServices);
-        }
 
-        // Initialize on modal show
-        editModal{{ package.id }}.addEventListener('shown.bs.modal', function() {
-            updateSelectedServicesEdit{{ package.id }}();
-        });
-    }
+            const hiddenField = document.getElementById('selected_services_json_edit_' + pkgId);
+            if (hiddenField) {
+                hiddenField.value = JSON.stringify(selectedServices);
+            }
+        }
+    })({{ package.id }});
     {% endfor %}
 });
 </script>
