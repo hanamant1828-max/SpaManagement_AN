@@ -687,19 +687,19 @@ def staff_availability():
                         'shift_times': f'{shift_start_12h} - {shift_end_12h}'
                     }
                     continue
-                
-                # Check if time slot is during break time
-                if break_start and break_end:
-                    if break_start <= slot_time < break_end:
-                        break_start_12h = break_start.strftime('%I:%M %p')
-                        break_end_12h = break_end.strftime('%I:%M %p')
-                        staff_availability[slot_key] = {
-                            'status': 'break',
-                            'reason': f'Break time ({break_start_12h} - {break_end_12h})',
-                            'display_text': 'Break',
-                            'break_times': f'{break_start_12h} - {break_end_12h}'
-                        }
-                        continue
+
+            # Check if time slot is during break time (BEFORE checking for bookings)
+            if break_start and break_end:
+                if break_start <= slot_time < break_end:
+                    break_start_12h = break_start.strftime('%I:%M %p')
+                    break_end_12h = break_end.strftime('%I:%M %p')
+                    staff_availability[slot_key] = {
+                        'status': 'break',
+                        'reason': f'Break time ({break_start_12h} - {break_end_12h})',
+                        'display_text': 'Break Time',
+                        'break_times': f'{break_start_12h} - {break_end_12h}'
+                    }
+                    continue
 
             # Check if this time slot is booked
             booked_appointment = None
