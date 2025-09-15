@@ -57,26 +57,12 @@ task = "shell.exec"
 args = "python main.py"
 
 [[workflows.workflow]]
-name = "Start Spa System"
-author = 47524500
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-
-[[workflows.workflow]]
 name = "Project"
 mode = "parallel"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Spa Management System"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Flask App"
 args = "Spa Management System"
 
 [[workflows.workflow]]
@@ -91,28 +77,12 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
-[[workflows.workflow]]
-name = "Flask App"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "uv run python main.py"
-waitForPort = 5000
-
 [[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 41413
-externalPort = 3001
-
-[[ports]]
-localPort = 42761
+localPort = 39757
 externalPort = 3000
 
 [agent]
