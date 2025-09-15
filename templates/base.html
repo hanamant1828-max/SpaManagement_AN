@@ -149,17 +149,11 @@
                     {% endif %}
 
                     {% if true %}
-                    <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-gift me-2"></i><span>Packages</span>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('packages') }}">All Packages</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('prepaid_packages') }}">Prepaid Packages</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('simple_package_creation') }}">Create Simple Package</a></li>
-                            </ul>
-                        </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('packages') }}">
+                            <i class="fas fa-gift me-2"></i><span>Professional Packages</span>
+                        </a>
+                    </li>
                     {% endif %}
 
                     {% if true %}
