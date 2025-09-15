@@ -36,10 +36,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Initialize the app with the extension
 db.init_app(app)
 
-# Set db instance in models module to avoid circular imports
-import models
-models.db = db
-
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)

@@ -4,8 +4,8 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 
-# Initialize db as None, will be set by app.py after SQLAlchemy initialization
-db = None
+# Get db from app but only when needed to avoid circular imports
+from app import db
 
 # Inventory models are imported separately to avoid circular imports
 

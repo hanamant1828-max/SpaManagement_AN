@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 
 [workflows]
-runButton = "Run Fixed App"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -82,13 +82,13 @@ args = "Flask App"
 name = "Spa Management System"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "uv run python main.py"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Flask App"
@@ -125,8 +125,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 41413
-externalPort = 3001
+localPort = 38933
+externalPort = 3000
 
 [[ports]]
 localPort = 46583
