@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 
 [workflows]
-runButton = "Project"
+runButton = "Run Spa Management"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -114,6 +114,15 @@ args = "python main.py"
 [[workflows.workflow]]
 name = "Run Fixed App"
 author = 47588214
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+
+[[workflows.workflow]]
+name = "Run Spa Management"
+author = 47609431
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
