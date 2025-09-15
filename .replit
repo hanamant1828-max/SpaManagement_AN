@@ -126,9 +126,5 @@ args = "python main.py"
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 36435
-externalPort = 3001
-
 [agent]
 expertMode = true
