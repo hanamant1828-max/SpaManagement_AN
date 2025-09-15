@@ -129,9 +129,9 @@
                     <td>
                         <div class="time-range">
                             <i class="fas fa-clock me-1"></i>
-                            <span class="fw-bold">${schedule.shift_start_time || 'N/A'}</span>
+                            <span class="fw-bold">${formatTime12h(schedule.shift_start_time)}</span>
                             <span class="text-muted mx-1">to</span>
-                            <span class="fw-bold">${schedule.shift_end_time || 'N/A'}</span>
+                            <span class="fw-bold">${formatTime12h(schedule.shift_end_time)}</span>
                         </div>
                         ${schedule.break_time ? `<small class="text-muted d-block mt-1"><i class="fas fa-coffee me-1"></i>${schedule.break_time}</small>` : ''}
                         <div class="mt-1">
@@ -255,6 +255,31 @@
         } catch (e) {
             console.error("Error formatting date:", dateString, e);
             return 'Error';
+        }
+    }
+
+    /**
+     * Format time from 24-hour to 12-hour format
+     */
+    function formatTime12h(timeString) {
+        if (!timeString) return 'N/A';
+        try {
+            // Parse HH:MM format
+            const [hours, minutes] = timeString.split(':');
+            if (!hours || !minutes) return timeString;
+            
+            const hour24 = parseInt(hours, 10);
+            const min = parseInt(minutes, 10);
+            
+            if (isNaN(hour24) || isNaN(min)) return timeString;
+            
+            const hour12 = hour24 === 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
+            const ampm = hour24 >= 12 ? 'PM' : 'AM';
+            
+            return `${hour12}:${min.toString().padStart(2, '0')} ${ampm}`;
+        } catch (error) {
+            console.error('Time formatting error:', error);
+            return timeString;
         }
     }
 

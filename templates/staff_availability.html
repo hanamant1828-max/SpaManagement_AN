@@ -100,8 +100,8 @@
                                         {% set schedule = staff_schedules.get(staff_member.id) %}
                                         {% if schedule %}
                                         <div class="badge bg-info mt-1">
-                                            {{ schedule.shift_start.strftime('%H:%M') if schedule.shift_start else 'N/A' }} - 
-                                            {{ schedule.shift_end.strftime('%H:%M') if schedule.shift_end else 'N/A' }}
+                                            {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} - 
+                                            {{ schedule.shift_end.strftime('%I:%M %p') if schedule.shift_end else 'N/A' }}
                                         </div>
                                         {% else %}
                                         <div class="badge bg-secondary mt-1">Not Scheduled</div>
@@ -135,6 +135,7 @@
                                                 data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
                                                 data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
                                                 data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
+                                                data-display-time="{{ time_slot.start_time.strftime('%I:%M %p') }}"
                                                 data-bs-toggle="modal" data-bs-target="#quickBookModal">
                                             <i class="fas fa-plus"></i> Book
                                         </button>
@@ -245,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Update modal title with staff and time info
             const modalTitle = document.querySelector('#quickBookModal .modal-title');
-            modalTitle.textContent = `Quick Book - ${this.dataset.staffName} at ${this.dataset.time}`;
+            modalTitle.textContent = `Quick Book - ${this.dataset.staffName} at ${this.dataset.displayTime}`;
         });
     });
 });
