@@ -29,15 +29,16 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database - PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
+# Configure the database - SQLite for demo
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spa_management.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize the app with the extension
 db.init_app(app)
+
+# Set db instance in models module to avoid circular imports
+import models
+models.db = db
 
 # Initialize Flask-Login
 login_manager = LoginManager()
