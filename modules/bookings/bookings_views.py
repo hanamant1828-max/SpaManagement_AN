@@ -12,6 +12,8 @@ from .bookings_queries import (
     delete_appointment, get_appointment_by_id, get_time_slots,
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
+# Import models
+from models import Appointment, Customer, Service, User
 # Late imports to avoid circular dependency
 
 @app.route('/bookings')
