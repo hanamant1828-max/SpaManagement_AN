@@ -140,6 +140,8 @@
                 working: !isWeekend, // Default: weekdays working, weekends off
                 startTime: '09:00',
                 endTime: '17:00',
+                breakStart: '13:00',
+                breakEnd: '14:00',
                 breakMinutes: 60,
                 notes: ''
             });
@@ -245,9 +247,19 @@
                                value="${day.endTime}" ${day.working ? '' : 'disabled'}>
                     </td>
                     <td>
+                        <input type="time" class="form-control form-control-sm time-input" 
+                               data-field="breakStart" data-index="${index}" 
+                               value="${day.breakStart}" ${day.working ? '' : 'disabled'}>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm time-input" 
+                               data-field="breakEnd" data-index="${index}" 
+                               value="${day.breakEnd}" ${day.working ? '' : 'disabled'}>
+                    </td>
+                    <td>
                         <input type="number" class="form-control form-control-sm break-input" 
                                data-field="breakMinutes" data-index="${index}" 
-                               value="${day.breakMinutes}" min="0" max="480" ${day.working ? '' : 'disabled'}>
+                               value="${day.breakMinutes}" min="0" max="480" readonly ${day.working ? '' : 'disabled'}>
                     </td>
                     <td class="text-center">
                         <div class="form-check form-switch">
@@ -318,7 +330,8 @@
     function applyToAllDays() {
         const startTime = $('#defaultStartTime').val();
         const endTime = $('#defaultEndTime').val();
-        const breakMinutes = $('#defaultBreak').val();
+        const breakStart = $('#defaultBreakStart').val();
+        const breakEnd = $('#defaultBreakEnd').val();
 
         if (!startTime || !endTime) {
             showAlert('Please set default start and end times', 'warning');
@@ -330,21 +343,48 @@
             return;
         }
 
+        if (breakStart && breakEnd && breakStart >= breakEnd) {
+            showAlert('Break end time must be after break start time', 'warning');
+            return;
+        }
+
+        // Calculate break minutes
+        const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
+
         currentScheduleDays.forEach((day, index) => {
             if (day.working) {
                 day.startTime = startTime;
                 day.endTime = endTime;
-                day.breakMinutes = parseInt(breakMinutes);
+                day.breakStart = breakStart;
+                day.breakEnd = breakEnd;
+                day.breakMinutes = breakMinutes;
 
                 // Update inputs
                 $(`input[data-field="startTime"][data-index="${index}"]`).val(startTime);
                 $(`input[data-field="endTime"][data-index="${index}"]`).val(endTime);
+                $(`input[data-field="breakStart"][data-index="${index}"]`).val(breakStart);
+                $(`input[data-field="breakEnd"][data-index="${index}"]`).val(breakEnd);
                 $(`input[data-field="breakMinutes"][data-index="${index}"]`).val(breakMinutes);
             }
         });
 
         showAlert('Settings applied to all working days', 'success');
         updateReviewSection();
+    }
+
+    /**
+     * Calculate break minutes from start and end times
+     */
+    function calculateBreakMinutes(startTime, endTime) {
+        if (!startTime || !endTime) return 0;
+        
+        const start = new Date(`2000-01-01T${startTime}:00`);
+        const end = new Date(`2000-01-01T${endTime}:00`);
+        
+        const diffMs = end - start;
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        
+        return diffMinutes > 0 ? diffMinutes : 0;
     }
 
     /**
@@ -373,11 +413,15 @@
     function applyDefaults() {
         const startTime = $('#defaultStartTime').val();
         const endTime = $('#defaultEndTime').val();
-        const breakMinutes = $('#defaultBreak').val();
+        const breakStart = $('#defaultBreakStart').val();
+        const breakEnd = $('#defaultBreakEnd').val();
+        const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
 
         // Update all time inputs with defaults
         $('.time-input[data-field="startTime"]').val(startTime);
         $('.time-input[data-field="endTime"]').val(endTime);
+        $('.time-input[data-field="breakStart"]').val(breakStart);
+        $('.time-input[data-field="breakEnd"]').val(breakEnd);
         $('.break-input').val(breakMinutes);
 
         // Update data
@@ -385,7 +429,9 @@
             if (day.working) {
                 day.startTime = startTime;
                 day.endTime = endTime;
-                day.breakMinutes = parseInt(breakMinutes);
+                day.breakStart = breakStart;
+                day.breakEnd = breakEnd;
+                day.breakMinutes = breakMinutes;
             }
         });
 
@@ -542,6 +588,14 @@
         }, 5000);
     }
 
+    // Auto-calculate break minutes when break start/end times change
+    $(document).on('change', '#defaultBreakStart, #defaultBreakEnd', function() {
+        const breakStart = $('#defaultBreakStart').val();
+        const breakEnd = $('#defaultBreakEnd').val();
+        const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
+        $('#defaultBreak').val(breakMinutes);
+    });
+
     // Update inputs when changed
     $(document).on('change', '.time-input, .break-input, .notes-input', function() {
         const $input = $(this);
@@ -551,6 +605,18 @@
         
         if (currentScheduleDays[index]) {
             currentScheduleDays[index][field] = value;
+            
+            // Auto-calculate break minutes when break times change
+            if (field === 'breakStart' || field === 'breakEnd') {
+                const breakStart = currentScheduleDays[index].breakStart;
+                const breakEnd = currentScheduleDays[index].breakEnd;
+                const breakMinutes = calculateBreakMinutes(breakStart, breakEnd);
+                currentScheduleDays[index].breakMinutes = breakMinutes;
+                
+                // Update the break minutes input
+                $(`input[data-field="breakMinutes"][data-index="${index}"]`).val(breakMinutes);
+            }
+            
             updateReviewSection();
         }
     });
@@ -633,6 +699,11 @@
             const dayKey = dayMapping[dayOfWeek];
             const isWorking = schedule[dayKey];
 
+            const breakMinutes = parseInt(schedule.break_time.match(/\d+/)?.[0] || '60');
+            // Default break times - can be enhanced later with actual break start/end from backend
+            const breakStart = '13:00';
+            const breakEnd = addMinutesToTime(breakStart, breakMinutes);
+
             days.push({
                 date: formatDateForInput(current),
                 dayName: dayName,
@@ -640,7 +711,9 @@
                 working: isWorking,
                 startTime: schedule.shift_start_time,
                 endTime: schedule.shift_end_time,
-                breakMinutes: parseInt(schedule.break_time.match(/\d+/)?.[0] || '60'),
+                breakStart: breakStart,
+                breakEnd: breakEnd,
+                breakMinutes: breakMinutes,
                 notes: ''
             });
             current.setDate(current.getDate() + 1);
@@ -670,6 +743,18 @@
             // Change bulk config panel for view mode
             $('#bulkConfigPanel').hide();
         }
+    }
+
+    /**
+     * Add minutes to a time string
+     */
+    function addMinutesToTime(timeString, minutes) {
+        const [hours, mins] = timeString.split(':').map(Number);
+        const totalMinutes = hours * 60 + mins + minutes;
+        const newHours = Math.floor(totalMinutes / 60) % 24;
+        const newMins = totalMinutes % 60;
+        
+        return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
     }
 
     console.log('Add Shift Scheduler JavaScript fully loaded');

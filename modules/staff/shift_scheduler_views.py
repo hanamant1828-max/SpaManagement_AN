@@ -176,10 +176,17 @@ def save_shift_schedule():
                 # Parse times
                 shift_start_time = None
                 shift_end_time = None
+                break_start_time = None
+                break_end_time = None
+                
                 if item.get('shift_start_time'):
                     shift_start_time = datetime.strptime(item['shift_start_time'], '%H:%M').time()
                 if item.get('shift_end_time'):
                     shift_end_time = datetime.strptime(item['shift_end_time'], '%H:%M').time()
+                if item.get('breakStart'):
+                    break_start_time = datetime.strptime(item['breakStart'], '%H:%M').time()
+                if item.get('breakEnd'):
+                    break_end_time = datetime.strptime(item['breakEnd'], '%H:%M').time()
                 
                 # Check if schedule already exists for this date range
                 existing_schedule = StaffScheduleRange.query.filter(
@@ -202,7 +209,15 @@ def save_shift_schedule():
                     existing_schedule.sunday = item.get('sunday', False)
                     existing_schedule.shift_start_time = shift_start_time
                     existing_schedule.shift_end_time = shift_end_time
-                    existing_schedule.break_time = item.get('break_time', '')
+                    # Format break time with start and end times
+                    break_start = item.get('breakStart', '')
+                    break_end = item.get('breakEnd', '')
+                    break_minutes = item.get('breakMinutes', 60)
+                    
+                    if break_start and break_end:
+                        existing_schedule.break_time = f"{break_minutes} minutes ({break_start} - {break_end})"
+                    else:
+                        existing_schedule.break_time = f"{break_minutes} minutes"
                     existing_schedule.priority = item.get('priority', 1)
                     existing_schedule.updated_at = datetime.utcnow()
                     updated_count += 1
@@ -223,7 +238,7 @@ def save_shift_schedule():
                         sunday=item.get('sunday', False),
                         shift_start_time=shift_start_time,
                         shift_end_time=shift_end_time,
-                        break_time=item.get('break_time', ''),
+                        break_time=f"{item.get('breakMinutes', 60)} minutes ({item.get('breakStart', '')} - {item.get('breakEnd', '')})" if item.get('breakStart') and item.get('breakEnd') else f"{item.get('breakMinutes', 60)} minutes",
                         priority=item.get('priority', 1)
                     )
                     db.session.add(new_schedule)

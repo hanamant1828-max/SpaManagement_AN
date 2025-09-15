@@ -155,10 +155,18 @@
                             <label class="form-label fw-bold">Default End Time</label>
                             <input type="time" class="form-control" id="defaultEndTime" value="17:00">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Default Break (minutes)</label>
-                            <input type="number" class="form-control" id="defaultBreak" value="60" min="0" max="480">
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Break Start</label>
+                            <input type="time" class="form-control" id="defaultBreakStart" value="13:00">
                         </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Break End</label>
+                            <input type="time" class="form-control" id="defaultBreakEnd" value="14:00">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Break (min)</label>
+                            <input type="number" class="form-control" id="defaultBreak" value="60" min="0" max="480" readonly>
+                        </div></div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-info w-100" id="applyDefaultsBtn">
                                 <i class="fas fa-download me-2"></i>Apply Defaults
@@ -177,9 +185,11 @@
                                 <th width="15%">Day of Week</th>
                                 <th width="15%">Start Time</th>
                                 <th width="15%">End Time</th>
-                                <th width="12%">Break (min)</th>
-                                <th width="10%" class="text-center">Working</th>
-                                <th width="13%">Notes</th>
+                                <th width="8%">Break Start</th>
+                                <th width="8%">Break End</th>
+                                <th width="6%">Break (min)</th>
+                                <th width="8%" class="text-center">Working</th>
+                                <th width="10%">Notes</th>
                             </tr>
                         </thead>
                         <tbody id="daysConfigBody">
