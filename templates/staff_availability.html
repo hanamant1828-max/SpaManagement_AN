@@ -75,9 +75,18 @@
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th>Time</th>
-                                    {% for staff_member in staff_members %}
-                                    <th class="text-center">
+                                    <th>Staff Member</th>
+                                    {% for time_slot in time_slots %}
+                                    <th class="text-center" style="min-width: 120px;">
+                                        <div class="fw-bold">{{ time_slot.start_time.strftime('%I:%M %p') }}</div>
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff_member in staff_members %}
+                                <tr>
+                                    <td class="fw-bold text-center" style="min-width: 180px;">
                                         <div>{{ staff_member.first_name }} {{ staff_member.last_name }}</div>
                                         <small class="text-muted">{{ staff_member.role }}</small>
                                         {% set schedule = staff_schedules.get(staff_member.id) %}
@@ -89,17 +98,8 @@
                                         {% else %}
                                         <div class="badge bg-secondary mt-1">Not Scheduled</div>
                                         {% endif %}
-                                    </th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for time_slot in time_slots %}
-                                <tr>
-                                    <td class="fw-bold">
-                                        {{ time_slot.start_time.strftime('%I:%M %p') }}
                                     </td>
-                                    {% for staff_member in staff_members %}
+                                    {% for time_slot in time_slots %}
                                     {% set slot_key = (staff_member.id, time_slot.start_time) %}
                                     {% set availability = staff_availability.get(slot_key, {'status': 'available'}) %}
                                     <td class="text-center p-1">
