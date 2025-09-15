@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Professional Package Management System{% endblock %}
@@ -105,7 +104,7 @@
                             <button class="nav-link" onclick="filterPackages('membership')">👑 Membership</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" onclick="filterPackages('student_offer')">🎓 Student Offers</button>
+                            <button class="nav-link" onclick="filterPackages('student_offer')">🎓 Student Offer</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" onclick="filterPackages('kitty_party')">🎉 Kitty Party</button>
@@ -156,6 +155,8 @@
                                                 <span class="badge bg-primary">🎓 Student Offer</span>
                                             {% elif package.package_type == 'kitty_party' %}
                                                 <span class="badge bg-danger">🎉 Kitty Party</span>
+                                            {% elif package.package_type == 'yearly_membership' %}
+                                                <span class="badge bg-dark">📅 Yearly Membership</span>
                                             {% else %}
                                                 <span class="badge bg-secondary">📋 Regular</span>
                                             {% endif %}
@@ -323,10 +324,10 @@
                                 <option value="regular">📋 Regular Package</option>
                                 <option value="prepaid_credit">💳 Prepaid Credit Package</option>
                                 <option value="prepaid_service">🎁 Prepaid Service Package</option>
-                                <option value="membership">👑 Membership Package</option>
+                                <option value="membership">👑 Club Membership</option>
+                                <option value="yearly_membership">📅 Yearly Salon Membership</option>
                                 <option value="student_offer">🎓 Student Offer</option>
                                 <option value="kitty_party">🎉 Kitty Party Package</option>
-                                <option value="yearly_membership">📅 Yearly Membership</option>
                             </select>
                         </div>
                     </div>
@@ -555,12 +556,12 @@
 // Package type field toggling
 function togglePackageFields() {
     const packageType = document.getElementById('package_type').value;
-    
+
     // Hide all type-specific fields
     document.getElementById('prepaid_credit_fields').style.display = 'none';
     document.getElementById('prepaid_service_fields').style.display = 'none';
     document.getElementById('membership_fields').style.display = 'none';
-    
+
     // Show relevant fields based on package type
     if (packageType === 'prepaid_credit') {
         document.getElementById('prepaid_credit_fields').style.display = 'block';
@@ -572,7 +573,10 @@ function togglePackageFields() {
     } else if (packageType === 'membership') {
         document.getElementById('membership_fields').style.display = 'block';
         document.getElementById('service_selection').style.display = 'block';
-    } else {
+    } else if (packageType === 'yearly_membership') {
+        document.getElementById('service_selection').style.display = 'block';
+    }
+    else {
         document.getElementById('service_selection').style.display = 'block';
     }
 }
@@ -581,10 +585,10 @@ function togglePackageFields() {
 function calculateCredit() {
     const prepaidAmount = parseFloat(document.querySelector('input[name="prepaid_amount"]').value) || 0;
     const bonusPercentage = parseFloat(document.querySelector('input[name="bonus_percentage"]').value) || 0;
-    
+
     const bonusAmount = (prepaidAmount * bonusPercentage) / 100;
     const creditAmount = prepaidAmount + bonusAmount;
-    
+
     document.querySelector('input[name="credit_amount"]').value = creditAmount.toFixed(2);
 }
 
@@ -592,7 +596,7 @@ function calculateCredit() {
 function calculateServiceTotal() {
     const paidSessions = parseInt(document.querySelector('input[name="paid_sessions"]').value) || 0;
     const freeSessions = parseInt(document.querySelector('input[name="free_sessions"]').value) || 0;
-    
+
     const totalSessions = paidSessions + freeSessions;
     document.querySelector('input[name="total_sessions_display"]').value = totalSessions;
 }
@@ -615,11 +619,11 @@ document.addEventListener('DOMContentLoaded', function() {
 function filterPackages(type) {
     const rows = document.querySelectorAll('[data-package-type]');
     const buttons = document.querySelectorAll('#packageTypeFilter .nav-link');
-    
+
     // Update active button
     buttons.forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
-    
+
     // Filter rows
     rows.forEach(row => {
         if (type === 'all' || row.dataset.packageType === type) {
@@ -635,7 +639,7 @@ function createQuickTemplates(type) {
     if (confirm(`Create all standard ${type.replace('_', ' ')} packages?`)) {
         const formData = new FormData();
         formData.append('template_type', type);
-        
+
         fetch('/packages/create-quick-templates', {
             method: 'POST',
             body: formData
@@ -656,11 +660,11 @@ function createQuickTemplates(type) {
 function assignPackage(packageId, packageName, packageType) {
     document.getElementById('assign_package_id').value = packageId;
     document.querySelector('#assignPackageModal .modal-title').textContent = `Assign ${packageName}`;
-    
+
     // Show package type specific info
     let infoHtml = `<div class="alert alert-info">Package Type: <strong>${packageType.replace('_', ' ').toUpperCase()}</strong></div>`;
     document.getElementById('package_info').innerHTML = infoHtml;
-    
+
     new bootstrap.Modal(document.getElementById('assignPackageModal')).show();
 }
 
@@ -668,7 +672,7 @@ function submitAssignment() {
     const form = document.getElementById('assignPackageForm');
     const formData = new FormData(form);
     const packageId = document.getElementById('assign_package_id').value;
-    
+
     fetch(`/packages/${packageId}/assign`, {
         method: 'POST',
         body: formData
