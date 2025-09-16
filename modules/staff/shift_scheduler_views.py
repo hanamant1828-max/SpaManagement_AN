@@ -187,12 +187,12 @@ def api_get_all_schedules():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # Get all shift managements with staff information
+        # Get all shift managements with staff information, ordered by most recent first
         schedules = db.session.query(ShiftManagement, User).join(
             User, ShiftManagement.staff_id == User.id
         ).filter(
             User.is_active == True
-        ).order_by(User.first_name, User.last_name, ShiftManagement.from_date).all()
+        ).order_by(ShiftManagement.created_at.desc(), User.first_name, User.last_name).all()
 
         # Group schedules by staff member
         staff_schedules = {}
@@ -265,6 +265,71 @@ def api_get_all_schedules():
             'success': True,
             'schedules': schedule_list,
             'total_count': len(schedule_list)
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API endpoint to get schedule details for view modal
+@shift_scheduler_bp.route('/api/staff/<int:staff_id>/schedule-details', methods=['GET'])
+@login_required
+def api_get_staff_schedule_details(staff_id):
+    """Get detailed schedule information for a staff member"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get staff information
+        staff = User.query.get(staff_id)
+        if not staff:
+            return jsonify({'error': 'Staff member not found'}), 404
+
+        # Get all shift managements for this staff
+        shift_managements = ShiftManagement.query.filter_by(staff_id=staff_id).order_by(ShiftManagement.from_date).all()
+        
+        # Get all shift logs for this staff
+        all_logs = []
+        for management in shift_managements:
+            logs = ShiftLogs.query.filter_by(shift_management_id=management.id).order_by(ShiftLogs.individual_date).all()
+            for log in logs:
+                all_logs.append({
+                    'range_id': management.id,
+                    'date': log.individual_date.strftime('%Y-%m-%d'),
+                    'day_name': log.individual_date.strftime('%A'),
+                    'is_working': True,
+                    'start_time_12h': log.shift_start_time.strftime('%I:%M %p') if log.shift_start_time else None,
+                    'end_time_12h': log.shift_end_time.strftime('%I:%M %p') if log.shift_end_time else None,
+                    'break_time_display': log.get_break_time_display(),
+                    'notes': '',
+                    'status': log.status
+                })
+
+        # Prepare schedule ranges
+        schedule_ranges = []
+        for management in shift_managements:
+            first_log = ShiftLogs.query.filter_by(shift_management_id=management.id).first()
+            
+            schedule_ranges.append({
+                'id': management.id,
+                'schedule_name': f"Shift {management.from_date.strftime('%Y-%m-%d')} to {management.to_date.strftime('%Y-%m-%d')}",
+                'start_date': management.from_date.strftime('%Y-%m-%d'),
+                'end_date': management.to_date.strftime('%Y-%m-%d'),
+                'shift_start_time_12h': first_log.shift_start_time.strftime('%I:%M %p') if first_log and first_log.shift_start_time else '',
+                'shift_end_time_12h': first_log.shift_end_time.strftime('%I:%M %p') if first_log and first_log.shift_end_time else '',
+                'working_days_str': 'Mon to Fri',  # Default display
+                'break_time': first_log.get_break_time_display() if first_log else 'No break',
+                'description': ''
+            })
+
+        return jsonify({
+            'success': True,
+            'staff': {
+                'id': staff.id,
+                'name': f"{staff.first_name} {staff.last_name}",
+                'role': staff.role
+            },
+            'schedule_ranges': schedule_ranges,
+            'daily_schedules': all_logs
         })
 
     except Exception as e:
