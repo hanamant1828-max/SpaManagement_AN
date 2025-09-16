@@ -135,14 +135,27 @@ def save_daily_schedule():
         from_date = datetime.strptime(working_days[0]['date'], '%Y-%m-%d').date()
         to_date = datetime.strptime(working_days[-1]['date'], '%Y-%m-%d').date()
 
-        # Create shift management entry
-        shift_management = ShiftManagement(
-            staff_id=staff_id,
-            from_date=from_date,
-            to_date=to_date
-        )
-        db.session.add(shift_management)
-        db.session.flush()  # Get the ID
+        # Check if shift management already exists for this staff member
+        existing_management = ShiftManagement.query.filter_by(staff_id=staff_id).first()
+        
+        if existing_management:
+            # Update existing entry - extend date range and clear old logs
+            existing_management.from_date = min(existing_management.from_date, from_date)
+            existing_management.to_date = max(existing_management.to_date, to_date)
+            existing_management.updated_at = datetime.utcnow()
+            
+            # Clear existing shift logs for this management entry
+            ShiftLogs.query.filter_by(shift_management_id=existing_management.id).delete()
+            shift_management = existing_management
+        else:
+            # Create new shift management entry
+            shift_management = ShiftManagement(
+                staff_id=staff_id,
+                from_date=from_date,
+                to_date=to_date
+            )
+            db.session.add(shift_management)
+            db.session.flush()  # Get the ID
 
         # Create shift logs for each working day
         logs_created = 0
@@ -194,38 +207,11 @@ def api_get_all_schedules():
             User.is_active == True
         ).order_by(ShiftManagement.created_at.desc(), User.first_name, User.last_name).all()
 
-        # Group schedules by staff member
-        staff_schedules = {}
-        for schedule, staff in schedules:
-            staff_key = f"{staff.id}_{staff.first_name}_{staff.last_name}"
-
-            if staff_key not in staff_schedules:
-                staff_schedules[staff_key] = {
-                    'staff_id': staff.id,
-                    'staff_name': f"{staff.first_name} {staff.last_name}",
-                    'schedules': [],
-                    'earliest_start': schedule.from_date,
-                    'latest_end': schedule.to_date,
-                    'total_ranges': 0
-                }
-
-            # Track earliest start and latest end dates
-            if schedule.from_date < staff_schedules[staff_key]['earliest_start']:
-                staff_schedules[staff_key]['earliest_start'] = schedule.from_date
-            if schedule.to_date > staff_schedules[staff_key]['latest_end']:
-                staff_schedules[staff_key]['latest_end'] = schedule.to_date
-
-            staff_schedules[staff_key]['schedules'].append(schedule)
-            staff_schedules[staff_key]['total_ranges'] += 1
-
-        # Create consolidated list
+        # Create schedule list directly - one entry per staff since we now have unique constraint
         schedule_list = []
-        for staff_key, data in staff_schedules.items():
-            # Get the most recent schedule for display info
-            latest_schedule = max(data['schedules'], key=lambda x: x.created_at)
-
+        for schedule, staff in schedules:
             # Get first shift log for working days info
-            first_log = ShiftLogs.query.filter_by(shift_management_id=latest_schedule.id).first()
+            first_log = ShiftLogs.query.filter_by(shift_management_id=schedule.id).first()
             
             # Default working days
             working_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
@@ -240,14 +226,17 @@ def api_get_all_schedules():
                 shift_end_time = first_log.shift_end_time.strftime('%H:%M') if first_log.shift_end_time else ''
                 break_time = first_log.get_break_time_display()
 
+            # Get total working days for this staff
+            total_logs = ShiftLogs.query.filter_by(shift_management_id=schedule.id).count()
+
             schedule_list.append({
-                'id': latest_schedule.id,
-                'staff_id': data['staff_id'],
-                'staff_name': data['staff_name'],
-                'schedule_name': f"Shift ({data['total_ranges']} range{'s' if data['total_ranges'] > 1 else ''})",
+                'id': schedule.id,
+                'staff_id': staff.id,
+                'staff_name': f"{staff.first_name} {staff.last_name}",
+                'schedule_name': f"Staff Schedule ({total_logs} days)",
                 'description': '',
-                'start_date': data['earliest_start'].strftime('%Y-%m-%d'),
-                'end_date': data['latest_end'].strftime('%Y-%m-%d'),
+                'start_date': schedule.from_date.strftime('%Y-%m-%d'),
+                'end_date': schedule.to_date.strftime('%Y-%m-%d'),
                 'working_days': working_days,
                 'working_days_str': working_days_str,
                 'shift_start_time': shift_start_time,
@@ -256,9 +245,9 @@ def api_get_all_schedules():
                 'shift_end_time_12h': first_log.shift_end_time.strftime('%I:%M %p') if first_log and first_log.shift_end_time else '',
                 'break_time': break_time,
                 'priority': 1,
-                'created_at': latest_schedule.created_at.strftime('%Y-%m-%d %H:%M') if latest_schedule.created_at else '',
-                'total_ranges': data['total_ranges'],
-                'is_consolidated': True
+                'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else '',
+                'total_working_days': total_logs,
+                'is_consolidated': False
             })
 
         return jsonify({
@@ -284,42 +273,45 @@ def api_get_staff_schedule_details(staff_id):
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
 
-        # Get all shift managements for this staff
-        shift_managements = ShiftManagement.query.filter_by(staff_id=staff_id).order_by(ShiftManagement.from_date).all()
+        # Get the single shift management for this staff
+        shift_management = ShiftManagement.query.filter_by(staff_id=staff_id).first()
+        
+        if not shift_management:
+            return jsonify({
+                'success': False,
+                'error': 'No schedule found for this staff member'
+            }), 404
         
         # Get all shift logs for this staff
+        logs = ShiftLogs.query.filter_by(shift_management_id=shift_management.id).order_by(ShiftLogs.individual_date).all()
         all_logs = []
-        for management in shift_managements:
-            logs = ShiftLogs.query.filter_by(shift_management_id=management.id).order_by(ShiftLogs.individual_date).all()
-            for log in logs:
-                all_logs.append({
-                    'range_id': management.id,
-                    'date': log.individual_date.strftime('%Y-%m-%d'),
-                    'day_name': log.individual_date.strftime('%A'),
-                    'is_working': True,
-                    'start_time_12h': log.shift_start_time.strftime('%I:%M %p') if log.shift_start_time else None,
-                    'end_time_12h': log.shift_end_time.strftime('%I:%M %p') if log.shift_end_time else None,
-                    'break_time_display': log.get_break_time_display(),
-                    'notes': '',
-                    'status': log.status
-                })
-
-        # Prepare schedule ranges
-        schedule_ranges = []
-        for management in shift_managements:
-            first_log = ShiftLogs.query.filter_by(shift_management_id=management.id).first()
-            
-            schedule_ranges.append({
-                'id': management.id,
-                'schedule_name': f"Shift {management.from_date.strftime('%Y-%m-%d')} to {management.to_date.strftime('%Y-%m-%d')}",
-                'start_date': management.from_date.strftime('%Y-%m-%d'),
-                'end_date': management.to_date.strftime('%Y-%m-%d'),
-                'shift_start_time_12h': first_log.shift_start_time.strftime('%I:%M %p') if first_log and first_log.shift_start_time else '',
-                'shift_end_time_12h': first_log.shift_end_time.strftime('%I:%M %p') if first_log and first_log.shift_end_time else '',
-                'working_days_str': 'Mon to Fri',  # Default display
-                'break_time': first_log.get_break_time_display() if first_log else 'No break',
-                'description': ''
+        for log in logs:
+            all_logs.append({
+                'range_id': shift_management.id,
+                'date': log.individual_date.strftime('%Y-%m-%d'),
+                'day_name': log.individual_date.strftime('%A'),
+                'is_working': True,
+                'start_time_12h': log.shift_start_time.strftime('%I:%M %p') if log.shift_start_time else None,
+                'end_time_12h': log.shift_end_time.strftime('%I:%M %p') if log.shift_end_time else None,
+                'break_time_display': log.get_break_time_display(),
+                'notes': '',
+                'status': log.status
             })
+
+        # Prepare schedule range (single entry)
+        first_log = ShiftLogs.query.filter_by(shift_management_id=shift_management.id).first()
+        
+        schedule_ranges = [{
+            'id': shift_management.id,
+            'schedule_name': f"Staff Schedule ({shift_management.from_date.strftime('%Y-%m-%d')} to {shift_management.to_date.strftime('%Y-%m-%d')})",
+            'start_date': shift_management.from_date.strftime('%Y-%m-%d'),
+            'end_date': shift_management.to_date.strftime('%Y-%m-%d'),
+            'shift_start_time_12h': first_log.shift_start_time.strftime('%I:%M %p') if first_log and first_log.shift_start_time else '',
+            'shift_end_time_12h': first_log.shift_end_time.strftime('%I:%M %p') if first_log and first_log.shift_end_time else '',
+            'working_days_str': f'Total {len(logs)} working days',
+            'break_time': first_log.get_break_time_display() if first_log else 'No break',
+            'description': f'Last updated: {shift_management.updated_at.strftime("%Y-%m-%d %H:%M") if shift_management.updated_at else "N/A"}'
+        }]
 
         return jsonify({
             'success': True,

@@ -235,18 +235,19 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
 class ShiftManagement(db.Model):
-    """New shift management table for date ranges"""
+    """New shift management table for date ranges - One entry per staff member"""
     __tablename__ = 'shift_management'
 
     id = db.Column(db.Integer, primary_key=True)
-    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
     from_date = db.Column(db.Date, nullable=False)
     to_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     shift_logs = db.relationship('ShiftLogs', backref='shift_management', lazy=True, cascade='all, delete-orphan')
-    staff_member = db.relationship('User', backref='shift_managements', lazy=True)
+    staff_member = db.relationship('User', backref='shift_management', uselist=False, lazy=True)
 
     def __repr__(self):
         return f'<ShiftManagement {self.from_date} to {self.to_date} - Staff {self.staff_id}>'
