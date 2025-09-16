@@ -504,6 +504,123 @@
     }
 
     /**
+     * View database records - shows SQL INSERT statements
+     */
+    function viewDatabaseRecords() {
+        showLoadingModal('Loading database records...');
+
+        $.ajax({
+            url: '/api/database-records',
+            method: 'GET',
+            success: function(response) {
+                hideLoadingModal();
+                if (response.success) {
+                    showDatabaseRecordsModal(response);
+                } else {
+                    showAlert('Error loading database records: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error loading database records:', error);
+                showAlert('Error loading database records. Please try again.', 'danger');
+            }
+        });
+    }
+
+    /**
+     * Show database records modal with SQL statements
+     */
+    function showDatabaseRecordsModal(data) {
+        let modalContent = `
+            <div class="modal fade" id="databaseRecordsModal" tabindex="-1" aria-labelledby="databaseRecordsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="databaseRecordsModalLabel">
+                                <i class="fas fa-database me-2"></i>
+                                Database Records - SQL INSERT Statements
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <strong>Summary:</strong> ${data.summary}
+                            </div>
+                            
+                            <!-- Shift Management Records -->
+                            <h6 class="mb-3">
+                                <i class="fas fa-table me-2"></i>
+                                shift_management table (${data.total_management_records} records):
+                            </h6>
+                            <div class="card mb-4">
+                                <div class="card-body">
+        `;
+
+        data.management_records.forEach((record, index) => {
+            modalContent += `
+                <div class="mb-3">
+                    <strong>Record ${index + 1}:</strong>
+                    <div class="bg-light p-3 mt-2" style="font-family: 'Courier New', monospace; font-size: 0.9em;">
+                        <code>${record.sql_statement}</code>
+                    </div>
+                    <small class="text-muted">
+                        -- Staff: ${record.record_data.staff_name} | Period: ${record.record_data.from_date} to ${record.record_data.to_date}
+                    </small>
+                </div>
+            `;
+        });
+
+        modalContent += `
+                                </div>
+                            </div>
+
+                            <!-- Shift Logs Records -->
+                            <h6 class="mb-3">
+                                <i class="fas fa-calendar me-2"></i>
+                                shift_logs table (${data.total_log_records} records - individual working days):
+                            </h6>
+                            <div class="card mb-4">
+                                <div class="card-body">
+        `;
+
+        data.log_records.forEach((record, index) => {
+            modalContent += `
+                <div class="mb-3">
+                    <strong>${record.record_data.day_name}, ${record.record_data.individual_date}:</strong>
+                    <div class="bg-light p-3 mt-2" style="font-family: 'Courier New', monospace; font-size: 0.9em;">
+                        <code>${record.sql_statement}</code>
+                    </div>
+                    <small class="text-muted">
+                        -- Shift: ${record.record_data.shift_start_time} to ${record.record_data.shift_end_time} | 
+                        Break: ${record.record_data.break_start_time || 'None'} to ${record.record_data.break_end_time || 'None'}
+                    </small>
+                </div>
+            `;
+        });
+
+        modalContent += `
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        $('#databaseRecordsModal').remove();
+        
+        // Add modal to body and show
+        $('body').append(modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('databaseRecordsModal'));
+        modal.show();
+    }
+
+    /**
      * Show alert message
      */
     function showAlert(message, type = 'success') {
