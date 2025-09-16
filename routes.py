@@ -74,8 +74,6 @@ try:
     from modules.clients import clients_views
     from modules.services import services_views
     from modules.inventory import views as inventory_views
-    from modules.staff.shift_scheduler_views import shift_scheduler_bp
-    app.register_blueprint(shift_scheduler_bp)
     from modules.expenses import expenses_views
     from modules.reports import reports_views
     from modules.packages import packages_views
