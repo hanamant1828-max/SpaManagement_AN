@@ -13,7 +13,7 @@ from .bookings_queries import (
     get_appointment_stats, get_staff_schedule, get_appointments_by_date_range
 )
 # Import models
-from models import Appointment, Customer, Service, User, StaffScheduleRange
+from models import Appointment, Customer, Service, User, ShiftManagement, ShiftLogs
 # Late imports to avoid circular dependency
 from sqlalchemy import func
 import re # Import re for regular expressions
@@ -22,62 +22,65 @@ import re # Import re for regular expressions
 def get_staff_schedule_for_date(staff_id, target_date):
     """Get the detailed schedule for a staff member on a specific date"""
     try:
-        from models import StaffDailySchedule
-
-        # First try to get specific daily schedule
-        daily_schedule = StaffDailySchedule.query.filter(
-            StaffDailySchedule.staff_id == staff_id,
-            StaffDailySchedule.schedule_date == target_date,
-            StaffDailySchedule.is_active == True
+        # Get shift management for this staff member and date
+        shift_management = ShiftManagement.query.filter(
+            ShiftManagement.staff_id == staff_id,
+            ShiftManagement.from_date <= target_date,
+            ShiftManagement.to_date >= target_date
         ).first()
 
-        if daily_schedule:
-            return {
-                'schedule_id': daily_schedule.schedule_range_id,
-                'daily_schedule_id': daily_schedule.id,
-                'schedule_name': f'Daily Schedule ({target_date})',
-                'shift_start_time': daily_schedule.start_time,
-                'shift_end_time': daily_schedule.end_time,
-                'break_start_time': daily_schedule.break_start_time,
-                'break_end_time': daily_schedule.break_end_time,
-                'break_duration_minutes': daily_schedule.break_duration_minutes,
-                'break_time': daily_schedule.get_break_time_display(),
-                'is_working_day': daily_schedule.is_working,
-                'notes': daily_schedule.notes or ''
-            }
+        if shift_management:
+            # Get specific shift log for this date
+            shift_log = ShiftLogs.query.filter(
+                ShiftLogs.shift_management_id == shift_management.id,
+                ShiftLogs.individual_date == target_date
+            ).first()
 
-        # Fallback to range-based schedule if no daily schedule found
-        schedules = StaffScheduleRange.query.filter(
-            StaffScheduleRange.staff_id == staff_id,
-            StaffScheduleRange.is_active == True,
-            StaffScheduleRange.start_date <= target_date,
-            StaffScheduleRange.end_date >= target_date
-        ).order_by(StaffScheduleRange.priority.desc()).all()
+            if shift_log:
+                return {
+                    'schedule_id': shift_management.id,
+                    'daily_schedule_id': shift_log.id,
+                    'schedule_name': f'Shift {target_date}',
+                    'shift_start_time': shift_log.shift_start_time,
+                    'shift_end_time': shift_log.shift_end_time,
+                    'break_start_time': shift_log.break_start_time,
+                    'break_end_time': shift_log.break_end_time,
+                    'break_duration_minutes': 0,
+                    'break_time': shift_log.get_break_time_display(),
+                    'is_working_day': shift_log.status in ['scheduled', 'completed'],
+                    'notes': ''
+                }
 
-        if not schedules:
+        # Fallback to new shift management schema
+        shift_management = ShiftManagement.query.filter(
+            ShiftManagement.staff_id == staff_id,
+            ShiftManagement.from_date <= target_date,
+            ShiftManagement.to_date >= target_date
+        ).first()
+
+        if not shift_management:
             return None
 
-        schedule = schedules[0]
+        # Get shift log for this specific date
+        shift_log = ShiftLogs.query.filter(
+            ShiftLogs.shift_management_id == shift_management.id,
+            ShiftLogs.individual_date == target_date
+        ).first()
 
-        # Check if this day is a working day according to the schedule
-        weekday = target_date.weekday()  # Monday = 0, Sunday = 6
-        working_days = [schedule.monday, schedule.tuesday, schedule.wednesday, 
-                       schedule.thursday, schedule.friday, schedule.saturday, schedule.sunday]
-
-        if not working_days[weekday]:
-            return None  # Not a working day
+        if not shift_log:
+            return None
 
         return {
-            'schedule_id': schedule.id,
-            'daily_schedule_id': None,
-            'schedule_name': schedule.schedule_name,
-            'shift_start_time': schedule.shift_start_time,
-            'shift_end_time': schedule.shift_end_time,
-            'break_start_time': None,
-            'break_end_time': None,
+            'schedule_id': shift_management.id,
+            'daily_schedule_id': shift_log.id,
+            'schedule_name': f'Shift {target_date}',
+            'shift_start_time': shift_log.shift_start_time,
+            'shift_end_time': shift_log.shift_end_time,
+            'break_start_time': shift_log.break_start_time,
+            'break_end_time': shift_log.break_end_time,
             'break_duration_minutes': 0,
-            'break_time': schedule.break_time,
-            'is_working_day': True,
+            'break_time': shift_log.get_break_time_display() if shift_log.break_start_time and shift_log.break_end_time else 'No break',
+            'is_working_day': shift_log.status in ['scheduled', 'completed'],
             'notes': ''
         }
 
@@ -704,7 +707,7 @@ def staff_availability():
         Appointment.status != 'cancelled'
     ).all()
 
-    # Get enhanced staff schedules for the selected date using StaffScheduleRange
+    # Get enhanced staff schedules for the selected date using new shift schema
     staff_schedules = {}
     for staff in staff_members:
         schedule_info = get_staff_schedule_for_date(staff.id, selected_date)
@@ -720,7 +723,7 @@ def staff_availability():
                 'schedule_name': schedule_info['schedule_name'],
                 'break_time': schedule_info['break_time'],
                 'description': schedule_info.get('notes', ''),
-                'priority': 0 # Priority is not directly used here, but could be added if needed
+                'priority': 0
             }
         else:
             # No schedule found or not a working day
