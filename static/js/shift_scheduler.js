@@ -651,8 +651,9 @@
         }, 5000);
     }
 
-    // Make loadSchedules available globally for the template
+    // Make functions available globally for the template
     window.loadSchedules = loadSchedules;
+    window.viewDatabaseRecords = viewDatabaseRecords;
 
     console.log('Shift Scheduler JavaScript fully loaded - Wireframe Implementation');
 

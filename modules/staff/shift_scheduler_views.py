@@ -335,6 +335,66 @@ def api_get_staff_schedule_details(staff_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# API endpoint to get schedule details for edit mode
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>/details', methods=['GET'])
+@login_required
+def api_get_schedule_details(schedule_id):
+    """Get detailed schedule information for edit mode"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get shift management record
+        shift_management = ShiftManagement.query.get(schedule_id)
+        if not shift_management:
+            return jsonify({'error': 'Schedule not found'}), 404
+
+        # Get staff information
+        staff = User.query.get(shift_management.staff_id)
+        if not staff:
+            return jsonify({'error': 'Staff member not found'}), 404
+
+        # Get all shift logs for this management record
+        shift_logs = ShiftLogs.query.filter_by(shift_management_id=schedule_id).order_by(ShiftLogs.individual_date).all()
+
+        # Prepare schedule days data
+        schedule_days = []
+        for log in shift_logs:
+            schedule_days.append({
+                'date': log.individual_date.strftime('%Y-%m-%d'),
+                'working': True,  # All logs represent working days
+                'startTime': log.shift_start_time.strftime('%H:%M') if log.shift_start_time else '09:00',
+                'endTime': log.shift_end_time.strftime('%H:%M') if log.shift_end_time else '17:00',
+                'breakStart': log.break_start_time.strftime('%H:%M') if log.break_start_time else '13:00',
+                'breakEnd': log.break_end_time.strftime('%H:%M') if log.break_end_time else '14:00',
+                'breakMinutes': ((log.break_end_time.hour * 60 + log.break_end_time.minute) - 
+                               (log.break_start_time.hour * 60 + log.break_start_time.minute)) if log.break_start_time and log.break_end_time else 60,
+                'notes': ''
+            })
+
+        # Prepare schedule data
+        schedule_data = {
+            'id': shift_management.id,
+            'staff_id': shift_management.staff_id,
+            'staff_name': f"{staff.first_name} {staff.last_name}",
+            'schedule_name': f"Shift {shift_management.from_date.strftime('%Y-%m-%d')} to {shift_management.to_date.strftime('%Y-%m-%d')}",
+            'description': '',
+            'priority': 1,  # Default priority
+            'start_date': shift_management.from_date.strftime('%Y-%m-%d'),
+            'end_date': shift_management.to_date.strftime('%Y-%m-%d'),
+            'shift_start_time': schedule_days[0]['startTime'] if schedule_days else '09:00',
+            'shift_end_time': schedule_days[0]['endTime'] if schedule_days else '17:00',
+            'schedule_days': schedule_days
+        }
+
+        return jsonify({
+            'success': True,
+            'schedule': schedule_data
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Delete schedules
 @shift_scheduler_bp.route('/shift-scheduler/delete', methods=['POST'])
 @login_required
@@ -368,6 +428,158 @@ def delete_shift_schedules():
 
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Update existing schedule
+@shift_scheduler_bp.route('/api/shift-scheduler/update-daily-schedule/<int:schedule_id>', methods=['PUT'])
+@login_required
+def update_daily_schedule(schedule_id):
+    """Update existing schedule with day-by-day configuration"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        schedule_name = data.get('schedule_name')
+        description = data.get('description', '')
+        priority = data.get('priority', 1)
+        schedule_days = data.get('schedule_days', [])
+
+        if not staff_id or not schedule_name or not schedule_days:
+            return jsonify({'error': 'Missing required data'}), 400
+
+        # Get existing shift management record
+        shift_management = ShiftManagement.query.get(schedule_id)
+        if not shift_management:
+            return jsonify({'error': 'Schedule not found'}), 404
+
+        # Verify staff member exists
+        staff = User.query.get(staff_id)
+        if not staff:
+            return jsonify({'error': 'Staff member not found'}), 404
+
+        # Get date range from schedule days
+        working_days = [day for day in schedule_days if day.get('working', False)]
+        if not working_days:
+            return jsonify({'error': 'No working days specified'}), 400
+
+        # Sort days by date
+        working_days.sort(key=lambda x: x['date'])
+        from_date = datetime.strptime(working_days[0]['date'], '%Y-%m-%d').date()
+        to_date = datetime.strptime(working_days[-1]['date'], '%Y-%m-%d').date()
+
+        # Update shift management entry
+        shift_management.staff_id = staff_id
+        shift_management.from_date = from_date
+        shift_management.to_date = to_date
+
+        # Delete existing shift logs
+        ShiftLogs.query.filter_by(shift_management_id=schedule_id).delete()
+
+        # Create new shift logs for each working day
+        logs_updated = 0
+        for day in working_days:
+            day_date = datetime.strptime(day['date'], '%Y-%m-%d').date()
+            start_time = datetime.strptime(day['startTime'], '%H:%M').time() if day.get('startTime') else None
+            end_time = datetime.strptime(day['endTime'], '%H:%M').time() if day.get('endTime') else None
+            break_start = datetime.strptime(day['breakStart'], '%H:%M').time() if day.get('breakStart') else None
+            break_end = datetime.strptime(day['breakEnd'], '%H:%M').time() if day.get('breakEnd') else None
+
+            shift_log = ShiftLogs(
+                shift_management_id=shift_management.id,
+                individual_date=day_date,
+                shift_start_time=start_time,
+                shift_end_time=end_time,
+                break_start_time=break_start,
+                break_end_time=break_end,
+                status='scheduled'
+            )
+            db.session.add(shift_log)
+            logs_updated += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Schedule updated successfully! Updated {logs_updated} shift log(s)',
+            'shift_management_id': shift_management.id,
+            'logs_updated': logs_updated
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# API endpoint to view database records - shows SQL INSERT statements
+@shift_scheduler_bp.route('/api/database-records', methods=['GET'])
+@login_required
+def api_get_database_records():
+    """Get database records as SQL INSERT statements for demonstration"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get all shift managements
+        shift_managements = ShiftManagement.query.order_by(ShiftManagement.created_at.desc()).all()
+        
+        # Get all shift logs
+        shift_logs = ShiftLogs.query.join(ShiftManagement).order_by(
+            ShiftManagement.created_at.desc(), 
+            ShiftLogs.individual_date
+        ).all()
+
+        # Prepare management records with SQL statements
+        management_records = []
+        for management in shift_managements:
+            staff = User.query.get(management.staff_id)
+            created_at_str = management.created_at.strftime('%Y-%m-%d %H:%M:%S') if management.created_at else 'NOW()'
+            
+            sql_statement = f"INSERT INTO shift_management (staff_id, from_date, to_date, created_at) VALUES ({management.staff_id}, '{management.from_date}', '{management.to_date}', '{created_at_str}')"
+            
+            management_records.append({
+                'sql_statement': sql_statement,
+                'record_data': {
+                    'staff_name': f"{staff.first_name} {staff.last_name}" if staff else 'Unknown',
+                    'from_date': management.from_date.strftime('%Y-%m-%d'),
+                    'to_date': management.to_date.strftime('%Y-%m-%d')
+                }
+            })
+
+        # Prepare log records with SQL statements
+        log_records = []
+        for log in shift_logs:
+            created_at_str = log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else 'NOW()'
+            break_start = log.break_start_time.strftime('%H:%M:%S') if log.break_start_time else 'NULL'
+            break_end = log.break_end_time.strftime('%H:%M:%S') if log.break_end_time else 'NULL'
+            
+            sql_statement = f"INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at) VALUES ({log.shift_management_id}, '{log.individual_date}', '{log.shift_start_time}', '{log.shift_end_time}', {break_start if break_start != 'NULL' else break_start}, {break_end if break_end != 'NULL' else break_end}, '{log.status}', '{created_at_str}')"
+            
+            log_records.append({
+                'sql_statement': sql_statement,
+                'record_data': {
+                    'day_name': log.individual_date.strftime('%A'),
+                    'individual_date': log.individual_date.strftime('%Y-%m-%d'),
+                    'shift_start_time': log.shift_start_time.strftime('%H:%M:%S') if log.shift_start_time else 'NULL',
+                    'shift_end_time': log.shift_end_time.strftime('%H:%M:%S') if log.shift_end_time else 'NULL',
+                    'break_start_time': log.break_start_time.strftime('%H:%M:%S') if log.break_start_time else 'None',
+                    'break_end_time': log.break_end_time.strftime('%H:%M:%S') if log.break_end_time else 'None'
+                }
+            })
+
+        # Create summary
+        summary = f"Found {len(management_records)} shift management records and {len(log_records)} individual shift log records in the database."
+
+        return jsonify({
+            'success': True,
+            'summary': summary,
+            'total_management_records': len(management_records),
+            'total_log_records': len(log_records),
+            'management_records': management_records,
+            'log_records': log_records
+        })
+
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 print("Shift Scheduler views registered successfully")

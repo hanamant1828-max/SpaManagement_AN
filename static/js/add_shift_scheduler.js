@@ -746,16 +746,18 @@
                     updateDefaultBreakMinutes();
 
 
-                    // If view mode, disable all inputs
+                    // Handle different modes
                     if (action === 'view') {
-                        $('#basicInfoForm input, #basicInfoForm select, #basicInfoForm textarea').prop('disabled', true);
-                        $('#generateDaysBtn').hide();
+                        // Disable all day configuration inputs
+                        $('#daysConfigTable input, #daysConfigTable select').prop('disabled', true);
+                        $('#applyToAllBtn, #markWeekendsOffBtn, #applyDefaultsBtn').hide();
+                        $('#saveScheduleBtn').hide();
 
-                        // Change button text
-                        $('#generateDaysBtn').text('Schedule Details').show().prop('disabled', false);
+                        // Change bulk config panel for view mode
+                        $('#bulkConfigPanel').hide();
                     } else if (action === 'edit') {
-                        // Change button text for edit mode
-                        $('#generateDaysBtn').text('Load Schedule for Edit');
+                        // Update save button text for edit mode
+                        $('#saveScheduleBtn').html('<i class="fas fa-save me-2"></i>Update Schedule');
                     }
 
                     // Auto-generate days for view/edit
