@@ -29,9 +29,13 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database - SQLite for demo
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spa_management.db'
+# Configure the database - PostgreSQL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
 
 # Initialize the app with the extension
 db.init_app(app)
