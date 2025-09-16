@@ -184,11 +184,11 @@ class User(UserMixin, db.Model):
         """Check if user can access a specific resource based on role permissions"""
         if not self.is_active:
             return False
-        
+
         # Super admin has access to everything
         if self.has_role('admin') or self.has_role('super_admin') or self.role == 'admin':
             return True
-        
+
         # Resource to permission mapping
         resource_permissions = {
             'dashboard': ['dashboard_view'],
@@ -203,23 +203,23 @@ class User(UserMixin, db.Model):
             'expenses': ['expenses_view', 'expenses_create', 'expenses_edit'],
             'settings': ['settings_view', 'settings_edit']
         }
-        
+
         # Get required permissions for resource
         required_permissions = resource_permissions.get(resource, [])
         if not required_permissions:
             # If resource not defined, check basic role access
             return self.role in ['manager', 'staff'] or (self.user_role and self.user_role.is_active)
-        
+
         # Check dynamic role system first
         if self.user_role and self.user_role.is_active:
             user_permissions = []
             for role_permission in self.user_role.permissions:
                 if role_permission.permission.is_active:
                     user_permissions.append(role_permission.permission.name)
-            
+
             # Check if user has any of the required permissions
             return any(perm in user_permissions for perm in required_permissions)
-        
+
         # Fallback to legacy role system
         role_access_map = {
             'admin': True,  # Admin can access everything
@@ -228,29 +228,29 @@ class User(UserMixin, db.Model):
             'staff': resource in ['dashboard', 'clients', 'appointments', 'services'],
             'receptionist': resource in ['dashboard', 'clients', 'appointments', 'billing']
         }
-        
+
         return role_access_map.get(self.role, False)
 
     def __repr__(self):
         return f'<User {self.username}>'
 
 class ShiftManagement(db.Model):
-    """New shift management table for date ranges - One entry per staff member"""
+    """One entry per staff member for shift management"""
     __tablename__ = 'shift_management'
 
     id = db.Column(db.Integer, primary_key=True)
-    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)  # One per staff
     from_date = db.Column(db.Date, nullable=False)
     to_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    shift_logs = db.relationship('ShiftLogs', backref='shift_management', lazy=True, cascade='all, delete-orphan')
-    staff_member = db.relationship('User', backref='shift_management', uselist=False, lazy=True)
+    staff = db.relationship('User', backref='shift_management')
+    shift_logs = db.relationship('ShiftLogs', backref='shift_management', cascade='all, delete-orphan')
 
     def __repr__(self):
-        return f'<ShiftManagement {self.from_date} to {self.to_date} - Staff {self.staff_id}>'
+        return f'<ShiftManagement {self.staff_id}: {self.from_date} to {self.to_date}>'
 
 class ShiftLogs(db.Model):
     """Individual shift log entries for each date"""
@@ -432,13 +432,13 @@ class Package(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Enhanced prepaid package fields
     prepaid_amount = db.Column(db.Float, default=0.0)  # Amount customer actually pays
     bonus_percentage = db.Column(db.Float, default=0.0)  # Bonus percentage for prepaid
     bonus_amount = db.Column(db.Float, default=0.0)  # Calculated bonus amount
     prepaid_balance = db.Column(db.Float, default=0.0)  # Current balance for credit-based prepaid
-    
+
     # Service-based package fields
     free_sessions = db.Column(db.Integer, default=0)  # Free sessions in service packages
     paid_sessions = db.Column(db.Integer, default=0)  # Paid sessions in service packages
