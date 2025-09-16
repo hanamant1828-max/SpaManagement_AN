@@ -821,18 +821,17 @@ def save_range(range_data, staff_id, schedule_name, description, priority):
 @shift_scheduler_bp.route('/api/all-schedules', methods=['GET'])
 @login_required
 def api_get_all_schedules():
-    """Get consolidated schedule view - one row per staff member with earliest and latest dates"""
+    """Get consolidated schedule view using new shift management schema"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # Get all active schedules with staff information, grouped by staff
-        schedules = db.session.query(StaffScheduleRange, User).join(
-            User, StaffScheduleRange.staff_id == User.id
+        # Get all shift managements with staff information
+        schedules = db.session.query(ShiftManagement, User).join(
+            User, ShiftManagement.staff_id == User.id
         ).filter(
-            StaffScheduleRange.is_active == True,
             User.is_active == True
-        ).order_by(User.first_name, User.last_name, StaffScheduleRange.start_date).all()
+        ).order_by(User.first_name, User.last_name, ShiftManagement.from_date).all()
 
         # Group schedules by staff member
         staff_schedules = {}
@@ -844,16 +843,16 @@ def api_get_all_schedules():
                     'staff_id': staff.id,
                     'staff_name': f"{staff.first_name} {staff.last_name}",
                     'schedules': [],
-                    'earliest_start': schedule.start_date,
-                    'latest_end': schedule.end_date,
+                    'earliest_start': schedule.from_date,
+                    'latest_end': schedule.to_date,
                     'total_ranges': 0
                 }
 
             # Track earliest start and latest end dates
-            if schedule.start_date < staff_schedules[staff_key]['earliest_start']:
-                staff_schedules[staff_key]['earliest_start'] = schedule.start_date
-            if schedule.end_date > staff_schedules[staff_key]['latest_end']:
-                staff_schedules[staff_key]['latest_end'] = schedule.end_date
+            if schedule.from_date < staff_schedules[staff_key]['earliest_start']:
+                staff_schedules[staff_key]['earliest_start'] = schedule.from_date
+            if schedule.to_date > staff_schedules[staff_key]['latest_end']:
+                staff_schedules[staff_key]['latest_end'] = schedule.to_date
 
             staff_schedules[staff_key]['schedules'].append(schedule)
             staff_schedules[staff_key]['total_ranges'] += 1
@@ -864,40 +863,38 @@ def api_get_all_schedules():
             # Get the most recent schedule for display info
             latest_schedule = max(data['schedules'], key=lambda x: x.created_at)
 
-            # Get working days from latest schedule
-            working_days = []
-            if latest_schedule.monday: working_days.append('Mon')
-            if latest_schedule.tuesday: working_days.append('Tue')
-            if latest_schedule.wednesday: working_days.append('Wed')
-            if latest_schedule.thursday: working_days.append('Thu')
-            if latest_schedule.friday: working_days.append('Fri')
-            if latest_schedule.saturday: working_days.append('Sat')
-            if latest_schedule.sunday: working_days.append('Sun')
-
-            # Format working days string
-            if len(working_days) == 7:
-                working_days_str = "All Days"
-            elif len(working_days) == 5 and 'Sat' not in working_days and 'Sun' not in working_days:
-                working_days_str = "Mon to Fri"
-            else:
-                working_days_str = ", ".join(working_days)
+            # Get first shift log for working days info
+            first_log = ShiftLogs.query.filter_by(shift_management_id=latest_schedule.id).first()
+            
+            # Default working days
+            working_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+            working_days_str = "Mon to Fri"
+            
+            shift_start_time = ''
+            shift_end_time = ''
+            break_time = ''
+            
+            if first_log:
+                shift_start_time = first_log.shift_start_time.strftime('%H:%M') if first_log.shift_start_time else ''
+                shift_end_time = first_log.shift_end_time.strftime('%H:%M') if first_log.shift_end_time else ''
+                break_time = first_log.get_break_time_display()
 
             schedule_list.append({
                 'id': latest_schedule.id,  # Use latest schedule ID for view/edit
                 'staff_id': data['staff_id'],
                 'staff_name': data['staff_name'],
-                'schedule_name': f"Schedule ({data['total_ranges']} range{'s' if data['total_ranges'] > 1 else ''})",
-                'description': latest_schedule.description or '',
+                'schedule_name': f"Shift ({data['total_ranges']} range{'s' if data['total_ranges'] > 1 else ''})",
+                'description': '',
                 'start_date': data['earliest_start'].strftime('%Y-%m-%d'),
                 'end_date': data['latest_end'].strftime('%Y-%m-%d'),
                 'working_days': working_days,
                 'working_days_str': working_days_str,
-                'shift_start_time': latest_schedule.shift_start_time.strftime('%H:%M') if latest_schedule.shift_start_time else '',
-                'shift_end_time': latest_schedule.shift_end_time.strftime('%H:%M') if latest_schedule.shift_end_time else '',
-                'shift_start_time_12h': latest_schedule.shift_start_time.strftime('%I:%M %p') if latest_schedule.shift_start_time else '',
-                'shift_end_time_12h': latest_schedule.shift_end_time.strftime('%I:%M %p') if latest_schedule.shift_end_time else '',
-                'break_time': latest_schedule.break_time or '',
-                'priority': latest_schedule.priority or 1,
+                'shift_start_time': shift_start_time,
+                'shift_end_time': shift_end_time,
+                'shift_start_time_12h': first_log.shift_start_time.strftime('%I:%M %p') if first_log and first_log.shift_start_time else '',
+                'shift_end_time_12h': first_log.shift_end_time.strftime('%I:%M %p') if first_log and first_log.shift_end_time else '',
+                'break_time': break_time,
+                'priority': 1,
                 'created_at': latest_schedule.created_at.strftime('%Y-%m-%d %H:%M') if latest_schedule.created_at else '',
                 'total_ranges': data['total_ranges'],
                 'is_consolidated': True  # Flag to indicate this is a consolidated view
