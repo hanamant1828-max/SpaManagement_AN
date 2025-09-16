@@ -79,129 +79,30 @@ def get_staff_schedule_for_date(staff_id, filter_date):
     return schedule
 
 def get_time_slots(filter_date, staff_id=None, service_id=None):
-    """Generate available time slots for booking with explicit status classification"""
-    # Default business hours (9 AM to 6 PM) - fallback if no staff schedule
-    business_start = 9
-    business_end = 18
-    slot_duration = 30  # 30-minute slots
-
+    """Generate available time slots using professional staff schedule service"""
+    from services.staff_schedule_service import staff_schedule_service
+    
+    # Use the professional service to generate time slots
+    time_slots = staff_schedule_service.generate_time_slots(filter_date, staff_id, service_id)
+    
+    # Convert TimeSlot objects to dictionary format for backward compatibility
     slots = []
-    
-    # Get existing appointments for the date
-    existing_appointments = get_appointments_by_date(filter_date)
-
-    # Get service duration if specified
-    service_duration = 60  # Default 60 minutes
-    if service_id:
-        from models import Service
-        service = Service.query.get(service_id)
-        if service:
-            service_duration = service.duration
-
-    # Get staff schedule and break times if staff is specified
-    break_start_time = None
-    break_end_time = None
-    shift_start_time = None
-    shift_end_time = None
-    staff_schedule = None
-    
-    if staff_id:
-        staff_schedule = get_staff_schedule_for_date(staff_id, filter_date)
-        if staff_schedule:
-            print(f"Found schedule for staff {staff_id}: {staff_schedule.schedule_name}")
-            print(f"Break time: {staff_schedule.break_time}")
-            
-            # Get break times
-            break_start, break_end = parse_break_time(staff_schedule.break_time)
-            if break_start and break_end:
-                try:
-                    break_start_time = datetime.combine(filter_date, datetime.strptime(break_start, '%H:%M').time())
-                    break_end_time = datetime.combine(filter_date, datetime.strptime(break_end, '%H:%M').time())
-                    print(f"Parsed break: {break_start_time.time()} - {break_end_time.time()}")
-                except ValueError as e:
-                    print(f"Error parsing break times: {e}")
-            else:
-                print(f"Could not parse break times from: '{staff_schedule.break_time}'")
-            
-            # Get shift times - use these as the iteration bounds if available
-            if staff_schedule.shift_start_time and staff_schedule.shift_end_time:
-                shift_start_time = datetime.combine(filter_date, staff_schedule.shift_start_time)
-                shift_end_time = datetime.combine(filter_date, staff_schedule.shift_end_time)
-                print(f"Shift hours: {shift_start_time.time()} - {shift_end_time.time()}")
-        else:
-            print(f"No schedule found for staff {staff_id} on {filter_date}")
-
-    # Determine iteration bounds
-    if staff_id and shift_start_time and shift_end_time:
-        # Use actual shift hours for this staff member
-        current_time = shift_start_time
-        end_time = shift_end_time
-    else:
-        # Use default business hours
-        current_time = datetime.combine(filter_date, datetime.min.time().replace(hour=business_start))
-        end_time = datetime.combine(filter_date, datetime.min.time().replace(hour=business_end))
-
-    # Generate slots within the determined time range
-    while current_time < end_time:
-        slot_end = current_time + timedelta(minutes=service_duration)
-        
-        # Determine slot status
-        if staff_id and not staff_schedule:
-            # Staff not scheduled to work
-            status = 'off_shift'
-        elif staff_id and shift_start_time and shift_end_time:
-            # Staff has a schedule, check various conditions
-            if current_time < shift_start_time or slot_end > shift_end_time:
-                # Outside shift hours
-                status = 'off_shift'
-            elif break_start_time and break_end_time:
-                # Check if slot overlaps with break time
-                if not (slot_end <= break_start_time or current_time >= break_end_time):
-                    status = 'break'
-                else:
-                    # Check for existing appointments
-                    status = 'available'
-                    for appointment in existing_appointments:
-                        if staff_id and appointment.staff_id != staff_id:
-                            continue
-                        appointment_start = appointment.appointment_date
-                        appointment_end = appointment_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
-                        if not (current_time >= appointment_end or slot_end <= appointment_start):
-                            status = 'booked'
-                            break
-            else:
-                # No break time, just check appointments
-                status = 'available'
-                for appointment in existing_appointments:
-                    if staff_id and appointment.staff_id != staff_id:
-                        continue
-                    appointment_start = appointment.appointment_date
-                    appointment_end = appointment_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
-                    if not (current_time >= appointment_end or slot_end <= appointment_start):
-                        status = 'booked'
-                        break
-        else:
-            # No staff specified, check appointments only
-            status = 'available'
-            for appointment in existing_appointments:
-                appointment_start = appointment.appointment_date
-                appointment_end = appointment_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
-                if not (current_time >= appointment_end or slot_end <= appointment_start):
-                    status = 'booked'
-                    break
-
-        # Create slot object
-        slot = {
-            'time': current_time.strftime('%H:%M'),
-            'status': status,
-            'available': status == 'available',
-            'display_time': current_time.strftime('%I:%M %p'),
-            'iso_time': current_time.isoformat()  # JSON-serializable time
+    for slot in time_slots:
+        slot_dict = {
+            'time': slot.time,
+            'status': slot.status.value,
+            'available': slot.available,
+            'display_time': slot.display_time,
+            'iso_time': slot.iso_time,
+            'reason': slot.reason
         }
         
-        slots.append(slot)
-        current_time += timedelta(minutes=slot_duration)
-
+        # Add appointment ID if slot is booked
+        if slot.appointment_id:
+            slot_dict['appointment_id'] = slot.appointment_id
+        
+        slots.append(slot_dict)
+    
     return slots
 
 def get_active_clients():
