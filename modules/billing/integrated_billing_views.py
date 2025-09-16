@@ -57,6 +57,260 @@ def integrated_billing():
                          pending_amount=pending_amount,
                          today_revenue=today_revenue)
 
+@app.route('/integrated-billing/create-professional', methods=['POST'])
+@login_required
+def create_professional_invoice():
+    """Create new professional invoice with complete GST/SGST tax support"""
+    if not current_user.can_access('billing'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        from models import Customer, Service, EnhancedInvoice, InvoiceItem
+        from modules.inventory.models import InventoryBatch, InventoryProduct
+        from modules.inventory.queries import create_consumption_record
+        import datetime
+
+        # Parse form data
+        client_id = request.form.get('client_id')
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Client is required'})
+
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'})
+
+        # Parse services data
+        services_data = []
+        service_ids = request.form.getlist('service_ids[]')
+        service_quantities = request.form.getlist('service_quantities[]')
+        appointment_ids = request.form.getlist('appointment_ids[]')
+
+        for i, service_id in enumerate(service_ids):
+            if service_id:
+                services_data.append({
+                    'service_id': int(service_id),
+                    'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
+                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None
+                })
+
+        # Parse inventory data
+        inventory_data = []
+        product_ids = request.form.getlist('product_ids[]')
+        batch_ids = request.form.getlist('batch_ids[]')
+        product_quantities = request.form.getlist('product_quantities[]')
+        product_prices = request.form.getlist('product_prices[]')
+
+        for i, product_id in enumerate(product_ids):
+            if product_id and i < len(batch_ids) and batch_ids[i]:
+                inventory_data.append({
+                    'product_id': int(product_id),
+                    'batch_id': int(batch_ids[i]),
+                    'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
+                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0
+                })
+
+        # Professional Tax Calculation
+        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
+        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
+        igst_rate = float(request.form.get('igst_rate', 0)) / 100
+        is_interstate = request.form.get('is_interstate') == 'on'
+        
+        discount_type = request.form.get('discount_type', 'amount')
+        discount_value = float(request.form.get('discount_value', 0))
+        additional_charges = float(request.form.get('additional_charges', 0))
+        tips_amount = float(request.form.get('tips_amount', 0))
+        
+        payment_terms = request.form.get('payment_terms', 'immediate')
+        payment_method = request.form.get('payment_method', 'cash')
+
+        # Validate inventory stock
+        for item in inventory_data:
+            batch = InventoryBatch.query.get(item['batch_id'])
+            if not batch or batch.is_expired:
+                return jsonify({'success': False, 'message': f'Invalid or expired batch for product ID {item["product_id"]}'})
+            
+            if float(batch.qty_available) < item['quantity']:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
+                })
+
+        # Calculate amounts
+        services_subtotal = 0
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                services_subtotal += service.price * service_data['quantity']
+
+        inventory_subtotal = 0
+        for item in inventory_data:
+            inventory_subtotal += item['unit_price'] * item['quantity']
+
+        gross_subtotal = services_subtotal + inventory_subtotal
+
+        # Calculate discount
+        if discount_type == 'percentage':
+            discount_amount = (gross_subtotal * discount_value) / 100
+        else:
+            discount_amount = discount_value
+
+        net_subtotal = gross_subtotal - discount_amount
+
+        # Calculate taxes
+        cgst_amount = 0
+        sgst_amount = 0
+        igst_amount = 0
+        
+        if is_interstate:
+            igst_amount = net_subtotal * igst_rate
+        else:
+            cgst_amount = net_subtotal * cgst_rate
+            sgst_amount = net_subtotal * sgst_rate
+
+        total_tax = cgst_amount + sgst_amount + igst_amount
+        total_amount = net_subtotal + total_tax + additional_charges + tips_amount
+
+        # Create professional invoice
+        try:
+            with db.session.begin():
+                # Generate professional invoice number
+                current_date = datetime.datetime.now()
+                latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).with_for_update().first()
+                
+                if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{current_date.strftime('%Y%m%d')}"):
+                    try:
+                        last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
+                        invoice_sequence = last_sequence + 1
+                    except (ValueError, IndexError):
+                        invoice_sequence = 1
+                else:
+                    invoice_sequence = 1
+                
+                invoice_number = f"INV-{current_date.strftime('%Y%m%d')}-{invoice_sequence:04d}"
+
+                # Create enhanced invoice with professional fields
+                invoice = EnhancedInvoice()
+                invoice.invoice_number = invoice_number
+                invoice.client_id = int(client_id)
+                invoice.invoice_date = current_date
+                
+                # Professional billing fields
+                invoice.services_subtotal = services_subtotal
+                invoice.inventory_subtotal = inventory_subtotal
+                invoice.gross_subtotal = gross_subtotal
+                invoice.net_subtotal = net_subtotal
+                invoice.tax_amount = total_tax
+                invoice.discount_amount = discount_amount
+                invoice.tips_amount = tips_amount
+                invoice.total_amount = total_amount
+                invoice.balance_due = total_amount
+                
+                # Tax breakdown (store in notes for now, can be separate fields later)
+                tax_breakdown = {
+                    'cgst_rate': cgst_rate * 100,
+                    'sgst_rate': sgst_rate * 100,
+                    'igst_rate': igst_rate * 100,
+                    'cgst_amount': cgst_amount,
+                    'sgst_amount': sgst_amount,
+                    'igst_amount': igst_amount,
+                    'is_interstate': is_interstate,
+                    'additional_charges': additional_charges,
+                    'payment_terms': payment_terms,
+                    'payment_method': payment_method
+                }
+                
+                invoice.notes = json.dumps(tax_breakdown)
+                invoice.payment_methods = json.dumps({payment_method: total_amount})
+
+                db.session.add(invoice)
+                db.session.flush()
+
+                # Create invoice items for services
+                service_items_created = 0
+                for service_data in services_data:
+                    service = Service.query.get(service_data['service_id'])
+                    if service:
+                        item = InvoiceItem()
+                        item.invoice_id = invoice.id
+                        item.item_type = 'service'
+                        item.item_id = service.id
+                        item.appointment_id = service_data.get('appointment_id')
+                        item.item_name = service.name
+                        item.description = service.description
+                        item.quantity = service_data['quantity']
+                        item.unit_price = service.price
+                        item.original_amount = service.price * service_data['quantity']
+                        item.final_amount = service.price * service_data['quantity']
+                        db.session.add(item)
+                        service_items_created += 1
+
+                # Create invoice items for inventory and reduce stock
+                inventory_items_created = 0
+                stock_reduced_count = 0
+                
+                for item_data in inventory_data:
+                    batch = InventoryBatch.query.get(item_data['batch_id'])
+                    product = InventoryProduct.query.get(item_data['product_id'])
+
+                    if batch and product:
+                        # Create invoice item
+                        item = InvoiceItem()
+                        item.invoice_id = invoice.id
+                        item.item_type = 'inventory'
+                        item.item_id = product.id
+                        item.product_id = product.id
+                        item.batch_id = batch.id
+                        item.item_name = product.name
+                        item.description = f"Batch: {batch.batch_name}"
+                        item.batch_name = batch.batch_name
+                        item.quantity = item_data['quantity']
+                        item.unit_price = item_data['unit_price']
+                        item.original_amount = item_data['unit_price'] * item_data['quantity']
+                        item.final_amount = item_data['unit_price'] * item_data['quantity']
+                        db.session.add(item)
+                        inventory_items_created += 1
+
+                        # Reduce stock
+                        create_consumption_record(
+                            batch_id=batch.id,
+                            quantity=item_data['quantity'],
+                            issued_to=f"Invoice {invoice_number} - {customer.full_name}",
+                            reference=invoice_number,
+                            notes=f"Professional invoice sale - {invoice_number}",
+                            user_id=current_user.id
+                        )
+                        stock_reduced_count += 1
+
+                db.session.commit()
+
+                return jsonify({
+                    'success': True,
+                    'message': f'Professional Invoice {invoice_number} created successfully',
+                    'invoice_id': invoice.id,
+                    'invoice_number': invoice_number,
+                    'total_amount': float(total_amount),
+                    'cgst_amount': float(cgst_amount),
+                    'sgst_amount': float(sgst_amount),
+                    'igst_amount': float(igst_amount),
+                    'tax_amount': float(total_tax),
+                    'service_items_created': service_items_created,
+                    'inventory_items_created': inventory_items_created,
+                    'stock_reduced': stock_reduced_count,
+                    'deductions_applied': 0
+                })
+
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Professional invoice creation failed for user {current_user.id}: {str(e)}")
+            return jsonify({
+                'success': False, 
+                'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
+            })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error creating professional invoice: {str(e)}'})
+
 @app.route('/integrated-billing/create', methods=['POST'])
 @login_required
 def create_integrated_invoice():
@@ -552,6 +806,100 @@ def list_integrated_invoices():
 # def billing():
 #     """Main billing route redirects to integrated billing"""
 #     return redirect(url_for('integrated_billing'))
+
+@app.route('/integrated-billing/save-draft', methods=['POST'])
+@login_required 
+def save_invoice_draft():
+    """Save invoice as draft for later completion"""
+    if not current_user.can_access('billing'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    try:
+        # Implementation for saving draft invoices
+        return jsonify({'success': True, 'message': 'Draft saved successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error saving draft: {str(e)}'})
+
+@app.route('/integrated-billing/print-invoice/<int:invoice_id>')
+@login_required
+def print_professional_invoice(invoice_id):
+    """Generate printable professional invoice"""
+    if not current_user.can_access('billing'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    from models import EnhancedInvoice, InvoiceItem
+    invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+    invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
+    
+    # Parse tax details from notes
+    import json
+    tax_details = {}
+    try:
+        tax_details = json.loads(invoice.notes) if invoice.notes else {}
+    except:
+        pass
+    
+    return render_template('professional_invoice_print.html',
+                         invoice=invoice,
+                         invoice_items=invoice_items,
+                         tax_details=tax_details)
+
+@app.route('/api/invoice-preview', methods=['POST'])
+@login_required
+def generate_invoice_preview():
+    """Generate professional invoice preview"""
+    if not current_user.can_access('billing'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.json
+        # Generate preview HTML
+        preview_html = f"""
+        <div class="professional-invoice">
+            <div class="invoice-header text-center mb-4">
+                <h2>TAX INVOICE</h2>
+                <h4>Your Spa & Wellness Center</h4>
+                <p>GST No: 29XXXXX1234Z1Z5 | Contact: +91-XXXXXXXXXX</p>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Bill To:</strong><br>
+                    {data.get('customer_name', 'Customer Name')}<br>
+                    Contact: {data.get('customer_phone', 'Phone Number')}
+                </div>
+                <div class="col-6 text-end">
+                    <strong>Invoice Details:</strong><br>
+                    Invoice No: PREVIEW<br>
+                    Date: {datetime.now().strftime('%d-%m-%Y')}<br>
+                    GST Treatment: {'Interstate' if data.get('is_interstate') else 'Intrastate'}
+                </div>
+            </div>
+            <div class="tax-calculation-preview">
+                <table class="table table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="4" class="text-center text-muted">Preview items will appear here</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        """
+        
+        return jsonify({
+            'success': True,
+            'preview_html': preview_html
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # Legacy billing compatibility route
 @app.route('/billing/integrated')

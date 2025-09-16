@@ -1,0 +1,238 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Tax Invoice - {{ invoice.invoice_number }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 12px; }
+            .page-break { page-break-after: always; }
+        }
+        
+        .professional-invoice {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .invoice-header {
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .company-logo {
+            height: 80px;
+            object-fit: contain;
+        }
+        
+        .tax-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .tax-summary {
+            background-color: #f8f9fa;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .amount-words {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-style: italic;
+        }
+        
+        .footer-terms {
+            font-size: 10px;
+            color: #666;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="professional-invoice">
+        <!-- Company Header -->
+        <div class="invoice-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="text-primary mb-1">TAX INVOICE</h2>
+                    <h4 class="mb-2">Your Spa & Wellness Center</h4>
+                    <p class="mb-1">123 Wellness Street, Health City</p>
+                    <p class="mb-1">Phone: +91-9876543210 | Email: info@yourSpa.com</p>
+                    <p class="mb-0"><strong>GSTIN:</strong> 29XXXXX1234Z1Z5</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <!-- Company logo placeholder -->
+                    <img src="/static/images/company-logo.png" alt="Company Logo" class="company-logo" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Details -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5>Bill To:</h5>
+                <div class="border p-3">
+                    <strong>{{ invoice.customer.full_name }}</strong><br>
+                    {% if invoice.customer.address %}{{ invoice.customer.address }}<br>{% endif %}
+                    Phone: {{ invoice.customer.phone }}<br>
+                    {% if invoice.customer.email %}Email: {{ invoice.customer.email }}{% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-borderless">
+                    <tr><th>Invoice Number:</th><td><strong>{{ invoice.invoice_number }}</strong></td></tr>
+                    <tr><th>Invoice Date:</th><td>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td></tr>
+                    <tr><th>Due Date:</th><td>{{ invoice.due_date.strftime('%d-%m-%Y') if invoice.due_date else 'Immediate' }}</td></tr>
+                    <tr><th>GST Treatment:</th><td>{{ 'Interstate (IGST)' if tax_details.get('is_interstate') else 'Intrastate (CGST+SGST)' }}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Invoice Items -->
+        <table class="table table-bordered tax-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Description</th>
+                    <th>HSN/SAC</th>
+                    <th>Qty</th>
+                    <th>Rate (₹)</th>
+                    <th>Amount (₹)</th>
+                    <th>Tax Rate</th>
+                    <th>Tax Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice_items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <strong>{{ item.item_name }}</strong>
+                        {% if item.description %}<br><small class="text-muted">{{ item.description }}</small>{% endif %}
+                        {% if item.batch_name %}<br><small class="text-info">Batch: {{ item.batch_name }}</small>{% endif %}
+                    </td>
+                    <td>{% if item.item_type == 'service' %}998314{% else %}3304{% endif %}</td>
+                    <td class="text-center">{{ item.quantity }}</td>
+                    <td class="text-end">{{ "%.2f"|format(item.unit_price) }}</td>
+                    <td class="text-end">{{ "%.2f"|format(item.final_amount) }}</td>
+                    <td class="text-center">
+                        {% if tax_details.get('is_interstate') %}
+                            {{ "%.1f"|format(tax_details.get('igst_rate', 0)) }}% IGST
+                        {% else %}
+                            {{ "%.1f"|format(tax_details.get('cgst_rate', 0)) }}% CGST<br>
+                            {{ "%.1f"|format(tax_details.get('sgst_rate', 0)) }}% SGST
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% set item_tax = (item.final_amount * (tax_details.get('cgst_rate', 0) + tax_details.get('sgst_rate', 0) + tax_details.get('igst_rate', 0)) / 100) %}
+                        {{ "%.2f"|format(item_tax) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Tax Summary -->
+        <div class="row">
+            <div class="col-md-7">
+                <!-- Amount in words -->
+                <div class="amount-words">
+                    <strong>Amount in Words:</strong><br>
+                    <span id="amountInWords">{{ total_amount_words(invoice.total_amount) }}</span>
+                </div>
+                
+                <!-- Payment Details -->
+                {% if invoice.payment_methods %}
+                <div class="mt-3">
+                    <strong>Payment Method:</strong>
+                    {% set payment_methods = invoice.payment_methods|from_json %}
+                    {% for method, amount in payment_methods.items() %}
+                        {{ method.replace('_', ' ').title() }}: ₹{{ "%.2f"|format(amount) }}
+                        {% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="col-md-5">
+                <div class="tax-summary">
+                    <table class="table table-sm mb-0">
+                        <tr><td>Subtotal:</td><td class="text-end">₹{{ "%.2f"|format(invoice.gross_subtotal) }}</td></tr>
+                        {% if invoice.discount_amount > 0 %}
+                        <tr><td>Discount:</td><td class="text-end text-danger">- ₹{{ "%.2f"|format(invoice.discount_amount) }}</td></tr>
+                        {% endif %}
+                        <tr><td>Taxable Amount:</td><td class="text-end">₹{{ "%.2f"|format(invoice.net_subtotal) }}</td></tr>
+                        
+                        {% if tax_details.get('is_interstate') %}
+                        <tr><td>IGST ({{ "%.1f"|format(tax_details.get('igst_rate', 0)) }}%):</td><td class="text-end">₹{{ "%.2f"|format(tax_details.get('igst_amount', 0)) }}</td></tr>
+                        {% else %}
+                        <tr><td>CGST ({{ "%.1f"|format(tax_details.get('cgst_rate', 0)) }}%):</td><td class="text-end">₹{{ "%.2f"|format(tax_details.get('cgst_amount', 0)) }}</td></tr>
+                        <tr><td>SGST ({{ "%.1f"|format(tax_details.get('sgst_rate', 0)) }}%):</td><td class="text-end">₹{{ "%.2f"|format(tax_details.get('sgst_amount', 0)) }}</td></tr>
+                        {% endif %}
+                        
+                        {% if tax_details.get('additional_charges', 0) > 0 %}
+                        <tr><td>Additional Charges:</td><td class="text-end">₹{{ "%.2f"|format(tax_details.get('additional_charges', 0)) }}</td></tr>
+                        {% endif %}
+                        
+                        {% if invoice.tips_amount > 0 %}
+                        <tr><td>Tips:</td><td class="text-end">₹{{ "%.2f"|format(invoice.tips_amount) }}</td></tr>
+                        {% endif %}
+                        
+                        <tr class="table-dark"><th>Total Amount:</th><th class="text-end">₹{{ "%.2f"|format(invoice.total_amount) }}</th></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms and Conditions -->
+        <div class="footer-terms mt-4">
+            <h6>Terms & Conditions:</h6>
+            <ol class="small">
+                <li>Payment is due within the specified payment terms.</li>
+                <li>All services are subject to our standard terms and conditions.</li>
+                <li>This is a computer-generated invoice and does not require a physical signature.</li>
+                <li>For any queries regarding this invoice, please contact our customer service.</li>
+                <li>Cancellation policy applies as per the service agreement.</li>
+            </ol>
+            
+            <div class="text-center mt-3">
+                <p><strong>Thank you for choosing our services!</strong></p>
+                <small>This invoice was generated on {{ invoice.created_at.strftime('%d-%m-%Y at %I:%M %p') }}</small>
+            </div>
+        </div>
+
+        <!-- Print Button -->
+        <div class="text-center mt-4 no-print">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print me-2"></i>Print Invoice
+            </button>
+            <button onclick="window.close()" class="btn btn-secondary ms-2">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Function to convert amount to words (simplified version)
+        function totalAmountWords(amount) {
+            // This is a simplified implementation
+            // In a real application, you would use a proper number-to-words library
+            return `Rupees ${Math.floor(amount)} and ${Math.round((amount % 1) * 100)} Paise Only`;
+        }
+
+        // Auto-print when opened from invoice generation
+        if (window.location.hash === '#autoprint') {
+            setTimeout(() => window.print(), 500);
+        }
+    </script>
+</body>
+</html>

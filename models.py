@@ -564,8 +564,26 @@ class EnhancedInvoice(db.Model):
     total_deductions = db.Column(db.Float, default=0.0)  # Package + Subscription
     net_subtotal = db.Column(db.Float, default=0.0)  # After deductions
 
+    # Professional Tax Structure
+    cgst_rate = db.Column(db.Float, default=0.0)  # CGST rate percentage
+    sgst_rate = db.Column(db.Float, default=0.0)  # SGST rate percentage  
+    igst_rate = db.Column(db.Float, default=0.0)  # IGST rate percentage
+    cgst_amount = db.Column(db.Float, default=0.0)  # CGST amount
+    sgst_amount = db.Column(db.Float, default=0.0)  # SGST amount
+    igst_amount = db.Column(db.Float, default=0.0)  # IGST amount
+    is_interstate = db.Column(db.Boolean, default=False)  # Interstate transaction flag
+    
+    # Additional Professional Fields
+    additional_charges = db.Column(db.Float, default=0.0)  # Delivery, handling, etc.
+    discount_type = db.Column(db.String(20), default='amount')  # amount or percentage
+    discount_rate = db.Column(db.Float, default=0.0)  # Discount percentage if applicable
+    
+    # Payment Terms
+    payment_terms = db.Column(db.String(50), default='immediate')  # immediate, net_15, net_30, advance
+    due_date = db.Column(db.DateTime)
+    
     # Final amounts
-    tax_amount = db.Column(db.Float, default=0.0)
+    tax_amount = db.Column(db.Float, default=0.0)  # Total tax (CGST + SGST + IGST)
     discount_amount = db.Column(db.Float, default=0.0)
     tips_amount = db.Column(db.Float, default=0.0)
     total_amount = db.Column(db.Float, nullable=False)

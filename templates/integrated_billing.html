@@ -233,19 +233,106 @@
                             </div>
                         </div>
 
-                        <!-- Billing Calculations -->
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label for="tax_rate" class="form-label">Tax Rate (%)</label>
-                                <input type="number" class="form-control" id="tax_rate" name="tax_rate" value="18" step="0.01" min="0" max="100">
+                        <!-- Professional Tax & Billing Section -->
+                        <div class="card mb-4 border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Professional Tax & Billing Calculations</h6>
                             </div>
-                            <div class="col-md-4">
-                                <label for="discount_amount" class="form-label">Discount Amount (₹)</label>
-                                <input type="number" class="form-control" id="discount_amount" name="discount_amount" value="0" step="0.01" min="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="tips_amount" class="form-label">Tips (₹)</label>
-                                <input type="number" class="form-control" id="tips_amount" name="tips_amount" value="0" step="0.01" min="0">
+                            <div class="card-body">
+                                <!-- Tax Configuration -->
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <label for="cgst_rate" class="form-label">CGST Rate (%)</label>
+                                        <input type="number" class="form-control" id="cgst_rate" name="cgst_rate" value="9" step="0.01" min="0" max="50" onchange="updateTaxCalculations()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="sgst_rate" class="form-label">SGST Rate (%)</label>
+                                        <input type="number" class="form-control" id="sgst_rate" name="sgst_rate" value="9" step="0.01" min="0" max="50" onchange="updateTaxCalculations()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="igst_rate" class="form-label">IGST Rate (%) <small class="text-muted">Interstate</small></label>
+                                        <input type="number" class="form-control" id="igst_rate" name="igst_rate" value="0" step="0.01" min="0" max="50" onchange="updateTaxCalculations()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" id="is_interstate" name="is_interstate" onchange="toggleTaxType()">
+                                            <label class="form-check-label" for="is_interstate">
+                                                Interstate Transaction
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Discount and Additional Charges -->
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <label for="discount_type" class="form-label">Discount Type</label>
+                                        <select class="form-select" id="discount_type" name="discount_type" onchange="updateTaxCalculations()">
+                                            <option value="amount">Amount (₹)</option>
+                                            <option value="percentage">Percentage (%)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="discount_value" class="form-label">Discount Value</label>
+                                        <input type="number" class="form-control" id="discount_value" name="discount_value" value="0" step="0.01" min="0" onchange="updateTaxCalculations()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="additional_charges" class="form-label">Additional Charges (₹)</label>
+                                        <input type="number" class="form-control" id="additional_charges" name="additional_charges" value="0" step="0.01" min="0" onchange="updateTaxCalculations()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="tips_amount" class="form-label">Tips (₹)</label>
+                                        <input type="number" class="form-control" id="tips_amount" name="tips_amount" value="0" step="0.01" min="0" onchange="updateTaxCalculations()">
+                                    </div>
+                                </div>
+
+                                <!-- Live Tax Calculation Display -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <div class="row text-center">
+                                                    <div class="col-md-2">
+                                                        <div class="border-end">
+                                                            <h6 class="text-muted mb-1">Subtotal</h6>
+                                                            <h5 class="mb-0" id="display_subtotal">₹0.00</h5>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="border-end">
+                                                            <h6 class="text-muted mb-1">Discount</h6>
+                                                            <h5 class="mb-0 text-danger" id="display_discount">₹0.00</h5>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="border-end">
+                                                            <h6 class="text-muted mb-1">CGST</h6>
+                                                            <h5 class="mb-0 text-info" id="display_cgst">₹0.00</h5>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="border-end">
+                                                            <h6 class="text-muted mb-1">SGST</h6>
+                                                            <h5 class="mb-0 text-info" id="display_sgst">₹0.00</h5>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="border-end">
+                                                            <h6 class="text-muted mb-1">Additional</h6>
+                                                            <h5 class="mb-0 text-warning" id="display_additional">₹0.00</h5>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div>
+                                                            <h6 class="text-muted mb-1">Total</h6>
+                                                            <h4 class="mb-0 text-success" id="display_total">₹0.00</h4>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -255,11 +342,78 @@
                             <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Additional notes for this invoice"></textarea>
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-calculator me-2"></i>Create Invoice with Batch Stock Reduction
-                            </button>
+                        <!-- Payment Processing Section -->
+                        <div class="card mb-4 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Processing</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="payment_terms" class="form-label">Payment Terms</label>
+                                        <select class="form-select" id="payment_terms" name="payment_terms">
+                                            <option value="immediate">Immediate</option>
+                                            <option value="net_15">Net 15 Days</option>
+                                            <option value="net_30">Net 30 Days</option>
+                                            <option value="advance">Advance Payment</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="payment_method" class="form-label">Primary Payment Method</label>
+                                        <select class="form-select" id="payment_method" name="payment_method">
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Credit/Debit Card</option>
+                                            <option value="upi">UPI Payment</option>
+                                            <option value="bank_transfer">Bank Transfer</option>
+                                            <option value="cheque">Cheque</option>
+                                            <option value="mixed">Multiple Methods</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Multi-payment method section (hidden by default) -->
+                                <div id="multiPaymentSection" class="mt-3" style="display: none;">
+                                    <h6>Split Payment Methods:</h6>
+                                    <div id="paymentMethodsContainer">
+                                        <!-- Dynamic payment method rows will be added here -->
+                                    </div>
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="addPaymentMethod()">
+                                        <i class="fas fa-plus me-1"></i>Add Payment Method
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Professional Action Buttons -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-outline-primary btn-lg w-100 mb-2" onclick="previewInvoice()">
+                                    <i class="fas fa-eye me-2"></i>Preview Invoice
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-success btn-lg w-100 mb-2">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i>Generate Professional Invoice
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-info w-100" onclick="saveAsDraft()">
+                                    <i class="fas fa-save me-2"></i>Save as Draft
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-warning w-100" onclick="sendQuotation()">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Quotation
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-secondary w-100" onclick="clearForm()">
+                                    <i class="fas fa-undo me-2"></i>Clear Form
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -315,9 +469,9 @@
     </div>
 </div>
 
-<!-- Success/Error Modal -->
+<!-- Professional Invoice Result Modal -->
 <div class="modal fade" id="resultModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="resultModalTitle">Invoice Result</h5>
@@ -327,7 +481,41 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a href="#" id="viewInvoiceBtn" class="btn btn-primary" style="display: none;">View Invoice</a>
+                <a href="#" id="viewInvoiceBtn" class="btn btn-primary" style="display: none;">
+                    <i class="fas fa-eye me-2"></i>View Invoice
+                </a>
+                <button type="button" id="printInvoiceBtn" class="btn btn-info" style="display: none;" onclick="printInvoice()">
+                    <i class="fas fa-print me-2"></i>Print Invoice
+                </button>
+                <button type="button" id="emailInvoiceBtn" class="btn btn-success" style="display: none;" onclick="emailInvoice()">
+                    <i class="fas fa-envelope me-2"></i>Email Invoice
+                </button>
+                <button type="button" id="whatsappInvoiceBtn" class="btn btn-warning" style="display: none;" onclick="whatsappInvoice()">
+                    <i class="fab fa-whatsapp me-2"></i>WhatsApp Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Professional Invoice Preview Modal -->
+<div class="modal fade" id="invoicePreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>Professional Invoice Preview
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="invoicePreviewBody" style="min-height: 600px;">
+                <!-- Professional invoice preview will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="proceedWithInvoiceCreation()">
+                    <i class="fas fa-check me-2"></i>Proceed with Invoice Creation
+                </button>
             </div>
         </div>
     </div>
@@ -520,7 +708,260 @@ document.getElementById('client_id').addEventListener('change', function() {
         });
 });
 
-// Handle form submission
+// Professional Tax Calculation Functions
+function updateTaxCalculations() {
+    const servicesSubtotal = calculateServicesSubtotal();
+    const inventorySubtotal = calculateInventorySubtotal();
+    const grossSubtotal = servicesSubtotal + inventorySubtotal;
+    
+    // Get discount
+    const discountType = document.getElementById('discount_type').value;
+    const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
+    let discountAmount = 0;
+    
+    if (discountType === 'percentage') {
+        discountAmount = (grossSubtotal * discountValue) / 100;
+    } else {
+        discountAmount = discountValue;
+    }
+    
+    const taxableAmount = grossSubtotal - discountAmount;
+    
+    // Calculate taxes
+    const isInterstate = document.getElementById('is_interstate').checked;
+    let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+    
+    if (isInterstate) {
+        const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
+        igstAmount = (taxableAmount * igstRate) / 100;
+    } else {
+        const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+        const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+        cgstAmount = (taxableAmount * cgstRate) / 100;
+        sgstAmount = (taxableAmount * sgstRate) / 100;
+    }
+    
+    const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
+    const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
+    
+    const totalAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount + additionalCharges + tipsAmount;
+    
+    // Update display
+    document.getElementById('display_subtotal').textContent = `₹${grossSubtotal.toFixed(2)}`;
+    document.getElementById('display_discount').textContent = `₹${discountAmount.toFixed(2)}`;
+    document.getElementById('display_cgst').textContent = `₹${(cgstAmount + igstAmount).toFixed(2)}`;
+    document.getElementById('display_sgst').textContent = `₹${sgstAmount.toFixed(2)}`;
+    document.getElementById('display_additional').textContent = `₹${(additionalCharges + tipsAmount).toFixed(2)}`;
+    document.getElementById('display_total').textContent = `₹${totalAmount.toFixed(2)}`;
+}
+
+function calculateServicesSubtotal() {
+    let total = 0;
+    document.querySelectorAll('.service-row').forEach(row => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
+        
+        if (serviceSelect && serviceSelect.value && quantityInput) {
+            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            total += price * quantity;
+        }
+    });
+    return total;
+}
+
+function calculateInventorySubtotal() {
+    let total = 0;
+    document.querySelectorAll('.product-row').forEach(row => {
+        const quantityInput = row.querySelector('.quantity-input');
+        const priceInput = row.querySelector('.unit-price');
+        
+        if (quantityInput && priceInput && quantityInput.value && priceInput.value) {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            total += quantity * price;
+        }
+    });
+    return total;
+}
+
+function toggleTaxType() {
+    const isInterstate = document.getElementById('is_interstate').checked;
+    const cgstInput = document.getElementById('cgst_rate');
+    const sgstInput = document.getElementById('sgst_rate');
+    const igstInput = document.getElementById('igst_rate');
+    
+    if (isInterstate) {
+        cgstInput.value = 0;
+        sgstInput.value = 0;
+        cgstInput.disabled = true;
+        sgstInput.disabled = true;
+        igstInput.disabled = false;
+        if (igstInput.value === '0') igstInput.value = '18';
+    } else {
+        igstInput.value = 0;
+        igstInput.disabled = true;
+        cgstInput.disabled = false;
+        sgstInput.disabled = false;
+        if (cgstInput.value === '0') cgstInput.value = '9';
+        if (sgstInput.value === '0') sgstInput.value = '9';
+    }
+    
+    updateTaxCalculations();
+}
+
+// Payment Method Management
+function addPaymentMethod() {
+    const container = document.getElementById('paymentMethodsContainer');
+    const methodCount = container.children.length;
+    
+    const methodRow = document.createElement('div');
+    methodRow.className = 'row mb-2 payment-method-row';
+    methodRow.innerHTML = `
+        <div class="col-md-4">
+            <select class="form-select" name="split_payment_methods[]" required>
+                <option value="">Select Method</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cheque">Cheque</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input type="number" class="form-control" name="split_payment_amounts[]" placeholder="Amount" step="0.01" min="0" required>
+        </div>
+        <div class="col-md-3">
+            <input type="text" class="form-control" name="split_payment_refs[]" placeholder="Reference/Transaction ID">
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removePaymentMethod(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    
+    container.appendChild(methodRow);
+}
+
+function removePaymentMethod(button) {
+    button.closest('.payment-method-row').remove();
+}
+
+// Invoice Actions
+function previewInvoice() {
+    // Generate preview modal with current form data
+    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+    const title = document.getElementById('resultModalTitle');
+    const body = document.getElementById('resultModalBody');
+    
+    title.textContent = 'Invoice Preview';
+    title.className = 'text-info';
+    
+    const customer = document.getElementById('client_id');
+    const customerName = customer.options[customer.selectedIndex].text;
+    
+    const servicesSubtotal = calculateServicesSubtotal();
+    const inventorySubtotal = calculateInventorySubtotal();
+    const grossSubtotal = servicesSubtotal + inventorySubtotal;
+    
+    body.innerHTML = `
+        <div class="invoice-preview">
+            <h5>Customer: ${customerName}</h5>
+            <hr>
+            <div class="row">
+                <div class="col-6"><strong>Services Subtotal:</strong></div>
+                <div class="col-6 text-end">₹${servicesSubtotal.toFixed(2)}</div>
+            </div>
+            <div class="row">
+                <div class="col-6"><strong>Inventory Subtotal:</strong></div>
+                <div class="col-6 text-end">₹${inventorySubtotal.toFixed(2)}</div>
+            </div>
+            <div class="row">
+                <div class="col-6"><strong>Gross Subtotal:</strong></div>
+                <div class="col-6 text-end">₹${grossSubtotal.toFixed(2)}</div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p class="text-muted">This is a preview. Click "Generate Professional Invoice" to create the actual invoice.</p>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+}
+
+function saveAsDraft() {
+    // Save current form as draft
+    const formData = new FormData(document.getElementById('billingForm'));
+    formData.append('save_as_draft', 'true');
+    
+    fetch('/integrated-billing/save-draft', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Draft saved successfully!');
+        } else {
+            alert('Error saving draft: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving draft.');
+    });
+}
+
+function sendQuotation() {
+    // Convert current form to quotation
+    alert('Quotation feature coming soon!');
+}
+
+function clearForm() {
+    if (confirm('Are you sure you want to clear the entire form? All entered data will be lost.')) {
+        document.getElementById('billingForm').reset();
+        updateTaxCalculations();
+        
+        // Reset all dynamic elements
+        const productRows = document.querySelectorAll('.product-row');
+        productRows.forEach((row, index) => {
+            if (index > 0) {
+                row.remove();
+            }
+        });
+        
+        document.getElementById('customerPackages').innerHTML = '<small>Select a customer to view their active packages</small>';
+    }
+}
+
+// Payment Method Change Handler
+document.getElementById('payment_method').addEventListener('change', function() {
+    const multiPaymentSection = document.getElementById('multiPaymentSection');
+    if (this.value === 'mixed') {
+        multiPaymentSection.style.display = 'block';
+        addPaymentMethod(); // Add first payment method row
+    } else {
+        multiPaymentSection.style.display = 'none';
+        document.getElementById('paymentMethodsContainer').innerHTML = '';
+    }
+});
+
+// Auto-update calculations when any input changes
+document.addEventListener('input', function(e) {
+    if (e.target.matches('input[name="service_quantities[]"], .quantity-input, .unit-price, #discount_value, #additional_charges, #tips_amount')) {
+        updateTaxCalculations();
+    }
+});
+
+document.addEventListener('change', function(e) {
+    if (e.target.matches('select[name="service_ids[]"], #discount_type, #cgst_rate, #sgst_rate, #igst_rate')) {
+        updateTaxCalculations();
+    }
+});
+
+// Enhanced form submission with professional features
 document.getElementById('billingForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -542,7 +983,12 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     
     const formData = new FormData(this);
     
-    fetch('/integrated-billing/create', {
+    // Add tax calculation data
+    formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) || 0));
+    formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
+    formData.append('total_tax_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) + parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
+    
+    fetch('/integrated-billing/create-professional', {
         method: 'POST',
         body: formData
     })
@@ -554,21 +1000,41 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         const viewBtn = document.getElementById('viewInvoiceBtn');
         
         if (data.success) {
-            title.textContent = 'Invoice Created Successfully!';
+            title.textContent = 'Professional Invoice Created Successfully!';
             title.className = 'text-success';
             
             let message = `<div class="text-success">
-                <i class="fas fa-check-circle fa-2x mb-3"></i>
-                <h5>${data.message}</h5>
-                <p><strong>Total Amount:</strong> ₹${data.total_amount.toLocaleString()}</p>
+                <i class="fas fa-check-circle fa-3x mb-3"></i>
+                <h4>${data.message}</h4>
+                <div class="row mt-3">
+                    <div class="col-6"><strong>Invoice Number:</strong></div>
+                    <div class="col-6">${data.invoice_number}</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>Total Amount:</strong></div>
+                    <div class="col-6">₹${data.total_amount.toLocaleString()}</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>CGST:</strong></div>
+                    <div class="col-6">₹${data.cgst_amount.toLocaleString()}</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>SGST:</strong></div>
+                    <div class="col-6">₹${data.sgst_amount.toLocaleString()}</div>
+                </div>
             `;
             
             if (data.deductions_applied > 0) {
-                message += `<p class="text-success"><strong>Package Deductions Applied:</strong> ₹${data.deductions_applied.toLocaleString()}</p>`;
+                message += `<div class="row text-success">
+                    <div class="col-6"><strong>Package Deductions:</strong></div>
+                    <div class="col-6">₹${data.deductions_applied.toLocaleString()}</div>
+                </div>`;
             }
             
             if (data.stock_reduced) {
-                message += `<p class="text-info"><strong>Stock Reduced:</strong> ${data.stock_reduced} items from batches</p>`;
+                message += `<div class="row text-info">
+                    <div class="col-12"><small><strong>Stock Reduced:</strong> ${data.stock_reduced} items from batches</small></div>
+                </div>`;
             }
             
             message += '</div>';
@@ -578,25 +1044,10 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             viewBtn.href = `/integrated-billing/invoice/${data.invoice_id}`;
             
             // Reset form
-            this.reset();
-            document.getElementById('customerPackages').innerHTML = '<small>Select a customer to view their active packages</small>';
-            
-            // Reset all product rows to initial state
-            const productRows = document.querySelectorAll('.product-row');
-            productRows.forEach((row, index) => {
-                if (index > 0) {
-                    row.remove();
-                } else {
-                    row.querySelector('.batch-select').innerHTML = '<option value="">Select Product First</option>';
-                    row.querySelector('.batch-select').disabled = true;
-                    row.querySelector('.batch-info').innerHTML = '';
-                    row.querySelector('.available-stock').innerHTML = '';
-                    row.querySelector('.unit-price').value = '';
-                }
-            });
+            clearForm();
             
         } else {
-            title.textContent = 'Error Creating Invoice';
+            title.textContent = 'Error Creating Professional Invoice';
             title.className = 'text-danger';
             body.innerHTML = `<div class="text-danger">
                 <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
@@ -609,8 +1060,13 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred while creating the invoice.');
+        alert('An error occurred while creating the professional invoice.');
     });
+});
+
+// Initialize tax calculations on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateTaxCalculations();
 });
 </script>
 {% endblock %}
