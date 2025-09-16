@@ -17,16 +17,8 @@ def initialize_app():
             from routes import create_default_data
             create_default_data()
             
-            # Try to restore data from Replit DB if available
-            try:
-                from replit import db as replit_db
-                if 'users' in replit_db and len(replit_db['users']) > 1:  # More than just admin
-                    print("🔄 Restoring data from Replit DB...")
-                    import subprocess
-                    subprocess.run(['python', 'database_migration.py', 'import'], check=False)
-                    print("✅ Data restored from Replit DB")
-            except Exception as restore_error:
-                print(f"Note: Could not restore from Replit DB: {restore_error}")
+            # Using SQLite database from instance/spa_management.db
+            print("✅ Using SQLite database from instance/spa_management.db")
             
             # Professional inventory views removed
                 
