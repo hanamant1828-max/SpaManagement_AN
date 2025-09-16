@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from werkzeug.exceptions import BadRequest
 from app import app, db
-from models import User, StaffScheduleRange, StaffDailySchedule
+from models import User, StaffScheduleRange, StaffDailySchedule, ShiftManagement, ShiftLogs
 from datetime import datetime, date, timedelta
 import json
 
@@ -341,37 +341,51 @@ def api_get_all_staff_schedules(staff_id):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        schedules = StaffScheduleRange.query.filter_by(
-            staff_id=staff_id,
-            is_active=True
-        ).order_by(StaffScheduleRange.start_date).all()
+        shift_managements = ShiftManagement.query.filter_by(
+            staff_id=staff_id
+        ).order_by(ShiftManagement.from_date).all()
 
         schedule_list = []
-        for schedule in schedules:
+        for schedule in shift_managements:
             # Get working days list
             working_days = []
-            if schedule.monday: working_days.append('Mon')
-            if schedule.tuesday: working_days.append('Tue')
-            if schedule.wednesday: working_days.append('Wed')
-            if schedule.thursday: working_days.append('Thu')
-            if schedule.friday: working_days.append('Fri')
-            if schedule.saturday: working_days.append('Sat')
-            if schedule.sunday: working_days.append('Sun')
+            # Assuming ShiftManagement stores working days as flags or a similar mechanism
+            # This part might need adjustment based on the actual implementation of ShiftManagement
+            # For now, we'll try to infer from ShiftLogs if possible or use placeholders
+            # A more robust solution would involve storing working days in ShiftManagement
+            
+            # Placeholder for inferring working days - this needs to be implemented based on ShiftLogs
+            # For demonstration, we'll assume all days within the range are potentially working days
+            # and extract shift details from the first available ShiftLog for the range.
+            
+            first_log = ShiftLogs.query.filter_by(shift_management_id=schedule.id).order_by(ShiftLogs.individual_date).first()
+            if first_log:
+                day_of_week = first_log.individual_date.weekday() # Monday is 0, Sunday is 6
+                if day_of_week == 0: working_days.append('Mon')
+                if day_of_week == 1: working_days.append('Tue')
+                if day_of_week == 2: working_days.append('Wed')
+                if day_of_week == 3: working_days.append('Thu')
+                if day_of_week == 4: working_days.append('Fri')
+                if day_of_week == 5: working_days.append('Sat')
+                if day_of_week == 6: working_days.append('Sun')
+
+            # If no logs found or day of week cannot be determined, use a default or leave empty
+            if not working_days:
+                 working_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] # Default to all if unable to determine
 
             schedule_list.append({
                 'id': schedule.id,
-                'schedule_name': schedule.schedule_name,
-                'description': schedule.description or '',
-                'start_date': schedule.start_date.strftime('%Y-%m-%d'),
-                'end_date': schedule.end_date.strftime('%Y-%m-%d'),
+                'schedule_name': schedule.schedule_name if hasattr(schedule, 'schedule_name') else f"Shift from {schedule.from_date.strftime('%Y-%m-%d')}",
+                'description': schedule.description if hasattr(schedule, 'description') else '',
+                'start_date': schedule.from_date.strftime('%Y-%m-%d'),
+                'end_date': schedule.to_date.strftime('%Y-%m-%d'),
                 'working_days': working_days,
                 'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
                 'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
                 'shift_start_time_12h': schedule.shift_start_time.strftime('%I:%M %p') if schedule.shift_start_time else '',
                 'shift_end_time_12h': schedule.shift_end_time.strftime('%I:%M %p') if schedule.shift_end_time else '',
-                'break_time': schedule.break_time or '',
-                'priority': schedule.priority or 1,
-                'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
+                'break_time': schedule.break_time if hasattr(schedule, 'break_time') else '',
+                'priority': schedule.priority if hasattr(schedule, 'priority') else 1
             })
 
         return jsonify({
@@ -824,7 +838,7 @@ def api_get_all_schedules():
         staff_schedules = {}
         for schedule, staff in schedules:
             staff_key = f"{staff.id}_{staff.first_name}_{staff.last_name}"
-            
+
             if staff_key not in staff_schedules:
                 staff_schedules[staff_key] = {
                     'staff_id': staff.id,
@@ -834,13 +848,13 @@ def api_get_all_schedules():
                     'latest_end': schedule.end_date,
                     'total_ranges': 0
                 }
-            
+
             # Track earliest start and latest end dates
             if schedule.start_date < staff_schedules[staff_key]['earliest_start']:
                 staff_schedules[staff_key]['earliest_start'] = schedule.start_date
             if schedule.end_date > staff_schedules[staff_key]['latest_end']:
                 staff_schedules[staff_key]['latest_end'] = schedule.end_date
-            
+
             staff_schedules[staff_key]['schedules'].append(schedule)
             staff_schedules[staff_key]['total_ranges'] += 1
 
@@ -849,7 +863,7 @@ def api_get_all_schedules():
         for staff_key, data in staff_schedules.items():
             # Get the most recent schedule for display info
             latest_schedule = max(data['schedules'], key=lambda x: x.created_at)
-            
+
             # Get working days from latest schedule
             working_days = []
             if latest_schedule.monday: working_days.append('Mon')

@@ -163,7 +163,6 @@ class User(UserMixin, db.Model):
     # Relationships
     appointments = db.relationship('Appointment', backref='assigned_staff', lazy=True)
     expenses = db.relationship('Expense', backref='created_by_user', lazy=True)
-    schedule_ranges = db.relationship('StaffScheduleRange', backref='staff_member', lazy=True, cascade='all, delete-orphan')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -235,112 +234,52 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
-class StaffScheduleRange(db.Model):
-    """Enhanced date range-based work schedule for staff members"""
-    __tablename__ = 'staff_schedule_range'
+class ShiftManagement(db.Model):
+    """New shift management table for date ranges"""
+    __tablename__ = 'shift_management'
 
     id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    # Date range for this schedule
-    start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
-
-    # Schedule details
-    schedule_name = db.Column(db.String(100), nullable=False)  # e.g., "Holiday Schedule", "Regular Work"
-    description = db.Column(db.String(255))
-
-    # Working days within this date range (1=working, 0=off)
-    monday = db.Column(db.Boolean, default=True)
-    tuesday = db.Column(db.Boolean, default=True)
-    wednesday = db.Column(db.Boolean, default=True)
-    thursday = db.Column(db.Boolean, default=True)
-    friday = db.Column(db.Boolean, default=True)
-    saturday = db.Column(db.Boolean, default=False)
-    sunday = db.Column(db.Boolean, default=False)
-
-    # Shift times for this range
-    shift_start_time = db.Column(db.Time)
-    shift_end_time = db.Column(db.Time)
-    break_time = db.Column(db.String(50))
-
-    # Status and metadata
-    is_active = db.Column(db.Boolean, default=True)
-    priority = db.Column(db.Integer, default=1)  # Higher priority overrides lower priority
+    from_date = db.Column(db.Date, nullable=False)
+    to_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    daily_schedules = db.relationship('StaffDailySchedule', backref='schedule_range', lazy=True, cascade='all, delete-orphan')
+    shift_logs = db.relationship('ShiftLogs', backref='shift_management', lazy=True, cascade='all, delete-orphan')
+    staff_member = db.relationship('User', backref='shift_managements', lazy=True)
 
-class StaffDailySchedule(db.Model):
-    """Individual date-specific schedule data for each day within a schedule range"""
-    __tablename__ = 'staff_daily_schedule'
+    def __repr__(self):
+        return f'<ShiftManagement {self.from_date} to {self.to_date} - Staff {self.staff_id}>'
+
+class ShiftLogs(db.Model):
+    """Individual shift log entries for each date"""
+    __tablename__ = 'shift_logs'
 
     id = db.Column(db.Integer, primary_key=True)
-    schedule_range_id = db.Column(db.Integer, db.ForeignKey('staff_schedule_range.id'), nullable=False)
-    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Specific date for this schedule entry
-    schedule_date = db.Column(db.Date, nullable=False)
-    
-    # Daily schedule details
-    is_working = db.Column(db.Boolean, default=True)
-    start_time = db.Column(db.Time, nullable=True)
-    end_time = db.Column(db.Time, nullable=True)
-    
-    # Break time details
+    shift_management_id = db.Column(db.Integer, db.ForeignKey('shift_management.id', ondelete='CASCADE'), nullable=False)
+    individual_date = db.Column(db.Date, nullable=False)
+    shift_start_time = db.Column(db.Time, nullable=False)
+    shift_end_time = db.Column(db.Time, nullable=False)
     break_start_time = db.Column(db.Time, nullable=True)
     break_end_time = db.Column(db.Time, nullable=True)
-    break_duration_minutes = db.Column(db.Integer, default=0)  # Total break duration in minutes
-    
-    # Additional details
-    notes = db.Column(db.Text)
-    is_active = db.Column(db.Boolean, default=True)
+    status = db.Column(db.Enum('scheduled', 'absent', 'holiday', 'completed', name='shift_status'), default='scheduled')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Unique constraint to prevent duplicate entries for same staff on same date
-    __table_args__ = (db.UniqueConstraint('staff_id', 'schedule_date', name='unique_staff_date_schedule'),)
 
     def get_break_time_display(self):
         """Get formatted break time display"""
         if self.break_start_time and self.break_end_time:
             start_12h = self.break_start_time.strftime('%I:%M %p')
             end_12h = self.break_end_time.strftime('%I:%M %p')
-            return f"{self.break_duration_minutes} minutes ({start_12h} - {end_12h})"
-        elif self.break_duration_minutes > 0:
-            return f"{self.break_duration_minutes} minutes"
+            # Calculate break duration in minutes
+            start_minutes = self.break_start_time.hour * 60 + self.break_start_time.minute
+            end_minutes = self.break_end_time.hour * 60 + self.break_end_time.minute
+            duration = end_minutes - start_minutes
+            return f"{duration} minutes ({start_12h} - {end_12h})"
         else:
             return "No break"
 
     def __repr__(self):
-        return f'<StaffDailySchedule {self.schedule_date} - Staff {self.staff_id}>'
-
-    def get_working_days_string(self):
-        """Get working days as binary string for compatibility"""
-        working_days = ''
-        working_days += '1' if self.monday else '0'
-        working_days += '1' if self.tuesday else '0'
-        working_days += '1' if self.wednesday else '0'
-        working_days += '1' if self.thursday else '0'
-        working_days += '1' if self.friday else '0'
-        working_days += '1' if self.saturday else '0'
-        working_days += '1' if self.sunday else '0'
-        return working_days
-
-    def is_working_day(self, target_date):
-        """Check if a specific date is a working day based on this schedule"""
-        if not (self.start_date <= target_date <= self.end_date):
-            return False
-
-        weekday = target_date.weekday()  # Monday = 0, Sunday = 6
-        working_days = [self.monday, self.tuesday, self.wednesday, 
-                       self.thursday, self.friday, self.saturday, self.sunday]
-        return working_days[weekday]
-
-    def __repr__(self):
-        return f'<StaffScheduleRange {self.schedule_name} ({self.start_date} to {self.end_date})>'
+        return f'<ShiftLogs {self.individual_date} - Management {self.shift_management_id}>'
 
 class Customer(db.Model):
     __tablename__ = 'client'  # Keep table name for backward compatibility
