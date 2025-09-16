@@ -731,9 +731,9 @@ def staff_availability():
                 'shift_end': None,
                 'break_start': None,
                 'break_end': None,
-                'schedule_name': schedule_info.get('schedule_name', 'Not Scheduled'),
+                'schedule_name': schedule_info.get('schedule_name', 'Not Scheduled') if schedule_info else 'Not Scheduled',
                 'break_time': None,
-                'description': schedule_info.get('notes', 'No shift scheduled or day off'),
+                'description': schedule_info.get('notes', 'No shift scheduled or day off') if schedule_info else 'No shift scheduled or day off',
                 'priority': 0
             }
 
