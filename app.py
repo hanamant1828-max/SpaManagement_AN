@@ -22,10 +22,9 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
-app.config['WTF_CSRF_ENABLED'] = False
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_HTTPONLY'] = False
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
@@ -59,8 +58,10 @@ def after_request(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'  # Prevent clickjacking
     response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME sniffing
     response.headers['X-XSS-Protection'] = '1; mode=block'  # Enable XSS protection
-    # Restrict CORS for security (remove wildcard in production)
-    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    # Restrict CORS for security
+    origin = request.headers.get('Origin')
+    if origin and ('replit.dev' in origin or 'replit.co' in origin or origin.startswith('http://localhost')):
+        response.headers['Access-Control-Allow-Origin'] = origin
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
     return response

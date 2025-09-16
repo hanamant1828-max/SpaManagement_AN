@@ -38,4 +38,4 @@ if __name__ == "__main__":
     print("Starting Spa Management System...")
     initialize_app()
     print("Starting Flask application on 0.0.0.0:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
