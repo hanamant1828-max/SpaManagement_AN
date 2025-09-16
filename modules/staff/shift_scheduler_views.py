@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from werkzeug.exceptions import BadRequest
 from app import app, db
-from models import User, StaffScheduleRange
+from models import User, StaffScheduleRange, StaffDailySchedule
 from datetime import datetime, date, timedelta
 import json
 
@@ -907,8 +907,6 @@ def api_get_daily_schedules(staff_id):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        from models import StaffDailySchedule
-
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
 
