@@ -98,6 +98,10 @@ with app.app_context():
     from modules.expenses import expenses_views
     from modules.inventory import views as inventory_views
     from modules.settings import settings_views
+    
+    # Register shift scheduler blueprint
+    from modules.staff.shift_scheduler_views import shift_scheduler_bp
+    app.register_blueprint(shift_scheduler_bp)
 
     try:
         db.create_all()
