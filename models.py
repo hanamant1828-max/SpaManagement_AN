@@ -59,7 +59,7 @@ class Category(db.Model):
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships (remove the problematic inventory relationship for now)
+    # Relationships
     services = db.relationship('Service', backref='service_category', lazy=True, foreign_keys='Service.category_id')
     expenses = db.relationship('Expense', backref='expense_category', lazy=True, foreign_keys='Expense.category_id')
 
@@ -572,16 +572,16 @@ class EnhancedInvoice(db.Model):
     sgst_amount = db.Column(db.Float, default=0.0)  # SGST amount
     igst_amount = db.Column(db.Float, default=0.0)  # IGST amount
     is_interstate = db.Column(db.Boolean, default=False)  # Interstate transaction flag
-    
+
     # Additional Professional Fields
     additional_charges = db.Column(db.Float, default=0.0)  # Delivery, handling, etc.
     discount_type = db.Column(db.String(20), default='amount')  # amount or percentage
     discount_rate = db.Column(db.Float, default=0.0)  # Discount percentage if applicable
-    
+
     # Payment Terms
     payment_terms = db.Column(db.String(50), default='immediate')  # immediate, net_15, net_30, advance
     due_date = db.Column(db.DateTime)
-    
+
     # Final amounts
     tax_amount = db.Column(db.Float, default=0.0)  # Total tax (CGST + SGST + IGST)
     discount_amount = db.Column(db.Float, default=0.0)
