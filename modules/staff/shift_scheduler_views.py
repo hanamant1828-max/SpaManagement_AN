@@ -807,12 +807,12 @@ def save_range(range_data, staff_id, schedule_name, description, priority):
 @shift_scheduler_bp.route('/api/all-schedules', methods=['GET'])
 @login_required
 def api_get_all_schedules():
-    """Get all existing schedules from all staff members for the management table"""
+    """Get consolidated schedule view - one row per staff member with earliest and latest dates"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # Get all active schedules with staff information
+        # Get all active schedules with staff information, grouped by staff
         schedules = db.session.query(StaffScheduleRange, User).join(
             User, StaffScheduleRange.staff_id == User.id
         ).filter(
@@ -820,17 +820,45 @@ def api_get_all_schedules():
             User.is_active == True
         ).order_by(User.first_name, User.last_name, StaffScheduleRange.start_date).all()
 
-        schedule_list = []
+        # Group schedules by staff member
+        staff_schedules = {}
         for schedule, staff in schedules:
-            # Get working days list
+            staff_key = f"{staff.id}_{staff.first_name}_{staff.last_name}"
+            
+            if staff_key not in staff_schedules:
+                staff_schedules[staff_key] = {
+                    'staff_id': staff.id,
+                    'staff_name': f"{staff.first_name} {staff.last_name}",
+                    'schedules': [],
+                    'earliest_start': schedule.start_date,
+                    'latest_end': schedule.end_date,
+                    'total_ranges': 0
+                }
+            
+            # Track earliest start and latest end dates
+            if schedule.start_date < staff_schedules[staff_key]['earliest_start']:
+                staff_schedules[staff_key]['earliest_start'] = schedule.start_date
+            if schedule.end_date > staff_schedules[staff_key]['latest_end']:
+                staff_schedules[staff_key]['latest_end'] = schedule.end_date
+            
+            staff_schedules[staff_key]['schedules'].append(schedule)
+            staff_schedules[staff_key]['total_ranges'] += 1
+
+        # Create consolidated list
+        schedule_list = []
+        for staff_key, data in staff_schedules.items():
+            # Get the most recent schedule for display info
+            latest_schedule = max(data['schedules'], key=lambda x: x.created_at)
+            
+            # Get working days from latest schedule
             working_days = []
-            if schedule.monday: working_days.append('Mon')
-            if schedule.tuesday: working_days.append('Tue')
-            if schedule.wednesday: working_days.append('Wed')
-            if schedule.thursday: working_days.append('Thu')
-            if schedule.friday: working_days.append('Fri')
-            if schedule.saturday: working_days.append('Sat')
-            if schedule.sunday: working_days.append('Sun')
+            if latest_schedule.monday: working_days.append('Mon')
+            if latest_schedule.tuesday: working_days.append('Tue')
+            if latest_schedule.wednesday: working_days.append('Wed')
+            if latest_schedule.thursday: working_days.append('Thu')
+            if latest_schedule.friday: working_days.append('Fri')
+            if latest_schedule.saturday: working_days.append('Sat')
+            if latest_schedule.sunday: working_days.append('Sun')
 
             # Format working days string
             if len(working_days) == 7:
@@ -841,22 +869,24 @@ def api_get_all_schedules():
                 working_days_str = ", ".join(working_days)
 
             schedule_list.append({
-                'id': schedule.id,
-                'staff_id': staff.id,
-                'staff_name': f"{staff.first_name} {staff.last_name}",
-                'schedule_name': schedule.schedule_name,
-                'description': schedule.description or '',
-                'start_date': schedule.start_date.strftime('%Y-%m-%d'),
-                'end_date': schedule.end_date.strftime('%Y-%m-%d'),
+                'id': latest_schedule.id,  # Use latest schedule ID for view/edit
+                'staff_id': data['staff_id'],
+                'staff_name': data['staff_name'],
+                'schedule_name': f"Schedule ({data['total_ranges']} range{'s' if data['total_ranges'] > 1 else ''})",
+                'description': latest_schedule.description or '',
+                'start_date': data['earliest_start'].strftime('%Y-%m-%d'),
+                'end_date': data['latest_end'].strftime('%Y-%m-%d'),
                 'working_days': working_days,
                 'working_days_str': working_days_str,
-                'shift_start_time': schedule.shift_start_time.strftime('%H:%M') if schedule.shift_start_time else '',
-                'shift_end_time': schedule.shift_end_time.strftime('%H:%M') if schedule.shift_end_time else '',
-                'shift_start_time_12h': schedule.shift_start_time.strftime('%I:%M %p') if schedule.shift_start_time else '',
-                'shift_end_time_12h': schedule.shift_end_time.strftime('%I:%M %p') if schedule.shift_end_time else '',
-                'break_time': schedule.break_time or '',
-                'priority': schedule.priority or 1,
-                'created_at': schedule.created_at.strftime('%Y-%m-%d %H:%M') if schedule.created_at else ''
+                'shift_start_time': latest_schedule.shift_start_time.strftime('%H:%M') if latest_schedule.shift_start_time else '',
+                'shift_end_time': latest_schedule.shift_end_time.strftime('%H:%M') if latest_schedule.shift_end_time else '',
+                'shift_start_time_12h': latest_schedule.shift_start_time.strftime('%I:%M %p') if latest_schedule.shift_start_time else '',
+                'shift_end_time_12h': latest_schedule.shift_end_time.strftime('%I:%M %p') if latest_schedule.shift_end_time else '',
+                'break_time': latest_schedule.break_time or '',
+                'priority': latest_schedule.priority or 1,
+                'created_at': latest_schedule.created_at.strftime('%Y-%m-%d %H:%M') if latest_schedule.created_at else '',
+                'total_ranges': data['total_ranges'],
+                'is_consolidated': True  # Flag to indicate this is a consolidated view
             })
 
         return jsonify({
@@ -924,6 +954,100 @@ def api_get_daily_schedules(staff_id):
             'staff_id': staff_id,
             'date_range': f"{start_date} to {end_date}",
             'total_days': len(schedule_data)
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get comprehensive schedule details for a staff member (ranges + daily schedules)
+@shift_scheduler_bp.route('/api/staff/<int:staff_id>/schedule-details', methods=['GET'])
+@login_required
+def api_get_staff_schedule_details(staff_id):
+    """Get comprehensive schedule details for viewing - all ranges and daily schedules"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get staff information
+        staff = User.query.get_or_404(staff_id)
+
+        # Get all schedule ranges for this staff member
+        schedule_ranges = StaffScheduleRange.query.filter_by(
+            staff_id=staff_id,
+            is_active=True
+        ).order_by(StaffScheduleRange.start_date).all()
+
+        # Get all daily schedules for this staff member
+        daily_schedules = StaffDailySchedule.query.filter_by(
+            staff_id=staff_id,
+            is_active=True
+        ).order_by(StaffDailySchedule.schedule_date).all()
+
+        # Format schedule ranges
+        ranges_data = []
+        for schedule_range in schedule_ranges:
+            # Get working days list
+            working_days = []
+            if schedule_range.monday: working_days.append('Mon')
+            if schedule_range.tuesday: working_days.append('Tue')
+            if schedule_range.wednesday: working_days.append('Wed')
+            if schedule_range.thursday: working_days.append('Thu')
+            if schedule_range.friday: working_days.append('Fri')
+            if schedule_range.saturday: working_days.append('Sat')
+            if schedule_range.sunday: working_days.append('Sun')
+
+            ranges_data.append({
+                'id': schedule_range.id,
+                'schedule_name': schedule_range.schedule_name,
+                'description': schedule_range.description or '',
+                'start_date': schedule_range.start_date.strftime('%Y-%m-%d'),
+                'end_date': schedule_range.end_date.strftime('%Y-%m-%d'),
+                'working_days': working_days,
+                'working_days_str': ", ".join(working_days),
+                'shift_start_time': schedule_range.shift_start_time.strftime('%H:%M') if schedule_range.shift_start_time else '',
+                'shift_end_time': schedule_range.shift_end_time.strftime('%H:%M') if schedule_range.shift_end_time else '',
+                'shift_start_time_12h': schedule_range.shift_start_time.strftime('%I:%M %p') if schedule_range.shift_start_time else '',
+                'shift_end_time_12h': schedule_range.shift_end_time.strftime('%I:%M %p') if schedule_range.shift_end_time else '',
+                'break_time': schedule_range.break_time or '',
+                'priority': schedule_range.priority or 1,
+                'created_at': schedule_range.created_at.strftime('%Y-%m-%d %H:%M') if schedule_range.created_at else ''
+            })
+
+        # Format daily schedules grouped by range
+        daily_data = []
+        for daily in daily_schedules:
+            daily_data.append({
+                'id': daily.id,
+                'range_id': daily.schedule_range_id,
+                'date': daily.schedule_date.strftime('%Y-%m-%d'),
+                'day_name': daily.schedule_date.strftime('%A'),
+                'is_working': daily.is_working,
+                'start_time': daily.start_time.strftime('%H:%M') if daily.start_time else None,
+                'end_time': daily.end_time.strftime('%H:%M') if daily.end_time else None,
+                'start_time_12h': daily.start_time.strftime('%I:%M %p') if daily.start_time else None,
+                'end_time_12h': daily.end_time.strftime('%I:%M %p') if daily.end_time else None,
+                'break_start_time': daily.break_start_time.strftime('%H:%M') if daily.break_start_time else None,
+                'break_end_time': daily.break_end_time.strftime('%H:%M') if daily.break_end_time else None,
+                'break_start_time_12h': daily.break_start_time.strftime('%I:%M %p') if daily.break_start_time else None,
+                'break_end_time_12h': daily.break_end_time.strftime('%I:%M %p') if daily.break_end_time else None,
+                'break_duration_minutes': daily.break_duration_minutes,
+                'break_time_display': daily.get_break_time_display(),
+                'notes': daily.notes or ''
+            })
+
+        return jsonify({
+            'success': True,
+            'staff': {
+                'id': staff.id,
+                'name': f"{staff.first_name} {staff.last_name}",
+                'first_name': staff.first_name,
+                'last_name': staff.last_name,
+                'role': staff.role
+            },
+            'schedule_ranges': ranges_data,
+            'daily_schedules': daily_data,
+            'total_ranges': len(ranges_data),
+            'total_days': len(daily_data)
         })
 
     except Exception as e:

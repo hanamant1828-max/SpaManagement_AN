@@ -165,7 +165,7 @@
     }
 
     /**
-     * View schedule (Page 4: View Schedule Page)
+     * View schedule (Show detailed modal with all daily schedules)
      */
     function viewSchedule(scheduleId) {
         const schedule = schedules.find(s => s.id == scheduleId);
@@ -174,12 +174,26 @@
             return;
         }
 
-        // Navigate to view page with schedule data in URL
-        const params = new URLSearchParams({
-            action: 'view',
-            id: scheduleId
+        showLoadingModal('Loading schedule details...');
+
+        // Get comprehensive schedule details
+        $.ajax({
+            url: `/api/staff/${schedule.staff_id}/schedule-details`,
+            method: 'GET',
+            success: function(response) {
+                hideLoadingModal();
+                if (response.success) {
+                    showScheduleDetailsModal(response);
+                } else {
+                    showAlert('Error loading schedule details: ' + response.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoadingModal();
+                console.error('Error loading schedule details:', error);
+                showAlert('Error loading schedule details. Please try again.', 'danger');
+            }
         });
-        window.location.href = `/shift-scheduler/add?${params.toString()}`;
     }
 
     /**
@@ -335,6 +349,158 @@
         if (loadingModal) {
             loadingModal.hide();
         }
+    }
+
+    /**
+     * Show detailed schedule modal
+     */
+    function showScheduleDetailsModal(data) {
+        const staff = data.staff;
+        const ranges = data.schedule_ranges;
+        const dailySchedules = data.daily_schedules;
+
+        // Group daily schedules by range
+        const schedulesByRange = {};
+        dailySchedules.forEach(daily => {
+            if (!schedulesByRange[daily.range_id]) {
+                schedulesByRange[daily.range_id] = [];
+            }
+            schedulesByRange[daily.range_id].push(daily);
+        });
+
+        let modalContent = `
+            <div class="modal fade" id="scheduleDetailsModal" tabindex="-1" aria-labelledby="scheduleDetailsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="scheduleDetailsModalLabel">
+                                <i class="fas fa-calendar-check me-2"></i>
+                                Schedule Details - ${staff.name}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Staff Information
+                                    </h6>
+                                    <div class="card mb-4">
+                                        <div class="card-body">
+                                            <p><strong>Name:</strong> ${staff.name}</p>
+                                            <p><strong>Role:</strong> ${staff.role}</p>
+                                            <p><strong>Total Schedule Ranges:</strong> ${ranges.length}</p>
+                                            <p><strong>Total Days Scheduled:</strong> ${dailySchedules.length}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+        `;
+
+        // Add schedule ranges
+        ranges.forEach(range => {
+            const rangeDays = schedulesByRange[range.id] || [];
+            
+            modalContent += `
+                <div class="mb-4">
+                    <h6 class="mb-3">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        ${range.schedule_name}
+                    </h6>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Period:</strong> ${formatDate(range.start_date)} to ${formatDate(range.end_date)}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Shift Times:</strong> ${range.shift_start_time_12h} - ${range.shift_end_time_12h}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>Working Days:</strong> ${range.working_days_str}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Break Time:</strong> ${range.break_time || 'Not specified'}
+                                </div>
+                            </div>
+                            ${range.description ? `<div class="mt-2"><strong>Description:</strong> ${range.description}</div>` : ''}
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Day</th>
+                                            <th>Working</th>
+                                            <th>Start Time</th>
+                                            <th>End Time</th>
+                                            <th>Break</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+            `;
+
+            if (rangeDays.length > 0) {
+                rangeDays.forEach(day => {
+                    modalContent += `
+                        <tr class="${day.is_working ? '' : 'table-secondary'}">
+                            <td>${formatDate(day.date)}</td>
+                            <td>${day.day_name}</td>
+                            <td>
+                                ${day.is_working ? 
+                                    '<span class="badge bg-success">Yes</span>' : 
+                                    '<span class="badge bg-secondary">Off</span>'
+                                }
+                            </td>
+                            <td>${day.is_working ? (day.start_time_12h || 'N/A') : '-'}</td>
+                            <td>${day.is_working ? (day.end_time_12h || 'N/A') : '-'}</td>
+                            <td>${day.is_working ? (day.break_time_display || 'No break') : '-'}</td>
+                            <td>${day.notes || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                modalContent += `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            No daily schedule entries found for this range
+                        </td>
+                    </tr>
+                `;
+            }
+
+            modalContent += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        modalContent += `
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        $('#scheduleDetailsModal').remove();
+        
+        // Add modal to body and show
+        $('body').append(modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('scheduleDetailsModal'));
+        modal.show();
     }
 
     /**
