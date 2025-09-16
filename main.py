@@ -17,18 +17,23 @@ def initialize_app():
             from routes import create_default_data
             create_default_data()
             
-            # Try to restore data from Replit DB if available
+            # Always ensure demo data is populated for fresh installations
             try:
-                from replit import db as replit_db
-                if 'users' in replit_db and len(replit_db['users']) > 1:  # More than just admin
-                    print("🔄 Restoring data from Replit DB...")
+                from models import User
+                user_count = User.query.count()
+                if user_count <= 1:  # Only admin or no users
+                    print("🔄 Populating demo data for fresh installation...")
                     import subprocess
-                    subprocess.run(['python', 'database_migration.py', 'import'], check=False)
-                    print("✅ Data restored from Replit DB")
-            except Exception as restore_error:
-                print(f"Note: Could not restore from Replit DB: {restore_error}")
-            
-            # Professional inventory views removed
+                    result = subprocess.run(['python', 'populate_local_demo_data.py'], 
+                                          capture_output=True, text=True, check=False)
+                    if result.returncode == 0:
+                        print("✅ Demo data populated successfully")
+                    else:
+                        print(f"⚠️ Demo data population warning: {result.stderr}")
+                else:
+                    print(f"✅ Database has {user_count} users - demo data already present")
+            except Exception as demo_error:
+                print(f"Note: Could not populate demo data: {demo_error}")
                 
     except Exception as e:
         print(f"Warning: Could not initialize default data: {e}")
