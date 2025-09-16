@@ -71,9 +71,9 @@
                     <i class="fas fa-calendar-times fa-4x mb-4 text-secondary"></i>
                     <h5 class="text-secondary">No Schedules Found</h5>
                     <p class="mb-4">Get started by creating your first staff schedule</p>
-                    <button type="button" class="btn btn-primary btn-lg hover-lift" onclick="openForm('add')">
+                    <a href="{{ url_for('shift_scheduler.add_shift_scheduler') }}" class="btn btn-primary btn-lg hover-lift">
                         <i class="fas fa-plus-circle me-2"></i>Create Your First Schedule
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
