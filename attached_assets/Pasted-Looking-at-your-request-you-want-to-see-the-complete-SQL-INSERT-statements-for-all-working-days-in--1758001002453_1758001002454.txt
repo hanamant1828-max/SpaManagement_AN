@@ -1,0 +1,28 @@
+Looking at your request, you want to see the complete SQL INSERT statements for all working days in the shift example. Based on the shift record you created (Alex Martinez from September 16-23, 2025), here are all the individual shift_logs records that were stored:
+
+Complete SQL INSERT Statements for All Working Days
+shift_management table (1 record):
+
+INSERT INTO shift_management (staff_id, from_date, to_date, created_at)
+VALUES (2, '2025-09-16', '2025-09-23', '2025-09-16 05:27:00')
+-- This creates shift_management_id = 1
+shift_logs table (6 records - one for each working day):
+
+-- Monday, September 16, 2025
+INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at)
+VALUES (1, '2025-09-16', '09:00:00', '17:00:00', '13:00:00', '14:00:00', 'scheduled', '2025-09-16 05:27:00');
+-- Tuesday, September 17, 2025
+INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at)
+VALUES (1, '2025-09-17', '09:00:00', '17:00:00', '13:00:00', '14:00:00', 'scheduled', '2025-09-16 05:27:00');
+-- Wednesday, September 18, 2025
+INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at)
+VALUES (1, '2025-09-18', '09:00:00', '17:00:00', '13:00:00', '14:00:00', 'scheduled', '2025-09-16 05:27:00');
+-- Thursday, September 19, 2025
+INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at)
+VALUES (1, '2025-09-19', '09:00:00', '17:00:00', '13:00:00', '14:00:00', 'scheduled', '2025-09-16 05:27:00');
+-- Friday, September 20, 2025
+INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at)
+VALUES (1, '2025-09-20', '09:00:00', '17:00:00', '13:00:00', '14:00:00', 'scheduled', '2025-09-16 05:27:00');
+-- Monday, September 23, 2025 (skipping weekend)
+INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at)
+VALUES (1, '2025-09-23', '09:00:00', '17:00:00', '13:00:00', '14:00:00', 'scheduled', '2025-09-16 05:27:00');
