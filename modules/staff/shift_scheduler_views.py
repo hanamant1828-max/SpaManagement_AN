@@ -422,6 +422,32 @@ def delete_shift_schedules():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# Delete single schedule by ID (for frontend compatibility)
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['DELETE'])
+@login_required
+def delete_single_schedule(schedule_id):
+    """Delete a single schedule by ID - Frontend compatibility endpoint"""
+    if not current_user.can_access('staff'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        schedule = ShiftManagement.query.get(schedule_id)
+        if not schedule:
+            return jsonify({'error': 'Schedule not found'}), 404
+        
+        # Delete the schedule (cascade will handle shift logs)
+        db.session.delete(schedule)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Schedule deleted successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Update existing schedule
 @shift_scheduler_bp.route('/api/shift-scheduler/update-daily-schedule/<int:schedule_id>', methods=['PUT'])
 @login_required
