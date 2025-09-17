@@ -109,7 +109,7 @@ def api_get_shift_schedules():
         return jsonify({'error': str(e)}), 500
 
 # Save daily schedule with day-by-day configuration
-@shift_scheduler_bp.route('/shift-scheduler/api/shift-scheduler/save-daily-schedule', methods=['POST'])
+@shift_scheduler_bp.route('/api/shift-scheduler/save-daily-schedule', methods=['POST'])
 @login_required
 def save_daily_schedule():
     """Save schedule with day-by-day configuration using new schema"""
@@ -335,7 +335,7 @@ def api_get_staff_schedule_details(staff_id):
         return jsonify({'error': str(e)}), 500
 
 # API endpoint to get schedule details for edit mode
-@shift_scheduler_bp.route('/shift-scheduler/api/schedule/<int:schedule_id>/details', methods=['GET'])
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>/details', methods=['GET'])
 @login_required
 def api_get_schedule_details(schedule_id):
     """Get detailed schedule information for edit mode"""
@@ -401,7 +401,7 @@ def api_get_schedule_details(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete schedules
-@shift_scheduler_bp.route('/shift-scheduler/delete', methods=['POST'])
+@shift_scheduler_bp.route('/delete', methods=['POST'])
 @login_required
 def delete_shift_schedules():
     """Delete shift schedules by IDs"""
@@ -436,7 +436,7 @@ def delete_shift_schedules():
         return jsonify({'error': str(e)}), 500
 
 # Delete single schedule by ID (for frontend compatibility)
-@shift_scheduler_bp.route('/shift-scheduler/api/schedule/<int:schedule_id>', methods=['DELETE'])
+@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['DELETE'])
 @login_required
 def delete_single_schedule(schedule_id):
     """Delete a single schedule by ID - Frontend compatibility endpoint"""
@@ -462,7 +462,7 @@ def delete_single_schedule(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Update existing schedule
-@shift_scheduler_bp.route('/shift-scheduler/api/shift-scheduler/update-daily-schedule/<int:schedule_id>', methods=['PUT'])
+@shift_scheduler_bp.route('/api/shift-scheduler/update-daily-schedule/<int:schedule_id>', methods=['PUT'])
 @login_required
 def update_daily_schedule(schedule_id):
     """Update existing schedule with day-by-day configuration"""
