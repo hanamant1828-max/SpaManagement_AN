@@ -178,7 +178,7 @@
 
         // Get comprehensive schedule details
         $.ajax({
-            url: `/api/staff/${schedule.staff_id}/schedule-details`,
+            url: `/shift-scheduler/api/staff/${schedule.staff_id}/schedule-details`,
             method: 'GET',
             success: function(response) {
                 hideLoadingModal();
@@ -211,7 +211,7 @@
             action: 'edit',
             id: scheduleId
         });
-        window.location.href = `/shift-scheduler/add?${params.toString()}`;
+        window.location.href = `/shift-scheduler/shift-scheduler/add?${params.toString()}`;
     }
 
     /**
@@ -232,7 +232,7 @@
         showLoadingModal('Deleting schedule...');
 
         $.ajax({
-            url: `/api/schedule/${scheduleId}`,
+            url: `/shift-scheduler/api/schedule/${scheduleId}`,
             method: 'DELETE',
             success: function(response) {
                 hideLoadingModal();
@@ -510,7 +510,7 @@
         showLoadingModal('Loading database records...');
 
         $.ajax({
-            url: '/api/database-records',
+            url: '/shift-scheduler/api/database-records',
             method: 'GET',
             success: function(response) {
                 hideLoadingModal();
