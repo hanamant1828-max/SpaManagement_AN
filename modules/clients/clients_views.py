@@ -15,7 +15,7 @@ from app import db
 
 @app.route('/customers')
 @app.route('/clients')  # Keep for backward compatibility
-@login_required
+@login_required  
 def customers():
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
@@ -47,62 +47,77 @@ def create_customer_route():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    form = CustomerForm()
-    if form.validate_on_submit():
-        # Validate and clean data
-        email_value = form.email.data
-        if email_value and email_value.strip():
-            email_value = email_value.strip().lower()
-        else:
-            email_value = None
+    try:
+        # Get form data manually to handle CSRF issues
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        phone = request.form.get('phone', '').strip()
+        email = request.form.get('email', '').strip()
+        address = request.form.get('address', '').strip()
+        date_of_birth = request.form.get('date_of_birth')
+        gender = request.form.get('gender', '').strip()
+        preferences = request.form.get('preferences', '').strip()
+        allergies = request.form.get('allergies', '').strip()
+        notes = request.form.get('notes', '').strip()
 
-        phone_value = form.phone.data.strip() if form.phone.data else ""
+        # Basic validation
+        if not first_name:
+            flash('First name is required. Please enter the customer\'s first name.', 'danger')
+            return redirect(url_for('customers'))
+
+        if not last_name:
+            flash('Last name is required. Please enter the customer\'s last name.', 'danger')
+            return redirect(url_for('customers'))
+
+        if not phone:
+            flash('Phone number is required. Please enter the customer\'s phone number.', 'danger')
+            return redirect(url_for('customers'))
+
+        # Clean email
+        email_value = email.lower() if email else None
 
         # Server-side validation for duplicates
         from .clients_queries import get_customer_by_phone, get_customer_by_email
 
-        # Check for duplicate phone number (only if phone is provided)
-        if phone_value and get_customer_by_phone(phone_value):
+        # Check for duplicate phone number
+        if get_customer_by_phone(phone):
             flash('A customer with this phone number already exists. Please use a different phone number.', 'danger')
             return redirect(url_for('customers'))
 
-        # Check for duplicate email (only if email is provided and not empty)
+        # Check for duplicate email (only if email is provided)
         if email_value and get_customer_by_email(email_value):
             flash('A customer with this email address already exists. Please use a different email or update the existing customer profile.', 'danger')
             return redirect(url_for('customers'))
 
+        # Parse date of birth
+        dob = None
+        if date_of_birth:
+            try:
+                from datetime import datetime
+                dob = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                dob = None
+
         customer_data = {
-            'first_name': (form.first_name.data or '').strip().title(),
-            'last_name': (form.last_name.data or '').strip().title(),
-            'phone': phone_value,
+            'first_name': first_name.title(),
+            'last_name': last_name.title(),
+            'phone': phone,
             'email': email_value,
-            'address': (form.address.data or '').strip(),
-            'date_of_birth': form.date_of_birth.data,
-            'gender': form.gender.data if form.gender.data and form.gender.data.strip() else None,
-            'preferences': (form.preferences.data or '').strip(),
-            'allergies': (form.allergies.data or '').strip(),
-            'notes': (form.notes.data or '').strip()
+            'address': address,
+            'date_of_birth': dob,
+            'gender': gender if gender else None,
+            'preferences': preferences,
+            'allergies': allergies,
+            'notes': notes
         }
 
-        # Additional validation
-        if not customer_data['first_name']:
-            flash('First name is required. Please enter the customer\'s first name.', 'danger')
-            return redirect(url_for('customers'))
-
-        if not customer_data['last_name']:
-            flash('Last name is required. Please enter the customer\'s last name.', 'danger')
-            return redirect(url_for('customers'))
-
-        try:
-            new_customer = create_customer(customer_data)
-            flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
-        except Exception as e:
-            flash(f'Error creating customer: {str(e)}', 'danger')
-    else:
-        # Form validation failed - show specific field errors
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field.replace("_", " ").title()}: {error}', 'danger')
+        new_customer = create_customer(customer_data)
+        flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating customer: {str(e)}', 'danger')
+        print(f"Customer creation error: {e}")
 
     return redirect(url_for('customers'))
 

@@ -219,7 +219,6 @@ def index():
 
 # Backward compatibility route
 @app.route('/clients')
-
 def clients_redirect():
     return redirect(url_for('customers'))
 
