@@ -17,11 +17,6 @@ shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
 @scheduler_required
 def add_shift_scheduler():
     """Add shift scheduler page with day-by-day configuration"""
-    # In development mode, bypass the access check
-    if not PUBLIC_SCHEDULER_IN_DEV and (not current_user.is_authenticated or not current_user.can_access('staff')):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
@@ -34,11 +29,6 @@ def add_shift_scheduler():
 @scheduler_required
 def shift_scheduler():
     """Main shift scheduler interface"""
-    # In development mode, bypass the access check
-    if not PUBLIC_SCHEDULER_IN_DEV and (not current_user.is_authenticated or not current_user.can_access('staff')):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
@@ -51,10 +41,6 @@ def shift_scheduler():
 @scheduler_required
 def api_get_shift_schedules():
     """Get existing shift schedules for a staff member in date range"""
-    # In development mode, bypass the access check
-    if not PUBLIC_SCHEDULER_IN_DEV and (not current_user.is_authenticated or not current_user.can_access('staff')):
-        return jsonify({'error': 'Access denied'}), 403
-
     try:
         staff_id = request.args.get('staff_id', type=int)
         start_date_str = request.args.get('start_date')

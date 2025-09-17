@@ -53,10 +53,10 @@ class DevAnonymousUser:
     is_authenticated = False
     is_active = False
     is_anonymous = True
-    
+
     def get_id(self):
         return None
-    
+
     def can_access(self, area):
         """Allow staff access in development mode"""
         return PUBLIC_STAFF_IN_DEV and area == 'staff'
@@ -102,14 +102,13 @@ def scheduler_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # In development, bypass authentication for scheduler routes
+        # In development mode, bypass authentication for scheduler routes
         if PUBLIC_SCHEDULER_IN_DEV:
             return f(*args, **kwargs)
-        else:
-            # Production mode - require login
-            if not current_user.is_authenticated:
-                return redirect(url_for('login', next=request.url))
-            return f(*args, **kwargs)
+
+        if not current_user.is_authenticated:
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
     return decorated_function
 
 # Add headers for webview compatibility and caching control
@@ -124,7 +123,7 @@ def after_request(response):
     response.headers['X-Frame-Options'] = 'ALLOWALL'  # Allow embedding in Replit webview
     response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME sniffing
     response.headers['X-XSS-Protection'] = '1; mode=block'  # Enable XSS protection
-    
+
     # More permissive CORS for Replit environment
     origin = request.headers.get('Origin')
     if origin and ('replit.dev' in origin or 'replit.co' in origin or 'replit.com' in origin or origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1')):
@@ -132,7 +131,7 @@ def after_request(response):
     else:
         # Allow Replit webview
         response.headers['Access-Control-Allow-Origin'] = '*'
-    
+
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
     response.headers['Access-Control-Allow-Credentials'] = 'true'
@@ -175,7 +174,7 @@ with app.app_context():
     from modules.expenses import expenses_views
     from modules.inventory import views as inventory_views
     from modules.settings import settings_views
-    
+
     # Register shift scheduler blueprint
     from modules.staff.shift_scheduler_views import shift_scheduler_bp
     app.register_blueprint(shift_scheduler_bp)
