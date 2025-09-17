@@ -570,7 +570,6 @@ def update_business_settings():
 
 # API endpoints for Role Management
 @app.route('/api/roles', methods=['POST'])
-
 def api_create_role():
     """API endpoint to create a new role"""
     if False:
@@ -597,7 +596,6 @@ def api_create_role():
         return {'error': str(e)}, 500
 
 @app.route('/api/roles/<int:role_id>', methods=['DELETE'])
-
 def api_delete_role(role_id):
     """API endpoint to delete a role"""
     if False:
@@ -618,7 +616,6 @@ def api_delete_role(role_id):
         return {'error': str(e)}, 500
 
 @app.route('/api/roles/<int:role_id>/permissions', methods=['GET'])
-
 def api_get_role_permissions(role_id):
     """API endpoint to get role permissions"""
     if False:
@@ -637,7 +634,6 @@ def api_get_role_permissions(role_id):
         return {'error': str(e)}, 500
 
 @app.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
-
 def api_update_role_permissions(role_id):
     """API endpoint to update role permissions"""
     if False:
@@ -673,7 +669,6 @@ def api_update_role_permissions(role_id):
 
 # Additional API routes
 @app.route('/api/services')
-
 def api_services():
     from models import Service
     
@@ -686,7 +681,6 @@ def api_services():
     } for s in services])
 
 @app.route('/api/staff')
-
 def api_staff():
     from models import User
     

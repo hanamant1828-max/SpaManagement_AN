@@ -775,7 +775,6 @@ def test_comprehensive_staff():
 # ===== API ENDPOINTS FOR JAVASCRIPT CRUD OPERATIONS =====
 
 @app.route('/api/staff', methods=['GET'])
-@login_required
 def api_get_all_staff():
     """API endpoint to get all staff data for JavaScript"""
     if not current_user.can_access('staff'):
@@ -836,8 +835,7 @@ def api_get_all_staff():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/staff/<int:staff_id>', methods=['GET'])
-@login_required  
+@app.route('/api/staff/<int:staff_id>', methods=['GET'])  
 def api_get_staff(staff_id):
     """API endpoint to get single staff member data"""
     if not current_user.can_access('staff'):
@@ -883,7 +881,6 @@ def api_get_staff(staff_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/staff', methods=['POST'])
-@login_required
 def api_create_staff():
     """API endpoint to create new staff member"""
     if not current_user.can_access('staff'):
@@ -1028,7 +1025,6 @@ def api_create_staff():
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
-@login_required
 def api_update_staff(staff_id):
     """API endpoint to update staff member"""
     if not current_user.can_access('staff'):
@@ -1149,7 +1145,6 @@ def api_update_staff(staff_id):
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
-@login_required
 def api_delete_staff(staff_id):
     """API endpoint to delete (deactivate) staff member"""
     if not current_user.can_access('staff'):

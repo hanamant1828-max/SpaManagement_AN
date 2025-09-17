@@ -20,7 +20,7 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
+app.secret_key = os.environ.get("SESSION_SECRET") or "fallback-secret-key-for-development-only"
 # Environment-based security configuration
 IS_PRODUCTION = os.environ.get('REPLIT_ENVIRONMENT') == 'production'
 
@@ -30,6 +30,7 @@ if IS_PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 else:
     # Development settings for Replit webview compatibility
     app.config['WTF_CSRF_ENABLED'] = False
@@ -37,6 +38,7 @@ else:
     app.config['SESSION_COOKIE_SECURE'] = False
     app.config['SESSION_COOKIE_HTTPONLY'] = False
     app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
@@ -56,6 +58,8 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
+login_manager.session_protection = 'basic'
+login_manager.refresh_view = 'login'
 
 # Add headers for webview compatibility and caching control
 @app.after_request
