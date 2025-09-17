@@ -324,13 +324,24 @@ def api_create_location():
         if not name:
             return jsonify({'error': 'Location name is required'}), 400
 
-        # Check if location name already exists (only active ones)
-        existing_location = InventoryLocation.query.filter_by(name=name, status='active').first()
-        if existing_location:
-            return jsonify({'error': f'Active location with name "{name}" already exists'}), 400
+        # Get the type from request
+        location_type = data.get('type', 'warehouse')
 
-        # Check if there's an inactive location with the same name - reactivate it
-        inactive_location = InventoryLocation.query.filter_by(name=name, status='inactive').first()
+        # Check if location with same name and type already exists (only active ones)
+        existing_location = InventoryLocation.query.filter_by(
+            name=name, 
+            type=location_type, 
+            status='active'
+        ).first()
+        if existing_location:
+            return jsonify({'error': f'Active location with name "{name}" and type "{location_type}" already exists'}), 400
+
+        # Check if there's an inactive location with the same name and type - reactivate it
+        inactive_location = InventoryLocation.query.filter_by(
+            name=name, 
+            type=location_type, 
+            status='inactive'
+        ).first()
         if inactive_location:
             # Reactivate the existing location
             inactive_location.status = 'active'
@@ -348,10 +359,12 @@ def api_create_location():
                 'location_id': inactive_location.id
             })
 
-        # Generate a unique ID based on name
+        # Generate a unique ID based on name and type
         import re
-        # Create ID from name: lowercase, replace spaces/special chars with hyphens
-        location_id = re.sub(r'[^a-zA-Z0-9]', '-', name.lower()).strip('-')
+        # Create ID from name and type: lowercase, replace spaces/special chars with hyphens
+        name_part = re.sub(r'[^a-zA-Z0-9]', '-', name.lower()).strip('-')
+        type_part = re.sub(r'[^a-zA-Z0-9]', '-', location_type.lower()).strip('-')
+        location_id = f"{name_part}-{type_part}"
 
         # Ensure uniqueness by adding suffix if needed
         base_id = location_id
@@ -363,7 +376,7 @@ def api_create_location():
         location = InventoryLocation(
             id=location_id,
             name=name,
-            type=data.get('type', 'warehouse'),  # Default type
+            type=location_type,
             address=data.get('address', ''),
             contact_person=data.get('contact_person', ''),
             phone=data.get('phone', ''),

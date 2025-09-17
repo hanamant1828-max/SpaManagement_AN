@@ -10,7 +10,7 @@ class InventoryLocation(db.Model):
     __tablename__ = 'inventory_locations'
 
     id = db.Column(db.String(50), primary_key=True)  # Use string ID for compatibility
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     type = db.Column(db.String(20), nullable=False)  # branch, warehouse, room
     address = db.Column(db.Text)
     contact_person = db.Column(db.String(100))
@@ -23,6 +23,9 @@ class InventoryLocation(db.Model):
 
     # Relationships
     batches = db.relationship('InventoryBatch', back_populates='location', lazy=True)
+
+    # Composite unique constraint on name and type
+    __table_args__ = (db.UniqueConstraint('name', 'type', name='_name_type_uc'),)
 
     @property
     def total_batches(self):
