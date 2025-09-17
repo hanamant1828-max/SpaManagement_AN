@@ -4,7 +4,7 @@ Expenses-related database queries
 from datetime import datetime, date
 from sqlalchemy import func, and_
 from app import db
-# Late imports to avoid circular dependency
+from models import Expense, Category
 
 def get_all_expenses():
     """Get all expenses"""
@@ -24,12 +24,10 @@ def get_expenses_by_category(category_id):
 
 def get_expense_by_id(expense_id):
     """Get expense by ID"""
-    from models import Expense
     return Expense.query.get(expense_id)
 
 def get_expense_categories():
     """Get all expense categories"""
-    from models import Category
     return Category.query.filter(
         Category.category_type == 'expense',
         Category.is_active == True
@@ -37,7 +35,6 @@ def get_expense_categories():
 
 def create_expense(expense_data):
     """Create a new expense"""
-    from models import Expense
     expense = Expense(**expense_data)
     db.session.add(expense)
     db.session.commit()

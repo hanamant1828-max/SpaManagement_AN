@@ -533,8 +533,11 @@ class Expense(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
     expense_date = db.Column(db.Date, nullable=False, default=date.today)
+    expense_time = db.Column(db.Time)  # Time when expense was made
+    payment_method = db.Column(db.String(20), default='cash')  # cash, card, upi, petty_cash, reimbursement
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receipt_number = db.Column(db.String(50))
+    receipt_path = db.Column(db.String(255))  # Path to receipt file
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
