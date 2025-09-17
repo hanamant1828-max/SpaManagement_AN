@@ -57,15 +57,21 @@ def after_request(response):
     response.headers['Expires'] = '0'
 
     # Security headers
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'  # Prevent clickjacking
+    response.headers['X-Frame-Options'] = 'ALLOWALL'  # Allow embedding in Replit webview
     response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME sniffing
     response.headers['X-XSS-Protection'] = '1; mode=block'  # Enable XSS protection
-    # Restrict CORS for security
+    
+    # More permissive CORS for Replit environment
     origin = request.headers.get('Origin')
-    if origin and ('replit.dev' in origin or 'replit.co' in origin or origin.startswith('http://localhost')):
+    if origin and ('replit.dev' in origin or 'replit.co' in origin or 'replit.com' in origin or origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1')):
         response.headers['Access-Control-Allow-Origin'] = origin
+    else:
+        # Allow Replit webview
+        response.headers['Access-Control-Allow-Origin'] = '*'
+    
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
     return response
 
 # User loader for Flask-Login
