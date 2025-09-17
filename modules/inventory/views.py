@@ -327,14 +327,13 @@ def api_create_location():
         # Get the type from request
         location_type = data.get('type', 'warehouse')
 
-        # Check if location with same name, type, and status already exists
+        # Check if location with same name and type already exists (matches database constraint)
         existing_location = InventoryLocation.query.filter_by(
             name=name, 
-            type=location_type,
-            status='active'
+            type=location_type
         ).first()
         if existing_location:
-            return jsonify({'error': f'Active location with name "{name}" and type "{location_type}" already exists'}), 400
+            return jsonify({'error': f'Location with name "{name}" and type "{location_type}" already exists. Please use a different name or type.'}), 400
 
         # Generate a unique ID based on name and type
         import re
