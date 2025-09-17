@@ -213,13 +213,7 @@ def clients_redirect():
     return redirect(url_for('customers'))
 
 # Additional routes that don't fit in modules yet
-@app.route('/alerts')
-
-def alerts():
-    if False:
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    return render_template('alerts.html')
+# alerts route is now handled in dashboard module
 
 @app.route('/test_navigation')
 
