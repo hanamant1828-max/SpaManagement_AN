@@ -109,7 +109,7 @@ def api_get_shift_schedules():
         return jsonify({'error': str(e)}), 500
 
 # Save daily schedule with day-by-day configuration
-@shift_scheduler_bp.route('/api/shift-scheduler/save-daily-schedule', methods=['POST'])
+@shift_scheduler_bp.route('/shift-scheduler/api/shift-scheduler/save-daily-schedule', methods=['POST'])
 @login_required
 def save_daily_schedule():
     """Save schedule with day-by-day configuration using new schema"""
@@ -335,7 +335,7 @@ def api_get_staff_schedule_details(staff_id):
         return jsonify({'error': str(e)}), 500
 
 # API endpoint to get schedule details for edit mode
-@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>/details', methods=['GET'])
+@shift_scheduler_bp.route('/shift-scheduler/api/schedule/<int:schedule_id>/details', methods=['GET'])
 @login_required
 def api_get_schedule_details(schedule_id):
     """Get detailed schedule information for edit mode"""
@@ -359,6 +359,13 @@ def api_get_schedule_details(schedule_id):
         # Prepare schedule days data
         schedule_days = []
         for log in shift_logs:
+            # Calculate break minutes safely
+            break_minutes = 60  # Default
+            if log.break_start_time and log.break_end_time:
+                break_start_minutes = log.break_start_time.hour * 60 + log.break_start_time.minute
+                break_end_minutes = log.break_end_time.hour * 60 + log.break_end_time.minute
+                break_minutes = max(0, break_end_minutes - break_start_minutes)
+            
             schedule_days.append({
                 'date': log.individual_date.strftime('%Y-%m-%d'),
                 'working': True,  # All logs represent working days
@@ -366,8 +373,7 @@ def api_get_schedule_details(schedule_id):
                 'endTime': log.shift_end_time.strftime('%H:%M') if log.shift_end_time else '17:00',
                 'breakStart': log.break_start_time.strftime('%H:%M') if log.break_start_time else '13:00',
                 'breakEnd': log.break_end_time.strftime('%H:%M') if log.break_end_time else '14:00',
-                'breakMinutes': ((log.break_end_time.hour * 60 + log.break_end_time.minute) - 
-                               (log.break_start_time.hour * 60 + log.break_start_time.minute)) if log.break_start_time and log.break_end_time else 60,
+                'breakMinutes': break_minutes,
                 'notes': ''
             })
 
@@ -430,7 +436,7 @@ def delete_shift_schedules():
         return jsonify({'error': str(e)}), 500
 
 # Delete single schedule by ID (for frontend compatibility)
-@shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['DELETE'])
+@shift_scheduler_bp.route('/shift-scheduler/api/schedule/<int:schedule_id>', methods=['DELETE'])
 @login_required
 def delete_single_schedule(schedule_id):
     """Delete a single schedule by ID - Frontend compatibility endpoint"""
@@ -456,7 +462,7 @@ def delete_single_schedule(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Update existing schedule
-@shift_scheduler_bp.route('/api/shift-scheduler/update-daily-schedule/<int:schedule_id>', methods=['PUT'])
+@shift_scheduler_bp.route('/shift-scheduler/api/shift-scheduler/update-daily-schedule/<int:schedule_id>', methods=['PUT'])
 @login_required
 def update_daily_schedule(schedule_id):
     """Update existing schedule with day-by-day configuration"""

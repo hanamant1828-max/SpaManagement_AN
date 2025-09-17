@@ -576,20 +576,36 @@
             schedule_days: scheduleData
         };
 
+        // Check if we're in edit mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        const scheduleId = urlParams.get('id');
+
+        let apiUrl = '/shift-scheduler/api/shift-scheduler/save-daily-schedule';
+        let method = 'POST';
+        let successMessage = 'Schedule saved successfully!';
+
+        // If editing existing schedule
+        if (action === 'edit' && scheduleId) {
+            apiUrl = `/shift-scheduler/api/shift-scheduler/update-daily-schedule/${scheduleId}`;
+            method = 'PUT';
+            successMessage = 'Schedule updated successfully!';
+        }
+
         // Send to server
         $.ajax({
-            url: '/api/shift-scheduler/save-daily-schedule',
-            method: 'POST',
+            url: apiUrl,
+            method: method,
             contentType: 'application/json',
             data: JSON.stringify(requestData),
             success: function(response) {
                 hideLoadingModal();
                 if (response.success) {
-                    showAlert('Schedule saved successfully!', 'success');
+                    showAlert(successMessage, 'success');
 
                     // Redirect after short delay
                     setTimeout(() => {
-                        window.location.href = '/shift-scheduler';
+                        window.location.href = '/shift-scheduler/shift-scheduler';
                     }, 2000);
                 } else {
                     showAlert('Error saving schedule: ' + response.error, 'danger');
@@ -720,7 +736,7 @@
         showLoadingModal('Loading schedule data...');
 
         $.ajax({
-            url: `/api/schedule/${scheduleId}/details`,
+            url: `/shift-scheduler/api/schedule/${scheduleId}/details`,
             method: 'GET',
             success: function(response) {
                 hideLoadingModal();
