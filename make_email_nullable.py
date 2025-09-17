@@ -1,61 +1,99 @@
-
 #!/usr/bin/env python3
 """
-Migration script to make email columns nullable in the database
+Make email field nullable in User table - Fixed Version
 """
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
 from sqlalchemy import text
-import sys
 
 def make_email_nullable():
-    """Make email columns nullable in User and Customer tables"""
-    
-    print("🔄 Making email columns nullable...")
-    
-    with app.app_context():
-        try:
-            # For SQLite, we need to check if we can modify the columns directly
-            # SQLite has limited ALTER TABLE support, so we might need to recreate tables
-            
-            # Check current schema
-            result = db.session.execute(text("PRAGMA table_info(user)")).fetchall()
-            user_columns = {col[1]: col for col in result}
-            
-            result = db.session.execute(text("PRAGMA table_info(client)")).fetchall()
-            client_columns = {col[1]: col for col in result}
-            
-            print(f"📋 User table email column info: {user_columns.get('email', 'Not found')}")
-            print(f"📋 Client table email column info: {client_columns.get('email', 'Not found')}")
-            
-            # For SQLite, the easiest approach is to drop the NOT NULL constraint
-            # by recreating the tables with the new schema
-            
-            # First, let's try a simpler approach - just update any NULL emails to empty strings
-            # and then the application will handle nullable emails properly
-            
-            # Update any existing NULL emails to empty strings to avoid conflicts
-            db.session.execute(text("UPDATE user SET email = '' WHERE email IS NULL"))
-            db.session.execute(text("UPDATE client SET email = '' WHERE email IS NULL"))
-            
+    """Make the email column nullable"""
+    try:
+        with app.app_context():
+            print("🔧 Checking email column constraints...")
+
+            # Check current constraint
+            result = db.session.execute(text("""
+                SELECT column_name, is_nullable, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'user' AND column_name = 'email'
+            """))
+
+            current_info = result.fetchone()
+            print(f"Current email column info: {current_info}")
+
+            if current_info and current_info[1] == 'NO':
+                print("📧 Email column is currently NOT NULL. Making it nullable...")
+
+                # Step 1: Update any existing NULL values to empty string temporarily
+                db.session.execute(text("UPDATE \"user\" SET email = '' WHERE email IS NULL"))
+
+                # Step 2: Make email column nullable
+                db.session.execute(text("ALTER TABLE \"user\" ALTER COLUMN email DROP NOT NULL"))
+
+                # Step 3: Remove unique constraint if it exists
+                try:
+                    db.session.execute(text("ALTER TABLE \"user\" DROP CONSTRAINT IF EXISTS user_email_key"))
+                    print("Removed unique constraint on email")
+                except Exception as e:
+                    print(f"Note: Could not remove unique constraint (may not exist): {e}")
+
+                # Step 4: Create partial unique index (unique only for non-null values)
+                try:
+                    db.session.execute(text("""
+                        CREATE UNIQUE INDEX IF NOT EXISTS user_email_unique_partial 
+                        ON "user" (email) 
+                        WHERE email IS NOT NULL AND email != ''
+                    """))
+                    print("Created partial unique index for email")
+                except Exception as e:
+                    print(f"Note: Could not create partial unique index: {e}")
+
+                db.session.commit()
+
+                print("✅ Email column is now nullable")
+
+                # Verify the change
+                result = db.session.execute(text("""
+                    SELECT column_name, is_nullable, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'user' AND column_name = 'email'
+                """))
+
+                new_info = result.fetchone()
+                print(f"Updated email column info: {new_info}")
+
+            else:
+                print("✅ Email column is already nullable")
+
+            # Final test - try inserting a user without email
+            print("\n🧪 Testing insertion without email...")
+            test_result = db.session.execute(text("""
+                INSERT INTO "user" (username, first_name, last_name, password_hash, role, is_active, created_at)
+                VALUES ('test_no_email', 'Test', 'User', 'dummy_hash', 'staff', true, NOW())
+                RETURNING id
+            """))
+            test_id = test_result.fetchone()[0]
+            print(f"✅ Successfully inserted user without email, ID: {test_id}")
+
+            # Clean up test user
+            db.session.execute(text("DELETE FROM \"user\" WHERE id = :id"), {"id": test_id})
             db.session.commit()
-            
-            print("✅ Email columns are now effectively nullable!")
-            print("📝 Note: The database schema change requires the updated models.py to take effect.")
-            print("🔄 Please restart the application to apply the new schema.")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error making email columns nullable: {e}")
-            db.session.rollback()
-            return False
+            print("🧹 Cleaned up test user")
+
+    except Exception as e:
+        print(f"❌ Error making email nullable: {e}")
+        db.session.rollback()
+        return False
+
+    return True
 
 if __name__ == "__main__":
-    if make_email_nullable():
-        print("\n🎉 Migration completed successfully!")
-        print("📝 Email columns are now nullable in both User and Customer tables.")
-        print("🔄 Restart the application to apply changes.")
+    success = make_email_nullable()
+    if success:
+        print("\n🎉 Email field is now properly nullable!")
     else:
-        print("\n❌ Migration failed!")
-        sys.exit(1)
+        print("\n❌ Failed to make email field nullable")
