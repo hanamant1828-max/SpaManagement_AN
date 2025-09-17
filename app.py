@@ -20,24 +20,20 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-# Set a default secret key if SESSION_SECRET is not set
-app.secret_key = os.environ.get("SESSION_SECRET", "1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca")
+app.secret_key = os.environ.get("SESSION_SECRET")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
-# Fix session cookie settings for development
-app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP for development
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['WTF_CSRF_ENABLED'] = False
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database - Local SQLite (Fixed for project cloning)
-database_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'spa_management.db')
-os.makedirs(os.path.dirname(database_path), exist_ok=True)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Configure the database - PostgreSQL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
     "pool_pre_ping": True,
-    "connect_args": {"timeout": 20}
 }
 
 # Initialize the app with the extension
@@ -46,7 +42,7 @@ db.init_app(app)
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
