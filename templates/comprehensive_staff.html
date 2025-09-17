@@ -639,14 +639,22 @@ Management Suite{% endblock %} {% block content %}
     let staffModal;
     let isEditing = false; // Added to track edit mode
     let currentDeleteId = null; // Added for delete confirmation
+    let hasUnsavedChanges = false; // Track unsaved changes
+    let authorizedCloseSource = null; // Track authorized close source
 
     document.addEventListener("DOMContentLoaded", function () {
         console.log("Bootstrap Modal Staff Management loaded");
 
-        // Initialize modal
+        // Initialize modal with comprehensive protection
         const modalElement = document.getElementById("staffModal");
         if (modalElement) {
-            staffModal = new bootstrap.Modal(modalElement);
+            staffModal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',  // Prevent backdrop close
+                keyboard: false      // Prevent Esc key close
+            });
+            
+            // Set up comprehensive modal protection
+            setupModalProtection(modalElement);
         }
 
         // Load initial data
@@ -657,7 +665,12 @@ Management Suite{% endblock %} {% block content %}
         const staffForm = document.getElementById("staffForm");
         if (staffForm) {
             staffForm.addEventListener("submit", handleFormSubmission);
+            // Track form changes for unsaved changes detection
+            trackFormChanges(staffForm);
         }
+
+        // Setup authorized close buttons
+        setupAuthorizedCloseButtons();
 
         // Setup delete confirmation button
         const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
@@ -668,11 +681,110 @@ Management Suite{% endblock %} {% block content %}
         }
     });
 
+    // Comprehensive modal protection system
+    // Only Close/Save/Update buttons can close the modal as per requirements
+    function setupModalProtection(modalElement) {
+        console.log("Setting up comprehensive modal protection");
+        
+        // Intercept all hide attempts
+        modalElement.addEventListener('hide.bs.modal', function(event) {
+            console.log("Modal hide attempt detected, source:", authorizedCloseSource);
+            
+            // Only allow authorized close sources
+            if (!isAuthorizedClose()) {
+                console.log("Unauthorized close attempt blocked");
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }
+            
+            // Reset authorization after successful close
+            authorizedCloseSource = null;
+        });
+        
+        // Block any programmatic hide attempts
+        const originalHide = staffModal.hide;
+        staffModal.hide = function() {
+            if (!isAuthorizedClose()) {
+                console.log("Programmatic hide blocked - unauthorized source");
+                return;
+            }
+            originalHide.call(this);
+        };
+        
+        // Reset form state when modal is fully hidden
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            hasUnsavedChanges = false;
+            authorizedCloseSource = null;
+        });
+    }
+    
+    // Check if the current close attempt is from an authorized source
+    function isAuthorizedClose() {
+        return authorizedCloseSource === 'btnStaffClose' || 
+               authorizedCloseSource === 'btnStaffSave' || 
+               authorizedCloseSource === 'btnStaffUpdate';
+    }
+    
+    // Setup event listeners for authorized close buttons
+    function setupAuthorizedCloseButtons() {
+        // Close button with unsaved changes confirmation
+        const closeBtn = document.getElementById("btnStaffClose");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", handleCloseButton);
+        }
+        
+        // Save button (form submission will trigger close)
+        const saveBtn = document.getElementById("btnStaffSave");
+        if (saveBtn) {
+            // The form submission will handle the close after successful save
+            console.log("Save button found and ready");
+        }
+    }
+    
+    // Handle Close button click with unsaved changes confirmation
+    async function handleCloseButton() {
+        if (hasUnsavedChanges) {
+            const confirmClose = await showUnsavedChangesDialog();
+            if (!confirmClose) {
+                return; // User chose to cancel
+            }
+        }
+        
+        // Authorize the close and close the modal
+        authorizedCloseSource = 'btnStaffClose';
+        staffModal.hide();
+    }
+    
+    // Show unsaved changes confirmation dialog
+    function showUnsavedChangesDialog() {
+        return new Promise((resolve) => {
+            const result = confirm("You have unsaved changes. Do you want to discard them and close?");
+            resolve(result);
+        });
+    }
+    
+    // Track form changes to detect unsaved modifications
+    function trackFormChanges(form) {
+        const inputs = form.querySelectorAll('input, select, textarea');
+        
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                hasUnsavedChanges = true;
+            });
+            
+            input.addEventListener('change', () => {
+                hasUnsavedChanges = true;
+            });
+        });
+    }
+
     async function handleFormSubmission(e) {
         e.preventDefault();
 
-        const submitBtn = document.getElementById("submitBtn");
+        const submitBtn = document.getElementById("btnStaffSave");
         const originalText = submitBtn.innerHTML;
+        const mode = document.getElementById("formMode").value;
 
         try {
             // Show loading state
@@ -689,10 +801,10 @@ Management Suite{% endblock %} {% block content %}
                 return;
             }
 
-            const mode = document.getElementById("formMode").value;
-
             let response;
             if (mode === "edit") {
+                // Update button ID for edit mode
+                submitBtn.id = "btnStaffUpdate";
                 response = await updateStaff(currentStaffId, formData);
             } else {
                 response = await createStaff(formData);
@@ -700,6 +812,10 @@ Management Suite{% endblock %} {% block content %}
 
             if (response && response.success) {
                 showNotification(response.message, "success");
+                
+                // Authorize close from Save/Update button and close modal
+                authorizedCloseSource = mode === "edit" ? 'btnStaffUpdate' : 'btnStaffSave';
+                hasUnsavedChanges = false; // Clear unsaved changes flag
                 staffModal.hide();
                 loadStaffData(); // Reload staff list
             } else {
@@ -1121,7 +1237,7 @@ Management Suite{% endblock %} {% block content %}
         document.getElementById("formMode").value = "add";
         document.getElementById("staffModalLabel").textContent =
             "Add New Staff Member";
-        document.getElementById("submitBtn").innerHTML =
+        document.getElementById("btnStaffSave").innerHTML =
             '<i class="fas fa-save me-1"></i>Add Staff';
         document.getElementById("passwordHelp").textContent =
             "Password is required for new staff";
@@ -1140,7 +1256,7 @@ Management Suite{% endblock %} {% block content %}
             document.getElementById("formMode").value = "edit";
             document.getElementById("staffModalLabel").textContent =
                 "Edit Staff Member";
-            document.getElementById("submitBtn").innerHTML =
+            document.getElementById("btnStaffSave").innerHTML =
                 '<i class="fas fa-save me-1"></i>Update Staff';
             document.getElementById("passwordHelp").textContent =
                 "Leave blank to keep current password";
@@ -1212,7 +1328,7 @@ Management Suite{% endblock %} {% block content %}
         document.getElementById("formMode").value = "add"; // Reset mode to add
         document.getElementById("staffModalLabel").textContent =
             "Add New Staff Member"; // Reset modal title
-        document.getElementById("submitBtn").innerHTML =
+        document.getElementById("btnStaffSave").innerHTML =
             '<i class="fas fa-save me-1"></i>Add Staff'; // Reset button text
         document.getElementById("passwordHelp").textContent =
             "Password is required for new staff"; // Reset password help text
