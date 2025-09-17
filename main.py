@@ -1,6 +1,7 @@
 from app import app
 from flask_login import login_required
 import routes  # This already imports all the module views
+import os
 
 # Import integrated billing views
 try:
@@ -42,5 +43,6 @@ def initialize_app():
 if __name__ == "__main__":
     print("Starting Spa Management System...")
     initialize_app()
-    print("Starting Flask application on 0.0.0.0:5000")
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Starting Flask application on 0.0.0.0:{port}")
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
