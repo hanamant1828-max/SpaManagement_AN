@@ -64,9 +64,9 @@ class DevAnonymousUser:
 # Set custom anonymous user class
 login_manager.anonymous_user = DevAnonymousUser
 
-# Development flags for bypassing authentication - defaults to false for production safety
-PUBLIC_STAFF_IN_DEV = os.environ.get('PUBLIC_STAFF_IN_DEV', 'false').lower() == 'true'
-PUBLIC_SCHEDULER_IN_DEV = os.environ.get('PUBLIC_SCHEDULER_IN_DEV', 'false').lower() == 'true'
+# Development flags for bypassing authentication - set to true for Replit development
+PUBLIC_STAFF_IN_DEV = os.environ.get('PUBLIC_STAFF_IN_DEV', 'true').lower() == 'true'
+PUBLIC_SCHEDULER_IN_DEV = os.environ.get('PUBLIC_SCHEDULER_IN_DEV', 'true').lower() == 'true'
 
 # Make config available in templates
 @app.context_processor
