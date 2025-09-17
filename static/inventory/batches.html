@@ -152,12 +152,29 @@
 </div>
 
 <script>
-// Global variables
-let allBatches = [];
-let allProducts = [];
-let allLocations = [];
-let batchModal = null;
-let editingBatchId = null; // Added to keep track of the batch being edited
+// Global variables - check if already declared to prevent conflicts
+if (typeof window.allBatches === 'undefined') {
+    window.allBatches = [];
+}
+if (typeof window.allProducts === 'undefined') {
+    window.allProducts = [];
+}
+if (typeof window.allLocations === 'undefined') {
+    window.allLocations = [];
+}
+if (typeof window.batchModal === 'undefined') {
+    window.batchModal = null;
+}
+if (typeof window.editingBatchId === 'undefined') {
+    window.editingBatchId = null;
+}
+
+// Use window references for consistency
+let allBatches = window.allBatches;
+let allProducts = window.allProducts;
+let allLocations = window.allLocations;
+let batchModal = window.batchModal;
+let editingBatchId = window.editingBatchId;
 
 // Initialize batch management system
 function initializeBatchManagement() {
@@ -166,7 +183,8 @@ function initializeBatchManagement() {
     // Initialize modal
     const modalElement = document.getElementById('batchModal');
     if (modalElement) {
-        batchModal = new bootstrap.Modal(modalElement);
+        window.batchModal = new bootstrap.Modal(modalElement);
+        batchModal = window.batchModal;
     }
 
     // Load all data
@@ -194,14 +212,16 @@ async function loadProducts() {
         }
 
         const data = await response.json();
-        allProducts = Array.isArray(data) ? data : (data.products || []);
+        window.allProducts = Array.isArray(data) ? data : (data.products || []);
+        allProducts = window.allProducts;
 
         populateProductDropdown();
         console.log(`✅ Loaded ${allProducts.length} products`);
         return allProducts;
     } catch (error) {
         console.error('❌ Error loading products:', error);
-        allProducts = [];
+        window.allProducts = [];
+        allProducts = window.allProducts;
         populateProductDropdown();
         throw error;
     }
@@ -218,14 +238,16 @@ async function loadLocations() {
         }
 
         const data = await response.json();
-        allLocations = data.locations || [];
+        window.allLocations = data.locations || [];
+        allLocations = window.allLocations;
 
         populateLocationDropdown();
         console.log(`✅ Loaded ${allLocations.length} locations`);
         return allLocations;
     } catch (error) {
         console.error('❌ Error loading locations:', error);
-        allLocations = [];
+        window.allLocations = [];
+        allLocations = window.allLocations;
         populateLocationDropdown();
         throw error;
     }
@@ -242,7 +264,8 @@ async function loadBatches() {
         }
 
         const data = await response.json();
-        allBatches = data.batches || [];
+        window.allBatches = data.batches || [];
+        allBatches = window.allBatches;
 
         renderBatchesTable();
         console.log(`✅ Loaded ${allBatches.length} batches`);
@@ -390,7 +413,8 @@ function openAddBatchModal() {
     document.getElementById('batchModalTitle').textContent = 'Add Batch';
     document.getElementById('batchForm').reset();
     document.getElementById('batchId').value = '';
-    editingBatchId = null; // Reset editing state
+    window.editingBatchId = null; // Reset editing state
+    editingBatchId = window.editingBatchId;
 
     // Set default created date to today
     const today = new Date().toISOString().split('T')[0];
@@ -428,11 +452,13 @@ function editBatch(batchId) {
             document.getElementById('batchSellingPrice').value = batch.selling_price || '';
 
             // Set editing state
-            editingBatchId = batchId;
+            window.editingBatchId = batchId;
+            editingBatchId = window.editingBatchId;
 
             // Show modal
             if (!batchModal) {
-                batchModal = new bootstrap.Modal(document.getElementById('batchModal'));
+                window.batchModal = new bootstrap.Modal(document.getElementById('batchModal'));
+                batchModal = window.batchModal;
             }
             batchModal.show();
 
