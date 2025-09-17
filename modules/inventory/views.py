@@ -319,9 +319,18 @@ def api_create_location():
     try:
         data = request.get_json()
 
+        # Validate required fields
+        name = data.get('name', '').strip()
+        if not name:
+            return jsonify({'error': 'Location name is required'}), 400
+
+        # Check if location name already exists
+        existing_location = InventoryLocation.query.filter_by(name=name).first()
+        if existing_location:
+            return jsonify({'error': f'Location with name "{name}" already exists'}), 400
+
         # Generate a unique ID based on name
         import re
-        name = data.get('name', '')
         # Create ID from name: lowercase, replace spaces/special chars with hyphens
         location_id = re.sub(r'[^a-zA-Z0-9]', '-', name.lower()).strip('-')
 
@@ -334,10 +343,12 @@ def api_create_location():
 
         location = InventoryLocation(
             id=location_id,
-            name=data.get('name'),
+            name=name,
             type=data.get('type', 'warehouse'),  # Default type
             address=data.get('address', ''),
-            status='active'
+            contact_person=data.get('contact_person', ''),
+            phone=data.get('phone', ''),
+            status=data.get('status', 'active')
         )
 
         db.session.add(location)
@@ -350,6 +361,7 @@ def api_create_location():
         })
     except Exception as e:
         db.session.rollback()
+        print(f"ERROR creating location: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches', methods=['GET'])
