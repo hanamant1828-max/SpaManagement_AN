@@ -14,9 +14,13 @@ shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
 
 # Add shift scheduler page
 @shift_scheduler_bp.route('/shift-scheduler/add')
-@scheduler_required
 def add_shift_scheduler():
     """Add shift scheduler page with day-by-day configuration"""
+    # In development mode, bypass authentication for scheduler routes
+    if not PUBLIC_SCHEDULER_IN_DEV:
+        if not current_user.is_authenticated:
+            return redirect(url_for('login', next=request.url))
+    
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
@@ -26,9 +30,13 @@ def add_shift_scheduler():
 
 # Main shift scheduler interface
 @shift_scheduler_bp.route('/shift-scheduler')
-@scheduler_required
 def shift_scheduler():
     """Main shift scheduler interface"""
+    # In development mode, bypass authentication for scheduler routes
+    if not PUBLIC_SCHEDULER_IN_DEV:
+        if not current_user.is_authenticated:
+            return redirect(url_for('login', next=request.url))
+    
     # Get all active staff members
     staff_members = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
@@ -38,9 +46,13 @@ def shift_scheduler():
 
 # API endpoint to get existing schedules
 @shift_scheduler_bp.route('/api/shift-scheduler', methods=['GET'])
-@scheduler_required
 def api_get_shift_schedules():
     """Get existing shift schedules for a staff member in date range"""
+    # In development mode, bypass authentication for scheduler routes
+    if not PUBLIC_SCHEDULER_IN_DEV:
+        if not current_user.is_authenticated:
+            return jsonify({'error': 'Authentication required'}), 401
+    
     try:
         staff_id = request.args.get('staff_id', type=int)
         start_date_str = request.args.get('start_date')
