@@ -896,24 +896,23 @@ Management Suite{% endblock %} {% block content %}
             username: getFieldValue("username"),
             first_name: getFieldValue("firstName"),
             last_name: getFieldValue("lastName"),
-            email: getFieldValue("email"),
-            phone: getFieldValue("phone"),
+            email: getFieldValue("email") || null,  // Explicitly handle empty email
+            phone: getFieldValue("phone") || null,
             password: getFieldValue("password"),
             role: getFieldValue("role") || "staff",
-            role_id: getFieldValue("roleId"),
-            department_id: getFieldValue("departmentId"),
-            designation: getFieldValue("designation"),
-            gender: getFieldValue("gender"),
-            date_of_birth: getFieldValue("dateOfBirth"),
-            date_of_joining: getFieldValue("dateOfJoining"),
-            shift_start_time: getFieldValue("shiftStart"),
-            shift_end_time: getFieldValue("shiftEnd"),
+            role_id: getFieldValue("roleId") || null,
+            department_id: getFieldValue("departmentId") || null,
+            designation: getFieldValue("designation") || "Staff Member",
+            gender: getFieldValue("gender") || "other",
+            date_of_birth: getFieldValue("dateOfBirth") || null,
+            date_of_joining: getFieldValue("dateOfJoining") || null,
+            shift_start_time: getFieldValue("shiftStart") || null,
+            shift_end_time: getFieldValue("shiftEnd") || null,
             commission_rate: parseFloat(getFieldValue("commissionRate")) || 0,
             hourly_rate: parseFloat(getFieldValue("hourlyRate")) || 0,
-            notes_bio: getFieldValue("notesBio"),
+            notes_bio: getFieldValue("notesBio") || "",
             enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
-            verification_status: getCheckboxValue("verificationStatus"), // Assuming this field exists and is relevant
-            is_active: getCheckboxValue("isActive", true), // Assuming a default for isActive if not present
+            is_active: true
         };
 
         console.log("Collected form data:", data);

@@ -890,13 +890,16 @@ def api_create_staff():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # Handle both JSON and form data
+        # Handle both JSON and form data with debugging
         if request.is_json:
             data = request.get_json()
+            print(f"Received JSON data: {data}")
         else:
             data = request.form.to_dict()
+            print(f"Received form data: {data}")
 
         if not data:
+            print("No data provided in request")
             return jsonify({'error': 'No data provided'}), 400
 
         # Defensive coding - validate required fields with user-friendly messages
@@ -907,8 +910,8 @@ def api_create_staff():
         }
 
         for field, message in required_fields.items():
-            field_value = (data.get(field) or '').strip() if isinstance(data.get(field), str) else data.get(field)
-            if not field_value:
+            field_value = data.get(field)
+            if not field_value or (isinstance(field_value, str) and not field_value.strip()):
                 return jsonify({'error': message}), 400
 
         # Check for existing username or email (only if email is provided)
@@ -945,10 +948,11 @@ def api_create_staff():
             except (ValueError, TypeError):
                 return None
 
-        # Email validation
+        # Email validation - make it truly optional
         import re
-        email = data['email'].strip().lower() if data.get('email') else None
-        if email:
+        email = None
+        if data.get('email') and str(data.get('email')).strip():
+            email = str(data['email']).strip().lower()
             email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             if not re.match(email_pattern, email):
                 return jsonify({'error': 'Please enter a valid email address format.'}), 400
@@ -963,38 +967,46 @@ def api_create_staff():
             password = ''.join(secrets.choice(characters) for i in range(12))
             # TODO: Flag account for mandatory password change on first login
 
-        staff_data = {
-            'username': data['username'].strip(),
-            'first_name': data['first_name'].strip().title(),
-            'last_name': data['last_name'].strip().title(),
-            'email': email, # email can be None
-            'password_hash': generate_password_hash(password),
-            'phone': (data.get('phone') or '').strip(),
-            'role': (data.get('role') or 'staff').strip(),
-            'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
-            'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
-            'designation': (data.get('designation') or 'Staff Member').strip(),
-            'commission_rate': safe_float(data.get('commission_rate'), 0.0, 0.0, 100.0),
-            'hourly_rate': safe_float(data.get('hourly_rate'), 0.0, 0.0, 1000.0),
-            'gender': (data.get('gender') or 'other').strip(),
-            'date_of_birth': safe_date_parse(data.get('date_of_birth')),
-            'date_of_joining': safe_date_parse(data.get('date_of_joining'), date.today()),
-            'shift_start_time': safe_time_parse(data.get('shift_start_time')),
-            'shift_end_time': safe_time_parse(data.get('shift_end_time')),
-            'working_days': (data.get('working_days') or '1111100').strip(),
-            'verification_status': False,
-            'enable_face_checkin': bool(data.get('enable_face_checkin', False)),
-            'notes_bio': (data.get('notes_bio') or '').strip(),
-            'is_active': True
-        }
+        try:
+            staff_data = {
+                'username': str(data['username']).strip(),
+                'first_name': str(data['first_name']).strip().title(),
+                'last_name': str(data['last_name']).strip().title(),
+                'email': email,  # Already validated above, can be None
+                'password_hash': generate_password_hash(password),
+                'phone': str(data.get('phone', '')).strip() or None,
+                'role': str(data.get('role', 'staff')).strip(),
+                'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
+                'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
+                'designation': str(data.get('designation', 'Staff Member')).strip() or 'Staff Member',
+                'commission_rate': safe_float(data.get('commission_rate'), 0.0, 0.0, 100.0),
+                'hourly_rate': safe_float(data.get('hourly_rate'), 0.0, 0.0, 1000.0),
+                'gender': str(data.get('gender', 'other')).strip() or 'other',
+                'date_of_birth': safe_date_parse(data.get('date_of_birth')),
+                'date_of_joining': safe_date_parse(data.get('date_of_joining'), date.today()),
+                'shift_start_time': safe_time_parse(data.get('shift_start_time')),
+                'shift_end_time': safe_time_parse(data.get('shift_end_time')),
+                'working_days': str(data.get('working_days', '1111100')).strip() or '1111100',
+                'verification_status': False,
+                'enable_face_checkin': bool(data.get('enable_face_checkin', False)),
+                'notes_bio': str(data.get('notes_bio', '')).strip(),
+                'is_active': True
+            }
+            print(f"Processed staff data: {staff_data}")
+        except Exception as data_error:
+            print(f"Error processing staff data: {data_error}")
+            return jsonify({'error': f'Data processing error: {str(data_error)}'}), 400
 
         # Create staff member
+        print(f"Attempting to create staff with data: {staff_data}")
         new_staff = create_staff(staff_data)
+        print(f"Staff created successfully: {new_staff.id}")
 
         # Generate staff code if not provided
         if not new_staff.staff_code:
             new_staff.staff_code = f"STF{str(new_staff.id).zfill(3)}"
             db.session.commit()
+            print(f"Generated staff code: {new_staff.staff_code}")
 
         return jsonify({
             'success': True,
@@ -1009,7 +1021,11 @@ def api_create_staff():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in api_create_staff: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
 @login_required
