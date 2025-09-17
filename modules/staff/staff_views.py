@@ -835,7 +835,7 @@ def api_get_all_staff():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/staff/<int:staff_id>', methods=['GET'])  
+@app.route('/api/staff/<int:staff_id>', methods=['GET'])
 def api_get_staff(staff_id):
     """API endpoint to get single staff member data"""
     if not current_user.can_access('staff'):
@@ -953,7 +953,7 @@ def api_create_staff():
             email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
             if not re.match(email_pattern, email):
                 return jsonify({'error': 'Please enter a valid email address format.'}), 400
-        
+
         # Enforce secure password requirements
         password = data.get('password', '').strip()
         if not password:
