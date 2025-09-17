@@ -903,8 +903,7 @@ def api_create_staff():
         required_fields = {
             'username': 'Username is required. Please enter a unique username.',
             'first_name': 'First name is required. Please enter the staff member\'s first name.',
-            'last_name': 'Last name is required. Please enter the staff member\'s last name.',
-            'email': 'Email address is required. Please enter a valid email address.'
+            'last_name': 'Last name is required. Please enter the staff member\'s last name.'
         }
 
         for field, message in required_fields.items():

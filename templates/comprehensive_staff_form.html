@@ -177,8 +177,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.email.label(class="form-label required") }}
-                                    {{ form.email(class="form-control", required=true, placeholder="Enter email address", type="email") }}
+                                    {{ form.email.label(class="form-label") }}
+                                    {{ form.email(class="form-control", placeholder="Enter email address", type="email") }}
                                     <div class="help-text">Used for login and notifications</div>
                                     {% if form.email.errors %}
                                         <div class="text-danger small">{{ form.email.errors[0] }}</div>

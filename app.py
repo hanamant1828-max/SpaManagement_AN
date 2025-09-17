@@ -21,21 +21,30 @@ db = SQLAlchemy(model_class=Base)
 # Create the app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
-app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Environment-based security configuration
+IS_PRODUCTION = os.environ.get('REPLIT_ENVIRONMENT') == 'production'
+
+# Security settings based on environment
+if IS_PRODUCTION:
+    app.config['WTF_CSRF_ENABLED'] = True
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+else:
+    # Development settings for Replit webview compatibility
+    app.config['WTF_CSRF_ENABLED'] = False
+    app.config['WTF_CSRF_TIME_LIMIT'] = None
+    app.config['SESSION_COOKIE_SECURE'] = False
+    app.config['SESSION_COOKIE_HTTPONLY'] = False
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database - Local SQLite (Fixed for project cloning)
-database_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'spa_management.db')
-os.makedirs(os.path.dirname(database_path), exist_ok=True)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Configure the database - PostgreSQL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
     "pool_pre_ping": True,
-    "connect_args": {"timeout": 20}
 }
 
 # Initialize the app with the extension
@@ -57,17 +66,22 @@ def after_request(response):
     response.headers['Expires'] = '0'
 
     # Security headers
-    response.headers['X-Frame-Options'] = 'ALLOWALL'  # Allow embedding in Replit webview
+    if IS_PRODUCTION:
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    else:
+        response.headers['X-Frame-Options'] = 'ALLOWALL'  # Allow embedding in Replit webview
     response.headers['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME sniffing
     response.headers['X-XSS-Protection'] = '1; mode=block'  # Enable XSS protection
     
-    # More permissive CORS for Replit environment
-    origin = request.headers.get('Origin')
-    if origin and ('replit.dev' in origin or 'replit.co' in origin or 'replit.com' in origin or origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1')):
-        response.headers['Access-Control-Allow-Origin'] = origin
+    # Environment-based CORS configuration
+    if IS_PRODUCTION:
+        # Restrictive CORS for production
+        origin = request.headers.get('Origin')
+        if origin and 'replit.dev' in origin:
+            response.headers['Access-Control-Allow-Origin'] = origin
     else:
-        # Allow Replit webview
-        response.headers['Access-Control-Allow-Origin'] = '*'
+        # Permissive CORS for development
+        response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
     
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'

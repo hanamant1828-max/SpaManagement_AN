@@ -297,12 +297,11 @@ Management Suite{% endblock %} {% block content %}
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Email *</label>
+                                <label class="form-label">Email</label>
                                 <input
                                     type="email"
                                     class="form-control"
                                     id="email"
-                                    required
                                 />
                             </div>
                             <div class="mb-3">
@@ -834,7 +833,7 @@ Management Suite{% endblock %} {% block content %}
     }
 
     function validateFormData(data) {
-        const required = ["username", "first_name", "last_name", "email"];
+        const required = ["username", "first_name", "last_name"];
 
         for (const field of required) {
             if (!data[field] || data[field].trim() === "") {
@@ -845,13 +844,15 @@ Management Suite{% endblock %} {% block content %}
             }
         }
 
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(data.email)) {
-            return {
-                isValid: false,
-                message: "Please enter a valid email address",
-            };
+        // Email validation (only if email is provided)
+        if (data.email && data.email.trim() !== "") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(data.email)) {
+                return {
+                    isValid: false,
+                    message: "Please enter a valid email address",
+                };
+            }
         }
 
         return { isValid: true };

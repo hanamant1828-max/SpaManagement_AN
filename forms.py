@@ -16,7 +16,7 @@ class LoginForm(FlaskForm):
 class UserForm(FlaskForm):
     """User registration/edit form"""
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[Optional(), Email()])
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
@@ -223,7 +223,7 @@ class AdvancedCustomerForm(FlaskForm):
 class AdvancedUserForm(FlaskForm):
     """Advanced user form with additional fields"""
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[Optional(), Email()])
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
@@ -293,7 +293,7 @@ class SystemSettingForm(FlaskForm):
 class ComprehensiveStaffForm(FlaskForm):
     """Comprehensive staff form with all fields"""
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[Optional(), Email()])
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])

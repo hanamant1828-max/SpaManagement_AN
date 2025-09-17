@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["sh", "-c", "uv run python main.py"]
 
 [workflows]
-runButton = "Start Spa Application"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -114,13 +114,13 @@ args = "Spa Management System"
 name = "Spa Management System"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "uv run python main.py"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main_clean.py"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Restart Spa System"
