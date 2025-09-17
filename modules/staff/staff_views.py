@@ -6,7 +6,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify, m
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
-from app import app
+from app import app, staff_required, PUBLIC_STAFF_IN_DEV
 from forms import UserForm, AdvancedUserForm, ComprehensiveStaffForm
 # Late imports to avoid circular dependency
 from app import db
@@ -41,9 +41,10 @@ def api_health():
     })
 
 @app.route('/staff')
-@login_required
+@staff_required
 def staff():
-    if not current_user.can_access('staff'):
+    # Skip access check in development mode
+    if not PUBLIC_STAFF_IN_DEV and (not current_user.is_authenticated or not hasattr(current_user, 'can_access') or not current_user.can_access('staff')):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -70,10 +71,11 @@ def staff():
                          departments=departments)
 
 @app.route('/comprehensive_staff')
-@login_required
+@staff_required
 def comprehensive_staff():
     """Main comprehensive staff management page with all 11 features"""
-    if not current_user.can_access('staff'):
+    # Skip access check in development mode
+    if not PUBLIC_STAFF_IN_DEV and (not current_user.is_authenticated or not hasattr(current_user, 'can_access') or not current_user.can_access('staff')):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -774,10 +776,11 @@ def test_comprehensive_staff():
 # ===== API ENDPOINTS FOR JAVASCRIPT CRUD OPERATIONS =====
 
 @app.route('/api/staff', methods=['GET'])
-@login_required
+@staff_required
 def api_get_all_staff():
     """API endpoint to get all staff data for JavaScript"""
-    if not current_user.can_access('staff'):
+    # Skip access check in development mode
+    if not PUBLIC_STAFF_IN_DEV and (not current_user.is_authenticated or not hasattr(current_user, 'can_access') or not current_user.can_access('staff')):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
@@ -836,10 +839,11 @@ def api_get_all_staff():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['GET'])
-@login_required  
+@staff_required  
 def api_get_staff(staff_id):
     """API endpoint to get single staff member data"""
-    if not current_user.can_access('staff'):
+    # Skip access check in development mode
+    if not PUBLIC_STAFF_IN_DEV and (not current_user.is_authenticated or not hasattr(current_user, 'can_access') or not current_user.can_access('staff')):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
@@ -882,10 +886,11 @@ def api_get_staff(staff_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/staff', methods=['POST'])
-@login_required
+@staff_required
 def api_create_staff():
     """API endpoint to create new staff member"""
-    if not current_user.can_access('staff'):
+    # Skip access check in development mode
+    if not PUBLIC_STAFF_IN_DEV and (not current_user.is_authenticated or not hasattr(current_user, 'can_access') or not current_user.can_access('staff')):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
@@ -1008,7 +1013,7 @@ def api_create_staff():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
-@login_required
+@staff_required
 def api_update_staff(staff_id):
     """API endpoint to update staff member"""
     if not current_user.can_access('staff'):
@@ -1129,7 +1134,7 @@ def api_update_staff(staff_id):
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
-@login_required
+@staff_required
 def api_delete_staff(staff_id):
     """API endpoint to delete (deactivate) staff member"""
     if not current_user.can_access('staff'):

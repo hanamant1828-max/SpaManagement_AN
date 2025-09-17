@@ -47,6 +47,23 @@ login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
+# Custom Anonymous User for development mode staff access
+class DevAnonymousUser:
+    """Custom anonymous user that allows staff access in development mode"""
+    is_authenticated = False
+    is_active = False
+    is_anonymous = True
+    
+    def get_id(self):
+        return None
+    
+    def can_access(self, area):
+        """Allow staff access in development mode"""
+        return PUBLIC_STAFF_IN_DEV and area == 'staff'
+
+# Set custom anonymous user class
+login_manager.anonymous_user = DevAnonymousUser
+
 # Development flag for bypassing staff authentication
 PUBLIC_STAFF_IN_DEV = os.environ.get('PUBLIC_STAFF_IN_DEV', 'true').lower() == 'true'
 
