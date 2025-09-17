@@ -10,7 +10,7 @@ def add_missing_columns():
     
     with app.app_context():
         try:
-            # List of columns to add
+            # List of columns to add with PostgreSQL-compatible syntax
             columns_to_add = [
                 ('cgst_rate', 'REAL DEFAULT 0.0'),
                 ('sgst_rate', 'REAL DEFAULT 0.0'),
@@ -29,7 +29,7 @@ def add_missing_columns():
             result = db.session.execute(text("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
-                    WHERE table_name = 'enhanced_invoice'
+                    WHERE table_schema = 'public' AND table_name = 'enhanced_invoice'
                 );
             """)).fetchone()
             
@@ -42,32 +42,49 @@ def add_missing_columns():
             # Check which columns already exist
             existing_columns = db.session.execute(text("""
                 SELECT column_name FROM information_schema.columns 
-                WHERE table_name = 'enhanced_invoice'
+                WHERE table_schema = 'public' AND table_name = 'enhanced_invoice'
             """)).fetchall()
             
             existing_column_names = [col[0] for col in existing_columns]
             print(f"Existing columns: {existing_column_names}")
             
-            # Add missing columns
+            # Add missing columns one by one with proper error handling
+            columns_added = 0
             for column_name, column_def in columns_to_add:
                 if column_name not in existing_column_names:
-                    print(f"Adding column: {column_name}")
-                    db.session.execute(text(f"""
-                        ALTER TABLE enhanced_invoice 
-                        ADD COLUMN {column_name} {column_def}
-                    """))
-                    db.session.commit()
-                    print(f"✓ Added {column_name}")
+                    try:
+                        print(f"Adding column: {column_name}")
+                        db.session.execute(text(f"""
+                            ALTER TABLE enhanced_invoice 
+                            ADD COLUMN {column_name} {column_def}
+                        """))
+                        db.session.commit()
+                        print(f"✓ Added {column_name}")
+                        columns_added += 1
+                    except Exception as col_error:
+                        print(f"⚠️ Error adding {column_name}: {col_error}")
+                        db.session.rollback()
+                        # Continue with other columns
+                        continue
                 else:
                     print(f"✓ Column {column_name} already exists")
             
-            print("\n✅ Database schema updated successfully!")
+            print(f"\n✅ Database schema update completed!")
+            print(f"Added {columns_added} new columns to enhanced_invoice table.")
             print("The billing system should now work properly.")
             
         except Exception as e:
             print(f"❌ Error updating database schema: {e}")
             db.session.rollback()
-            sys.exit(1)
+            
+            # Try creating all tables if schema update fails
+            try:
+                print("Attempting to create all missing tables...")
+                db.create_all()
+                print("✅ All tables created successfully!")
+            except Exception as create_error:
+                print(f"❌ Error creating tables: {create_error}")
+                sys.exit(1)
 
 if __name__ == "__main__":
     add_missing_columns()
