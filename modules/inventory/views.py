@@ -327,37 +327,13 @@ def api_create_location():
         # Get the type from request
         location_type = data.get('type', 'warehouse')
 
-        # Check if location with same name and type already exists (only active ones)
+        # Check if location with same name and type already exists (enforcing composite unique constraint)
         existing_location = InventoryLocation.query.filter_by(
             name=name, 
-            type=location_type, 
-            status='active'
+            type=location_type
         ).first()
         if existing_location:
-            return jsonify({'error': f'Active location with name "{name}" and type "{location_type}" already exists'}), 400
-
-        # Check if there's an inactive location with the same name and type - reactivate it
-        inactive_location = InventoryLocation.query.filter_by(
-            name=name, 
-            type=location_type, 
-            status='inactive'
-        ).first()
-        if inactive_location:
-            # Reactivate the existing location
-            inactive_location.status = 'active'
-            inactive_location.type = data.get('type', inactive_location.type)
-            inactive_location.address = data.get('address', inactive_location.address)
-            inactive_location.contact_person = data.get('contact_person', inactive_location.contact_person)
-            inactive_location.phone = data.get('phone', inactive_location.phone)
-            inactive_location.updated_at = datetime.utcnow()
-            
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Location reactivated successfully',
-                'location_id': inactive_location.id
-            })
+            return jsonify({'error': f'Location with name "{name}" and type "{location_type}" already exists'}), 400
 
         # Generate a unique ID based on name and type
         import re
@@ -389,7 +365,16 @@ def api_create_location():
         return jsonify({
             'success': True,
             'message': 'Location created successfully',
-            'location_id': location.id
+            'location_id': location.id,
+            'location': {
+                'id': location.id,
+                'name': location.name,
+                'type': location.type,
+                'address': location.address,
+                'contact_person': location.contact_person,
+                'phone': location.phone,
+                'status': location.status
+            }
         })
     except Exception as e:
         db.session.rollback()
