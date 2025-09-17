@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import secrets
+from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_required, current_user
@@ -45,6 +46,27 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
+
+# Development flag for bypassing staff authentication
+PUBLIC_STAFF_IN_DEV = os.environ.get('PUBLIC_STAFF_IN_DEV', 'true').lower() == 'true'
+
+# Custom decorator for staff routes that can bypass auth in development
+def staff_required(f):
+    """
+    Custom decorator for staff routes that bypasses authentication in development
+    when PUBLIC_STAFF_IN_DEV is true.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # In development, bypass authentication for staff routes
+        if PUBLIC_STAFF_IN_DEV:
+            return f(*args, **kwargs)
+        else:
+            # Production mode - require login
+            if not current_user.is_authenticated:
+                return redirect(url_for('login', next=request.url))
+            return f(*args, **kwargs)
+    return decorated_function
 
 # Add headers for webview compatibility and caching control
 @app.after_request
