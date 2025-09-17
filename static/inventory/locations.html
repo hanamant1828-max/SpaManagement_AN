@@ -190,7 +190,9 @@
         const tbody = document.getElementById('locationTableBody');
         tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div> Loading locations...</td></tr>';
 
-        fetch('/api/inventory/locations')
+        // Add cache-busting parameter to ensure fresh data
+        const cacheBuster = new Date().getTime();
+        fetch(`/api/inventory/locations?_=${cacheBuster}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -202,14 +204,20 @@
                     throw new Error(data.error);
                 }
 
+                // Update cache with fresh data
                 locationsCache = data.locations || [];
                 displayLocations();
                 console.log('Locations loaded from database:', locationsCache.length);
+                
+                // Show success message if this is a reload after save
+                if (locationsCache.length > 0) {
+                    console.log('Locations table refreshed successfully');
+                }
             })
             .catch(error => {
                 console.error('Error loading locations from database:', error);
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load locations from database. Please check your network connection.</td></tr>';
-                locationsCache = []; // Clear cache instead of using localStorage fallback
+                locationsCache = []; // Clear cache on error
             });
     }
 
@@ -417,12 +425,25 @@
             },
             body: JSON.stringify(locationData)
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('locationModal'));
                 modal.hide();
-                loadLocations(); // Reload to get fresh data
+                
+                // Clear the cache to force fresh data reload
+                locationsCache = [];
+                
+                // Reload locations with a small delay to ensure database transaction is complete
+                setTimeout(() => {
+                    loadLocations();
+                }, 100);
+                
                 showToast(data.message, 'success');
             } else {
                 showToast(data.error || 'Failed to save location. Please check your input.', 'error');
@@ -460,7 +481,11 @@
         })
         .then(data => {
             if (data.success) {
-                loadLocations(); // Reload the list
+                // Clear cache and reload immediately
+                locationsCache = [];
+                setTimeout(() => {
+                    loadLocations();
+                }, 100);
                 showToast(data.message, 'success');
             }
         })
