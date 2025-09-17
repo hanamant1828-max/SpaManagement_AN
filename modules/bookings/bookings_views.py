@@ -29,39 +29,10 @@ def get_staff_schedule_for_date(staff_id, target_date):
             ShiftManagement.to_date >= target_date
         ).first()
 
-        if shift_management:
-            # Get specific shift log for this date
-            shift_log = ShiftLogs.query.filter(
-                ShiftLogs.shift_management_id == shift_management.id,
-                ShiftLogs.individual_date == target_date
-            ).first()
-
-            if shift_log:
-                return {
-                    'schedule_id': shift_management.id,
-                    'daily_schedule_id': shift_log.id,
-                    'schedule_name': f'Shift {target_date}',
-                    'shift_start_time': shift_log.shift_start_time,
-                    'shift_end_time': shift_log.shift_end_time,
-                    'break_start_time': shift_log.break_start_time,
-                    'break_end_time': shift_log.break_end_time,
-                    'break_duration_minutes': 0,
-                    'break_time': shift_log.get_break_time_display(),
-                    'is_working_day': shift_log.status in ['scheduled', 'completed'],
-                    'notes': ''
-                }
-
-        # Fallback to new shift management schema
-        shift_management = ShiftManagement.query.filter(
-            ShiftManagement.staff_id == staff_id,
-            ShiftManagement.from_date <= target_date,
-            ShiftManagement.to_date >= target_date
-        ).first()
-
         if not shift_management:
             return None
 
-        # Get shift log for this specific date
+        # Get specific shift log for this date
         shift_log = ShiftLogs.query.filter(
             ShiftLogs.shift_management_id == shift_management.id,
             ShiftLogs.individual_date == target_date
@@ -512,30 +483,34 @@ def book_appointment_api():
         appointment_datetime = datetime.combine(appointment_date, appointment_time)
 
         # Validate staff availability against shift scheduler
-        from models import StaffScheduleRange, User
+        from models import ShiftManagement, ShiftLogs, User
 
         staff = User.query.get(data['staff_id'])
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
 
-        # Get day of week for schedule checking
-        day_of_week = appointment_date.weekday()
-        day_mapping = {
-            0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
-            4: 'friday', 5: 'saturday', 6: 'sunday'
-        }
-        selected_day_field = day_mapping[day_of_week]
+        # Check if staff has a schedule for this date using new shift management system
+        shift_management = ShiftManagement.query.filter(
+            ShiftManagement.staff_id == data['staff_id'],
+            ShiftManagement.from_date <= appointment_date,
+            ShiftManagement.to_date >= appointment_date
+        ).first()
 
-        # Check if staff has a schedule for this date
-        schedule_info = get_staff_schedule_for_date(data['staff_id'], appointment_date)
+        if not shift_management:
+            return jsonify({'error': f'{staff.first_name} {staff.last_name} is not scheduled to work on {appointment_date.strftime("%A, %B %d, %Y")}. Please check staff schedule.'}), 400
 
-        if not schedule_info or not schedule_info.get('is_working_day'):
-            staff_name = staff.first_name if staff else 'Staff'
-            return jsonify({'error': f'{staff_name} is not available on {appointment_date.strftime("%A, %B %d, %Y")}. Reason: {schedule_info.get("notes", "No schedule found")}'}), 400
+        # Get specific shift log for this date
+        shift_log = ShiftLogs.query.filter(
+            ShiftLogs.shift_management_id == shift_management.id,
+            ShiftLogs.individual_date == appointment_date
+        ).first()
+
+        if not shift_log or shift_log.status not in ['scheduled', 'completed']:
+            return jsonify({'error': f'{staff.first_name} {staff.last_name} is not available on {appointment_date.strftime("%A, %B %d, %Y")}. Status: {shift_log.status if shift_log else "No schedule"}'}), 400
 
         # Check if appointment time is within shift hours
-        shift_start = schedule_info['shift_start_time']
-        shift_end = schedule_info['shift_end_time']
+        shift_start = shift_log.shift_start_time
+        shift_end = shift_log.shift_end_time
         
         if shift_start and shift_end:
             if appointment_time < shift_start or appointment_time >= shift_end:
@@ -544,8 +519,8 @@ def book_appointment_api():
                 return jsonify({'error': f'{staff.first_name} {staff.last_name} is off duty at {appointment_time.strftime("%I:%M %p")}. Shift hours: {shift_start_12h} - {shift_end_12h}'}), 400
 
         # Check if appointment time conflicts with break time
-        break_start = schedule_info.get('break_start_time')
-        break_end = schedule_info.get('break_end_time')
+        break_start = shift_log.break_start_time
+        break_end = shift_log.break_end_time
 
         if break_start and break_end:
             if break_start <= appointment_time < break_end:
