@@ -1,0 +1,97 @@
+Fix the bug: Clicking “Staff Management” redirects to Login. In development, the Staff Management page and its APIs must be accessible without auth.
+
+Context & Goal
+
+App runs in Replit dev. We do not want auth/CSRF in dev right now.
+
+Target route(s): /staff, /staff-management, and related APIs (/api/staff*).
+
+Goal: Clicking the menu item opens Staff Management view directly (no redirect), deep-links load, and refresh stays on the page.
+
+Files to review & update (adapt names to repo)
+
+Frontend routing/guards: app.js / router.js / SPA router config
+
+Nav component / menu template: where the Staff link is defined
+
+Auth guard/helper: auth.js / requireAuth.js / route guard hooks
+
+Server (Node/Express): server.js / app.js middleware stack, session config
+
+API handlers: /api/staff* controllers
+
+Env/config: .env, config loader
+
+Fix Plan (do ALL steps)
+
+Reproduce & confirm
+
+Open DevTools → Network. Click Staff Management.
+
+Capture the request that returns 302/401 to /login (page route or API).
+
+Note the exact route that triggers redirect and which layer (client guard vs server middleware) causes it.
+
+Make Staff public in dev
+
+Add an env flag: PUBLIC_STAFF_IN_DEV=true (or use NODE_ENV=development).
+
+Server: In auth middleware, if PUBLIC_STAFF_IN_DEV and path starts with /staff or /api/staff, skip auth. Keep other routes unchanged.
+
+Client (SPA guard): If PUBLIC_STAFF_IN_DEV, allow navigation to Staff routes without token/session checks.
+
+Fix cookie/session traps (if server still redirects)
+
+In dev session config: secure: false, sameSite: 'lax', no domain override.
+
+If using trust proxy, ensure it’s set correctly; otherwise Express may think the request is not secure and drop cookies.
+
+Remove any CSRF checks in dev for /api/staff*.
+
+Verify the nav link
+
+Ensure menu item href (or route name) points to the Staff route (e.g., /staff), not /login or a protected alias.
+
+Add an .active state when Staff is open.
+
+Fix client route guard logic
+
+Update beforeEach/guard to not hard-redirect to /login when:
+
+PUBLIC_STAFF_IN_DEV is true, or
+
+Route meta has public: true.
+
+Mark Staff routes as public: true in dev.
+
+Ensure API calls don’t re-trigger redirects
+
+Open the Staff view and watch the first /api/staff* call.
+
+If it 302/401 → apply the same public bypass to those API endpoints in dev.
+
+Clean UI messages
+
+Remove any “Not authorized” banners for Staff in dev.
+
+If data is empty, show a friendly empty state with an Add Staff button (no redirect).
+
+QA (must pass)
+
+Click Staff Management → page opens, no redirect.
+
+Hard refresh on /staff deep-link → stays on Staff.
+
+All initial /api/staff* requests succeed (200), no 302/401.
+
+Console shows no errors.
+
+Toggle PUBLIC_STAFF_IN_DEV=false (or production mode) → route should again require auth (redirect works).
+
+Deliverables
+
+Updated auth middleware (server) and route guard (client) honoring PUBLIC_STAFF_IN_DEV.
+
+Working Staff page with no redirect in dev.
+
+Short note in README: how to toggle public Staff access in dev.
