@@ -945,9 +945,9 @@ def api_create_staff():
             except (ValueError, TypeError):
                 return None
 
-        # Email validation - make it truly optional
+        # Email validation - make it truly optional, use empty string instead of null
         import re
-        email = None
+        email = ''  # Default to empty string instead of None
         if data.get('email') and str(data.get('email')).strip():
             email = str(data['email']).strip().lower()
             email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -969,7 +969,7 @@ def api_create_staff():
                 'username': str(data['username']).strip(),
                 'first_name': str(data['first_name']).strip().title(),
                 'last_name': str(data['last_name']).strip().title(),
-                'email': email,  # Already validated above, can be None
+                'email': email,  # Already validated above, empty string if not provided
                 'password_hash': generate_password_hash(password),
                 'phone': str(data.get('phone', '')).strip() or None,
                 'role': str(data.get('role', 'staff')).strip(),
@@ -1051,7 +1051,7 @@ def api_update_staff(staff_id):
             if 'last_name' in data and data['last_name']:
                 staff.last_name = str(data['last_name']).strip()
             if 'email' in data:
-                staff.email = str(data['email']).strip() if data.get('email') and str(data['email']).strip() else None # Allow null email
+                staff.email = str(data['email']).strip() if data.get('email') and str(data['email']).strip() else '' # Use empty string, not null
             if 'phone' in data:
                 staff.phone = str(data['phone']).strip() if data['phone'] else None
             if 'designation' in data:

@@ -896,7 +896,7 @@ Management Suite{% endblock %} {% block content %}
             username: getFieldValue("username"),
             first_name: getFieldValue("firstName"),
             last_name: getFieldValue("lastName"),
-            email: getFieldValue("email") || null,  // Explicitly handle empty email
+            email: getFieldValue("email") || '',  // Use empty string instead of null
             phone: getFieldValue("phone") || null,
             password: getFieldValue("password"),
             role: getFieldValue("role") || "staff",
