@@ -652,7 +652,7 @@ Management Suite{% endblock %} {% block content %}
                 backdrop: 'static',  // Prevent backdrop close
                 keyboard: false      // Prevent Esc key close
             });
-            
+
             // Set up comprehensive modal protection
             setupModalProtection(modalElement);
         }
@@ -685,11 +685,11 @@ Management Suite{% endblock %} {% block content %}
     // Only Close/Save/Update buttons can close the modal as per requirements
     function setupModalProtection(modalElement) {
         console.log("Setting up comprehensive modal protection");
-        
+
         // Intercept all hide attempts
         modalElement.addEventListener('hide.bs.modal', function(event) {
             console.log("Modal hide attempt detected, source:", authorizedCloseSource);
-            
+
             // Only allow authorized close sources
             if (!isAuthorizedClose()) {
                 console.log("Unauthorized close attempt blocked");
@@ -697,11 +697,11 @@ Management Suite{% endblock %} {% block content %}
                 event.stopPropagation();
                 return false;
             }
-            
+
             // Reset authorization after successful close
             authorizedCloseSource = null;
         });
-        
+
         // Block any programmatic hide attempts
         const originalHide = staffModal.hide;
         staffModal.hide = function() {
@@ -711,21 +711,21 @@ Management Suite{% endblock %} {% block content %}
             }
             originalHide.call(this);
         };
-        
+
         // Reset form state when modal is fully hidden
         modalElement.addEventListener('hidden.bs.modal', function() {
             hasUnsavedChanges = false;
             authorizedCloseSource = null;
         });
     }
-    
+
     // Check if the current close attempt is from an authorized source
     function isAuthorizedClose() {
-        return authorizedCloseSource === 'btnStaffClose' || 
-               authorizedCloseSource === 'btnStaffSave' || 
+        return authorizedCloseSource === 'btnStaffClose' ||
+               authorizedCloseSource === 'btnStaffSave' ||
                authorizedCloseSource === 'btnStaffUpdate';
     }
-    
+
     // Setup event listeners for authorized close buttons
     function setupAuthorizedCloseButtons() {
         // Close button with unsaved changes confirmation
@@ -733,7 +733,7 @@ Management Suite{% endblock %} {% block content %}
         if (closeBtn) {
             closeBtn.addEventListener("click", handleCloseButton);
         }
-        
+
         // Save button (form submission will trigger close)
         const saveBtn = document.getElementById("btnStaffSave");
         if (saveBtn) {
@@ -741,7 +741,7 @@ Management Suite{% endblock %} {% block content %}
             console.log("Save button found and ready");
         }
     }
-    
+
     // Handle Close button click with unsaved changes confirmation
     async function handleCloseButton() {
         if (hasUnsavedChanges) {
@@ -750,12 +750,12 @@ Management Suite{% endblock %} {% block content %}
                 return; // User chose to cancel
             }
         }
-        
+
         // Authorize the close and close the modal
         authorizedCloseSource = 'btnStaffClose';
         staffModal.hide();
     }
-    
+
     // Show unsaved changes confirmation dialog
     function showUnsavedChangesDialog() {
         return new Promise((resolve) => {
@@ -763,16 +763,16 @@ Management Suite{% endblock %} {% block content %}
             resolve(result);
         });
     }
-    
+
     // Track form changes to detect unsaved modifications
     function trackFormChanges(form) {
         const inputs = form.querySelectorAll('input, select, textarea');
-        
+
         inputs.forEach(input => {
             input.addEventListener('input', () => {
                 hasUnsavedChanges = true;
             });
-            
+
             input.addEventListener('change', () => {
                 hasUnsavedChanges = true;
             });
@@ -797,7 +797,7 @@ Management Suite{% endblock %} {% block content %}
             // Validate required fields
             const validation = validateFormData(formData);
             if (!validation.isValid) {
-                showNotification(validation.message, "error");
+                showToast('danger', validation.message);
                 return;
             }
 
@@ -811,8 +811,8 @@ Management Suite{% endblock %} {% block content %}
             }
 
             if (response && response.success) {
-                showNotification(response.message, "success");
-                
+                showToast('success', response.message);
+
                 // Authorize close from Save/Update button and close modal
                 authorizedCloseSource = mode === "edit" ? 'btnStaffUpdate' : 'btnStaffSave';
                 hasUnsavedChanges = false; // Clear unsaved changes flag
@@ -821,11 +821,11 @@ Management Suite{% endblock %} {% block content %}
             } else {
                 const errorMsg =
                     response?.error || "An error occurred while saving";
-                showNotification(errorMsg, "error");
+                showToast('danger', errorMsg);
             }
         } catch (error) {
             console.error("Form submission error:", error);
-            showNotification("Network error: " + error.message, "error");
+            showToast('danger', "Network error: " + error.message);
         } finally {
             // Reset button state
             submitBtn.disabled = false;
@@ -967,13 +967,13 @@ Management Suite{% endblock %} {% block content %}
                     showTable(true);
                 }
 
-                showAlert("Staff data loaded successfully", "success");
+                showToast('success', "Staff data loaded successfully");
             } else {
                 throw new Error(data.error || "Failed to load staff data");
             }
         } catch (error) {
             console.error("Error loading staff data:", error);
-            showAlert("Error loading staff data: " + error.message, "danger");
+            showToast('danger', "Error loading staff data: " + error.message);
             showEmptyState();
         } finally {
             showLoading(false);
@@ -1284,9 +1284,9 @@ Management Suite{% endblock %} {% block content %}
             }
         } catch (error) {
             console.error("Error editing staff:", error);
-            showAlert(
+            showToast(
+                'danger',
                 "Error loading staff data for editing: " + error.message,
-                "danger",
             );
         }
     }
@@ -1394,7 +1394,7 @@ Management Suite{% endblock %} {% block content %}
             const data = await response.json();
 
             if (data.success) {
-                showAlert(data.message, "success");
+                showToast('success', data.message);
 
                 // Hide modal
                 staffModal.hide(); // Use the globally initialized modal instance
@@ -1405,7 +1405,7 @@ Management Suite{% endblock %} {% block content %}
             }
         } catch (error) {
             console.error("Error saving staff:", error);
-            showAlert("Error saving staff: " + error.message, "danger");
+            showToast('danger', "Error saving staff: " + error.message);
         }
     }
 
@@ -1438,7 +1438,7 @@ Management Suite{% endblock %} {% block content %}
             const data = await response.json();
 
             if (data.success) {
-                showAlert(data.message, "success");
+                showToast('success', data.message);
 
                 // Hide modal
                 const modal = bootstrap.Modal.getInstance(
@@ -1453,7 +1453,7 @@ Management Suite{% endblock %} {% block content %}
             }
         } catch (error) {
             console.error("Error deleting staff:", error);
-            showAlert("Error deleting staff: " + error.message, "danger");
+            showToast('danger', "Error deleting staff: " + error.message);
         }
     }
 
@@ -1461,7 +1461,7 @@ Management Suite{% endblock %} {% block content %}
     function viewPerformance(staffId) {
         const staff = allStaff.find((s) => s.id === staffId);
         if (!staff) {
-            showAlert("Staff member not found.", "danger");
+            showToast("danger", "Staff member not found.");
             return;
         }
 
@@ -1518,38 +1518,75 @@ Management Suite{% endblock %} {% block content %}
 
     // Refresh staff data and show notification
     async function refreshStaffData() {
-        showAlert("Refreshing staff data...", "info");
+        showToast('info', "Refreshing staff data...");
         await loadStaffData();
     }
 
     // Placeholder for export functionality
     function exportStaffData() {
-        showAlert("Export functionality - Feature coming soon!", "info");
+        showToast("info", "Export functionality - Feature coming soon!");
     }
 
-    // Show a temporary alert message
-    function showAlert(message, type = "info") {
-        const alertContainer = document.getElementById("alertContainer");
-        const alertId = "alert-" + Date.now(); // Unique ID for each alert
+    // Show a temporary toast message using Bootstrap Toasts
+    function showToast(type, message) {
+        const container = document.getElementById('alertContainer');
+        const toastElement = document.createElement('div');
 
-        const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
+        const bgClass = {
+            'success': 'bg-success',
+            'danger': 'bg-danger', // Map 'error' to 'danger' for Bootstrap
+            'warning': 'bg-warning',
+            'info': 'bg-info'
+        }[type] || 'bg-info';
 
-        alertContainer.insertAdjacentHTML("beforeend", alertHtml);
+        const iconClass = {
+            'success': 'check-circle',
+            'danger': 'exclamation-circle',
+            'warning': 'exclamation-triangle',
+            'info': 'info-circle'
+        }[type] || 'info-circle';
 
-        // Automatically remove the alert after a few seconds
-        setTimeout(() => {
-            const alertElement = document.getElementById(alertId);
-            if (alertElement) {
-                // Use bootstrap's alert dismissal for proper animation
-                const alert = new bootstrap.Alert(alertElement);
-                alert.close();
+        toastElement.className = `toast ${bgClass} text-white`;
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('data-bs-autohide', 'true');
+        toastElement.setAttribute('data-bs-delay', '5000'); // Default delay
+
+        toastElement.innerHTML = `
+            <div class="toast-header ${bgClass} text-white border-0">
+                <i class="fas fa-${iconClass} me-2"></i>
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+
+        container.appendChild(toastElement);
+
+        // Initialize and show the toast
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+
+        // Clean up the DOM element after the toast is hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            if (toastElement.parentNode) {
+                toastElement.parentNode.removeChild(toastElement);
             }
-        }, 5000); // Alert disappears after 5 seconds
+        });
+    }
+
+    // Legacy notification function - redirects to showToast
+    function showNotification(message, type = 'info', duration = 5000) {
+        const toastType = type === 'error' ? 'danger' : type;
+        showToast(toastType, message);
+    }
+
+    // Legacy alert function - redirects to showToast
+    function showAlert(message, type = 'info') {
+        const toastType = type === 'danger' ? 'danger' : (type === 'success' ? 'success' : 'info');
+        showToast(toastType, message);
     }
 
     // Helper function to update staff data via API
