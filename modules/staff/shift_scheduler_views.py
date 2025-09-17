@@ -14,6 +14,13 @@ import json
 # Create Blueprint for shift scheduler
 shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
 
+# Redirect route for /shift-scheduler to /shift-scheduler/shift-scheduler
+@shift_scheduler_bp.route('/')
+def shift_scheduler_redirect():
+    """Redirect /shift-scheduler to /shift-scheduler/shift-scheduler"""
+    from flask import redirect, url_for
+    return redirect(url_for('shift_scheduler.shift_scheduler'))
+
 # Add shift scheduler page
 @shift_scheduler_bp.route('/shift-scheduler/add')
 @login_required
