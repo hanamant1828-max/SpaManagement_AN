@@ -1,14 +1,12 @@
-
 """
 Staff Shift Scheduler Views
 Complete implementation with CRUD operations for staff scheduling using new schema
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required, current_user
-from werkzeug.exceptions import BadRequest
-from app import app, db
-from models import User, ShiftManagement, ShiftLogs
+from flask_login import login_required
 from datetime import datetime, date, timedelta
+from app import app, db, scheduler_required
+from models import User, ShiftManagement, ShiftLogs
 import json
 
 # Create Blueprint for shift scheduler
@@ -16,7 +14,7 @@ shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
 
 # Add shift scheduler page
 @shift_scheduler_bp.route('/shift-scheduler/add')
-@login_required
+@scheduler_required
 def add_shift_scheduler():
     """Add shift scheduler page with day-by-day configuration"""
     if not current_user.can_access('staff'):
@@ -32,7 +30,7 @@ def add_shift_scheduler():
 
 # Main shift scheduler interface
 @shift_scheduler_bp.route('/shift-scheduler')
-@login_required
+@scheduler_required
 def shift_scheduler():
     """Main shift scheduler interface"""
     if not current_user.can_access('staff'):
@@ -48,7 +46,7 @@ def shift_scheduler():
 
 # API endpoint to get existing schedules
 @shift_scheduler_bp.route('/api/shift-scheduler', methods=['GET'])
-@login_required
+@scheduler_required
 def api_get_shift_schedules():
     """Get existing shift schedules for a staff member in date range"""
     if not current_user.can_access('staff'):
@@ -77,7 +75,7 @@ def api_get_shift_schedules():
         for schedule in schedules:
             # Get first shift log for this management entry to show times
             first_log = ShiftLogs.query.filter_by(shift_management_id=schedule.id).first()
-            
+
             schedule_data.append({
                 'id': schedule.id,
                 'schedule_name': f"Shift {schedule.from_date.strftime('%Y-%m-%d')} to {schedule.to_date.strftime('%Y-%m-%d')}",
@@ -103,7 +101,7 @@ def api_get_shift_schedules():
 
 # Save daily schedule with day-by-day configuration
 @shift_scheduler_bp.route('/api/shift-scheduler/save-daily-schedule', methods=['POST'])
-@login_required
+@scheduler_required
 def save_daily_schedule():
     """Save schedule with day-by-day configuration using new schema"""
     if not current_user.can_access('staff'):
@@ -137,13 +135,13 @@ def save_daily_schedule():
 
         # Check if shift management already exists for this staff member
         existing_management = ShiftManagement.query.filter_by(staff_id=staff_id).first()
-        
+
         if existing_management:
             # Update existing entry - extend date range and clear old logs
             existing_management.from_date = min(existing_management.from_date, from_date)
             existing_management.to_date = max(existing_management.to_date, to_date)
             existing_management.updated_at = datetime.utcnow()
-            
+
             # Clear existing shift logs for this management entry
             ShiftLogs.query.filter_by(shift_management_id=existing_management.id).delete()
             shift_management = existing_management
@@ -193,7 +191,7 @@ def save_daily_schedule():
 
 # Get all schedules from all staff members for management table
 @shift_scheduler_bp.route('/api/all-schedules', methods=['GET'])
-@login_required
+@scheduler_required
 def api_get_all_schedules():
     """Get consolidated schedule view using new shift management schema"""
     if not current_user.can_access('staff'):
@@ -212,15 +210,15 @@ def api_get_all_schedules():
         for schedule, staff in schedules:
             # Get first shift log for working days info
             first_log = ShiftLogs.query.filter_by(shift_management_id=schedule.id).first()
-            
+
             # Default working days
             working_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
             working_days_str = "Mon to Fri"
-            
+
             shift_start_time = ''
             shift_end_time = ''
             break_time = ''
-            
+
             if first_log:
                 shift_start_time = first_log.shift_start_time.strftime('%H:%M') if first_log.shift_start_time else ''
                 shift_end_time = first_log.shift_end_time.strftime('%H:%M') if first_log.shift_end_time else ''
@@ -261,7 +259,7 @@ def api_get_all_schedules():
 
 # API endpoint to get schedule details for view modal
 @shift_scheduler_bp.route('/api/staff/<int:staff_id>/schedule-details', methods=['GET'])
-@login_required
+@scheduler_required
 def api_get_staff_schedule_details(staff_id):
     """Get detailed schedule information for a staff member"""
     if not current_user.can_access('staff'):
@@ -275,13 +273,13 @@ def api_get_staff_schedule_details(staff_id):
 
         # Get the single shift management for this staff
         shift_management = ShiftManagement.query.filter_by(staff_id=staff_id).first()
-        
+
         if not shift_management:
             return jsonify({
                 'success': False,
                 'error': 'No schedule found for this staff member'
             }), 404
-        
+
         # Get all shift logs for this staff
         logs = ShiftLogs.query.filter_by(shift_management_id=shift_management.id).order_by(ShiftLogs.individual_date).all()
         all_logs = []
@@ -300,7 +298,7 @@ def api_get_staff_schedule_details(staff_id):
 
         # Prepare schedule range (single entry)
         first_log = ShiftLogs.query.filter_by(shift_management_id=shift_management.id).first()
-        
+
         schedule_ranges = [{
             'id': shift_management.id,
             'schedule_name': f"Staff Schedule ({shift_management.from_date.strftime('%Y-%m-%d')} to {shift_management.to_date.strftime('%Y-%m-%d')})",
@@ -329,7 +327,7 @@ def api_get_staff_schedule_details(staff_id):
 
 # API endpoint to get schedule details for edit mode
 @shift_scheduler_bp.route('/api/schedule/<int:schedule_id>/details', methods=['GET'])
-@login_required
+@scheduler_required
 def api_get_schedule_details(schedule_id):
     """Get detailed schedule information for edit mode"""
     if not current_user.can_access('staff'):
@@ -388,8 +386,8 @@ def api_get_schedule_details(schedule_id):
         return jsonify({'error': str(e)}), 500
 
 # Delete schedules
-@shift_scheduler_bp.route('/shift-scheduler/delete', methods=['POST'])
-@login_required
+@shift_scheduler_bp.route('/delete', methods=['POST'])
+@scheduler_required
 def delete_shift_schedules():
     """Delete shift schedules by IDs"""
     if not current_user.can_access('staff'):
@@ -424,33 +422,33 @@ def delete_shift_schedules():
 
 # Delete single schedule by ID (for frontend compatibility)
 @shift_scheduler_bp.route('/api/schedule/<int:schedule_id>', methods=['DELETE'])
-@login_required
+@scheduler_required
 def delete_single_schedule(schedule_id):
     """Delete a single schedule by ID - Frontend compatibility endpoint"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         schedule = ShiftManagement.query.get(schedule_id)
         if not schedule:
             return jsonify({'error': 'Schedule not found'}), 404
-        
+
         # Delete the schedule (cascade will handle shift logs)
         db.session.delete(schedule)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Schedule deleted successfully'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 # Update existing schedule
 @shift_scheduler_bp.route('/api/shift-scheduler/update-daily-schedule/<int:schedule_id>', methods=['PUT'])
-@login_required
+@scheduler_required
 def update_daily_schedule(schedule_id):
     """Update existing schedule with day-by-day configuration"""
     if not current_user.can_access('staff'):
@@ -531,7 +529,7 @@ def update_daily_schedule(schedule_id):
 
 # API endpoint to view database records - shows SQL INSERT statements
 @shift_scheduler_bp.route('/api/database-records', methods=['GET'])
-@login_required
+@scheduler_required
 def api_get_database_records():
     """Get database records as SQL INSERT statements for demonstration"""
     if not current_user.can_access('staff'):
@@ -540,10 +538,10 @@ def api_get_database_records():
     try:
         # Get all shift managements
         shift_managements = ShiftManagement.query.order_by(ShiftManagement.created_at.desc()).all()
-        
+
         # Get all shift logs
         shift_logs = ShiftLogs.query.join(ShiftManagement).order_by(
-            ShiftManagement.created_at.desc(), 
+            ShiftManagement.created_at.desc(),
             ShiftLogs.individual_date
         ).all()
 
@@ -552,9 +550,9 @@ def api_get_database_records():
         for management in shift_managements:
             staff = User.query.get(management.staff_id)
             created_at_str = management.created_at.strftime('%Y-%m-%d %H:%M:%S') if management.created_at else 'NOW()'
-            
+
             sql_statement = f"INSERT INTO shift_management (staff_id, from_date, to_date, created_at) VALUES ({management.staff_id}, '{management.from_date}', '{management.to_date}', '{created_at_str}')"
-            
+
             management_records.append({
                 'sql_statement': sql_statement,
                 'record_data': {
@@ -570,9 +568,9 @@ def api_get_database_records():
             created_at_str = log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else 'NOW()'
             break_start = log.break_start_time.strftime('%H:%M:%S') if log.break_start_time else 'NULL'
             break_end = log.break_end_time.strftime('%H:%M:%S') if log.break_end_time else 'NULL'
-            
+
             sql_statement = f"INSERT INTO shift_logs (shift_management_id, individual_date, shift_start_time, shift_end_time, break_start_time, break_end_time, status, created_at) VALUES ({log.shift_management_id}, '{log.individual_date}', '{log.shift_start_time}', '{log.shift_end_time}', {break_start if break_start != 'NULL' else break_start}, {break_end if break_end != 'NULL' else break_end}, '{log.status}', '{created_at_str}')"
-            
+
             log_records.append({
                 'sql_statement': sql_statement,
                 'record_data': {

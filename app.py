@@ -64,13 +64,17 @@ class DevAnonymousUser:
 # Set custom anonymous user class
 login_manager.anonymous_user = DevAnonymousUser
 
-# Development flag for bypassing staff authentication - defaults to false for production safety
+# Development flags for bypassing authentication - defaults to false for production safety
 PUBLIC_STAFF_IN_DEV = os.environ.get('PUBLIC_STAFF_IN_DEV', 'false').lower() == 'true'
+PUBLIC_SCHEDULER_IN_DEV = os.environ.get('PUBLIC_SCHEDULER_IN_DEV', 'false').lower() == 'true'
 
 # Make config available in templates
 @app.context_processor
 def inject_config():
-    return {'PUBLIC_STAFF_IN_DEV': PUBLIC_STAFF_IN_DEV}
+    return {
+        'PUBLIC_STAFF_IN_DEV': PUBLIC_STAFF_IN_DEV,
+        'PUBLIC_SCHEDULER_IN_DEV': PUBLIC_SCHEDULER_IN_DEV
+    }
 
 # Custom decorator for staff routes that can bypass auth in development
 def staff_required(f):
@@ -82,6 +86,24 @@ def staff_required(f):
     def decorated_function(*args, **kwargs):
         # In development, bypass authentication for staff routes
         if PUBLIC_STAFF_IN_DEV:
+            return f(*args, **kwargs)
+        else:
+            # Production mode - require login
+            if not current_user.is_authenticated:
+                return redirect(url_for('login', next=request.url))
+            return f(*args, **kwargs)
+    return decorated_function
+
+# Custom decorator for scheduler routes that can bypass auth in development
+def scheduler_required(f):
+    """
+    Custom decorator for scheduler routes that bypasses authentication in development
+    when PUBLIC_SCHEDULER_IN_DEV is true.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # In development, bypass authentication for scheduler routes
+        if PUBLIC_SCHEDULER_IN_DEV:
             return f(*args, **kwargs)
         else:
             # Production mode - require login
