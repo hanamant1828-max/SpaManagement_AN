@@ -324,10 +324,29 @@ def api_create_location():
         if not name:
             return jsonify({'error': 'Location name is required'}), 400
 
-        # Check if location name already exists
-        existing_location = InventoryLocation.query.filter_by(name=name).first()
+        # Check if location name already exists (only active ones)
+        existing_location = InventoryLocation.query.filter_by(name=name, status='active').first()
         if existing_location:
-            return jsonify({'error': f'Location with name "{name}" already exists'}), 400
+            return jsonify({'error': f'Active location with name "{name}" already exists'}), 400
+
+        # Check if there's an inactive location with the same name - reactivate it
+        inactive_location = InventoryLocation.query.filter_by(name=name, status='inactive').first()
+        if inactive_location:
+            # Reactivate the existing location
+            inactive_location.status = 'active'
+            inactive_location.type = data.get('type', inactive_location.type)
+            inactive_location.address = data.get('address', inactive_location.address)
+            inactive_location.contact_person = data.get('contact_person', inactive_location.contact_person)
+            inactive_location.phone = data.get('phone', inactive_location.phone)
+            inactive_location.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Location reactivated successfully',
+                'location_id': inactive_location.id
+            })
 
         # Generate a unique ID based on name
         import re
@@ -1131,9 +1150,11 @@ def api_delete_location(location_id):
         if batch_count > 0:
             return jsonify({'error': f'Cannot delete location with {batch_count} associated batches. Please remove or reassign batches first.'}), 400
 
-        # Soft delete - mark as inactive
-        location.status = 'inactive'
-        location.updated_at = datetime.utcnow()
+        # Check if the name already exists as inactive (to allow reactivation)
+        name_to_free = location.name
+        
+        # Actually delete the record (not soft delete) to free up the name
+        db.session.delete(location)
         db.session.commit()
 
         return jsonify({
