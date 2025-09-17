@@ -114,7 +114,7 @@ with app.app_context():
     
     # Register shift scheduler blueprint
     from modules.staff.shift_scheduler_views import shift_scheduler_bp
-    app.register_blueprint(shift_scheduler_bp)
+    app.register_blueprint(shift_scheduler_bp, url_prefix='/shift-scheduler')
 
     try:
         db.create_all()
