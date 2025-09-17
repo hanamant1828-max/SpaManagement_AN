@@ -657,8 +657,7 @@ class InvoiceItem(db.Model):
     # Relationships
     appointment = db.relationship('Appointment', backref='invoice_items')
     package = db.relationship('Package', backref='invoice_items')
-    product = db.relationship('InventoryProduct', foreign_keys=[product_id])
-    batch = db.relationship('InventoryBatch', foreign_keys=[batch_id])
+    # Note: Inventory relationships are handled in the inventory module to avoid circular imports
 
 class InvoicePayment(db.Model):
     """Multiple payment records for a single invoice supporting mixed payment methods"""

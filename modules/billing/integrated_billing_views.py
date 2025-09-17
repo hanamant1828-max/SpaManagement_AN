@@ -7,7 +7,12 @@ from flask_login import login_required, current_user
 from app import app, db
 from datetime import datetime
 import json
-from modules.inventory.models import InventoryProduct
+try:
+    from modules.inventory.models import InventoryProduct, InventoryBatch
+except ImportError:
+    # Fallback for when inventory models aren't available
+    InventoryProduct = None
+    InventoryBatch = None
 
 @app.route('/integrated-billing')
 @login_required
@@ -170,134 +175,145 @@ def create_professional_invoice():
         total_tax = cgst_amount + sgst_amount + igst_amount
         total_amount = net_subtotal + total_tax + additional_charges + tips_amount
 
-        # Create professional invoice
+        # Create professional invoice with proper transaction handling
         try:
-            with db.session.begin():
-                # Generate professional invoice number
-                current_date = datetime.datetime.now()
-                latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).with_for_update().first()
-                
-                if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{current_date.strftime('%Y%m%d')}"):
-                    try:
-                        last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
-                        invoice_sequence = last_sequence + 1
-                    except (ValueError, IndexError):
-                        invoice_sequence = 1
-                else:
+            # Generate professional invoice number
+            current_date = datetime.datetime.now()
+            latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
+            
+            if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{current_date.strftime('%Y%m%d')}"):
+                try:
+                    last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
+                    invoice_sequence = last_sequence + 1
+                except (ValueError, IndexError):
                     invoice_sequence = 1
-                
-                invoice_number = f"INV-{current_date.strftime('%Y%m%d')}-{invoice_sequence:04d}"
+            else:
+                invoice_sequence = 1
+            
+            invoice_number = f"INV-{current_date.strftime('%Y%m%d')}-{invoice_sequence:04d}"
 
-                # Create enhanced invoice with professional fields
-                invoice = EnhancedInvoice()
-                invoice.invoice_number = invoice_number
-                invoice.client_id = int(client_id)
-                invoice.invoice_date = current_date
-                
-                # Professional billing fields
-                invoice.services_subtotal = services_subtotal
-                invoice.inventory_subtotal = inventory_subtotal
-                invoice.gross_subtotal = gross_subtotal
-                invoice.net_subtotal = net_subtotal
-                invoice.tax_amount = total_tax
-                invoice.discount_amount = discount_amount
-                invoice.tips_amount = tips_amount
-                invoice.total_amount = total_amount
-                invoice.balance_due = total_amount
-                
-                # Tax breakdown (store in notes for now, can be separate fields later)
-                tax_breakdown = {
-                    'cgst_rate': cgst_rate * 100,
-                    'sgst_rate': sgst_rate * 100,
-                    'igst_rate': igst_rate * 100,
-                    'cgst_amount': cgst_amount,
-                    'sgst_amount': sgst_amount,
-                    'igst_amount': igst_amount,
-                    'is_interstate': is_interstate,
-                    'additional_charges': additional_charges,
-                    'payment_terms': payment_terms,
-                    'payment_method': payment_method
-                }
-                
-                invoice.notes = json.dumps(tax_breakdown)
-                invoice.payment_methods = json.dumps({payment_method: total_amount})
+            # Create enhanced invoice with professional fields
+            invoice = EnhancedInvoice()
+            invoice.invoice_number = invoice_number
+            invoice.client_id = int(client_id)
+            invoice.invoice_date = current_date
+            
+            # Professional billing fields
+            invoice.services_subtotal = services_subtotal
+            invoice.inventory_subtotal = inventory_subtotal
+            invoice.gross_subtotal = gross_subtotal
+            invoice.net_subtotal = net_subtotal
+            invoice.tax_amount = total_tax
+            invoice.discount_amount = discount_amount
+            invoice.tips_amount = tips_amount
+            invoice.total_amount = total_amount
+            invoice.balance_due = total_amount
+            
+            # Store GST fields properly
+            invoice.cgst_rate = cgst_rate * 100
+            invoice.sgst_rate = sgst_rate * 100
+            invoice.igst_rate = igst_rate * 100
+            invoice.cgst_amount = cgst_amount
+            invoice.sgst_amount = sgst_amount
+            invoice.igst_amount = igst_amount
+            invoice.is_interstate = is_interstate
+            invoice.additional_charges = additional_charges
+            invoice.payment_terms = payment_terms
+            
+            # Tax breakdown for legacy support
+            tax_breakdown = {
+                'cgst_rate': cgst_rate * 100,
+                'sgst_rate': sgst_rate * 100,
+                'igst_rate': igst_rate * 100,
+                'cgst_amount': cgst_amount,
+                'sgst_amount': sgst_amount,
+                'igst_amount': igst_amount,
+                'is_interstate': is_interstate,
+                'additional_charges': additional_charges,
+                'payment_terms': payment_terms,
+                'payment_method': payment_method
+            }
+            
+            invoice.notes = json.dumps(tax_breakdown)
+            invoice.payment_methods = json.dumps({payment_method: total_amount})
 
-                db.session.add(invoice)
-                db.session.flush()
+            db.session.add(invoice)
+            db.session.flush()  # Get the invoice ID
 
-                # Create invoice items for services
-                service_items_created = 0
-                for service_data in services_data:
-                    service = Service.query.get(service_data['service_id'])
-                    if service:
-                        item = InvoiceItem()
-                        item.invoice_id = invoice.id
-                        item.item_type = 'service'
-                        item.item_id = service.id
-                        item.appointment_id = service_data.get('appointment_id')
-                        item.item_name = service.name
-                        item.description = service.description
-                        item.quantity = service_data['quantity']
-                        item.unit_price = service.price
-                        item.original_amount = service.price * service_data['quantity']
-                        item.final_amount = service.price * service_data['quantity']
-                        db.session.add(item)
-                        service_items_created += 1
+            # Create invoice items for services
+            service_items_created = 0
+            for service_data in services_data:
+                service = Service.query.get(service_data['service_id'])
+                if service:
+                    item = InvoiceItem()
+                    item.invoice_id = invoice.id
+                    item.item_type = 'service'
+                    item.item_id = service.id
+                    item.appointment_id = service_data.get('appointment_id')
+                    item.item_name = service.name
+                    item.description = service.description
+                    item.quantity = service_data['quantity']
+                    item.unit_price = service.price
+                    item.original_amount = service.price * service_data['quantity']
+                    item.final_amount = service.price * service_data['quantity']
+                    db.session.add(item)
+                    service_items_created += 1
 
-                # Create invoice items for inventory and reduce stock
-                inventory_items_created = 0
-                stock_reduced_count = 0
-                
-                for item_data in inventory_data:
-                    batch = InventoryBatch.query.get(item_data['batch_id'])
-                    product = InventoryProduct.query.get(item_data['product_id'])
+            # Create invoice items for inventory and reduce stock
+            inventory_items_created = 0
+            stock_reduced_count = 0
+            
+            for item_data in inventory_data:
+                batch = InventoryBatch.query.get(item_data['batch_id'])
+                product = InventoryProduct.query.get(item_data['product_id'])
 
-                    if batch and product:
-                        # Create invoice item
-                        item = InvoiceItem()
-                        item.invoice_id = invoice.id
-                        item.item_type = 'inventory'
-                        item.item_id = product.id
-                        item.product_id = product.id
-                        item.batch_id = batch.id
-                        item.item_name = product.name
-                        item.description = f"Batch: {batch.batch_name}"
-                        item.batch_name = batch.batch_name
-                        item.quantity = item_data['quantity']
-                        item.unit_price = item_data['unit_price']
-                        item.original_amount = item_data['unit_price'] * item_data['quantity']
-                        item.final_amount = item_data['unit_price'] * item_data['quantity']
-                        db.session.add(item)
-                        inventory_items_created += 1
+                if batch and product:
+                    # Create invoice item
+                    item = InvoiceItem()
+                    item.invoice_id = invoice.id
+                    item.item_type = 'inventory'
+                    item.item_id = product.id
+                    item.product_id = product.id
+                    item.batch_id = batch.id
+                    item.item_name = product.name
+                    item.description = f"Batch: {batch.batch_name}"
+                    item.batch_name = batch.batch_name
+                    item.quantity = item_data['quantity']
+                    item.unit_price = item_data['unit_price']
+                    item.original_amount = item_data['unit_price'] * item_data['quantity']
+                    item.final_amount = item_data['unit_price'] * item_data['quantity']
+                    db.session.add(item)
+                    inventory_items_created += 1
 
-                        # Reduce stock
-                        create_consumption_record(
-                            batch_id=batch.id,
-                            quantity=item_data['quantity'],
-                            issued_to=f"Invoice {invoice_number} - {customer.full_name}",
-                            reference=invoice_number,
-                            notes=f"Professional invoice sale - {invoice_number}",
-                            user_id=current_user.id
-                        )
-                        stock_reduced_count += 1
+                    # Reduce stock
+                    create_consumption_record(
+                        batch_id=batch.id,
+                        quantity=item_data['quantity'],
+                        issued_to=f"Invoice {invoice_number} - {customer.full_name}",
+                        reference=invoice_number,
+                        notes=f"Professional invoice sale - {invoice_number}",
+                        user_id=current_user.id
+                    )
+                    stock_reduced_count += 1
 
-                db.session.commit()
+            # Commit all changes
+            db.session.commit()
 
-                return jsonify({
-                    'success': True,
-                    'message': f'Professional Invoice {invoice_number} created successfully',
-                    'invoice_id': invoice.id,
-                    'invoice_number': invoice_number,
-                    'total_amount': float(total_amount),
-                    'cgst_amount': float(cgst_amount),
-                    'sgst_amount': float(sgst_amount),
-                    'igst_amount': float(igst_amount),
-                    'tax_amount': float(total_tax),
-                    'service_items_created': service_items_created,
-                    'inventory_items_created': inventory_items_created,
-                    'stock_reduced': stock_reduced_count,
-                    'deductions_applied': 0
-                })
+            return jsonify({
+                'success': True,
+                'message': f'Professional Invoice {invoice_number} created successfully',
+                'invoice_id': invoice.id,
+                'invoice_number': invoice_number,
+                'total_amount': float(total_amount),
+                'cgst_amount': float(cgst_amount),
+                'sgst_amount': float(sgst_amount),
+                'igst_amount': float(igst_amount),
+                'tax_amount': float(total_tax),
+                'service_items_created': service_items_created,
+                'inventory_items_created': inventory_items_created,
+                'stock_reduced': stock_reduced_count,
+                'deductions_applied': 0
+            })
 
         except Exception as e:
             db.session.rollback()
@@ -412,39 +428,36 @@ def create_integrated_invoice():
             # This prevents any service price manipulation
             # Note: If custom service pricing is needed in the future, implement proper authorization checks
 
-        # CRITICAL: Start database transaction for complete atomic operation
+        # Calculate totals first (before any database operations)
+        services_subtotal = 0
+        inventory_subtotal = 0
+
+        # Calculate services subtotal
+        for service_data in services_data:
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                services_subtotal += service.price * service_data['quantity']
+
+        # Calculate inventory subtotal
+        for item in inventory_data:
+            inventory_subtotal += item['unit_price'] * item['quantity']
+
+        gross_subtotal = services_subtotal + inventory_subtotal
+
+        # Apply tax and discounts
+        tax_rate = float(request.form.get('tax_rate', 0.18))
+        discount_amount = float(request.form.get('discount_amount', 0))
+        tips_amount = float(request.form.get('tips_amount', 0))
+
+        net_subtotal = gross_subtotal - discount_amount
+        # Fix: tax_rate is already a decimal (e.g., 0.18 for 18%), no need to divide by 100
+        tax_amount = net_subtotal * tax_rate
+        total_amount = net_subtotal + tax_amount + tips_amount
+
+        # Generate atomic invoice number and create invoice
         try:
-            # Use database transaction to ensure atomicity
-            # Calculate totals first (before any database operations)
-            services_subtotal = 0
-            inventory_subtotal = 0
-
-            # Calculate services subtotal
-            for service_data in services_data:
-                service = Service.query.get(service_data['service_id'])
-                if service:
-                    services_subtotal += service.price * service_data['quantity']
-
-            # Calculate inventory subtotal
-            for item in inventory_data:
-                inventory_subtotal += item['unit_price'] * item['quantity']
-
-            gross_subtotal = services_subtotal + inventory_subtotal
-
-            # Apply tax and discounts
-            tax_rate = float(request.form.get('tax_rate', 0.18))
-            discount_amount = float(request.form.get('discount_amount', 0))
-            tips_amount = float(request.form.get('tips_amount', 0))
-
-            net_subtotal = gross_subtotal - discount_amount
-            # Fix: tax_rate is already a decimal (e.g., 0.18 for 18%), no need to divide by 100
-            tax_amount = net_subtotal * tax_rate
-            total_amount = net_subtotal + tax_amount + tips_amount
-
-            # Generate atomic invoice number to prevent race conditions
-            with db.session.begin():
-                # Lock the table to prevent concurrent invoice number generation
-                latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).with_for_update().first()
+                # Get latest invoice to generate sequential number
+                latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
                 
                 if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{datetime.datetime.now().strftime('%Y%m%d')}"):
                     # Extract sequence number from existing invoice number

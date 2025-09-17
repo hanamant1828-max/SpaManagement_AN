@@ -1060,7 +1060,20 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred while creating the professional invoice.');
+        
+        const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+        const title = document.getElementById('resultModalTitle');
+        const body = document.getElementById('resultModalBody');
+        
+        title.textContent = 'Network Error';
+        title.className = 'text-danger';
+        body.innerHTML = `<div class="text-danger">
+            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+            <p>Unable to connect to the billing system. Please check your internet connection and try again.</p>
+            <small class="text-muted">Error details: ${error.message}</small>
+        </div>`;
+        
+        modal.show();
     });
 });
 
