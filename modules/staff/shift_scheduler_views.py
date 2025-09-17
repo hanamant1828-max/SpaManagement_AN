@@ -3,9 +3,9 @@ Staff Shift Scheduler Views
 Complete implementation with CRUD operations for staff scheduling using new schema
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
-from app import app, db, scheduler_required
+from app import app, db, scheduler_required, PUBLIC_SCHEDULER_IN_DEV
 from models import User, ShiftManagement, ShiftLogs
 import json
 
@@ -17,7 +17,8 @@ shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
 @scheduler_required
 def add_shift_scheduler():
     """Add shift scheduler page with day-by-day configuration"""
-    if not current_user.can_access('staff'):
+    # In development mode, bypass the access check
+    if not PUBLIC_SCHEDULER_IN_DEV and (not current_user.is_authenticated or not current_user.can_access('staff')):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -33,7 +34,8 @@ def add_shift_scheduler():
 @scheduler_required
 def shift_scheduler():
     """Main shift scheduler interface"""
-    if not current_user.can_access('staff'):
+    # In development mode, bypass the access check
+    if not PUBLIC_SCHEDULER_IN_DEV and (not current_user.is_authenticated or not current_user.can_access('staff')):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -49,7 +51,8 @@ def shift_scheduler():
 @scheduler_required
 def api_get_shift_schedules():
     """Get existing shift schedules for a staff member in date range"""
-    if not current_user.can_access('staff'):
+    # In development mode, bypass the access check
+    if not PUBLIC_SCHEDULER_IN_DEV and (not current_user.is_authenticated or not current_user.can_access('staff')):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
