@@ -1110,7 +1110,8 @@ def appointments_schedule():
                          time_slots=time_slots,
                          staff_availability=staff_availability,
                          clients=clients,
-                         services=services)
+                         services=services,
+                         timedelta=timedelta)
 
 @app.route('/appointments/book', methods=['GET', 'POST'])
 @login_required
