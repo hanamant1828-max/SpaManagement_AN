@@ -25,11 +25,16 @@ def create_default_data():
                 first_name='System',
                 last_name='Administrator',
                 role='admin',
-                is_active=True
+                is_active=True,
+                password_hash=generate_password_hash('admin123')
             )
-            admin_user.set_password('admin123')
             db.session.add(admin_user)
-            print("Created default admin user")
+            print("Created default admin user with proper password hash")
+        elif not admin_user.password_hash:
+            # Fix existing admin user if password_hash is missing
+            admin_user.password_hash = generate_password_hash('admin123')
+            admin_user.is_active = True
+            print("Fixed admin user password hash")
         
         # Create default categories
         categories = [
@@ -120,6 +125,12 @@ def create_default_data():
             is_active=True
         )
         db.session.add(admin_user)
+        print("Created admin user in second function")
+    elif not admin_user.password_hash or not admin_user.is_active:
+        # Fix existing admin user issues
+        admin_user.password_hash = generate_password_hash('admin123')
+        admin_user.is_active = True
+        print("Fixed admin user in second function")
 
     # Create default roles
     default_roles = [

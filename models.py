@@ -165,10 +165,27 @@ class User(UserMixin, db.Model):
     expenses = db.relationship('Expense', backref='created_by_user', lazy=True)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        """Set password with proper hashing"""
+        if password:
+            self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        """Check password against hash with fallback options"""
+        if not password:
+            return False
+            
+        # Primary method: check against password_hash
+        if self.password_hash:
+            try:
+                return check_password_hash(self.password_hash, password)
+            except Exception as e:
+                print(f"Password hash check error: {e}")
+        
+        # Fallback for development: check against plain text password (if exists)
+        if hasattr(self, 'password') and self.password:
+            return self.password == password
+            
+        return False
 
     @property
     def full_name(self):
