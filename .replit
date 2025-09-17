@@ -6,7 +6,7 @@ packages = ["freetype", "glibcLocales", "lcms2", "libGL", "libGLU", "libimagequa
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "uv run python main.py"]
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 
 [workflows]
 runButton = "Project"
