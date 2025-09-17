@@ -64,8 +64,13 @@ class DevAnonymousUser:
 # Set custom anonymous user class
 login_manager.anonymous_user = DevAnonymousUser
 
-# Development flag for bypassing staff authentication
-PUBLIC_STAFF_IN_DEV = os.environ.get('PUBLIC_STAFF_IN_DEV', 'true').lower() == 'true'
+# Development flag for bypassing staff authentication - defaults to false for production safety
+PUBLIC_STAFF_IN_DEV = os.environ.get('PUBLIC_STAFF_IN_DEV', 'false').lower() == 'true'
+
+# Make config available in templates
+@app.context_processor
+def inject_config():
+    return {'PUBLIC_STAFF_IN_DEV': PUBLIC_STAFF_IN_DEV}
 
 # Custom decorator for staff routes that can bypass auth in development
 def staff_required(f):
