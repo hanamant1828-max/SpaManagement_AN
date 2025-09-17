@@ -359,7 +359,7 @@ def create_comprehensive_staff(form_data):
 
         staff_member = User(
             username=form_data['username'],
-            email=form_data.get('email'),
+            email=form_data.get('email') if form_data.get('email') and form_data.get('email').strip() else None,
             first_name=form_data['first_name'],
             last_name=form_data['last_name'],
             phone=form_data.get('phone'),

@@ -25,6 +25,7 @@ import csv
 import io
 from datetime import datetime, date, timedelta
 import json
+from sqlalchemy import or_ # Import 'or_' for OR conditions
 
 # Debug: Print route registration
 print("Registering Staff Management routes...")
@@ -911,12 +912,15 @@ def api_create_staff():
             if not field_value:
                 return jsonify({'error': message}), 400
 
-        # Check for duplicate username/email
-        existing = User.query.filter(
-            (User.username == data['username']) | (User.email == data['email'])
-        ).first()
-        if existing:
-            return jsonify({'error': 'Username or email already exists'}), 400
+        # Check for existing username or email (only if email is provided)
+        username_check = User.query.filter_by(username=data['username']).first()
+        if username_check:
+            return jsonify({'error': 'Username already exists'}), 400
+
+        if data.get('email') and data.get('email').strip():
+            email_check = User.query.filter_by(email=data['email']).first()
+            if email_check:
+                return jsonify({'error': 'Email already exists'}), 400
 
         # Prepare staff data with defensive coding and safe defaults
         def safe_float(value, default=0.0, min_val=0.0, max_val=100.0):
@@ -944,11 +948,12 @@ def api_create_staff():
 
         # Email validation
         import re
-        email = data['email'].strip().lower()
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, email):
-            return jsonify({'error': 'Please enter a valid email address format.'}), 400
-
+        email = data['email'].strip().lower() if data.get('email') else None
+        if email:
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, email):
+                return jsonify({'error': 'Please enter a valid email address format.'}), 400
+        
         # Enforce secure password requirements
         password = data.get('password', '').strip()
         if not password:
@@ -963,7 +968,7 @@ def api_create_staff():
             'username': data['username'].strip(),
             'first_name': data['first_name'].strip().title(),
             'last_name': data['last_name'].strip().title(),
-            'email': email,
+            'email': email, # email can be None
             'password_hash': generate_password_hash(password),
             'phone': (data.get('phone') or '').strip(),
             'role': (data.get('role') or 'staff').strip(),
@@ -1035,7 +1040,7 @@ def api_update_staff(staff_id):
             if 'last_name' in data and data['last_name']:
                 staff.last_name = str(data['last_name']).strip()
             if 'email' in data:
-                staff.email = str(data['email']).strip() if data['email'] else None
+                staff.email = str(data['email']).strip() if data.get('email') and str(data['email']).strip() else None # Allow null email
             if 'phone' in data:
                 staff.phone = str(data['phone']).strip() if data['phone'] else None
             if 'designation' in data:
@@ -1051,7 +1056,7 @@ def api_update_staff(staff_id):
                     staff.commission_rate = float(data['commission_rate']) if data['commission_rate'] else 0.0
                 except (ValueError, TypeError):
                     staff.commission_rate = 0.0
-            
+
             if 'hourly_rate' in data:
                 try:
                     staff.hourly_rate = float(data['hourly_rate']) if data['hourly_rate'] else 0.0
@@ -1065,7 +1070,7 @@ def api_update_staff(staff_id):
                     staff.role_id = role_id if role_id > 0 else None
                 except (ValueError, TypeError):
                     pass  # Keep existing value
-            
+
             if 'department_id' in data and data['department_id']:
                 try:
                     dept_id = int(data['department_id'])
@@ -1079,7 +1084,7 @@ def api_update_staff(staff_id):
                     staff.date_of_birth = datetime.strptime(str(data['date_of_birth']), '%Y-%m-%d').date()
                 except (ValueError, TypeError):
                     pass  # Keep existing value
-                    
+
             if 'date_of_joining' in data and data['date_of_joining']:
                 try:
                     staff.date_of_joining = datetime.strptime(str(data['date_of_joining']), '%Y-%m-%d').date()
@@ -1092,7 +1097,7 @@ def api_update_staff(staff_id):
                     staff.shift_start_time = datetime.strptime(str(data['shift_start_time']), '%H:%M').time()
                 except (ValueError, TypeError):
                     pass  # Keep existing value
-                    
+
             if 'shift_end_time' in data and data['shift_end_time']:
                 try:
                     staff.shift_end_time = datetime.strptime(str(data['shift_end_time']), '%H:%M').time()
@@ -1102,7 +1107,7 @@ def api_update_staff(staff_id):
             # Boolean and other fields
             if 'enable_face_checkin' in data:
                 staff.enable_face_checkin = bool(data['enable_face_checkin'])
-            
+
             if 'working_days' in data:
                 staff.working_days = str(data['working_days']) if data['working_days'] else None
 
