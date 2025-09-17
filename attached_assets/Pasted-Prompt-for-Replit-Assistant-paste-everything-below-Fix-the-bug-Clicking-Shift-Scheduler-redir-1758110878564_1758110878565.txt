@@ -1,0 +1,108 @@
+Prompt for Replit Assistant (paste everything below):
+
+Fix the bug: Clicking “Shift Scheduler” redirects to Login. In development, the Shift Scheduler page and its APIs must be accessible without auth.
+
+Context & Goal
+
+Dev environment in Replit; we do not want auth/CSRF right now for this feature.
+
+Target routes (adjust to repo names):
+Page: /shift-scheduler, /staff-scheduling, or /scheduler
+APIs: /api/schedule*, /api/shifts*, /api/booking*
+
+Goal: Opening the menu item shows the Scheduler view directly (no redirect). Deep links and refresh must stay on the page.
+
+Files to review (adapt names/paths)
+
+Frontend router/guards: router.js / app.js
+
+Nav/menu where the Scheduler link is defined
+
+Auth guard helpers: auth.js / requireAuth.js
+
+Server middleware stack: server.js / app.js (Express)
+
+API controllers: /api/schedule*, /api/shifts*
+
+Env/config loader: .env, config.js
+
+Fix Plan — do ALL steps
+
+Reproduce & identify the redirect
+
+DevTools → Network. Click Shift Scheduler.
+
+Note the request returning 302/401 → /login (page route or an API call).
+
+Identify if it’s a client guard or server middleware causing the redirect.
+
+Bypass auth for Scheduler in DEV
+
+Add env flag: PUBLIC_SCHEDULER_IN_DEV=true (or reuse NODE_ENV=development).
+
+Server: In auth middleware, when the flag is true and path starts with:
+
+/shift-scheduler, /staff-scheduling, /scheduler
+
+/api/schedule, /api/shifts, /api/booking
+→ skip auth and continue.
+
+Client router: When the flag is true, allow navigation to Scheduler routes without token/session checks.
+
+Cookie/session pitfalls
+
+In dev session config: secure: false, sameSite: 'lax', no domain override.
+
+If using app.set('trust proxy', 1), ensure it matches Replit; otherwise cookies may be dropped and trigger redirects.
+
+Disable CSRF for Scheduler in DEV
+
+Remove/skip CSRF for the above API prefixes when PUBLIC_SCHEDULER_IN_DEV is true.
+
+Verify the nav link
+
+The menu item must link to the Scheduler route (e.g., /shift-scheduler)—not /login or a protected alias.
+
+Add/keep .active style when the page is open.
+
+Fix client route meta
+
+Mark Scheduler routes as public: true in dev (or read the env flag in the guard) so beforeEach doesn’t redirect.
+
+APIs must not re-trigger redirects
+
+Open the Scheduler page and watch first calls to /api/schedule* or /api/shifts*.
+
+If any 302/401 remains, apply the same public bypass to those endpoints.
+
+Empty state instead of redirect
+
+If no data, show a friendly empty scheduler with “Add Staff / Add Booking” buttons—never redirect to login in dev.
+
+QA (must pass)
+
+Click Shift Scheduler → page opens, no redirect.
+
+Hard refresh on /shift-scheduler → stays on the page.
+
+All initial scheduler API calls return 200 (no 302/401).
+
+Console has no errors.
+
+Turning the flag off (production) restores auth: the route requires login again.
+
+Deliverables
+
+Updated server auth middleware and client route guard honoring PUBLIC_SCHEDULER_IN_DEV.
+
+Scheduler menu link verified.
+
+CSRF/auth bypass scoped only to Scheduler routes in dev.
+
+Short README note: how to toggle public Scheduler access in dev.
+
+If Staff Management already has a similar dev bypass, mirror the same approach and keep both flags available:
+
+PUBLIC_STAFF_IN_DEV=true
+
+PUBLIC_SCHEDULER_IN_DEV=true
