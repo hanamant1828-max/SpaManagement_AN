@@ -54,7 +54,7 @@
         showLoadingModal('Loading schedules...');
 
         $.ajax({
-            url: '/api/all-schedules',
+            url: '/shift-scheduler/api/all-schedules',
             method: 'GET',
             success: function(response) {
                 hideLoadingModal();
