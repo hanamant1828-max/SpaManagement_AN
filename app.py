@@ -20,9 +20,11 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
+# Set a default secret key if SESSION_SECRET is not set
+app.secret_key = os.environ.get("SESSION_SECRET", "1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca")
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Disable CSRF token expiration
-app.config['SESSION_COOKIE_SECURE'] = True
+# Fix session cookie settings for development
+app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP for development
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Prevent caching of static files

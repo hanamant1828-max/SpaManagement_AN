@@ -29,26 +29,74 @@ def login():
     if form.validate_on_submit():
         from werkzeug.security import check_password_hash
         from models import User
-        user = User.query.filter_by(username=form.username.data).first()
-
-        # Check password using either user method or werkzeug function
-        password_valid = False
-        if user:
-            if hasattr(user, 'check_password'):
-                password_valid = user.check_password(form.password.data)
-            elif user.password_hash:
-                password_valid = check_password_hash(user.password_hash, form.password.data or "")
-            else:
-                # Fallback for plain text password (not recommended for production)
-                password_valid = user.password == form.password.data
-
-        if user and password_valid:
-            login_user(user, remember=form.remember.data)
-            flash('Login successful!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
-        else:
+        
+        username = form.username.data
+        password = form.password.data
+        
+        print(f"Login attempt - Username: {username}")
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            print(f"User not found: {username}")
             flash('Invalid username or password', 'danger')
+            return render_template('login.html', form=form)
+
+        print(f"User found: {user.username}, Active: {user.is_active}")
+        
+        # Check if user is active
+        if not user.is_active:
+            flash('Account is disabled', 'danger')
+            return render_template('login.html', form=form)
+
+        # Check password using multiple methods
+        password_valid = False
+        
+        # Method 1: Check if user has check_password method
+        if hasattr(user, 'check_password') and callable(getattr(user, 'check_password')):
+            try:
+                password_valid = user.check_password(password)
+                print(f"Password check via user method: {password_valid}")
+            except Exception as e:
+                print(f"Error in user.check_password: {e}")
+        
+        # Method 2: Check password_hash with werkzeug
+        if not password_valid and user.password_hash:
+            try:
+                password_valid = check_password_hash(user.password_hash, password)
+                print(f"Password check via werkzeug: {password_valid}")
+            except Exception as e:
+                print(f"Error in check_password_hash: {e}")
+        
+        # Method 3: Fallback for plain text (demo purposes only)
+        if not password_valid and hasattr(user, 'password') and user.password:
+            password_valid = (user.password == password)
+            print(f"Password check via plain text: {password_valid}")
+
+        if password_valid:
+            try:
+                login_user(user, remember=form.remember.data)
+                print(f"Login successful for user: {username}")
+                flash('Login successful!', 'success')
+                next_page = request.args.get('next')
+                if next_page:
+                    return redirect(next_page)
+                else:
+                    return redirect(url_for('dashboard'))
+            except Exception as e:
+                print(f"Error during login_user: {e}")
+                flash('Login failed due to system error', 'danger')
+        else:
+            print(f"Password validation failed for user: {username}")
+            flash('Invalid username or password', 'danger')
+
+    else:
+        # Form validation failed
+        if form.errors:
+            print(f"Form validation errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f'{field}: {error}', 'danger')
 
     return render_template('login.html', form=form)
 

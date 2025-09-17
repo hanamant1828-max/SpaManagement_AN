@@ -168,7 +168,14 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        """Check if provided password matches the user's password"""
+        from werkzeug.security import check_password_hash
+        if self.password_hash:
+            return check_password_hash(self.password_hash, password)
+        # Fallback for plain text password (not recommended for production)
+        if hasattr(self, 'password') and self.password:
+            return self.password == password
+        return False
 
     @property
     def full_name(self):
