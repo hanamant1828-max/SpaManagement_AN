@@ -212,17 +212,22 @@ Management Suite{% endblock %} {% block content %}
                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No staff members found</h5>
                         <p class="text-muted">
-                            Add your first staff member to get started.
+                            No staff available. Please add new staff to get started.
                         </p>
                         <button
                             type="button"
-                            class="btn btn-primary"
+                            class="btn btn-primary btn-lg"
                             data-bs-toggle="modal"
                             data-bs-target="#staffModal"
                             onclick="showAddModal()"
                         >
-                            <i class="fas fa-plus me-2"></i>Add Staff Member
+                            <i class="fas fa-plus me-2"></i>Add Your First Staff Member
                         </button>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                Staff members will appear here once added
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -614,39 +619,49 @@ Management Suite{% endblock %} {% block content %}
     document.addEventListener("DOMContentLoaded", function () {
         console.log("Bootstrap Modal Staff Management loaded");
 
-        // Initialize modal with comprehensive protection
-        const modalElement = document.getElementById("staffModal");
-        if (modalElement) {
-            staffModal = new bootstrap.Modal(modalElement, {
-                backdrop: 'static',  // Prevent backdrop close
-                keyboard: false      // Prevent Esc key close
-            });
+        try {
+            // Initialize modal with comprehensive protection
+            const modalElement = document.getElementById("staffModal");
+            if (modalElement) {
+                staffModal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',  // Prevent backdrop close
+                    keyboard: false      // Prevent Esc key close
+                });
 
-            // Set up comprehensive modal protection
-            setupModalProtection(modalElement);
-        }
+                // Set up comprehensive modal protection
+                setupModalProtection(modalElement);
+            } else {
+                console.error("Staff modal element not found");
+            }
 
-        // Load initial data
-        loadStaffData();
-        loadMetadata();
+            // Load initial data
+            loadStaffData();
+            loadMetadata();
 
-        // Setup form submission
-        const staffForm = document.getElementById("staffForm");
-        if (staffForm) {
-            staffForm.addEventListener("submit", handleFormSubmission);
-            // Track form changes for unsaved changes detection
-            trackFormChanges(staffForm);
-        }
+            // Setup form submission
+            const staffForm = document.getElementById("staffForm");
+            if (staffForm) {
+                staffForm.addEventListener("submit", handleFormSubmission);
+                // Track form changes for unsaved changes detection
+                trackFormChanges(staffForm);
+            } else {
+                console.error("Staff form not found");
+            }
 
-        // Setup authorized close buttons
-        setupAuthorizedCloseButtons();
+            // Setup authorized close buttons
+            setupAuthorizedCloseButtons();
 
-        // Setup delete confirmation button
-        const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
-        if (confirmDeleteBtn) {
-            confirmDeleteBtn.addEventListener("click", () => {
-                performDelete(currentDeleteId);
-            });
+            // Setup delete confirmation button
+            const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener("click", () => {
+                    performDelete(currentDeleteId);
+                });
+            }
+
+        } catch (error) {
+            console.error("Error initializing staff management:", error);
+            showNotification("Error initializing staff management. Please refresh the page.", "error");
         }
     });
 
@@ -752,8 +767,16 @@ Management Suite{% endblock %} {% block content %}
         e.preventDefault();
 
         const submitBtn = document.getElementById("btnStaffSave");
+        const formMode = document.getElementById("formMode");
+        
+        if (!submitBtn || !formMode) {
+            console.error("Required form elements not found");
+            showNotification("Form elements not found. Please refresh the page.", "error");
+            return;
+        }
+        
         const originalText = submitBtn.innerHTML;
-        const mode = document.getElementById("formMode").value;
+        const mode = formMode.value;
 
         try {
             // Show loading state
@@ -1147,10 +1170,16 @@ Management Suite{% endblock %} {% block content %}
         const tbody = document.getElementById("staffTableBody");
         if (!tbody) {
             console.error("Staff table body not found");
+            showEmptyState();
             return;
         }
 
-        tbody.innerHTML = "";
+        // Clear existing content safely
+        try {
+            tbody.innerHTML = "";
+        } catch (error) {
+            console.error("Error clearing table body:", error);
+        }
 
         if (!filteredStaff || filteredStaff.length === 0) {
             console.log("No filtered staff to display");
@@ -1159,12 +1188,19 @@ Management Suite{% endblock %} {% block content %}
         }
 
         console.log("Rendering", filteredStaff.length, "staff members");
-        filteredStaff.forEach((staff) => {
-            const row = createStaffRow(staff);
-            tbody.appendChild(row);
-        });
-
-        showTable(true);
+        
+        try {
+            filteredStaff.forEach((staff) => {
+                const row = createStaffRow(staff);
+                if (row) {
+                    tbody.appendChild(row);
+                }
+            });
+            showTable(true);
+        } catch (error) {
+            console.error("Error rendering staff rows:", error);
+            showEmptyState();
+        }
     }
 
     // Clear all filters
@@ -1187,36 +1223,60 @@ Management Suite{% endblock %} {% block content %}
 
     // Show/hide table
     function showTable(show) {
-        document.getElementById("loadingState").style.display = "none";
-        document.getElementById("staffTableContainer").style.display = show
-            ? "block"
-            : "none";
-        document.getElementById("emptyState").style.display = show
-            ? "none"
-            : "block";
+        const loadingState = document.getElementById("loadingState");
+        const tableContainer = document.getElementById("staffTableContainer");
+        const emptyState = document.getElementById("emptyState");
+        
+        if (loadingState) loadingState.style.display = "none";
+        if (tableContainer) tableContainer.style.display = show ? "block" : "none";
+        if (emptyState) emptyState.style.display = show ? "none" : "block";
+        
+        if (show) {
+            console.log("Staff table displayed");
+        }
     }
 
     // Show empty state
     function showEmptyState() {
-        document.getElementById("loadingState").style.display = "none";
-        document.getElementById("staffTableContainer").style.display = "none";
-        document.getElementById("emptyState").style.display = "block";
+        const loadingState = document.getElementById("loadingState");
+        const tableContainer = document.getElementById("staffTableContainer");
+        const emptyState = document.getElementById("emptyState");
+        
+        if (loadingState) loadingState.style.display = "none";
+        if (tableContainer) tableContainer.style.display = "none";
+        if (emptyState) {
+            emptyState.style.display = "block";
+            console.log("Empty state displayed");
+        } else {
+            console.error("Empty state element not found");
+        }
+        
+        // Ensure the main Add button in header remains visible
+        const headerAddBtn = document.querySelector('[data-bs-target="#staffModal"]');
+        if (headerAddBtn) {
+            headerAddBtn.style.display = "inline-block";
+        }
     }
 
     // Show add modal
     function showAddModal() {
         isEditing = false; // Ensure we are in add mode
-        document.getElementById("formMode").value = "add";
-        document.getElementById("staffModalLabel").textContent =
-            "Add New Staff Member";
-        document.getElementById("btnStaffSave").innerHTML =
-            '<i class="fas fa-save me-1"></i>Add Staff';
-        document.getElementById("passwordHelp").textContent =
-            "Password is required for new staff";
-        document.getElementById("password").required = true; // Make password required for new staff
+        
+        // Safe element updates with null checks
+        const formMode = document.getElementById("formMode");
+        const modalLabel = document.getElementById("staffModalLabel");
+        const saveBtn = document.getElementById("btnStaffSave");
+        const passwordHelp = document.getElementById("passwordHelp");
+        const passwordField = document.getElementById("password");
+        
+        if (formMode) formMode.value = "add";
+        if (modalLabel) modalLabel.textContent = "Add New Staff Member";
+        if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
+        if (passwordHelp) passwordHelp.textContent = "Password is required for new staff";
+        if (passwordField) passwordField.required = true;
 
         clearForm(); // Clear any previous data
-        staffModal.show(); // Show the modal
+        if (staffModal) staffModal.show(); // Show the modal
     }
 
     // Edit staff
@@ -1265,43 +1325,74 @@ Management Suite{% endblock %} {% block content %}
 
     // Populate form with staff data
     function populateForm(staff) {
-        document.getElementById("staffId").value = staff.id || "";
-        document.getElementById("username").value = staff.username || "";
-        document.getElementById("firstName").value = staff.first_name || "";
-        document.getElementById("lastName").value = staff.last_name || "";
-        document.getElementById("email").value = staff.email || "";
-        document.getElementById("phone").value = staff.phone || "";
-        document.getElementById("roleId").value = staff.role_id || "";
-        document.getElementById("departmentId").value =
-            staff.department_id || "";
-        document.getElementById("designation").value = staff.designation || "";
-        
-        document.getElementById("gender").value = staff.gender || "";
-        document.getElementById("dateOfBirth").value =
-            staff.date_of_birth || "";
-        document.getElementById("dateOfJoining").value =
-            staff.date_of_joining || "";
-        document.getElementById("shiftStart").value =
-            staff.shift_start_time || "";
-        document.getElementById("shiftEnd").value = staff.shift_end_time || "";
-        document.getElementById("workingDays").value = staff.working_days || "";
-        document.getElementById("enableFaceCheckin").checked =
-            staff.enable_face_checkin || false;
-        document.getElementById("notesBio").value = staff.notes_bio || "";
+        const fields = {
+            "staffId": staff.id || "",
+            "username": staff.username || "",
+            "firstName": staff.first_name || "",
+            "lastName": staff.last_name || "",
+            "email": staff.email || "",
+            "phone": staff.phone || "",
+            "roleId": staff.role_id || "",
+            "departmentId": staff.department_id || "",
+            "designation": staff.designation || "",
+            "gender": staff.gender || "",
+            "dateOfBirth": staff.date_of_birth || "",
+            "dateOfJoining": staff.date_of_joining || "",
+            "shiftStart": staff.shift_start_time || "",
+            "shiftEnd": staff.shift_end_time || "",
+            "workingDays": staff.working_days || "",
+            "notesBio": staff.notes_bio || ""
+        };
+
+        // Safely populate text fields
+        Object.entries(fields).forEach(([fieldId, value]) => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.value = value;
+            } else {
+                console.warn(`Field ${fieldId} not found in form`);
+            }
+        });
+
+        // Handle checkbox separately
+        const faceCheckinField = document.getElementById("enableFaceCheckin");
+        if (faceCheckinField) {
+            faceCheckinField.checked = staff.enable_face_checkin || false;
+        }
     }
 
     // Clear form fields and reset state
     function clearForm() {
-        document.getElementById("staffForm").reset(); // Reset form to its initial state
-        document.getElementById("staffId").value = ""; // Clear hidden ID field
-        document.getElementById("formMode").value = "add"; // Reset mode to add
-        document.getElementById("staffModalLabel").textContent =
-            "Add New Staff Member"; // Reset modal title
-        document.getElementById("btnStaffSave").innerHTML =
-            '<i class="fas fa-save me-1"></i>Add Staff'; // Reset button text
-        document.getElementById("passwordHelp").textContent =
-            "Password is required for new staff"; // Reset password help text
-        document.getElementById("password").required = true; // Make password required again for add mode
+        const staffForm = document.getElementById("staffForm");
+        const staffId = document.getElementById("staffId");
+        const formMode = document.getElementById("formMode");
+        const modalLabel = document.getElementById("staffModalLabel");
+        const saveBtn = document.getElementById("btnStaffSave");
+        const passwordHelp = document.getElementById("passwordHelp");
+        const passwordField = document.getElementById("password");
+        
+        if (staffForm) {
+            try {
+                staffForm.reset();
+            } catch (error) {
+                console.warn("Error resetting form:", error);
+            }
+        }
+        
+        if (staffId) staffId.value = "";
+        if (formMode) formMode.value = "add";
+        if (modalLabel) modalLabel.textContent = "Add New Staff Member";
+        if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
+        if (passwordHelp) passwordHelp.textContent = "Password is required for new staff";
+        if (passwordField) passwordField.required = true;
+        
+        // Clear any previous validation states
+        if (staffForm) {
+            const inputs = staffForm.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.classList.remove('is-invalid', 'is-valid');
+            });
+        }
     }
 
     // Save staff (add or update)
@@ -1499,6 +1590,11 @@ Management Suite{% endblock %} {% block content %}
     // Show a temporary alert message
     function showAlert(message, type = "info") {
         const alertContainer = document.getElementById("alertContainer");
+        if (!alertContainer) {
+            console.error("Alert container not found");
+            return;
+        }
+        
         const alertId = "alert-" + Date.now(); // Unique ID for each alert
 
         const alertHtml = `
@@ -1508,18 +1604,46 @@ Management Suite{% endblock %} {% block content %}
         </div>
     `;
 
-        alertContainer.insertAdjacentHTML("beforeend", alertHtml);
+        try {
+            alertContainer.insertAdjacentHTML("beforeend", alertHtml);
+        } catch (error) {
+            console.error("Error showing alert:", error);
+            return;
+        }
 
         // Automatically remove the alert after a few seconds
         setTimeout(() => {
             const alertElement = document.getElementById(alertId);
             if (alertElement) {
-                // Use bootstrap's alert dismissal for proper animation
-                const alert = new bootstrap.Alert(alertElement);
-                alert.close();
+                try {
+                    // Use bootstrap's alert dismissal for proper animation
+                    const alert = new bootstrap.Alert(alertElement);
+                    alert.close();
+                } catch (error) {
+                    console.warn("Error closing alert:", error);
+                    // Fallback: remove element directly
+                    alertElement.remove();
+                }
             }
         }, 5000); // Alert disappears after 5 seconds
     }
+
+    // Global error handler
+    window.addEventListener('error', function(event) {
+        console.error('Global JavaScript Error:', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error
+        });
+        
+        // Show user-friendly message for critical errors
+        if (event.message.includes('Cannot set properties of null') || 
+            event.message.includes('Cannot read properties of null')) {
+            showNotification('Interface update error. Please refresh the page if issues persist.', 'warning');
+        }
+    });
 
     // Helper function to update staff data via API
     async function updateStaff(staffId, staffData) {
