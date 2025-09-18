@@ -75,9 +75,40 @@ def get_active_roles():
 def get_active_departments():
     """Get all active departments"""
     try:
-        return Department.query.filter_by(is_active=True).all()
+        departments = Department.query.filter_by(is_active=True).order_by(Department.display_name).all()
+        print(f"Found {len(departments)} active departments")
+        for dept in departments:
+            print(f"  - {dept.name}: {dept.display_name}")
+        return departments
     except Exception as e:
         print(f"Error getting active departments: {e}")
+        # If no departments exist, create some basic ones
+        return create_default_departments()
+
+def create_default_departments():
+    """Create default departments if none exist"""
+    try:
+        from models import Department
+        from app import db
+
+        default_depts = [
+            {'name': 'spa_services', 'display_name': 'Spa Services', 'description': 'Spa and wellness services'},
+            {'name': 'reception', 'display_name': 'Reception', 'description': 'Front desk operations'},
+            {'name': 'management', 'display_name': 'Management', 'description': 'Administrative roles'}
+        ]
+
+        created_depts = []
+        for dept_data in default_depts:
+            dept = Department(**dept_data)
+            db.session.add(dept)
+            created_depts.append(dept)
+
+        db.session.commit()
+        print(f"Created {len(created_depts)} default departments")
+        return created_depts
+    except Exception as e:
+        print(f"Error creating default departments: {e}")
+        db.session.rollback()
         return []
 
 def get_active_services():
@@ -114,14 +145,14 @@ def update_staff(staff_id, staff_data):
         staff = User.query.get(staff_id)
         if not staff:
             return None
-            
+
         # Safely update each field
         for key, value in staff_data.items():
             if hasattr(staff, key):
                 setattr(staff, key, value)
             else:
                 print(f"Warning: Staff model does not have attribute '{key}'")
-        
+
         db.session.commit()
         return staff
     except Exception as e:
@@ -323,9 +354,40 @@ def get_active_roles():
 def get_active_departments():
     """Get all active departments"""
     try:
-        return Department.query.filter_by(is_active=True).all()
+        departments = Department.query.filter_by(is_active=True).order_by(Department.display_name).all()
+        print(f"Found {len(departments)} active departments")
+        for dept in departments:
+            print(f"  - {dept.name}: {dept.display_name}")
+        return departments
     except Exception as e:
         print(f"Error getting active departments: {e}")
+        # If no departments exist, create some basic ones
+        return create_default_departments()
+
+def create_default_departments():
+    """Create default departments if none exist"""
+    try:
+        from models import Department
+        from app import db
+
+        default_depts = [
+            {'name': 'spa_services', 'display_name': 'Spa Services', 'description': 'Spa and wellness services'},
+            {'name': 'reception', 'display_name': 'Reception', 'description': 'Front desk operations'},
+            {'name': 'management', 'display_name': 'Management', 'description': 'Administrative roles'}
+        ]
+
+        created_depts = []
+        for dept_data in default_depts:
+            dept = Department(**dept_data)
+            db.session.add(dept)
+            created_depts.append(dept)
+
+        db.session.commit()
+        print(f"Created {len(created_depts)} default departments")
+        return created_depts
+    except Exception as e:
+        print(f"Error creating default departments: {e}")
+        db.session.rollback()
         return []
 
 def get_active_services():
