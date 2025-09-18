@@ -518,7 +518,7 @@
                                 </thead>
                                 <tbody>
                                     {% for customer in customers %}
-                                    <tr>
+                                    <tr data-customer-id="{{ customer.id }}">
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="customer-avatar">
@@ -594,7 +594,7 @@
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-danger" 
-                                                        onclick="deleteCustomer({{ customer.id }}, '{{ customer.first_name }} {{ customer.last_name }}')"
+                                                        onclick="deleteCustomer({{ customer.id }}, '{{ customer.first_name|replace("'", "\\'") }} {{ customer.last_name|replace("'", "\\'") }}')"
                                                         title="Delete Customer">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -1242,9 +1242,20 @@
             // Initialize camera buttons
             initializeCameraButtons();
 
+        // Global error handler for JavaScript errors
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error caught:', e.error);
+            if (e.error && e.error.message && e.error.message.includes('missing ) after argument list')) {
+                console.error('Syntax error in customer action buttons detected');
+            }
+        });
+
         // Initialize customer management and face capture
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Customers page loaded, initializing face capture...');
+
+            // Validate all customer action buttons
+            validateCustomerActionButtons();
 
             // Wait for all elements to be rendered
             setTimeout(() => {
@@ -1256,6 +1267,18 @@
                 verifyFaceCaptureElements();
             }, 1000);
         });
+
+        function validateCustomerActionButtons() {
+            const actionButtons = document.querySelectorAll('[onclick*="Customer"]');
+            actionButtons.forEach(button => {
+                const onclick = button.getAttribute('onclick');
+                if (onclick && onclick.includes('undefined') || onclick.includes('null')) {
+                    console.error('Invalid onclick attribute found:', onclick);
+                    button.disabled = true;
+                    button.title = 'Error: Invalid customer data';
+                }
+            });
+        }
 
         function verifyFaceCaptureElements() {
             const requiredElements = [
@@ -1471,8 +1494,10 @@
         function viewCustomer(customerId) {
             console.log('Loading customer details for viewing:', customerId);
             
-            if (!customerId) {
+            // Validate customer ID before proceeding
+            if (!customerId || customerId === null || customerId === undefined) {
                 console.error('Invalid customer ID provided to viewCustomer:', customerId);
+                alert('Error: Invalid customer ID. Please refresh the page and try again.');
                 return;
             }
 
@@ -1630,14 +1655,24 @@
 
         function editCustomer(customerId) {
             console.log('Edit customer called with ID:', customerId);
+            
+            // Validate customer ID before proceeding
+            if (!customerId || customerId === null || customerId === undefined) {
+                console.error('Invalid customer ID provided to editCustomer:', customerId);
+                alert('Error: Invalid customer ID. Please refresh the page and try again.');
+                return;
+            }
+            
             loadCustomerDataForEdit(customerId);
         }
 
         function loadCustomerDataForEdit(customerId) {
             console.log('Loading customer data for editing:', customerId);
             
-            if (!customerId) {
+            // Double-check customer ID validation
+            if (!customerId || customerId === null || customerId === undefined) {
                 console.error('Invalid customer ID provided to loadCustomerDataForEdit:', customerId);
+                alert('Error: Invalid customer ID. Please refresh the page and try again.');
                 return;
             }
 
@@ -1703,7 +1738,17 @@
         }
 
         function deleteCustomer(customerId, customerName) {
-            if (confirm(`Are you sure you want to delete customer "${customerName}"?`)) {
+            // Validate customer ID
+            if (!customerId || customerId === null || customerId === undefined) {
+                console.error('Invalid customer ID provided to deleteCustomer:', customerId);
+                alert('Error: Invalid customer ID. Please refresh the page and try again.');
+                return;
+            }
+            
+            // Escape customer name for safe display
+            const safeName = customerName ? customerName.replace(/'/g, "\\'") : 'this customer';
+            
+            if (confirm(`Are you sure you want to delete customer "${safeName}"?`)) {
                 fetch(`/delete_customer/${customerId}`, {
                     method: 'DELETE',
                     headers: {
