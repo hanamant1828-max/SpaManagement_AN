@@ -594,7 +594,7 @@
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-danger" 
-                                                        onclick="deleteCustomer({{ customer.id }}, '{{ customer.first_name|replace("'", "\\'") }} {{ customer.last_name|replace("'", "\\'") }}')"
+                                                        onclick="deleteCustomer({{ customer.id }}, '{{ (customer.first_name + ' ' + customer.last_name)|replace("'", "\\'") }}')"
                                                         title="Delete Customer">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -1495,7 +1495,7 @@
             console.log('Loading customer details for viewing:', customerId);
             
             // Validate customer ID before proceeding
-            if (!customerId || customerId === null || customerId === undefined) {
+            if (!customerId || customerId === null || customerId === undefined || customerId === 'null') {
                 console.error('Invalid customer ID provided to viewCustomer:', customerId);
                 alert('Error: Invalid customer ID. Please refresh the page and try again.');
                 return;
@@ -1657,7 +1657,7 @@
             console.log('Edit customer called with ID:', customerId);
             
             // Validate customer ID before proceeding
-            if (!customerId || customerId === null || customerId === undefined) {
+            if (!customerId || customerId === null || customerId === undefined || customerId === 'null') {
                 console.error('Invalid customer ID provided to editCustomer:', customerId);
                 alert('Error: Invalid customer ID. Please refresh the page and try again.');
                 return;
@@ -1670,7 +1670,7 @@
             console.log('Loading customer data for editing:', customerId);
             
             // Double-check customer ID validation
-            if (!customerId || customerId === null || customerId === undefined) {
+            if (!customerId || customerId === null || customerId === undefined || customerId === 'null' || isNaN(customerId)) {
                 console.error('Invalid customer ID provided to loadCustomerDataForEdit:', customerId);
                 alert('Error: Invalid customer ID. Please refresh the page and try again.');
                 return;
@@ -1739,7 +1739,7 @@
 
         function deleteCustomer(customerId, customerName) {
             // Validate customer ID
-            if (!customerId || customerId === null || customerId === undefined) {
+            if (!customerId || customerId === null || customerId === undefined || customerId === 'null') {
                 console.error('Invalid customer ID provided to deleteCustomer:', customerId);
                 alert('Error: Invalid customer ID. Please refresh the page and try again.');
                 return;
