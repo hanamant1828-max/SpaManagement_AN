@@ -14,6 +14,85 @@ except ImportError:
     InventoryProduct = None
     InventoryBatch = None
 
+def number_to_words(amount):
+    """Convert number to words for invoice"""
+    try:
+        # Simple implementation for Indian currency
+        ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
+        teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+        tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+        
+        def convert_hundreds(num):
+            result = ''
+            if num >= 100:
+                result += ones[num // 100] + ' Hundred '
+                num %= 100
+            if num >= 20:
+                result += tens[num // 10] + ' '
+                num %= 10
+            elif num >= 10:
+                result += teens[num - 10] + ' '
+                num = 0
+            if num > 0:
+                result += ones[num] + ' '
+            return result
+        
+        if amount == 0:
+            return 'Zero Rupees Only'
+        
+        rupees = int(amount)
+        paise = int((amount - rupees) * 100)
+        
+        result = ''
+        
+        # Handle crores
+        if rupees >= 10000000:
+            crores = rupees // 10000000
+            result += convert_hundreds(crores) + 'Crore '
+            rupees %= 10000000
+        
+        # Handle lakhs
+        if rupees >= 100000:
+            lakhs = rupees // 100000
+            result += convert_hundreds(lakhs) + 'Lakh '
+            rupees %= 100000
+        
+        # Handle thousands
+        if rupees >= 1000:
+            thousands = rupees // 1000
+            result += convert_hundreds(thousands) + 'Thousand '
+            rupees %= 1000
+        
+        # Handle remaining rupees
+        if rupees > 0:
+            result += convert_hundreds(rupees)
+        
+        result = result.strip()
+        if result:
+            result = 'Rupees ' + result
+        else:
+            result = 'Rupees Zero'
+        
+        if paise > 0:
+            result += ' and ' + convert_hundreds(paise).strip() + ' Paise'
+        
+        result += ' Only'
+        return result
+    except:
+        return f'Rupees {int(amount)} Only'
+
+# Register the template filter
+@app.template_filter('total_amount_words')
+def total_amount_words_filter(amount):
+    return number_to_words(amount)
+
+@app.template_filter('from_json')
+def from_json_filter(json_str):
+    try:
+        return json.loads(json_str) if json_str else {}
+    except:
+        return {}
+
 @app.route('/integrated-billing')
 @login_required
 def integrated_billing():
