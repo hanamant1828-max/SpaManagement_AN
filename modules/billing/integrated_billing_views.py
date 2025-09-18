@@ -28,12 +28,13 @@ def integrated_billing():
     services = Service.query.filter_by(is_active=True).all()
 
     # Get inventory products with stock information
-    inventory_products = InventoryProduct.query.filter_by(is_active=True).all()
     inventory_items = []
-    for product in inventory_products:
-        # Only include products that have stock available
-        if product.total_stock > 0:
-            inventory_items.append(product)
+    if InventoryProduct is not None:
+        inventory_products = InventoryProduct.query.filter_by(is_active=True).all()
+        for product in inventory_products:
+            # Only include products that have stock available
+            if product.total_stock > 0:
+                inventory_items.append(product)
 
     # Get recent invoices
     from models import EnhancedInvoice
@@ -866,7 +867,7 @@ def generate_invoice_preview():
         return jsonify({'error': 'Access denied'}), 403
     
     try:
-        data = request.json
+        data = request.json or {}
         # Generate preview HTML
         preview_html = f"""
         <div class="professional-invoice">
