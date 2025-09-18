@@ -808,8 +808,21 @@ Management Suite{% endblock %} {% block content %}
                 // Authorize close from Save/Update button and close modal
                 authorizedCloseSource = mode === "edit" ? 'btnStaffUpdate' : 'btnStaffSave';
                 hasUnsavedChanges = false; // Clear unsaved changes flag
-                staffModal.hide();
-                loadStaffData(); // Reload staff list
+                
+                // Close modal safely
+                if (staffModal) {
+                    staffModal.hide();
+                } else {
+                    console.error("Staff modal not available for closing");
+                }
+                
+                // Reload staff list with error handling
+                try {
+                    await loadStaffData();
+                } catch (loadError) {
+                    console.error("Error reloading staff data:", loadError);
+                    showNotification("Staff saved but list refresh failed. Please refresh the page.", "warning");
+                }
             } else {
                 const errorMsg =
                     response?.error || "An error occurred while saving";
@@ -819,9 +832,11 @@ Management Suite{% endblock %} {% block content %}
             console.error("Form submission error:", error);
             showNotification("Network error: " + error.message, "error");
         } finally {
-            // Reset button state
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
+            // Reset button state safely
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
         }
     }
 
@@ -936,40 +951,75 @@ Management Suite{% endblock %} {% block content %}
         }
     }
 
-    // Load all staff data from API
+    // Load all staff data from API with comprehensive error handling
     async function loadStaffData() {
         try {
+            console.log("Loading staff data...");
             showLoading(true);
 
             const response = await fetch("/api/staff");
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
 
             if (data.success) {
-                allStaff = data.staff;
+                // Safely assign data with fallbacks
+                allStaff = Array.isArray(data.staff) ? data.staff : [];
                 filteredStaff = [...allStaff]; // Initialize filtered staff
-                rolesData = data.roles;
-                departmentsData = data.departments;
+                rolesData = Array.isArray(data.roles) ? data.roles : [];
+                departmentsData = Array.isArray(data.departments) ? data.departments : [];
 
-                console.log("Roles data received:", rolesData);
-                console.log("Departments data received:", departmentsData);
+                console.log("Staff data loaded:", allStaff.length, "staff members");
+                console.log("Roles data received:", rolesData.length, "roles");
+                console.log("Departments data received:", departmentsData.length, "departments");
 
-                populateDropdowns();
-                updateStats();
-                renderStaffTable();
-
-                // Show table if we have data
-                if (allStaff.length > 0) {
-                    showTable(true);
+                // Update UI components safely
+                try {
+                    populateDropdowns();
+                    updateStats();
+                    renderStaffTable();
+                } catch (uiError) {
+                    console.error("Error updating UI components:", uiError);
+                    showNotification("Data loaded but UI update failed", "warning");
                 }
 
-                showAlert("Staff data loaded successfully", "success");
+                // Decide what to show based on data
+                if (allStaff.length > 0) {
+                    showTable(true);
+                    showNotification(`${allStaff.length} staff members loaded successfully`, "success", 3000);
+                } else {
+                    showEmptyState();
+                    showNotification("No staff members found", "info", 3000);
+                }
+
             } else {
                 throw new Error(data.error || "Failed to load staff data");
             }
         } catch (error) {
             console.error("Error loading staff data:", error);
-            showAlert("Error loading staff data: " + error.message, "danger");
+            
+            // Provide user-friendly error messages
+            let errorMessage = "Error loading staff data";
+            if (error.message.includes("fetch")) {
+                errorMessage = "Network error - please check your connection";
+            } else if (error.message.includes("JSON")) {
+                errorMessage = "Server response error - please try refreshing";
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, "error");
             showEmptyState();
+            
+            // Initialize with empty data to prevent null reference errors
+            allStaff = [];
+            filteredStaff = [];
+            rolesData = [];
+            departmentsData = [];
+            
         } finally {
             showLoading(false);
         }
@@ -1165,13 +1215,25 @@ Management Suite{% endblock %} {% block content %}
         renderFilteredStaff(); // Render the filtered list
     }
 
-    // Render filtered staff
+    // Render filtered staff with comprehensive null checks
     function renderFilteredStaff() {
+        console.log("Starting renderFilteredStaff with", filteredStaff?.length || 0, "staff members");
+        
         const tbody = document.getElementById("staffTableBody");
+        const loadingState = document.getElementById("loadingState");
+        const tableContainer = document.getElementById("staffTableContainer");
+        const emptyState = document.getElementById("emptyState");
+
+        // Comprehensive element checks
         if (!tbody) {
-            console.error("Staff table body not found");
+            console.error("Critical error: Staff table body element not found");
             showEmptyState();
             return;
+        }
+
+        // Hide loading state first
+        if (loadingState) {
+            loadingState.style.display = "none";
         }
 
         // Clear existing content safely
@@ -1179,10 +1241,13 @@ Management Suite{% endblock %} {% block content %}
             tbody.innerHTML = "";
         } catch (error) {
             console.error("Error clearing table body:", error);
+            showEmptyState();
+            return;
         }
 
-        if (!filteredStaff || filteredStaff.length === 0) {
-            console.log("No filtered staff to display");
+        // Check if we have staff data to render
+        if (!filteredStaff || !Array.isArray(filteredStaff) || filteredStaff.length === 0) {
+            console.log("No filtered staff to display - showing empty state");
             showEmptyState();
             return;
         }
@@ -1190,15 +1255,32 @@ Management Suite{% endblock %} {% block content %}
         console.log("Rendering", filteredStaff.length, "staff members");
         
         try {
-            filteredStaff.forEach((staff) => {
-                const row = createStaffRow(staff);
-                if (row) {
-                    tbody.appendChild(row);
+            let successfulRenders = 0;
+            
+            filteredStaff.forEach((staff, index) => {
+                try {
+                    const row = createStaffRow(staff);
+                    if (row) {
+                        tbody.appendChild(row);
+                        successfulRenders++;
+                    } else {
+                        console.warn(`Failed to create row for staff ${staff.id}`);
+                    }
+                } catch (rowError) {
+                    console.error(`Error creating row for staff ${staff.id}:`, rowError);
                 }
             });
-            showTable(true);
+
+            if (successfulRenders > 0) {
+                showTable(true);
+                console.log(`Successfully rendered ${successfulRenders} staff members`);
+            } else {
+                console.error("No staff rows could be rendered");
+                showEmptyState();
+            }
+            
         } catch (error) {
-            console.error("Error rendering staff rows:", error);
+            console.error("Error in renderFilteredStaff:", error);
             showEmptyState();
         }
     }
@@ -1221,40 +1303,124 @@ Management Suite{% endblock %} {% block content %}
         document.getElementById("emptyState").style.display = "none"; // Hide empty state while loading
     }
 
-    // Show/hide table
+    // Show/hide table with comprehensive checks and fallback messages
     function showTable(show) {
         const loadingState = document.getElementById("loadingState");
         const tableContainer = document.getElementById("staffTableContainer");
         const emptyState = document.getElementById("emptyState");
         
-        if (loadingState) loadingState.style.display = "none";
-        if (tableContainer) tableContainer.style.display = show ? "block" : "none";
-        if (emptyState) emptyState.style.display = show ? "none" : "block";
-        
-        if (show) {
-            console.log("Staff table displayed");
+        // Always hide loading state
+        if (loadingState) {
+            loadingState.style.display = "none";
         }
+
+        if (show) {
+            // Show table, hide empty state
+            if (tableContainer) {
+                tableContainer.style.display = "block";
+            } else {
+                console.error("Table container not found - cannot show table");
+                return;
+            }
+            
+            if (emptyState) {
+                emptyState.style.display = "none";
+            }
+            
+            console.log("Staff table displayed successfully");
+        } else {
+            // Hide table, potentially show empty state
+            if (tableContainer) {
+                tableContainer.style.display = "none";
+            }
+            console.log("Staff table hidden");
+        }
+
+        // Ensure main navigation buttons are always visible
+        ensureNavigationVisible();
     }
 
-    // Show empty state
+    // Show empty state with fallback message
     function showEmptyState() {
         const loadingState = document.getElementById("loadingState");
         const tableContainer = document.getElementById("staffTableContainer");
         const emptyState = document.getElementById("emptyState");
         
-        if (loadingState) loadingState.style.display = "none";
-        if (tableContainer) tableContainer.style.display = "none";
+        // Hide other states
+        if (loadingState) {
+            loadingState.style.display = "none";
+        }
+        
+        if (tableContainer) {
+            tableContainer.style.display = "none";
+        }
+
+        // Show empty state
         if (emptyState) {
             emptyState.style.display = "block";
             console.log("Empty state displayed");
+            
+            // Update empty state content to ensure it's helpful
+            const emptyStateContent = emptyState.querySelector('h5');
+            if (emptyStateContent && !emptyStateContent.textContent.includes('No staff')) {
+                emptyStateContent.textContent = 'No staff members found';
+            }
+            
+            const emptyStateDescription = emptyState.querySelector('p');
+            if (emptyStateDescription && !emptyStateDescription.textContent.includes('available')) {
+                emptyStateDescription.textContent = 'No staff available. Please add new staff to get started.';
+            }
         } else {
-            console.error("Empty state element not found");
+            console.error("Empty state element not found - creating fallback");
+            createFallbackEmptyMessage();
         }
         
-        // Ensure the main Add button in header remains visible
+        // Always ensure navigation is visible
+        ensureNavigationVisible();
+    }
+
+    // Ensure navigation and add buttons are always visible
+    function ensureNavigationVisible() {
+        // Main header Add button
         const headerAddBtn = document.querySelector('[data-bs-target="#staffModal"]');
         if (headerAddBtn) {
             headerAddBtn.style.display = "inline-block";
+            headerAddBtn.style.visibility = "visible";
+        }
+
+        // Empty state Add button
+        const emptyAddBtn = document.querySelector('#emptyState [data-bs-target="#staffModal"]');
+        if (emptyAddBtn) {
+            emptyAddBtn.style.display = "inline-block";
+            emptyAddBtn.style.visibility = "visible";
+        }
+
+        // Header navigation
+        const headerNav = document.querySelector('.d-flex.justify-content-between.align-items-center');
+        if (headerNav) {
+            headerNav.style.display = "flex";
+            headerNav.style.visibility = "visible";
+        }
+    }
+
+    // Create fallback empty message if empty state element is missing
+    function createFallbackEmptyMessage() {
+        const cardBody = document.querySelector('.card-body');
+        if (cardBody) {
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.id = 'fallbackEmptyState';
+            fallbackDiv.className = 'text-center py-5';
+            fallbackDiv.innerHTML = `
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No staff members found</h5>
+                <p class="text-muted">No staff available. Please add new staff to get started.</p>
+                <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="showAddModal()">
+                    <i class="fas fa-plus me-2"></i>Add Your First Staff Member
+                </button>
+            `;
+            
+            cardBody.appendChild(fallbackDiv);
+            console.log("Fallback empty state created");
         }
     }
 
@@ -1279,47 +1445,83 @@ Management Suite{% endblock %} {% block content %}
         if (staffModal) staffModal.show(); // Show the modal
     }
 
-    // Edit staff
+    // Edit staff with comprehensive error handling and null checks
     async function editStaff(staffId) {
         try {
+            console.log("Editing staff with ID:", staffId);
+            
+            // Validate staff ID
+            if (!staffId || staffId <= 0) {
+                throw new Error("Invalid staff ID provided");
+            }
+
             isEditing = true; // Set editing mode
             currentStaffId = staffId; // Store the ID of the staff being edited
 
-            document.getElementById("formMode").value = "edit";
-            document.getElementById("staffModalLabel").textContent =
-                "Edit Staff Member";
-            document.getElementById("btnStaffSave").innerHTML =
-                '<i class="fas fa-save me-1"></i>Update Staff';
-            document.getElementById("passwordHelp").textContent =
-                "Leave blank to keep current password";
-            document.getElementById("password").required = false; // Password is not required for editing
+            // Safely update form elements with null checks
+            const formMode = document.getElementById("formMode");
+            const modalLabel = document.getElementById("staffModalLabel");
+            const saveBtn = document.getElementById("btnStaffSave");
+            const passwordHelp = document.getElementById("passwordHelp");
+            const passwordField = document.getElementById("password");
+
+            if (formMode) formMode.value = "edit";
+            if (modalLabel) modalLabel.textContent = "Edit Staff Member";
+            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
+            if (passwordHelp) passwordHelp.textContent = "Leave blank to keep current password";
+            if (passwordField) passwordField.required = false;
 
             // Load staff data from API first
+            console.log(`Fetching staff data from /api/staff/${staffId}`);
             const response = await fetch(`/api/staff/${staffId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
 
-            if (data.success) {
+            if (data.success && data.staff) {
                 populateForm(data.staff); // Populate form with fetched data
-                staffModal.show(); // Show the modal
-            } else {
-                // Fallback: If API fails, try to get from local data (allStaff)
-                const staff = allStaff.find((s) => s.id === staffId);
-                if (staff) {
-                    populateForm(staff);
+                
+                // Show modal safely
+                if (staffModal) {
                     staffModal.show();
                 } else {
-                    throw new Error(
-                        data.error ||
-                            "Staff member not found via API or local data",
-                    );
+                    console.error("Staff modal not initialized");
+                    throw new Error("Modal not available");
+                }
+            } else {
+                // Fallback: If API fails, try to get from local data (allStaff)
+                console.log("API failed, trying local data fallback");
+                const staff = allStaff.find((s) => s.id == staffId);
+                if (staff) {
+                    populateForm(staff);
+                    if (staffModal) {
+                        staffModal.show();
+                    } else {
+                        throw new Error("Modal not available");
+                    }
+                } else {
+                    throw new Error(data.error || "Staff member not found via API or local data");
                 }
             }
         } catch (error) {
             console.error("Error editing staff:", error);
-            showAlert(
-                "Error loading staff data for editing: " + error.message,
-                "danger",
-            );
+            
+            // Provide user-friendly error message
+            let errorMessage = "Error loading staff data for editing";
+            if (error.message.includes("Invalid staff ID")) {
+                errorMessage = "Invalid staff member selected";
+            } else if (error.message.includes("HTTP")) {
+                errorMessage = "Server error loading staff data";
+            } else if (error.message.includes("Modal")) {
+                errorMessage = "Interface error - please refresh the page";
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, "error");
         }
     }
 
@@ -1484,36 +1686,77 @@ Management Suite{% endblock %} {% block content %}
         modal.show();
     }
 
-    // Perform delete operation
+    // Perform delete operation with comprehensive error handling
     async function performDelete(staffId) {
         if (!staffId) {
             console.error("No staff ID provided for deletion.");
+            showNotification("No staff member selected for deletion", "error");
             return;
         }
+
+        console.log("Deleting staff member:", staffId);
+        
         try {
             const response = await fetch(`/api/staff/${staffId}`, {
                 method: "DELETE",
             });
 
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
             const data = await response.json();
 
             if (data.success) {
-                showAlert(data.message, "success");
+                showNotification(data.message, "success");
 
-                // Hide modal
-                const modal = bootstrap.Modal.getInstance(
-                    document.getElementById("deleteModal"),
-                );
-                modal.hide();
+                // Hide modal safely
+                const deleteModal = document.getElementById("deleteModal");
+                if (deleteModal) {
+                    const modal = bootstrap.Modal.getInstance(deleteModal);
+                    if (modal) {
+                        modal.hide();
+                    } else {
+                        console.warn("Modal instance not found, hiding directly");
+                        deleteModal.style.display = "none";
+                        // Clean up backdrop
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+                        document.body.classList.remove('modal-open');
+                    }
+                } else {
+                    console.error("Delete modal not found");
+                }
 
                 currentDeleteId = null; // Clear the stored ID
-                loadStaffData(); // Refresh data
+                
+                // Refresh data with error handling
+                try {
+                    await loadStaffData();
+                } catch (loadError) {
+                    console.error("Error reloading data after delete:", loadError);
+                    showNotification("Staff deleted but list refresh failed. Please refresh the page.", "warning");
+                }
             } else {
                 throw new Error(data.error || "Failed to delete staff member");
             }
         } catch (error) {
             console.error("Error deleting staff:", error);
-            showAlert("Error deleting staff: " + error.message, "danger");
+            
+            let errorMessage = "Error deleting staff member";
+            if (error.message.includes("HTTP 404")) {
+                errorMessage = "Staff member not found";
+            } else if (error.message.includes("HTTP 403")) {
+                errorMessage = "Access denied - insufficient permissions";
+            } else if (error.message.includes("HTTP")) {
+                errorMessage = "Server error - please try again";
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, "error");
         }
     }
 
@@ -1587,31 +1830,53 @@ Management Suite{% endblock %} {% block content %}
         showAlert("Export functionality - Feature coming soon!", "info");
     }
 
-    // Show a temporary alert message
-    function showAlert(message, type = "info") {
-        const alertContainer = document.getElementById("alertContainer");
+    // Show notification with comprehensive error handling
+    function showNotification(message, type = "info", duration = 5000) {
+        console.log(`Showing notification: ${message} (${type})`);
+        
+        let alertContainer = document.getElementById("alertContainer");
+        
+        // Create alert container if it doesn't exist
         if (!alertContainer) {
-            console.error("Alert container not found");
-            return;
+            console.log("Alert container not found, creating one");
+            alertContainer = document.createElement("div");
+            alertContainer.id = "alertContainer";
+            alertContainer.className = "position-fixed top-0 end-0 p-3";
+            alertContainer.style.zIndex = "1050";
+            document.body.appendChild(alertContainer);
         }
         
         const alertId = "alert-" + Date.now(); // Unique ID for each alert
+        
+        // Map types for Bootstrap classes
+        const typeMap = {
+            'success': 'success',
+            'error': 'danger',
+            'danger': 'danger',
+            'warning': 'warning',
+            'info': 'info'
+        };
+        
+        const bootstrapType = typeMap[type] || 'info';
 
         const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
+        <div class="alert alert-${bootstrapType} alert-dismissible fade show" id="${alertId}" role="alert">
+            <i class="fas fa-${getNotificationIcon(type)} me-2"></i>
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    `;
+        `;
 
         try {
             alertContainer.insertAdjacentHTML("beforeend", alertHtml);
         } catch (error) {
             console.error("Error showing alert:", error);
+            // Fallback: console log and basic alert
+            console.log(`NOTIFICATION: ${message}`);
             return;
         }
 
-        // Automatically remove the alert after a few seconds
+        // Automatically remove the alert after specified duration
         setTimeout(() => {
             const alertElement = document.getElementById(alertId);
             if (alertElement) {
@@ -1622,10 +1887,29 @@ Management Suite{% endblock %} {% block content %}
                 } catch (error) {
                     console.warn("Error closing alert:", error);
                     // Fallback: remove element directly
-                    alertElement.remove();
+                    if (alertElement.parentNode) {
+                        alertElement.parentNode.removeChild(alertElement);
+                    }
                 }
             }
-        }, 5000); // Alert disappears after 5 seconds
+        }, duration);
+    }
+
+    // Get notification icon for different types
+    function getNotificationIcon(type) {
+        const icons = {
+            'success': 'check-circle',
+            'error': 'exclamation-circle',
+            'danger': 'exclamation-circle',
+            'warning': 'exclamation-triangle',
+            'info': 'info-circle'
+        };
+        return icons[type] || 'info-circle';
+    }
+
+    // Legacy function for compatibility
+    function showAlert(message, type = "info") {
+        showNotification(message, type);
     }
 
     // Global error handler
