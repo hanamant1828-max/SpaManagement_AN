@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python3
 """
-Fix InvoiceItem table schema by adding missing columns
+Fix InvoiceItem table schema by adding missing batch_name column
 """
 
 from app import app, db
@@ -9,7 +9,7 @@ from sqlalchemy import text, inspect
 import sys
 
 def fix_invoice_item_schema():
-    """Add missing columns to invoice_item table"""
+    """Add missing batch_name column to invoice_item table"""
     
     with app.app_context():
         try:
@@ -29,7 +29,8 @@ def fix_invoice_item_schema():
             # Required columns with their definitions
             required_columns = {
                 'product_id': 'INTEGER REFERENCES inventory_products(id)',
-                'batch_id': 'INTEGER REFERENCES inventory_batches(id)'
+                'batch_id': 'INTEGER REFERENCES inventory_batches(id)',
+                'batch_name': 'VARCHAR(100)'
             }
             
             columns_added = 0
