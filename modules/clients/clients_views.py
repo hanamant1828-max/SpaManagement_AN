@@ -316,12 +316,27 @@ def api_get_customer(customer_id):
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
+        # Calculate visit history and status
+        total_visits = customer.total_visits or 0
+        total_spent = customer.total_spent or 0.0
+        last_visit = customer.last_visit.isoformat() if customer.last_visit else None
+        
+        # Determine customer status
+        status = 'New Customer'
+        if not customer.is_active:
+            status = 'Inactive'
+        elif total_visits >= 10:
+            status = 'Loyal Customer'
+        elif total_visits > 0:
+            status = 'Regular Customer'
+
         return jsonify({
             'success': True,
             'customer': {
                 'id': customer.id,
                 'first_name': customer.first_name,
                 'last_name': customer.last_name,
+                'full_name': customer.full_name,
                 'phone': customer.phone,
                 'email': customer.email or '',
                 'address': customer.address or '',
@@ -329,7 +344,13 @@ def api_get_customer(customer_id):
                 'gender': customer.gender or '',
                 'preferences': customer.preferences or '',
                 'allergies': customer.allergies or '',
-                'notes': customer.notes or ''
+                'notes': customer.notes or '',
+                'total_visits': total_visits,
+                'total_spent': total_spent,
+                'last_visit': last_visit,
+                'status': status,
+                'is_active': customer.is_active,
+                'created_at': customer.created_at.isoformat() if customer.created_at else None
             }
         })
     except Exception as e:
