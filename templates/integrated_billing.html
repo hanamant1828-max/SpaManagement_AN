@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Integrated Billing & Service Management{% endblock %}
@@ -86,7 +85,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-4">
             <div class="card billing-card border-left-info shadow h-100 py-2">
                 <div class="card-body">
@@ -104,7 +103,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-4">
             <div class="card billing-card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
@@ -370,7 +369,7 @@
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Multi-payment method section (hidden by default) -->
                                 <div id="multiPaymentSection" class="mt-3" style="display: none;">
                                     <h6>Split Payment Methods:</h6>
@@ -397,7 +396,7 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-4">
                                 <button type="button" class="btn btn-info w-100" onclick="saveAsDraft()">
@@ -451,12 +450,12 @@
                                 </span>
                             </div>
                         </div>
-                        {% endfor %}
-                        <div class="text-center mt-3">
-                            <a href="{{ url_for('list_integrated_invoices') }}" class="btn btn-outline-primary btn-sm">
-                                View All Invoices
-                            </a>
+                        {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-file-invoice fa-3x mb-3"></i>
+                            <p>No invoices created yet</p>
                         </div>
+                        {% endif %}
                     {% else %}
                         <div class="text-center text-muted">
                             <i class="fas fa-file-invoice fa-3x mb-3"></i>
@@ -526,7 +525,7 @@
 function addServiceRow() {
     const container = document.getElementById('servicesContainer');
     const newRow = container.children[0].cloneNode(true);
-    
+
     // Clear values
     newRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
@@ -535,13 +534,13 @@ function addServiceRow() {
             input.value = '';
         }
     });
-    
+
     // Change button to remove
     const button = newRow.querySelector('button');
     button.className = 'btn btn-danger btn-sm';
     button.innerHTML = '<i class="fas fa-minus"></i>';
     button.onclick = function() { this.closest('.service-row').remove(); };
-    
+
     container.appendChild(newRow);
 }
 
@@ -549,7 +548,7 @@ function addServiceRow() {
 function addProductRow() {
     const container = document.getElementById('productsContainer');
     const newRow = container.children[0].cloneNode(true);
-    
+
     // Clear values and reset state
     newRow.querySelectorAll('select, input').forEach(input => {
         if (input.type === 'number') {
@@ -558,22 +557,22 @@ function addProductRow() {
             input.value = '';
         }
     });
-    
+
     // Reset batch dropdown
     const batchSelect = newRow.querySelector('.batch-select');
     batchSelect.innerHTML = '<option value="">Select Product First</option>';
     batchSelect.disabled = true;
-    
+
     // Reset info divs
     newRow.querySelector('.batch-info').innerHTML = '';
     newRow.querySelector('.available-stock').innerHTML = '';
-    
+
     // Change button to remove
     const button = newRow.querySelector('button');
     button.className = 'btn btn-danger btn-sm w-100';
     button.innerHTML = '<i class="fas fa-minus"></i>';
     button.onclick = function() { this.closest('.product-row').remove(); };
-    
+
     container.appendChild(newRow);
 }
 
@@ -585,7 +584,7 @@ function loadBatchesForProduct(productSelect) {
     const batchInfo = productRow.querySelector('.batch-info');
     const availableStock = productRow.querySelector('.available-stock');
     const unitPrice = productRow.querySelector('.unit-price');
-    
+
     if (!productId) {
         batchSelect.innerHTML = '<option value="">Select Product First</option>';
         batchSelect.disabled = true;
@@ -594,14 +593,14 @@ function loadBatchesForProduct(productSelect) {
         unitPrice.value = '';
         return;
     }
-    
+
     // Fetch batches for this product (FIFO by expiry)
     fetch(`/api/inventory/batches/for-product/${productId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.batches.length > 0) {
                 batchSelect.innerHTML = '<option value="">Select Batch</option>';
-                
+
                 data.batches.forEach(batch => {
                     const option = document.createElement('option');
                     option.value = batch.id;
@@ -609,33 +608,33 @@ function loadBatchesForProduct(productSelect) {
                     option.dataset.price = batch.selling_price || batch.unit_cost || 0;
                     option.dataset.expiry = batch.expiry_date;
                     option.dataset.batchName = batch.batch_name;
-                    
+
                     const expiryText = batch.expiry_date ? ` (Exp: ${new Date(batch.expiry_date).toLocaleDateString()})` : '';
                     const stockText = ` - Stock: ${batch.qty_available}`;
                     option.textContent = `${batch.batch_name}${expiryText}${stockText}`;
-                    
+
                     batchSelect.appendChild(option);
                 });
-                
+
                 // Auto-select first batch (FIFO)
                 if (data.batches.length > 0) {
                     const firstBatch = data.batches[0];
                     batchSelect.value = firstBatch.id;
-                    
+
                     // Update info displays
                     const expiry = firstBatch.expiry_date ? new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
                     const daysToExpiry = firstBatch.days_to_expiry;
                     const expiryClass = daysToExpiry <= 30 ? 'batch-warning' : 'batch-success';
-                    
+
                     batchInfo.innerHTML = `
                         <strong>Auto-selected (FIFO):</strong> ${firstBatch.batch_name}<br>
                         <span class="${expiryClass}">Expiry: ${expiry}</span>
                     `;
-                    
+
                     availableStock.innerHTML = `Available: ${firstBatch.qty_available}`;
                     unitPrice.value = firstBatch.selling_price || firstBatch.unit_cost || 0;
                 }
-                
+
                 batchSelect.disabled = false;
             } else {
                 batchSelect.innerHTML = '<option value="">No batches with stock</option>';
@@ -658,11 +657,11 @@ function validateStock(quantityInput) {
     const batchSelect = productRow.querySelector('.batch-select');
     const selectedOption = batchSelect.options[batchSelect.selectedIndex];
     const availableStock = productRow.querySelector('.available-stock');
-    
+
     if (selectedOption && selectedOption.dataset.stock) {
         const available = parseFloat(selectedOption.dataset.stock);
         const requested = parseFloat(quantityInput.value) || 0;
-        
+
         if (requested > available) {
             quantityInput.style.borderColor = '#dc3545';
             availableStock.innerHTML = `<span class="batch-warning">Available: ${available} (Insufficient stock!)</span>`;
@@ -679,12 +678,12 @@ function validateStock(quantityInput) {
 document.getElementById('client_id').addEventListener('change', function() {
     const clientId = this.value;
     const packagesDiv = document.getElementById('customerPackages');
-    
+
     if (!clientId) {
         packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
         return;
     }
-    
+
     fetch(`/integrated-billing/customer-packages/${clientId}`)
         .then(response => response.json())
         .then(data => {
@@ -713,24 +712,24 @@ function updateTaxCalculations() {
     const servicesSubtotal = calculateServicesSubtotal();
     const inventorySubtotal = calculateInventorySubtotal();
     const grossSubtotal = servicesSubtotal + inventorySubtotal;
-    
+
     // Get discount
     const discountType = document.getElementById('discount_type').value;
     const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
     let discountAmount = 0;
-    
+
     if (discountType === 'percentage') {
         discountAmount = (grossSubtotal * discountValue) / 100;
     } else {
         discountAmount = discountValue;
     }
-    
+
     const taxableAmount = grossSubtotal - discountAmount;
-    
+
     // Calculate taxes
     const isInterstate = document.getElementById('is_interstate').checked;
     let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
-    
+
     if (isInterstate) {
         const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
         igstAmount = (taxableAmount * igstRate) / 100;
@@ -740,12 +739,12 @@ function updateTaxCalculations() {
         cgstAmount = (taxableAmount * cgstRate) / 100;
         sgstAmount = (taxableAmount * sgstRate) / 100;
     }
-    
+
     const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
     const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
-    
+
     const totalAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount + additionalCharges + tipsAmount;
-    
+
     // Update display
     document.getElementById('display_subtotal').textContent = `₹${grossSubtotal.toFixed(2)}`;
     document.getElementById('display_discount').textContent = `₹${discountAmount.toFixed(2)}`;
@@ -760,7 +759,7 @@ function calculateServicesSubtotal() {
     document.querySelectorAll('.service-row').forEach(row => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
-        
+
         if (serviceSelect && serviceSelect.value && quantityInput) {
             const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
             const quantity = parseFloat(quantityInput.value) || 0;
@@ -775,7 +774,7 @@ function calculateInventorySubtotal() {
     document.querySelectorAll('.product-row').forEach(row => {
         const quantityInput = row.querySelector('.quantity-input');
         const priceInput = row.querySelector('.unit-price');
-        
+
         if (quantityInput && priceInput && quantityInput.value && priceInput.value) {
             const quantity = parseFloat(quantityInput.value) || 0;
             const price = parseFloat(priceInput.value) || 0;
@@ -790,7 +789,7 @@ function toggleTaxType() {
     const cgstInput = document.getElementById('cgst_rate');
     const sgstInput = document.getElementById('sgst_rate');
     const igstInput = document.getElementById('igst_rate');
-    
+
     if (isInterstate) {
         cgstInput.value = 0;
         sgstInput.value = 0;
@@ -806,7 +805,7 @@ function toggleTaxType() {
         if (cgstInput.value === '0') cgstInput.value = '9';
         if (sgstInput.value === '0') sgstInput.value = '9';
     }
-    
+
     updateTaxCalculations();
 }
 
@@ -814,7 +813,7 @@ function toggleTaxType() {
 function addPaymentMethod() {
     const container = document.getElementById('paymentMethodsContainer');
     const methodCount = container.children.length;
-    
+
     const methodRow = document.createElement('div');
     methodRow.className = 'row mb-2 payment-method-row';
     methodRow.innerHTML = `
@@ -840,7 +839,7 @@ function addPaymentMethod() {
             </button>
         </div>
     `;
-    
+
     container.appendChild(methodRow);
 }
 
@@ -854,17 +853,17 @@ function previewInvoice() {
     const modal = new bootstrap.Modal(document.getElementById('resultModal'));
     const title = document.getElementById('resultModalTitle');
     const body = document.getElementById('resultModalBody');
-    
+
     title.textContent = 'Invoice Preview';
     title.className = 'text-info';
-    
+
     const customer = document.getElementById('client_id');
     const customerName = customer.options[customer.selectedIndex].text;
-    
+
     const servicesSubtotal = calculateServicesSubtotal();
     const inventorySubtotal = calculateInventorySubtotal();
     const grossSubtotal = servicesSubtotal + inventorySubtotal;
-    
+
     body.innerHTML = `
         <div class="invoice-preview">
             <h5>Customer: ${customerName}</h5>
@@ -887,7 +886,7 @@ function previewInvoice() {
             </div>
         </div>
     `;
-    
+
     modal.show();
 }
 
@@ -895,7 +894,7 @@ function saveAsDraft() {
     // Save current form as draft
     const formData = new FormData(document.getElementById('billingForm'));
     formData.append('save_as_draft', 'true');
-    
+
     fetch('/integrated-billing/save-draft', {
         method: 'POST',
         body: formData
@@ -923,7 +922,7 @@ function clearForm() {
     if (confirm('Are you sure you want to clear the entire form? All entered data will be lost.')) {
         document.getElementById('billingForm').reset();
         updateTaxCalculations();
-        
+
         // Reset all dynamic elements
         const productRows = document.querySelectorAll('.product-row');
         productRows.forEach((row, index) => {
@@ -931,7 +930,7 @@ function clearForm() {
                 row.remove();
             }
         });
-        
+
         document.getElementById('customerPackages').innerHTML = '<small>Select a customer to view their active packages</small>';
     }
 }
@@ -964,30 +963,30 @@ document.addEventListener('change', function(e) {
 // Enhanced form submission with professional features
 document.getElementById('billingForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     // Validate all stock quantities before submission
     const quantityInputs = document.querySelectorAll('.quantity-input');
     let hasStockErrors = false;
-    
+
     quantityInputs.forEach(input => {
         validateStock(input);
         if (!input.checkValidity()) {
             hasStockErrors = true;
         }
     });
-    
+
     if (hasStockErrors) {
         alert('Please check stock availability for all products before submitting.');
         return;
     }
-    
+
     const formData = new FormData(this);
-    
+
     // Add tax calculation data
     formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) || 0));
     formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
     formData.append('total_tax_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) + parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
-    
+
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
         body: formData
@@ -998,11 +997,11 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         const title = document.getElementById('resultModalTitle');
         const body = document.getElementById('resultModalBody');
         const viewBtn = document.getElementById('viewInvoiceBtn');
-        
+
         if (data.success) {
             title.textContent = 'Professional Invoice Created Successfully!';
             title.className = 'text-success';
-            
+
             let message = `<div class="text-success">
                 <i class="fas fa-check-circle fa-3x mb-3"></i>
                 <h4>${data.message}</h4>
@@ -1023,29 +1022,29 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                     <div class="col-6">₹${data.sgst_amount.toLocaleString()}</div>
                 </div>
             `;
-            
+
             if (data.deductions_applied > 0) {
                 message += `<div class="row text-success">
                     <div class="col-6"><strong>Package Deductions:</strong></div>
                     <div class="col-6">₹${data.deductions_applied.toLocaleString()}</div>
                 </div>`;
             }
-            
+
             if (data.stock_reduced) {
                 message += `<div class="row text-info">
                     <div class="col-12"><small><strong>Stock Reduced:</strong> ${data.stock_reduced} items from batches</small></div>
                 </div>`;
             }
-            
+
             message += '</div>';
             body.innerHTML = message;
-            
+
             viewBtn.style.display = 'block';
             viewBtn.href = `/integrated-billing/invoice/${data.invoice_id}`;
-            
+
             // Reset form
             clearForm();
-            
+
         } else {
             title.textContent = 'Error Creating Professional Invoice';
             title.className = 'text-danger';
@@ -1055,16 +1054,16 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             </div>`;
             viewBtn.style.display = 'none';
         }
-        
+
         modal.show();
     })
     .catch(error => {
         console.error('Error:', error);
-        
+
         const modal = new bootstrap.Modal(document.getElementById('resultModal'));
         const title = document.getElementById('resultModalTitle');
         const body = document.getElementById('resultModalBody');
-        
+
         title.textContent = 'Network Error';
         title.className = 'text-danger';
         body.innerHTML = `<div class="text-danger">
@@ -1072,7 +1071,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             <p>Unable to connect to the billing system. Please check your internet connection and try again.</p>
             <small class="text-muted">Error details: ${error.message}</small>
         </div>`;
-        
+
         modal.show();
     });
 });

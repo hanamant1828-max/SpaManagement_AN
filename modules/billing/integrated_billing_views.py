@@ -36,23 +36,39 @@ def integrated_billing():
             if product.total_stock > 0:
                 inventory_items.append(product)
 
-    # Get recent invoices
+    # Get recent invoices with error handling
     from models import EnhancedInvoice
-    recent_invoices = EnhancedInvoice.query.order_by(EnhancedInvoice.created_at.desc()).limit(10).all()
+    try:
+        recent_invoices = EnhancedInvoice.query.order_by(EnhancedInvoice.created_at.desc()).limit(10).all()
+    except Exception as e:
+        app.logger.error(f"Error fetching recent invoices: {str(e)}")
+        recent_invoices = []
 
-    # Calculate dashboard stats
-    total_revenue = db.session.query(db.func.sum(EnhancedInvoice.total_amount)).filter(
-        EnhancedInvoice.payment_status == 'paid'
-    ).scalar() or 0
+    # Calculate dashboard stats with error handling
+    try:
+        total_revenue = db.session.query(db.func.sum(EnhancedInvoice.total_amount)).filter(
+            EnhancedInvoice.payment_status == 'paid'
+        ).scalar() or 0
+    except Exception as e:
+        app.logger.error(f"Error calculating total revenue: {str(e)}")
+        total_revenue = 0
 
-    pending_amount = db.session.query(db.func.sum(EnhancedInvoice.balance_due)).filter(
-        EnhancedInvoice.payment_status.in_(['pending', 'partial'])
-    ).scalar() or 0
+    try:
+        pending_amount = db.session.query(db.func.sum(EnhancedInvoice.balance_due)).filter(
+            EnhancedInvoice.payment_status.in_(['pending', 'partial'])
+        ).scalar() or 0
+    except Exception as e:
+        app.logger.error(f"Error calculating pending amount: {str(e)}")
+        pending_amount = 0
 
-    today_revenue = db.session.query(db.func.sum(EnhancedInvoice.total_amount)).filter(
-        EnhancedInvoice.payment_status == 'paid',
-        db.func.date(EnhancedInvoice.invoice_date) == datetime.now().date()
-    ).scalar() or 0
+    try:
+        today_revenue = db.session.query(db.func.sum(EnhancedInvoice.total_amount)).filter(
+            EnhancedInvoice.payment_status == 'paid',
+            db.func.date(EnhancedInvoice.invoice_date) == datetime.now().date()
+        ).scalar() or 0
+    except Exception as e:
+        app.logger.error(f"Error calculating today's revenue: {str(e)}")
+        today_revenue = 0
 
     return render_template('integrated_billing.html',
                          customers=customers,
