@@ -247,6 +247,40 @@ def delete_client_route(id):
 
     return redirect(url_for('customers'))
 
+@app.route('/delete_customer/<int:id>', methods=['DELETE'])
+@login_required
+def delete_customer_api(id):
+    """API endpoint to delete a customer with proper JSON responses"""
+    if not current_user.can_access('clients'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        # Import Customer model with late import to avoid circular dependencies
+        from models import Customer
+        
+        # Check if customer exists
+        customer = Customer.query.get(id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'}), 404
+        
+        customer_name = f"{customer.first_name} {customer.last_name}"
+        
+        # Soft delete - mark as inactive instead of hard delete to preserve data integrity
+        customer.is_active = False
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Customer "{customer_name}" deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False, 
+            'message': 'Internal server error'
+        }), 500
+
 @app.route('/clients/<int:id>')
 @login_required
 def client_detail(id):
