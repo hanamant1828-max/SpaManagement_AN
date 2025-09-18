@@ -634,8 +634,7 @@ def create_staff_route():
             'email': form.email.data,
             'phone': form.phone.data,
             'role': form.role.data,
-            'commission_rate': form.commission_rate.data,
-            'hourly_rate': form.hourly_rate.data,
+            
             'password_hash': generate_password_hash('TempPass123!'),  # Temporary password - must be changed on first login
             'is_active': True
         }

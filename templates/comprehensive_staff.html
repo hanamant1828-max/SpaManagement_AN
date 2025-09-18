@@ -352,37 +352,7 @@ Management Suite{% endblock %} {% block content %}
                                     id="designation"
                                 />
                             </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label"
-                                            >Commission Rate (%)</label
-                                        >
-                                        <input
-                                            type="number"
-                                            class="form-control"
-                                            id="commissionRate"
-                                            min="0"
-                                            max="100"
-                                            step="0.1"
-                                        />
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label"
-                                            >Hourly Rate ($)</label
-                                        >
-                                        <input
-                                            type="number"
-                                            class="form-control"
-                                            id="hourlyRate"
-                                            min="0"
-                                            step="0.01"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                            
                         </div>
 
                         <!-- Personal Details -->
@@ -908,8 +878,7 @@ Management Suite{% endblock %} {% block content %}
             date_of_joining: getFieldValue("dateOfJoining") || null,
             shift_start_time: getFieldValue("shiftStart") || null,
             shift_end_time: getFieldValue("shiftEnd") || null,
-            commission_rate: parseFloat(getFieldValue("commissionRate")) || 0,
-            hourly_rate: parseFloat(getFieldValue("hourlyRate")) || 0,
+            
             notes_bio: getFieldValue("notesBio") || "",
             enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
             is_active: true
@@ -1083,8 +1052,6 @@ Management Suite{% endblock %} {% block content %}
             ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ""}
         </td>
         <td>
-            <div><strong>Commission:</strong> ${staff.commission_rate}%</div>
-            <div><strong>Hourly:</strong> $${staff.hourly_rate}</div>
             ${
                 staff.shift_start_time && staff.shift_end_time
                     ? `<div><small>Shift: ${staff.shift_start_time} - ${staff.shift_end_time}</small></div>`
@@ -1308,10 +1275,7 @@ Management Suite{% endblock %} {% block content %}
         document.getElementById("departmentId").value =
             staff.department_id || "";
         document.getElementById("designation").value = staff.designation || "";
-        document.getElementById("commissionRate").value =
-            staff.commission_rate !== undefined ? staff.commission_rate : "";
-        document.getElementById("hourlyRate").value =
-            staff.hourly_rate !== undefined ? staff.hourly_rate : "";
+        
         document.getElementById("gender").value = staff.gender || "";
         document.getElementById("dateOfBirth").value =
             staff.date_of_birth || "";

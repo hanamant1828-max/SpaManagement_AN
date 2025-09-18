@@ -317,9 +317,7 @@ class ComprehensiveStaffForm(FlaskForm):
     assigned_services = SelectMultipleField('Assigned Services', coerce=int, validators=[Optional()])
     
     
-    # Performance & Commission
-    commission_percentage = FloatField('Commission (%)', validators=[Optional(), NumberRange(min=0, max=100)])
-    hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
+    # Performance & Commission section removed
     
     # Facial Recognition
     enable_face_checkin = BooleanField('Enable Face Check-in', default=True)
