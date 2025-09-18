@@ -577,24 +577,24 @@
                                                 <button class="btn btn-action btn-outline-primary" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#viewCustomerModal" 
-                                                        onclick="viewCustomer({{ customer.id }})"
+                                                        onclick="viewCustomer({{ customer.id if customer.id else 'null' }})"
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-success" 
-                                                        onclick="bookAppointment({{ customer.id }})"
+                                                        onclick="bookAppointment({{ customer.id if customer.id else 'null' }})"
                                                         title="Book Appointment">
                                                     <i class="fas fa-calendar-plus"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-warning" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#editCustomerModal" 
-                                                        onclick="editCustomer({{ customer.id }})"
+                                                        onclick="editCustomer({{ customer.id if customer.id else 'null' }})"
                                                         title="Edit Customer">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-danger" 
-                                                        onclick="deleteCustomer({{ customer.id }}, '{{ (customer.first_name + ' ' + customer.last_name)|replace("'", "\\'") }}')"
+                                                        onclick="deleteCustomer({{ customer.id if customer.id else 'null' }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         title="Delete Customer">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -1247,8 +1247,19 @@
             console.error('JavaScript error caught:', e.error);
             if (e.error && e.error.message && e.error.message.includes('missing ) after argument list')) {
                 console.error('Syntax error in customer action buttons detected');
+                showFaceNotification('JavaScript error detected. Please refresh the page.', 'danger');
             }
         });
+
+        // Validate customer IDs before any operations
+        function validateCustomerId(customerId, operation) {
+            if (!customerId || customerId === 'null' || customerId === null || customerId === undefined || isNaN(customerId)) {
+                console.error(`Invalid customer ID for ${operation}:`, customerId);
+                showFaceNotification(`Error: Invalid customer data. Please refresh the page.`, 'danger');
+                return false;
+            }
+            return true;
+        }
 
         // Initialize customer management and face capture
         document.addEventListener('DOMContentLoaded', function() {
@@ -1269,15 +1280,40 @@
         });
 
         function validateCustomerActionButtons() {
-            const actionButtons = document.querySelectorAll('[onclick*="Customer"]');
-            actionButtons.forEach(button => {
+            console.log('Validating customer action buttons...');
+            
+            // Find all customer action buttons
+            const actionButtons = document.querySelectorAll('[onclick*="viewCustomer"], [onclick*="editCustomer"], [onclick*="deleteCustomer"], [onclick*="bookAppointment"]');
+            
+            let invalidButtonCount = 0;
+            
+            actionButtons.forEach((button, index) => {
                 const onclick = button.getAttribute('onclick');
-                if (onclick && onclick.includes('undefined') || onclick.includes('null')) {
-                    console.error('Invalid onclick attribute found:', onclick);
+                console.log(`Button ${index}: ${onclick}`);
+                
+                if (onclick && (onclick.includes('undefined') || onclick.includes('null') || onclick.includes('Customer(null'))) {
+                    console.error(`Invalid onclick found: ${onclick}`);
                     button.disabled = true;
-                    button.title = 'Error: Invalid customer data';
+                    button.title = 'Error: Invalid customer data - please refresh the page';
+                    button.style.opacity = '0.5';
+                    invalidButtonCount++;
+                } else {
+                    // Try to extract customer ID from onclick
+                    const match = onclick.match(/\((\d+)/);
+                    if (match && match[1]) {
+                        console.log(`Valid customer ID found: ${match[1]}`);
+                    } else {
+                        console.warn(`Could not extract customer ID from: ${onclick}`);
+                    }
                 }
             });
+            
+            if (invalidButtonCount > 0) {
+                console.warn(`Found ${invalidButtonCount} invalid customer buttons`);
+                showFaceNotification(`Found ${invalidButtonCount} invalid customer buttons. Please refresh the page.`, 'warning');
+            } else {
+                console.log('All customer action buttons are valid');
+            }
         }
 
         function verifyFaceCaptureElements() {
@@ -1495,9 +1531,7 @@
             console.log('Loading customer details for viewing:', customerId);
             
             // Validate customer ID before proceeding
-            if (!customerId || customerId === null || customerId === undefined || customerId === 'null') {
-                console.error('Invalid customer ID provided to viewCustomer:', customerId);
-                alert('Error: Invalid customer ID. Please refresh the page and try again.');
+            if (!validateCustomerId(customerId, 'viewCustomer')) {
                 return;
             }
 
@@ -1657,9 +1691,7 @@
             console.log('Edit customer called with ID:', customerId);
             
             // Validate customer ID before proceeding
-            if (!customerId || customerId === null || customerId === undefined || customerId === 'null') {
-                console.error('Invalid customer ID provided to editCustomer:', customerId);
-                alert('Error: Invalid customer ID. Please refresh the page and try again.');
+            if (!validateCustomerId(customerId, 'editCustomer')) {
                 return;
             }
             
@@ -1670,9 +1702,7 @@
             console.log('Loading customer data for editing:', customerId);
             
             // Double-check customer ID validation
-            if (!customerId || customerId === null || customerId === undefined || customerId === 'null' || isNaN(customerId)) {
-                console.error('Invalid customer ID provided to loadCustomerDataForEdit:', customerId);
-                alert('Error: Invalid customer ID. Please refresh the page and try again.');
+            if (!validateCustomerId(customerId, 'loadCustomerDataForEdit')) {
                 return;
             }
 
@@ -1739,9 +1769,7 @@
 
         function deleteCustomer(customerId, customerName) {
             // Validate customer ID
-            if (!customerId || customerId === null || customerId === undefined || customerId === 'null') {
-                console.error('Invalid customer ID provided to deleteCustomer:', customerId);
-                alert('Error: Invalid customer ID. Please refresh the page and try again.');
+            if (!validateCustomerId(customerId, 'deleteCustomer')) {
                 return;
             }
             
@@ -1773,8 +1801,15 @@
         }
 
         function bookAppointment(customerId) {
+            // Validate customer ID
+            if (!validateCustomerId(customerId, 'bookAppointment')) {
+                return;
+            }
+            
             // This function would redirect to booking page or open booking modal
             alert(`Book appointment for customer ID: ${customerId}`);
+            // In a real implementation, you might redirect to:
+            // window.location.href = `/bookings?customer_id=${customerId}`;
         }
 
         function bookAppointmentFromModal() {
