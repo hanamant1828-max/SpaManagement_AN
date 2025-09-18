@@ -958,6 +958,9 @@ Management Suite{% endblock %} {% block content %}
                 rolesData = data.roles;
                 departmentsData = data.departments;
 
+                console.log("Roles data received:", rolesData);
+                console.log("Departments data received:", departmentsData);
+
                 populateDropdowns();
                 updateStats();
                 renderStaffTable();

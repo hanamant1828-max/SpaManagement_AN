@@ -67,9 +67,48 @@ def get_staff_by_role(role_name):
 def get_active_roles():
     """Get all active roles"""
     try:
-        return Role.query.filter_by(is_active=True).all()
+        roles = Role.query.filter_by(is_active=True).all()
+        print(f"Found {len(roles)} active roles")
+        for role in roles:
+            print(f"  - {role.name}: {role.display_name}")
+
+        # If no roles exist, create default ones
+        if not roles:
+            print("No roles found, creating default roles...")
+            return create_default_roles()
+
+        return roles
     except Exception as e:
         print(f"Error getting active roles: {e}")
+        # Try to create default roles if there's an error
+        return create_default_roles()
+
+def create_default_roles():
+    """Create default roles if none exist"""
+    try:
+        from models import Role
+        from app import db
+
+        default_roles_data = [
+            {'name': 'admin', 'display_name': 'Administrator', 'description': 'Full system access'},
+            {'name': 'manager', 'display_name': 'Manager', 'description': 'Management level access'},
+            {'name': 'staff', 'display_name': 'Staff Member', 'description': 'Standard staff access'},
+            {'name': 'receptionist', 'display_name': 'Receptionist', 'description': 'Front desk access'},
+            {'name': 'therapist', 'display_name': 'Therapist', 'description': 'Service provider access'}
+        ]
+
+        created_roles = []
+        for role_data in default_roles_data:
+            role = Role(**role_data, is_active=True)
+            db.session.add(role)
+            created_roles.append(role)
+
+        db.session.commit()
+        print(f"Created {len(created_roles)} default roles")
+        return created_roles
+    except Exception as e:
+        print(f"Error creating default roles: {e}")
+        db.session.rollback()
         return []
 
 def get_active_departments():
@@ -346,9 +385,48 @@ def get_comprehensive_staff():
 def get_active_roles():
     """Get all active roles"""
     try:
-        return Role.query.filter_by(is_active=True).all()
+        roles = Role.query.filter_by(is_active=True).all()
+        print(f"Found {len(roles)} active roles")
+        for role in roles:
+            print(f"  - {role.name}: {role.display_name}")
+
+        # If no roles exist, create default ones
+        if not roles:
+            print("No roles found, creating default roles...")
+            return create_default_roles()
+
+        return roles
     except Exception as e:
         print(f"Error getting active roles: {e}")
+        # Try to create default roles if there's an error
+        return create_default_roles()
+
+def create_default_roles():
+    """Create default roles if none exist"""
+    try:
+        from models import Role
+        from app import db
+
+        default_roles_data = [
+            {'name': 'admin', 'display_name': 'Administrator', 'description': 'Full system access'},
+            {'name': 'manager', 'display_name': 'Manager', 'description': 'Management level access'},
+            {'name': 'staff', 'display_name': 'Staff Member', 'description': 'Standard staff access'},
+            {'name': 'receptionist', 'display_name': 'Receptionist', 'description': 'Front desk access'},
+            {'name': 'therapist', 'display_name': 'Therapist', 'description': 'Service provider access'}
+        ]
+
+        created_roles = []
+        for role_data in default_roles_data:
+            role = Role(**role_data, is_active=True)
+            db.session.add(role)
+            created_roles.append(role)
+
+        db.session.commit()
+        print(f"Created {len(created_roles)} default roles")
+        return created_roles
+    except Exception as e:
+        print(f"Error creating default roles: {e}")
+        db.session.rollback()
         return []
 
 def get_active_departments():

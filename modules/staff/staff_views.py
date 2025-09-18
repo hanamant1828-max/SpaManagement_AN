@@ -828,6 +828,10 @@ def api_get_all_staff():
         print(f"API Response - Roles: {len(roles_data)}, Departments: {len(departments_data)}")
         if departments_data:
             print("Available departments:", [d['display_name'] for d in departments_data])
+        if roles_data:
+            print("Available roles:", [r['display_name'] for r in roles_data])
+        else:
+            print("WARNING: No roles data found!")
 
         return jsonify({
             'success': True,
