@@ -33,7 +33,7 @@ def packages():
 
     # Get customers for assignment dropdowns
     from models import Customer
-    customers = Customer.query.filter_by(is_active=True).order_by(Customer.full_name).all()
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
 
     return render_template('new_packages.html',
                          prepaid_packages=prepaid_packages,
@@ -646,12 +646,13 @@ def api_get_customers():
         if query:
             # Search by name or phone
             customers = Customer.query.filter(
-                (Customer.full_name.ilike(f'%{query}%')) |
+                (Customer.first_name.ilike(f'%{query}%')) |
+                (Customer.last_name.ilike(f'%{query}%')) |
                 (Customer.phone.ilike(f'%{query}%'))
-            ).order_by(Customer.full_name).limit(50).all()
+            ).order_by(Customer.first_name, Customer.last_name).limit(50).all()
         else:
             # Get all customers (limit for performance)
-            customers = Customer.query.order_by(Customer.full_name).limit(100).all()
+            customers = Customer.query.order_by(Customer.first_name, Customer.last_name).limit(100).all()
             
         return jsonify({
             'success': True,
