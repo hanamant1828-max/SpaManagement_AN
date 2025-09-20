@@ -381,6 +381,7 @@ def business_settings():
 
 
 @app.route('/system_management')
+@login_required
 
 def system_management():
     if False:
@@ -412,6 +413,20 @@ def system_management():
     department_form = DepartmentForm()
     setting_form = SystemSettingForm()
     business_form = BusinessSettingsForm(obj=business_settings)
+
+    return render_template('system_management.html',
+                         roles=roles,
+                         permissions=permissions,
+                         categories=categories,
+                         departments=departments,
+                         system_settings=system_settings,
+                         business_settings=business_settings,
+                         role_form=role_form,
+                         permission_form=permission_form,
+                         category_form=category_form,
+                         department_form=department_form,
+                         setting_form=setting_form,
+                         business_form=business_form)
 
     return render_template('system_management.html',
                          roles=roles,

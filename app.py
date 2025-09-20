@@ -112,6 +112,14 @@ from modules.billing.integrated_billing_views import *
 from modules.inventory.views import *
 from modules.packages.new_packages_views import *
 
+# Import routes.py to register additional routes
+try:
+    import routes
+    print("Routes imported successfully")
+except Exception as e:
+    print(f"Warning: Could not import all routes: {e}")
+    print("Application will continue with basic functionality")
+
 # Department Management Routes
 @app.route('/api/departments', methods=['GET'])
 @login_required
