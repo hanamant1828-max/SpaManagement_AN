@@ -1,9 +1,11 @@
 import os
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, login_required
+# Department will be imported inside functions to avoid circular imports
 
 
 class Base(DeclarativeBase):
@@ -14,6 +16,9 @@ db = SQLAlchemy(model_class=Base)
 
 # create the app
 app = Flask(__name__)
+# Validate required environment variables
+if not os.environ.get("SESSION_SECRET"):
+    raise RuntimeError("SESSION_SECRET environment variable is required for production")
 app.secret_key = os.environ.get("SESSION_SECRET")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for to generate with https
 
@@ -29,19 +34,22 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 # Configure cache control for Replit webview
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for development in Replit
+app.config['WTF_CSRF_ENABLED'] = True  # Enable CSRF for production security
 
 # Session configuration for Replit environment
 app.config.update(
-    SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
-    SESSION_COOKIE_SAMESITE="Lax", 
-    SESSION_COOKIE_SECURE=False,   # dev mode
+    SECRET_KEY=os.environ.get("SESSION_SECRET"),  # No fallback for production security
+    SESSION_COOKIE_SAMESITE="Strict", 
+    SESSION_COOKIE_SECURE=True,   # production mode
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_PERMANENT=False
 )
 
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
+
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -65,7 +73,7 @@ def init_app():
             # Import inventory models for database creation
             from modules.inventory import models as inventory_models  # noqa: F401
             # Import Department model for database creation
-            from modules.staff.models import Department  # noqa: F401
+            from models import Department  # noqa: F401
 
             # Try to create tables, but handle conflicts gracefully
             db.create_all()

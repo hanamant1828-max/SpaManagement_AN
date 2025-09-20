@@ -377,7 +377,7 @@ class Service(db.Model):
                     audit_entry = InventoryAuditLog(
                         batch_id=service_item.batch_id if hasattr(service_item, 'batch_id') else None,
                         product_id=service_item.inventory_id,
-                        user_id=1,  # System user, should be current user in real implementation
+                        user_id=None,  # Will be set by calling code with proper user context
                         action_type='service_use',
                         quantity_delta=-service_item.quantity_per_service,  # Negative for outflow
                         stock_before=0,  # Will be updated in actual implementation
