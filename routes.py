@@ -106,11 +106,11 @@ def utility_processor():
 def create_default_data():
     """Create default data for the application"""
     # Import models here to avoid circular imports
-    from models import User, Customer, Service, Appointment, Expense, Invoice, Package, 
+    from models import (User, Customer, Service, Appointment, Expense, Invoice, Package, 
                        StaffSchedule, CustomerPackage, PackageService, Review, Communication, 
                        Commission, Promotion, Waitlist, RecurringAppointment, Location, 
                        BusinessSettings, Role, Permission, RolePermission, Category, 
-                       Department, SystemSetting
+                       Department, SystemSetting)
 
     try:
         # Create default admin user if not exists
@@ -214,14 +214,8 @@ def create_default_data():
 # Root route
 @app.route('/')
 def index():
-    """Root route - redirect to dashboard for testing"""
-    try:
-        # For testing - always redirect to dashboard
-        return redirect(url_for('dashboard'))
-    except Exception as e:
-        print(f"Error in index route: {e}")
-        # For testing - always redirect to dashboard
-        return redirect(url_for('dashboard'))
+    """Root route - redirect to dashboard"""
+    return redirect(url_for('dashboard'))
 
 # Health check route for deployment
 @app.route('/health')
