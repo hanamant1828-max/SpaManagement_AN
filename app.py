@@ -41,10 +41,7 @@ def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
 
-# Add basic routes for testing
-@app.route('/')
-def index():
-    return '<h1>Spa Management System - Working!</h1><p>Server is running on port 5000</p>'
+# Basic routes removed to avoid conflicts with main application routes
 
 with app.app_context():
     # Make sure to import the models here or their tables won't be created
