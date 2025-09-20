@@ -20,37 +20,61 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePackages();
 });
 
-// Global functions that need to be available immediately
-window.openAssignModal = function() {
-    console.log('Opening assign modal...');
-    loadTemplates().then(() => {
-        loadCustomers().then(() => {
-            const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
-            modal.show();
-        });
-    });
-};
+/**
+ * Global functions - Define these immediately for inline onclick handlers
+ */
 
-window.clearFilters = function() {
+// Open assign package modal
+function openAssignModal() {
+    console.log('Opening assign modal...');
+    
+    // Reset form
+    const form = document.getElementById('assignPackageForm');
+    if (form) {
+        form.reset();
+        form.classList.remove('was-validated');
+    }
+    
+    const preview = document.getElementById('packagePreview');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+    
+    // Load data and show modal
+    Promise.all([loadTemplates(), loadCustomers()]).then(() => {
+        const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
+        modal.show();
+    }).catch(error => {
+        console.error('Error loading modal data:', error);
+        showToast('Error loading data for assignment', 'error');
+    });
+}
+
+// Clear all filters
+function clearFilters() {
     console.log('Clearing filters...');
-    document.getElementById('searchInput').value = '';
+    
+    const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const dateFrom = document.getElementById('dateFrom');
     const dateTo = document.getElementById('dateTo');
     
+    if (searchInput) searchInput.value = '';
     if (statusFilter) statusFilter.value = '';
     if (dateFrom) dateFrom.value = '';
     if (dateTo) dateTo.value = '';
     
-    // Reset current filters
+    // Reset current filters and reload
     currentFilters = {};
     currentPage = 1;
     
     loadPackages();
-};
+}
 
-window.applyFilters = function() {
+// Apply current filters
+function applyFilters() {
     console.log('Applying filters...');
+    
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const dateFrom = document.getElementById('dateFrom');
@@ -76,62 +100,62 @@ window.applyFilters = function() {
     
     currentPage = 1;
     loadPackages();
-};
+}
 
-window.openDetails = function(packageId) {
+// Open package details modal
+function openDetails(packageId) {
     console.log('Opening package details for:', packageId);
-    openDetails(packageId);
-};
+    openPackageDetailsModal(packageId);
+}
 
-window.openUseModal = function(packageId) {
+// Open usage recording modal
+function openUseModal(packageId) {
     console.log('Opening usage modal for package:', packageId);
+    
     if (packageId) {
         currentPackageId = packageId;
+        // Load package details first, then open usage modal
+        openPackageDetailsModal(packageId).then(() => {
+            setTimeout(() => showUsageModal(), 200);
+        });
+    } else if (currentPackageDetails) {
+        showUsageModal();
+    } else {
+        showToast('Please select a package first', 'warning');
     }
-    
-    // Populate service dropdown with package services
-    if (currentPackageDetails && currentPackageDetails.items) {
-        const usageSelect = document.getElementById('usageService');
-        if (usageSelect) {
-            usageSelect.innerHTML = '<option value="">Select service...</option>';
-            currentPackageDetails.items.forEach(item => {
-                if (item.remaining_qty > 0) {
-                    const option = document.createElement('option');
-                    option.value = item.service_id;
-                    option.textContent = `${item.service_name} (${item.remaining_qty} remaining)`;
-                    usageSelect.appendChild(option);
-                }
-            });
-        }
-    }
-    
-    const modal = new bootstrap.Modal(document.getElementById('recordUsageModal'));
-    modal.show();
-};
+}
 
-window.openAdjustModal = function(packageId) {
+// Open adjustment/refund modal
+function openAdjustModal(packageId) {
     console.log('Opening adjust modal for package:', packageId);
+    
     if (packageId) {
         currentPackageId = packageId;
+        // Load package details first, then open adjust modal
+        openPackageDetailsModal(packageId).then(() => {
+            setTimeout(() => showAdjustModal(), 200);
+        });
+    } else if (currentPackageDetails) {
+        showAdjustModal();
+    } else {
+        showToast('Please select a package first', 'warning');
     }
-    
-    // Populate service dropdown with package services
-    if (currentPackageDetails && currentPackageDetails.items) {
-        const adjustSelect = document.getElementById('adjustService');
-        if (adjustSelect) {
-            adjustSelect.innerHTML = '<option value="">Select service...</option>';
-            currentPackageDetails.items.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.service_id;
-                option.textContent = `${item.service_name} (Used: ${item.used_qty}, Total: ${item.total_qty})`;
-                adjustSelect.appendChild(option);
-            });
-        }
-    }
-    
-    const modal = new bootstrap.Modal(document.getElementById('adjustRefundModal'));
-    modal.show();
-};
+}
+
+// Change pagination page
+function changePage(page) {
+    currentPage = page;
+    loadPackages();
+}
+
+// Attach functions to window object for global access
+window.openAssignModal = openAssignModal;
+window.clearFilters = clearFilters;
+window.applyFilters = applyFilters;
+window.openDetails = openDetails;
+window.openUseModal = openUseModal;
+window.openAdjustModal = openAdjustModal;
+window.changePage = changePage;
 
 /**
  * Initialize the packages system
@@ -669,9 +693,9 @@ async function saveAssignment() {
 }
 
 /**
- * Open package details modal
+ * Open package details modal (renamed to avoid conflict)
  */
-async function openDetails(packageId) {
+async function openPackageDetailsModal(packageId) {
     try {
         currentPackageId = packageId;
         
@@ -684,13 +708,118 @@ async function openDetails(packageId) {
             
             const modal = new bootstrap.Modal(document.getElementById('packageDetailsModal'));
             modal.show();
+            
+            return Promise.resolve();
         } else {
             showToast(data.error || 'Error loading package details', 'error');
+            return Promise.reject(data.error);
         }
     } catch (error) {
         console.error('Error loading package details:', error);
         showToast('Error loading package details', 'error');
+        return Promise.reject(error);
     }
+}
+
+/**
+ * Show usage modal with current package data
+ */
+function showUsageModal() {
+    if (!currentPackageDetails) {
+        showToast('Package details not loaded', 'error');
+        return;
+    }
+    
+    // Reset form
+    const form = document.getElementById('recordUsageForm');
+    if (form) {
+        form.reset();
+        form.classList.remove('was-validated');
+    }
+    
+    // Set current date/time
+    const now = new Date();
+    const dateTimeInput = document.getElementById('usageDateTime');
+    if (dateTimeInput) {
+        dateTimeInput.value = now.toISOString().slice(0, 16);
+    }
+    
+    // Populate services from package items
+    const serviceSelect = document.getElementById('usageService');
+    if (serviceSelect) {
+        serviceSelect.innerHTML = '<option value="">Select service...</option>';
+        
+        if (currentPackageDetails.items) {
+            currentPackageDetails.items.forEach(item => {
+                if (item.remaining_qty > 0) {
+                    const option = document.createElement('option');
+                    option.value = item.service_id;
+                    option.textContent = `${item.service_name} (${item.remaining_qty} remaining)`;
+                    option.dataset.remaining = item.remaining_qty;
+                    serviceSelect.appendChild(option);
+                }
+            });
+        }
+    }
+    
+    // Hide hints
+    const hint = document.getElementById('usageHint');
+    if (hint) {
+        hint.style.display = 'none';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('recordUsageModal'));
+    modal.show();
+}
+
+/**
+ * Show adjustment modal with current package data
+ */
+function showAdjustModal() {
+    if (!currentPackageDetails) {
+        showToast('Package details not loaded', 'error');
+        return;
+    }
+    
+    // Reset form
+    const form = document.getElementById('adjustRefundForm');
+    if (form) {
+        form.reset();
+        form.classList.remove('was-validated');
+    }
+    
+    // Set default mode to refund
+    const refundMode = document.getElementById('refundMode');
+    if (refundMode) {
+        refundMode.checked = true;
+    }
+    
+    // Populate services from package items
+    const serviceSelect = document.getElementById('adjustService');
+    if (serviceSelect) {
+        serviceSelect.innerHTML = '<option value="">Select service...</option>';
+        
+        if (currentPackageDetails.items) {
+            currentPackageDetails.items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.service_id;
+                option.textContent = `${item.service_name} (${item.used_qty} used, ${item.remaining_qty} remaining)`;
+                option.dataset.used = item.used_qty;
+                option.dataset.remaining = item.remaining_qty;
+                option.dataset.total = item.total_qty;
+                serviceSelect.appendChild(option);
+            });
+        }
+    }
+    
+    // Hide hints
+    const hint = document.getElementById('adjustHint');
+    if (hint) {
+        hint.style.display = 'none';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('adjustRefundModal'));
+    modal.show();
 }
 
 /**

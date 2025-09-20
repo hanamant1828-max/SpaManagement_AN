@@ -479,51 +479,7 @@
 <script src="{{ url_for('static', filename='js/packages.js') }}"></script>
 
 <script>
-// Temporary fallback functions until packages.js loads
-if (typeof openAssignModal === 'undefined') {
-    window.openAssignModal = function() {
-        console.log('Opening assign modal...');
-        const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
-        modal.show();
-    };
-}
-
-if (typeof clearFilters === 'undefined') {
-    window.clearFilters = function() {
-        console.log('Clearing filters...');
-        document.getElementById('searchInput').value = '';
-        document.getElementById('statusFilter').value = '';
-        document.getElementById('dateFrom').value = '';
-        document.getElementById('dateTo').value = '';
-        if (typeof loadPackages !== 'undefined') {
-            loadPackages();
-        }
-    };
-}
-
-if (typeof applyFilters === 'undefined') {
-    window.applyFilters = function() {
-        console.log('Applying filters...');
-        if (typeof loadPackages !== 'undefined') {
-            loadPackages();
-        }
-    };
-}
-
-if (typeof openUseModal === 'undefined') {
-    window.openUseModal = function() {
-        console.log('Opening usage modal...');
-        const modal = new bootstrap.Modal(document.getElementById('recordUsageModal'));
-        modal.show();
-    };
-}
-
-if (typeof openAdjustModal === 'undefined') {
-    window.openAdjustModal = function() {
-        console.log('Opening adjust modal...');
-        const modal = new bootstrap.Modal(document.getElementById('adjustRefundModal'));
-        modal.show();
-    };
-}
+// Package management page JavaScript is loaded from packages.js
+console.log('Customer packages template loaded');
 </script>
 {% endblock %}
