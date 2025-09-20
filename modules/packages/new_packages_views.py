@@ -614,6 +614,11 @@ def api_get_package_template(template_id):
         # Try service package
         template = get_service_package_by_id(template_id)
         if template:
+            # Calculate benefit percentage if not set
+            benefit_percent = template.benefit_percent
+            if not benefit_percent and template.pay_for > 0:
+                benefit_percent = (template.free_services / template.pay_for) * 100
+                
             return jsonify({
                 'success': True,
                 'template': {
@@ -622,9 +627,11 @@ def api_get_package_template(template_id):
                     'pay_for': template.pay_for,
                     'total_services': template.total_services,
                     'free_services': template.free_services,
-                    'benefit_percent': template.benefit_percent,
+                    'benefit_percent': round(benefit_percent, 1) if benefit_percent else 0,
                     'validity_months': template.validity_months,
-                    'package_type': 'service_package'
+                    'package_type': 'service_package',
+                    'service_id': template.service_id,
+                    'choose_on_assign': template.choose_on_assign
                 }
             })
             

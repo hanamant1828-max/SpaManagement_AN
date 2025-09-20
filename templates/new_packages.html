@@ -626,16 +626,56 @@
                     <div class="mb-3">
                         <div class="card bg-light">
                             <div class="card-body">
-                                <h6 class="card-title">Summary</h6>
-                                <div class="row">
+                                <h6 class="card-title mb-3">Package Summary</h6>
+                                <div class="row mb-3">
                                     <div class="col-4 text-center">
-                                        <strong>Pay:</strong> <span id="summary_pay_for">-</span>
+                                        <strong>Pay For:</strong> <span id="summary_pay_for" class="badge bg-primary">-</span>
                                     </div>
                                     <div class="col-4 text-center">
-                                        <strong>Free:</strong> <span id="summary_free">-</span>
+                                        <strong>Free:</strong> <span id="summary_free" class="badge bg-success">-</span>
                                     </div>
                                     <div class="col-4 text-center">
-                                        <strong>TOTAL:</strong> <span id="summary_total">-</span>
+                                        <strong>TOTAL:</strong> <span id="summary_total" class="badge bg-info">-</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Cost Breakdown -->
+                                <div class="cost-breakdown" id="cost_breakdown" style="display: none;">
+                                    <hr class="my-3">
+                                    <h6 class="text-muted mb-2">Cost Breakdown</h6>
+                                    
+                                    <div class="row small">
+                                        <div class="col-8">Service Price (per session):</div>
+                                        <div class="col-4 text-end" id="service_price_display">₹0</div>
+                                    </div>
+                                    
+                                    <div class="row small">
+                                        <div class="col-8">Total Services (<span id="total_sessions_text">4</span> sessions):</div>
+                                        <div class="col-4 text-end" id="total_cost_display">₹0</div>
+                                    </div>
+                                    
+                                    <div class="row small text-success">
+                                        <div class="col-8">Package Discount (<span id="free_sessions_text">1</span> free session):</div>
+                                        <div class="col-4 text-end" id="package_discount_display">-₹0</div>
+                                    </div>
+                                    
+                                    <hr class="my-2">
+                                    
+                                    <div class="row fw-bold">
+                                        <div class="col-8">You Pay (for <span id="paid_sessions_text">3</span> sessions):</div>
+                                        <div class="col-4 text-end text-primary" id="final_payment_display">₹0</div>
+                                    </div>
+                                    
+                                    <div class="row small text-success">
+                                        <div class="col-8">Total Savings:</div>
+                                        <div class="col-4 text-end fw-bold" id="total_savings_display">₹0</div>
+                                    </div>
+                                    
+                                    <div class="row small text-muted mt-2">
+                                        <div class="col-12 text-center">
+                                            <i class="fas fa-gift me-1"></i>
+                                            You get <span id="benefit_percent_display">25%</span> more value!
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1154,7 +1194,14 @@ function loadServicesForAssignment() {
                     const option = document.createElement('option');
                     option.value = service.id;
                     option.textContent = `${service.name} - ₹${service.price} (${service.duration} min)`;
+                    option.setAttribute('data-price', service.price);
+                    option.setAttribute('data-name', service.name);
                     serviceSelect.appendChild(option);
+                });
+                
+                // Add event listener for service selection
+                serviceSelect.addEventListener('change', function() {
+                    calculateServiceCostBreakdown();
                 });
             }
         })
@@ -1162,6 +1209,40 @@ function loadServicesForAssignment() {
             console.error('Error loading services:', error);
             alert('Error loading services');
         });
+}
+
+function calculateServiceCostBreakdown() {
+    const serviceSelect = document.getElementById('service_assign_service_id');
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    
+    if (!selectedOption || !selectedOption.value || !window.currentPackageTemplate) {
+        document.getElementById('cost_breakdown').style.display = 'none';
+        return;
+    }
+    
+    const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+    const serviceName = selectedOption.getAttribute('data-name') || '';
+    const template = window.currentPackageTemplate;
+    
+    const totalSessions = template.total_services || 4;
+    const payForSessions = template.pay_for || 3;
+    const freeSessions = template.free_services || 1;
+    
+    // Calculate costs
+    const totalCost = servicePrice * totalSessions;
+    const packageDiscount = servicePrice * freeSessions;
+    const finalPayment = servicePrice * payForSessions;
+    const totalSavings = packageDiscount;
+    
+    // Update display
+    document.getElementById('service_price_display').textContent = `₹${servicePrice.toFixed(0)}`;
+    document.getElementById('total_cost_display').textContent = `₹${totalCost.toFixed(0)}`;
+    document.getElementById('package_discount_display').textContent = `-₹${packageDiscount.toFixed(0)}`;
+    document.getElementById('final_payment_display').textContent = `₹${finalPayment.toFixed(0)}`;
+    document.getElementById('total_savings_display').textContent = `₹${totalSavings.toFixed(0)}`;
+    
+    // Show the breakdown
+    document.getElementById('cost_breakdown').style.display = 'block';
 }
 
 function loadServicePackageDetails(packageId) {
@@ -1173,6 +1254,15 @@ function loadServicePackageDetails(packageId) {
                 document.getElementById('summary_pay_for').textContent = template.pay_for || '-';
                 document.getElementById('summary_free').textContent = template.free_services || '-';
                 document.getElementById('summary_total').textContent = template.total_services || '-';
+                
+                // Store template data for calculations
+                window.currentPackageTemplate = template;
+                
+                // Update text placeholders
+                document.getElementById('total_sessions_text').textContent = template.total_services || 4;
+                document.getElementById('free_sessions_text').textContent = template.free_services || 1;
+                document.getElementById('paid_sessions_text').textContent = template.pay_for || 3;
+                document.getElementById('benefit_percent_display').textContent = Math.round(template.benefit_percent || 25) + '%';
             }
         })
         .catch(error => {
