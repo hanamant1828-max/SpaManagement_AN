@@ -6,14 +6,11 @@ from datetime import datetime
 from sqlalchemy import and_, or_
 
 # Import models from the main models file to avoid duplication
-try:
-    from models import (
-        PrepaidPackage, ServicePackage, Membership, 
-        StudentOffer, YearlyMembership, KittyParty
-    )
-except ImportError:
-    # Fallback if models don't exist yet
-    print("Warning: Package models not found in models.py")
+from models import (
+    PrepaidPackage, ServicePackage, Membership, 
+    StudentOffer, YearlyMembership, KittyParty,
+    Service
+)
 
 # ========================================
 # STATISTICS AND OVERVIEW
@@ -205,8 +202,16 @@ def get_student_offer_by_id(offer_id):
 
 def create_student_offer(data):
     """Create new student offer"""
+    # Get service name if service_id is provided
+    service_name = data.get('service_name', '')
+    if data.get('service_id'):
+        service = Service.query.get(data['service_id'])
+        if service:
+            service_name = service.name
+    
     offer = StudentOffer(
-        service_name=data['service_name'],
+        service_id=int(data['service_id']) if data.get('service_id') else None,
+        service_name=service_name,
         actual_price=float(data['actual_price']),
         discount_percent=float(data['discount_percent']),
         after_price=float(data['after_price']),
@@ -223,7 +228,15 @@ def update_student_offer(offer_id, data):
     if not offer:
         raise ValueError("Student offer not found")
     
-    offer.service_name = data['service_name']
+    # Get service name if service_id is provided
+    service_name = data.get('service_name', offer.service_name)
+    if data.get('service_id'):
+        service = Service.query.get(data['service_id'])
+        if service:
+            service_name = service.name
+    
+    offer.service_id = int(data['service_id']) if data.get('service_id') else offer.service_id
+    offer.service_name = service_name
     offer.actual_price = float(data['actual_price'])
     offer.discount_percent = float(data['discount_percent'])
     offer.after_price = float(data['after_price'])

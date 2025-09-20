@@ -4,6 +4,7 @@ New Package Management Views - Separate endpoints for each package type
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
+from models import Service
 from .new_packages_queries import *
 import logging
 
@@ -31,7 +32,6 @@ def packages():
     kitty_parties = get_all_kitty_parties()
 
     # Get services for dropdowns
-    from models import Service
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
     return render_template('new_packages.html',
