@@ -1804,3 +1804,336 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
+
+// ========================================
+// MINIMAL ASSIGN FLOW FUNCTIONALITY
+// ========================================
+
+/**
+ * Open minimal assign modal for specific package types
+ */
+async function openAssignSimple(templateId, packageType) {
+    console.log('Opening simple assign modal for:', templateId, packageType);
+    
+    try {
+        // Get template details
+        const response = await fetch(`/packages/api/templates/${templateId}`);
+        const result = await response.json();
+        
+        if (result.success && result.template) {
+            const template = result.template;
+            
+            // Fill template name
+            document.getElementById('asTemplateName').value = template.name;
+            
+            // Set hidden fields
+            document.getElementById('asTemplateId').value = templateId;
+            document.getElementById('asPackageType').value = packageType;
+            document.getElementById('asPricePaid').value = template.price || 0;
+            
+            // Load customers into dropdown
+            await loadCustomersForSimpleAssign();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('assignSimpleModal'));
+            modal.show();
+        } else {
+            showToast('Error loading package template', 'error');
+        }
+    } catch (error) {
+        console.error('Error opening simple assign modal:', error);
+        showToast('Error loading package details', 'error');
+    }
+}
+
+/**
+ * Load customers for simple assign dropdown
+ */
+async function loadCustomersForSimpleAssign() {
+    try {
+        const response = await fetch('/packages/api/customers');
+        const result = await response.json();
+        
+        const customerSelect = document.getElementById('asCustomer');
+        customerSelect.innerHTML = '<option value="">Select customer...</option>';
+        
+        if (result.success && result.customers) {
+            result.customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = customer.full_name;
+                customerSelect.appendChild(option);
+            });
+        }
+        
+        // Enable save button when customer is selected
+        customerSelect.addEventListener('change', function() {
+            const saveBtn = document.getElementById('asSave');
+            saveBtn.disabled = !this.value;
+        });
+        
+    } catch (error) {
+        console.error('Error loading customers:', error);
+        showToast('Error loading customers', 'error');
+    }
+}
+
+/**
+ * Save simple package assignment
+ */
+async function saveAssignSimple() {
+    console.log('Saving simple package assignment...');
+    
+    try {
+        const templateId = document.getElementById('asTemplateId').value;
+        const packageType = document.getElementById('asPackageType').value;
+        const customerId = document.getElementById('asCustomer').value;
+        const pricePaid = document.getElementById('asPricePaid').value;
+        
+        if (!templateId || !packageType || !customerId) {
+            showToast('Please fill all required fields', 'warning');
+            return;
+        }
+        
+        const data = {
+            package_type: packageType,
+            package_id: templateId,
+            customer_id: parseInt(customerId),
+            price_paid: parseFloat(pricePaid)
+        };
+        
+        const response = await fetch('/packages/api/assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Package assigned successfully!', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('assignSimpleForm').reset();
+            document.getElementById('asSave').disabled = true;
+            
+            // Refresh current tab table
+            await refreshCurrentTabTable();
+            
+        } else {
+            showToast(result.error || 'Error assigning package', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving package assignment:', error);
+        showToast('Error assigning package', 'error');
+    }
+}
+
+/**
+ * Refresh the current tab's table
+ */
+async function refreshCurrentTabTable() {
+    const activeTab = document.querySelector('.tab-pane.active');
+    if (activeTab) {
+        const tabId = activeTab.id;
+        
+        // Determine which table to refresh based on active tab
+        if (tabId === 'assign-membership') {
+            await loadMembershipPackages();
+        } else if (tabId === 'assign-student') {
+            await loadStudentPackages();
+        } else if (tabId === 'assign-yearly') {
+            await loadYearlyPackages();
+        } else if (tabId === 'assign-kitty') {
+            await loadKittyPackages();
+        } else if (tabId === 'all-packages') {
+            await loadPackages();
+        }
+    }
+}
+
+/**
+ * Load packages for tables
+ */
+async function loadMembershipPackages() {
+    await loadPackageTypeIntoTable('membership', 'tblMemberships');
+}
+
+async function loadStudentPackages() {
+    await loadPackageTypeIntoTable('student', 'tblStudentOffers');
+}
+
+async function loadYearlyPackages() {
+    await loadPackageTypeIntoTable('yearly', 'tblYearlyMemberships');
+}
+
+async function loadKittyPackages() {
+    await loadPackageTypeIntoTable('kitty', 'tblKittyPackages');
+}
+
+/**
+ * Generic function to load package type into table
+ */
+async function loadPackageTypeIntoTable(packageType, tableId) {
+    try {
+        console.log(`Loading ${packageType} packages into ${tableId}`);
+        
+        // API endpoints for each package type
+        const endpoints = {
+            membership: '/api/memberships',
+            student: '/api/student-offers',
+            yearly: '/api/yearly-memberships',
+            kitty: '/api/kitty-parties'
+        };
+        
+        const response = await fetch(endpoints[packageType]);
+        const result = await response.json();
+        
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector('tbody');
+        tbody.innerHTML = '';
+        
+        // Handle different response formats
+        let packages = [];
+        if (result.success) {
+            if (result.packages) {
+                packages = result.packages;
+            } else if (result.memberships) {
+                packages = result.memberships;
+            } else if (result.offers) {
+                packages = result.offers;
+            } else if (result.parties) {
+                packages = result.parties;
+            }
+        }
+        
+        if (packages && packages.length > 0) {
+            packages.forEach(pkg => {
+                const row = createPackageTableRow(pkg, packageType);
+                tbody.appendChild(row);
+            });
+            
+            // Update count
+            document.getElementById(`${packageType}-total-count`).textContent = packages.length;
+        } else {
+            // Show empty message
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="5" class="text-center text-muted">No ${packageType} packages available</td>`;
+            tbody.appendChild(row);
+            document.getElementById(`${packageType}-total-count`).textContent = '0';
+        }
+        
+    } catch (error) {
+        console.error(`Error loading ${packageType} packages:`, error);
+        showToast(`Error loading ${packageType} packages`, 'error');
+    }
+}
+
+/**
+ * Create table row for package with assign button
+ */
+function createPackageTableRow(pkg, packageType) {
+    const row = document.createElement('tr');
+    
+    // Column content based on package type
+    if (packageType === 'membership') {
+        row.innerHTML = `
+            <td><strong>${pkg.name}</strong></td>
+            <td>₹${pkg.price}</td>
+            <td>${pkg.validity_months} months</td>
+            <td>${pkg.description || 'No description'}</td>
+            <td>
+                <button class="btn btn-primary btn-sm"
+                        title="Assign to customer"
+                        data-action="assign-simple"
+                        data-template-id="${pkg.id}"
+                        data-package-type="membership">
+                    <i class="fas fa-user-plus"></i>
+                </button>
+            </td>
+        `;
+    } else if (packageType === 'student') {
+        row.innerHTML = `
+            <td><strong>${pkg.name}</strong></td>
+            <td>₹${pkg.actual_price}</td>
+            <td>₹${pkg.after_price}</td>
+            <td>${pkg.description || 'No description'}</td>
+            <td>
+                <button class="btn btn-primary btn-sm"
+                        title="Assign to customer"
+                        data-action="assign-simple"
+                        data-template-id="${pkg.id}"
+                        data-package-type="student">
+                    <i class="fas fa-user-plus"></i>
+                </button>
+            </td>
+        `;
+    } else if (packageType === 'yearly') {
+        row.innerHTML = `
+            <td><strong>${pkg.name}</strong></td>
+            <td>₹${pkg.price}</td>
+            <td>${pkg.validity_months} months</td>
+            <td>${pkg.discount_percent}%</td>
+            <td>
+                <button class="btn btn-primary btn-sm"
+                        title="Assign to customer"
+                        data-action="assign-simple"
+                        data-template-id="${pkg.id}"
+                        data-package-type="yearly">
+                    <i class="fas fa-user-plus"></i>
+                </button>
+            </td>
+        `;
+    } else if (packageType === 'kitty') {
+        row.innerHTML = `
+            <td><strong>${pkg.name}</strong></td>
+            <td>₹${pkg.price}</td>
+            <td>${pkg.min_guests}</td>
+            <td>${pkg.description || 'No description'}</td>
+            <td>
+                <button class="btn btn-primary btn-sm"
+                        title="Assign to customer"
+                        data-action="assign-simple"
+                        data-template-id="${pkg.id}"
+                        data-package-type="kitty">
+                    <i class="fas fa-user-plus"></i>
+                </button>
+            </td>
+        `;
+    }
+    
+    return row;
+}
+
+// Event delegation for assign buttons - Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for assign buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('[data-action="assign-simple"]')) {
+            const button = e.target.closest('[data-action="assign-simple"]');
+            const templateId = button.getAttribute('data-template-id');
+            const packageType = button.getAttribute('data-package-type');
+            openAssignSimple(templateId, packageType);
+        }
+    });
+
+    // Save button event listener
+    const saveBtn = document.getElementById('asSave');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveAssignSimple);
+    }
+});
+
+// Expose functions to global scope immediately
+window.loadMembershipPackages = loadMembershipPackages;
+window.loadStudentPackages = loadStudentPackages;
+window.loadYearlyPackages = loadYearlyPackages;
+window.loadKittyPackages = loadKittyPackages;
+window.openAssignSimple = openAssignSimple;
+window.saveAssignSimple = saveAssignSimple;
