@@ -9,7 +9,7 @@ deploymentTarget = "autoscale"
 run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 
 [workflows]
-runButton = "Run Spa System"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -102,31 +102,6 @@ task = "shell.exec"
 args = "python main.py"
 
 [[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Spa Management System"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Frontend Server"
-
-[[workflows.workflow]]
-name = "Spa Management System"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main_clean.py"
-waitForPort = 5000
-
-[[workflows.workflow]]
 name = "Restart Spa System"
 author = 47703410
 mode = "sequential"
@@ -145,18 +120,6 @@ task = "shell.exec"
 args = "python main.py"
 
 [[workflows.workflow]]
-name = "Frontend Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main_simple.py"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow]]
 name = "Run Spa System"
 author = 47799871
 mode = "sequential"
@@ -165,13 +128,30 @@ mode = "sequential"
 task = "shell.exec"
 args = "python main.py"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Spa Management App"
+
+[[workflows.workflow]]
+name = "Spa Management App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 43443
-externalPort = 3000
 
 [agent]
 expertMode = true
