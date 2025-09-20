@@ -668,9 +668,9 @@ class PackageAssignmentUsage(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    service = db.relationship('Service', backref='package_usage_logs')
-    staff = db.relationship('User', backref='package_usage_logs')
-    appointment = db.relationship('Appointment', backref='package_usage_logs')
+    service = db.relationship('Service', backref='assignment_usage_logs')
+    staff = db.relationship('User', backref='assignment_staff_usage_logs')
+    appointment = db.relationship('Appointment', backref='assignment_appointment_usage_logs')
     
     def __repr__(self):
         return f'<PackageAssignmentUsage {self.id}: Assignment {self.assignment_id} - {self.change_type}>'
@@ -858,8 +858,8 @@ class PackageUsage(db.Model):
     
     # Relationships
     service = db.relationship('Service', backref='package_usage_logs')
-    staff = db.relationship('User', backref='package_usage_logs')
-    appointment = db.relationship('Appointment', backref='package_usage_logs')
+    staff = db.relationship('User', backref='staff_package_usage_logs')
+    appointment = db.relationship('Appointment', backref='appointment_package_usage_logs')
     
     # Indexes
     __table_args__ = (
