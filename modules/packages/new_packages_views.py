@@ -764,6 +764,48 @@ def api_assign_package():
                 'id': customer_package.id
             })
             
+        # Handle service package assignment
+        elif package_type == 'service_package':
+            from .new_packages_queries import get_service_package_by_id
+            
+            template = get_service_package_by_id(package_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Service package template not found'}), 404
+                
+            # Calculate expiry date
+            if expires_on:
+                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
+            else:
+                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30) if template.validity_months else None
+                
+            # Use service price for package price if not provided
+            if price_paid == 0:
+                service_price = service.price * template.pay_for
+                price_paid = service_price
+                
+            # Create customer package assignment for service package
+            customer_package = CustomerPackage(
+                client_id=customer_id,
+                package_id=package_id,
+                package_type='service_package',
+                service_id=service_id,
+                price_paid=price_paid,
+                total_sessions=template.total_services,
+                used_sessions=0,
+                expiry_date=expiry_date,
+                notes=notes,
+                status='active'
+            )
+            
+            db.session.add(customer_package)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Service package "{template.name}" assigned successfully to {customer.full_name} for {service.name}',
+                'id': customer_package.id
+            })
+            
         else:
             return jsonify({'success': False, 'error': 'Package type not supported yet'}), 400
             

@@ -592,7 +592,77 @@
     </div>
 </div>
 
-<!-- Assign Package Modal -->
+<!-- Service Package Assignment Modal -->
+<div class="modal fade" id="assignServicePackageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="serviceAssignModalTitle">Assign Package: "Package Name"</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignServicePackageForm">
+                    <input type="hidden" id="service_assign_package_id">
+                    <input type="hidden" id="service_assign_package_type" value="service">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Customer *</label>
+                        <select name="customer_id" id="service_assign_customer_id" class="form-select" required>
+                            <option value="">Search / select customer...</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Service *</label>
+                        <select name="service_id" id="service_assign_service_id" class="form-select" required>
+                            <option value="">Choose a service...</option>
+                            <!-- Services will be loaded dynamically -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Summary</h6>
+                                <div class="row">
+                                    <div class="col-4 text-center">
+                                        <strong>Pay:</strong> <span id="summary_pay_for">-</span>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <strong>Free:</strong> <span id="summary_free">-</span>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <strong>TOTAL:</strong> <span id="summary_total">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Expiry (optional)</label>
+                        <input type="date" name="expiry_date" id="service_assign_expiry" class="form-control">
+                        <small class="text-muted">Leave empty for standard validity period</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" id="service_assign_notes" class="form-control" rows="3" placeholder="Additional notes about this assignment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitServicePackageAssignment()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Regular Package Assignment Modal (for other package types) -->
 <div class="modal fade" id="assignPackageModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1033,18 +1103,135 @@ function deleteKitty(partyId) {
 }
 
 function assignPackage(packageId, packageName, packageType) {
-    document.getElementById('assign_package_id').value = packageId;
-    document.getElementById('assign_package_name').value = packageName;
-    document.getElementById('assign_package_type').value = packageType;
+    if (packageType === 'service') {
+        // Handle Service Package assignment
+        assignServicePackage(packageId, packageName);
+    } else {
+        // Handle other package types
+        document.getElementById('assign_package_id').value = packageId;
+        document.getElementById('assign_package_name').value = packageName;
+        document.getElementById('assign_package_type').value = packageType;
 
+        // Reset form
+        document.getElementById('assignPackageForm').reset();
+        document.getElementById('assign_package_id').value = packageId;
+        document.getElementById('assign_package_name').value = packageName;
+        document.getElementById('assign_package_type').value = packageType;
+
+        const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
+        modal.show();
+    }
+}
+
+function assignServicePackage(packageId, packageName) {
+    // Set package details
+    document.getElementById('service_assign_package_id').value = packageId;
+    document.getElementById('serviceAssignModalTitle').textContent = `Assign Package: "${packageName}"`;
+    
     // Reset form
-    document.getElementById('assignPackageForm').reset();
-    document.getElementById('assign_package_id').value = packageId;
-    document.getElementById('assign_package_name').value = packageName;
-    document.getElementById('assign_package_type').value = packageType;
-
-    const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
+    document.getElementById('assignServicePackageForm').reset();
+    document.getElementById('service_assign_package_id').value = packageId;
+    
+    // Load services for selection
+    loadServicesForAssignment();
+    
+    // Load package details for summary
+    loadServicePackageDetails(packageId);
+    
+    const modal = new bootstrap.Modal(document.getElementById('assignServicePackageModal'));
     modal.show();
+}
+
+function loadServicesForAssignment() {
+    fetch('/packages/api/services')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const serviceSelect = document.getElementById('service_assign_service_id');
+                serviceSelect.innerHTML = '<option value="">Choose a service...</option>';
+                
+                data.services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} - ₹${service.price} (${service.duration} min)`;
+                    serviceSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+            alert('Error loading services');
+        });
+}
+
+function loadServicePackageDetails(packageId) {
+    fetch(`/packages/api/templates/${packageId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.template) {
+                const template = data.template;
+                document.getElementById('summary_pay_for').textContent = template.pay_for || '-';
+                document.getElementById('summary_free').textContent = template.free_services || '-';
+                document.getElementById('summary_total').textContent = template.total_services || '-';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading package details:', error);
+        });
+}
+
+function submitServicePackageAssignment() {
+    const form = document.getElementById('assignServicePackageForm');
+    const formData = new FormData(form);
+    
+    // Validate required fields
+    const customerId = document.getElementById('service_assign_customer_id').value;
+    const serviceId = document.getElementById('service_assign_service_id').value;
+    const packageId = document.getElementById('service_assign_package_id').value;
+    
+    if (!customerId) {
+        alert('Please select a customer');
+        return;
+    }
+    
+    if (!serviceId) {
+        alert('Please select a service');
+        return;
+    }
+    
+    // Prepare data for API
+    const assignmentData = {
+        package_type: 'service_package',
+        package_id: parseInt(packageId),
+        customer_id: parseInt(customerId),
+        service_id: parseInt(serviceId),
+        price_paid: 0, // Will be set by package template price
+        expires_on: formData.get('expiry_date') || null,
+        notes: formData.get('notes') || ''
+    };
+    
+    // Submit assignment
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(assignmentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('assignServicePackageModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while assigning the package');
+    });
 }
 
 function submitPackageAssignment() {
