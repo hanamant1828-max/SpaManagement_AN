@@ -31,8 +31,9 @@ def packages():
     yearly_memberships = get_all_yearly_memberships()
     kitty_parties = get_all_kitty_parties()
 
-    # Get services for dropdowns (removed as it's no longer needed for service package creation)
-    # services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    # Get customers for assignment dropdowns
+    from models import Client
+    customers = Client.query.filter_by(is_active=True).order_by(Client.full_name).all()
 
     return render_template('new_packages.html',
                          prepaid_packages=prepaid_packages,
@@ -41,7 +42,7 @@ def packages():
                          student_offers=student_offers,
                          yearly_memberships=yearly_memberships,
                          kitty_parties=kitty_parties,
-                         # services=services, # Removed services from context
+                         customers=customers,
                          stats=stats)
 
 # ========================================
