@@ -192,11 +192,15 @@ class User(UserMixin, db.Model):
 
     def can_access(self, resource):
         """Check if user can access a specific resource based on role permissions"""
+        print(f"can_access called for user {self.username}, resource {resource}, is_active: {self.is_active}, role: {self.role}")
+        
         if not self.is_active:
+            print(f"Access denied - user {self.username} is not active")
             return False
 
         # Super admin has access to everything
         if self.has_role('admin') or self.has_role('super_admin') or self.role == 'admin':
+            print(f"Access granted - user {self.username} has admin role")
             return True
 
         # Resource to permission mapping

@@ -6,9 +6,23 @@ from flask_login import login_required, current_user
 from app import app
 from .dashboard_queries import get_dashboard_stats, get_recent_appointments, get_low_stock_items, get_expiring_items
 
-@app.route('/dashboard')
+@app.route('/')
+def index():
+    print(f"Index route - User authenticated: {current_user.is_authenticated}")
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
+@app.route('/dashboard')
+@login_required
 def dashboard():
+    print(f"Dashboard route - User: {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+    print(f"Dashboard route - Is authenticated: {current_user.is_authenticated}")
+    print(f"Dashboard route - Is active: {current_user.is_active if current_user.is_authenticated else 'N/A'}")
+
+    if not current_user.can_access('dashboard'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('login'))
     try:
         stats = get_dashboard_stats()
         recent_appointments = get_recent_appointments()

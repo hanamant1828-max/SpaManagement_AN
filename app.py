@@ -54,7 +54,10 @@ def load_user(user_id):
         from models import User
         user = User.query.get(int(user_id))
         if user and user.is_active:
+            print(f"User {user_id} loaded successfully: {user.username}")
             return user
+        else:
+            print(f"User {user_id} not found or inactive")
         return None
     except Exception as e:
         print(f"Error loading user {user_id}: {e}")

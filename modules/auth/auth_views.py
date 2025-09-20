@@ -3,19 +3,24 @@ Authentication views and routes
 """
 import os
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, LoginManager
 from sqlalchemy import func, or_, and_
 from app import app, db
 from forms import LoginForm
 from .auth_queries import validate_user_credentials
 from datetime import datetime
 
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login' # Specify the login view function
+
 # Password verification function with fallback (hash drift)
 def verify_pwd(stored, given):
     """Robust password verification supporting current and legacy hashes"""
     if not stored or not given:
         return False
-        
+
     # bcrypt hashes
     if stored.startswith("$2a$") or stored.startswith("$2b$") or stored.startswith("$2y$"):
         try:
@@ -23,7 +28,7 @@ def verify_pwd(stored, given):
             return bcrypt.checkpw(given.encode(), stored.encode())
         except Exception:
             return False
-    
+
     # werkzeug pbkdf2 hashes (default)
     try:
         from werkzeug.security import check_password_hash
@@ -53,10 +58,10 @@ def login():
     if form.validate_on_submit():
         from werkzeug.security import check_password_hash
         from models import User
-        
+
         # Get user by identifier (username or email) - fallback for old form submissions
         identifier = form.identifier.data.strip().lower() if hasattr(form, 'identifier') else form.username.data.strip().lower()
-        
+
         user = db.session.query(User).filter(
             or_(
                 and_(User.email.isnot(None), func.lower(User.email) == identifier),
@@ -65,12 +70,12 @@ def login():
         ).first()
         print(f"Login attempt for identifier: {identifier}")
         print(f"User found: {user is not None}")
-        
+
         # Check password validation
         password_valid = False
         if user:
             print(f"User is active: {user.is_active}")
-            
+
             # Try multiple password validation methods
             if hasattr(user, 'check_password') and callable(user.check_password):
                 try:
@@ -78,7 +83,7 @@ def login():
                     print(f"check_password method result: {password_valid}")
                 except Exception as e:
                     print(f"Error with check_password method: {e}")
-            
+
             # If user method fails or doesn't exist, try werkzeug directly
             if not password_valid and user.password_hash:
                 try:
@@ -86,7 +91,7 @@ def login():
                     print(f"check_password_hash result: {password_valid}")
                 except Exception as e:
                     print(f"Error with check_password_hash: {e}")
-            
+
             # No plaintext password fallback for security
 
         if user and user.is_active and password_valid:
@@ -95,11 +100,11 @@ def login():
             session.permanent = form.remember.data
             session["user_id"] = user.id
             session["username"] = user.username
-            
+
             login_user(user, remember=form.remember.data)
             print(f"Login successful for user: {user.username}")
             flash('Login successful!', 'success')
-            
+
             # Update last login
             try:
                 if hasattr(user, 'last_login'):
@@ -107,7 +112,7 @@ def login():
                     db.session.commit()
             except Exception as e:
                 print(f"Warning: Could not update last_login: {e}")
-            
+
             next_page = request.args.get('next')
             if next_page:
                 return redirect(next_page)
@@ -134,60 +139,60 @@ def api_login():
         if not data:
             print("❌ API Login: No JSON data received")
             return jsonify({"success": False, "message": "Invalid request format"}), 400
-        
+
         # Normalize + lookup by username OR email (case-insensitive)    
         identifier = data.get("identifier", "").strip()
         password = data.get("password", "")
         ident_l = identifier.lower()
-        
+
         print(f"🔍 API Login attempt for identifier: '{identifier}' (normalized: '{ident_l}')")
-        
+
         if not identifier or not password:
             print("❌ API Login: Missing identifier or password")
             return jsonify({"success": False, "message": "Username/email and password are required"}), 400
-        
+
         # Import models here to avoid circular imports
         from models import User
         from sqlalchemy import or_, func
-        
+
         # Normalize + lookup by username OR email (case-insensitive)
         user = (db.session.query(User)
                 .filter(or_(func.lower(User.username) == ident_l,
                            func.lower(User.email) == ident_l))
                 .first())
-        
+
         print(f"🔍 User found: {user is not None}")
         if user:
             print(f"🔍 User details: username={user.username}, email={user.email}, active={user.is_active}")
-        
+
         if not user:
             print(f"❌ API Login: No user found for identifier '{identifier}'")
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
-            
+
         # User status checks (don't silently fail)
         if hasattr(user, 'is_active') and not user.is_active:
             print(f"❌ API Login: User {user.username} is inactive")
             return jsonify({"success": False, "message": "Your account is inactive."}), 403
-        
+
         # Password verification with fallback (hash drift)
         print(f"🔍 Testing password for user: {user.username}")
-        
+
         if not verify_pwd(user.password_hash, password):
             print(f"❌ API Login: Invalid password for user {user.username}")
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
-        
+
         # Login successful - properly set session and login user
         print(f"✅ API Login successful for user: {user.username}")
-        
+
         # Clear existing session and set new one
         session.clear()
         session.permanent = False
         session["user_id"] = user.id
         session["username"] = user.username
-        
+
         # Use Flask-Login to manage user session
         login_user(user, remember=False)
-        
+
         # Update last login time if column exists
         try:
             if hasattr(user, 'last_login'):
@@ -195,14 +200,14 @@ def api_login():
                 db.session.commit()
         except Exception as e:
             print(f"Warning: Could not update last_login: {e}")
-        
+
         # Return success with redirect URL
         return jsonify({
             "success": True, 
             "redirect": "/dashboard",
             "message": "Login successful"
         }), 200
-        
+
     except Exception as e:
         print(f"❌ API login error: {e}")
         import traceback
@@ -222,16 +227,16 @@ def dev_reset_admin():
     # Only allow in development environment
     if os.getenv("FLASK_ENV") != "development":
         return jsonify({"success": False, "message": "forbidden"}), 403
-        
+
     try:
         from models import User
         from sqlalchemy import func
         from werkzeug.security import generate_password_hash
-        
+
         username = "admin"
         email = "admin@example.com"
         plain = "admin123"
-        
+
         # Find existing admin user (case-insensitive)
         u = User.query.filter(func.lower(User.username) == "admin").first()
         if not u:
@@ -252,17 +257,29 @@ def dev_reset_admin():
             u.is_active = True
             u.role = "admin"
             print(f"🔧 Updating existing admin user: {username}")
-        
+
         # Set pbkdf2 hash (werkzeug default)
         u.password_hash = generate_password_hash(plain)  # pbkdf2:sha256
         db.session.commit()
-        
+
         print(f"✅ Admin user reset successful: {username}/{plain}")
         return jsonify({"success": True, "message": "Admin reset to admin/admin123"}), 200
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"❌ Admin reset error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": f"Error resetting admin: {str(e)}"}), 500
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        from models import User
+        user = User.query.get(int(user_id))
+        if user and user.is_active:
+            return user
+        return None
+    except Exception as e:
+        print(f"Error loading user {user_id}: {e}")
+        return None
