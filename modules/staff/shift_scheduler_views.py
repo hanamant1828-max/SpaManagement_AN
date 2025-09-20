@@ -12,7 +12,7 @@ from datetime import datetime, date, timedelta
 import json
 
 # Create Blueprint for shift scheduler
-shift_scheduler_bp = Blueprint('shift_scheduler', __name__)
+shift_scheduler_bp = Blueprint('shift_scheduler', __name__, url_prefix='/shift-scheduler')
 
 # Redirect route for /shift-scheduler to /shift-scheduler/shift-scheduler
 @shift_scheduler_bp.route('/')
