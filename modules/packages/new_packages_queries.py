@@ -5,83 +5,15 @@ from app import db
 from datetime import datetime
 from sqlalchemy import and_, or_
 
-# Create simple package model classes since the main models don't exist yet
-class PrepaidPackage(db.Model):
-    __tablename__ = 'prepaid_packages'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    actual_price = db.Column(db.Float, nullable=False)
-    after_value = db.Column(db.Float, nullable=False)
-    benefit_percent = db.Column(db.Float, nullable=False)
-    validity_months = db.Column(db.Integer, nullable=False)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    @property
-    def money_saved(self):
-        return self.after_value - self.actual_price
-
-class ServicePackage(db.Model):
-    __tablename__ = 'service_packages'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    pay_for = db.Column(db.Integer, nullable=False)
-    total_services = db.Column(db.Integer, nullable=False)
-    benefit_percent = db.Column(db.Float, nullable=False)
-    validity_months = db.Column(db.Integer)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    @property
-    def free_services(self):
-        return self.total_services - self.pay_for
-
-class Membership(db.Model):
-    __tablename__ = 'memberships'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    validity_months = db.Column(db.Integer, nullable=False)
-    services_included = db.Column(db.Text)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class StudentOffer(db.Model):
-    __tablename__ = 'student_offers'
-    id = db.Column(db.Integer, primary_key=True)
-    service_name = db.Column(db.String(100), nullable=False)
-    actual_price = db.Column(db.Float, nullable=False)
-    discount_percent = db.Column(db.Float, nullable=False)
-    after_price = db.Column(db.Float, nullable=False)
-    valid_days = db.Column(db.String(20), default='Mon-Fri')
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    @property
-    def money_saved(self):
-        return self.actual_price - self.after_price
-
-class YearlyMembership(db.Model):
-    __tablename__ = 'yearly_memberships'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    discount_percent = db.Column(db.Float, nullable=False)
-    validity_months = db.Column(db.Integer, default=12)
-    extra_benefits = db.Column(db.Text)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class KittyParty(db.Model):
-    __tablename__ = 'kitty_parties'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    after_value = db.Column(db.Float)
-    min_guests = db.Column(db.Integer, nullable=False)
-    services_included = db.Column(db.Text)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+# Import models from the main models file to avoid duplication
+try:
+    from models import (
+        PrepaidPackage, ServicePackage, Membership, 
+        StudentOffer, YearlyMembership, KittyParty
+    )
+except ImportError:
+    # Fallback if models don't exist yet
+    print("Warning: Package models not found in models.py")
 
 # ========================================
 # STATISTICS AND OVERVIEW
@@ -413,25 +345,4 @@ def delete_kitty_party(party_id):
     db.session.commit()
     return True
 
-# ========================================
-# SUMMARY FUNCTIONS
-# ========================================
-
-def get_all_package_statistics():
-    """Get statistics for all package types"""
-    return {
-        'prepaid_packages': PrepaidPackage.query.filter_by(is_active=True).count(),
-        'service_packages': ServicePackage.query.filter_by(is_active=True).count(),
-        'memberships': Membership.query.filter_by(is_active=True).count(),
-        'student_offers': StudentOffer.query.filter_by(is_active=True).count(),
-        'yearly_memberships': YearlyMembership.query.filter_by(is_active=True).count(),
-        'kitty_parties': KittyParty.query.filter_by(is_active=True).count(),
-        'total_packages': (
-            PrepaidPackage.query.filter_by(is_active=True).count() +
-            ServicePackage.query.filter_by(is_active=True).count() +
-            Membership.query.filter_by(is_active=True).count() +
-            StudentOffer.query.filter_by(is_active=True).count() +
-            YearlyMembership.query.filter_by(is_active=True).count() +
-            KittyParty.query.filter_by(is_active=True).count()
-        )
-    }
+# Note: get_all_package_statistics function is already defined above
