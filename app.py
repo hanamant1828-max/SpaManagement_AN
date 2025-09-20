@@ -55,3 +55,12 @@ with app.app_context():
     import models  # noqa: F401
     db.create_all()
     print("Database initialized successfully")
+    
+    # Import and register basic routes
+    try:
+        # Import only essential routes without complex module dependencies
+        import routes
+        print("Routes imported successfully")
+    except Exception as e:
+        print(f"Warning: Could not import all routes: {e}")
+        print("Application will continue with basic functionality")
