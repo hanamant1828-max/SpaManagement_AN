@@ -30,6 +30,10 @@ def packages():
     yearly_memberships = get_all_yearly_memberships()
     kitty_parties = get_all_kitty_parties()
 
+    # Get services for dropdowns
+    from models import Service
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+
     return render_template('new_packages.html',
                          prepaid_packages=prepaid_packages,
                          service_packages=service_packages,
@@ -37,6 +41,7 @@ def packages():
                          student_offers=student_offers,
                          yearly_memberships=yearly_memberships,
                          kitty_parties=kitty_parties,
+                         services=services,
                          stats=stats)
 
 # ========================================

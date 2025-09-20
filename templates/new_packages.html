@@ -127,7 +127,12 @@
                                     <tbody id="serviceTableBody">
                                         {% for package in service_packages %}
                                         <tr>
-                                            <td>{{ package.name }}</td>
+                                            <td>
+                                                {{ package.name }}
+                                                {% if package.service %}
+                                                    <small class="text-muted d-block">Service: {{ package.service.name }}</small>
+                                                {% endif %}
+                                            </td>
                                             <td>{{ package.pay_for }}</td>
                                             <td>{{ package.total_services }}</td>
                                             <td class="text-success">{{ package.free_services }}</td>
@@ -384,8 +389,17 @@
                         <input type="text" class="form-control" name="name" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Select Service</label>
+                        <select class="form-select" name="service_id" required>
+                            <option value="">Choose a service...</option>
+                            {% for service in services %}
+                                <option value="{{ service.id }}">{{ service.name }} - ₹{{ service.price }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Pay For</label>
-                        <input type="text" class="form-control" name="pay_for" required>
+                        <input type="number" class="form-control" name="pay_for" required min="1">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Total Services</label>
@@ -460,20 +474,33 @@
             <div class="modal-body">
                 <form id="studentForm">
                     <div class="mb-3">
-                        <label class="form-label">Service Name</label>
-                        <input type="text" class="form-control" name="service_name" required>
+                        <label class="form-label">Select Service</label>
+                        <select class="form-select" name="service_id" id="student_service_select" required onchange="updateStudentServicePrice()">
+                            <option value="">Choose a service...</option>
+                            {% for service in services %}
+                                <option value="{{ service.id }}" data-price="{{ service.price }}">{{ service.name }} - ₹{{ service.price }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Actual Price</label>
                         <input type="number" class="form-control" name="actual_price" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Actual Price</label>
+                        <input type="number" class="form-control" name="actual_price" required readonly>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Discount Percentage</label>
-                        <input type="number" class="form-control" name="discount_percent" required>
+                        <input type="number" class="form-control" name="discount_percent" required min="0" max="100" onchange="calculateDiscountPrice()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">After Discount Price</label>
+                        <input type="number" class="form-control" name="after_price" required readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Valid Days</label>
-                        <input type="number" class="form-control" name="valid_days" required>
+                        <input type="text" class="form-control" name="valid_days" placeholder="e.g. Mon-Fri" required>
                     </div>
                 </form>
             </div>
@@ -930,6 +957,32 @@ function deleteKitty(partyId) {
                 alert('Error: ' + data.error);
             }
         });
+    }
+}
+
+// Auto-fill service price for student offers
+function updateStudentServicePrice() {
+    const serviceSelect = document.getElementById('student_service_select');
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    
+    if (selectedOption && selectedOption.dataset.price) {
+        const actualPriceInput = document.querySelector('input[name="actual_price"]');
+        if (actualPriceInput) {
+            actualPriceInput.value = selectedOption.dataset.price;
+            calculateDiscountPrice();
+        }
+    }
+}
+
+// Calculate after price based on discount
+function calculateDiscountPrice() {
+    const actualPrice = parseFloat(document.querySelector('input[name="actual_price"]').value) || 0;
+    const discountPercent = parseFloat(document.querySelector('input[name="discount_percent"]').value) || 0;
+    const afterPrice = actualPrice - (actualPrice * discountPercent / 100);
+    
+    const afterPriceInput = document.querySelector('input[name="after_price"]');
+    if (afterPriceInput) {
+        afterPriceInput.value = afterPrice.toFixed(2);
     }
 }
 </script>

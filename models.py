@@ -457,12 +457,16 @@ class ServicePackage(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
     pay_for = db.Column(db.Integer, nullable=False)
     total_services = db.Column(db.Integer, nullable=False)
     benefit_percent = db.Column(db.Float, nullable=False)
     validity_months = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    service = db.relationship('Service', backref='service_packages')
 
     @property
     def free_services(self):
@@ -485,13 +489,17 @@ class StudentOffer(db.Model):
     __tablename__ = "student_offers"
     
     id = db.Column(db.Integer, primary_key=True)
-    service_name = db.Column(db.String(100), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    service_name = db.Column(db.String(100), nullable=False)  # Keep for backward compatibility
     actual_price = db.Column(db.Float, nullable=False)
     discount_percent = db.Column(db.Float, nullable=False)
     after_price = db.Column(db.Float, nullable=False)
     valid_days = db.Column(db.String(50))  # e.g. "Mon-Fri"
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    service = db.relationship('Service', backref='student_offers')
 
     @property
     def money_saved(self):

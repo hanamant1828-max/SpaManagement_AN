@@ -103,6 +103,7 @@ def create_service_package(data):
     """Create new service package"""
     package = ServicePackage(
         name=data['name'],
+        service_id=int(data['service_id']) if data.get('service_id') else None,
         pay_for=int(data['pay_for']),
         total_services=int(data['total_services']),
         benefit_percent=float(data['benefit_percent']),
@@ -120,6 +121,7 @@ def update_service_package(package_id, data):
         raise ValueError("Service package not found")
     
     package.name = data['name']
+    package.service_id = int(data['service_id']) if data.get('service_id') else None
     package.pay_for = int(data['pay_for'])
     package.total_services = int(data['total_services'])
     package.benefit_percent = float(data['benefit_percent'])
