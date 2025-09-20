@@ -7,6 +7,26 @@ from datetime import datetime
 from sqlalchemy import and_, or_
 
 # ========================================
+# STATISTICS AND OVERVIEW
+# ========================================
+
+def get_all_package_statistics():
+    """Get statistics for all package types"""
+    stats = {
+        'prepaid_packages': PrepaidPackage.query.filter_by(is_active=True).count(),
+        'service_packages': ServicePackage.query.filter_by(is_active=True).count(),
+        'memberships': Membership.query.filter_by(is_active=True).count(),
+        'student_offers': StudentOffer.query.filter_by(is_active=True).count(),
+        'yearly_memberships': YearlyMembership.query.filter_by(is_active=True).count(),
+        'kitty_parties': KittyParty.query.filter_by(is_active=True).count(),
+    }
+    
+    # Calculate total packages
+    stats['total_packages'] = sum(stats.values())
+    
+    return stats
+
+# ========================================
 # PREPAID PACKAGES CRUD
 # ========================================
 
