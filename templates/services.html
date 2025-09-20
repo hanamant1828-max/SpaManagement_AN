@@ -98,6 +98,9 @@
                                         </span>
                                     </td>
                                     <td>
+                                        <button class="btn btn-sm btn-outline-info me-1" onclick="viewService({{ service.id }})" data-bs-toggle="tooltip" title="View service details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
                                         <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})" data-bs-toggle="tooltip" title="Edit service details">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -426,6 +429,68 @@
     </div>
 </div>
 
+<!-- View Service Modal -->
+<div class="modal fade" id="viewServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Service Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Service Name</label>
+                            <p id="viewServiceName" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Category</label>
+                            <p id="viewServiceCategory" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Description</label>
+                    <p id="viewServiceDescription" class="form-control-plaintext"></p>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Duration</label>
+                            <p id="viewServiceDuration" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Price</label>
+                            <p id="viewServicePrice" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Commission Rate</label>
+                            <p id="viewServiceCommissionRate" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Status</label>
+                    <p id="viewServiceStatus" class="form-control-plaintext"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="editFromViewBtn" onclick="editServiceFromView()">
+                    <i class="fas fa-edit me-2"></i>Edit Service
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Category Modal -->
 <div class="modal fade" id="editCategoryModal" tabindex="-1">
     <div class="modal-dialog">
@@ -573,19 +638,42 @@ function toggleService(serviceId) {
 
 function deleteService(serviceId) {
     if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
-        // Create a form to submit the delete request
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/services/${serviceId}/delete`;
-        
-        // Add CSRF token
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        form.appendChild(csrfInput);
-        
-        // Submit form
-        document.body.appendChild(form);
-        form.submit();
+        // Show loading state
+        const deleteBtn = document.querySelector(`button[onclick="deleteService(${serviceId})"]`);
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+
+        // Make DELETE request
+        fetch(`/services/${serviceId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Remove the row from table
+                const row = deleteBtn.closest('tr');
+                if (row) {
+                    row.remove();
+                }
+                showNotification('Service deleted successfully', 'success');
+            } else {
+                throw new Error('Delete failed');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error deleting service. Please try again.', 'error');
+            
+            // Reset button state
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            }
+        });
     }
 }
 
@@ -639,6 +727,54 @@ function toggleCategory(categoryId) {
     });
 }
 
+function viewService(serviceId) {
+    // Get service data and populate view modal
+    fetch(`/api/services/${serviceId}`)
+        .then(response => response.json())
+        .then(service => {
+            if (service && !service.error) {
+                // Populate view modal
+                document.getElementById('viewServiceName').textContent = service.name || 'N/A';
+                document.getElementById('viewServiceDescription').textContent = service.description || 'No description provided';
+                document.getElementById('viewServiceDuration').textContent = (service.duration || 0) + ' minutes';
+                document.getElementById('viewServicePrice').textContent = '$' + (service.price || 0).toFixed(2);
+                document.getElementById('viewServiceCommissionRate').textContent = (service.commission_rate || 10) + '%';
+                document.getElementById('viewServiceStatus').innerHTML = service.is_active ? 
+                    '<span class="badge bg-success">Active</span>' : 
+                    '<span class="badge bg-secondary">Inactive</span>';
+                
+                // Get category name
+                const categorySelect = document.querySelector('#editServiceCategory option[value="' + service.category_id + '"]');
+                document.getElementById('viewServiceCategory').textContent = categorySelect ? categorySelect.textContent : 'No Category';
+                
+                // Store service ID for edit button
+                document.getElementById('editFromViewBtn').dataset.serviceId = serviceId;
+                
+                // Show modal
+                new bootstrap.Modal(document.getElementById('viewServiceModal')).show();
+            } else {
+                alert('Service not found');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading service data');
+        });
+}
+
+function editServiceFromView() {
+    const serviceId = document.getElementById('editFromViewBtn').dataset.serviceId;
+    if (serviceId) {
+        // Close view modal
+        bootstrap.Modal.getInstance(document.getElementById('viewServiceModal')).hide();
+        
+        // Open edit modal after a short delay
+        setTimeout(() => {
+            editService(serviceId);
+        }, 300);
+    }
+}
+
 function deleteCategory(categoryId) {
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
         fetch(`/service-categories/${categoryId}/delete`, {
@@ -660,6 +796,31 @@ function deleteCategory(categoryId) {
             alert('An error occurred');
         });
     }
+}
+
+// Simple notification function for this page
+function showNotification(message, type) {
+    // Create a simple toast notification
+    const toastHTML = `
+        <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', toastHTML);
+    const toastElement = document.body.lastElementChild;
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // Remove element after toast is hidden
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
 }
 </script>
 
