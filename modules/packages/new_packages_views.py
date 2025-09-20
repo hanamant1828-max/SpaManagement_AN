@@ -743,14 +743,10 @@ def api_assign_package():
                 
             # Create customer package assignment
             customer_package = CustomerPackage(
-                client_id=customer_id,
+                customer_id=customer_id,
                 package_id=package_id,
-                package_type='prepaid',
-                service_id=service_id,
                 price_paid=price_paid,
-                value_total=template.after_value,
-                value_remaining=template.after_value,
-                expiry_date=expiry_date,
+                expires_on=datetime.combine(expiry_date, datetime.min.time()),
                 notes=notes,
                 status='active'
             )
@@ -785,14 +781,10 @@ def api_assign_package():
                 
             # Create customer package assignment for service package
             customer_package = CustomerPackage(
-                client_id=customer_id,
+                customer_id=customer_id,
                 package_id=package_id,
-                package_type='service_package',
-                service_id=service_id,
                 price_paid=price_paid,
-                total_sessions=template.total_services,
-                used_sessions=0,
-                expiry_date=expiry_date,
+                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
                 notes=notes,
                 status='active'
             )
