@@ -125,7 +125,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main.py"
+args = "python main_simple.py"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -134,6 +134,10 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 36621
+externalPort = 3000
 
 [agent]
 expertMode = true
