@@ -113,7 +113,7 @@ def create_customer_route():
 
         new_customer = create_customer(customer_data)
         flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
-        
+
     except Exception as e:
         db.session.rollback()
         flash(f'Error creating customer: {str(e)}', 'danger')
@@ -257,23 +257,23 @@ def delete_customer_api(id):
     try:
         # Import Customer model with late import to avoid circular dependencies
         from models import Customer
-        
+
         # Check if customer exists
         customer = Customer.query.get(id)
         if not customer:
             return jsonify({'success': False, 'message': 'Customer not found'}), 404
-        
+
         customer_name = f"{customer.first_name} {customer.last_name}"
-        
+
         # Soft delete - mark as inactive instead of hard delete to preserve data integrity
         customer.is_active = False
         db.session.commit()
-        
+
         return jsonify({
             'success': True, 
             'message': f'Customer "{customer_name}" deleted successfully'
         }), 200
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
@@ -320,7 +320,7 @@ def api_get_customer(customer_id):
         total_visits = customer.total_visits or 0
         total_spent = customer.total_spent or 0.0
         last_visit = customer.last_visit.isoformat() if customer.last_visit else None
-        
+
         # Determine customer status
         status = 'New Customer'
         if not customer.is_active:
@@ -359,41 +359,73 @@ def api_get_customer(customer_id):
 
 @app.route('/api/customers', methods=['GET'])
 @login_required
-def api_get_customers():
-    """API endpoint to get all customers for JavaScript"""
-    if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
+def api_customers():
+    from models import Customer
+
+    customers = Customer.query.filter_by(is_active=True).all()
+    return jsonify([{
+        'id': c.id,
+        'name': c.full_name,
+        'phone': c.phone,
+        'email': c.email
+    } for c in customers])
+
+@app.route('/api/customers/<int:customer_id>')
+def api_get_customer(customer_id):
+    """Get individual customer details"""
+    from models import Customer, Appointment
+    from sqlalchemy import func
 
     try:
-        customers = get_all_customers()
-        customer_data = []
-        for customer in customers:
-            customer_data.append({
-                'id': customer.id,
-                'first_name': customer.first_name,
-                'last_name': customer.last_name,
-                'full_name': customer.full_name,
-                'email': customer.email,
-                'phone': customer.phone,
-                'gender': customer.gender,
-                'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else None,
-                'address': customer.address,
-                'total_visits': customer.total_visits,
-                'total_spent': customer.total_spent,
-                'last_visit': customer.last_visit.isoformat() if customer.last_visit else None,
-                'is_active': customer.is_active,
-                'status': customer.status,
-                'loyalty_points': customer.loyalty_points,
-                'is_vip': customer.is_vip
-            })
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'not_found'}), 404
 
-        return jsonify({
-            'success': True,
-            'customers': customer_data
-        })
+        # Get visit count
+        try:
+            visits = db.session.query(func.count(Appointment.id)).filter(
+                Appointment.client_id == customer_id
+            ).scalar() or 0
+        except:
+            visits = customer.total_visits or 0
+
+        # Calculate age from date of birth
+        age = None
+        if customer.date_of_birth:
+            from datetime import date
+            today = date.today()
+            age = today.year - customer.date_of_birth.year - (
+                (today.month, today.day) < (customer.date_of_birth.month, customer.date_of_birth.day)
+            )
+
+        payload = {
+            'id': customer.id,
+            'first_name': customer.first_name or '',
+            'last_name': customer.last_name or '',
+            'full_name': customer.full_name,
+            'email': (customer.email or '').lower(),
+            'phone': customer.phone or '',
+            'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else None,
+            'age': age,
+            'gender': customer.gender or '',
+            'address': customer.address or '',
+            'last_visit': customer.last_visit.isoformat() if customer.last_visit else None,
+            'total_visits': visits,
+            'total_spent': float(customer.total_spent or 0),
+            'is_active': bool(customer.is_active),
+            'is_vip': bool(getattr(customer, 'is_vip', False)),
+            'preferences': customer.preferences or '',
+            'allergies': customer.allergies or '',
+            'notes': customer.notes or '',
+            'loyalty_points': getattr(customer, 'loyalty_points', 0) or 0,
+            'status': customer.status or 'Active'
+        }
+
+        return jsonify({'success': True, 'customer': payload})
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'server_error', 'message': str(e)}), 500
+
 
 @app.route('/api/save_face', methods=['POST'])
 @login_required
