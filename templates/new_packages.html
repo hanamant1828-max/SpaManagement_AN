@@ -139,12 +139,17 @@
                                             <td>{{ package.benefit_percent }}%</td>
                                             <td>{{ package.validity_months }} months</td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editService({{ package.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ package.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm" onclick="assignPackage({{ package.id }}, '{{ package.name }}', 'service')" title="Assign Package">
+                                                        <i class="fas fa-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editService({{ package.id }})" title="Edit Package">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteService({{ package.id }})" title="Delete Package">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -587,6 +592,49 @@
     </div>
 </div>
 
+<!-- Assign Package Modal -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Package to Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPackageForm">
+                    <input type="hidden" id="assign_package_id">
+                    <input type="hidden" id="assign_package_type">
+                    <div class="mb-3">
+                        <label class="form-label">Package Name</label>
+                        <input type="text" id="assign_package_name" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Customer</label>
+                        <select name="customer_id" id="assign_customer_id" class="form-select" required>
+                            <option value="">Choose customer...</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Custom Amount (Optional)</label>
+                        <input type="number" name="custom_amount" id="assign_custom_amount" class="form-control" step="0.01">
+                        <small class="text-muted">Leave empty to use standard package amount</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" id="assign_notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPackageAssignment()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 let selectedServices = new Set();
@@ -982,6 +1030,51 @@ function deleteKitty(partyId) {
             }
         });
     }
+}
+
+function assignPackage(packageId, packageName, packageType) {
+    document.getElementById('assign_package_id').value = packageId;
+    document.getElementById('assign_package_name').value = packageName;
+    document.getElementById('assign_package_type').value = packageType;
+
+    // Reset form
+    document.getElementById('assignPackageForm').reset();
+    document.getElementById('assign_package_id').value = packageId;
+    document.getElementById('assign_package_name').value = packageName;
+    document.getElementById('assign_package_type').value = packageType;
+
+    const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
+    modal.show();
+}
+
+function submitPackageAssignment() {
+    const form = document.getElementById('assignPackageForm');
+    const formData = new FormData(form);
+    const packageId = document.getElementById('assign_package_id').value;
+    const packageType = document.getElementById('assign_package_type').value;
+
+    // Add hidden fields to formData
+    formData.append('package_id', packageId);
+    formData.append('package_type', packageType);
+
+    fetch(`/packages/assign/${packageId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while assigning the package');
+    });
 }
 </script>
 
