@@ -72,7 +72,21 @@
                     <i class="fas fa-minus-circle me-1"></i>Consumption
                 </button>
             </li>
-            
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="batches-tab" data-bs-toggle="pill" data-bs-target="#batches" type="button" role="tab">
+                    <i class="fas fa-layer-group me-1"></i>Batches
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="status-tab" data-bs-toggle="pill" data-bs-target="#status" type="button" role="tab">
+                    <i class="fas fa-chart-line me-1"></i>Status Overview
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reports-tab" data-bs-toggle="pill" data-bs-target="#reports" type="button" role="tab">
+                    <i class="fas fa-file-alt me-1"></i>Reports
+                </button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -125,7 +139,30 @@
                     <p class="mt-2">Loading consumption...</p>
                 </div>
             </div>
-            
+            <div class="tab-pane fade" id="batches" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading batches...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="status" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading status...</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="reports" role="tabpanel">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading reports...</p>
+                </div>
+            </div>
         </div>
     </div>
 
