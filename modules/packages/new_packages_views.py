@@ -824,8 +824,142 @@ def api_assign_package():
                 'id': assignment.id
             })
             
+        # Handle membership assignment
+        elif package_type == 'membership':
+            from .new_packages_queries import get_membership_by_id
+            
+            template = get_membership_by_id(package_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Membership template not found'}), 404
+                
+            # Calculate expiry date
+            if expires_on:
+                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
+            else:
+                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30)
+                
+            # Create assignment record
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='membership',
+                package_reference_id=package_id,
+                assigned_on=datetime.utcnow(),
+                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
+                price_paid=price_paid or template.price,
+                notes=notes,
+                status='active'
+            )
+            
+            db.session.add(assignment)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Membership "{template.name}" assigned successfully to {customer.full_name}',
+                'id': assignment.id
+            })
+            
+        # Handle student offer assignment
+        elif package_type == 'student':
+            from .new_packages_queries import get_student_offer_by_id
+            
+            template = get_student_offer_by_id(package_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Student offer template not found'}), 404
+                
+            # Calculate expiry date
+            if expires_on:
+                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
+            else:
+                expiry_date = datetime.now().date() + timedelta(days=template.valid_days) if template.valid_days else None
+                
+            # Create assignment record
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='student',
+                package_reference_id=package_id,
+                assigned_on=datetime.utcnow(),
+                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
+                price_paid=price_paid or template.after_price,
+                notes=notes,
+                status='active'
+            )
+            
+            db.session.add(assignment)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Student offer "{template.service_name}" assigned successfully to {customer.full_name}',
+                'id': assignment.id
+            })
+            
+        # Handle yearly membership assignment
+        elif package_type == 'yearly':
+            from .new_packages_queries import get_yearly_membership_by_id
+            
+            template = get_yearly_membership_by_id(package_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Yearly membership template not found'}), 404
+                
+            # Calculate expiry date
+            if expires_on:
+                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
+            else:
+                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30)
+                
+            # Create assignment record
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='yearly',
+                package_reference_id=package_id,
+                assigned_on=datetime.utcnow(),
+                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
+                price_paid=price_paid or template.price,
+                notes=notes,
+                status='active'
+            )
+            
+            db.session.add(assignment)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Yearly membership "{template.name}" assigned successfully to {customer.full_name}',
+                'id': assignment.id
+            })
+            
+        # Handle kitty party assignment
+        elif package_type == 'kitty':
+            from .new_packages_queries import get_kitty_party_by_id
+            
+            template = get_kitty_party_by_id(package_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Kitty party template not found'}), 404
+                
+            # Create assignment record (kitty parties may not have expiry)
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='kitty',
+                package_reference_id=package_id,
+                assigned_on=datetime.utcnow(),
+                expires_on=None,  # Kitty parties typically don't expire
+                price_paid=price_paid or template.price,
+                notes=notes,
+                status='active'
+            )
+            
+            db.session.add(assignment)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Kitty party "{template.name}" assigned successfully to {customer.full_name}',
+                'id': assignment.id
+            })
+            
         else:
-            return jsonify({'success': False, 'error': 'Package type not supported yet'}), 400
+            return jsonify({'success': False, 'error': 'Package type not supported'}), 400
             
     except Exception as e:
         db.session.rollback()

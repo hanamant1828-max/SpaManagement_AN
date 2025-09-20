@@ -185,12 +185,22 @@
                                             <td>{{ membership.validity_months }} months</td>
                                             <td>{{ membership.services_included[:50] }}...</td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editMembership({{ membership.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteMembership({{ membership.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="openAssignSimple({{ membership.id }}, 'membership')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ membership.id }}"
+                                                            data-package-type="membership">
+                                                        <i class="fas fa-user-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editMembership({{ membership.id }})">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteMembership({{ membership.id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -230,12 +240,22 @@
                                             <td class="text-success">₹{{ "{:,.0f}".format(offer.money_saved) }}</td>
                                             <td>{{ offer.valid_days }}</td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editStudent({{ offer.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent({{ offer.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="openAssignSimple({{ offer.id }}, 'student')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ offer.id }}"
+                                                            data-package-type="student">
+                                                        <i class="fas fa-user-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editStudent({{ offer.id }})">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteStudent({{ offer.id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -273,12 +293,22 @@
                                             <td>{{ membership.validity_months }} months</td>
                                             <td>{{ membership.extra_benefits[:30] if membership.extra_benefits else 'None' }}...</td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editYearly({{ membership.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteYearly({{ membership.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="openAssignSimple({{ membership.id }}, 'yearly')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ membership.id }}"
+                                                            data-package-type="yearly">
+                                                        <i class="fas fa-user-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editYearly({{ membership.id }})">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteYearly({{ membership.id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -316,12 +346,22 @@
                                             <td>{{ party.min_guests }}</td>
                                             <td>{{ party.services_included[:30] if party.services_included else 'None' }}...</td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editKitty({{ party.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteKitty({{ party.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="openAssignSimple({{ party.id }}, 'kitty')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ party.id }}"
+                                                            data-package-type="kitty">
+                                                        <i class="fas fa-user-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editKitty({{ party.id }})">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteKitty({{ party.id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -741,6 +781,52 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="submitPackageAssignment()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Minimal Assign Modal -->
+<div class="modal fade" id="assignSimpleModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus text-primary me-2"></i>Assign Package to Customer
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignSimpleForm">
+                    <div class="mb-3">
+                        <label for="asTemplateName" class="form-label">Package</label>
+                        <input type="text" class="form-control" id="asTemplateName" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="asCustomer" class="form-label">Customer *</label>
+                        <select class="form-select" id="asCustomer" required>
+                            <option value="">Select customer...</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select a customer.
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden fields -->
+                    <input type="hidden" id="asTemplateId">
+                    <input type="hidden" id="asPackageType">
+                    <input type="hidden" id="asPricePaid">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="asSave" disabled>
+                    <i class="fas fa-user-plus me-2"></i>Assign
+                </button>
             </div>
         </div>
     </div>
@@ -1353,6 +1439,181 @@ function submitPackageAssignment() {
         alert('An error occurred while assigning the package');
     });
 }
+
+// ========================================
+// MINIMAL ASSIGN FLOW FUNCTIONALITY
+// ========================================
+
+/**
+ * Open minimal assign modal for specific package types
+ */
+function openAssignSimple(templateId, packageType) {
+    console.log('Opening simple assign modal for:', templateId, packageType);
+    
+    try {
+        // Get package details based on type
+        let packageData = getPackageDataById(templateId, packageType);
+        
+        if (packageData) {
+            // Fill template name
+            document.getElementById('asTemplateName').value = packageData.name;
+            
+            // Set hidden fields
+            document.getElementById('asTemplateId').value = templateId;
+            document.getElementById('asPackageType').value = packageType;
+            document.getElementById('asPricePaid').value = packageData.price || 0;
+            
+            // Enable save button when customer is selected
+            const customerSelect = document.getElementById('asCustomer');
+            customerSelect.addEventListener('change', function() {
+                const saveBtn = document.getElementById('asSave');
+                saveBtn.disabled = !this.value;
+            });
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('assignSimpleModal'));
+            modal.show();
+        } else {
+            alert('Error loading package details');
+        }
+    } catch (error) {
+        console.error('Error opening simple assign modal:', error);
+        alert('Error loading package details');
+    }
+}
+
+/**
+ * Get package data by ID and type from the rendered data
+ */
+function getPackageDataById(templateId, packageType) {
+    let packageData = null;
+    
+    // Get data from the respective table based on package type
+    if (packageType === 'membership') {
+        // Find in memberships table
+        const rows = document.querySelectorAll('#membership tbody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[1].textContent.replace(/[₹,]/g, '')) || 0
+                };
+            }
+        });
+    } else if (packageType === 'student') {
+        // Find in student offers table
+        const rows = document.querySelectorAll('#student tbody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[2].textContent.replace(/[₹,]/g, '')) || 0 // After price
+                };
+            }
+        });
+    } else if (packageType === 'yearly') {
+        // Find in yearly memberships table
+        const rows = document.querySelectorAll('#yearly tbody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[1].textContent.replace(/[₹,]/g, '')) || 0
+                };
+            }
+        });
+    } else if (packageType === 'kitty') {
+        // Find in kitty parties table
+        const rows = document.querySelectorAll('#kitty tbody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[1].textContent.replace(/[₹,]/g, '')) || 0
+                };
+            }
+        });
+    }
+    
+    return packageData;
+}
+
+/**
+ * Save simple package assignment
+ */
+function saveAssignSimple() {
+    console.log('Saving simple package assignment...');
+    
+    try {
+        const templateId = document.getElementById('asTemplateId').value;
+        const packageType = document.getElementById('asPackageType').value;
+        const customerId = document.getElementById('asCustomer').value;
+        const pricePaid = document.getElementById('asPricePaid').value;
+        
+        if (!templateId || !packageType || !customerId) {
+            alert('Please fill all required fields');
+            return;
+        }
+        
+        const data = {
+            package_type: packageType,
+            package_id: templateId,
+            customer_id: parseInt(customerId),
+            price_paid: parseFloat(pricePaid)
+        };
+        
+        fetch('/packages/api/assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Package assigned successfully!');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
+                modal.hide();
+                
+                // Reset form
+                document.getElementById('assignSimpleForm').reset();
+                document.getElementById('asSave').disabled = true;
+                
+                // Optionally reload page to show updated data
+                location.reload();
+                
+            } else {
+                alert(result.error || 'Error assigning package');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving package assignment:', error);
+            alert('Error assigning package');
+        });
+    } catch (error) {
+        console.error('Error saving package assignment:', error);
+        alert('Error assigning package');
+    }
+}
+
+// Add event listener for save button
+document.addEventListener('DOMContentLoaded', function() {
+    const saveBtn = document.getElementById('asSave');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveAssignSimple);
+    }
+});
 </script>
 
 {% endblock %}
