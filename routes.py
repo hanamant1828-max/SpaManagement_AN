@@ -87,10 +87,12 @@ try:
     from modules.settings import settings_views
     from modules.staff import staff_views
     from modules.staff.shift_scheduler_views import shift_scheduler_bp
+    from modules.billing import integrated_billing_views
     
     # Register the shift scheduler blueprint
     app.register_blueprint(shift_scheduler_bp)
     print("Shift scheduler blueprint registered successfully")
+    print("Integrated billing views imported successfully")
     print("All modules imported successfully")
 except ImportError as e:
     print(f"Module import error: {e}")
