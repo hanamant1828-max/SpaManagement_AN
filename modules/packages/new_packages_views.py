@@ -580,3 +580,192 @@ def add_service_package():
     except Exception as e:
         flash(f'Error creating service package: {str(e)}', 'error')
         return redirect(url_for('new_packages'))
+
+# ========================================
+# NEW API ENDPOINTS FOR PREPAID ASSIGNMENT
+# ========================================
+
+@app.route('/packages/api/templates/<int:template_id>', methods=['GET'])
+@login_required
+def api_get_package_template(template_id):
+    """Get specific package template details"""
+    try:
+        from .new_packages_queries import get_prepaid_package_by_id, get_service_package_by_id
+        
+        # Try to get as prepaid package first
+        template = get_prepaid_package_by_id(template_id)
+        if template:
+            return jsonify({
+                'success': True,
+                'template': {
+                    'id': template.id,
+                    'name': template.name,
+                    'pay_amount': template.actual_price,
+                    'actual_price': template.actual_price,
+                    'get_value': template.after_value,
+                    'after_value': template.after_value,
+                    'benefit_percent': template.benefit_percent,
+                    'validity_months': template.validity_months,
+                    'package_type': 'prepaid'
+                }
+            })
+            
+        # Try service package
+        template = get_service_package_by_id(template_id)
+        if template:
+            return jsonify({
+                'success': True,
+                'template': {
+                    'id': template.id,
+                    'name': template.name,
+                    'pay_for': template.pay_for,
+                    'total_services': template.total_services,
+                    'free_services': template.free_services,
+                    'benefit_percent': template.benefit_percent,
+                    'validity_months': template.validity_months,
+                    'package_type': 'service_package'
+                }
+            })
+            
+        return jsonify({'success': False, 'error': 'Template not found'}), 404
+        
+    except Exception as e:
+        logging.error(f"Error fetching template {template_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/packages/api/customers', methods=['GET'])
+@login_required
+def api_get_customers():
+    """Get customers with optional search"""
+    try:
+        from models import Client
+        
+        query = request.args.get('q', '').strip()
+        
+        if query:
+            # Search by name or phone
+            customers = Client.query.filter(
+                (Client.full_name.ilike(f'%{query}%')) |
+                (Client.phone.ilike(f'%{query}%'))
+            ).order_by(Client.full_name).limit(50).all()
+        else:
+            # Get all customers (limit for performance)
+            customers = Client.query.order_by(Client.full_name).limit(100).all()
+            
+        return jsonify({
+            'success': True,
+            'customers': [{
+                'id': c.id,
+                'name': c.full_name,
+                'phone': c.phone or '',
+                'email': c.email or ''
+            } for c in customers]
+        })
+        
+    except Exception as e:
+        logging.error(f"Error fetching customers: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/packages/api/services', methods=['GET'])
+@login_required 
+def api_get_services():
+    """Get available services"""
+    try:
+        services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        
+        return jsonify({
+            'success': True,
+            'services': [{
+                'id': s.id,
+                'name': s.name,
+                'price': float(s.price),
+                'duration': s.duration
+            } for s in services]
+        })
+        
+    except Exception as e:
+        logging.error(f"Error fetching services: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/packages/api/assign', methods=['POST'])
+@login_required
+def api_assign_package():
+    """Assign package to customer"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            
+        package_type = data.get('package_type')
+        package_id = data.get('package_id')
+        customer_id = data.get('customer_id')
+        service_id = data.get('service_id')
+        price_paid = data.get('price_paid')
+        expires_on = data.get('expires_on')
+        notes = data.get('notes', '')
+        
+        # Validate required fields
+        if not all([package_type, package_id, customer_id, service_id]):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+            
+        if price_paid is None or price_paid < 0:
+            return jsonify({'success': False, 'error': 'Invalid price paid'}), 400
+            
+        # Import models
+        from models import Client, CustomerPackage
+        from datetime import datetime, timedelta
+        
+        # Verify customer exists
+        customer = Client.query.get(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+            
+        # Verify service exists
+        service = Service.query.get(service_id)
+        if not service:
+            return jsonify({'success': False, 'error': 'Service not found'}), 404
+        
+        # Handle prepaid package assignment
+        if package_type == 'prepaid':
+            from .new_packages_queries import get_prepaid_package_by_id
+            
+            template = get_prepaid_package_by_id(package_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Prepaid package template not found'}), 404
+                
+            # Calculate expiry date
+            if expires_on:
+                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
+            else:
+                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30)
+                
+            # Create customer package assignment
+            customer_package = CustomerPackage(
+                client_id=customer_id,
+                package_id=package_id,
+                package_type='prepaid',
+                service_id=service_id,
+                price_paid=price_paid,
+                value_total=template.after_value,
+                value_remaining=template.after_value,
+                expiry_date=expiry_date,
+                notes=notes,
+                status='active'
+            )
+            
+            db.session.add(customer_package)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Prepaid package assigned successfully to {customer.full_name}',
+                'id': customer_package.id
+            })
+            
+        else:
+            return jsonify({'success': False, 'error': 'Package type not supported yet'}), 400
+            
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error assigning package: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

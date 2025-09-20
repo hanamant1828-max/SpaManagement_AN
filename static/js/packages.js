@@ -634,7 +634,276 @@ function openAssignPackageModal(packageId, packageName, packageType, packagePric
 // Global PackagesUI namespace for assign from template functionality
 window.PackagesUI = window.PackagesUI || {};
 
-// Assign from template function
+// Event delegation for prepaid assignment
+document.addEventListener('click', e => {
+    const b = e.target.closest('[data-action="assign-prepaid"]');
+    if (!b) return;
+    PackagesUI.assignPrepaidFromTemplate(b.dataset.templateId);
+});
+
+// Assign prepaid from template function
+function assignPrepaidFromTemplate(templateId) {
+    console.log('Assigning prepaid from template:', templateId);
+    
+    // Show loading state
+    showToast('Loading package template...', 'info');
+    
+    // Fetch template details and open modal
+    fetch(`/packages/api/templates/${templateId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                openPrepaidAssignModal(data.template);
+            } else {
+                throw new Error(data.error || 'Failed to load template');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading template:', error);
+            showToast('Error loading template: ' + error.message, 'error');
+        });
+}
+
+// Open prepaid assign modal with template data
+function openPrepaidAssignModal(template) {
+    console.log('Opening prepaid assign modal with template:', template);
+    
+    // Populate template data
+    document.getElementById('apTemplateName').value = template.name;
+    document.getElementById('apTemplateId').value = template.id;
+    document.getElementById('apPayAmount').value = template.pay_amount || template.actual_price || 0;
+    document.getElementById('apGetValue').value = template.get_value || template.after_value || 0;
+    document.getElementById('apBenefit').value = template.benefit_percent || 0;
+    document.getElementById('apValidity').value = template.validity_months || 3;
+    document.getElementById('apPricePaid').value = template.pay_amount || template.actual_price || 0;
+    
+    // Clear other fields
+    document.getElementById('apCustomer').value = '';
+    document.getElementById('apService').value = '';
+    document.getElementById('apExpiresOn').value = '';
+    document.getElementById('apNotes').value = '';
+    
+    // Load customers and services
+    Promise.all([loadCustomersForPrepaid(), loadServicesForPrepaid()])
+        .then(() => {
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('assignPrepaidModal'));
+            modal.show();
+            
+            // Focus on customer select
+            setTimeout(() => {
+                document.getElementById('apCustomer').focus();
+            }, 300);
+            
+            // Update form validation
+            validatePrepaidForm();
+        })
+        .catch(error => {
+            console.error('Error loading modal data:', error);
+            showToast('Error loading data for assignment', 'error');
+        });
+}
+
+// Load customers for prepaid modal
+function loadCustomersForPrepaid() {
+    return fetch('/packages/api/customers?q=')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('apCustomer');
+                select.innerHTML = '<option value="">Search / select customer...</option>';
+                
+                data.customers.forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.id;
+                    option.textContent = `${customer.name} - ${customer.phone || 'No phone'}`;
+                    select.appendChild(option);
+                });
+            }
+        });
+}
+
+// Load services for prepaid modal  
+function loadServicesForPrepaid() {
+    return fetch('/packages/api/services')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('apService');
+                select.innerHTML = '<option value="">Choose a service...</option>';
+                
+                data.services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} - ₹${service.price}`;
+                    select.appendChild(option);
+                });
+            }
+        });
+}
+
+// Validate prepaid form and enable/disable save button
+function validatePrepaidForm() {
+    const customer = document.getElementById('apCustomer').value;
+    const service = document.getElementById('apService').value;
+    const pricePaid = parseFloat(document.getElementById('apPricePaid').value) || 0;
+    
+    const isValid = customer && service && pricePaid >= 0;
+    
+    const saveBtn = document.getElementById('apSave');
+    saveBtn.disabled = !isValid;
+    
+    // Update summary if valid
+    if (isValid) {
+        updatePrepaidSummary();
+    } else {
+        document.getElementById('apSummary').style.display = 'none';
+    }
+}
+
+// Update prepaid assignment summary
+function updatePrepaidSummary() {
+    const payAmount = parseFloat(document.getElementById('apPayAmount').value) || 0;
+    const getValue = parseFloat(document.getElementById('apGetValue').value) || 0;
+    const pricePaid = parseFloat(document.getElementById('apPricePaid').value) || 0;
+    const validity = document.getElementById('apValidity').value || 0;
+    
+    // Calculate actual benefit based on price paid
+    const actualBenefit = pricePaid > 0 ? ((getValue - pricePaid) / pricePaid * 100) : 0;
+    
+    const summaryContent = `
+        <div class="row">
+            <div class="col-md-6">
+                <strong>Pay:</strong> ₹${pricePaid.toFixed(2)} → 
+                <strong>Get value:</strong> ₹${getValue.toFixed(2)}
+            </div>
+            <div class="col-md-6">
+                <strong>Benefit:</strong> ${actualBenefit.toFixed(1)}% • 
+                <strong>Validity:</strong> ${validity} months
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('apSummaryContent').innerHTML = summaryContent;
+    document.getElementById('apSummary').style.display = 'block';
+}
+
+// Save prepaid assignment
+function savePrepaidAssignment() {
+    const templateId = document.getElementById('apTemplateId').value;
+    const customerId = document.getElementById('apCustomer').value;
+    const serviceId = document.getElementById('apService').value;
+    const pricePaid = parseFloat(document.getElementById('apPricePaid').value);
+    const expiresOn = document.getElementById('apExpiresOn').value || null;
+    const notes = document.getElementById('apNotes').value || '';
+    
+    if (!templateId || !customerId || !serviceId || pricePaid < 0) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const saveBtn = document.getElementById('apSave');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    
+    const assignmentData = {
+        package_type: 'prepaid',
+        package_id: templateId,
+        customer_id: customerId,
+        service_id: serviceId,
+        price_paid: pricePaid,
+        expires_on: expiresOn,
+        notes: notes
+    };
+    
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(assignmentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`✅ Assigned '${document.getElementById('apTemplateName').value}' to ${document.getElementById('apCustomer').selectedOptions[0]?.textContent.split(' - ')[0] || 'customer'}`, 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPrepaidModal'));
+            modal.hide();
+            
+            // Refresh packages table if it exists
+            if (typeof loadPackages === 'function') {
+                loadPackages();
+            }
+            
+            // Refresh page as fallback
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            throw new Error(data.error || 'Assignment failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error assigning package:', error);
+        showToast('Error assigning package: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Restore button state
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+// Setup prepaid form event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation events
+    const prepaidForm = document.getElementById('assignPrepaidForm');
+    if (prepaidForm) {
+        prepaidForm.addEventListener('input', validatePrepaidForm);
+        prepaidForm.addEventListener('change', validatePrepaidForm);
+    }
+    
+    // Price paid changes trigger benefit recalculation
+    const pricePaidInput = document.getElementById('apPricePaid');
+    if (pricePaidInput) {
+        pricePaidInput.addEventListener('input', () => {
+            validatePrepaidForm();
+            updatePrepaidSummary();
+        });
+    }
+    
+    // Edit pay amount toggle
+    const editPayAmountBtn = document.getElementById('editPayAmount');
+    if (editPayAmountBtn) {
+        editPayAmountBtn.addEventListener('click', () => {
+            const payAmountInput = document.getElementById('apPayAmount');
+            if (payAmountInput.hasAttribute('readonly')) {
+                payAmountInput.removeAttribute('readonly');
+                payAmountInput.focus();
+                editPayAmountBtn.innerHTML = '<i class="fas fa-save"></i>';
+                editPayAmountBtn.title = 'Save Pay Amount';
+            } else {
+                payAmountInput.setAttribute('readonly', true);
+                editPayAmountBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                editPayAmountBtn.title = 'Edit Pay Amount';
+                
+                // Update price paid to match pay amount if not manually set
+                const pricePaidInput = document.getElementById('apPricePaid');
+                if (!pricePaidInput.value || pricePaidInput.value == payAmountInput.value) {
+                    pricePaidInput.value = payAmountInput.value;
+                }
+                
+                validatePrepaidForm();
+            }
+        });
+    }
+});
+
+// Assign from template function (existing functionality)
 function assignFromTemplate(templateId, packageType) {
     console.log('Assigning from template:', templateId, packageType);
 
@@ -652,8 +921,9 @@ function assignFromTemplate(templateId, packageType) {
     openAssignPackageModal(templateId, packageName, packageType, packagePrice);
 }
 
-// Expose assign function globally
+// Expose functions globally
 window.PackagesUI.assignFromTemplate = assignFromTemplate;
+window.PackagesUI.assignPrepaidFromTemplate = assignPrepaidFromTemplate;
 
 /**
  * Show package preview when template is selected

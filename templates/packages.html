@@ -162,7 +162,7 @@
                                                 </button>
                                                 <button type="button" class="btn btn-primary btn-sm" 
                                                         title="Assign to customer" 
-                                                        data-action="assign"
+                                                        data-action="{{ 'assign-prepaid' if package.package_type == 'prepaid' else 'assign' }}"
                                                         data-template-id="{{ package.id }}"
                                                         data-package-type="{{ package.package_type }}"
                                                         data-package-name="{{ package.name }}"
@@ -481,6 +481,123 @@
                     <i class="fas fa-times me-2"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-success" id="confirmAssignButton" onclick="confirmPackageAssignment()">
+                    <i class="fas fa-check me-2"></i>Assign Package
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Prepaid Modal -->
+<div class="modal fade" id="assignPrepaidModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Assign Prepaid Package to Customer
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPrepaidForm">
+                    <!-- Package Template Name (read-only) -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Package Template</label>
+                            <input type="text" id="apTemplateName" class="form-control" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Customer Selection -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer *</label>
+                            <select id="apCustomer" name="customer_id" class="form-select" required>
+                                <option value="">Search / select customer...</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a customer.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Service *</label>
+                            <select id="apService" name="service_id" class="form-select" required>
+                                <option value="">Choose a service...</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a service.</div>
+                        </div>
+                    </div>
+
+                    <!-- Package Values (read-only with edit toggle) -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Pay Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" id="apPayAmount" class="form-control" readonly step="0.01" min="0">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="editPayAmount" title="Edit Pay Amount">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Get Value</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" id="apGetValue" class="form-control" readonly step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Benefit %</label>
+                            <input type="number" id="apBenefit" class="form-control" readonly step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Validity (Months)</label>
+                            <input type="number" id="apValidity" class="form-control" readonly min="1">
+                        </div>
+                    </div>
+
+                    <!-- Price Paid (editable) -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Price Paid *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" id="apPricePaid" name="price_paid" class="form-control" required step="0.01" min="0">
+                            </div>
+                            <small class="text-muted">Amount customer actually pays</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Expires On (Optional)</label>
+                            <input type="date" id="apExpiresOn" name="expires_on" class="form-control">
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <textarea id="apNotes" name="notes" class="form-control" rows="3" placeholder="Additional notes about this assignment..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Summary Display -->
+                    <div class="alert alert-info" id="apSummary" style="display: none;">
+                        <h6 class="alert-heading mb-2">
+                            <i class="fas fa-info-circle me-2"></i>Assignment Summary
+                        </h6>
+                        <div id="apSummaryContent">
+                            <!-- Summary will be dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Hidden fields -->
+                    <input type="hidden" id="apTemplateId" name="template_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+                <button type="button" class="btn btn-success" id="apSave" disabled onclick="savePrepaidAssignment()">
                     <i class="fas fa-check me-2"></i>Assign Package
                 </button>
             </div>
