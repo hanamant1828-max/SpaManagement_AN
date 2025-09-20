@@ -1,43 +1,26 @@
 
 """
-Billing Views Module
-Main billing functionality for the spa management system
+Billing Views Module - Redirects to Integrated Billing
+All billing functionality is now handled by integrated_billing_views.py
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from app import app, db
-from models import *
-from datetime import datetime, timedelta
-import logging
+from flask import Blueprint, redirect, url_for
+from app import app
 
-# Create billing blueprint
+# Create billing blueprint for backward compatibility
 billing_bp = Blueprint('billing', __name__, url_prefix='/billing')
-
-# Main billing route removed - handled by integrated_billing_views.py
 
 @app.route('/billing/invoices')
 def billing_invoices():
-    """View all invoices"""
-    try:
-        invoices = []
-        return render_template('billing.html', invoices=invoices)
-    except Exception as e:
-        logging.error(f"Error loading invoices: {e}")
-        flash('Error loading invoices', 'danger')
-        return redirect(url_for('billing'))
+    """Redirect to integrated billing invoices"""
+    return redirect(url_for('list_integrated_invoices'))
 
 @app.route('/billing/payments')
 def billing_payments():
-    """View all payments"""
-    try:
-        payments = []
-        return render_template('billing.html', payments=payments)
-    except Exception as e:
-        logging.error(f"Error loading payments: {e}")
-        flash('Error loading payments', 'danger')
-        return redirect(url_for('billing'))
+    """Redirect to integrated billing"""
+    return redirect(url_for('integrated_billing'))
 
 # Register the blueprint
 app.register_blueprint(billing_bp)
 
-print("Billing views loaded successfully")
+print("Billing views redirecting to integrated billing system")

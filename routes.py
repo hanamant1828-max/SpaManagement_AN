@@ -236,15 +236,9 @@ def test_navigation():
     return render_template('test_navigation.html')
 
 @app.route('/billing')
-
 def billing():
-    """Billing page"""
-    try:
-        from modules.billing import billing_views
-        return redirect(url_for('integrated_billing'))
-    except:
-        # Fallback if billing module not available
-        return render_template('billing.html')
+    """Redirect to integrated billing"""
+    return redirect(url_for('integrated_billing'))
 
 @app.route('/communications')
 
