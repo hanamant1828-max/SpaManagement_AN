@@ -534,6 +534,35 @@ class KittyParty(db.Model):
     # Relationships
     kittyparty_services = db.relationship('KittyPartyService', backref='kittyparty', lazy=True, cascade='all, delete-orphan')
 
+# Package-Service Relationship Models
+class MembershipService(db.Model):
+    """Many-to-many relationship for memberships and services"""
+    __tablename__ = 'membership_services'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    membership_id = db.Column(db.Integer, db.ForeignKey('memberships.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    service = db.relationship('Service', backref='membership_services')
+
+    __table_args__ = (db.UniqueConstraint('membership_id', 'service_id'),)
+
+class KittyPartyService(db.Model):
+    """Many-to-many relationship for kitty parties and services"""
+    __tablename__ = 'kittyparty_services'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    kittyparty_id = db.Column(db.Integer, db.ForeignKey('kitty_parties.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    service = db.relationship('Service', backref='kittyparty_services')
+
+    __table_args__ = (db.UniqueConstraint('kittyparty_id', 'service_id'),)
+
 # Inventory Management Models are located in modules/inventory/models.py
 
 class Expense(db.Model):

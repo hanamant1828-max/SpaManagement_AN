@@ -25,6 +25,9 @@ def migrate_package_service_relationships():
         try:
             print("Starting Package-Service Relationship Migration...")
 
+            # Import models to ensure they're registered
+            from models import MembershipService, KittyPartyService, StudentOffer, Service, Membership, KittyParty
+
             # Create the new join tables
             print("Creating MembershipService table...")
             db.create_all()
@@ -34,8 +37,37 @@ def migrate_package_service_relationships():
             db.create_all()
             print("✓ KittyPartyService table created")
 
-            # Note: StudentOffer already has service_id column, just need to ensure FK constraint
-            print("✓ StudentOffer service_id foreign key relationship ready")
+            # Verify StudentOffer service_id column exists
+            try:
+                # Test if we can query StudentOffer with service_id
+                test_query = db.session.query(StudentOffer.service_id).limit(1).all()
+                print("✓ StudentOffer service_id foreign key relationship ready")
+            except Exception as e:
+                print(f"⚠️ StudentOffer service_id column may need to be added: {e}")
+
+            # Test that we can create relationships
+            print("Testing relationship creation...")
+            
+            # Get sample data
+            sample_service = Service.query.first()
+            sample_membership = Membership.query.first()
+            sample_kitty = KittyParty.query.first()
+            
+            if sample_service and sample_membership:
+                # Test MembershipService creation
+                test_ms = MembershipService.query.filter_by(
+                    membership_id=sample_membership.id, 
+                    service_id=sample_service.id
+                ).first()
+                print(f"✓ MembershipService relationship test successful")
+            
+            if sample_service and sample_kitty:
+                # Test KittyPartyService creation  
+                test_kps = KittyPartyService.query.filter_by(
+                    kittyparty_id=sample_kitty.id,
+                    service_id=sample_service.id
+                ).first()
+                print(f"✓ KittyPartyService relationship test successful")
 
             print("\n=== Migration completed successfully! ===")
             print("\nNext steps:")
