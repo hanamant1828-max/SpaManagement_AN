@@ -20,6 +20,119 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePackages();
 });
 
+// Global functions that need to be available immediately
+window.openAssignModal = function() {
+    console.log('Opening assign modal...');
+    loadTemplates().then(() => {
+        loadCustomers().then(() => {
+            const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
+            modal.show();
+        });
+    });
+};
+
+window.clearFilters = function() {
+    console.log('Clearing filters...');
+    document.getElementById('searchInput').value = '';
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    
+    if (statusFilter) statusFilter.value = '';
+    if (dateFrom) dateFrom.value = '';
+    if (dateTo) dateTo.value = '';
+    
+    // Reset current filters
+    currentFilters = {};
+    currentPage = 1;
+    
+    loadPackages();
+};
+
+window.applyFilters = function() {
+    console.log('Applying filters...');
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    
+    currentFilters = {};
+    
+    if (searchInput && searchInput.value.trim()) {
+        currentFilters.q = searchInput.value.trim();
+    }
+    
+    if (statusFilter && statusFilter.value) {
+        currentFilters.status = statusFilter.value;
+    }
+    
+    if (dateFrom && dateFrom.value) {
+        currentFilters.date_from = dateFrom.value;
+    }
+    
+    if (dateTo && dateTo.value) {
+        currentFilters.date_to = dateTo.value;
+    }
+    
+    currentPage = 1;
+    loadPackages();
+};
+
+window.openDetails = function(packageId) {
+    console.log('Opening package details for:', packageId);
+    openDetails(packageId);
+};
+
+window.openUseModal = function(packageId) {
+    console.log('Opening usage modal for package:', packageId);
+    if (packageId) {
+        currentPackageId = packageId;
+    }
+    
+    // Populate service dropdown with package services
+    if (currentPackageDetails && currentPackageDetails.items) {
+        const usageSelect = document.getElementById('usageService');
+        if (usageSelect) {
+            usageSelect.innerHTML = '<option value="">Select service...</option>';
+            currentPackageDetails.items.forEach(item => {
+                if (item.remaining_qty > 0) {
+                    const option = document.createElement('option');
+                    option.value = item.service_id;
+                    option.textContent = `${item.service_name} (${item.remaining_qty} remaining)`;
+                    usageSelect.appendChild(option);
+                }
+            });
+        }
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('recordUsageModal'));
+    modal.show();
+};
+
+window.openAdjustModal = function(packageId) {
+    console.log('Opening adjust modal for package:', packageId);
+    if (packageId) {
+        currentPackageId = packageId;
+    }
+    
+    // Populate service dropdown with package services
+    if (currentPackageDetails && currentPackageDetails.items) {
+        const adjustSelect = document.getElementById('adjustService');
+        if (adjustSelect) {
+            adjustSelect.innerHTML = '<option value="">Select service...</option>';
+            currentPackageDetails.items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.service_id;
+                option.textContent = `${item.service_name} (Used: ${item.used_qty}, Total: ${item.total_qty})`;
+                adjustSelect.appendChild(option);
+            });
+        }
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('adjustRefundModal'));
+    modal.show();
+};
+
 /**
  * Initialize the packages system
  */
