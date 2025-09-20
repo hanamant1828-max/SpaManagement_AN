@@ -20,37 +20,44 @@ def seed_departments():
             {
                 'name': 'spa_services',
                 'display_name': 'Spa Services',
-                'description': 'Body treatments, massages, and wellness services'
+                'description': 'Body treatments, massages, and wellness services',
+                'is_active': True
             },
             {
                 'name': 'facial_services',
                 'display_name': 'Facial Services',
-                'description': 'Facial treatments, skincare, and beauty services'
+                'description': 'Facial treatments, skincare, and beauty services',
+                'is_active': True
             },
             {
                 'name': 'hair_salon',
                 'display_name': 'Hair Salon',
-                'description': 'Hair cutting, styling, and treatments'
+                'description': 'Hair cutting, styling, and treatments',
+                'is_active': True
             },
             {
                 'name': 'nail_services',
                 'display_name': 'Nail Services',
-                'description': 'Manicures, pedicures, and nail art'
+                'description': 'Manicures, pedicures, and nail art',
+                'is_active': True
             },
             {
                 'name': 'reception',
                 'display_name': 'Reception',
-                'description': 'Front desk and customer service'
+                'description': 'Front desk and customer service',
+                'is_active': True
             },
             {
                 'name': 'management',
                 'display_name': 'Management',
-                'description': 'Administrative and management roles'
+                'description': 'Administrative and management roles',
+                'is_active': True
             },
             {
                 'name': 'wellness',
                 'display_name': 'Wellness Center',
-                'description': 'Holistic wellness and therapy services'
+                'description': 'Holistic wellness and therapy services',
+                'is_active': True
             }
         ]
 
