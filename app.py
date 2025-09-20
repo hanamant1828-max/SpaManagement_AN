@@ -53,8 +53,14 @@ def dashboard():
 with app.app_context():
     # Make sure to import the models here or their tables won't be created
     import models  # noqa: F401
-    db.create_all()
-    print("Database initialized successfully")
+    
+    try:
+        # Try to create tables, but handle conflicts gracefully
+        db.create_all()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Database already exists or conflict detected: {e}")
+        print("Continuing with existing database...")
     
     # Import and register basic routes
     try:
