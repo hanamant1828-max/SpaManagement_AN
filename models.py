@@ -565,6 +565,203 @@ class KittyPartyService(db.Model):
 
 # Inventory Management Models are located in modules/inventory/models.py
 
+# ========================================
+# CUSTOMER PACKAGE MANAGEMENT MODELS
+# ========================================
+
+class PackageTemplate(db.Model):
+    """Template for package definitions"""
+    __tablename__ = 'package_template'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    pkg_type = db.Column(db.Enum('session', 'value', name='package_type'), default='session')
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    template_items = db.relationship('PackageTemplateItem', backref='package_template', lazy=True, cascade='all, delete-orphan')
+    customer_packages = db.relationship('CustomerPackage', backref='package_template', lazy=True)
+    
+    def __repr__(self):
+        return f'<PackageTemplate {self.name}>'
+
+
+class PackageTemplateItem(db.Model):
+    """Components per service for package templates"""
+    __tablename__ = 'package_template_item'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    package_id = db.Column(db.Integer, db.ForeignKey('package_template.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    qty = db.Column(db.Integer, nullable=False)  # For value-type packages, omit items
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    service = db.relationship('Service', backref='package_template_items')
+    
+    def __repr__(self):
+        return f'<PackageTemplateItem Package:{self.package_id} Service:{self.service_id} Qty:{self.qty}>'
+
+
+class CustomerPackage(db.Model):
+    """Customer package assignments"""
+    __tablename__ = 'customer_package'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # FK to client table
+    package_id = db.Column(db.Integer, db.ForeignKey('package_template.id'), nullable=False)
+    assigned_on = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_on = db.Column(db.DateTime, nullable=True)
+    price_paid = db.Column(db.Numeric(10, 2), nullable=False)
+    discount = db.Column(db.Numeric(10, 2), default=0)
+    status = db.Column(db.Enum('active', 'completed', 'expired', 'paused', name='package_status'), default='active')
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    customer = db.relationship('Customer', backref='customer_packages')  # Customer model uses 'client' table
+    package_items = db.relationship('CustomerPackageItem', backref='customer_package', lazy=True, cascade='all, delete-orphan')
+    usage_logs = db.relationship('PackageUsage', backref='customer_package', lazy=True)
+    
+    # Indexes
+    __table_args__ = (
+        db.Index('ix_customer_package_customer_status', 'customer_id', 'status'),
+    )
+    
+    def get_total_services(self):
+        """Get total services count"""
+        return sum(item.total_qty for item in self.package_items)
+    
+    def get_used_services(self):
+        """Get used services count"""
+        return sum(item.used_qty for item in self.package_items)
+    
+    def get_remaining_services(self):
+        """Get remaining services count"""
+        return sum(item.get_remaining_qty() for item in self.package_items)
+    
+    def get_usage_percentage(self):
+        """Get usage percentage"""
+        total = self.get_total_services()
+        if total == 0:
+            return 0
+        used = self.get_used_services()
+        return round((used / total) * 100, 2)
+    
+    def is_expired(self):
+        """Check if package is expired"""
+        if self.expires_on and self.expires_on < datetime.utcnow():
+            return True
+        return False
+    
+    def auto_update_status(self):
+        """Auto-update status based on usage and expiry"""
+        if self.is_expired():
+            self.status = 'expired'
+        elif self.get_remaining_services() == 0:
+            self.status = 'completed'
+        return self.status
+    
+    def __repr__(self):
+        return f'<CustomerPackage {self.id}: Customer {self.customer_id} - Package {self.package_id}>'
+
+
+class CustomerPackageItem(db.Model):
+    """Per-service balances for customer packages"""
+    __tablename__ = 'customer_package_item'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    customer_package_id = db.Column(db.Integer, db.ForeignKey('customer_package.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    total_qty = db.Column(db.Integer, nullable=False)
+    used_qty = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    service = db.relationship('Service', backref='customer_package_items')
+    usage_logs = db.relationship('PackageUsage', backref='customer_package_item', lazy=True)
+    
+    # Indexes
+    __table_args__ = (
+        db.Index('ix_customer_package_item_package', 'customer_package_id'),
+        db.Index('ix_customer_package_item_service', 'service_id'),
+    )
+    
+    def get_remaining_qty(self):
+        """Get remaining quantity (computed)"""
+        return max(self.total_qty - self.used_qty, 0)
+    
+    def can_use(self, qty):
+        """Check if can use specified quantity"""
+        return self.get_remaining_qty() >= qty
+    
+    def use_services(self, qty):
+        """Use services and update used_qty"""
+        if self.can_use(qty):
+            self.used_qty += qty
+            self.updated_at = datetime.utcnow()
+            return True
+        return False
+    
+    def refund_services(self, qty):
+        """Refund services and update used_qty"""
+        if self.used_qty >= qty:
+            self.used_qty -= qty
+            self.updated_at = datetime.utcnow()
+            return True
+        return False
+    
+    def adjust_services(self, qty):
+        """Adjust total quantity"""
+        new_total = self.total_qty + qty
+        if new_total >= self.used_qty:  # Never allow negative remaining
+            self.total_qty = new_total
+            self.updated_at = datetime.utcnow()
+            return True
+        return False
+    
+    def __repr__(self):
+        return f'<CustomerPackageItem {self.id}: Package {self.customer_package_id} - Service {self.service_id} ({self.used_qty}/{self.total_qty})>'
+
+
+class PackageUsage(db.Model):
+    """Audit log for package usage"""
+    __tablename__ = 'package_usage'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    customer_package_id = db.Column(db.Integer, db.ForeignKey('customer_package.id'), nullable=False)
+    customer_package_item_id = db.Column(db.Integer, db.ForeignKey('customer_package_item.id'), nullable=True)
+    usage_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
+    qty = db.Column(db.Integer, default=0)
+    change_type = db.Column(db.Enum('use', 'refund', 'adjust', name='usage_type'), default='use')
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=True)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    service = db.relationship('Service', backref='package_usage_logs')
+    staff = db.relationship('User', backref='package_usage_logs')
+    appointment = db.relationship('Appointment', backref='package_usage_logs')
+    
+    # Indexes
+    __table_args__ = (
+        db.Index('ix_package_usage_customer_package', 'customer_package_id'),
+        db.Index('ix_package_usage_service', 'service_id'),
+        db.Index('ix_package_usage_date', 'usage_date'),
+    )
+    
+    def __repr__(self):
+        return f'<PackageUsage {self.id}: {self.change_type} {self.qty} - Package {self.customer_package_id}>'
+
+
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(200), nullable=False)
