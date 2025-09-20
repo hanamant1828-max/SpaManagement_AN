@@ -454,11 +454,12 @@ class ServicePackage(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)  # Nullable for template creation
     pay_for = db.Column(db.Integer, nullable=False)
     total_services = db.Column(db.Integer, nullable=False)
     benefit_percent = db.Column(db.Float, nullable=False)
     validity_months = db.Column(db.Integer, nullable=True)
+    choose_on_assign = db.Column(db.Boolean, default=True)  # Flag for service selection during assignment
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

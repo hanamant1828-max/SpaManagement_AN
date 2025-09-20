@@ -388,14 +388,9 @@
                         <label class="form-label">Package Name</label>
                         <input type="text" class="form-control" name="name" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Select Service</label>
-                        <select class="form-select" name="service_id" required>
-                            <option value="">Choose a service...</option>
-                            {% for service in services %}
-                                <option value="{{ service.id }}">{{ service.name }} - ₹{{ service.price }}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Service Selection:</strong> The specific service will be chosen when assigning this package to a customer.
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Pay For</label>

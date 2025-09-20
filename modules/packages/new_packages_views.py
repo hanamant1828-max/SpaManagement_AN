@@ -4,7 +4,7 @@ New Package Management Views - Separate endpoints for each package type
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from models import Service
+from models import Service, ServicePackage # Added ServicePackage to imports
 from .new_packages_queries import *
 import logging
 
@@ -31,8 +31,8 @@ def packages():
     yearly_memberships = get_all_yearly_memberships()
     kitty_parties = get_all_kitty_parties()
 
-    # Get services for dropdowns
-    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    # Get services for dropdowns (removed as it's no longer needed for service package creation)
+    # services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
     return render_template('new_packages.html',
                          prepaid_packages=prepaid_packages,
@@ -41,7 +41,7 @@ def packages():
                          student_offers=student_offers,
                          yearly_memberships=yearly_memberships,
                          kitty_parties=kitty_parties,
-                         services=services,
+                         # services=services, # Removed services from context
                          stats=stats)
 
 # ========================================
@@ -542,3 +542,41 @@ def api_get_package_statistics():
         return jsonify(stats)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Route for adding a new service package template
+@app.route('/packages/service-packages/add', methods=['POST'])
+@login_required
+def add_service_package():
+    try:
+        name = request.form.get('name', '').strip()
+        pay_for = int(request.form.get('pay_for', 0))
+        total_services = int(request.form.get('total_services', 0))
+        validity_months = int(request.form.get('validity_months', 0))
+
+        if not all([name, pay_for > 0, total_services > 0, validity_months > 0]):
+            flash('All fields are required and must be valid.', 'error')
+            return redirect(url_for('new_packages'))
+
+        # Calculate benefit percentage
+        free_services = total_services - pay_for
+        benefit_percent = (free_services / pay_for) * 100 if pay_for > 0 else 0
+
+        # Create service package template without service_id (will be chosen during assignment)
+        service_package = ServicePackage(
+            name=name,
+            service_id=None,  # Service will be chosen when assigning to customer
+            pay_for=pay_for,
+            total_services=total_services,
+            benefit_percent=benefit_percent,
+            validity_months=validity_months
+        )
+
+        db.session.add(service_package)
+        db.session.commit()
+
+        flash(f'Service package template "{name}" created successfully! Service will be selected during customer assignment.', 'success')
+        return redirect(url_for('new_packages'))
+
+    except Exception as e:
+        flash(f'Error creating service package: {str(e)}', 'error')
+        return redirect(url_for('new_packages'))
