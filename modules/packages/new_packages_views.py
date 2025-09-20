@@ -699,7 +699,7 @@ def api_get_services():
 @app.route('/packages/api/assign', methods=['POST'])
 @login_required
 def api_assign_package():
-    """Assign package to customer"""
+    """Assign package to customer using new package assignment model"""
     try:
         data = request.get_json()
         if not data:
@@ -714,14 +714,14 @@ def api_assign_package():
         notes = data.get('notes', '')
         
         # Validate required fields
-        if not all([package_type, package_id, customer_id, service_id]):
+        if not all([package_type, package_id, customer_id]):
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
             
         if price_paid is None or price_paid < 0:
             return jsonify({'success': False, 'error': 'Invalid price paid'}), 400
             
         # Import models
-        from models import Customer, CustomerPackage
+        from models import Customer
         from datetime import datetime, timedelta
         
         # Verify customer exists
@@ -729,10 +729,11 @@ def api_assign_package():
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
             
-        # Verify service exists
-        service = Service.query.get(service_id)
-        if not service:
-            return jsonify({'success': False, 'error': 'Service not found'}), 404
+        # For service packages, verify service exists
+        if package_type == 'service_package' and service_id:
+            service = Service.query.get(service_id)
+            if not service:
+                return jsonify({'success': False, 'error': 'Service not found'}), 404
         
         # Handle prepaid package assignment
         if package_type == 'prepaid':
@@ -748,23 +749,29 @@ def api_assign_package():
             else:
                 expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30)
                 
-            # Create customer package assignment
-            customer_package = CustomerPackage(
+            # Create a new service package assignment record directly
+            from models import ServicePackageAssignment
+            
+            # Create assignment record
+            assignment = ServicePackageAssignment(
                 customer_id=customer_id,
-                package_id=package_id,
+                package_type='prepaid',
+                package_reference_id=package_id,
+                service_id=service_id,
+                assigned_on=datetime.utcnow(),
+                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
                 price_paid=price_paid,
-                expires_on=datetime.combine(expiry_date, datetime.min.time()),
                 notes=notes,
                 status='active'
             )
             
-            db.session.add(customer_package)
+            db.session.add(assignment)
             db.session.commit()
             
             return jsonify({
                 'success': True,
-                'message': f'Prepaid package assigned successfully to {customer.full_name}',
-                'id': customer_package.id
+                'message': f'Prepaid package "{template.name}" assigned successfully to {customer.full_name}',
+                'id': assignment.id
             })
             
         # Handle service package assignment
@@ -781,28 +788,40 @@ def api_assign_package():
             else:
                 expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30) if template.validity_months else None
                 
-            # Use service price for package price if not provided
-            if price_paid == 0:
-                service_price = service.price * template.pay_for
-                price_paid = service_price
+            # Calculate price if not provided
+            if price_paid == 0 and service_id:
+                service = Service.query.get(service_id)
+                if service:
+                    service_price = service.price * template.pay_for
+                    price_paid = service_price
                 
-            # Create customer package assignment for service package
-            customer_package = CustomerPackage(
+            # Create a new service package assignment record
+            from models import ServicePackageAssignment
+            
+            assignment = ServicePackageAssignment(
                 customer_id=customer_id,
-                package_id=package_id,
-                price_paid=price_paid,
+                package_type='service_package',
+                package_reference_id=package_id,
+                service_id=service_id,
+                assigned_on=datetime.utcnow(),
                 expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
+                price_paid=price_paid,
                 notes=notes,
-                status='active'
+                status='active',
+                total_sessions=template.total_services,
+                used_sessions=0,
+                remaining_sessions=template.total_services
             )
             
-            db.session.add(customer_package)
+            db.session.add(assignment)
             db.session.commit()
+            
+            service_name = Service.query.get(service_id).name if service_id else "selected service"
             
             return jsonify({
                 'success': True,
-                'message': f'Service package "{template.name}" assigned successfully to {customer.full_name} for {service.name}',
-                'id': customer_package.id
+                'message': f'Service package "{template.name}" assigned successfully to {customer.full_name} for {service_name}',
+                'id': assignment.id
             })
             
         else:

@@ -567,6 +567,115 @@ class KittyPartyService(db.Model):
 # Inventory Management Models are located in modules/inventory/models.py
 
 # ========================================
+# NEW PACKAGE ASSIGNMENT SYSTEM
+# ========================================
+
+class ServicePackageAssignment(db.Model):
+    """Customer package assignments for new package system"""
+    __tablename__ = 'service_package_assignment'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    
+    # Package reference
+    package_type = db.Column(db.String(20), nullable=False)  # prepaid, service_package, membership, etc.
+    package_reference_id = db.Column(db.Integer, nullable=False)  # ID in respective package table
+    
+    # Service assignment (for service packages)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
+    
+    # Assignment details
+    assigned_on = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_on = db.Column(db.DateTime, nullable=True)
+    price_paid = db.Column(db.Float, nullable=False)
+    discount = db.Column(db.Float, default=0)
+    status = db.Column(db.String(20), default='active')  # active, completed, expired, cancelled
+    notes = db.Column(db.Text)
+    
+    # Service package specific fields
+    total_sessions = db.Column(db.Integer, default=0)
+    used_sessions = db.Column(db.Integer, default=0)
+    remaining_sessions = db.Column(db.Integer, default=0)
+    
+    # Prepaid package specific fields
+    credit_amount = db.Column(db.Float, default=0)
+    used_credit = db.Column(db.Float, default=0)
+    remaining_credit = db.Column(db.Float, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    customer = db.relationship('Customer', backref='service_package_assignments')
+    service = db.relationship('Service', backref='package_assignments')
+    usage_logs = db.relationship('PackageAssignmentUsage', backref='assignment', lazy=True, cascade='all, delete-orphan')
+    
+    def get_package_template(self):
+        """Get the package template based on type and reference ID"""
+        if self.package_type == 'prepaid':
+            return PrepaidPackage.query.get(self.package_reference_id)
+        elif self.package_type == 'service_package':
+            return ServicePackage.query.get(self.package_reference_id)
+        elif self.package_type == 'membership':
+            return Membership.query.get(self.package_reference_id)
+        elif self.package_type == 'student_offer':
+            return StudentOffer.query.get(self.package_reference_id)
+        elif self.package_type == 'yearly_membership':
+            return YearlyMembership.query.get(self.package_reference_id)
+        elif self.package_type == 'kitty_party':
+            return KittyParty.query.get(self.package_reference_id)
+        return None
+    
+    def is_expired(self):
+        """Check if assignment is expired"""
+        if self.expires_on and self.expires_on < datetime.utcnow():
+            return True
+        return False
+    
+    def auto_update_status(self):
+        """Auto-update status based on usage and expiry"""
+        if self.is_expired():
+            self.status = 'expired'
+        elif self.package_type == 'service_package' and self.remaining_sessions <= 0:
+            self.status = 'completed'
+        elif self.package_type == 'prepaid' and self.remaining_credit <= 0:
+            self.status = 'completed'
+        return self.status
+    
+    def __repr__(self):
+        return f'<ServicePackageAssignment {self.id}: Customer {self.customer_id} - {self.package_type} {self.package_reference_id}>'
+
+
+class PackageAssignmentUsage(db.Model):
+    """Usage log for package assignments"""
+    __tablename__ = 'package_assignment_usage'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('service_package_assignment.id'), nullable=False)
+    usage_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Usage details
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
+    sessions_used = db.Column(db.Integer, default=0)
+    credit_used = db.Column(db.Float, default=0)
+    
+    # Staff and appointment references
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=True)
+    
+    change_type = db.Column(db.String(20), default='use')  # use, refund, adjust
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    service = db.relationship('Service', backref='package_usage_logs')
+    staff = db.relationship('User', backref='package_usage_logs')
+    appointment = db.relationship('Appointment', backref='package_usage_logs')
+    
+    def __repr__(self):
+        return f'<PackageAssignmentUsage {self.id}: Assignment {self.assignment_id} - {self.change_type}>'
+
+# ========================================
 # CUSTOMER PACKAGE MANAGEMENT MODELS
 # ========================================
 
