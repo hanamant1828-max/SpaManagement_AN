@@ -6,10 +6,10 @@ packages = ["freetype", "glibcLocales", "lcms2", "libGL", "libGLU", "libimagequa
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
+run = ["sh", "-c", "uv run python main.py"]
 
 [workflows]
-runButton = "Project"
+runButton = "Restart Spa System"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -102,6 +102,27 @@ task = "shell.exec"
 args = "python main.py"
 
 [[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Spa Management System"
+
+[[workflows.workflow]]
+name = "Spa Management System"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "uv run python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
 name = "Restart Spa System"
 author = 47703410
 mode = "sequential"
@@ -110,67 +131,13 @@ mode = "sequential"
 task = "shell.exec"
 args = "python main.py"
 
-[[workflows.workflow]]
-name = "Start Spa Application"
-author = 47703410
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-
-[[workflows.workflow]]
-name = "Run Spa System"
-author = 47799871
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Flask App"
-
-[[workflows.workflow]]
-name = "Flask App"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[ports]]
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 43825
+externalPort = 3000
+
 [agent]
 expertMode = true
-language = "python3"
-entrypoint = "main.py"
-
-[env]
-PYTHONUNBUFFERED = "1"
-FLASK_ENV = "development"
-FLASK_DEBUG = "1"
-
-[deployment]
-run = ["bash", "-lc", "gunicorn -w 2 -k gthread -b 0.0.0.0:$PORT app:app || python main.py"]
-deploymentTarget = "cloudrun"
-
-[packager]
-language = "python3"
-
-[packager.features]
-enabledForHosting = false
-packageSearch = true
-guessImports = true
