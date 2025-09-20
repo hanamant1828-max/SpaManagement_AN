@@ -68,7 +68,15 @@ def api_get_prepaid_packages():
 def api_create_prepaid_package():
     """Create new prepaid package"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
         package = create_prepaid_package(data)
         flash('Prepaid package created successfully!', 'success')
         return jsonify({
@@ -85,7 +93,15 @@ def api_create_prepaid_package():
 def api_update_prepaid_package(package_id):
     """Update prepaid package"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
         package = update_prepaid_package(package_id, data)
         flash('Prepaid package updated successfully!', 'success')
         return jsonify({
@@ -140,7 +156,15 @@ def api_get_service_packages():
 def api_create_service_package():
     """Create new service package"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
         package = create_service_package(data)
         flash('Service package created successfully!', 'success')
         return jsonify({

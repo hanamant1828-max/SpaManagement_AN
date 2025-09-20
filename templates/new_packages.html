@@ -14,7 +14,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    
+
                     <!-- Navigation Tabs -->
                     <ul class="nav nav-tabs" id="packageTabs" role="tablist">
                         <li class="nav-item" role="presentation">
@@ -57,7 +57,7 @@
 
                     <!-- Tab Content -->
                     <div class="tab-content mt-3" id="packageTabContent">
-                        
+
                         <!-- Prepaid Packages Tab -->
                         <div class="tab-pane fade show active" id="prepaid" role="tabpanel">
                             <div class="d-flex justify-content-between mb-3">
@@ -363,45 +363,331 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="savePrepaid()">Save Package</button>
+                <button type="button" class="btn btn-primary" onclick="submitPrepaidForm()">Save Package</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Service Package Modal (Example - Add if missing in original or incomplete) -->
+<div class="modal fade" id="serviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Service Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="serviceForm">
+                    <div class="mb-3">
+                        <label class="form-label">Package Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pay For</label>
+                        <input type="text" class="form-control" name="pay_for" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Services</label>
+                        <input type="number" class="form-control" name="total_services" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Free Services</label>
+                        <input type="number" class="form-control" name="free_services" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Benefit Percentage</label>
+                        <input type="number" class="form-control" name="benefit_percent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity (Months)</label>
+                        <input type="number" class="form-control" name="validity_months" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitServiceForm()">Save Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Membership Modal (Example) -->
+<div class="modal fade" id="membershipModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Membership</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="membershipForm">
+                    <div class="mb-3">
+                        <label class="form-label">Membership Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price</label>
+                        <input type="number" class="form-control" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity (Months)</label>
+                        <input type="number" class="form-control" name="validity_months" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Services Included</label>
+                        <textarea class="form-control" name="services_included" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitMembershipForm()">Save Membership</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Offer Modal (Example) -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Student Offer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="studentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Service Name</label>
+                        <input type="text" class="form-control" name="service_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Actual Price</label>
+                        <input type="number" class="form-control" name="actual_price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount Percentage</label>
+                        <input type="number" class="form-control" name="discount_percent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Valid Days</label>
+                        <input type="number" class="form-control" name="valid_days" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitStudentForm()">Save Offer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yearly Membership Modal (Example) -->
+<div class="modal fade" id="yearlyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Yearly Membership</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="yearlyForm">
+                    <div class="mb-3">
+                        <label class="form-label">Membership Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price</label>
+                        <input type="number" class="form-control" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount Percentage</label>
+                        <input type="number" class="form-control" name="discount_percent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity (Months)</label>
+                        <input type="number" class="form-control" name="validity_months" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Extra Benefits</label>
+                        <textarea class="form-control" name="extra_benefits"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitYearlyForm()">Save Membership</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kitty Party Modal (Example) -->
+<div class="modal fade" id="kittyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Kitty Party</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="kittyForm">
+                    <div class="mb-3">
+                        <label class="form-label">Party Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price</label>
+                        <input type="number" class="form-control" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">After Value</label>
+                        <input type="number" class="form-control" name="after_value">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Minimum Guests</label>
+                        <input type="number" class="form-control" name="min_guests" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Services Included</label>
+                        <textarea class="form-control" name="services_included"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitKittyForm()">Save Party</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script>
-// Basic JavaScript for package management
-function savePrepaid() {
+let selectedServices = new Set();
+
+// Function to submit prepaid package form
+function submitPrepaidForm() {
     const form = document.getElementById('prepaidForm');
     const formData = new FormData(form);
-    
+
+    // Convert FormData to JSON
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
     fetch('/api/prepaid-packages', {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('prepaidModal'));
+            modal.hide();
             location.reload();
         } else {
             alert('Error: ' + data.error);
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating package');
     });
 }
 
-function editPrepaid(id) {
-    // Placeholder for edit functionality
-    alert('Edit prepaid package ' + id);
+// Function to edit prepaid package
+function editPrepaid(packageId) {
+    // Implementation for editing prepaid package
+    console.log('Edit prepaid package:', packageId);
+    // You can add modal opening logic here
 }
 
-function deletePrepaid(id) {
-    if (confirm('Are you sure you want to delete this package?')) {
-        fetch('/api/prepaid-packages/' + id, {
-            method: 'DELETE'
+// Function to delete prepaid package
+function deletePrepaid(packageId) {
+    if (confirm('Are you sure you want to delete this prepaid package?')) {
+        fetch(`/api/prepaid-packages/${packageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting package');
+        });
+    }
+}
+
+// Function to submit service package form
+function submitServiceForm() {
+    const form = document.getElementById('serviceForm');
+    const formData = new FormData(form);
+
+    // Convert FormData to JSON
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/service-packages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('serviceModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating package');
+    });
+}
+
+// Service package CRUD functions
+function editService(packageId) {
+    console.log('Edit service package:', packageId);
+}
+
+function deleteService(packageId) {
+    if (confirm('Are you sure you want to delete this service package?')) {
+        fetch(`/api/service-packages/${packageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
                 location.reload();
             } else {
                 alert('Error: ' + data.error);
@@ -410,44 +696,240 @@ function deletePrepaid(id) {
     }
 }
 
-// Similar functions for other package types...
-function editService(id) { alert('Edit service package ' + id); }
-function deleteService(id) { 
-    if (confirm('Delete service package?')) {
-        fetch('/api/service-packages/' + id, { method: 'DELETE' })
-        .then(() => location.reload());
+// Function to submit membership form
+function submitMembershipForm() {
+    const form = document.getElementById('membershipForm');
+    const formData = new FormData(form);
+
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/memberships', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('membershipModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating membership');
+    });
+}
+
+
+// Membership CRUD functions
+function editMembership(membershipId) {
+    console.log('Edit membership:', membershipId);
+}
+
+function deleteMembership(membershipId) {
+    if (confirm('Are you sure you want to delete this membership?')) {
+        fetch(`/api/memberships/${membershipId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
     }
 }
 
-function editMembership(id) { alert('Edit membership ' + id); }
-function deleteMembership(id) {
-    if (confirm('Delete membership?')) {
-        fetch('/api/memberships/' + id, { method: 'DELETE' })
-        .then(() => location.reload());
+// Function to submit student offer form
+function submitStudentForm() {
+    const form = document.getElementById('studentForm');
+    const formData = new FormData(form);
+
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/student-offers', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating offer');
+    });
+}
+
+// Student offer CRUD functions  
+function editStudent(offerId) {
+    console.log('Edit student offer:', offerId);
+}
+
+function deleteStudent(offerId) {
+    if (confirm('Are you sure you want to delete this student offer?')) {
+        fetch(`/api/student-offers/${offerId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
     }
 }
 
-function editStudent(id) { alert('Edit student offer ' + id); }
-function deleteStudent(id) {
-    if (confirm('Delete student offer?')) {
-        fetch('/api/student-offers/' + id, { method: 'DELETE' })
-        .then(() => location.reload());
+// Function to submit yearly membership form
+function submitYearlyForm() {
+    const form = document.getElementById('yearlyForm');
+    const formData = new FormData(form);
+
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/yearly-memberships', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('yearlyModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating membership');
+    });
+}
+
+// Yearly membership CRUD functions
+function editYearly(membershipId) {
+    console.log('Edit yearly membership:', membershipId);
+}
+
+function deleteYearly(membershipId) {
+    if (confirm('Are you sure you want to delete this yearly membership?')) {
+        fetch(`/api/yearly-memberships/${membershipId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
     }
 }
 
-function editYearly(id) { alert('Edit yearly membership ' + id); }
-function deleteYearly(id) {
-    if (confirm('Delete yearly membership?')) {
-        fetch('/api/yearly-memberships/' + id, { method: 'DELETE' })
-        .then(() => location.reload());
-    }
+// Function to submit kitty party form
+function submitKittyForm() {
+    const form = document.getElementById('kittyForm');
+    const formData = new FormData(form);
+
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/kitty-parties', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('kittyModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating party');
+    });
 }
 
-function editKitty(id) { alert('Edit kitty party ' + id); }
-function deleteKitty(id) {
-    if (confirm('Delete kitty party?')) {
-        fetch('/api/kitty-parties/' + id, { method: 'DELETE' })
-        .then(() => location.reload());
+// Kitty party CRUD functions
+function editKitty(partyId) {
+    console.log('Edit kitty party:', partyId);
+}
+
+function deleteKitty(partyId) {
+    if (confirm('Are you sure you want to delete this kitty party?')) {
+        fetch(`/api/kitty-parties/${partyId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
     }
 }
 </script>
