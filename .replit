@@ -137,6 +137,10 @@ author = "agent"
 task = "workflow.run"
 args = "Spa Management App"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask App"
+
 [[workflows.workflow]]
 name = "Spa Management App"
 author = "agent"
@@ -149,9 +153,25 @@ task = "shell.exec"
 args = "python main_simple.py"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "Flask App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 46059
+externalPort = 3000
 
 [agent]
 expertMode = true
