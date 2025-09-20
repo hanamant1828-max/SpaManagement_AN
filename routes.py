@@ -214,10 +214,14 @@ def create_default_data():
 # Root route
 @app.route('/')
 def index():
-    """Root route - redirect to dashboard"""
-    return redirect(url_for('dashboard'))
+    """Root route - redirect to dashboard or return simple OK"""
+    try:
+        return redirect(url_for('dashboard'))
+    except Exception:
+        # Fallback if dashboard route not available
+        return render_template('dashboard.html') if os.path.exists('templates/dashboard.html') else "Spa Management System - OK", 200
 
-# Health check route for deployment
+# Health check route for deployment  
 @app.route('/health')
 def health_check():
     return {

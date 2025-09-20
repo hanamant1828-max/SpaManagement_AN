@@ -155,3 +155,22 @@ externalPort = 80
 
 [agent]
 expertMode = true
+language = "python3"
+entrypoint = "main.py"
+
+[env]
+PYTHONUNBUFFERED = "1"
+FLASK_ENV = "development"
+FLASK_DEBUG = "1"
+
+[deployment]
+run = ["bash", "-lc", "gunicorn -w 2 -k gthread -b 0.0.0.0:$PORT app:app || python main.py"]
+deploymentTarget = "cloudrun"
+
+[packager]
+language = "python3"
+
+[packager.features]
+enabledForHosting = false
+packageSearch = true
+guessImports = true

@@ -27,10 +27,7 @@ def main():
         from app import app
         print("✅ App imported successfully")
         
-        # Add health check route if not exists
-        @app.route('/health')
-        def health_check():
-            return {'status': 'ok', 'service': 'spa_management'}, 200
+        # Health check route is handled in routes.py
         
         # Start the server
         app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
