@@ -1,9 +1,10 @@
 """
 Authentication views and routes
 """
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_user, logout_user, current_user
-from app import app
+from sqlalchemy import func, or_, and_
+from app import app, db
 from forms import LoginForm
 from .auth_queries import validate_user_credentials
 
@@ -30,9 +31,16 @@ def login():
         from werkzeug.security import check_password_hash
         from models import User
         
-        # Get user by username
-        user = User.query.filter_by(username=form.username.data).first()
-        print(f"Login attempt for username: {form.username.data}")
+        # Get user by identifier (username or email) - fallback for old form submissions
+        identifier = form.identifier.data.strip().lower() if hasattr(form, 'identifier') else form.username.data.strip().lower()
+        
+        user = db.session.query(User).filter(
+            or_(
+                and_(User.email.isnot(None), func.lower(User.email) == identifier),
+                func.lower(User.username) == identifier
+            )
+        ).first()
+        print(f"Login attempt for identifier: {identifier}")
         print(f"User found: {user is not None}")
         
         # Check password validation
@@ -56,10 +64,7 @@ def login():
                 except Exception as e:
                     print(f"Error with check_password_hash: {e}")
             
-            # Fallback for plain text password (development only)
-            if not password_valid and hasattr(user, 'password') and user.password:
-                password_valid = user.password == form.password.data
-                print(f"Plain text password check: {password_valid}")
+            # No plaintext password fallback for security
 
         if user and user.is_active and password_valid:
             login_user(user, remember=form.remember.data)
@@ -82,6 +87,72 @@ def login():
                 flash(f'{field}: {error}', 'danger')
 
     return render_template('login.html', form=form)
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    """API login endpoint that supports both username and email"""
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "Invalid request format"}), 400
+            
+        identifier = data.get('identifier', '').strip().lower()
+        password = data.get('password', '')
+        
+        if not identifier or not password:
+            return jsonify({"success": False, "message": "Username/email and password are required"}), 400
+        
+        # Import models here to avoid circular imports
+        from models import User
+        
+        # Lookup by email (case-insensitive) OR username (case-insensitive)
+        # Handle cases where email might be None
+        user = db.session.query(User).filter(
+            or_(
+                and_(User.email.isnot(None), func.lower(User.email) == identifier),
+                func.lower(User.username) == identifier
+            )
+        ).first()
+        
+        if not user:
+            return jsonify({"success": False, "message": "Incorrect username/email or password."}), 401
+            
+        # Check if user is active
+        if not user.is_active:
+            return jsonify({"success": False, "message": "Your account is inactive. Please contact admin."}), 403
+        
+        # Verify password
+        password_valid = False
+        if hasattr(user, 'check_password') and callable(user.check_password):
+            try:
+                password_valid = user.check_password(password)
+            except Exception as e:
+                print(f"Password check error: {e}")
+        
+        # If password validation fails, try werkzeug directly as fallback
+        if not password_valid and user.password_hash:
+            try:
+                from werkzeug.security import check_password_hash
+                password_valid = check_password_hash(user.password_hash, password)
+            except Exception as e:
+                print(f"Password hash check error: {e}")
+        
+        if not password_valid:
+            return jsonify({"success": False, "message": "Incorrect username/email or password."}), 401
+        
+        # Login successful - create session (Flask handles cookie automatically)
+        login_user(user, remember=True)
+        
+        # Create response - Flask will automatically handle session cookies
+        resp = jsonify({"success": True, "message": "Login successful", "redirect": url_for('dashboard')})
+        
+        print(f"API Login successful for user: {user.username}")
+        return resp, 200
+        
+    except Exception as e:
+        print(f"API login error: {e}")
+        return jsonify({"success": False, "message": "An error occurred during login"}), 500
 
 @app.route('/logout')
 def logout():

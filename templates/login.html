@@ -14,16 +14,22 @@
                         <p class="text-muted">Please sign in to continue</p>
                     </div>
                     
-                    <form method="POST">
+                    <!-- Enhanced login form with API integration -->
+                    <form id="loginForm" method="POST">
                         {{ form.hidden_tag() }}
                         
+                        <!-- Alert container for error messages -->
+                        <div id="alertContainer" class="mb-3" style="display: none;">
+                            <div class="alert alert-danger" role="alert" id="errorMessage"></div>
+                        </div>
+                        
                         <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
+                            <label for="identifier" class="form-label">Username or Email</label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="fas fa-user"></i>
                                 </span>
-                                {{ form.username(class="form-control", placeholder="Enter your username") }}
+                                {{ form.identifier(class="form-control", placeholder="Enter your username or email", id="identifier") }}
                             </div>
                         </div>
                         
@@ -33,7 +39,7 @@
                                 <span class="input-group-text">
                                     <i class="fas fa-lock"></i>
                                 </span>
-                                {{ form.password(class="form-control", placeholder="Enter your password") }}
+                                {{ form.password(class="form-control", placeholder="Enter your password", id="password") }}
                             </div>
                         </div>
                         
@@ -42,10 +48,76 @@
                             {{ form.remember.label(class="form-check-label") }}
                         </div>
                         
-                        <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <button type="submit" class="btn btn-primary w-100 mb-3" id="loginButton">
                             <i class="fas fa-sign-in-alt me-2"></i>Sign In
                         </button>
                     </form>
+                    
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const loginForm = document.getElementById('loginForm');
+                        const loginButton = document.getElementById('loginButton');
+                        const alertContainer = document.getElementById('alertContainer');
+                        const errorMessage = document.getElementById('errorMessage');
+                        
+                        function showError(message) {
+                            errorMessage.textContent = message;
+                            alertContainer.style.display = 'block';
+                        }
+                        
+                        function hideError() {
+                            alertContainer.style.display = 'none';
+                        }
+                        
+                        loginForm.addEventListener('submit', async function(e) {
+                            e.preventDefault();
+                            hideError();
+                            
+                            const identifier = document.getElementById('identifier').value.trim();
+                            const password = document.getElementById('password').value.trim();
+                            
+                            if (!identifier || !password) {
+                                showError('Please enter both username/email and password.');
+                                return;
+                            }
+                            
+                            // Disable button and show loading
+                            loginButton.disabled = true;
+                            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
+                            
+                            try {
+                                const response = await fetch('/api/auth/login', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        identifier: identifier.toLowerCase(),
+                                        password: password
+                                    })
+                                });
+                                
+                                const data = await response.json();
+                                
+                                if (data.success) {
+                                    // Login successful
+                                    window.location.href = data.redirect || '/dashboard';
+                                } else {
+                                    // Show error message
+                                    showError(data.message || 'Login failed. Please try again.');
+                                }
+                            } catch (error) {
+                                console.error('Login error:', error);
+                                showError('Network error. Please check your connection and try again.');
+                            } finally {
+                                // Re-enable button
+                                loginButton.disabled = false;
+                                loginButton.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Sign In';
+                            }
+                        });
+                    });
+                    </script>
                     
                     <div class="text-center text-muted small">
                         <p>Default credentials: admin / admin123</p>

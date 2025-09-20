@@ -8,7 +8,7 @@ from wtforms.widgets import TextArea
 
 class LoginForm(FlaskForm):
     """User login form"""
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
+    identifier = StringField('Username or Email', validators=[DataRequired(), Length(min=3, max=120)])
     password = PasswordField('Password', validators=[DataRequired()])
     remember = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
