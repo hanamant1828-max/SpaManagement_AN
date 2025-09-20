@@ -340,7 +340,7 @@ class Customer(db.Model):
 
     # Relationships
     appointments = db.relationship('Appointment', backref='client', lazy=True)
-    packages = db.relationship('CustomerPackage', backref='customer', lazy=True)
+    # Note: Customer package assignments will be handled separately with new package system
 
     @property
     def full_name(self):
@@ -370,7 +370,7 @@ class Service(db.Model):
 
     # Relationships
     appointments = db.relationship('Appointment', backref='service', lazy=True)
-    package_services = db.relationship('PackageService', backref='service', lazy=True)
+    # Note: Service-package relationships are handled differently in new package system
 
     def deduct_inventory_for_service(self):
         """Deduct inventory items when this service is performed"""
@@ -432,97 +432,96 @@ class Appointment(db.Model):
                 return True
         return False
 
-class Package(db.Model):
+# NEW PACKAGE MANAGEMENT SYSTEM - SEPARATE TABLES FOR EACH TYPE
+
+class PrepaidPackage(db.Model):
+    """Prepaid credit packages - Pay X, Get Y"""
+    __tablename__ = "prepaid_packages"
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text)
-    package_type = db.Column(db.String(50), default='regular')  # regular, prepaid, membership, student_offer, kitty_party
-    duration_months = db.Column(db.Integer, nullable=False)  # 3, 6, 12 months
-    validity_days = db.Column(db.Integer, nullable=False, default=90)  # Validity in days
-    total_sessions = db.Column(db.Integer, nullable=False, default=1)  # Total sessions in package
-    total_price = db.Column(db.Float, nullable=False)
-    credit_amount = db.Column(db.Float, default=0.0)  # For prepaid packages - amount credited
-    discount_percentage = db.Column(db.Float, default=0.0)
-    student_discount = db.Column(db.Float, default=0.0)  # Additional student discount
-    min_guests = db.Column(db.Integer, default=1)  # For kitty party packages
-    membership_benefits = db.Column(db.Text)  # JSON string for membership benefits
+    actual_price = db.Column(db.Float, nullable=False)   # Price customer pays
+    after_value = db.Column(db.Float, nullable=False)    # Value they get
+    benefit_percent = db.Column(db.Float, nullable=False)
+    validity_months = db.Column(db.Integer, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-    sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Enhanced prepaid package fields
-    prepaid_amount = db.Column(db.Float, default=0.0)  # Amount customer actually pays
-    bonus_percentage = db.Column(db.Float, default=0.0)  # Bonus percentage for prepaid
-    bonus_amount = db.Column(db.Float, default=0.0)  # Calculated bonus amount
-    prepaid_balance = db.Column(db.Float, default=0.0)  # Current balance for credit-based prepaid
-
-    # Service-based package fields
-    free_sessions = db.Column(db.Integer, default=0)  # Free sessions in service packages
-    paid_sessions = db.Column(db.Integer, default=0)  # Paid sessions in service packages
-
-    # New fields for unlimited sessions and date ranges
-    has_unlimited_sessions = db.Column(db.Boolean, default=False)  # True for unlimited packages
-    start_date = db.Column(db.Date)  # Optional start date for package validity
-    end_date = db.Column(db.Date)  # Optional end date for package validity
-
-    # Relationships
-    services = db.relationship('PackageService', backref='package', lazy=True)
-    customer_packages = db.relationship('CustomerPackage', backref='package', lazy=True)
-
     @property
-    def services_included(self):
-        """Get formatted list of services included"""
-        return [ps.service.name for ps in self.services if ps.service]
+    def money_saved(self):
+        return self.after_value - self.actual_price
 
-class PackageService(db.Model):
+class ServicePackage(db.Model):
+    """Service packages - Pay for X services, get Y total"""
+    __tablename__ = "service_packages"
+    
     id = db.Column(db.Integer, primary_key=True)
-    package_id = db.Column(db.Integer, db.ForeignKey('package.id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    sessions_included = db.Column(db.Integer, nullable=False)
-    service_discount = db.Column(db.Float, default=0.0)  # Individual service discount percentage
-    original_price = db.Column(db.Float, nullable=False)  # Original service price
-    discounted_price = db.Column(db.Float, nullable=False)  # Final discounted price
-
-    # New field for unlimited sessions per service
-    is_unlimited = db.Column(db.Boolean, default=False)  # True for unlimited sessions
-
-class CustomerPackage(db.Model):
-    __tablename__ = 'client_package'  # Keep table name for backward compatibility
-
-    id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # Keep FK reference to table name
-    package_id = db.Column(db.Integer, db.ForeignKey('package.id'), nullable=False)
-    purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
-    expiry_date = db.Column(db.DateTime, nullable=False)
-    sessions_used = db.Column(db.Integer, default=0)
-    total_sessions = db.Column(db.Integer, nullable=False)
-    amount_paid = db.Column(db.Float, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    pay_for = db.Column(db.Integer, nullable=False)
+    total_services = db.Column(db.Integer, nullable=False)
+    benefit_percent = db.Column(db.Float, nullable=False)
+    validity_months = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
-    auto_renewed = db.Column(db.Boolean, default=False)
-    renewal_count = db.Column(db.Integer, default=0)
-
-    # Service-wise session tracking
-    sessions_remaining = db.relationship('CustomerPackageSession', backref='customer_package', lazy=True)
-
-class CustomerPackageSession(db.Model):
-    """Track remaining sessions for each service in a customer's package"""
-    __tablename__ = 'client_package_session'  # Keep table name for backward compatibility
-
-    id = db.Column(db.Integer, primary_key=True)
-    client_package_id = db.Column(db.Integer, db.ForeignKey('client_package.id'), nullable=False)  # Keep FK reference to table name
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    sessions_total = db.Column(db.Integer, nullable=False)
-    sessions_used = db.Column(db.Integer, default=0)
-    is_unlimited = db.Column(db.Boolean, default=False)  # True for unlimited sessions
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
-    def sessions_remaining(self):
-        if self.is_unlimited:
-            return float('inf')  # Unlimited sessions
-        return max(0, self.sessions_total - self.sessions_used)
+    def free_services(self):
+        return self.total_services - self.pay_for
 
-    # Relationships
-    service = db.relationship('Service', backref='customer_sessions')
+class Membership(db.Model):
+    """Membership packages"""
+    __tablename__ = "memberships"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    validity_months = db.Column(db.Integer, nullable=False)  # Usually 12
+    services_included = db.Column(db.Text, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class StudentOffer(db.Model):
+    """Student discount offers"""
+    __tablename__ = "student_offers"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    service_name = db.Column(db.String(100), nullable=False)
+    actual_price = db.Column(db.Float, nullable=False)
+    discount_percent = db.Column(db.Float, nullable=False)
+    after_price = db.Column(db.Float, nullable=False)
+    valid_days = db.Column(db.String(50))  # e.g. "Mon-Fri"
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def money_saved(self):
+        return self.actual_price - self.after_price
+
+class YearlyMembership(db.Model):
+    """Yearly membership packages"""
+    __tablename__ = "yearly_memberships"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    discount_percent = db.Column(db.Float, nullable=False)
+    validity_months = db.Column(db.Integer, default=12)
+    extra_benefits = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class KittyParty(db.Model):
+    """Kitty party packages"""
+    __tablename__ = "kitty_parties"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    after_value = db.Column(db.Float, nullable=True)
+    min_guests = db.Column(db.Integer, nullable=False)
+    services_included = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Inventory Management Models are located in modules/inventory/models.py
 
@@ -634,7 +633,7 @@ class InvoiceItem(db.Model):
     item_type = db.Column(db.String(20), nullable=False)  # service, package_service, inventory, subscription
     item_id = db.Column(db.Integer)  # ID of service/inventory item
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))  # For service items
-    package_id = db.Column(db.Integer, db.ForeignKey('package.id'))  # For package-related items
+    # Note: Package ID references handled differently with new package system
 
     # Batch-level inventory integration
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_products.id'))  # For inventory items
@@ -659,7 +658,7 @@ class InvoiceItem(db.Model):
 
     # Relationships
     appointment = db.relationship('Appointment', backref='invoice_items')
-    package = db.relationship('Package', backref='invoice_items')
+    # Note: Package relationships handled separately with new package system
     # Note: Inventory relationships are handled in the inventory module to avoid circular imports
 
 class InvoicePayment(db.Model):

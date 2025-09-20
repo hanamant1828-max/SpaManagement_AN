@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}Package Management - Spa & Salon Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-box"></i> Package Management</h4>
+                    <div>
+                        <span class="badge bg-primary">Total: {{ stats.total_packages }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Navigation Tabs -->
+                    <ul class="nav nav-tabs" id="packageTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="prepaid-tab" data-bs-toggle="tab" data-bs-target="#prepaid" type="button" role="tab">
+                                <i class="fas fa-credit-card"></i> Prepaid Packages
+                                <span class="badge bg-success ms-1">{{ stats.prepaid_packages }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="service-tab" data-bs-toggle="tab" data-bs-target="#service" type="button" role="tab">
+                                <i class="fas fa-spa"></i> Service Packages  
+                                <span class="badge bg-info ms-1">{{ stats.service_packages }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="membership-tab" data-bs-toggle="tab" data-bs-target="#membership" type="button" role="tab">
+                                <i class="fas fa-id-card"></i> Memberships
+                                <span class="badge bg-warning ms-1">{{ stats.memberships }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="student-tab" data-bs-toggle="tab" data-bs-target="#student" type="button" role="tab">
+                                <i class="fas fa-graduation-cap"></i> Student Offers
+                                <span class="badge bg-secondary ms-1">{{ stats.student_offers }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="yearly-tab" data-bs-toggle="tab" data-bs-target="#yearly" type="button" role="tab">
+                                <i class="fas fa-calendar-alt"></i> Yearly Memberships
+                                <span class="badge bg-dark ms-1">{{ stats.yearly_memberships }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="kitty-tab" data-bs-toggle="tab" data-bs-target="#kitty" type="button" role="tab">
+                                <i class="fas fa-users"></i> Kitty Parties
+                                <span class="badge bg-danger ms-1">{{ stats.kitty_parties }}</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content mt-3" id="packageTabContent">
+                        
+                        <!-- Prepaid Packages Tab -->
+                        <div class="tab-pane fade show active" id="prepaid" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Prepaid Packages</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#prepaidModal">
+                                    <i class="fas fa-plus"></i> Add Prepaid Package
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Pay Amount</th>
+                                            <th>Get Value</th>
+                                            <th>Benefit %</th>
+                                            <th>Validity</th>
+                                            <th>Money Saved</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prepaidTableBody">
+                                        {% for package in prepaid_packages %}
+                                        <tr>
+                                            <td>{{ package.name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(package.actual_price) }}</td>
+                                            <td>₹{{ "{:,.0f}".format(package.after_value) }}</td>
+                                            <td>{{ package.benefit_percent }}%</td>
+                                            <td>{{ package.validity_months }} months</td>
+                                            <td class="text-success">₹{{ "{:,.0f}".format(package.money_saved) }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editPrepaid({{ package.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deletePrepaid({{ package.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Service Packages Tab -->
+                        <div class="tab-pane fade" id="service" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Service Packages</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceModal">
+                                    <i class="fas fa-plus"></i> Add Service Package
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Pay For</th>
+                                            <th>Total Services</th>
+                                            <th>Free Services</th>
+                                            <th>Benefit %</th>
+                                            <th>Validity</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="serviceTableBody">
+                                        {% for package in service_packages %}
+                                        <tr>
+                                            <td>{{ package.name }}</td>
+                                            <td>{{ package.pay_for }}</td>
+                                            <td>{{ package.total_services }}</td>
+                                            <td class="text-success">{{ package.free_services }}</td>
+                                            <td>{{ package.benefit_percent }}%</td>
+                                            <td>{{ package.validity_months }} months</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editService({{ package.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ package.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Memberships Tab -->
+                        <div class="tab-pane fade" id="membership" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Memberships</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#membershipModal">
+                                    <i class="fas fa-plus"></i> Add Membership
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Validity</th>
+                                            <th>Services Included</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="membershipTableBody">
+                                        {% for membership in memberships %}
+                                        <tr>
+                                            <td>{{ membership.name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(membership.price) }}</td>
+                                            <td>{{ membership.validity_months }} months</td>
+                                            <td>{{ membership.services_included[:50] }}...</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editMembership({{ membership.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteMembership({{ membership.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Student Offers Tab -->
+                        <div class="tab-pane fade" id="student" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Student Offers</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#studentModal">
+                                    <i class="fas fa-plus"></i> Add Student Offer
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Service</th>
+                                            <th>Actual Price</th>
+                                            <th>Discount %</th>
+                                            <th>After Price</th>
+                                            <th>Money Saved</th>
+                                            <th>Valid Days</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentTableBody">
+                                        {% for offer in student_offers %}
+                                        <tr>
+                                            <td>{{ offer.service_name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(offer.actual_price) }}</td>
+                                            <td>{{ offer.discount_percent }}%</td>
+                                            <td>₹{{ "{:,.0f}".format(offer.after_price) }}</td>
+                                            <td class="text-success">₹{{ "{:,.0f}".format(offer.money_saved) }}</td>
+                                            <td>{{ offer.valid_days }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editStudent({{ offer.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent({{ offer.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Yearly Memberships Tab -->
+                        <div class="tab-pane fade" id="yearly" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Yearly Memberships</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#yearlyModal">
+                                    <i class="fas fa-plus"></i> Add Yearly Membership
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Discount %</th>
+                                            <th>Validity</th>
+                                            <th>Extra Benefits</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="yearlyTableBody">
+                                        {% for membership in yearly_memberships %}
+                                        <tr>
+                                            <td>{{ membership.name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(membership.price) }}</td>
+                                            <td>{{ membership.discount_percent }}%</td>
+                                            <td>{{ membership.validity_months }} months</td>
+                                            <td>{{ membership.extra_benefits[:30] if membership.extra_benefits else 'None' }}...</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editYearly({{ membership.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteYearly({{ membership.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Kitty Parties Tab -->
+                        <div class="tab-pane fade" id="kitty" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Kitty Parties</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#kittyModal">
+                                    <i class="fas fa-plus"></i> Add Kitty Party
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>After Value</th>
+                                            <th>Min Guests</th>
+                                            <th>Services</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="kittyTableBody">
+                                        {% for party in kitty_parties %}
+                                        <tr>
+                                            <td>{{ party.name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(party.price) }}</td>
+                                            <td>{{ '₹{:,.0f}'.format(party.after_value) if party.after_value else 'N/A' }}</td>
+                                            <td>{{ party.min_guests }}</td>
+                                            <td>{{ party.services_included[:30] if party.services_included else 'None' }}...</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editKitty({{ party.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteKitty({{ party.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for adding/editing packages would go here -->
+<!-- For brevity, showing just one example modal -->
+
+<!-- Prepaid Package Modal -->
+<div class="modal fade" id="prepaidModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Prepaid Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="prepaidForm">
+                    <div class="mb-3">
+                        <label class="form-label">Package Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Actual Price (Pay Amount)</label>
+                        <input type="number" class="form-control" name="actual_price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">After Value (Get Amount)</label>
+                        <input type="number" class="form-control" name="after_value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Benefit Percentage</label>
+                        <input type="number" class="form-control" name="benefit_percent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity (Months)</label>
+                        <input type="number" class="form-control" name="validity_months" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePrepaid()">Save Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Basic JavaScript for package management
+function savePrepaid() {
+    const form = document.getElementById('prepaidForm');
+    const formData = new FormData(form);
+    
+    fetch('/api/prepaid-packages', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function editPrepaid(id) {
+    // Placeholder for edit functionality
+    alert('Edit prepaid package ' + id);
+}
+
+function deletePrepaid(id) {
+    if (confirm('Are you sure you want to delete this package?')) {
+        fetch('/api/prepaid-packages/' + id, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+// Similar functions for other package types...
+function editService(id) { alert('Edit service package ' + id); }
+function deleteService(id) { 
+    if (confirm('Delete service package?')) {
+        fetch('/api/service-packages/' + id, { method: 'DELETE' })
+        .then(() => location.reload());
+    }
+}
+
+function editMembership(id) { alert('Edit membership ' + id); }
+function deleteMembership(id) {
+    if (confirm('Delete membership?')) {
+        fetch('/api/memberships/' + id, { method: 'DELETE' })
+        .then(() => location.reload());
+    }
+}
+
+function editStudent(id) { alert('Edit student offer ' + id); }
+function deleteStudent(id) {
+    if (confirm('Delete student offer?')) {
+        fetch('/api/student-offers/' + id, { method: 'DELETE' })
+        .then(() => location.reload());
+    }
+}
+
+function editYearly(id) { alert('Edit yearly membership ' + id); }
+function deleteYearly(id) {
+    if (confirm('Delete yearly membership?')) {
+        fetch('/api/yearly-memberships/' + id, { method: 'DELETE' })
+        .then(() => location.reload());
+    }
+}
+
+function editKitty(id) { alert('Edit kitty party ' + id); }
+function deleteKitty(id) {
+    if (confirm('Delete kitty party?')) {
+        fetch('/api/kitty-parties/' + id, { method: 'DELETE' })
+        .then(() => location.reload());
+    }
+}
+</script>
+
+{% endblock %}
