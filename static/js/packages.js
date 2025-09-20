@@ -421,6 +421,18 @@ function populateServiceSelects() {
     if (adjustSelect) {
         adjustSelect.innerHTML = '<option value="">Select service...</option>';
     }
+
+    // For assigning service packages directly
+    const assignServiceSelect = document.getElementById('assign_service_id');
+    if (assignServiceSelect) {
+        assignServiceSelect.innerHTML = '<option value="">Select service...</option>';
+        services.forEach(service => {
+            const option = document.createElement('option');
+            option.value = service.id;
+            option.textContent = `${service.name} - $${service.price}`;
+            assignServiceSelect.appendChild(option);
+        });
+    }
 }
 
 function populateStaffSelect() {
@@ -651,6 +663,8 @@ function showPackagePreview() {
     const preview = document.getElementById('packagePreview');
     const itemsContainer = document.getElementById('packageItems');
     const priceInput = document.getElementById('assignPrice');
+    const assignServiceSelection = document.getElementById('assign_service_selection');
+    const assignPackageTypeInput = document.getElementById('assign_package_type');
 
     if (select.value) {
         const selectedOption = select.selectedOptions[0];
@@ -674,9 +688,20 @@ function showPackagePreview() {
         `).join('');
 
         preview.style.display = 'block';
+
+        // Handle service package assignment
+        if (template.type === 'service_package') {
+            assignServiceSelection.style.display = 'block';
+            assignPackageTypeInput.value = 'service_package';
+        } else {
+            assignServiceSelection.style.display = 'none';
+            assignPackageTypeInput.value = 'prepaid';
+        }
+
     } else {
         preview.style.display = 'none';
         priceInput.value = '';
+        assignServiceSelection.style.display = 'none';
     }
 
     validateAssignForm();
@@ -692,8 +717,15 @@ function validateAssignForm() {
     const customer = document.getElementById('assignCustomer').value;
     const package = document.getElementById('assignPackage').value;
     const price = document.getElementById('assignPrice').value;
+    const assignServiceId = document.getElementById('assign_service_id').value;
+    const packageType = document.getElementById('assign_package_type').value; // Get the actual package type
 
-    const isValid = customer && package && price && parseFloat(price) > 0;
+    let isValid = customer && package && price && parseFloat(price) > 0;
+
+    // If it's a service package and the service selection is visible, service ID is required
+    if (document.getElementById('assign_service_selection').style.display !== 'none' && packageType === 'service_package') {
+        isValid = isValid && assignServiceId;
+    }
 
     saveBtn.disabled = !isValid;
 
@@ -719,6 +751,11 @@ async function saveAssignment() {
             formData.expires_on = expiresInput.value + 'T23:59:59';
         }
 
+        // Add service_id if it's a service package and selected
+        if (document.getElementById('assign_service_selection').style.display !== 'none' && document.getElementById('assign_package_type').value === 'service_package') {
+            formData.service_id = parseInt(document.getElementById('assign_service_id').value);
+        }
+
         const response = await fetch('/packages/api/assign', {
             method: 'POST',
             headers: {
@@ -734,7 +771,13 @@ async function saveAssignment() {
             const customerSelect = document.getElementById('assign_customer_id');
             const customerName = customerSelect.selectedOptions[0]?.text.split(' - ')[0] || 'customer';
 
-            showToast(`✅ "${packageName}" assigned to ${customerName}`, 'success');
+            let successMessage = `✅ "${packageName}" assigned to ${customerName}`;
+            if (formData.service_id) {
+                const serviceName = document.getElementById('assign_service_id').selectedOptions[0]?.text.split(' - ')[0];
+                successMessage = `✅ "${packageName}" assigned for ${serviceName} to ${customerName}`;
+            }
+
+            showToast(successMessage, 'success');
             bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
 
             // Refresh the page to show updated assignments
@@ -1338,6 +1381,90 @@ function formatDateTime(dateString) {
     return new Date(dateString).toLocaleString();
 }
 
+/**
+ * Handle the assignment confirmation after template selection
+ */
+function confirmPackageAssignment() {
+    const form = document.getElementById('assignPackageForm');
+    const formData = new FormData(form);
+
+    // Validate required fields
+    const customerId = document.getElementById('assign_customer_id').value;
+    const packageType = document.getElementById('assign_package_type').value; // Get the actual package type from the hidden input
+    const serviceSelectionVisible = document.getElementById('assign_service_selection').style.display !== 'none';
+
+    if (!customerId) {
+        document.getElementById('assign_customer_id').classList.add('is-invalid');
+        showToast('Please select a customer', 'error');
+        return;
+    }
+    document.getElementById('assign_customer_id').classList.remove('is-invalid');
+
+    // Check service selection for service packages
+    if (serviceSelectionVisible && packageType === 'service_package') {
+        const serviceId = document.getElementById('assign_service_id').value;
+        if (!serviceId) {
+            document.getElementById('assign_service_id').classList.add('is-invalid');
+            showToast('Please select a service for this package', 'error');
+            return;
+        }
+        document.getElementById('assign_service_id').classList.remove('is-invalid');
+    }
+
+    // Disable button during submission
+    const submitButton = document.getElementById('saveAssignPackage'); // Corrected button ID
+    const originalText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+
+    const data = {};
+    formData.forEach((value, key) => {
+        // Ensure we don't send empty values if they are not required or handled
+        if (value !== '' && value !== null) {
+            data[key] = value;
+        }
+    });
+
+    // Manually add service_id if it's a service package and selected
+    if (serviceSelectionVisible && packageType === 'service_package') {
+        data.service_id = document.getElementById('assign_service_id').value;
+    }
+
+    fetch('/packages/api/assign', { // Corrected API endpoint
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json', // Use JSON for body
+        },
+        body: JSON.stringify(data) // Stringify the data object
+    })
+    .then(response => response.json())
+    .then(data => {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+
+        if (data.success) {
+            const serviceName = serviceSelectionVisible ?
+                document.getElementById('assign_service_id').selectedOptions[0]?.text.split(' - ')[0] : '';
+            const successMessage = serviceName ?
+                `✅ "${data.package_name}" assigned for ${serviceName} to ${data.customer_name}` :
+                `✅ "${data.package_name}" assigned to ${data.customer_name}`;
+
+            showToast(successMessage, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error: ' + (data.message || data.error), 'error');
+        }
+    })
+    .catch(error => {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        console.error('Error:', error);
+        showToast('An error occurred while assigning the package.', 'error');
+    });
+}
+
+
 // Event delegation for assign buttons
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('[data-action="assign"]');
@@ -1377,6 +1504,7 @@ window.openAdjustModal = openAdjustModal;
 window.clearFilters = clearFilters;
 window.applyFilters = applyFilters;
 window.changePage = changePage;
+window.confirmPackageAssignment = confirmPackageAssignment; // Add this line
 
 
 // Event listeners and initializations

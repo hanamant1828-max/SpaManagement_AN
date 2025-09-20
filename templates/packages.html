@@ -118,7 +118,14 @@
                                             </span>
                                         </td>
                                         <td>
-                                            {% if package.services %}
+                                            {% if package.package_type == 'service_package' %}
+                                                <small class="text-info">
+                                                    <i class="fas fa-clock me-1"></i>Service: Choose at assignment<br>
+                                                    {% if package.pay_for_sessions %}
+                                                        Pay: {{ package.pay_for_sessions }} | Free: {{ package.free_sessions or 0 }}
+                                                    {% endif %}
+                                                </small>
+                                            {% elif package.services %}
                                                 <small>
                                                     {% for ps in package.services[:2] %}
                                                         {{ ps.service.name }} ({{ ps.sessions_included }})<br>
@@ -160,6 +167,7 @@
                                                         data-package-type="{{ package.package_type }}"
                                                         data-package-name="{{ package.name }}"
                                                         data-package-price="{{ package.total_price }}"
+                                                        data-choose-on-assign="{{ 'true' if package.package_type == 'service_package' else 'false' }}"
                                                         data-bs-toggle="tooltip"
                                                         tabindex="0">
                                                     <i class="fas fa-user-plus"></i>
@@ -280,43 +288,80 @@
                         </div>
                     </div>
 
-                    <!-- Service Selection -->
-                    <div class="mb-3">
-                        <label class="form-label">Package Services</label>
-                        <div class="card">
-                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                                <div id="service-selection">
-                                    {% for service in services %}
-                                    <div class="service-item mb-2 p-2 border rounded">
-                                        <div class="form-check">
-                                            <input class="form-check-input service-checkbox" type="checkbox" 
-                                                   value="{{ service.id }}" id="service_{{ service.id }}">
-                                            <label class="form-check-label" for="service_{{ service.id }}">
-                                                <strong>{{ service.name }}</strong> - ₹{{ service.price }}
-                                                <small class="text-muted d-block">{{ service.duration }} minutes</small>
-                                            </label>
-                                        </div>
-                                        <div class="service-options mt-2" style="display: none;">
-                                            <div class="row">
-                                                <div class="col-6">
-                                                    <label class="form-label">Sessions</label>
-                                                    <input type="number" class="form-control sessions-input" min="1" value="1">
-                                                </div>
-                                                <div class="col-6">
-                                                    <label class="form-label">Service Discount (%)</label>
-                                                    <input type="number" class="form-control discount-input" min="0" max="100" value="0">
+                    <!-- Service Package Specific Fields -->
+                    <div id="servicePackageFields" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Pay For (Sessions) *</label>
+                                <input type="number" name="pay_for_sessions" id="payForSessions" class="form-control" min="1" value="1">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Free Services</label>
+                                <input type="number" name="free_sessions" id="freeSessions" class="form-control" min="0" value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Total Services</label>
+                                <input type="number" name="total_sessions" id="totalSessions" class="form-control" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Benefit Percentage</label>
+                                <input type="number" name="benefit_percentage" id="benefitPercentage" class="form-control" readonly step="0.01">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Validity (Months) *</label>
+                                <input type="number" name="validity_months" id="validityMonths" class="form-control" min="1" value="3">
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Service Selection:</strong> The specific service will be chosen when assigning this package to a customer.
+                        </div>
+                    </div>
+
+                    <!-- Regular Package Service Selection -->
+                    <div id="regularPackageFields">
+                        <div class="mb-3">
+                            <label class="form-label">Package Services</label>
+                            <div class="card">
+                                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                    <div id="service-selection">
+                                        {% for service in services %}
+                                        <div class="service-item mb-2 p-2 border rounded">
+                                            <div class="form-check">
+                                                <input class="form-check-input service-checkbox" type="checkbox" 
+                                                       value="{{ service.id }}" id="service_{{ service.id }}">
+                                                <label class="form-check-label" for="service_{{ service.id }}">
+                                                    <strong>{{ service.name }}</strong> - ₹{{ service.price }}
+                                                    <small class="text-muted d-block">{{ service.duration }} minutes</small>
+                                                </label>
+                                            </div>
+                                            <div class="service-options mt-2" style="display: none;">
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <label class="form-label">Sessions</label>
+                                                        <input type="number" class="form-control sessions-input" min="1" value="1">
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label">Service Discount (%)</label>
+                                                        <input type="number" class="form-control discount-input" min="0" max="100" value="0">
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        {% endfor %}
                                     </div>
-                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Hidden field for selected services -->
+                    <!-- Hidden fields -->
                     <input type="hidden" name="selected_services" id="selected_services_json">
+                    <input type="hidden" name="choose_on_assign" id="chooseOnAssign" value="false">
 
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="is_active" checked id="is_active">
@@ -390,6 +435,22 @@
                         </div>
                     </div>
 
+                    <!-- Service Selection for Service Packages -->
+                    <div id="assign_service_selection" class="row g-3 mt-2" style="display: none;">
+                        <div class="col-12">
+                            <label class="form-label">
+                                <i class="fas fa-spa me-1"></i>Select Service *
+                            </label>
+                            <select id="assign_service_id" name="service_id" class="form-select">
+                                <option value="">Select the service this package will cover...</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a service for this package.
+                            </div>
+                            <small class="text-muted">Choose the specific service this package will provide sessions for.</small>
+                        </div>
+                    </div>
+
                     <div class="row g-3 mt-2">
                         <div class="col-md-6">
                             <label class="form-label">
@@ -430,7 +491,62 @@
 <script>
 // Service selection functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle service checkbox changes
+    // Handle package type changes
+    const packageTypeSelect = document.querySelector('select[name="package_type"]');
+    if (packageTypeSelect) {
+        packageTypeSelect.addEventListener('change', function() {
+            togglePackageFields(this.value);
+        });
+        // Initialize on page load
+        togglePackageFields(packageTypeSelect.value);
+    }
+
+    // Handle service package calculations
+    const payForInput = document.getElementById('payForSessions');
+    const freeInput = document.getElementById('freeSessions');
+    const totalInput = document.getElementById('totalSessions');
+    const benefitInput = document.getElementById('benefitPercentage');
+
+    if (payForInput && freeInput) {
+        [payForInput, freeInput].forEach(input => {
+            input.addEventListener('input', calculateServicePackageValues);
+        });
+    }
+
+    function togglePackageFields(packageType) {
+        const servicePackageFields = document.getElementById('servicePackageFields');
+        const regularPackageFields = document.getElementById('regularPackageFields');
+        const chooseOnAssignInput = document.getElementById('chooseOnAssign');
+
+        if (packageType === 'service_package') {
+            servicePackageFields.style.display = 'block';
+            regularPackageFields.style.display = 'none';
+            chooseOnAssignInput.value = 'true';
+        } else {
+            servicePackageFields.style.display = 'none';
+            regularPackageFields.style.display = 'block';
+            chooseOnAssignInput.value = 'false';
+        }
+    }
+
+    function calculateServicePackageValues() {
+        const payFor = parseInt(payForInput.value) || 0;
+        const free = parseInt(freeInput.value) || 0;
+        
+        // Calculate total
+        const total = payFor + free;
+        totalInput.value = total;
+        
+        // Calculate benefit percentage
+        if (payFor > 0) {
+            const benefitPercent = (free / payFor) * 100;
+            benefitInput.value = benefitPercent.toFixed(2);
+        } else {
+            benefitInput.value = '0.00';
+        }
+    }
+
+    // Handle service checkbox changes (for regular packages)
     document.querySelectorAll('.service-checkbox').forEach(function(checkbox) {
         checkbox.addEventListener('change', function() {
             const serviceOptions = this.closest('.service-item').querySelector('.service-options');
