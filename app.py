@@ -46,13 +46,11 @@ def load_user(user_id):
 def index():
     return '<h1>Spa Management System - Working!</h1><p>Server is running on port 5000</p>'
 
-@app.route('/dashboard')
-def dashboard():
-    return '<h1>Dashboard</h1><p>This is the dashboard page</p>'
-
 with app.app_context():
     # Make sure to import the models here or their tables won't be created
     import models  # noqa: F401
+    # Import inventory models for database creation
+    from modules.inventory import models as inventory_models  # noqa: F401
     
     try:
         # Try to create tables, but handle conflicts gracefully

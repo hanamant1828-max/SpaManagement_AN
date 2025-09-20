@@ -178,10 +178,6 @@ class User(UserMixin, db.Model):
             except Exception as e:
                 print(f"Password hash check error: {e}")
         
-        # Fallback for development: check against plain text password (if exists)
-        if hasattr(self, 'password') and self.password:
-            return self.password == password
-            
         return False
 
     @property
@@ -190,7 +186,7 @@ class User(UserMixin, db.Model):
 
     def has_role(self, role):
         # Support both dynamic and legacy role systems
-        if self.user_role:
+        if hasattr(self, 'user_role') and self.user_role:
             return self.user_role.name == role
         return self.role == role
 
@@ -222,10 +218,10 @@ class User(UserMixin, db.Model):
         required_permissions = resource_permissions.get(resource, [])
         if not required_permissions:
             # If resource not defined, check basic role access
-            return self.role in ['manager', 'staff'] or (self.user_role and self.user_role.is_active)
+            return self.role in ['manager', 'staff'] or (hasattr(self, 'user_role') and self.user_role and self.user_role.is_active)
 
         # Check dynamic role system first
-        if self.user_role and self.user_role.is_active:
+        if hasattr(self, 'user_role') and self.user_role and self.user_role.is_active:
             user_permissions = []
             for role_permission in self.user_role.permissions:
                 if role_permission.permission.is_active:
@@ -373,21 +369,24 @@ class Service(db.Model):
         """Deduct inventory items when this service is performed"""
         movements = []
         try:
-            for service_item in self.inventory_items:
-                # Create a basic stock movement record
-                from modules.inventory.models import StockMovement
-                movement = StockMovement(
-                    product_id=service_item.inventory_id,
-                    movement_type='service_use',
-                    quantity=-service_item.quantity_per_service,  # Negative for outflow
-                    stock_before=0,  # Will be updated in actual implementation
-                    stock_after=0,   # Will be updated in actual implementation
-                    reference_type='service',
-                    reference_id=self.id,
-                    reason=f'Used in service: {self.name}',
-                    created_by=1  # System user, should be current user in real implementation
-                )
-                movements.append(movement)
+            # Check if inventory_items relationship exists
+            if hasattr(self, 'inventory_items') and self.inventory_items:
+                for service_item in self.inventory_items:
+                    # Create a basic audit log entry instead
+                    from modules.inventory.models import InventoryAuditLog
+                    audit_entry = InventoryAuditLog(
+                        batch_id=service_item.batch_id if hasattr(service_item, 'batch_id') else None,
+                        product_id=service_item.inventory_id,
+                        user_id=1,  # System user, should be current user in real implementation
+                        action_type='service_use',
+                        quantity_delta=-service_item.quantity_per_service,  # Negative for outflow
+                        stock_before=0,  # Will be updated in actual implementation
+                        stock_after=0,   # Will be updated in actual implementation
+                        reference_type='service',
+                        reference_id=self.id,
+                        notes=f'Used in service: {self.name}'
+                    )
+                    movements.append(audit_entry)
         except Exception as e:
             print(f"Error processing inventory deduction: {e}")
 
@@ -419,14 +418,15 @@ class Appointment(db.Model):
     def process_inventory_deduction(self):
         """Process inventory deduction when appointment is completed and billed"""
         if not self.inventory_deducted and self.status == 'completed' and self.is_paid:
-            movements = self.service.deduct_inventory_for_service()
-            if movements:
-                from app import db
-                for movement in movements:
-                    db.session.add(movement)
-                self.inventory_deducted = True
-                db.session.commit()
-                return True
+            if hasattr(self, 'service') and self.service:
+                movements = self.service.deduct_inventory_for_service()
+                if movements:
+                    from app import db
+                    for movement in movements:
+                        db.session.add(movement)
+                    self.inventory_deducted = True
+                    db.session.commit()
+                    return True
         return False
 
 # NEW PACKAGE MANAGEMENT SYSTEM - SEPARATE TABLES FOR EACH TYPE
