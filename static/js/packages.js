@@ -27,19 +27,19 @@ document.addEventListener('DOMContentLoaded', function() {
 // Open assign package modal
 function openAssignModal() {
     console.log('Opening assign modal...');
-    
+
     // Reset form
     const form = document.getElementById('assignPackageForm');
     if (form) {
         form.reset();
         form.classList.remove('was-validated');
     }
-    
+
     const preview = document.getElementById('packagePreview');
     if (preview) {
         preview.style.display = 'none';
     }
-    
+
     // Load data and show modal
     Promise.all([loadTemplates(), loadCustomers()]).then(() => {
         const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
@@ -53,51 +53,51 @@ function openAssignModal() {
 // Clear all filters
 function clearFilters() {
     console.log('Clearing filters...');
-    
+
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const dateFrom = document.getElementById('dateFrom');
     const dateTo = document.getElementById('dateTo');
-    
+
     if (searchInput) searchInput.value = '';
     if (statusFilter) statusFilter.value = '';
     if (dateFrom) dateFrom.value = '';
     if (dateTo) dateTo.value = '';
-    
+
     // Reset current filters and reload
     currentFilters = {};
     currentPage = 1;
-    
+
     loadPackages();
 }
 
 // Apply current filters
 function applyFilters() {
     console.log('Applying filters...');
-    
+
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const dateFrom = document.getElementById('dateFrom');
     const dateTo = document.getElementById('dateTo');
-    
+
     currentFilters = {};
-    
+
     if (searchInput && searchInput.value.trim()) {
         currentFilters.q = searchInput.value.trim();
     }
-    
+
     if (statusFilter && statusFilter.value) {
         currentFilters.status = statusFilter.value;
     }
-    
+
     if (dateFrom && dateFrom.value) {
         currentFilters.date_from = dateFrom.value;
     }
-    
+
     if (dateTo && dateTo.value) {
         currentFilters.date_to = dateTo.value;
     }
-    
+
     currentPage = 1;
     loadPackages();
 }
@@ -111,7 +111,7 @@ function openDetails(packageId) {
 // Open usage recording modal
 function openUseModal(packageId) {
     console.log('Opening usage modal for package:', packageId);
-    
+
     if (packageId) {
         currentPackageId = packageId;
         // Load package details first, then open usage modal
@@ -128,7 +128,7 @@ function openUseModal(packageId) {
 // Open adjustment/refund modal
 function openAdjustModal(packageId) {
     console.log('Opening adjust modal for package:', packageId);
-    
+
     if (packageId) {
         currentPackageId = packageId;
         // Load package details first, then open adjust modal
@@ -159,10 +159,10 @@ function attachGlobalFunctions() {
     window.clearFilters = clearFilters;
     window.applyFilters = applyFilters;
     window.openDetails = openDetails;
-    window.openUseModal = openUseModal; 
+    window.openUseModal = openUseModal;
     window.openAdjustModal = openAdjustModal;
     window.changePage = changePage;
-    
+
     console.log('All global functions attached successfully');
 }
 
@@ -182,7 +182,7 @@ async function initializePackages() {
         if (dateTimeInput) {
             dateTimeInput.value = now.toISOString().slice(0, 16);
         }
-        
+
         // Load initial data
         await Promise.all([
             loadPackages(),
@@ -191,10 +191,10 @@ async function initializePackages() {
             loadServices(),
             loadStaff()
         ]);
-        
+
         // Setup event listeners
         setupEventListeners();
-        
+
         console.log('Customer Packages initialized successfully');
     } catch (error) {
         console.error('Error initializing packages:', error);
@@ -214,25 +214,25 @@ function setupEventListeners() {
             loadPackages();
         }, 500));
     }
-    
+
     // Assign package form validation
     const assignForm = document.getElementById('assignPackageForm');
     if (assignForm) {
         assignForm.addEventListener('input', validateAssignForm);
     }
-    
+
     // Package template selection
     const assignPackage = document.getElementById('assignPackage');
     if (assignPackage) {
         assignPackage.addEventListener('change', showPackagePreview);
     }
-    
+
     // Usage form validation
     const usageForm = document.getElementById('recordUsageForm');
     if (usageForm) {
         usageForm.addEventListener('input', validateUsageForm);
     }
-    
+
     // Usage service/quantity change for hints
     const usageService = document.getElementById('usageService');
     const usageQuantity = document.getElementById('usageQuantity');
@@ -240,13 +240,13 @@ function setupEventListeners() {
         usageService.addEventListener('change', updateUsageHint);
         usageQuantity.addEventListener('input', updateUsageHint);
     }
-    
+
     // Adjust form validation
     const adjustForm = document.getElementById('adjustRefundForm');
     if (adjustForm) {
         adjustForm.addEventListener('input', validateAdjustForm);
     }
-    
+
     // Adjust service/quantity change for hints
     const adjustService = document.getElementById('adjustService');
     const adjustQuantity = document.getElementById('adjustQuantity');
@@ -254,24 +254,24 @@ function setupEventListeners() {
         adjustService.addEventListener('change', updateAdjustHint);
         adjustQuantity.addEventListener('input', updateAdjustHint);
     }
-    
+
     // Mode toggle for adjust/refund
     const adjustModeInputs = document.querySelectorAll('input[name="adjustMode"]');
     adjustModeInputs.forEach(input => {
         input.addEventListener('change', updateAdjustHint);
     });
-    
+
     // Save buttons
     const saveAssignBtn = document.getElementById('saveAssignPackage');
     if (saveAssignBtn) {
         saveAssignBtn.addEventListener('click', saveAssignment);
     }
-    
+
     const saveUsageBtn = document.getElementById('saveUsage');
     if (saveUsageBtn) {
         saveUsageBtn.addEventListener('click', saveUsage);
     }
-    
+
     const saveAdjustBtn = document.getElementById('saveAdjustment');
     if (saveAdjustBtn) {
         saveAdjustBtn.addEventListener('click', saveAdjustment);
@@ -288,19 +288,19 @@ async function loadPackages() {
             per_page: 20,
             ...currentFilters
         });
-        
+
         const response = await fetch(`/packages/api/customer-packages?${params}`);
         const data = await response.json();
-        
+
         if (data.success) {
             currentPackages = data.packages;
-            
+
             if (data.pagination) {
                 currentPage = data.pagination.page;
                 totalPages = data.pagination.pages;
                 updatePagination(data.pagination);
             }
-            
+
             renderPackagesTable();
         } else {
             showToast(data.error || 'Error loading packages', 'error');
@@ -318,7 +318,7 @@ async function loadTemplates() {
     try {
         const response = await fetch('/packages/api/templates');
         const data = await response.json();
-        
+
         if (data.success) {
             templates = data.templates;
             populateTemplateSelect();
@@ -335,7 +335,7 @@ async function loadCustomers() {
     try {
         const response = await fetch('/packages/api/customers');
         const data = await response.json();
-        
+
         if (data.success) {
             customers = data.customers;
             populateCustomerSelect();
@@ -352,7 +352,7 @@ async function loadServices() {
     try {
         const response = await fetch('/packages/api/services');
         const data = await response.json();
-        
+
         if (data.success) {
             services = data.services;
             populateServiceSelects();
@@ -369,7 +369,7 @@ async function loadStaff() {
     try {
         const response = await fetch('/packages/api/staff');
         const data = await response.json();
-        
+
         if (data.success) {
             staff = data.staff;
             populateStaffSelect();
@@ -385,7 +385,7 @@ async function loadStaff() {
 function populateTemplateSelect() {
     const select = document.getElementById('assignPackage');
     if (!select) return;
-    
+
     select.innerHTML = '<option value="">Select package...</option>';
     templates.forEach(template => {
         const option = document.createElement('option');
@@ -399,7 +399,7 @@ function populateTemplateSelect() {
 function populateCustomerSelect() {
     const select = document.getElementById('assignCustomer');
     if (!select) return;
-    
+
     select.innerHTML = '<option value="">Select customer...</option>';
     customers.forEach(customer => {
         const option = document.createElement('option');
@@ -415,7 +415,7 @@ function populateServiceSelects() {
     if (usageSelect) {
         usageSelect.innerHTML = '<option value="">Select service...</option>';
     }
-    
+
     // For adjust modal
     const adjustSelect = document.getElementById('adjustService');
     if (adjustSelect) {
@@ -426,7 +426,7 @@ function populateServiceSelects() {
 function populateStaffSelect() {
     const select = document.getElementById('usageStaff');
     if (!select) return;
-    
+
     select.innerHTML = '<option value="">Select staff member...</option>';
     staff.forEach(member => {
         const option = document.createElement('option');
@@ -442,7 +442,7 @@ function populateStaffSelect() {
 function renderPackagesTable() {
     const tbody = document.getElementById('packagesTableBody');
     if (!tbody) return;
-    
+
     if (currentPackages.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -454,11 +454,11 @@ function renderPackagesTable() {
         `;
         return;
     }
-    
+
     tbody.innerHTML = currentPackages.map(pkg => {
         const statusClass = getStatusClass(pkg.status);
         const expiresText = pkg.expires_on ? pkg.expires_on : 'No expiry';
-        
+
         return `
             <tr>
                 <td>
@@ -474,9 +474,9 @@ function renderPackagesTable() {
                 <td><span class="badge bg-success">${pkg.remaining_services}</span></td>
                 <td>
                     <div class="progress" style="height: 20px;">
-                        <div class="progress-bar" role="progressbar" 
+                        <div class="progress-bar" role="progressbar"
                              style="width: ${pkg.usage_percentage}%"
-                             aria-valuenow="${pkg.usage_percentage}" 
+                             aria-valuenow="${pkg.usage_percentage}"
                              aria-valuemin="0" aria-valuemax="100">
                             ${pkg.usage_percentage}%
                         </div>
@@ -485,16 +485,16 @@ function renderPackagesTable() {
                 <td><span class="badge ${statusClass}">${pkg.status}</span></td>
                 <td>
                     <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-primary btn-sm" 
+                        <button type="button" class="btn btn-outline-primary btn-sm"
                                 onclick="openDetails(${pkg.id})" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
                         ${pkg.status === 'active' ? `
-                            <button type="button" class="btn btn-outline-success btn-sm" 
+                            <button type="button" class="btn btn-outline-success btn-sm"
                                     onclick="openUseModal(${pkg.id})" title="Record Usage">
                                 <i class="fas fa-play"></i>
                             </button>
-                            <button type="button" class="btn btn-outline-warning btn-sm" 
+                            <button type="button" class="btn btn-outline-warning btn-sm"
                                     onclick="openAdjustModal(${pkg.id})" title="Adjust/Refund">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -525,16 +525,16 @@ function getStatusClass(status) {
 function updatePagination(pagination) {
     const info = document.getElementById('paginationInfo');
     const controls = document.getElementById('paginationControls');
-    
+
     if (info) {
         const start = ((pagination.page - 1) * pagination.per_page) + 1;
         const end = Math.min(pagination.page * pagination.per_page, pagination.total);
         info.textContent = `Showing ${start}-${end} of ${pagination.total} packages`;
     }
-    
+
     if (controls) {
         let html = '';
-        
+
         // Previous button
         if (pagination.has_prev) {
             html += `
@@ -545,11 +545,11 @@ function updatePagination(pagination) {
                 </li>
             `;
         }
-        
+
         // Page numbers
         const startPage = Math.max(1, pagination.page - 2);
         const endPage = Math.min(pagination.pages, pagination.page + 2);
-        
+
         for (let i = startPage; i <= endPage; i++) {
             html += `
                 <li class="page-item ${i === pagination.page ? 'active' : ''}">
@@ -557,7 +557,7 @@ function updatePagination(pagination) {
                 </li>
             `;
         }
-        
+
         // Next button
         if (pagination.has_next) {
             html += `
@@ -568,7 +568,7 @@ function updatePagination(pagination) {
                 </li>
             `;
         }
-        
+
         controls.innerHTML = html;
     }
 }
@@ -584,23 +584,64 @@ function changePage(page) {
 /**
  * Open assign package modal
  */
-async function openAssignModal() {
+function openAssignPackageModal(packageId, packageName, packageType, packagePrice = null) {
+    // Set package details
+    document.getElementById('assign_package_id').value = packageId;
+    document.getElementById('assign_package_name').value = packageName;
+    document.getElementById('assign_package_type').value = packageType;
+
+    // Display package info
+    document.getElementById('display_package_name').textContent = packageName;
+    document.getElementById('display_package_type').textContent = packageType.replace('_', ' ').toUpperCase();
+
     // Reset form
     document.getElementById('assignPackageForm').reset();
-    document.getElementById('packagePreview').style.display = 'none';
-    
-    // Set default price if package is selected
-    const assignPackageSelect = document.getElementById('assignPackage');
-    if (assignPackageSelect.value) {
-        const selectedOption = assignPackageSelect.selectedOptions[0];
-        const template = JSON.parse(selectedOption.dataset.template);
-        document.getElementById('assignPrice').value = template.price;
+    document.getElementById('assign_package_id').value = packageId;
+    document.getElementById('assign_package_name').value = packageName;
+    document.getElementById('assign_package_type').value = packageType;
+
+    // Set default price if provided
+    if (packagePrice) {
+        document.getElementById('assign_custom_price').value = packagePrice;
     }
-    
+
+    // Update modal title
+    document.getElementById('assignPackageModalTitle').innerHTML =
+        `<i class="fas fa-user-plus me-2"></i>Assign "${packageName}" to Customer`;
+
+    // Focus on customer select
+    setTimeout(() => {
+        document.getElementById('assign_customer_id').focus();
+    }, 300);
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
     modal.show();
 }
+
+// Global PackagesUI namespace for assign from template functionality
+window.PackagesUI = window.PackagesUI || {};
+
+// Assign from template function
+function assignFromTemplate(templateId, packageType) {
+    console.log('Assigning from template:', templateId, packageType);
+
+    // Find the button to get package data
+    const button = document.querySelector(`[data-template-id="${templateId}"]`);
+    if (!button) {
+        showToast('Package data not found', 'error');
+        return;
+    }
+
+    const packageName = button.dataset.packageName;
+    const packagePrice = button.dataset.packagePrice;
+
+    // Open the assign modal with pre-filled data
+    openAssignPackageModal(templateId, packageName, packageType, packagePrice);
+}
+
+// Expose assign function globally
+window.PackagesUI.assignFromTemplate = assignFromTemplate;
 
 /**
  * Show package preview when template is selected
@@ -610,14 +651,14 @@ function showPackagePreview() {
     const preview = document.getElementById('packagePreview');
     const itemsContainer = document.getElementById('packageItems');
     const priceInput = document.getElementById('assignPrice');
-    
+
     if (select.value) {
         const selectedOption = select.selectedOptions[0];
         const template = JSON.parse(selectedOption.dataset.template);
-        
+
         // Set default price
         priceInput.value = template.price;
-        
+
         // Show items
         itemsContainer.innerHTML = template.items.map(item => `
             <div class="col-md-6">
@@ -631,13 +672,13 @@ function showPackagePreview() {
                 </div>
             </div>
         `).join('');
-        
+
         preview.style.display = 'block';
     } else {
         preview.style.display = 'none';
         priceInput.value = '';
     }
-    
+
     validateAssignForm();
 }
 
@@ -647,15 +688,15 @@ function showPackagePreview() {
 function validateAssignForm() {
     const form = document.getElementById('assignPackageForm');
     const saveBtn = document.getElementById('saveAssignPackage');
-    
+
     const customer = document.getElementById('assignCustomer').value;
     const package = document.getElementById('assignPackage').value;
     const price = document.getElementById('assignPrice').value;
-    
+
     const isValid = customer && package && price && parseFloat(price) > 0;
-    
+
     saveBtn.disabled = !isValid;
-    
+
     // Show validation feedback
     form.classList.toggle('was-validated', isValid);
 }
@@ -672,12 +713,12 @@ async function saveAssignment() {
             discount: parseFloat(document.getElementById('assignDiscount').value) || 0,
             notes: document.getElementById('assignNotes').value
         };
-        
+
         const expiresInput = document.getElementById('assignExpires');
         if (expiresInput.value) {
             formData.expires_on = expiresInput.value + 'T23:59:59';
         }
-        
+
         const response = await fetch('/packages/api/assign', {
             method: 'POST',
             headers: {
@@ -685,20 +726,21 @@ async function saveAssignment() {
             },
             body: JSON.stringify(formData)
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
-            showToast('Package assigned successfully!', 'success');
-            
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPackageModal'));
-            modal.hide();
-            
-            // Reload packages
-            await loadPackages();
+            const packageName = document.getElementById('assign_package_name').value;
+            const customerSelect = document.getElementById('assign_customer_id');
+            const customerName = customerSelect.selectedOptions[0]?.text.split(' - ')[0] || 'customer';
+
+            showToast(`✅ "${packageName}" assigned to ${customerName}`, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+
+            // Refresh the page to show updated assignments
+            setTimeout(() => location.reload(), 1000);
         } else {
-            showToast(data.error || 'Error assigning package', 'error');
+            showToast('Error: ' + (data.message || data.error), 'error');
         }
     } catch (error) {
         console.error('Error saving assignment:', error);
@@ -712,17 +754,17 @@ async function saveAssignment() {
 async function openPackageDetailsModal(packageId) {
     try {
         currentPackageId = packageId;
-        
+
         const response = await fetch(`/packages/api/customer-packages/${packageId}`);
         const data = await response.json();
-        
+
         if (data.success) {
             currentPackageDetails = data.package;
             renderPackageDetails();
-            
+
             const modal = new bootstrap.Modal(document.getElementById('packageDetailsModal'));
             modal.show();
-            
+
             return Promise.resolve();
         } else {
             showToast(data.error || 'Error loading package details', 'error');
@@ -743,26 +785,26 @@ function showUsageModal() {
         showToast('Package details not loaded', 'error');
         return;
     }
-    
+
     // Reset form
     const form = document.getElementById('recordUsageForm');
     if (form) {
         form.reset();
         form.classList.remove('was-validated');
     }
-    
+
     // Set current date/time
     const now = new Date();
     const dateTimeInput = document.getElementById('usageDateTime');
     if (dateTimeInput) {
         dateTimeInput.value = now.toISOString().slice(0, 16);
     }
-    
+
     // Populate services from package items
     const serviceSelect = document.getElementById('usageService');
     if (serviceSelect) {
         serviceSelect.innerHTML = '<option value="">Select service...</option>';
-        
+
         if (currentPackageDetails.items) {
             currentPackageDetails.items.forEach(item => {
                 if (item.remaining_qty > 0) {
@@ -775,13 +817,13 @@ function showUsageModal() {
             });
         }
     }
-    
+
     // Hide hints
     const hint = document.getElementById('usageHint');
     if (hint) {
         hint.style.display = 'none';
     }
-    
+
     const modal = new bootstrap.Modal(document.getElementById('recordUsageModal'));
     modal.show();
 }
@@ -794,25 +836,25 @@ function showAdjustModal() {
         showToast('Package details not loaded', 'error');
         return;
     }
-    
+
     // Reset form
     const form = document.getElementById('adjustRefundForm');
     if (form) {
         form.reset();
         form.classList.remove('was-validated');
     }
-    
+
     // Set default mode to refund
     const refundMode = document.getElementById('refundMode');
     if (refundMode) {
         refundMode.checked = true;
     }
-    
+
     // Populate services from package items
     const serviceSelect = document.getElementById('adjustService');
     if (serviceSelect) {
         serviceSelect.innerHTML = '<option value="">Select service...</option>';
-        
+
         if (currentPackageDetails.items) {
             currentPackageDetails.items.forEach(item => {
                 const option = document.createElement('option');
@@ -825,13 +867,13 @@ function showAdjustModal() {
             });
         }
     }
-    
+
     // Hide hints
     const hint = document.getElementById('adjustHint');
     if (hint) {
         hint.style.display = 'none';
     }
-    
+
     const modal = new bootstrap.Modal(document.getElementById('adjustRefundModal'));
     modal.show();
 }
@@ -841,25 +883,25 @@ function showAdjustModal() {
  */
 function renderPackageDetails() {
     if (!currentPackageDetails) return;
-    
+
     const pkg = currentPackageDetails;
-    
+
     // Header info
     document.getElementById('detailCustomerName').textContent = pkg.customer_name;
     document.getElementById('detailPackageName').textContent = pkg.package_name;
     document.getElementById('detailPrice').textContent = pkg.price_paid.toFixed(2);
     document.getElementById('detailAssigned').textContent = pkg.assigned_on;
     document.getElementById('detailExpires').textContent = pkg.expires_on || 'No expiry';
-    
+
     const statusBadge = document.getElementById('detailStatus');
     statusBadge.textContent = pkg.status;
     statusBadge.className = `badge ${getStatusClass(pkg.status)}`;
-    
+
     // Service items
     const serviceItems = document.getElementById('serviceItems');
     serviceItems.innerHTML = pkg.items.map(item => {
         const progressPercent = item.total_qty > 0 ? ((item.used_qty / item.total_qty) * 100).toFixed(1) : 0;
-        
+
         return `
             <div class="col-md-6 mb-2">
                 <div class="card border-secondary">
@@ -877,7 +919,7 @@ function renderPackageDetails() {
             </div>
         `;
     }).join('');
-    
+
     // Recent usage
     const usageTable = document.getElementById('recentUsageTable');
     if (pkg.recent_usage.length === 0) {
@@ -893,7 +935,7 @@ function renderPackageDetails() {
                 <td>${usage.service_name}</td>
                 <td>${usage.qty}</td>
                 <td>
-                    <span class="badge ${usage.change_type === 'use' ? 'bg-success' : 
+                    <span class="badge ${usage.change_type === 'use' ? 'bg-success' :
                           usage.change_type === 'refund' ? 'bg-warning' : 'bg-info'}">
                         ${usage.change_type}
                     </span>
@@ -916,20 +958,20 @@ function openUseModal(packageId = null) {
         });
         return;
     }
-    
+
     if (!currentPackageDetails) return;
-    
+
     // Reset form
     document.getElementById('recordUsageForm').reset();
-    
+
     // Set current date/time
     const now = new Date();
     document.getElementById('usageDateTime').value = now.toISOString().slice(0, 16);
-    
+
     // Populate services from package items
     const serviceSelect = document.getElementById('usageService');
     serviceSelect.innerHTML = '<option value="">Select service...</option>';
-    
+
     currentPackageDetails.items.forEach(item => {
         if (item.remaining_qty > 0) {
             const option = document.createElement('option');
@@ -939,10 +981,10 @@ function openUseModal(packageId = null) {
             serviceSelect.appendChild(option);
         }
     });
-    
+
     // Hide hints
     document.getElementById('usageHint').style.display = 'none';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('recordUsageModal'));
     modal.show();
 }
@@ -955,12 +997,12 @@ function updateUsageHint() {
     const quantityInput = document.getElementById('usageQuantity');
     const hint = document.getElementById('usageHint');
     const hintText = document.getElementById('usageHintText');
-    
+
     if (serviceSelect.value && quantityInput.value) {
         const selectedOption = serviceSelect.selectedOptions[0];
         const remaining = parseInt(selectedOption.dataset.remaining);
         const quantity = parseInt(quantityInput.value);
-        
+
         if (quantity > remaining) {
             hintText.textContent = `Not enough balance! Only ${remaining} remaining.`;
             hint.className = 'alert alert-danger';
@@ -969,12 +1011,12 @@ function updateUsageHint() {
             hintText.textContent = `Remaining after this usage: ${newRemaining}`;
             hint.className = 'alert alert-info';
         }
-        
+
         hint.style.display = 'block';
     } else {
         hint.style.display = 'none';
     }
-    
+
     validateUsageForm();
 }
 
@@ -984,19 +1026,19 @@ function updateUsageHint() {
 function validateUsageForm() {
     const form = document.getElementById('recordUsageForm');
     const saveBtn = document.getElementById('saveUsage');
-    
+
     const service = document.getElementById('usageService').value;
     const quantity = document.getElementById('usageQuantity').value;
-    
+
     let isValid = service && quantity && parseInt(quantity) > 0;
-    
+
     // Check if enough balance
     if (isValid && service) {
         const selectedOption = document.getElementById('usageService').selectedOptions[0];
         const remaining = parseInt(selectedOption.dataset.remaining);
         isValid = parseInt(quantity) <= remaining;
     }
-    
+
     saveBtn.disabled = !isValid;
     form.classList.toggle('was-validated', isValid);
 }
@@ -1011,17 +1053,17 @@ async function saveUsage() {
             qty: parseInt(document.getElementById('usageQuantity').value),
             notes: document.getElementById('usageNotes').value
         };
-        
+
         const dateTimeInput = document.getElementById('usageDateTime');
         if (dateTimeInput.value) {
             formData.usage_date = dateTimeInput.value + ':00';
         }
-        
+
         const staffInput = document.getElementById('usageStaff');
         if (staffInput.value) {
             formData.staff_id = parseInt(staffInput.value);
         }
-        
+
         const response = await fetch(`/packages/api/customer-packages/${currentPackageId}/use`, {
             method: 'POST',
             headers: {
@@ -1029,16 +1071,16 @@ async function saveUsage() {
             },
             body: JSON.stringify(formData)
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showToast('Usage recorded successfully!', 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('recordUsageModal'));
             modal.hide();
-            
+
             // Reload details and packages
             await Promise.all([
                 openDetails(currentPackageId),
@@ -1064,17 +1106,17 @@ function openAdjustModal(packageId = null) {
         });
         return;
     }
-    
+
     if (!currentPackageDetails) return;
-    
+
     // Reset form
     document.getElementById('adjustRefundForm').reset();
     document.getElementById('refundMode').checked = true;
-    
+
     // Populate services from package items
     const serviceSelect = document.getElementById('adjustService');
     serviceSelect.innerHTML = '<option value="">Select service...</option>';
-    
+
     currentPackageDetails.items.forEach(item => {
         const option = document.createElement('option');
         option.value = item.service_id;
@@ -1084,10 +1126,10 @@ function openAdjustModal(packageId = null) {
         option.dataset.total = item.total_qty;
         serviceSelect.appendChild(option);
     });
-    
+
     // Hide hints
     document.getElementById('adjustHint').style.display = 'none';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('adjustRefundModal'));
     modal.show();
 }
@@ -1101,14 +1143,14 @@ function updateAdjustHint() {
     const hint = document.getElementById('adjustHint');
     const hintText = document.getElementById('adjustHintText');
     const mode = document.querySelector('input[name="adjustMode"]:checked').value;
-    
+
     if (serviceSelect.value && quantityInput.value) {
         const selectedOption = serviceSelect.selectedOptions[0];
         const used = parseInt(selectedOption.dataset.used);
         const remaining = parseInt(selectedOption.dataset.remaining);
         const total = parseInt(selectedOption.dataset.total);
         const quantity = parseInt(quantityInput.value);
-        
+
         if (mode === 'refund') {
             if (quantity > used) {
                 hintText.textContent = `Cannot refund more than used! Only ${used} used.`;
@@ -1129,12 +1171,12 @@ function updateAdjustHint() {
                 hint.className = 'alert alert-info';
             }
         }
-        
+
         hint.style.display = 'block';
     } else {
         hint.style.display = 'none';
     }
-    
+
     validateAdjustForm();
 }
 
@@ -1144,21 +1186,21 @@ function updateAdjustHint() {
 function validateAdjustForm() {
     const form = document.getElementById('adjustRefundForm');
     const saveBtn = document.getElementById('saveAdjustment');
-    
+
     const service = document.getElementById('adjustService').value;
     const quantity = document.getElementById('adjustQuantity').value;
     const reason = document.getElementById('adjustReason').value;
     const mode = document.querySelector('input[name="adjustMode"]:checked').value;
-    
+
     let isValid = service && quantity && parseInt(quantity) > 0 && reason.trim();
-    
+
     // Check specific mode validations
     if (isValid && service) {
         const selectedOption = document.getElementById('adjustService').selectedOptions[0];
         const used = parseInt(selectedOption.dataset.used);
         const total = parseInt(selectedOption.dataset.total);
         const qty = parseInt(quantity);
-        
+
         if (mode === 'refund') {
             isValid = qty <= used;
         } else { // adjust
@@ -1167,7 +1209,7 @@ function validateAdjustForm() {
             isValid = newRemaining >= 0;
         }
     }
-    
+
     saveBtn.disabled = !isValid;
     form.classList.toggle('was-validated', isValid);
 }
@@ -1178,14 +1220,14 @@ function validateAdjustForm() {
 async function saveAdjustment() {
     try {
         const mode = document.querySelector('input[name="adjustMode"]:checked').value;
-        
+
         const formData = {
             service_id: parseInt(document.getElementById('adjustService').value),
             qty: parseInt(document.getElementById('adjustQuantity').value),
             reason: document.getElementById('adjustReason').value,
             change_type: mode
         };
-        
+
         const response = await fetch(`/packages/api/customer-packages/${currentPackageId}/adjust`, {
             method: 'POST',
             headers: {
@@ -1193,16 +1235,16 @@ async function saveAdjustment() {
             },
             body: JSON.stringify(formData)
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showToast(`${mode === 'refund' ? 'Refund' : 'Adjustment'} processed successfully!`, 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('adjustRefundModal'));
             modal.hide();
-            
+
             // Reload details and packages
             await Promise.all([
                 openDetails(currentPackageId),
@@ -1222,16 +1264,16 @@ async function saveAdjustment() {
  */
 function applyFilters() {
     currentFilters = {};
-    
+
     const status = document.getElementById('statusFilter').value;
     if (status) currentFilters.status = status;
-    
+
     const dateFrom = document.getElementById('dateFrom').value;
     if (dateFrom) currentFilters.date_from = dateFrom;
-    
+
     const dateTo = document.getElementById('dateTo').value;
     if (dateTo) currentFilters.date_to = dateTo;
-    
+
     currentPage = 1;
     loadPackages();
 }
@@ -1244,7 +1286,7 @@ function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
-    
+
     currentFilters = {};
     currentPage = 1;
     loadPackages();
@@ -1272,7 +1314,7 @@ function showToast(message, type = 'info') {
     } else {
         // Fallback to console
         console.log(`[${type.toUpperCase()}] ${message}`);
-        
+
         // You could also create a simple toast here
         alert(message);
     }
@@ -1296,6 +1338,33 @@ function formatDateTime(dateString) {
     return new Date(dateString).toLocaleString();
 }
 
+// Event delegation for assign buttons
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action="assign"]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const templateId = btn.dataset.templateId;
+    const packageType = btn.dataset.packageType || 'prepaid';
+
+    if (templateId) {
+        window.PackagesUI.assignFromTemplate(templateId, packageType);
+    }
+});
+
+// Keyboard support for assign buttons
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        const btn = e.target.closest('[data-action="assign"]');
+        if (btn) {
+            e.preventDefault();
+            btn.click();
+        }
+    }
+});
+
 // ========================================
 // GLOBAL FUNCTION ATTACHMENTS
 // ========================================
@@ -1308,3 +1377,32 @@ window.openAdjustModal = openAdjustModal;
 window.clearFilters = clearFilters;
 window.applyFilters = applyFilters;
 window.changePage = changePage;
+
+
+// Event listeners and initializations
+document.addEventListener('DOMContentLoaded', function() {
+    // ... other initializations ...
+
+    function updateSelectedServices() {
+        const selectedServices = [];
+        document.querySelectorAll('.service-checkbox:checked').forEach(function(checkbox) {
+            const serviceItem = checkbox.closest('.service-item');
+            const sessions = serviceItem.querySelector('.sessions-input').value || 1;
+            const discount = serviceItem.querySelector('.discount-input').value || 0;
+
+            selectedServices.push({
+                service_id: parseInt(checkbox.value),
+                sessions: parseInt(sessions),
+                discount: parseFloat(discount)
+            });
+        });
+
+        document.getElementById('selected_services_json').value = JSON.stringify(selectedServices);
+    }
+
+    // Initialize tooltips for all action buttons
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
