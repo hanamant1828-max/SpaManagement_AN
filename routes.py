@@ -15,7 +15,7 @@ def create_default_data():
     """Create default data for the application"""
     try:
         from models import User, Role, Permission, Category, Department, Service, Customer
-        
+
         # Create default admin user if it doesn't exist
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
@@ -35,7 +35,7 @@ def create_default_data():
             admin_user.password_hash = generate_password_hash('admin123')
             admin_user.is_active = True
             print("Fixed admin user password hash")
-        
+
         # Create default categories
         categories = [
             {'name': 'facial', 'display_name': 'Facial Services', 'category_type': 'service'},
@@ -44,29 +44,29 @@ def create_default_data():
             {'name': 'supplies', 'display_name': 'Supplies', 'category_type': 'expense'},
             {'name': 'utilities', 'display_name': 'Utilities', 'category_type': 'expense'}
         ]
-        
+
         for cat_data in categories:
             category = Category.query.filter_by(name=cat_data['name']).first()
             if not category:
                 category = Category(**cat_data)
                 db.session.add(category)
-        
+
         # Create default services
         services = [
             {'name': 'Basic Facial', 'price': 50.0, 'duration': 60, 'category': 'facial'},
             {'name': 'Deep Tissue Massage', 'price': 80.0, 'duration': 90, 'category': 'massage'},
             {'name': 'Manicure', 'price': 25.0, 'duration': 45, 'category': 'beauty'}
         ]
-        
+
         for service_data in services:
             service = Service.query.filter_by(name=service_data['name']).first()
             if not service:
                 service = Service(**service_data, is_active=True)
                 db.session.add(service)
-        
+
         db.session.commit()
         print("Default data created successfully")
-        
+
     except Exception as e:
         print(f"Error creating default data: {e}")
         db.session.rollback()
@@ -88,7 +88,7 @@ try:
     from modules.staff import staff_views
     from modules.staff.shift_scheduler_views import shift_scheduler_bp
     from modules.billing import integrated_billing_views
-    
+
     # Register the shift scheduler blueprint
     app.register_blueprint(shift_scheduler_bp)
     print("Shift scheduler blueprint registered successfully")
@@ -106,12 +106,12 @@ def utility_processor():
 def create_default_data():
     """Create default data for the application"""
     # Import models here to avoid circular imports
-    from models import (User, Customer, Service, Appointment, Expense, Invoice, Package, 
+    from models import User, Customer, Service, Appointment, Expense, Invoice, Package, 
                        StaffSchedule, CustomerPackage, PackageService, Review, Communication, 
                        Commission, Promotion, Waitlist, RecurringAppointment, Location, 
                        BusinessSettings, Role, Permission, RolePermission, Category, 
-                       Department, SystemSetting)
-    
+                       Department, SystemSetting
+
     try:
         # Create default admin user if not exists
         admin_user = User.query.filter_by(username='admin').first()
@@ -208,7 +208,7 @@ def create_default_data():
     #     print("Inventory defaults initialized!")
     # except Exception as e:
     #     print(f"Error initializing inventory defaults: {e}")
-    
+
     print("Comprehensive default data created successfully")
 
 # Root route
@@ -222,6 +222,15 @@ def index():
         print(f"Error in index route: {e}")
         # For testing - always redirect to dashboard
         return redirect(url_for('dashboard'))
+
+# Health check route for deployment
+@app.route('/health')
+def health_check():
+    return {
+        'status': 'ok', 
+        'service': 'spa_management',
+        'version': '1.0.0'
+    }, 200
 
 # Backward compatibility route
 @app.route('/clients')
@@ -692,7 +701,7 @@ def api_update_role_permissions(role_id):
 @app.route('/api/services')
 def api_services():
     from models import Service
-    
+
     services = Service.query.filter_by(is_active=True).all()
     return jsonify([{
         'id': s.id,
@@ -704,7 +713,7 @@ def api_services():
 @app.route('/api/staff')
 def api_staff():
     from models import User
-    
+
     staff = User.query.filter(User.role.in_(['staff', 'manager'])).filter_by(is_active=True).all()
     return jsonify([{
         'id': s.id,

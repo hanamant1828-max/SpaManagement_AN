@@ -370,62 +370,6 @@ def api_customers():
         'email': c.email
     } for c in customers])
 
-@app.route('/api/customers/<int:customer_id>')
-def api_get_customer(customer_id):
-    """Get individual customer details"""
-    from models import Customer, Appointment
-    from sqlalchemy import func
-
-    try:
-        customer = Customer.query.get(customer_id)
-        if not customer:
-            return jsonify({'success': False, 'error': 'not_found'}), 404
-
-        # Get visit count
-        try:
-            visits = db.session.query(func.count(Appointment.id)).filter(
-                Appointment.client_id == customer_id
-            ).scalar() or 0
-        except:
-            visits = customer.total_visits or 0
-
-        # Calculate age from date of birth
-        age = None
-        if customer.date_of_birth:
-            from datetime import date
-            today = date.today()
-            age = today.year - customer.date_of_birth.year - (
-                (today.month, today.day) < (customer.date_of_birth.month, customer.date_of_birth.day)
-            )
-
-        payload = {
-            'id': customer.id,
-            'first_name': customer.first_name or '',
-            'last_name': customer.last_name or '',
-            'full_name': customer.full_name,
-            'email': (customer.email or '').lower(),
-            'phone': customer.phone or '',
-            'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else None,
-            'age': age,
-            'gender': customer.gender or '',
-            'address': customer.address or '',
-            'last_visit': customer.last_visit.isoformat() if customer.last_visit else None,
-            'total_visits': visits,
-            'total_spent': float(customer.total_spent or 0),
-            'is_active': bool(customer.is_active),
-            'is_vip': bool(getattr(customer, 'is_vip', False)),
-            'preferences': customer.preferences or '',
-            'allergies': customer.allergies or '',
-            'notes': customer.notes or '',
-            'loyalty_points': getattr(customer, 'loyalty_points', 0) or 0,
-            'status': customer.status or 'Active'
-        }
-
-        return jsonify({'success': True, 'customer': payload})
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': 'server_error', 'message': str(e)}), 500
-
 
 @app.route('/api/save_face', methods=['POST'])
 @login_required

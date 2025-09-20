@@ -1,6 +1,8 @@
 
+#!/usr/bin/env python3
+
 import os
-from app import app
+import sys
 
 # Set required environment variables if not present
 if not os.environ.get("SESSION_SECRET"):
@@ -11,13 +13,36 @@ if not os.environ.get("DATABASE_URL"):
     os.environ["DATABASE_URL"] = "postgresql://replit:postgres@localhost:5432/spa_management"
     print("✅ DATABASE_URL set")
 
-if __name__ == "__main__":
+# Set PORT from environment if available (for Replit deployment)
+port = int(os.environ.get("PORT", 5000))
+
+def main():
+    """Main application entry point with crash guards"""
     print("🚀 Starting Spa Management System...")
-    print("📡 Server will be available at: http://0.0.0.0:5000")
+    print(f"📡 Server will be available at: http://0.0.0.0:{port}")
     print("🌐 Access via webview or browser")
     
     try:
-        app.run(host="0.0.0.0", port=5000, debug=True)
+        # Import app with error handling
+        from app import app
+        print("✅ App imported successfully")
+        
+        # Add health check route if not exists
+        @app.route('/health')
+        def health_check():
+            return {'status': 'ok', 'service': 'spa_management'}, 200
+        
+        # Start the server
+        app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
+        
+    except ImportError as e:
+        print(f"❌ Import error: {e}")
+        print("💡 Check if all required modules are available")
+        sys.exit(1)
     except Exception as e:
         print(f"❌ Failed to start server: {e}")
-        print("💡 Try running the migration script first")
+        print("💡 Check the error details above")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

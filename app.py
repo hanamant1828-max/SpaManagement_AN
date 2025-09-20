@@ -46,25 +46,35 @@ def load_user(user_id):
 
 # Basic routes removed to avoid conflicts with main application routes
 
-with app.app_context():
-    # Make sure to import the models here or their tables won't be created
-    import models  # noqa: F401
-    # Import inventory models for database creation
-    from modules.inventory import models as inventory_models  # noqa: F401
-    
-    try:
-        # Try to create tables, but handle conflicts gracefully
-        db.create_all()
-        print("Database initialized successfully")
-    except Exception as e:
-        print(f"Database already exists or conflict detected: {e}")
-        print("Continuing with existing database...")
-    
-    # Import and register basic routes
-    try:
-        # Import only essential routes without complex module dependencies
-        import routes
-        print("Routes imported successfully")
-    except Exception as e:
-        print(f"Warning: Could not import all routes: {e}")
-        print("Application will continue with basic functionality")
+# Initialize database and routes within app context
+def init_app():
+    """Initialize the application with proper error handling"""
+    with app.app_context():
+        try:
+            # Make sure to import the models here or their tables won't be created
+            import models  # noqa: F401
+            # Import inventory models for database creation
+            from modules.inventory import models as inventory_models  # noqa: F401
+            
+            # Try to create tables, but handle conflicts gracefully
+            db.create_all()
+            print("Database initialized successfully")
+        except Exception as e:
+            print(f"Database initialization warning: {e}")
+            print("Continuing with existing database...")
+        
+        try:
+            # Import and register basic routes
+            import routes
+            print("Routes imported successfully")
+        except Exception as e:
+            print(f"Warning: Could not import all routes: {e}")
+            print("Application will continue with basic functionality")
+
+# Initialize the app
+init_app()
+
+# Ensure app is available for gunicorn
+if __name__ != '__main__':
+    # When imported by gunicorn or other WSGI servers
+    print("App imported for WSGI deployment")
