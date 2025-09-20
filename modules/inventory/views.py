@@ -138,8 +138,8 @@ def api_create_product():
             unit_of_measure=data.get('unit_of_measure') or data.get('unit', 'pcs'),
             barcode=data.get('barcode', ''),
             is_active=True,
-            is_service_item=data.get('is_service_item', False) or data.get('trackBatches', False),
-            is_retail_item=data.get('is_retail_item', True) or data.get('trackSerials', True)
+            is_service_item=False,  # Default to False
+            is_retail_item=True     # Default to True for spa products
         )
 
         db.session.add(product)
@@ -1002,10 +1002,8 @@ def api_update_product(product_id):
             product.unit_of_measure = data.get('unit_of_measure') or data.get('unit')
         if data.get('barcode') is not None:
             product.barcode = data.get('barcode')
-        if data.get('is_service_item') is not None or data.get('trackBatches') is not None:
-            product.is_service_item = data.get('is_service_item', False) or data.get('trackBatches', False)
-        if data.get('is_retail_item') is not None or data.get('trackSerials') is not None:
-            product.is_retail_item = data.get('is_retail_item', True) or data.get('trackSerials', True)
+        # is_service_item and is_retail_item are no longer user-editable
+        # They maintain their current values
 
         product.updated_at = datetime.utcnow()
         db.session.commit()
