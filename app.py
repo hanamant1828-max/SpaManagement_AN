@@ -31,6 +31,15 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for development in Replit
 
+# Session configuration for Replit environment
+app.config.update(
+    SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
+    SESSION_COOKIE_SAMESITE="Lax", 
+    SESSION_COOKIE_SECURE=False,   # dev mode
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_PERMANENT=False
+)
+
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
 

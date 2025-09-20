@@ -1,12 +1,35 @@
 """
 Authentication views and routes
 """
+import os
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_user, logout_user, current_user
 from sqlalchemy import func, or_, and_
 from app import app, db
 from forms import LoginForm
 from .auth_queries import validate_user_credentials
+from datetime import datetime
+
+# Password verification function with fallback (hash drift)
+def verify_pwd(stored, given):
+    """Robust password verification supporting current and legacy hashes"""
+    if not stored or not given:
+        return False
+        
+    # bcrypt hashes
+    if stored.startswith("$2a$") or stored.startswith("$2b$") or stored.startswith("$2y$"):
+        try:
+            import bcrypt
+            return bcrypt.checkpw(given.encode(), stored.encode())
+        except Exception:
+            return False
+    
+    # werkzeug pbkdf2 hashes (default)
+    try:
+        from werkzeug.security import check_password_hash
+        return check_password_hash(stored, given)
+    except Exception:
+        return False
 
 @app.route('/test')
 def test_route():
@@ -97,11 +120,13 @@ def api_login():
         if not data:
             print("❌ API Login: No JSON data received")
             return jsonify({"success": False, "message": "Invalid request format"}), 400
-            
-        identifier = data.get('identifier', '').strip().lower()
-        password = data.get('password', '')
         
-        print(f"🔍 API Login attempt for identifier: '{identifier}'")
+        # Normalize + lookup by username OR email (case-insensitive)    
+        identifier = data.get("identifier", "").strip()
+        password = data.get("password", "")
+        ident_l = identifier.lower()
+        
+        print(f"🔍 API Login attempt for identifier: '{identifier}' (normalized: '{ident_l}')")
         
         if not identifier or not password:
             print("❌ API Login: Missing identifier or password")
@@ -109,15 +134,13 @@ def api_login():
         
         # Import models here to avoid circular imports
         from models import User
+        from sqlalchemy import or_, func
         
-        # Lookup by email (case-insensitive) OR username (case-insensitive)
-        # Handle cases where email might be None
-        user = db.session.query(User).filter(
-            or_(
-                and_(User.email.isnot(None), func.lower(User.email) == identifier),
-                func.lower(User.username) == identifier
-            )
-        ).first()
+        # Normalize + lookup by username OR email (case-insensitive)
+        user = (db.session.query(User)
+                .filter(or_(func.lower(User.username) == ident_l,
+                           func.lower(User.email) == ident_l))
+                .first())
         
         print(f"🔍 User found: {user is not None}")
         if user:
@@ -125,45 +148,35 @@ def api_login():
         
         if not user:
             print(f"❌ API Login: No user found for identifier '{identifier}'")
-            return jsonify({"success": False, "message": "Incorrect username/email or password."}), 401
+            return jsonify({"success": False, "message": "Invalid credentials"}), 401
             
-        # Check if user is active
-        if not user.is_active:
+        # User status checks (don't silently fail)
+        if hasattr(user, 'is_active') and not user.is_active:
             print(f"❌ API Login: User {user.username} is inactive")
-            return jsonify({"success": False, "message": "Your account is inactive. Please contact admin."}), 403
+            return jsonify({"success": False, "message": "Your account is inactive."}), 403
         
-        # Verify password
-        password_valid = False
+        # Password verification with fallback (hash drift)
         print(f"🔍 Testing password for user: {user.username}")
         
-        if hasattr(user, 'check_password') and callable(user.check_password):
-            try:
-                password_valid = user.check_password(password)
-                print(f"🔍 user.check_password() result: {password_valid}")
-            except Exception as e:
-                print(f"❌ Password check error: {e}")
+        if not verify_pwd(user.password_hash, password):
+            print(f"❌ API Login: Invalid password for user {user.username}")
+            return jsonify({"success": False, "message": "Invalid credentials"}), 401
         
-        # If password validation fails, try werkzeug directly as fallback
-        if not password_valid and user.password_hash:
-            try:
-                from werkzeug.security import check_password_hash
-                password_valid = check_password_hash(user.password_hash, password)
-                print(f"🔍 check_password_hash() result: {password_valid}")
-            except Exception as e:
-                print(f"❌ Password hash check error: {e}")
-        
-        if not password_valid:
-            print(f"❌ API Login: Password validation failed for user {user.username}")
-            return jsonify({"success": False, "message": "Incorrect username/email or password."}), 401
-        
-        # Login successful - create session (Flask handles cookie automatically)
-        login_user(user, remember=True)
-        
-        # Create response - Flask will automatically handle session cookies
-        resp = jsonify({"success": True, "message": "Login successful", "redirect": url_for('dashboard')})
-        
+        # Login successful - clear and set session 
         print(f"✅ API Login successful for user: {user.username}")
-        return resp, 200
+        session.clear()
+        session["uid"] = user.id
+        login_user(user)
+        
+        # Update last login time if column exists
+        try:
+            if hasattr(user, 'last_login'):
+                user.last_login = datetime.utcnow()
+                db.session.commit()
+        except Exception as e:
+            print(f"Warning: Could not update last_login: {e}")
+        
+        return jsonify({"success": True}), 200
         
     except Exception as e:
         print(f"❌ API login error: {e}")
@@ -176,3 +189,55 @@ def logout():
     logout_user()
     flash('You have been logged out successfully', 'info')
     return redirect(url_for('login'))
+
+# Dev-only admin reset route (guarded)
+@app.route("/dev/reset-admin", methods=['POST'])
+def dev_reset_admin():
+    """Development-only route to create or reset admin user"""
+    # Only allow in development environment
+    if os.getenv("FLASK_ENV") != "development":
+        return jsonify({"success": False, "message": "forbidden"}), 403
+        
+    try:
+        from models import User
+        from sqlalchemy import func
+        from werkzeug.security import generate_password_hash
+        
+        username = "admin"
+        email = "admin@example.com"
+        plain = "admin123"
+        
+        # Find existing admin user (case-insensitive)
+        u = User.query.filter(func.lower(User.username) == "admin").first()
+        if not u:
+            # Create new admin user
+            u = User(
+                username=username, 
+                email=email, 
+                first_name="Admin",
+                last_name="User",
+                is_active=True, 
+                role="admin"
+            )
+            db.session.add(u)
+            print(f"🔧 Creating new admin user: {username}")
+        else:
+            # Update existing admin user
+            u.email = email
+            u.is_active = True
+            u.role = "admin"
+            print(f"🔧 Updating existing admin user: {username}")
+        
+        # Set pbkdf2 hash (werkzeug default)
+        u.password_hash = generate_password_hash(plain)  # pbkdf2:sha256
+        db.session.commit()
+        
+        print(f"✅ Admin user reset successful: {username}/{plain}")
+        return jsonify({"success": True, "message": "Admin reset to admin/admin123"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Admin reset error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Error resetting admin: {str(e)}"}), 500
