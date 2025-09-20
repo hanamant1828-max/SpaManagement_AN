@@ -90,9 +90,23 @@ def login():
             # No plaintext password fallback for security
 
         if user and user.is_active and password_valid:
+            # Clear and set session properly
+            session.clear()
+            session.permanent = form.remember.data
+            session["user_id"] = user.id
+            session["username"] = user.username
+            
             login_user(user, remember=form.remember.data)
             print(f"Login successful for user: {user.username}")
             flash('Login successful!', 'success')
+            
+            # Update last login
+            try:
+                if hasattr(user, 'last_login'):
+                    user.last_login = datetime.utcnow()
+                    db.session.commit()
+            except Exception as e:
+                print(f"Warning: Could not update last_login: {e}")
             
             next_page = request.args.get('next')
             if next_page:
@@ -162,11 +176,17 @@ def api_login():
             print(f"❌ API Login: Invalid password for user {user.username}")
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
         
-        # Login successful - clear and set session 
+        # Login successful - properly set session and login user
         print(f"✅ API Login successful for user: {user.username}")
+        
+        # Clear existing session and set new one
         session.clear()
-        session["uid"] = user.id
-        login_user(user)
+        session.permanent = False
+        session["user_id"] = user.id
+        session["username"] = user.username
+        
+        # Use Flask-Login to manage user session
+        login_user(user, remember=False)
         
         # Update last login time if column exists
         try:
@@ -176,7 +196,12 @@ def api_login():
         except Exception as e:
             print(f"Warning: Could not update last_login: {e}")
         
-        return jsonify({"success": True}), 200
+        # Return success with redirect URL
+        return jsonify({
+            "success": True, 
+            "redirect": "/dashboard",
+            "message": "Login successful"
+        }), 200
         
     except Exception as e:
         print(f"❌ API login error: {e}")

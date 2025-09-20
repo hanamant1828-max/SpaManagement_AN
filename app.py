@@ -50,8 +50,15 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    from models import User
-    return User.query.get(int(user_id))
+    try:
+        from models import User
+        user = User.query.get(int(user_id))
+        if user and user.is_active:
+            return user
+        return None
+    except Exception as e:
+        print(f"Error loading user {user_id}: {e}")
+        return None
 
 # Basic routes removed to avoid conflicts with main application routes
 

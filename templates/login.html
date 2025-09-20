@@ -101,8 +101,9 @@
                                 const data = await response.json();
                                 
                                 if (data.success) {
-                                    // Login successful
-                                    window.location.href = data.redirect || '/dashboard';
+                                    // Login successful - force page reload to ensure session is recognized
+                                    const redirectUrl = data.redirect || '/dashboard';
+                                    window.location.replace(redirectUrl);
                                 } else {
                                     // Show error message
                                     showError(data.message || 'Login failed. Please try again.');

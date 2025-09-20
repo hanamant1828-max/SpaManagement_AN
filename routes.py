@@ -1,3 +1,19 @@
+
+from flask import session, jsonify
+from flask_login import current_user, login_required
+from app import app
+
+@app.route('/api/session-check')
+def session_check():
+    """Debug route to check session status"""
+    return jsonify({
+        'session_data': dict(session),
+        'current_user_authenticated': current_user.is_authenticated,
+        'current_user_id': getattr(current_user, 'id', None) if current_user.is_authenticated else None,
+        'current_user_username': getattr(current_user, 'username', None) if current_user.is_authenticated else None
+    })
+
+
 """
 New modular routes file - imports all module views and creates default data
 """
