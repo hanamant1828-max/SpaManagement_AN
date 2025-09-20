@@ -696,6 +696,61 @@ def api_get_services():
         logging.error(f"Error fetching services: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/packages/api/templates', methods=['POST'])
+@login_required
+def api_create_template():
+    """Create new package template (membership, etc.)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        template_type = data.get('type')
+        
+        if template_type == 'membership':
+            # Create membership template
+            from models import Membership, MembershipService
+            from datetime import datetime
+            
+            membership = Membership(
+                name=data.get('name'),
+                price=float(data.get('price', 0)),
+                validity_months=12,  # Default validity
+                is_active=True
+            )
+            
+            db.session.add(membership)
+            db.session.flush()  # Get the membership ID
+            
+            # Add services if provided
+            items = data.get('items', [])
+            for item in items:
+                service_id = item.get('service_id')
+                sessions = item.get('sessions', 1)
+                
+                if service_id:
+                    membership_service = MembershipService(
+                        membership_id=membership.id,
+                        service_id=int(service_id)
+                    )
+                    db.session.add(membership_service)
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Membership "{membership.name}" created successfully',
+                'template_id': membership.id
+            })
+        
+        else:
+            return jsonify({'success': False, 'error': 'Unsupported template type'}), 400
+            
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error creating template: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/packages/api/assign', methods=['POST'])
 @login_required
 def api_assign_package():

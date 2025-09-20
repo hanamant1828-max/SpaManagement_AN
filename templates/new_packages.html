@@ -996,6 +996,10 @@ function deleteService(packageId) {
 
 // Function to submit membership form
 function submitMembershipForm() {
+    if (!validateForm()) {
+        return;
+    }
+
     const form = document.getElementById('membershipForm');
     const name = form.querySelector('#mbName').value.trim();
     const price = parseFloat(form.querySelector('#mbPrice').value);
@@ -1003,45 +1007,14 @@ function submitMembershipForm() {
     const validityTo = form.querySelector('#mbValidityTo').value;
     const selectedServiceElements = form.querySelectorAll('.service-item input[type="checkbox"]:checked');
 
-    // Validation
-    if (!name) {
-        showError('Membership Name is required.');
-        return;
-    }
-    if (isNaN(price) || price < 0) {
-        showError('Price must be a non-negative number.');
-        return;
-    }
-    if (!validityFrom || !validityTo) {
-        showError('Both From and To dates are required.');
-        return;
-    }
-    if (new Date(validityTo) < new Date(validityFrom)) {
-        showError('To Date must be on or after From Date.');
-        return;
-    }
-    if (selectedServiceElements.length === 0) {
-        showError('At least one service must be selected.');
-        return;
-    }
-
     let items = [];
-    let isValid = true;
     selectedServiceElements.forEach(checkbox => {
         const row = checkbox.closest('.service-item');
         const sessionsInput = row.querySelector('input[type="number"]');
         const sessions = parseInt(sessionsInput.value);
         const serviceId = checkbox.value;
-
-        if (isNaN(sessions) || sessions < 1) {
-            showError(`Sessions for ${row.querySelector('.service-name').textContent} must be at least 1.`);
-            isValid = false;
-        } else {
-            items.push({ service_id: parseInt(serviceId), sessions: sessions });
-        }
+        items.push({ service_id: parseInt(serviceId), sessions: sessions });
     });
-
-    if (!isValid) return;
 
     const data = {
         type: "membership",
@@ -1051,6 +1024,11 @@ function submitMembershipForm() {
         validity_to: validityTo,
         items: items
     };
+
+    // Disable save button during submission
+    const saveBtn = document.getElementById('saveMembershipBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
 
     fetch('/packages/api/templates', {
         method: 'POST',
@@ -1067,16 +1045,13 @@ function submitMembershipForm() {
     })
     .then(result => {
         if (result.success) {
-            alert('Membership created successfully!');
+            showToast('Membership created successfully!', 'success');
             closeMembershipModal();
-            location.reload();
+            setTimeout(() => location.reload(), 1000);
         } else {
-            // Display specific server-side errors if available
-            if (result.error) {
-                showError(result.error);
-            } else {
-                showError('An unexpected error occurred.');
-            }
+            showError(result.error || 'An unexpected error occurred.');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Membership';
         }
     })
     .catch(error => {
@@ -1092,7 +1067,8 @@ function submitMembershipForm() {
         } else {
             showError('Failed to create membership. Please check your inputs.');
         }
-        // Keep modal open on error
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Membership';
     });
 }
 
@@ -1217,7 +1193,7 @@ function validateForm() {
     const saveBtn = document.getElementById('saveMembershipBtn');
 
     let isNameValid = nameInput.value.trim() !== '';
-    let isPriceValid = parseFloat(priceInput.value) >= 0;
+    let isPriceValid = !isNaN(parseFloat(priceInput.value)) && parseFloat(priceInput.value) >= 0;
     let areDatesValid = validityFromInput.value && validityToInput.value && new Date(validityToInput.value) >= new Date(validityFromInput.value);
     let isServiceSelected = false;
     let areSessionsValid = true;
@@ -1246,22 +1222,18 @@ function validateForm() {
     validityFromInput.classList.toggle('is-invalid', !validityFromInput.value);
     validityToInput.classList.toggle('is-invalid', !validityToInput.value || new Date(validityToInput.value) < new Date(validityFromInput.value));
 
-    const serviceListFeedback = form.querySelector('.invalid-feedback:has(.service-checkbox)');
-    if (serviceListFeedback) {
-         serviceListFeedback.style.display = (!isServiceSelected && checkedServicesCount > 0) ? 'block' : 'none';
-    }
-     form.querySelector('.invalid-feedback:has(.service-sessions)').style.display = (!areSessionsValid && checkedServicesCount > 0) ? 'block' : 'none';
-
-
-    const formIsValid = isNameValid && isPriceValid && areDatesValid && isServiceSelected && areSessionsValid;
-
-    saveBtn.disabled = !formIsValid;
-
-    if (formIsValid) {
-        document.getElementById('mbErrorAlert').style.display = 'none';
+    // Show/hide service selection validation message
+    if (checkedServicesCount === 0) {
+        showError('Please select at least one service with sessions ≥ 1');
+    } else if (!areSessionsValid) {
+        showError('All selected services must have sessions ≥ 1');
+    } else if (formIsValid = isNameValid && isPriceValid && areDatesValid && isServiceSelected && areSessionsValid) {
+        clearError();
     }
 
-    return formIsValid;
+    saveBtn.disabled = !(isNameValid && isPriceValid && areDatesValid && isServiceSelected && areSessionsValid);
+
+    return isNameValid && isPriceValid && areDatesValid && isServiceSelected && areSessionsValid;
 }
 
 
@@ -1883,6 +1855,12 @@ document.addEventListener('DOMContentLoaded', function() {
         saveBtn.addEventListener('click', saveAssignSimple);
     }
 
+    // Add event listener for membership save button
+    const saveMembershipBtn = document.getElementById('saveMembershipBtn');
+    if (saveMembershipBtn) {
+        saveMembershipBtn.addEventListener('click', submitMembershipForm);
+    }
+
     // Load services for the membership modal when the tab is shown
     const membershipTab = document.getElementById('membership-tab');
     if (membershipTab) {
@@ -1901,6 +1879,20 @@ document.addEventListener('DOMContentLoaded', function() {
         membershipForm.addEventListener('change', validateForm);
     }
 });
+
+// Add toast notification function if not exists
+function showToast(message, type) {
+    // Simple toast implementation
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
 </script>
 
 {% endblock %}
