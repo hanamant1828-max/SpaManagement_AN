@@ -3,8 +3,6 @@ Customer Packages Routes - Blueprint for package assignment, usage tracking, and
 """
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from flask_wtf.csrf import validate_csrf
-from werkzeug.exceptions import BadRequest
 from app import db
 from models import Service, Customer, User, Appointment
 from models import PackageTemplate, PackageTemplateItem, CustomerPackage, CustomerPackageItem, PackageUsage
@@ -34,20 +32,6 @@ def index():
 # ========================================
 # PACKAGE TEMPLATES API
 # ========================================
-
-def check_packages_permission():
-    """Check if user has packages access permission"""
-    if hasattr(current_user, 'can_access') and not current_user.can_access('packages'):
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-    return None
-
-def validate_csrf_token():
-    """Validate CSRF token for JSON requests"""
-    try:
-        validate_csrf(request.headers.get('X-CSRF-Token'))
-    except BadRequest:
-        return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
-    return None
 
 @packages_bp.route("/api/templates", methods=['GET'])
 @login_required
