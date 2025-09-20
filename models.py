@@ -930,34 +930,7 @@ class StaffPerformance(db.Model):
     # Relationships
     staff = db.relationship('User', backref='performance_records')
 
-# Join tables for package-service relationships
-class MembershipService(db.Model):
-    """Many-to-many relationship between memberships and services"""
-    __tablename__ = 'membership_services'
-
-    id = db.Column(db.Integer, primary_key=True)
-    membership_id = db.Column(db.Integer, db.ForeignKey('memberships.id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    service = db.relationship('Service', backref='membership_services')
-
-    __table_args__ = (db.UniqueConstraint('membership_id', 'service_id'),)
-
-class KittyPartyService(db.Model):
-    """Many-to-many relationship between kitty parties and services"""
-    __tablename__ = 'kittyparty_services'
-
-    id = db.Column(db.Integer, primary_key=True)
-    kittyparty_id = db.Column(db.Integer, db.ForeignKey('kitty_parties.id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    service = db.relationship('Service', backref='kittyparty_services')
-
-    __table_args__ = (db.UniqueConstraint('kittyparty_id', 'service_id'),)
+# Note: MembershipService and KittyPartyService classes are defined earlier in the file
 
 class ServiceInventoryItem(db.Model):
     """Link services with inventory items they consume"""
