@@ -1,0 +1,69 @@
+Fix Customer “View” button so the modal loads real data (not the placeholder). Flask + vanilla JS + Bootstrap.
+
+Do:
+
+Frontend wiring
+
+On each row’s View icon, add data-customer-id="<id>" and call openCustomerProfile(id).
+
+Implement in customers.js:
+
+openCustomerProfile(id) → opens modal, shows spinner, fetches /api/customers/${id} (GET, JSON), then renders details.
+
+Render layout (name, tags: VIP/Active, phone/email, DOB/age, address, last visit, visits, lifetime value, preferences, allergies, notes). Include avatar initials.
+
+“Book Appointment” button links to /appointments/new?customer_id=${id} (or your endpoint).
+
+Errors:
+
+404 → “We couldn’t find this customer. It may have been deleted.”
+
+Network/500 → “We couldn’t load customer details. Please try again.”
+
+Keep modal open on error; show retry link.
+
+Keep modal dismissal rules: close only on Close button.
+
+API endpoint (Flask)
+
+# GET /api/customers/<int:id>
+from sqlalchemy import func
+@app.route("/api/customers/<int:id>")
+def api_get_customer(id):
+    c = db.session.query(Client).filter(Client.id==id).first()
+    if not c:
+        return jsonify(success=False, error="not_found"), 404
+    visits = db.session.query(func.count(Appointment.id)).filter(Appointment.client_id==id).scalar() if 'Appointment' in globals() else 0
+    payload = {
+        "id": c.id,
+        "first_name": c.first_name, "last_name": c.last_name,
+        "email": (c.email or "").lower(),
+        "phone": c.phone, "date_of_birth": c.date_of_birth.isoformat() if c.date_of_birth else None,
+        "gender": c.gender, "address": c.address,
+        "last_visit": c.last_visit.isoformat() if c.last_visit else None,
+        "total_visits": visits or c.total_visits or 0,
+        "total_spent": float(c.total_spent or 0),
+        "is_active": bool(c.is_active), "is_vip": bool(c.is_vip),
+        "preferences": c.preferences, "allergies": c.allergies, "notes": c.notes,
+        "loyalty_points": c.loyalty_points or 0
+    }
+    return jsonify(success=True, customer=payload), 200
+
+
+Add dev bypass (no auth/CSRF) for this route.
+
+Modal HTML (template)
+
+Inside #customerProfileModal .modal-body, insert a container (#customerProfileContent). JS replaces its innerHTML with a card layout using the payload above. Include a skeleton while loading.
+
+QA
+
+Click View → spinner → customer details rendered.
+
+404 shows friendly message, keeps modal open.
+
+“Book Appointment” navigates with customer_id prefilled.
+
+No console errors; network 200/404 as appropriate.
+
+Acceptance: View button reliably loads real customer data into the modal with friendly errors and a working “Book Appointment” link.
