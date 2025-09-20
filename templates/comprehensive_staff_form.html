@@ -714,13 +714,11 @@ function setupFaceRecognition() {
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
 
         try {
-            const csrfToken = document.querySelector('[name=csrf_token]')?.value;
 
             const response = await fetch('/staff/facial-recognition/setup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(csrfToken && {'X-CSRFToken': csrfToken})
                 },
                 body: JSON.stringify({
                     staff_id: parseInt(staffId),
@@ -1380,7 +1378,6 @@ document.getElementById("comprehensiveStaffForm").addEventListener("submit", asy
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token() }}" // If using CSRF protection
             },
             body: JSON.stringify({
                 staff: staffData,

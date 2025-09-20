@@ -809,9 +809,7 @@ function updateStatus(appointmentId, newStatus) {
         form.method = 'POST';
         form.action = `/bookings/update-status/${appointmentId}`;
 
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
         form.innerHTML = `
-            <input type="hidden" name="csrf_token" value="${csrfToken}">
             <input type="hidden" name="status" value="${newStatus}">
         `;
 

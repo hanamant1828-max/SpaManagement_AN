@@ -208,7 +208,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_service_route') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">
@@ -280,7 +279,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" id="editServiceForm" action="#">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" id="editServiceId" name="service_id"/>
                 <div class="modal-body">
                     <div class="row">
@@ -382,7 +380,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_service_category') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Category Name <span class="text-danger">*</span></label>
@@ -438,7 +435,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" id="editCategoryForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Display Name <span class="text-danger">*</span></label>
@@ -555,12 +551,10 @@ function editService(serviceId) {
 }
 
 function toggleService(serviceId) {
-    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
     fetch(`/services/${serviceId}/toggle`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
         }
     })
     .then(response => response.json())
@@ -587,8 +581,6 @@ function deleteService(serviceId) {
         // Add CSRF token
         const csrfInput = document.createElement('input');
         csrfInput.type = 'hidden';
-        csrfInput.name = 'csrf_token';
-        csrfInput.value = document.querySelector('input[name="csrf_token"]').value;
         form.appendChild(csrfInput);
         
         // Submit form
@@ -627,12 +619,10 @@ function editCategory(categoryId) {
 }
 
 function toggleCategory(categoryId) {
-    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
     fetch(`/service-categories/${categoryId}/toggle`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
         }
     })
     .then(response => response.json())
@@ -651,12 +641,10 @@ function toggleCategory(categoryId) {
 
 function deleteCategory(categoryId) {
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
         fetch(`/service-categories/${categoryId}/delete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
             }
         })
         .then(response => response.json())
