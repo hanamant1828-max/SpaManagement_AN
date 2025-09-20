@@ -228,6 +228,8 @@ def api_get_memberships():
             'price': m.price,
             'validity_months': m.validity_months,
             'services_included': m.services_included,
+            'selected_services': [{'id': ms.service.id, 'name': ms.service.name, 'price': ms.service.price} 
+                                for ms in m.membership_services] if hasattr(m, 'membership_services') else [],
             'is_active': m.is_active,
             'created_at': m.created_at.isoformat()
         } for m in memberships])
@@ -239,7 +241,14 @@ def api_get_memberships():
 def api_create_membership():
     """Create new membership"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        if request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            # Handle multiple service selections from form
+            if 'service_ids' not in data:
+                data['service_ids'] = request.form.getlist('service_ids')
+
         membership = create_membership(data)
         flash('Membership created successfully!', 'success')
         return jsonify({
@@ -256,7 +265,14 @@ def api_create_membership():
 def api_update_membership(membership_id):
     """Update membership"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        if request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            # Handle multiple service selections from form
+            if 'service_ids' not in data:
+                data['service_ids'] = request.form.getlist('service_ids')
+
         membership = update_membership(membership_id, data)
         flash('Membership updated successfully!', 'success')
         return jsonify({
@@ -294,7 +310,8 @@ def api_get_student_offers():
         offers = get_all_student_offers()
         return jsonify([{
             'id': o.id,
-            'service_name': o.service_name,
+            'service_id': o.service_id,
+            'service_name': o.service.name if o.service else o.service_name,
             'actual_price': o.actual_price,
             'discount_percent': o.discount_percent,
             'after_price': o.after_price,
@@ -442,6 +459,8 @@ def api_get_kitty_parties():
             'after_value': p.after_value,
             'min_guests': p.min_guests,
             'services_included': p.services_included,
+            'selected_services': [{'id': kps.service.id, 'name': kps.service.name, 'price': kps.service.price} 
+                                for kps in p.kittyparty_services] if hasattr(p, 'kittyparty_services') else [],
             'is_active': p.is_active,
             'created_at': p.created_at.isoformat()
         } for p in parties])
@@ -453,7 +472,14 @@ def api_get_kitty_parties():
 def api_create_kitty_party():
     """Create new kitty party"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        if request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            # Handle multiple service selections from form
+            if 'service_ids' not in data:
+                data['service_ids'] = request.form.getlist('service_ids')
+
         party = create_kitty_party(data)
         flash('Kitty party created successfully!', 'success')
         return jsonify({
@@ -470,7 +496,14 @@ def api_create_kitty_party():
 def api_update_kitty_party(party_id):
     """Update kitty party"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        if request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            # Handle multiple service selections from form
+            if 'service_ids' not in data:
+                data['service_ids'] = request.form.getlist('service_ids')
+
         party = update_kitty_party(party_id, data)
         flash('Kitty party updated successfully!', 'success')
         return jsonify({

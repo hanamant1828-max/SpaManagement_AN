@@ -156,10 +156,24 @@ def create_membership(data):
         name=data['name'],
         price=float(data['price']),
         validity_months=int(data['validity_months']),
-        services_included=data['services_included'],
+        services_included=data.get('services_included', ''),  # Keep for backward compatibility
         is_active=data.get('is_active', True)
     )
     db.session.add(membership)
+    db.session.flush()  # Get the membership ID
+
+    # Add selected services
+    if 'service_ids' in data and data['service_ids']:
+        from models import MembershipService
+        service_ids = data['service_ids'] if isinstance(data['service_ids'], list) else [data['service_ids']]
+        for service_id in service_ids:
+            if service_id:  # Skip empty values
+                membership_service = MembershipService(
+                    membership_id=membership.id,
+                    service_id=int(service_id)
+                )
+                db.session.add(membership_service)
+
     db.session.commit()
     return membership
 
@@ -172,8 +186,24 @@ def update_membership(membership_id, data):
     membership.name = data['name']
     membership.price = float(data['price'])
     membership.validity_months = int(data['validity_months'])
-    membership.services_included = data['services_included']
+    membership.services_included = data.get('services_included', '')
     membership.is_active = data.get('is_active', True)
+
+    # Update service relationships
+    from models import MembershipService
+    # Remove existing services
+    MembershipService.query.filter_by(membership_id=membership_id).delete()
+    
+    # Add new services
+    if 'service_ids' in data and data['service_ids']:
+        service_ids = data['service_ids'] if isinstance(data['service_ids'], list) else [data['service_ids']]
+        for service_id in service_ids:
+            if service_id:  # Skip empty values
+                membership_service = MembershipService(
+                    membership_id=membership_id,
+                    service_id=int(service_id)
+                )
+                db.session.add(membership_service)
     
     db.session.commit()
     return membership
@@ -202,19 +232,25 @@ def get_student_offer_by_id(offer_id):
 
 def create_student_offer(data):
     """Create new student offer"""
-    # Get service name if service_id is provided
-    service_name = data.get('service_name', '')
-    if data.get('service_id'):
-        service = Service.query.get(data['service_id'])
-        if service:
-            service_name = service.name
+    service_id = int(data['service_id']) if data.get('service_id') else None
+    if not service_id:
+        raise ValueError("Service is required for student offer")
+    
+    # Get service details for auto-calculation
+    service = Service.query.get(service_id)
+    if not service:
+        raise ValueError("Selected service not found")
+    
+    actual_price = float(service.price)  # Use service price
+    discount_percent = float(data['discount_percent'])
+    after_price = actual_price * (1 - discount_percent / 100)
     
     offer = StudentOffer(
-        service_id=int(data['service_id']) if data.get('service_id') else None,
-        service_name=service_name,
-        actual_price=float(data['actual_price']),
-        discount_percent=float(data['discount_percent']),
-        after_price=float(data['after_price']),
+        service_id=service_id,
+        service_name=service.name,  # Auto-populate from service
+        actual_price=actual_price,
+        discount_percent=discount_percent,
+        after_price=after_price,
         valid_days=data.get('valid_days', 'Mon-Fri'),
         is_active=data.get('is_active', True)
     )
@@ -228,18 +264,24 @@ def update_student_offer(offer_id, data):
     if not offer:
         raise ValueError("Student offer not found")
     
-    # Get service name if service_id is provided
-    service_name = data.get('service_name', offer.service_name)
-    if data.get('service_id'):
-        service = Service.query.get(data['service_id'])
-        if service:
-            service_name = service.name
+    service_id = int(data['service_id']) if data.get('service_id') else offer.service_id
+    if not service_id:
+        raise ValueError("Service is required for student offer")
     
-    offer.service_id = int(data['service_id']) if data.get('service_id') else offer.service_id
-    offer.service_name = service_name
-    offer.actual_price = float(data['actual_price'])
-    offer.discount_percent = float(data['discount_percent'])
-    offer.after_price = float(data['after_price'])
+    # Get service details for auto-calculation
+    service = Service.query.get(service_id)
+    if not service:
+        raise ValueError("Selected service not found")
+    
+    actual_price = float(service.price)  # Use service price
+    discount_percent = float(data['discount_percent'])
+    after_price = actual_price * (1 - discount_percent / 100)
+    
+    offer.service_id = service_id
+    offer.service_name = service.name  # Auto-populate from service
+    offer.actual_price = actual_price
+    offer.discount_percent = discount_percent
+    offer.after_price = after_price
     offer.valid_days = data.get('valid_days', 'Mon-Fri')
     offer.is_active = data.get('is_active', True)
     
@@ -327,10 +369,24 @@ def create_kitty_party(data):
         price=float(data['price']),
         after_value=float(data.get('after_value')) if data.get('after_value') else None,
         min_guests=int(data['min_guests']),
-        services_included=data.get('services_included'),
+        services_included=data.get('services_included', ''),  # Keep for backward compatibility
         is_active=data.get('is_active', True)
     )
     db.session.add(party)
+    db.session.flush()  # Get the party ID
+
+    # Add selected services
+    if 'service_ids' in data and data['service_ids']:
+        from models import KittyPartyService
+        service_ids = data['service_ids'] if isinstance(data['service_ids'], list) else [data['service_ids']]
+        for service_id in service_ids:
+            if service_id:  # Skip empty values
+                kittyparty_service = KittyPartyService(
+                    kittyparty_id=party.id,
+                    service_id=int(service_id)
+                )
+                db.session.add(kittyparty_service)
+
     db.session.commit()
     return party
 
@@ -344,8 +400,24 @@ def update_kitty_party(party_id, data):
     party.price = float(data['price'])
     party.after_value = float(data.get('after_value')) if data.get('after_value') else None
     party.min_guests = int(data['min_guests'])
-    party.services_included = data.get('services_included')
+    party.services_included = data.get('services_included', '')
     party.is_active = data.get('is_active', True)
+
+    # Update service relationships
+    from models import KittyPartyService
+    # Remove existing services
+    KittyPartyService.query.filter_by(kittyparty_id=party_id).delete()
+    
+    # Add new services
+    if 'service_ids' in data and data['service_ids']:
+        service_ids = data['service_ids'] if isinstance(data['service_ids'], list) else [data['service_ids']]
+        for service_id in service_ids:
+            if service_id:  # Skip empty values
+                kittyparty_service = KittyPartyService(
+                    kittyparty_id=party_id,
+                    service_id=int(service_id)
+                )
+                db.session.add(kittyparty_service)
     
     db.session.commit()
     return party

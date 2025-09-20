@@ -25,7 +25,7 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="service-tab" data-bs-toggle="tab" data-bs-target="#service" type="button" role="tab">
-                                <i class="fas fa-spa"></i> Service Packages  
+                                <i class="fas fa-spa"></i> Service Packages
                                 <span class="badge bg-info ms-1">{{ stats.service_packages }}</span>
                             </button>
                         </li>
@@ -484,15 +484,15 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Actual Price</label>
-                        <input type="number" class="form-control" name="actual_price" required readonly>
+                        <input type="number" class="form-control" name="actual_price" id="student_actual_price" required readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Discount Percentage</label>
-                        <input type="number" class="form-control" name="discount_percent" required min="0" max="100" onchange="calculateDiscountPrice()">
+                        <input type="number" class="form-control" name="discount_percent" required min="0" max="100" onchange="calculateStudentDiscountPrice()">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">After Discount Price</label>
-                        <input type="number" class="form-control" name="after_price" required readonly>
+                        <input type="number" class="form-control" name="after_price" id="student_after_price" required readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Valid Days</label>
@@ -576,7 +576,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Services Included</label>
-                        <textarea class="form-control" name="services_included"></textarea>
+                        <select multiple class="form-select" name="service_ids">
+                            {% for service in services %}
+                                <option value="{{ service.id }}">{{ service.name }} - ₹{{ service.price }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </form>
             </div>
@@ -779,6 +783,26 @@ function deleteMembership(membershipId) {
     }
 }
 
+// Student offer price calculation functions
+function updateStudentServicePrice() {
+    const serviceSelect = document.getElementById('student_service_select');
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    const price = selectedOption.getAttribute('data-price');
+
+    if (price) {
+        document.getElementById('student_actual_price').value = price;
+        calculateStudentDiscountPrice();
+    }
+}
+
+function calculateStudentDiscountPrice() {
+    const actualPrice = parseFloat(document.getElementById('student_actual_price').value) || 0;
+    const discountPercent = parseFloat(document.querySelector('input[name="discount_percent"]').value) || 0;
+
+    const afterPrice = actualPrice * (1 - discountPercent / 100);
+    document.getElementById('student_after_price').value = afterPrice.toFixed(2);
+}
+
 // Function to submit student offer form
 function submitStudentForm() {
     const form = document.getElementById('studentForm');
@@ -809,11 +833,11 @@ function submitStudentForm() {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error creating offer');
+        alert('Error creating student offer');
     });
 }
 
-// Student offer CRUD functions  
+// Student offer CRUD functions
 function editStudent(offerId) {
     console.log('Edit student offer:', offerId);
 }
@@ -902,10 +926,19 @@ function submitKittyForm() {
     const form = document.getElementById('kittyForm');
     const formData = new FormData(form);
 
+    // Convert to JSON, handling multiple service selections
     const data = {};
+    const serviceIds = [];
+
     formData.forEach((value, key) => {
-        data[key] = value;
+        if (key === 'service_ids') {
+            serviceIds.push(value);
+        } else {
+            data[key] = value;
+        }
     });
+
+    data['service_ids'] = serviceIds;
 
     fetch('/api/kitty-parties', {
         method: 'POST',
@@ -927,7 +960,7 @@ function submitKittyForm() {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error creating party');
+        alert('Error creating kitty party');
     });
 }
 
@@ -953,32 +986,6 @@ function deleteKitty(partyId) {
                 alert('Error: ' + data.error);
             }
         });
-    }
-}
-
-// Auto-fill service price for student offers
-function updateStudentServicePrice() {
-    const serviceSelect = document.getElementById('student_service_select');
-    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-    
-    if (selectedOption && selectedOption.dataset.price) {
-        const actualPriceInput = document.querySelector('input[name="actual_price"]');
-        if (actualPriceInput) {
-            actualPriceInput.value = selectedOption.dataset.price;
-            calculateDiscountPrice();
-        }
-    }
-}
-
-// Calculate after price based on discount
-function calculateDiscountPrice() {
-    const actualPrice = parseFloat(document.querySelector('input[name="actual_price"]').value) || 0;
-    const discountPercent = parseFloat(document.querySelector('input[name="discount_percent"]').value) || 0;
-    const afterPrice = actualPrice - (actualPrice * discountPercent / 100);
-    
-    const afterPriceInput = document.querySelector('input[name="after_price"]');
-    if (afterPriceInput) {
-        afterPriceInput.value = afterPrice.toFixed(2);
     }
 }
 </script>

@@ -477,9 +477,12 @@ class Membership(db.Model):
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
     validity_months = db.Column(db.Integer, nullable=False)  # Usually 12
-    services_included = db.Column(db.Text, nullable=False)
+    services_included = db.Column(db.Text, nullable=True)  # Keep for backward compatibility
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    membership_services = db.relationship('MembershipService', backref='membership', lazy=True, cascade='all, delete-orphan')
 
 class StudentOffer(db.Model):
     """Student discount offers"""
@@ -524,9 +527,12 @@ class KittyParty(db.Model):
     price = db.Column(db.Float, nullable=False)
     after_value = db.Column(db.Float, nullable=True)
     min_guests = db.Column(db.Integer, nullable=False)
-    services_included = db.Column(db.Text, nullable=True)
+    services_included = db.Column(db.Text, nullable=True)  # Keep for backward compatibility
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    kittyparty_services = db.relationship('KittyPartyService', backref='kittyparty', lazy=True, cascade='all, delete-orphan')
 
 # Inventory Management Models are located in modules/inventory/models.py
 
@@ -894,6 +900,35 @@ class StaffPerformance(db.Model):
 
     # Relationships
     staff = db.relationship('User', backref='performance_records')
+
+# Join tables for package-service relationships
+class MembershipService(db.Model):
+    """Many-to-many relationship between memberships and services"""
+    __tablename__ = 'membership_services'
+
+    id = db.Column(db.Integer, primary_key=True)
+    membership_id = db.Column(db.Integer, db.ForeignKey('memberships.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    service = db.relationship('Service', backref='membership_services')
+
+    __table_args__ = (db.UniqueConstraint('membership_id', 'service_id'),)
+
+class KittyPartyService(db.Model):
+    """Many-to-many relationship between kitty parties and services"""
+    __tablename__ = 'kittyparty_services'
+
+    id = db.Column(db.Integer, primary_key=True)
+    kittyparty_id = db.Column(db.Integer, db.ForeignKey('kitty_parties.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    service = db.relationship('Service', backref='kittyparty_services')
+
+    __table_args__ = (db.UniqueConstraint('kittyparty_id', 'service_id'),)
 
 class ServiceInventoryItem(db.Model):
     """Link services with inventory items they consume"""
