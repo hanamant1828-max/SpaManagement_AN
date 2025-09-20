@@ -396,22 +396,26 @@
     }
 
     function loadBatchesForConsumption(selectId, selectedBatchId = null) {
+        console.log('📦 Loading batches for consumption...');
         fetch('/api/inventory/batches/for-consumption')
         .then(response => response.json())
         .then(data => {
             const select = document.getElementById(selectId);
             select.innerHTML = '<option value="">Select Batch</option>';
 
-            if (data.success) {
+            if (data.success && data.batches) {
+                console.log('📋 Received batches:', data.batches);
                 data.batches.forEach(batch => {
                     const option = document.createElement('option');
                     option.value = batch.id;
                     option.textContent = batch.dropdown_display;
                     
-                    // Set data attributes for stock info
+                    // Set data attributes for stock info with detailed logging
                     option.dataset.currentQty = batch.qty_available;
                     option.dataset.unit = batch.unit;
                     option.dataset.productName = batch.product_name;
+                    
+                    console.log(`📋 Added batch option: ID=${batch.id}, Stock=${batch.qty_available}, Unit=${batch.unit}, Product=${batch.product_name}`);
                     
                     if (selectedBatchId && batch.id == selectedBatchId) {
                         option.selected = true;
@@ -419,6 +423,13 @@
                     select.appendChild(option);
                 });
                 console.log(`✅ Loaded ${data.batches.length} batches for ${selectId}, selected: ${selectedBatchId}`);
+                
+                // If we have a selected batch, update stock info
+                if (selectedBatchId) {
+                    updateStockInfo();
+                }
+            } else {
+                console.log('⚠️ No batches received or API call failed');
             }
         })
         .catch(error => {
@@ -433,23 +444,33 @@
         const availableStockDisplay = document.getElementById('availableStockDisplay');
         const availableStockUnit = document.getElementById('availableStockUnit');
 
+        console.log('🔄 Updating stock info for batch ID:', batchId);
+
         if (batchId && batchSelect) {
             const selectedOption = batchSelect.querySelector(`option[value="${batchId}"]`);
+            console.log('📋 Selected option:', selectedOption);
+            
             if (selectedOption) {
                 const currentStock = selectedOption.dataset.currentQty || 0;
                 const unit = selectedOption.dataset.unit || 'pcs';
                 const productName = selectedOption.dataset.productName || 'Unknown Product';
 
+                console.log('📊 Stock data:', { currentStock, unit, productName });
+
                 stockInfo.textContent = `Product: ${productName}`;
                 availableStockDisplay.value = currentStock;
                 availableStockUnit.textContent = unit;
 
-                stockInfo.className = currentStock > 0 ? 'form-text text-success' : 'form-text text-danger';
+                stockInfo.className = parseFloat(currentStock) > 0 ? 'form-text text-success' : 'form-text text-danger';
 
                 // Set max quantity for validation
                 document.getElementById('consumptionQuantity').max = currentStock;
+                console.log('✅ Stock info updated successfully');
+            } else {
+                console.log('❌ Selected option not found');
             }
         } else {
+            console.log('🔄 Clearing stock info - no batch selected');
             stockInfo.textContent = '';
             availableStockDisplay.value = '';
             availableStockUnit.textContent = 'pcs';
@@ -458,11 +479,16 @@
     }
 
     function addConsumption() {
+        console.log('➕ Opening Add Consumption modal...');
         document.getElementById('consumptionForm').reset();
         document.getElementById('consumptionDate').value = new Date().toISOString().split('T')[0];
 
+        // Clear stock info first
+        document.getElementById('stockInfo').textContent = '';
+        document.getElementById('availableStockDisplay').value = '';
+        document.getElementById('availableStockUnit').textContent = 'pcs';
+
         loadBatchesForConsumption('consumptionBatch');
-        updateStockInfo();
 
         const modal = new bootstrap.Modal(document.getElementById('addConsumptionModal'));
         modal.show();
@@ -672,7 +698,15 @@
         currentPage = 1;
         loadConsumptions();
     });
-    document.getElementById('consumptionBatch').addEventListener('change', updateStockInfo);
+    
+    // Ensure batch dropdown change event is attached
+    const batchSelect = document.getElementById('consumptionBatch');
+    if (batchSelect) {
+        batchSelect.addEventListener('change', updateStockInfo);
+        console.log('✅ Batch selection event listener attached');
+    } else {
+        console.error('❌ Could not find consumptionBatch element for event listener');
+    }
 
     // Initialize
     loadConsumptions();
