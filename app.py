@@ -55,11 +55,11 @@ db.init_app(app)
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 login_manager.session_protection = 'basic'
-login_manager.refresh_view = 'login'
+login_manager.refresh_view = 'login'  # type: ignore
 
 # Add headers for webview compatibility and caching control
 @app.after_request
@@ -137,6 +137,11 @@ with app.app_context():
     try:
         db.create_all()
         logging.info("Database tables created")
+        
+        # Create default data (admin user, categories, etc.)
+        from routes import create_default_data
+        create_default_data()
+        logging.info("Default data initialized")
 
     except Exception as e:
         logging.error(f"Database initialization failed: {e}")
@@ -145,6 +150,14 @@ with app.app_context():
             # Skip migration attempt since file doesn't exist
             logging.info("Retrying database initialization without migration...")
             db.create_all()
+            
+            # Try creating default data even if migration failed
+            try:
+                from routes import create_default_data
+                create_default_data()
+                logging.info("Default data initialized after retry")
+            except Exception as data_error:
+                logging.error(f"Failed to create default data: {data_error}")
 
         except Exception as migration_error:
             logging.error(f"Database initialization retry failed: {migration_error}")
