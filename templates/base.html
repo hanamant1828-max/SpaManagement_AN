@@ -127,11 +127,9 @@
                     {% endif %}
 
                     {% if true %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="/integrated-billing">
-                            <i class="fas fa-cash-register me-2"></i><span>Billing System</span>
-                        </a>
-                    </li>
+                    <a class="nav-link text-white" href="{{ url_for('billing') }}">
+                        <i class="fas fa-cash-register me-2"></i><span>Billing System</span>
+                    </a>
                     {% endif %}
 
 
