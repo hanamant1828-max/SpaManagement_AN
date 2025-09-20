@@ -53,6 +53,13 @@ def shift_scheduler():
                          staff_members=staff_members,
                          today=date.today().strftime('%Y-%m-%d'))
 
+# Add alias route for the main interface to match template expectations
+@shift_scheduler_bp.route('/')
+@login_required  
+def index():
+    """Alias for main shift scheduler interface"""
+    return shift_scheduler()
+
 # API endpoint to get existing schedules
 @shift_scheduler_bp.route('/api/shift-scheduler', methods=['GET'])
 @login_required

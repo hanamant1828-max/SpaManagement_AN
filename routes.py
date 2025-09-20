@@ -86,7 +86,11 @@ try:
     from modules.notifications import notifications_views
     from modules.settings import settings_views
     from modules.staff import staff_views
-    from modules.staff import shift_scheduler_views
+    from modules.staff.shift_scheduler_views import shift_scheduler_bp
+    
+    # Register the shift scheduler blueprint
+    app.register_blueprint(shift_scheduler_bp)
+    print("Shift scheduler blueprint registered successfully")
     print("All modules imported successfully")
 except ImportError as e:
     print(f"Module import error: {e}")
