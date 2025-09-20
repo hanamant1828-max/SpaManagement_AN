@@ -1,11 +1,8 @@
-from datetime import datetime, date, timedelta
-from flask_sqlalchemy import SQLAlchemy
+from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, date, timedelta
 import json
-
-# Get db from app but only when needed to avoid circular imports
-from app import db
 
 # Inventory models are imported separately to avoid circular imports
 
