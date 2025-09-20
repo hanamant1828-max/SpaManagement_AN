@@ -25,7 +25,7 @@ def index():
     if hasattr(current_user, 'can_access') and not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     return render_template("packages/customer_packages.html")
 
 
@@ -39,7 +39,7 @@ def api_get_templates():
     """Get all package templates with items"""
     try:
         templates = PackageTemplate.query.filter_by(is_active=True).all()
-        
+
         result = []
         for template in templates:
             template_data = {
@@ -52,7 +52,7 @@ def api_get_templates():
                 'created_at': template.created_at.isoformat(),
                 'items': []
             }
-            
+
             # Add template items
             for item in template.template_items:
                 template_data['items'].append({
@@ -61,11 +61,11 @@ def api_get_templates():
                     'service_name': item.service.name if item.service else '',
                     'qty': item.qty
                 })
-            
+
             result.append(template_data)
-        
+
         return jsonify({'success': True, 'templates': result})
-    
+
     except Exception as e:
         logging.error(f"Error getting package templates: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -81,23 +81,23 @@ def api_assign_package():
     """Assign package to customer"""
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['customer_id', 'package_id', 'price_paid']
         for field in required_fields:
             if field not in data:
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
-        
+
         # Check if customer exists
         customer = Customer.query.get(data['customer_id'])
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
-        
+
         # Check if package template exists
         template = PackageTemplate.query.get(data['package_id'])
         if not template:
             return jsonify({'success': False, 'error': 'Package template not found'}), 404
-        
+
         # Parse expires_on if provided
         expires_on = None
         if data.get('expires_on'):
@@ -105,7 +105,7 @@ def api_assign_package():
                 expires_on = datetime.fromisoformat(data['expires_on'].replace('Z', '+00:00'))
             except ValueError:
                 return jsonify({'success': False, 'error': 'Invalid expires_on date format'}), 400
-        
+
         # Create customer package
         customer_package = CustomerPackage(
             customer_id=data['customer_id'],
@@ -115,10 +115,10 @@ def api_assign_package():
             expires_on=expires_on,
             notes=data.get('notes', '')
         )
-        
+
         db.session.add(customer_package)
         db.session.flush()  # To get the ID
-        
+
         # Create customer package items from template items
         for template_item in template.template_items:
             package_item = CustomerPackageItem(
@@ -128,15 +128,15 @@ def api_assign_package():
                 used_qty=0
             )
             db.session.add(package_item)
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Package assigned successfully',
             'customer_package_id': customer_package.id
         })
-    
+
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error assigning package: {e}")
@@ -154,17 +154,17 @@ def api_get_customer_packages():
         q = request.args.get('q', '').strip()
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
-        
+
         # Build query
         query = CustomerPackage.query.join(Customer).join(PackageTemplate)
-        
+
         # Apply filters
         if customer_id:
             query = query.filter(CustomerPackage.customer_id == customer_id)
-        
+
         if status:
             query = query.filter(CustomerPackage.status == status)
-        
+
         if q:
             query = query.filter(
                 or_(
@@ -173,20 +173,20 @@ def api_get_customer_packages():
                     PackageTemplate.name.ilike(f'%{q}%')
                 )
             )
-        
+
         # Order by assigned date (newest first)
         query = query.order_by(desc(CustomerPackage.assigned_on))
-        
+
         # Paginate
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         packages = pagination.items
-        
+
         # Format results
         result = []
         for pkg in packages:
             # Auto-update status
             pkg.auto_update_status()
-            
+
             result.append({
                 'id': pkg.id,
                 'customer_id': pkg.customer_id,
@@ -203,10 +203,10 @@ def api_get_customer_packages():
                 'usage_percentage': pkg.get_usage_percentage(),
                 'notes': pkg.notes
             })
-        
+
         # Commit any status updates
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'packages': result,
@@ -219,7 +219,7 @@ def api_get_customer_packages():
                 'has_prev': pagination.has_prev
             }
         })
-    
+
     except Exception as e:
         logging.error(f"Error getting customer packages: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -233,11 +233,11 @@ def api_get_package_details(package_id):
         package = CustomerPackage.query.get(package_id)
         if not package:
             return jsonify({'success': False, 'error': 'Package not found'}), 404
-        
+
         # Auto-update status
         package.auto_update_status()
         db.session.commit()
-        
+
         # Get package items
         items = []
         for item in package.package_items:
@@ -249,11 +249,11 @@ def api_get_package_details(package_id):
                 'used_qty': item.used_qty,
                 'remaining_qty': item.get_remaining_qty()
             })
-        
+
         # Get recent usage (last 10)
         recent_usage = PackageUsage.query.filter_by(customer_package_id=package_id)\
             .order_by(desc(PackageUsage.usage_date)).limit(10).all()
-        
+
         usage_list = []
         for usage in recent_usage:
             usage_list.append({
@@ -265,7 +265,7 @@ def api_get_package_details(package_id):
                 'staff_name': usage.staff.full_name if usage.staff else '',
                 'notes': usage.notes
             })
-        
+
         result = {
             'id': package.id,
             'customer_id': package.customer_id,
@@ -284,9 +284,9 @@ def api_get_package_details(package_id):
             'items': items,
             'recent_usage': usage_list
         }
-        
+
         return jsonify({'success': True, 'package': result})
-    
+
     except Exception as e:
         logging.error(f"Error getting package details: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -300,15 +300,15 @@ def api_get_package_usage(package_id):
         package = CustomerPackage.query.get(package_id)
         if not package:
             return jsonify({'success': False, 'error': 'Package not found'}), 404
-        
+
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
-        
+
         # Get usage with pagination
         pagination = PackageUsage.query.filter_by(customer_package_id=package_id)\
             .order_by(desc(PackageUsage.usage_date))\
             .paginate(page=page, per_page=per_page, error_out=False)
-        
+
         usage_list = []
         for usage in pagination.items:
             usage_list.append({
@@ -321,7 +321,7 @@ def api_get_package_usage(package_id):
                 'appointment_id': usage.appointment_id,
                 'notes': usage.notes
             })
-        
+
         return jsonify({
             'success': True,
             'usage': usage_list,
@@ -334,7 +334,7 @@ def api_get_package_usage(package_id):
                 'has_prev': pagination.has_prev
             }
         })
-    
+
     except Exception as e:
         logging.error(f"Error getting package usage: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -348,41 +348,41 @@ def api_use_package(package_id):
         package = CustomerPackage.query.get(package_id)
         if not package:
             return jsonify({'success': False, 'error': 'Package not found'}), 404
-        
+
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['service_id', 'qty']
         for field in required_fields:
             if field not in data:
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
-        
+
         if data['qty'] <= 0:
             return jsonify({'success': False, 'error': 'Please provide a valid quantity'}), 400
-        
+
         # Check package is active
         if package.status != 'active':
             return jsonify({'success': False, 'error': 'Package is not active'}), 409
-        
+
         # Check if expired
         if package.is_expired():
             package.status = 'expired'
             db.session.commit()
             return jsonify({'success': False, 'error': 'Package has expired'}), 409
-        
+
         # Find package item for service
         package_item = CustomerPackageItem.query.filter_by(
             customer_package_id=package_id,
             service_id=data['service_id']
         ).first()
-        
+
         if not package_item:
             return jsonify({'success': False, 'error': 'Service not included in package'}), 404
-        
+
         # Check if enough balance
         if not package_item.can_use(data['qty']):
             return jsonify({'success': False, 'error': 'Not enough balance for this service'}), 409
-        
+
         # Parse usage date
         usage_date = datetime.utcnow()
         if data.get('usage_date'):
@@ -390,10 +390,10 @@ def api_use_package(package_id):
                 usage_date = datetime.fromisoformat(data['usage_date'].replace('Z', '+00:00'))
             except ValueError:
                 pass  # Use current time if invalid format
-        
+
         # Record usage
         package_item.use_services(data['qty'])
-        
+
         # Create usage log
         usage_log = PackageUsage(
             customer_package_id=package_id,
@@ -406,20 +406,20 @@ def api_use_package(package_id):
             appointment_id=data.get('appointment_id'),
             notes=data.get('notes', '')
         )
-        
+
         db.session.add(usage_log)
-        
+
         # Auto-update package status
         package.auto_update_status()
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Usage recorded successfully',
             'remaining_qty': package_item.get_remaining_qty()
         })
-    
+
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error recording package usage: {e}")
@@ -434,30 +434,30 @@ def api_adjust_package(package_id):
         package = CustomerPackage.query.get(package_id)
         if not package:
             return jsonify({'success': False, 'error': 'Package not found'}), 404
-        
+
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['service_id', 'qty', 'reason', 'change_type']
         for field in required_fields:
             if field not in data:
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
-        
+
         if data['qty'] <= 0:
             return jsonify({'success': False, 'error': 'Please provide a valid quantity'}), 400
-        
+
         if data['change_type'] not in ['refund', 'adjust']:
             return jsonify({'success': False, 'error': 'Invalid change type'}), 400
-        
+
         # Find package item for service
         package_item = CustomerPackageItem.query.filter_by(
             customer_package_id=package_id,
             service_id=data['service_id']
         ).first()
-        
+
         if not package_item:
             return jsonify({'success': False, 'error': 'Service not included in package'}), 404
-        
+
         # Perform adjustment
         success = False
         if data['change_type'] == 'refund':
@@ -471,7 +471,7 @@ def api_adjust_package(package_id):
             success = package_item.adjust_services(qty_change)
             if not success:
                 return jsonify({'success': False, 'error': 'Adjustment would result in negative remaining balance'}), 409
-        
+
         # Create usage log
         usage_log = PackageUsage(
             customer_package_id=package_id,
@@ -483,20 +483,20 @@ def api_adjust_package(package_id):
             staff_id=current_user.id,
             notes=f"{data['change_type'].title()}: {data['reason']}"
         )
-        
+
         db.session.add(usage_log)
-        
+
         # Auto-update package status
         package.auto_update_status()
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'{data["change_type"].title()} processed successfully',
             'new_remaining_qty': package_item.get_remaining_qty()
         })
-    
+
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error adjusting package: {e}")
@@ -510,24 +510,10 @@ def api_adjust_package(package_id):
 @packages_bp.route("/api/customers", methods=['GET'])
 @login_required
 def api_get_customers():
-    """Get customers for dropdown (with search)"""
+    """Get all customers for assignment"""
     try:
-        q = request.args.get('q', '').strip()
-        
-        query = Customer.query.filter_by(is_active=True)
-        
-        if q:
-            query = query.filter(
-                or_(
-                    Customer.first_name.ilike(f'%{q}%'),
-                    Customer.last_name.ilike(f'%{q}%'),
-                    Customer.phone.ilike(f'%{q}%'),
-                    Customer.email.ilike(f'%{q}%')
-                )
-            )
-        
-        customers = query.order_by(Customer.first_name, Customer.last_name).limit(50).all()
-        
+        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name).all()
+
         result = []
         for customer in customers:
             result.append({
@@ -536,9 +522,9 @@ def api_get_customers():
                 'phone': customer.phone,
                 'email': customer.email
             })
-        
+
         return jsonify({'success': True, 'customers': result})
-    
+
     except Exception as e:
         logging.error(f"Error getting customers: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -547,21 +533,20 @@ def api_get_customers():
 @packages_bp.route("/api/services", methods=['GET'])
 @login_required
 def api_get_services():
-    """Get services for dropdown"""
+    """Get all services for usage tracking"""
     try:
         services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-        
+
         result = []
         for service in services:
             result.append({
                 'id': service.id,
                 'name': service.name,
-                'price': float(service.price),
-                'duration': service.duration
+                'price': float(service.price)
             })
-        
+
         return jsonify({'success': True, 'services': result})
-    
+
     except Exception as e:
         logging.error(f"Error getting services: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -570,20 +555,20 @@ def api_get_services():
 @packages_bp.route("/api/staff", methods=['GET'])
 @login_required
 def api_get_staff():
-    """Get staff for dropdown"""
+    """Get all staff for usage tracking"""
     try:
-        staff = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
-        
+        staff = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+
         result = []
         for member in staff:
             result.append({
                 'id': member.id,
                 'name': member.full_name,
-                'role': member.role
+                'role': member.role.name if member.role else 'Staff'
             })
-        
+
         return jsonify({'success': True, 'staff': result})
-    
+
     except Exception as e:
         logging.error(f"Error getting staff: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

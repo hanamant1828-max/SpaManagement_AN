@@ -148,14 +148,127 @@ function changePage(page) {
     loadPackages();
 }
 
-// Attach functions to window object for global access
-window.openAssignModal = openAssignModal;
-window.clearFilters = clearFilters;
-window.applyFilters = applyFilters;
-window.openDetails = openDetails;
-window.openUseModal = openUseModal;
-window.openAdjustModal = openAdjustModal;
-window.changePage = changePage;
+// ========================================
+// GLOBAL FUNCTION ATTACHMENTS - FIXED
+// ========================================
+
+// Attach all functions to window object for global access (must be at end of file)
+window.openAssignModal = function() {
+    console.log('Opening assign modal...');
+    
+    // Reset form
+    const form = document.getElementById('assignPackageForm');
+    if (form) {
+        form.reset();
+        form.classList.remove('was-validated');
+    }
+    
+    const preview = document.getElementById('packagePreview');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+    
+    // Load data and show modal
+    Promise.all([loadTemplates(), loadCustomers()]).then(() => {
+        const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
+        modal.show();
+    }).catch(error => {
+        console.error('Error loading modal data:', error);
+        showToast('Error loading data for assignment', 'error');
+    });
+};
+
+window.clearFilters = function() {
+    console.log('Clearing filters...');
+    
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    
+    if (searchInput) searchInput.value = '';
+    if (statusFilter) statusFilter.value = '';
+    if (dateFrom) dateFrom.value = '';
+    if (dateTo) dateTo.value = '';
+    
+    // Reset current filters and reload
+    currentFilters = {};
+    currentPage = 1;
+    
+    loadPackages();
+};
+
+window.applyFilters = function() {
+    console.log('Applying filters...');
+    
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    
+    currentFilters = {};
+    
+    if (searchInput && searchInput.value.trim()) {
+        currentFilters.q = searchInput.value.trim();
+    }
+    
+    if (statusFilter && statusFilter.value) {
+        currentFilters.status = statusFilter.value;
+    }
+    
+    if (dateFrom && dateFrom.value) {
+        currentFilters.date_from = dateFrom.value;
+    }
+    
+    if (dateTo && dateTo.value) {
+        currentFilters.date_to = dateTo.value;
+    }
+    
+    currentPage = 1;
+    loadPackages();
+};
+
+window.openDetails = function(packageId) {
+    console.log('Opening package details for:', packageId);
+    openPackageDetailsModal(packageId);
+};
+
+window.openUseModal = function(packageId) {
+    console.log('Opening usage modal for package:', packageId);
+    
+    if (packageId) {
+        currentPackageId = packageId;
+        // Load package details first, then open usage modal
+        openPackageDetailsModal(packageId).then(() => {
+            setTimeout(() => showUsageModal(), 200);
+        });
+    } else if (currentPackageDetails) {
+        showUsageModal();
+    } else {
+        showToast('Please select a package first', 'warning');
+    }
+};
+
+window.openAdjustModal = function(packageId) {
+    console.log('Opening adjust modal for package:', packageId);
+    
+    if (packageId) {
+        currentPackageId = packageId;
+        // Load package details first, then open adjust modal
+        openPackageDetailsModal(packageId).then(() => {
+            setTimeout(() => showAdjustModal(), 200);
+        });
+    } else if (currentPackageDetails) {
+        showAdjustModal();
+    } else {
+        showToast('Please select a package first', 'warning');
+    }
+};
+
+window.changePage = function(page) {
+    currentPage = page;
+    loadPackages();
+};
 
 /**
  * Initialize the packages system

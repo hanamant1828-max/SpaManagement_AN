@@ -1,10 +1,51 @@
 
 {% extends "base.html" %}
 
-{% block title %}Customer Packages - Management Suite{% endblock %}
+{% block title %}Customer Package Assignment - Management Suite{% endblock %}
 
 {% block extra_head %}
 <link href="{{ url_for('static', filename='css/packages.css') }}" rel="stylesheet">
+<style>
+.package-type-tabs .nav-link {
+    border-radius: 10px 10px 0 0;
+    margin-right: 5px;
+    font-weight: 600;
+}
+
+.package-type-tabs .nav-link.active {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-color: #007bff;
+}
+
+.package-card {
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.package-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+    transform: translateY(-2px);
+}
+
+.package-card.selected {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.badge-large {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+.package-stats {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -15,113 +56,387 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="h3 mb-0 text-gray-800">
-                        <i class="fas fa-gift text-primary me-2"></i>Customer Packages
+                        <i class="fas fa-gift text-primary me-2"></i>Customer Package Assignment
                     </h1>
-                    <p class="text-muted mb-0">Assign packages to customers, track usage, and manage remaining balance</p>
+                    <p class="text-muted mb-0">Assign packages to customers and track their usage</p>
                 </div>
-                <button type="button" class="btn btn-primary" onclick="openAssignModal()">
-                    <i class="fas fa-plus me-2"></i>Assign Package
-                </button>
+                <div class="btn-group">
+                    <a href="{{ url_for('packages') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>Manage Packages
+                    </a>
+                    <button type="button" class="btn btn-primary" onclick="openQuickAssignModal()">
+                        <i class="fas fa-plus me-2"></i>Quick Assign
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Filters and Search -->
+    <!-- Package Type Navigation Tabs -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <div class="row g-3">
-                        <!-- Search -->
-                        <div class="col-md-4">
-                            <label for="searchInput" class="form-label">Search</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" class="form-control" id="searchInput" 
-                                       placeholder="Search by customer name or package...">
-                            </div>
-                        </div>
-                        
-                        <!-- Status Filter -->
-                        <div class="col-md-2">
-                            <label for="statusFilter" class="form-label">Status</label>
-                            <select class="form-select" id="statusFilter">
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="completed">Completed</option>
-                                <option value="expired">Expired</option>
-                                <option value="paused">Paused</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Date Range -->
-                        <div class="col-md-2">
-                            <label for="dateFrom" class="form-label">From Date</label>
-                            <input type="date" class="form-control" id="dateFrom">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="dateTo" class="form-label">To Date</label>
-                            <input type="date" class="form-control" id="dateTo">
-                        </div>
-                        
-                        <!-- Actions -->
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="button" class="btn btn-outline-secondary me-2" onclick="clearFilters()">
-                                <i class="fas fa-times"></i>
+                    <ul class="nav nav-tabs package-type-tabs" id="packageTypeTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-packages-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#all-packages" type="button" role="tab">
+                                <i class="fas fa-th-large me-2"></i>All Assigned Packages
+                                <span class="badge bg-light text-dark ms-2" id="all-count">0</span>
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="applyFilters()">
-                                <i class="fas fa-filter me-1"></i>Filter
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="assign-prepaid-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#assign-prepaid" type="button" role="tab">
+                                <i class="fas fa-credit-card me-2"></i>Assign Prepaid
+                                <span class="badge bg-success ms-2" id="prepaid-available">0</span>
                             </button>
-                        </div>
-                    </div>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="assign-service-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#assign-service" type="button" role="tab">
+                                <i class="fas fa-spa me-2"></i>Assign Service
+                                <span class="badge bg-info ms-2" id="service-available">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="assign-membership-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#assign-membership" type="button" role="tab">
+                                <i class="fas fa-id-card me-2"></i>Assign Membership
+                                <span class="badge bg-warning text-dark ms-2" id="membership-available">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="assign-student-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#assign-student" type="button" role="tab">
+                                <i class="fas fa-graduation-cap me-2"></i>Assign Student Offer
+                                <span class="badge bg-secondary ms-2" id="student-available">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="assign-yearly-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#assign-yearly" type="button" role="tab">
+                                <i class="fas fa-calendar-alt me-2"></i>Assign Yearly
+                                <span class="badge bg-dark ms-2" id="yearly-available">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="assign-kitty-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#assign-kitty" type="button" role="tab">
+                                <i class="fas fa-users me-2"></i>Assign Kitty Party
+                                <span class="badge bg-danger ms-2" id="kitty-available">0</span>
+                            </button>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Packages Table -->
+    <!-- Tab Content -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Customer</th>
-                                    <th>Package</th>
-                                    <th>Assigned/Expires</th>
-                                    <th>Total</th>
-                                    <th>Used</th>
-                                    <th>Remaining</th>
-                                    <th>Progress</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="packagesTableBody">
-                                <!-- Dynamic content will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div id="paginationInfo" class="text-muted">
-                            <!-- Pagination info will be displayed here -->
+            <div class="tab-content" id="packageTypeTabContent">
+                
+                <!-- All Assigned Packages Tab -->
+                <div class="tab-pane fade show active" id="all-packages" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-list me-2"></i>All Customer Package Assignments
+                                </h5>
+                                <button type="button" class="btn btn-primary" onclick="openAssignModal()">
+                                    <i class="fas fa-plus me-2"></i>Assign Package
+                                </button>
+                            </div>
                         </div>
-                        <nav>
-                            <ul class="pagination mb-0" id="paginationControls">
-                                <!-- Pagination controls will be displayed here -->
-                            </ul>
-                        </nav>
+                        <div class="card-body">
+                            <!-- Filters and Search -->
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label for="searchInput" class="form-label">Search</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="searchInput" 
+                                               placeholder="Search by customer name...">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="statusFilter" class="form-label">Status</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">All Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="expired">Expired</option>
+                                        <option value="paused">Paused</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="dateFrom" class="form-label">From Date</label>
+                                    <input type="date" class="form-control" id="dateFrom">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="dateTo" class="form-label">To Date</label>
+                                    <input type="date" class="form-control" id="dateTo">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-secondary me-2" onclick="clearFilters()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="applyFilters()">
+                                        <i class="fas fa-filter me-1"></i>Filter
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Packages Table -->
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Customer</th>
+                                            <th>Package</th>
+                                            <th>Assigned/Expires</th>
+                                            <th>Total</th>
+                                            <th>Used</th>
+                                            <th>Remaining</th>
+                                            <th>Progress</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="packagesTableBody">
+                                        <!-- Dynamic content will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div id="paginationInfo" class="text-muted">
+                                    <!-- Pagination info will be displayed here -->
+                                </div>
+                                <nav>
+                                    <ul class="pagination mb-0" id="paginationControls">
+                                        <!-- Pagination controls will be displayed here -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Assign Prepaid Packages Tab -->
+                <div class="tab-pane fade" id="assign-prepaid" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-credit-card me-2"></i>Assign Prepaid Packages to Customers
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="prepaidCustomerSelect" class="form-label fw-bold">Select Customer</label>
+                                    <select class="form-select form-select-lg" id="prepaidCustomerSelect">
+                                        <option value="">Choose customer...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="package-stats p-3">
+                                        <h6 class="mb-2">Available Prepaid Packages</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Available:</span>
+                                            <span class="fw-bold" id="prepaid-total-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row" id="prepaidPackagesContainer">
+                                <!-- Prepaid packages will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assign Service Packages Tab -->
+                <div class="tab-pane fade" id="assign-service" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-spa me-2"></i>Assign Service Packages to Customers
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="serviceCustomerSelect" class="form-label fw-bold">Select Customer</label>
+                                    <select class="form-select form-select-lg" id="serviceCustomerSelect">
+                                        <option value="">Choose customer...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="package-stats p-3">
+                                        <h6 class="mb-2">Available Service Packages</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Available:</span>
+                                            <span class="fw-bold" id="service-total-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row" id="servicePackagesContainer">
+                                <!-- Service packages will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assign Membership Tab -->
+                <div class="tab-pane fade" id="assign-membership" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-id-card me-2"></i>Assign Memberships to Customers
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="membershipCustomerSelect" class="form-label fw-bold">Select Customer</label>
+                                    <select class="form-select form-select-lg" id="membershipCustomerSelect">
+                                        <option value="">Choose customer...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="package-stats p-3">
+                                        <h6 class="mb-2">Available Memberships</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Available:</span>
+                                            <span class="fw-bold" id="membership-total-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row" id="membershipPackagesContainer">
+                                <!-- Membership packages will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assign Student Offers Tab -->
+                <div class="tab-pane fade" id="assign-student" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-graduation-cap me-2"></i>Assign Student Offers to Customers
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="studentCustomerSelect" class="form-label fw-bold">Select Customer</label>
+                                    <select class="form-select form-select-lg" id="studentCustomerSelect">
+                                        <option value="">Choose customer...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="package-stats p-3">
+                                        <h6 class="mb-2">Available Student Offers</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Available:</span>
+                                            <span class="fw-bold" id="student-total-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row" id="studentPackagesContainer">
+                                <!-- Student offers will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assign Yearly Membership Tab -->
+                <div class="tab-pane fade" id="assign-yearly" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-calendar-alt me-2"></i>Assign Yearly Memberships to Customers
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="yearlyCustomerSelect" class="form-label fw-bold">Select Customer</label>
+                                    <select class="form-select form-select-lg" id="yearlyCustomerSelect">
+                                        <option value="">Choose customer...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="package-stats p-3">
+                                        <h6 class="mb-2">Available Yearly Memberships</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Available:</span>
+                                            <span class="fw-bold" id="yearly-total-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row" id="yearlyPackagesContainer">
+                                <!-- Yearly memberships will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assign Kitty Party Tab -->
+                <div class="tab-pane fade" id="assign-kitty" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-users me-2"></i>Assign Kitty Parties to Customers
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="kittyCustomerSelect" class="form-label fw-bold">Select Customer</label>
+                                    <select class="form-select form-select-lg" id="kittyCustomerSelect">
+                                        <option value="">Choose customer...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="package-stats p-3">
+                                        <h6 class="mb-2">Available Kitty Parties</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Available:</span>
+                                            <span class="fw-bold" id="kitty-total-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row" id="kittyPackagesContainer">
+                                <!-- Kitty parties will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
+<!-- Include all original modals -->
 <!-- Assign Package Modal -->
 <div class="modal fade" id="assignPackageModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg">
@@ -475,11 +790,456 @@
     </div>
 </div>
 
+<!-- Package Assignment Modal for each type -->
+<div class="modal fade" id="packageAssignmentModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignmentModalTitle">
+                    <i class="fas fa-gift text-primary me-2"></i>Assign Package
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="packageAssignmentForm">
+                    <input type="hidden" id="selectedPackageId" name="package_id">
+                    <input type="hidden" id="selectedPackageType" name="package_type">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="assignmentCustomer" class="form-label">Customer *</label>
+                            <select class="form-select" id="assignmentCustomer" name="customer_id" required>
+                                <option value="">Select customer...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="assignmentPrice" class="form-label">Price Paid *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="assignmentPrice" 
+                                       name="price_paid" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="assignmentDiscount" class="form-label">Discount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="assignmentDiscount" 
+                                       name="discount" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="assignmentExpires" class="form-label">Expires On</label>
+                            <input type="date" class="form-control" id="assignmentExpires" name="expires_on">
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="assignmentNotes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="assignmentNotes" name="notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Package Details Preview -->
+                    <div class="mt-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="mb-3">Package Details:</h6>
+                                <div id="selectedPackageDetails">
+                                    <!-- Package details will be shown here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="savePackageAssignment">
+                    <i class="fas fa-save me-2"></i>Assign Package
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Include JavaScript -->
 <script src="{{ url_for('static', filename='js/packages.js') }}"></script>
 
 <script>
-// Package management page JavaScript is loaded from packages.js
-console.log('Customer packages template loaded');
+// Enhanced Package Assignment System JavaScript
+let allPackageTypes = {};
+let selectedCustomerForAssignment = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeEnhancedPackages();
+});
+
+async function initializeEnhancedPackages() {
+    try {
+        // Load all package types and customers
+        await Promise.all([
+            loadAllPackageTypes(),
+            loadCustomersForAllTabs(),
+            loadPackages() // Load existing assignments
+        ]);
+        
+        console.log('Enhanced package assignment system initialized');
+    } catch (error) {
+        console.error('Error initializing enhanced packages:', error);
+    }
+}
+
+async function loadAllPackageTypes() {
+    try {
+        // Load all package types
+        const endpoints = [
+            { key: 'prepaid', url: '/api/prepaid-packages' },
+            { key: 'service', url: '/api/service-packages' },
+            { key: 'membership', url: '/api/memberships' },
+            { key: 'student', url: '/api/student-offers' },
+            { key: 'yearly', url: '/api/yearly-memberships' },
+            { key: 'kitty', url: '/api/kitty-parties' }
+        ];
+        
+        for (const endpoint of endpoints) {
+            const response = await fetch(endpoint.url);
+            const data = await response.json();
+            allPackageTypes[endpoint.key] = data.success ? data[endpoint.key] || data.packages || data.memberships || data.offers || data.parties || [] : [];
+            
+            // Update counts
+            const countElement = document.getElementById(`${endpoint.key}-available`);
+            if (countElement) {
+                countElement.textContent = allPackageTypes[endpoint.key].length;
+            }
+            
+            const totalCountElement = document.getElementById(`${endpoint.key}-total-count`);
+            if (totalCountElement) {
+                totalCountElement.textContent = allPackageTypes[endpoint.key].length;
+            }
+        }
+        
+        // Render package cards for each type
+        renderPackageCards();
+        
+    } catch (error) {
+        console.error('Error loading package types:', error);
+    }
+}
+
+async function loadCustomersForAllTabs() {
+    try {
+        const response = await fetch('/packages/api/customers');
+        const data = await response.json();
+        
+        if (data.success) {
+            const customers = data.customers;
+            
+            // Populate all customer dropdowns
+            const customerSelects = [
+                'prepaidCustomerSelect', 'serviceCustomerSelect', 'membershipCustomerSelect',
+                'studentCustomerSelect', 'yearlyCustomerSelect', 'kittyCustomerSelect',
+                'assignmentCustomer'
+            ];
+            
+            customerSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    select.innerHTML = '<option value="">Choose customer...</option>';
+                    customers.forEach(customer => {
+                        const option = document.createElement('option');
+                        option.value = customer.id;
+                        option.textContent = `${customer.name} - ${customer.phone}`;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error loading customers:', error);
+    }
+}
+
+function renderPackageCards() {
+    const packageTypes = ['prepaid', 'service', 'membership', 'student', 'yearly', 'kitty'];
+    
+    packageTypes.forEach(type => {
+        const container = document.getElementById(`${type}PackagesContainer`);
+        if (!container || !allPackageTypes[type]) return;
+        
+        container.innerHTML = allPackageTypes[type].map(pkg => createPackageCard(pkg, type)).join('');
+    });
+}
+
+function createPackageCard(pkg, type) {
+    const typeConfig = {
+        prepaid: { 
+            icon: 'fas fa-credit-card', 
+            color: 'success',
+            priceField: 'actual_price',
+            valueField: 'after_value'
+        },
+        service: { 
+            icon: 'fas fa-spa', 
+            color: 'info',
+            priceField: 'pay_for',
+            valueField: 'total_services'
+        },
+        membership: { 
+            icon: 'fas fa-id-card', 
+            color: 'warning',
+            priceField: 'price',
+            valueField: 'validity_months'
+        },
+        student: { 
+            icon: 'fas fa-graduation-cap', 
+            color: 'secondary',
+            priceField: 'actual_price',
+            valueField: 'after_price'
+        },
+        yearly: { 
+            icon: 'fas fa-calendar-alt', 
+            color: 'dark',
+            priceField: 'price',
+            valueField: 'validity_months'
+        },
+        kitty: { 
+            icon: 'fas fa-users', 
+            color: 'danger',
+            priceField: 'price',
+            valueField: 'min_guests'
+        }
+    };
+    
+    const config = typeConfig[type];
+    const price = pkg[config.priceField] || 0;
+    const value = pkg[config.valueField] || 0;
+    
+    return `
+        <div class="col-md-6 mb-3">
+            <div class="card package-card" onclick="selectPackageForAssignment('${pkg.id}', '${type}', ${JSON.stringify(pkg).replace(/"/g, '&quot;')})">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title">
+                            <i class="${config.icon} text-${config.color} me-2"></i>
+                            ${pkg.name}
+                        </h5>
+                        <span class="badge bg-${config.color} badge-large">₹${price}</span>
+                    </div>
+                    
+                    <div class="row g-2 mb-3">
+                        ${type === 'prepaid' ? `
+                            <div class="col-6">
+                                <small class="text-muted">Pay Amount</small>
+                                <div class="fw-bold">₹${pkg.actual_price}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Get Value</small>
+                                <div class="fw-bold text-success">₹${pkg.after_value}</div>
+                            </div>
+                        ` : type === 'service' ? `
+                            <div class="col-6">
+                                <small class="text-muted">Pay For</small>
+                                <div class="fw-bold">${pkg.pay_for} services</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Total Get</small>
+                                <div class="fw-bold text-success">${pkg.total_services} services</div>
+                            </div>
+                        ` : type === 'membership' ? `
+                            <div class="col-6">
+                                <small class="text-muted">Price</small>
+                                <div class="fw-bold">₹${pkg.price}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Validity</small>
+                                <div class="fw-bold">${pkg.validity_months} months</div>
+                            </div>
+                        ` : type === 'student' ? `
+                            <div class="col-6">
+                                <small class="text-muted">Actual Price</small>
+                                <div class="fw-bold">₹${pkg.actual_price}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">After Discount</small>
+                                <div class="fw-bold text-success">₹${pkg.after_price}</div>
+                            </div>
+                        ` : type === 'yearly' ? `
+                            <div class="col-6">
+                                <small class="text-muted">Price</small>
+                                <div class="fw-bold">₹${pkg.price}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Discount</small>
+                                <div class="fw-bold text-success">${pkg.discount_percent}%</div>
+                            </div>
+                        ` : `
+                            <div class="col-6">
+                                <small class="text-muted">Price</small>
+                                <div class="fw-bold">₹${pkg.price}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Min Guests</small>
+                                <div class="fw-bold">${pkg.min_guests}</div>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-${config.color}">
+                            <i class="fas fa-user-plus me-2"></i>Assign to Customer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function selectPackageForAssignment(packageId, packageType, packageData) {
+    // Show the assignment modal
+    const modal = new bootstrap.Modal(document.getElementById('packageAssignmentModal'));
+    
+    // Update modal title
+    const modalTitle = document.getElementById('assignmentModalTitle');
+    modalTitle.innerHTML = `<i class="fas fa-gift text-primary me-2"></i>Assign ${packageData.name}`;
+    
+    // Set hidden fields
+    document.getElementById('selectedPackageId').value = packageId;
+    document.getElementById('selectedPackageType').value = packageType;
+    
+    // Set default price
+    const priceField = document.getElementById('assignmentPrice');
+    const price = packageData.price || packageData.actual_price || packageData.after_price || 0;
+    priceField.value = price;
+    
+    // Show package details
+    const detailsContainer = document.getElementById('selectedPackageDetails');
+    detailsContainer.innerHTML = createPackageDetailsPreview(packageData, packageType);
+    
+    // Pre-select customer if one is selected in the tab
+    const activeTab = document.querySelector('.tab-pane.active');
+    if (activeTab) {
+        const customerSelect = activeTab.querySelector('select[id$="CustomerSelect"]');
+        if (customerSelect && customerSelect.value) {
+            document.getElementById('assignmentCustomer').value = customerSelect.value;
+        }
+    }
+    
+    modal.show();
+}
+
+function createPackageDetailsPreview(pkg, type) {
+    return `
+        <div class="row g-3">
+            <div class="col-md-6">
+                <strong>Package Name:</strong><br>
+                <span class="text-primary">${pkg.name}</span>
+            </div>
+            <div class="col-md-6">
+                <strong>Package Type:</strong><br>
+                <span class="badge bg-secondary">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+            </div>
+            ${type === 'prepaid' ? `
+                <div class="col-md-4">
+                    <strong>Pay Amount:</strong><br>
+                    ₹${pkg.actual_price}
+                </div>
+                <div class="col-md-4">
+                    <strong>Get Value:</strong><br>
+                    <span class="text-success">₹${pkg.after_value}</span>
+                </div>
+                <div class="col-md-4">
+                    <strong>Savings:</strong><br>
+                    <span class="text-success">₹${pkg.money_saved || 0}</span>
+                </div>
+            ` : type === 'service' ? `
+                <div class="col-md-4">
+                    <strong>Pay For:</strong><br>
+                    ${pkg.pay_for} services
+                </div>
+                <div class="col-md-4">
+                    <strong>Total Get:</strong><br>
+                    <span class="text-success">${pkg.total_services} services</span>
+                </div>
+                <div class="col-md-4">
+                    <strong>Free Services:</strong><br>
+                    <span class="text-success">${pkg.free_services || 0}</span>
+                </div>
+            ` : `
+                <div class="col-12">
+                    <strong>Description:</strong><br>
+                    <span class="text-muted">${pkg.description || pkg.services_included || 'No description available'}</span>
+                </div>
+            `}
+        </div>
+    `;
+}
+
+// Save package assignment
+document.getElementById('savePackageAssignment').addEventListener('click', async function() {
+    const form = document.getElementById('packageAssignmentForm');
+    const formData = new FormData(form);
+    
+    const data = {
+        package_id: formData.get('package_id'),
+        package_type: formData.get('package_type'),
+        customer_id: parseInt(formData.get('customer_id')),
+        price_paid: parseFloat(formData.get('price_paid')),
+        discount: parseFloat(formData.get('discount')) || 0,
+        notes: formData.get('notes')
+    };
+    
+    if (formData.get('expires_on')) {
+        data.expires_on = formData.get('expires_on') + 'T23:59:59';
+    }
+    
+    try {
+        const response = await fetch('/packages/api/assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Package assigned successfully!', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('packageAssignmentModal'));
+            modal.hide();
+            
+            // Reload the assignments
+            await loadPackages();
+            
+            // Update counts
+            updateAssignmentCounts();
+            
+        } else {
+            showToast(result.error || 'Error assigning package', 'error');
+        }
+    } catch (error) {
+        console.error('Error assigning package:', error);
+        showToast('Error assigning package', 'error');
+    }
+});
+
+function updateAssignmentCounts() {
+    // This function would update the counts of assigned packages
+    // Implementation depends on your backend API structure
+}
+
+// Quick assign modal function
+function openQuickAssignModal() {
+    openAssignModal();
+}
+
+console.log('Enhanced customer package assignment system loaded');
 </script>
+
 {% endblock %}
