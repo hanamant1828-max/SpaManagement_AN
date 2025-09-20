@@ -41,10 +41,14 @@ def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
 
-# Add basic route for testing
+# Add basic routes for testing
 @app.route('/')
 def index():
-    return render_template('dashboard.html') if os.path.exists('templates/dashboard.html') else '<h1>Spa Management System - Working!</h1>'
+    return '<h1>Spa Management System - Working!</h1><p>Server is running on port 5000</p>'
+
+@app.route('/dashboard')
+def dashboard():
+    return '<h1>Dashboard</h1><p>This is the dashboard page</p>'
 
 with app.app_context():
     # Make sure to import the models here or their tables won't be created
