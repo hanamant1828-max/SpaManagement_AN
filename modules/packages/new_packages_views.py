@@ -32,8 +32,8 @@ def packages():
     kitty_parties = get_all_kitty_parties()
 
     # Get customers for assignment dropdowns
-    from models import Client
-    customers = Client.query.filter_by(is_active=True).order_by(Client.full_name).all()
+    from models import Customer
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.full_name).all()
 
     return render_template('new_packages.html',
                          prepaid_packages=prepaid_packages,
@@ -639,19 +639,19 @@ def api_get_package_template(template_id):
 def api_get_customers():
     """Get customers with optional search"""
     try:
-        from models import Client
+        from models import Customer
         
         query = request.args.get('q', '').strip()
         
         if query:
             # Search by name or phone
-            customers = Client.query.filter(
-                (Client.full_name.ilike(f'%{query}%')) |
-                (Client.phone.ilike(f'%{query}%'))
-            ).order_by(Client.full_name).limit(50).all()
+            customers = Customer.query.filter(
+                (Customer.full_name.ilike(f'%{query}%')) |
+                (Customer.phone.ilike(f'%{query}%'))
+            ).order_by(Customer.full_name).limit(50).all()
         else:
             # Get all customers (limit for performance)
-            customers = Client.query.order_by(Client.full_name).limit(100).all()
+            customers = Customer.query.order_by(Customer.full_name).limit(100).all()
             
         return jsonify({
             'success': True,
@@ -713,11 +713,11 @@ def api_assign_package():
             return jsonify({'success': False, 'error': 'Invalid price paid'}), 400
             
         # Import models
-        from models import Client, CustomerPackage
+        from models import Customer, CustomerPackage
         from datetime import datetime, timedelta
         
         # Verify customer exists
-        customer = Client.query.get(customer_id)
+        customer = Customer.query.get(customer_id)
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
             
