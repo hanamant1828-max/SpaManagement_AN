@@ -2734,11 +2734,16 @@ async function loadKittyPackages() {
 
             data.parties.forEach(party => {
                 const row = document.createElement('tr');
-                const servicesList = party.services.map(s => s.name).join(', ');
+                // Display linked services from kittyparty_services relationship
+                const servicesList = party.services && party.services.length > 0 ? 
+                    party.services.map(s => s.name).join(', ') : 'No services selected';
                 const validPeriod = party.valid_from && party.valid_to ? 
                     `${party.valid_from} to ${party.valid_to}` : 'No validity period';
                 const afterValue = party.after_value ? `₹${party.after_value}` : 'N/A';
                 const conditions = party.conditions || 'No conditions';
+                const statusBadge = party.is_active ? 
+                    '<span class="badge bg-success">Active</span>' : 
+                    '<span class="badge bg-secondary">Inactive</span>';
 
                 row.innerHTML = `
                     <td><strong>${party.name}</strong></td>
@@ -2748,6 +2753,7 @@ async function loadKittyPackages() {
                     <td><small>${servicesList}</small></td>
                     <td><small>${validPeriod}</small></td>
                     <td><small>${conditions}</small></td>
+                    <td>${statusBadge}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-warning" onclick="editKittyParty(${party.id})" title="Edit">
@@ -2822,8 +2828,14 @@ async function loadServicesForKittyParties() {
                 `<option value="${service.id}">${service.name} - ₹${service.price}</option>`
             ).join('');
 
-            if (addSelect) addSelect.innerHTML = optionsHTML;
-            if (editSelect) editSelect.innerHTML = optionsHTML;
+            if (addSelect) {
+                addSelect.innerHTML = optionsHTML;
+                addSelect.setAttribute('data-placeholder', 'Select services included in this Kitty Party');
+            }
+            if (editSelect) {
+                editSelect.innerHTML = optionsHTML;
+                editSelect.setAttribute('data-placeholder', 'Select services included in this Kitty Party');
+            }
         }
     } catch (error) {
         console.error('Error loading services:', error);
@@ -2845,6 +2857,13 @@ function validateKittyPartyForm() {
 
     if (saveBtn) {
         saveBtn.disabled = !isValid;
+    }
+
+    // Show/hide validation feedback for services
+    if (services.selectedOptions.length === 0) {
+        services.classList.add('is-invalid');
+    } else {
+        services.classList.remove('is-invalid');
     }
 
     // Update preview
@@ -2958,10 +2977,10 @@ async function editKittyParty(partyId) {
             document.getElementById('editKittyValidTo').value = party.valid_to || '';
             document.getElementById('editKittyConditions').value = party.conditions || '';
 
-            // Select services
+            // Select services in multi-select dropdown
             const serviceSelect = document.getElementById('editKittyPartyServices');
             Array.from(serviceSelect.options).forEach(option => {
-                option.selected = party.services.some(s => s.id == option.value);
+                option.selected = party.services && party.services.some(s => s.id == option.value);
             });
 
             // Show modal
@@ -2981,7 +3000,7 @@ async function updateKittyParty() {
         const formData = new FormData(form);
         const partyId = document.getElementById('editPartyId').value;
 
-        // Convert to JSON
+        // Convert to JSON with proper service_ids handling
         const data = {};
         formData.forEach((value, key) => {
             if (key === 'service_ids') {
@@ -2991,6 +3010,9 @@ async function updateKittyParty() {
                 data[key] = value;
             }
         });
+
+        // Handle boolean conversion
+        data.is_active = form.querySelector('input[name="is_active"]').checked;
 
         const response = await fetch(`/api/kitty-parties/${partyId}`, {
             method: 'PUT',
@@ -3002,7 +3024,7 @@ async function updateKittyParty() {
 
         const result = await response.json();
 
-        if (result.success || response.ok) {
+        if (result.success) {
             showToast('Kitty party updated successfully!', 'success');
 
             // Close modal

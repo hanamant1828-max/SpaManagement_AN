@@ -1327,10 +1327,11 @@
 
                     <div class="mb-3">
                         <label class="form-label">Services Included *</label>
-                        <select id="kittyPartyServices" name="service_ids" class="form-select" multiple required size="5">
+                        <select id="kittyPartyServices" name="service_ids" class="form-select" multiple required size="6">
                             <!-- Services will be loaded dynamically -->
                         </select>
-                        <small class="text-muted">Hold Ctrl/Cmd to select multiple services</small>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
+                        <div class="invalid-feedback">Please select at least one service for this kitty party</div>
                     </div>
 
                     <div class="mb-3">
@@ -1413,9 +1414,11 @@
 
                     <div class="mb-3">
                         <label class="form-label">Services Included *</label>
-                        <select id="editKittyPartyServices" name="service_ids" class="form-select" multiple required size="5">
+                        <select id="editKittyPartyServices" name="service_ids" class="form-select" multiple required size="6">
                             <!-- Services will be loaded dynamically -->
                         </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
+                        <div class="invalid-feedback">Please select at least one service for this kitty party</div>
                     </div>
 
                     <div class="mb-3">

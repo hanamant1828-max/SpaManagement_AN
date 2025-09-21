@@ -5,7 +5,25 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
 from models import Service, ServicePackage, ServicePackageAssignment, Customer, PrepaidPackage, Membership # Added missing imports
-from .new_packages_queries import *
+from .new_packages_queries import (
+    # Prepaid Packages
+    get_all_prepaid_packages, get_prepaid_package_by_id, create_prepaid_package, update_prepaid_package, delete_prepaid_package,
+
+    # Service Packages  
+    get_all_service_packages, get_service_package_by_id, create_service_package, update_service_package, delete_service_package,
+
+    # Memberships
+    get_all_memberships, get_membership_by_id, create_membership, update_membership, delete_membership,
+
+    # Student Offers
+    get_all_student_offers, get_student_offer_by_id, create_student_offer, update_student_offer, delete_student_offer,
+
+    # Yearly Memberships
+    get_all_yearly_memberships, get_yearly_membership_by_id, create_yearly_membership, update_yearly_membership, delete_yearly_membership,
+
+    # Kitty Parties
+    get_all_kitty_parties, get_kitty_party_by_id, create_kitty_party, update_kitty_party, delete_kitty_party
+)
 import logging
 from datetime import datetime, timedelta
 
@@ -516,16 +534,15 @@ def api_create_kitty_party():
 @app.route('/api/kitty-parties/<int:party_id>', methods=['PUT'])
 @login_required
 def api_update_kitty_party(party_id):
-    """Update kitty party"""
+    """Update existing kitty party"""
     try:
-        if request.content_type and 'application/json' in request.content_type:
-            data = request.get_json()
-        else:
+        data = request.get_json()
+        # Ensure 'service_ids' is handled correctly if coming from form data
+        if not data and request.form:
             data = request.form.to_dict()
-            # Handle multiple service selections from form
             if 'service_ids' not in data:
                 data['service_ids'] = request.form.getlist('service_ids')
-
+        
         party = update_kitty_party(party_id, data)
         flash('Kitty party updated successfully!', 'success')
         return jsonify({
@@ -533,8 +550,9 @@ def api_update_kitty_party(party_id):
             'message': 'Kitty party updated successfully'
         })
     except Exception as e:
+        db.session.rollback()
         logging.error(f"Error updating kitty party: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/kitty-parties/<int:party_id>', methods=['DELETE'])
 @login_required

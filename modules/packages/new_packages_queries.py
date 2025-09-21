@@ -7,7 +7,7 @@ from sqlalchemy import and_, or_
 
 # Import models from the main models file to avoid duplication
 from models import (
-    PrepaidPackage, ServicePackage, Membership, 
+    PrepaidPackage, ServicePackage, Membership,
     StudentOffer, YearlyMembership, KittyParty,
     Service, StudentOfferService
 )
@@ -361,8 +361,11 @@ def delete_yearly_membership(membership_id):
 # ========================================
 
 def get_all_kitty_parties():
-    """Get all active kitty parties"""
-    return KittyParty.query.filter_by(is_active=True).order_by(KittyParty.name).all()
+    """Get all kitty parties with linked services"""
+    from sqlalchemy.orm import joinedload
+    return KittyParty.query.options(
+        joinedload(KittyParty.kittyparty_services).joinedload('service')
+    ).filter_by(is_active=True).order_by(KittyParty.created_at.desc()).all()
 
 def get_kitty_party_by_id(party_id):
     """Get kitty party by ID"""
@@ -375,7 +378,7 @@ def create_kitty_party(data):
         price=float(data['price']),
         after_value=float(data.get('after_value')) if data.get('after_value') else None,
         min_guests=int(data['min_guests']),
-        services_included=data.get('services_included', ''),  # Keep for backward compatibility
+        services_included='',  # This field will be populated by KittyPartyService
         is_active=data.get('is_active', True)
     )
     db.session.add(party)
@@ -397,24 +400,24 @@ def create_kitty_party(data):
     return party
 
 def update_kitty_party(party_id, data):
-    """Update kitty party"""
+    """Update existing kitty party"""
     party = KittyParty.query.get(party_id)
     if not party:
         raise ValueError("Kitty party not found")
 
+    # Update basic fields
     party.name = data['name']
     party.price = float(data['price'])
     party.after_value = float(data.get('after_value')) if data.get('after_value') else None
     party.min_guests = int(data['min_guests'])
-    party.services_included = data.get('services_included', '')
     party.is_active = data.get('is_active', True)
 
-    # Update service relationships
+    # Update services - remove existing and add new ones
     from models import KittyPartyService
-    # Remove existing services
+    # Remove existing service relationships
     KittyPartyService.query.filter_by(kittyparty_id=party_id).delete()
 
-    # Add new services
+    # Add new service relationships
     if 'service_ids' in data and data['service_ids']:
         service_ids = data['service_ids'] if isinstance(data['service_ids'], list) else [data['service_ids']]
         for service_id in service_ids:
