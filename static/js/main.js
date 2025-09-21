@@ -2827,7 +2827,8 @@ function toggleService(serviceId) {
         console.log('Toggle response:', data);
         if (data.success) {
             showNotification(data.message, 'success');
-            location.reload();
+            // Reload page to update button states and status badges
+            setTimeout(() => location.reload(), 500);
         } else {
             showNotification('Error: ' + (data.message || 'Unknown error'), 'error');
         }
