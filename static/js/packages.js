@@ -2612,18 +2612,22 @@ async function refreshCurrentTabTable() {
  * Load packages for tables
  */
 async function loadMembershipPackages() {
+    console.log('Loading membership packages specifically');
     await loadPackageTypeIntoTable('membership', 'tblMemberships');
 }
 
 async function loadStudentPackages() {
+    console.log('Loading student packages specifically');
     await loadPackageTypeIntoTable('student', 'tblStudentOffers');
 }
 
 async function loadYearlyPackages() {
+    console.log('Loading yearly packages specifically');
     await loadPackageTypeIntoTable('yearly', 'tblYearlyMemberships');
 }
 
 async function loadKittyPackages() {
+    console.log('Loading kitty packages specifically');
     await loadPackageTypeIntoTable('kitty', 'tblKittyPackages');
 }
 
@@ -2636,10 +2640,121 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
 
         // API endpoints for each package type
         const endpoints = {
-            membership: '/api/memberships',
-            student: '/api/student-offers',
-            yearly: '/api/yearly-memberships',
-            kitty: '/api/kitty-parties'
+            membership: '/api/packages?type=membership',
+            student: '/api/packages?type=student_offer',
+            yearly: '/api/packages?type=yearly_membership',
+            kitty: '/api/packages?type=kitty_party'
+        };
+
+        const endpoint = endpoints[packageType];
+        if (!endpoint) {
+            console.error(`No endpoint defined for package type: ${packageType}`);
+            return;
+        }
+
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const packages = data.packages || data;
+
+        // Get the table body element
+        const tableBody = document.querySelector(`#${tableId} tbody`);
+        if (!tableBody) {
+            console.error(`Table body not found for tableId: ${tableId}`);
+            return;
+        }
+
+        // Clear existing content
+        tableBody.innerHTML = '';
+
+        // Filter packages by type to ensure only correct type is shown
+        const filteredPackages = packages.filter(pkg => {
+            const typeMap = {
+                membership: 'membership',
+                student: 'student_offer', 
+                yearly: 'yearly_membership',
+                kitty: 'kitty_party'
+            };
+            return pkg.package_type === typeMap[packageType];
+        });
+
+        if (filteredPackages.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No ${packageType} packages found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // Populate table with filtered packages
+        filteredPackages.forEach(pkg => {
+            const row = document.createElement('tr');
+            
+            // Build services display
+            let servicesDisplay = 'No services specified';
+            if (pkg.services && pkg.services.length > 0) {
+                servicesDisplay = pkg.services.slice(0, 2).map(s => s.service?.name || s.name).join(', ');
+                if (pkg.services.length > 2) {
+                    servicesDisplay += ` +${pkg.services.length - 2} more`;
+                }
+            } else if (pkg.services_included) {
+                servicesDisplay = pkg.services_included.length > 50 ? 
+                    pkg.services_included.substring(0, 50) + '...' : 
+                    pkg.services_included;
+            }
+
+            row.innerHTML = `
+                <td><strong>${pkg.name}</strong></td>
+                <td>₹${parseFloat(pkg.price || pkg.total_price || 0).toLocaleString()}</td>
+                <td>${pkg.validity_months || pkg.validity_days || 'N/A'} ${pkg.validity_months ? 'months' : 'days'}</td>
+                <td>${servicesDisplay}</td>
+                <td>
+                    <span class="badge ${pkg.is_active ? 'bg-success' : 'bg-secondary'}">
+                        ${pkg.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info" onclick="viewPackage(${pkg.id})" title="View">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="editPackage(${pkg.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-success" onclick="assignPackageToCustomer(${pkg.id}, '${pkg.name}', '${packageType}')" title="Assign">
+                            <i class="fas fa-user-plus"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+
+        console.log(`Successfully loaded ${filteredPackages.length} ${packageType} packages`);
+
+    } catch (error) {
+        console.error(`Error loading ${packageType} packages:`, error);
+        
+        const tableBody = document.querySelector(`#${tableId} tbody`);
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading ${packageType} packages
+                    </td>
+                </tr>
+            `;
+        }
+    }ty-parties'
         };
 
         const response = await fetch(endpoints[packageType]);
