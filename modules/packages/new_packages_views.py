@@ -681,15 +681,19 @@ def api_get_services():
     """Get available services"""
     try:
         services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+        
+        service_list = []
+        for s in services:
+            service_list.append({
+                'id': s.id,
+                'name': s.name,
+                'price': float(s.price) if s.price else 0.0,
+                'duration': s.duration if s.duration else 0
+            })
 
         return jsonify({
             'success': True,
-            'services': [{
-                'id': s.id,
-                'name': s.name,
-                'price': float(s.price),
-                'duration': s.duration
-            } for s in services]
+            'services': service_list
         })
 
     except Exception as e:

@@ -996,25 +996,55 @@ function deleteService(packageId) {
 
 // Function to submit membership form
 function submitMembershipForm() {
+    console.log('Submitting membership form...');
+    
     if (!validateForm()) {
+        console.log('Form validation failed, not submitting');
         return;
     }
 
     const form = document.getElementById('membershipForm');
+    if (!form) {
+        showError('Form not found');
+        return;
+    }
+
     const name = form.querySelector('#mbName').value.trim();
     const price = parseFloat(form.querySelector('#mbPrice').value);
     const validityFrom = form.querySelector('#mbValidityFrom').value;
     const validityTo = form.querySelector('#mbValidityTo').value;
-    const selectedServiceElements = form.querySelectorAll('.service-item input[type="checkbox"]:checked');
+    const selectedServiceElements = form.querySelectorAll('.service-checkbox:checked');
 
     let items = [];
     selectedServiceElements.forEach(checkbox => {
-        const row = checkbox.closest('.service-item');
-        const sessionsInput = row.querySelector('input[type="number"]');
-        const sessions = parseInt(sessionsInput.value);
-        const serviceId = checkbox.value;
-        items.push({ service_id: parseInt(serviceId), sessions: sessions });
+        const serviceItem = checkbox.closest('.service-item');
+        const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+        
+        if (sessionsInput) {
+            const sessions = parseInt(sessionsInput.value);
+            const serviceId = checkbox.value;
+            
+            if (!isNaN(sessions) && sessions >= 1) {
+                items.push({ 
+                    service_id: parseInt(serviceId), 
+                    sessions: sessions 
+                });
+            }
+        }
     });
+
+    console.log('Form data to submit:', {
+        name,
+        price,
+        validityFrom,
+        validityTo,
+        items
+    });
+
+    if (items.length === 0) {
+        showError('Please select at least one service with sessions ≥ 1');
+        return;
+    }
 
     const data = {
         type: "membership",
@@ -1055,7 +1085,7 @@ function submitMembershipForm() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Error submitting membership:', error);
         if (error.errors) {
             let errorMessage = 'Validation errors: ';
             for (const field in error.errors) {
@@ -1095,38 +1125,65 @@ function closeMembershipModal() {
 }
 
 function loadServicesForMembership() {
+    console.log('Loading services for membership...');
+    
     fetch('/packages/api/services')
-        .then(response => response.json())
+        .then(response => {
+            console.log('Services API response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Services API response data:', data);
+            
+            const serviceListDiv = document.getElementById('mbServiceList');
+            if (!serviceListDiv) {
+                console.error('Service list container not found');
+                return;
+            }
+
             if (data.success && data.services) {
-                const serviceListDiv = document.getElementById('mbServiceList');
                 serviceListDiv.innerHTML = ''; // Clear previous list
 
                 const searchInput = document.getElementById('mbServiceSearch');
                 // Store all services for searching
                 window.allServices = data.services;
+                
+                console.log(`Loaded ${data.services.length} services:`, data.services);
+                
                 renderServiceList(window.allServices);
 
                 // Add event listener for search input
-                searchInput.addEventListener('input', () => {
-                    const searchTerm = searchInput.value.toLowerCase();
-                    const filteredServices = window.allServices.filter(service =>
-                        service.name.toLowerCase().includes(searchTerm)
-                    );
-                    renderServiceList(filteredServices);
-                });
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => {
+                        const searchTerm = searchInput.value.toLowerCase();
+                        const filteredServices = window.allServices.filter(service =>
+                            service.name.toLowerCase().includes(searchTerm)
+                        );
+                        renderServiceList(filteredServices);
+                    });
+                }
             } else {
-                serviceListDiv.innerHTML = '<p class="text-muted">Could not load services.</p>';
+                const errorMsg = data.error || 'Could not load services.';
+                console.error('Failed to load services:', errorMsg);
+                serviceListDiv.innerHTML = `<p class="text-muted">${errorMsg}</p>`;
             }
         })
         .catch(error => {
             console.error('Error loading services:', error);
-            document.getElementById('mbServiceList').innerHTML = '<p class="text-danger">Error loading services.</p>';
+            const serviceListDiv = document.getElementById('mbServiceList');
+            if (serviceListDiv) {
+                serviceListDiv.innerHTML = '<p class="text-danger">Error loading services. Please try again.</p>';
+            }
         });
 }
 
 function renderServiceList(services) {
     const serviceListDiv = document.getElementById('mbServiceList');
+    if (!serviceListDiv) {
+        console.error('Service list container not found');
+        return;
+    }
+
     serviceListDiv.innerHTML = ''; // Clear current list
 
     if (services.length === 0) {
@@ -1148,11 +1205,11 @@ function renderServiceList(services) {
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Sessions</label>
+                    <label class="form-label small">Sessions</label>
                     <input type="number" class="form-control form-control-sm service-sessions" min="1" value="1" disabled>
                 </div>
                 <div class="col-md-2 text-end">
-                    <small class="text-muted">₹${service.price.toFixed(0)}</small>
+                    <small class="text-muted">₹${service.price ? service.price.toFixed(0) : '0'}</small>
                 </div>
             </div>
         `;
@@ -1162,29 +1219,61 @@ function renderServiceList(services) {
     // Add event listeners to checkboxes and session inputs
     serviceListDiv.querySelectorAll('.service-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
-            const sessionsInput = e.target.closest('.service-item').querySelector('.service-sessions');
-            sessionsInput.disabled = !e.target.checked;
-            if (e.target.checked) {
-                sessionsInput.value = 1; // Reset to 1 when checked
+            const serviceItem = e.target.closest('.service-item');
+            const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+            
+            if (sessionsInput) {
+                sessionsInput.disabled = !e.target.checked;
+                if (e.target.checked) {
+                    sessionsInput.value = 1; // Reset to 1 when checked
+                    sessionsInput.focus(); // Focus on sessions input when checked
+                }
             }
-            validateForm();
+            
+            console.log('Service checkbox changed:', {
+                serviceId: e.target.value,
+                checked: e.target.checked,
+                sessions: sessionsInput ? sessionsInput.value : 'not found'
+            });
+            
+            // Small delay to ensure DOM is updated
+            setTimeout(() => validateForm(), 10);
         });
     });
 
     serviceListDiv.querySelectorAll('.service-sessions').forEach(input => {
-        input.addEventListener('input', () => validateForm());
-        input.addEventListener('change', () => validateForm());
+        input.addEventListener('input', () => {
+            console.log('Sessions input changed:', input.value);
+            setTimeout(() => validateForm(), 10);
+        });
+        input.addEventListener('change', () => {
+            console.log('Sessions input change event:', input.value);
+            setTimeout(() => validateForm(), 10);
+        });
     });
+
+    console.log(`Rendered ${services.length} services with event listeners`);
 }
 
 function validateForm() {
     const form = document.getElementById('membershipForm');
+    if (!form) {
+        console.log('validateForm called without a valid form element');
+        return false;
+    }
+
     const nameInput = form.querySelector('#mbName');
     const priceInput = form.querySelector('#mbPrice');
     const validityFromInput = form.querySelector('#mbValidityFrom');
     const validityToInput = form.querySelector('#mbValidityTo');
-    const serviceCheckboxes = form.querySelectorAll('.service-item .service-checkbox');
+    const serviceCheckboxes = form.querySelectorAll('.service-checkbox');
     const saveBtn = document.getElementById('saveMembershipBtn');
+
+    // Check if required elements exist
+    if (!nameInput || !priceInput || !validityFromInput || !validityToInput || !saveBtn) {
+        console.log('Missing required form elements');
+        return false;
+    }
 
     let isNameValid = nameInput.value.trim() !== '';
     let isPriceValid = !isNaN(parseFloat(priceInput.value)) && parseFloat(priceInput.value) >= 0;
@@ -1195,15 +1284,22 @@ function validateForm() {
     let checkedServicesCount = 0;
     let validSessionCount = 0;
 
+    // Check each service checkbox
     serviceCheckboxes.forEach(checkbox => {
         if (checkbox.checked) {
             checkedServicesCount++;
-            const sessionsInput = checkbox.closest('.service-item').querySelector('.service-sessions');
-            const sessions = parseInt(sessionsInput.value);
-            if (isNaN(sessions) || sessions < 1) {
-                areSessionsValid = false;
+            const serviceItem = checkbox.closest('.service-item');
+            const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+            
+            if (sessionsInput) {
+                const sessions = parseInt(sessionsInput.value);
+                if (!isNaN(sessions) && sessions >= 1) {
+                    validSessionCount++;
+                } else {
+                    areSessionsValid = false;
+                }
             } else {
-                validSessionCount++;
+                areSessionsValid = false;
             }
         }
     });
@@ -1211,10 +1307,10 @@ function validateForm() {
     isServiceSelected = checkedServicesCount > 0 && validSessionCount === checkedServicesCount;
 
     // Update Bootstrap validation classes
-    nameInput.classList.toggle('is-invalid', !isNameValid);
-    priceInput.classList.toggle('is-invalid', !isPriceValid);
-    validityFromInput.classList.toggle('is-invalid', !validityFromInput.value);
-    validityToInput.classList.toggle('is-invalid', !validityToInput.value || new Date(validityToInput.value) < new Date(validityFromInput.value));
+    if (nameInput) nameInput.classList.toggle('is-invalid', !isNameValid);
+    if (priceInput) priceInput.classList.toggle('is-invalid', !isPriceValid);
+    if (validityFromInput) validityFromInput.classList.toggle('is-invalid', !validityFromInput.value);
+    if (validityToInput) validityToInput.classList.toggle('is-invalid', !validityToInput.value || new Date(validityToInput.value) < new Date(validityFromInput.value));
 
     // Show/hide service selection validation message
     if (checkedServicesCount === 0) {
@@ -1226,7 +1322,21 @@ function validateForm() {
     }
 
     const formIsValid = isNameValid && isPriceValid && areDatesValid && isServiceSelected && areSessionsValid;
-    saveBtn.disabled = !formIsValid;
+    
+    if (saveBtn) {
+        saveBtn.disabled = !formIsValid;
+    }
+
+    console.log('Validation result:', {
+        isNameValid,
+        isPriceValid,
+        areDatesValid,
+        checkedServicesCount,
+        validSessionCount,
+        isServiceSelected,
+        areSessionsValid,
+        formIsValid
+    });
 
     return formIsValid;
 }
