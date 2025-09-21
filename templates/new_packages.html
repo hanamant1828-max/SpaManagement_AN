@@ -183,7 +183,7 @@
                                             <td>{{ membership.name }}</td>
                                             <td>₹{{ "{:,.0f}".format(membership.price) }}</td>
                                             <td>{{ membership.validity_months }} months</td>
-                                            <td>{{ membership.services_included[:50] }}...</td>
+                                            <td>{{ membership.services_included[:50] if membership.services_included else 'No services specified' }}{{ '...' if membership.services_included and membership.services_included|length > 50 else '' }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     <button class="btn btn-success btn-sm"
