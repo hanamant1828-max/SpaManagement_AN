@@ -747,6 +747,9 @@ function validateStock(quantityInput) {
     }
 }
 
+// Global variable to store customer package data for benefit calculations
+let customerPackageData = null;
+
 // Load customer packages
 document.getElementById('client_id').addEventListener('change', function() {
     const clientId = this.value;
@@ -754,6 +757,8 @@ document.getElementById('client_id').addEventListener('change', function() {
 
     if (!clientId) {
         packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
+        customerPackageData = null;
+        updateTaxCalculations(); // Update totals when customer is deselected
         return;
     }
 
@@ -769,14 +774,16 @@ document.getElementById('client_id').addEventListener('change', function() {
         })
         .then(data => {
             console.log('Package data received:', data); // Debug log
+            customerPackageData = data; // Store globally for package benefit calculations
 
             if (data.error) {
                 packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error}</small>`;
+                customerPackageData = null;
                 return;
             }
 
             if (data.packages && data.packages.length > 0) {
-                let html = '<strong>Active Packages:</strong><br>';
+                let html = '<div class="alert alert-success"><strong>Active Packages:</strong><br>';
                 data.packages.forEach(pkg => {
                     html += `<div class="badge badge-success me-1 mb-1">${pkg.package_name}</div>`;
 
@@ -796,15 +803,20 @@ document.getElementById('client_id').addEventListener('change', function() {
                 if (data.summary) {
                     html += `<hr><small class="text-muted">Total Active: ${data.summary.total_active_packages} packages</small>`;
                 }
+                html += '</div>';
 
                 packagesDiv.innerHTML = html;
             } else {
                 packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
             }
+
+            // Update calculations to apply package benefits
+            updateTaxCalculations();
         })
         .catch(error => {
             console.error('Error loading packages:', error);
             packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</small>';
+            customerPackageData = null;
         });
 });
 
@@ -861,17 +873,157 @@ function updateTaxCalculations() {
 
 function calculateServicesSubtotal() {
     let total = 0;
-    document.querySelectorAll('.service-row').forEach(row => {
+    document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
         if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
-            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
+            const originalPrice = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
             const quantity = parseFloat(quantityInput.value) || 1; // Default to 1 if empty
-            total += price * quantity;
+            const serviceId = parseInt(serviceSelect.value);
+            const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+
+            // Check if customer has package benefits for this service
+            let finalPrice = originalPrice * quantity;
+            let packageBenefit = null;
+
+            if (customerPackageData && customerPackageData.packages) {
+                packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
+                if (packageBenefit) {
+                    finalPrice = packageBenefit.finalPrice;
+                    
+                    // Update service display to show package benefit
+                    updateServiceDisplayWithBenefit(row, packageBenefit, index);
+                }
+            }
+
+            if (!packageBenefit) {
+                // Clear any previous package benefit display
+                clearServiceBenefitDisplay(row, index);
+            }
+
+            total += finalPrice;
         }
     });
     return total;
+}
+
+// Check if customer has package benefits for a specific service
+function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity) {
+    if (!customerPackageData || !customerPackageData.packages) {
+        return null;
+    }
+
+    // Check all packages for this service (priority: unlimited > service_package > prepaid)
+    for (const pkg of customerPackageData.packages) {
+        if (!pkg.is_active) continue;
+
+        // Check unlimited membership first (highest priority)
+        if (pkg.package_type === 'membership') {
+            for (const session of pkg.sessions) {
+                if (session.benefit_type === 'unlimited') {
+                    return {
+                        type: 'unlimited',
+                        packageName: pkg.package_name,
+                        originalPrice: originalPrice * quantity,
+                        finalPrice: 0, // FREE
+                        discount: originalPrice * quantity,
+                        description: `FREE via ${pkg.package_name} (Unlimited)`
+                    };
+                }
+            }
+        }
+
+        // Check service package benefits (specific service sessions)
+        if (pkg.package_type === 'service_package') {
+            for (const session of pkg.sessions) {
+                if (session.service_id === serviceId && session.sessions_remaining > 0) {
+                    return {
+                        type: 'service_package',
+                        packageName: pkg.package_name,
+                        originalPrice: originalPrice * quantity,
+                        finalPrice: 0, // FREE
+                        discount: originalPrice * quantity,
+                        description: `FREE via ${pkg.package_name} (${session.sessions_remaining} left)`,
+                        sessionsRemaining: session.sessions_remaining
+                    };
+                }
+            }
+        }
+
+        // Check prepaid package benefits (can cover any service)
+        if (pkg.package_type === 'prepaid') {
+            for (const session of pkg.sessions) {
+                if (session.benefit_type === 'prepaid' && session.balance_remaining > 0) {
+                    const serviceTotal = originalPrice * quantity;
+                    if (session.balance_remaining >= serviceTotal) {
+                        // Full coverage
+                        return {
+                            type: 'prepaid',
+                            packageName: pkg.package_name,
+                            originalPrice: serviceTotal,
+                            finalPrice: 0, // FREE
+                            discount: serviceTotal,
+                            description: `FREE via ${pkg.package_name} (₹${session.balance_remaining} credit)`
+                        };
+                    } else {
+                        // Partial coverage
+                        return {
+                            type: 'prepaid',
+                            packageName: pkg.package_name,
+                            originalPrice: serviceTotal,
+                            finalPrice: serviceTotal - session.balance_remaining,
+                            discount: session.balance_remaining,
+                            description: `₹${session.balance_remaining} off via ${pkg.package_name}`
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+// Update service display to show package benefit
+function updateServiceDisplayWithBenefit(row, benefit, index) {
+    // Add package benefit indicator to the service row
+    let benefitDisplay = row.querySelector('.package-benefit-display');
+    if (!benefitDisplay) {
+        benefitDisplay = document.createElement('div');
+        benefitDisplay.className = 'package-benefit-display mt-1';
+        row.appendChild(benefitDisplay);
+    }
+
+    if (benefit.finalPrice === 0) {
+        benefitDisplay.innerHTML = `
+            <small class="text-success fw-bold">
+                <i class="fas fa-gift me-1"></i>FREE - ${benefit.description}
+                <br><strike class="text-muted">₹${benefit.originalPrice.toFixed(2)}</strike>
+            </small>
+        `;
+        benefitDisplay.style.backgroundColor = '#d4edda';
+        benefitDisplay.style.padding = '4px 8px';
+        benefitDisplay.style.borderRadius = '4px';
+    } else {
+        benefitDisplay.innerHTML = `
+            <small class="text-success fw-bold">
+                <i class="fas fa-tag me-1"></i>${benefit.description}
+                <br>Pay: ₹${benefit.finalPrice.toFixed(2)} <strike class="text-muted">₹${benefit.originalPrice.toFixed(2)}</strike>
+            </small>
+        `;
+        benefitDisplay.style.backgroundColor = '#d1ecf1';
+        benefitDisplay.style.padding = '4px 8px';
+        benefitDisplay.style.borderRadius = '4px';
+    }
+}
+
+// Clear service benefit display
+function clearServiceBenefitDisplay(row, index) {
+    const benefitDisplay = row.querySelector('.package-benefit-display');
+    if (benefitDisplay) {
+        benefitDisplay.remove();
+    }
 }
 
 function calculateInventorySubtotal() {
@@ -1374,7 +1526,52 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             loadAvailableBatches();
             updateTaxCalculations(); // Initial calculation update based on default values
             toggleTaxType(); // Apply initial tax type settings
+            
+            // Add event listeners for real-time package benefit calculation
+            setupServiceChangeListeners();
         });
+
+        // Setup event listeners for service selection changes
+        function setupServiceChangeListeners() {
+            // Monitor service dropdown changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]') || 
+                    event.target.matches('input[name="service_quantities[]"]')) {
+                    // Service or quantity changed, update calculations
+                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor when new service rows are added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
+                            // New service row added, attach listeners
+                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
+                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
+                            
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                            
+                            if (quantityInput) {
+                                quantityInput.addEventListener('input', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.getElementById('servicesContainer'), {
+                childList: true,
+                subtree: true
+            });
+        }
 
         // --- Action button handlers ---
         function proceedWithInvoiceCreation() {
