@@ -76,7 +76,7 @@ def packages():
     # Get customers for assignment dropdowns
     from models import Customer, Service
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
-    
+
     # Get services for dropdowns
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
@@ -549,7 +549,7 @@ def api_update_kitty_party(party_id):
             data = request.form.to_dict()
             if 'service_ids' not in data:
                 data['service_ids'] = request.form.getlist('service_ids')
-        
+
         party = update_kitty_party(party_id, data)
         flash('Kitty party updated successfully!', 'success')
         return jsonify({
@@ -712,8 +712,7 @@ def api_get_customers():
             'customers': [{
                 'id': c.id,
                 'name': c.full_name,
-                'phone': c.phone or '',
-                'email': c.email or ''
+                'phone': c.phone or ''
             } for c in customers]
         })
 
