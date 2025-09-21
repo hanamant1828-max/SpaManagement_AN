@@ -595,7 +595,7 @@ function addProductRow() {
             const quantityInput = row.querySelector('input[name="product_quantities[]"]');
             const priceInput = row.querySelector('input[name="product_prices[]"]');
 
-            const productId = productSelect.value;
+            const productId = parseInt(productSelect.value);
 
             // Reset batch selection
             batchSelect.innerHTML = '<option value="">Loading batches...</option>';
@@ -609,11 +609,12 @@ function addProductRow() {
 
             // Find batches for this product (FIFO by expiry date)
             const productBatches = availableBatches.filter(batch => {
-                // Check if product matches (either by product name or ID)
-                const selectedOption = productSelect.selectedOptions[0];
-                const productName = selectedOption.dataset.name;
-                return batch.product_name === productName && batch.qty_available > 0;
+                // Match by product_id which is more reliable than name comparison
+                return batch.product_id === productId && batch.qty_available > 0;
             });
+
+            console.log(`DEBUG: Product ID ${productId} has ${productBatches.length} available batches`);
+            console.log('Available batches for this product:', productBatches);
 
             if (productBatches.length === 0) {
                 batchSelect.innerHTML = '<option value="">No stock available</option>';
