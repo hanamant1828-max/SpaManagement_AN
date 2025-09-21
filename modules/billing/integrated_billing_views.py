@@ -102,10 +102,23 @@ def integrated_billing():
         return redirect(url_for('dashboard'))
 
     # Get data for billing interface
-    from models import Customer, Service, Package
+    from models import Customer, Service, PrepaidPackage, ServicePackage, Membership
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.full_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-    packages = Package.query.filter_by(is_active=True).order_by(Package.name).all()
+    
+    # Get all types of packages
+    prepaid_packages = PrepaidPackage.query.filter_by(is_active=True).all()
+    service_packages = ServicePackage.query.filter_by(is_active=True).all()
+    memberships = Membership.query.filter_by(is_active=True).all()
+    
+    # Combine all packages for the interface
+    packages = []
+    for pkg in prepaid_packages:
+        packages.append({'id': pkg.id, 'name': pkg.name, 'type': 'prepaid'})
+    for pkg in service_packages:
+        packages.append({'id': pkg.id, 'name': pkg.name, 'type': 'service_package'})
+    for pkg in memberships:
+        packages.append({'id': pkg.id, 'name': pkg.name, 'type': 'membership'})
 
     # Get inventory items (products with stock) for retail sales
     inventory_items = []
