@@ -75,13 +75,22 @@ class PackageBillingService:
         if package.service_id == service_id:
             return True
 
-        # For memberships - ONLY unlimited access if it's for the specific service
+        # For memberships - check if membership covers this service
         if package.benefit_type == 'unlimited':
             # If service_id is specified, it's only for that specific service
             if package.service_id is not None:
                 return package.service_id == service_id
-            # If service_id is None, it should NOT give unlimited access to all services
-            # This has been disabled to prevent unintended unlimited access
+            
+            # For memberships without specific service (unlimited access), check membership services
+            if package.package_assignment and package.package_assignment.package_type == 'membership':
+                try:
+                    from models import Membership, MembershipService
+                    membership = Membership.query.get(package.package_assignment.package_reference_id)
+                    if membership and hasattr(membership, 'membership_services'):
+                        return any(ms.service_id == service_id for ms in membership.membership_services)
+                except Exception as e:
+                    print(f"Error checking membership services: {e}")
+                    pass
             return False
 
         # Student offers and other discount types - check service assignments

@@ -131,6 +131,24 @@ class MembershipServiceRestrictionTester:
                     status='active'
                 )
                 db.session.add(assignment)
+                db.session.flush()
+                
+                # Create package benefit trackers for each included service
+                from models import PackageBenefitTracker
+                for service_id in self.included_service_ids:
+                    benefit_tracker = PackageBenefitTracker(
+                        customer_id=test_customer.id,
+                        package_assignment_id=assignment.id,
+                        service_id=service_id,
+                        benefit_type='unlimited',
+                        total_allocated=999999,
+                        used_count=0,
+                        remaining_count=999999,
+                        is_active=True,
+                        valid_from=datetime.utcnow(),
+                        valid_to=datetime.utcnow() + timedelta(days=365)
+                    )
+                    db.session.add(benefit_tracker)
                 
                 db.session.commit()
                 self.log_test("Test Environment Setup", "PASS", f"Created membership ID {self.test_membership_id} with selective services")

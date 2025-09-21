@@ -232,6 +232,14 @@ def create_professional_invoice():
         service_quantities = request.form.getlist('service_quantities[]')
         appointment_ids = request.form.getlist('appointment_ids[]')
 
+        print(f"Billing request - Client: {client_id}, Services: {service_ids}")
+
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Client ID is required'})
+
+        if not service_ids:
+            return jsonify({'success': False, 'message': 'At least one service is required'})
+
         for i, service_id in enumerate(service_ids):
             if service_id and service_id.strip():
                 try:
@@ -288,7 +296,7 @@ def create_professional_invoice():
 
             if float(batch.qty_available) < item['quantity']:
                 return jsonify({
-                    'success': False, 
+                    'success': False,
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
@@ -566,7 +574,7 @@ def create_professional_invoice():
                 'success': True,
                 'message': f'Professional Invoice {invoice_number} created successfully',
                 'invoice_id': invoice.id,
-                'invoice_number': invoice_number,
+                'invoice_number': invoice.invoice_number,
                 'total_amount': float(invoice.total_amount),
                 'cgst_amount': float(invoice.cgst_amount),
                 'sgst_amount': float(invoice.sgst_amount),
@@ -584,13 +592,14 @@ def create_professional_invoice():
                 response_data['package_details'] = package_details
                 response_data['message'] += f' with {package_benefits_applied} package benefits applied (₹{total_package_deductions:.2f} savings)'
 
+            print(f"Billing success response: {response_data}")
             return jsonify(response_data)
 
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"Professional invoice creation failed for user {current_user.id}: {str(e)}")
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
             })
 
@@ -661,7 +670,7 @@ def create_integrated_invoice():
 
             if float(batch.qty_available) < item['quantity']:
                 return jsonify({
-                    'success': False, 
+                    'success': False,
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
@@ -821,7 +830,7 @@ def create_integrated_invoice():
                     )
                     stock_reduced_count += 1
                     stock_operations.append({
-                        'batch_id': batch.id, 
+                        'batch_id': batch.id,
                         'quantity': item_data['quantity'],
                         'batch_name': batch.batch_name
                     })
@@ -847,7 +856,7 @@ def create_integrated_invoice():
             db.session.rollback()
             app.logger.error(f"Invoice creation failed for user {current_user.id}: {str(e)}")
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': f'Transaction failed: {str(e)}. All changes have been rolled back.'
             })
 
@@ -1180,13 +1189,13 @@ def list_integrated_invoices():
 
 # Main billing route - redirect to integrated billing (commented out due to route conflict)
 # @app.route('/billing')
-# @login_required  
+# @login_required
 # def billing():
 #     """Main billing route redirects to integrated billing"""
 #     return redirect(url_for('integrated_billing'))
 
 @app.route('/integrated-billing/save-draft', methods=['POST'])
-@login_required 
+@login_required
 def save_invoice_draft():
     """Save invoice as draft for later completion"""
     if not current_user.can_access('billing'):
@@ -1213,7 +1222,7 @@ def save_invoice_draft():
         app.logger.info(f"Draft saved for user {current_user.id}: {draft_data}")
 
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': 'Draft saved successfully',
             'draft_id': f"draft_{datetime.now().timestamp()}",
             'items_saved': draft_data['services_count'] + draft_data['products_count']
