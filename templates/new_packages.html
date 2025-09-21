@@ -686,10 +686,15 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Services Included *</label>
-                        <select class="form-select" id="kittyServicesSelect" name="service_ids" multiple size="6" required>
-                            <!-- Services will be loaded dynamically -->
-                        </select>
-                        <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
+                        <div id="kittyServicesContainer" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            <div class="row g-2" id="kittyServicesCheckboxes">
+                                <!-- Service checkboxes will be loaded dynamically -->
+                                <div class="col-12 text-muted text-center py-3" id="servicesLoading">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading services...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text">Select multiple services for this kitty party</div>
                         <div class="invalid-feedback">Please select at least one service for this kitty party</div>
                     </div>
 
@@ -1648,19 +1653,49 @@ function loadServicesForKittyParty() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const select = document.getElementById('kittyServicesSelect');
-                select.innerHTML = '';
+                const container = document.getElementById('kittyServicesCheckboxes');
+                const loadingDiv = document.getElementById('servicesLoading');
+                
+                if (loadingDiv) {
+                    loadingDiv.style.display = 'none';
+                }
+                
+                container.innerHTML = '';
 
                 data.services.forEach(service => {
-                    const option = document.createElement('option');
-                    option.value = service.id;
-                    option.textContent = `${service.name} - ₹${service.price}`;
-                    select.appendChild(option);
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'col-12 mb-2';
+                    
+                    checkboxDiv.innerHTML = `
+                        <div class="form-check border rounded p-2 h-100">
+                            <input class="form-check-input" type="checkbox" name="service_ids" value="${service.id}" id="service_${service.id}">
+                            <label class="form-check-label w-100" for="service_${service.id}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-medium">${service.name}</span>
+                                    <span class="badge bg-primary">₹${service.price}</span>
+                                </div>
+                            </label>
+                        </div>
+                    `;
+                    
+                    container.appendChild(checkboxDiv);
                 });
+                
+                if (data.services.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-muted text-center py-3">No services available</div>';
+                }
             }
         })
         .catch(error => {
             console.error('Error loading services:', error);
+            const container = document.getElementById('kittyServicesCheckboxes');
+            const loadingDiv = document.getElementById('servicesLoading');
+            
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+            
+            container.innerHTML = '<div class="col-12 text-danger text-center py-3">Error loading services</div>';
         });
 }
 
@@ -1673,15 +1708,13 @@ function submitKittyForm() {
     const data = {};
     const selectedServices = [];
     
-    // Get selected services from multi-select dropdown
-    const servicesSelect = document.getElementById('kittyServicesSelect');
-    if (servicesSelect) {
-        Array.from(servicesSelect.selectedOptions).forEach(option => {
-            if (option.value && option.value !== "") {
-                selectedServices.push(parseInt(option.value));
-            }
-        });
-    }
+    // Get selected services from checkboxes
+    const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+    serviceCheckboxes.forEach(checkbox => {
+        if (checkbox.value && checkbox.value !== "") {
+            selectedServices.push(parseInt(checkbox.value));
+        }
+    });
 
     // Collect other form data
     for (let [key, value] of formData.entries()) {
@@ -1714,12 +1747,16 @@ function submitKittyForm() {
 
     if (!data.service_ids || data.service_ids.length === 0) {
         alert('Please select at least one service for this kitty party');
-        servicesSelect.focus();
-        // Add visual indication
-        servicesSelect.classList.add('is-invalid');
+        // Add visual indication to the services container
+        const servicesContainer = document.getElementById('kittyServicesContainer');
+        if (servicesContainer) {
+            servicesContainer.classList.add('border-danger');
+            // Remove the border color after a moment
+            setTimeout(() => {
+                servicesContainer.classList.remove('border-danger');
+            }, 3000);
+        }
         return;
-    } else {
-        servicesSelect.classList.remove('is-invalid');
     }
 
     console.log('Submitting kitty party data:', data);
@@ -1755,22 +1792,23 @@ document.addEventListener('DOMContentLoaded', function() {
         kittyModal.addEventListener('shown.bs.modal', function() {
             loadServicesForKittyParty();
             
-            // Add real-time validation
+            // Add real-time validation for checkboxes
             const form = document.getElementById('kittyForm');
-            const servicesSelect = document.getElementById('kittyServicesSelect');
             
-            // Validate services selection on change
-            if (servicesSelect) {
-                servicesSelect.addEventListener('change', function() {
-                    if (this.selectedOptions.length > 0) {
-                        this.classList.remove('is-invalid');
-                        this.classList.add('is-valid');
-                    } else {
-                        this.classList.remove('is-valid');
-                        this.classList.add('is-invalid');
-                    }
+            // Add event listeners to service checkboxes when they're loaded
+            setTimeout(() => {
+                const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]');
+                serviceCheckboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const checkedBoxes = document.querySelectorAll('input[name="service_ids"]:checked');
+                        const container = document.getElementById('kittyServicesContainer');
+                        
+                        if (checkedBoxes.length > 0) {
+                            container.classList.remove('border-danger');
+                        }
+                    });
                 });
-            }
+            }, 1000); // Wait for services to load
             
             // Reset form and validation when modal opens
             if (form) {
@@ -1783,55 +1821,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Load services for kitty party modal
-function loadServicesForKittyParty() {
-    console.log('Loading services for kitty party...');
-    
-    fetch('/packages/api/services')
-        .then(response => {
-            console.log('Services API response status:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Services API response:', data);
-            
-            if (data.success) {
-                const select = document.getElementById('kittyServicesSelect');
-                if (select) {
-                    select.innerHTML = '<option value="">Select services...</option>';
-                    
-                    if (data.services && data.services.length > 0) {
-                        data.services.forEach(service => {
-                            const option = document.createElement('option');
-                            option.value = service.id;
-                            option.textContent = `${service.name} - ₹${service.price}`;
-                            select.appendChild(option);
-                        });
-                        
-                        console.log(`Loaded ${data.services.length} services into kitty party dropdown`);
-                    } else {
-                        select.innerHTML = '<option value="">No services available</option>';
-                        console.warn('No services found in API response');
-                    }
-                } else {
-                    console.error('kittyServicesSelect element not found');
-                }
-            } else {
-                console.error('API returned error:', data.error || 'Unknown error');
-                const select = document.getElementById('kittyServicesSelect');
-                if (select) {
-                    select.innerHTML = '<option value="">Error loading services</option>';
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error loading services:', error);
-            const select = document.getElementById('kittyServicesSelect');
-            if (select) {
-                select.innerHTML = '<option value="">Error loading services</option>';
-            }
-        });
-}
 
 
 function editKitty(partyId) {
@@ -2324,11 +2313,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.querySelector('[name="min_guests"]').value = '';
                 form.querySelector('[name="conditions"]').value = '';
 
-                // Clear service selections
-                const serviceSelect = form.querySelector('[name="service_ids"]');
-                if (serviceSelect) {
-                    Array.from(serviceSelect.options).forEach(option => option.selected = false);
-                }
+                // Clear service selections (checkboxes)
+                const serviceCheckboxes = form.querySelectorAll('input[name="service_ids"]');
+                serviceCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
             }
         });
     }
