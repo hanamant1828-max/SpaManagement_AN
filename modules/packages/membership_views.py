@@ -45,7 +45,7 @@ def membership_add_submit():
         price_str = request.form.get('price', '0')
         validity_months_str = request.form.get('validity_months', '12')
         services_included = request.form.get('services_included', '').strip()
-        description = request.form.get('description', '').strip()
+        description = request.form.get('description', '').strip() if request.form.get('description') else None
         is_active = request.form.get('is_active') == 'on'
         
         # Validate required fields
@@ -144,7 +144,7 @@ def membership_edit_submit(membership_id):
         membership.price = float(request.form.get('price', 0))
         membership.validity_months = int(request.form.get('validity_months', 12))
         membership.services_included = request.form.get('services_included', '').strip()
-        membership.description = request.form.get('description', '').strip()
+        membership.description = request.form.get('description', '').strip() if request.form.get('description') else None
         membership.is_active = request.form.get('is_active') == 'on'
         
         if not membership.name or membership.price <= 0:

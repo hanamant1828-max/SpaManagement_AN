@@ -479,6 +479,7 @@ class Membership(db.Model):
     price = db.Column(db.Float, nullable=False)
     validity_months = db.Column(db.Integer, nullable=False)  # Usually 12
     services_included = db.Column(db.Text, nullable=True)  # Keep for backward compatibility
+    description = db.Column(db.Text, nullable=True)  # Description field for membership details
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
