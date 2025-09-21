@@ -162,10 +162,10 @@
                         <div class="tab-pane fade" id="membership" role="tabpanel">
                             <div class="d-flex justify-content-between mb-3">
                                 <h5>Memberships</h5>
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#membershipModal">
+                                <a href="{{ url_for('membership_add') }}" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add Membership
-                                </button>
-                            </div>
+                                </a>
+                            </div></div>
                             <div class="table-responsive">
                                 <table class="table table-striped">
                                     <thead>
@@ -186,6 +186,12 @@
                                             <td>{{ membership.services_included[:50] if membership.services_included else 'No services specified' }}{{ '...' if membership.services_included and membership.services_included|length > 50 else '' }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('membership_view', membership_id=membership.id) }}" class="btn btn-outline-info btn-sm" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('membership_edit', membership_id=membership.id) }}" class="btn btn-outline-primary btn-sm" title="Edit Membership">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
                                                     <button class="btn btn-success btn-sm"
                                                             onclick="openAssignSimple({{ membership.id }}, 'membership')"
                                                             title="Assign to Customer"
@@ -193,12 +199,6 @@
                                                             data-template-id="{{ membership.id }}"
                                                             data-package-type="membership">
                                                         <i class="fas fa-user-plus"></i> Assign
-                                                    </button>
-                                                    <button class="btn btn-outline-primary" onclick="editMembership({{ membership.id }})">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-outline-danger" onclick="deleteMembership({{ membership.id }})">
-                                                        <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
                                             </td>
