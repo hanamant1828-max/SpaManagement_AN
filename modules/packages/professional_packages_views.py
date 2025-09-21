@@ -25,7 +25,7 @@ def professional_packages():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Get comprehensive statistics aligned with template expectations
     total_packages = (PrepaidPackage.query.filter_by(is_active=True).count() +
                      ServicePackage.query.filter_by(is_active=True).count() +
@@ -33,7 +33,7 @@ def professional_packages():
                      StudentOffer.query.filter_by(is_active=True).count() +
                      YearlyMembership.query.filter_by(is_active=True).count() +
                      KittyParty.query.filter_by(is_active=True).count())
-    
+
     stats = {
         'total_packages': total_packages,
         'prepaid_credit_packages': PrepaidPackage.query.filter_by(is_active=True).count(),
@@ -54,20 +54,20 @@ def professional_packages():
             db.func.date(PackageUsageHistory.charge_date) == datetime.now().date()
         ).count()
     }
-    
+
     # Get recent package activities
     recent_activities = PackageUsageHistory.query.options(
         db.joinedload(PackageUsageHistory.customer),
         db.joinedload(PackageUsageHistory.service),
         db.joinedload(PackageUsageHistory.applied_by_user)
     ).order_by(desc(PackageUsageHistory.created_at)).limit(10).all()
-    
+
     # Get customers for assignment
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.full_name).all()
-    
+
     # Get services for package creation
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-    
+
     # Get all package templates
     prepaid_packages = PrepaidPackage.query.filter_by(is_active=True).all()
     service_packages = ServicePackage.query.filter_by(is_active=True).all()
@@ -75,7 +75,7 @@ def professional_packages():
     student_offers = StudentOffer.query.filter_by(is_active=True).all()
     yearly_memberships = YearlyMembership.query.filter_by(is_active=True).all()
     kitty_parties = KittyParty.query.filter_by(is_active=True).all()
-    
+
     return render_template('professional_packages.html',
                          stats=stats,
                          recent_activities=recent_activities,
@@ -94,26 +94,26 @@ def api_assign_professional_package():
     """Assign a package to customer with comprehensive benefit tracking"""
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
-    
+
     try:
         data = request.get_json()
-        
+
         # Validate required fields
         required_fields = ['customer_id', 'package_type', 'package_id', 'validity_months']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'success': False, 'message': f'{field} is required'}), 400
-        
+
         customer_id = int(data['customer_id'])
         package_type = data['package_type']
         package_id = int(data['package_id'])
         validity_months = int(data['validity_months'])
-        
+
         # Get customer
         customer = Customer.query.get(customer_id)
         if not customer:
             return jsonify({'success': False, 'message': 'Customer not found'}), 400
-        
+
         # Get package template
         package_template = None
         if package_type == 'prepaid':
@@ -128,14 +128,14 @@ def api_assign_professional_package():
             package_template = YearlyMembership.query.get(package_id)
         elif package_type == 'kitty_party':
             package_template = KittyParty.query.get(package_id)
-        
+
         if not package_template:
             return jsonify({'success': False, 'message': 'Package template not found'}), 400
-        
+
         # Calculate dates
         assigned_on = datetime.now()
         expires_on = assigned_on + timedelta(days=validity_months * 30)
-        
+
         # Create package assignment
         assignment = ServicePackageAssignment(
             customer_id=customer_id,
@@ -148,7 +148,7 @@ def api_assign_professional_package():
             status='active',
             notes=data.get('notes', '')
         )
-        
+
         # Set package-specific fields
         if package_type == 'prepaid':
             assignment.credit_amount = package_template.after_value
@@ -156,13 +156,13 @@ def api_assign_professional_package():
         elif package_type in ['service_package', 'student_offer']:
             assignment.total_sessions = data.get('total_sessions', 1)
             assignment.remaining_sessions = assignment.total_sessions
-        
+
         db.session.add(assignment)
         db.session.flush()  # Get assignment ID
-        
+
         # Create benefit trackers based on package type
         benefit_trackers = []
-        
+
         if package_type == 'prepaid':
             # Prepaid package - covers all services (service_id = NULL)
             tracker = PackageBenefitTracker(
@@ -176,36 +176,29 @@ def api_assign_professional_package():
                 valid_to=expires_on
             )
             benefit_trackers.append(tracker)
-            
+
         elif package_type == 'membership':
             # Check if membership has specific services assigned
             from models import MembershipService
             membership_services = MembershipService.query.filter_by(membership_id=package_id).all()
-            
+
             if membership_services:
-                # Create tracker for each specific service
+                # Create tracker for each specific service ONLY
                 for ms in membership_services:
                     tracker = PackageBenefitTracker(
                         customer_id=customer_id,
                         package_assignment_id=assignment.id,
-                        service_id=ms.service_id,
+                        service_id=ms.service_id,  # Specific service only
                         benefit_type='unlimited',
                         valid_from=assigned_on,
                         valid_to=expires_on
                     )
                     benefit_trackers.append(tracker)
             else:
-                # Unlimited access to all services (service_id = NULL)
-                tracker = PackageBenefitTracker(
-                    customer_id=customer_id,
-                    package_assignment_id=assignment.id,
-                    service_id=None,  # NULL means all services
-                    benefit_type='unlimited',
-                    valid_from=assigned_on,
-                    valid_to=expires_on
-                )
-                benefit_trackers.append(tracker)
-                
+                # If no specific services assigned, don't create any unlimited tracker
+                # This prevents unlimited access to all services
+                pass
+
         elif package_type == 'service_package':
             # Service package - free sessions for specific service only
             service_id = data.get('service_id') or getattr(package_template, 'service_id', None)
@@ -221,12 +214,12 @@ def api_assign_professional_package():
                     valid_to=expires_on
                 )
                 benefit_trackers.append(tracker)
-            
+
         elif package_type == 'student_offer':
             # Student offer - discount on specific services only
             from models import StudentOfferService
             offer_services = StudentOfferService.query.filter_by(offer_id=package_id).all()
-            
+
             for sos in offer_services:
                 tracker = PackageBenefitTracker(
                     customer_id=customer_id,
@@ -240,20 +233,20 @@ def api_assign_professional_package():
                     valid_to=expires_on
                 )
                 benefit_trackers.append(tracker)
-        
+
         # Add all benefit trackers
         for tracker in benefit_trackers:
             db.session.add(tracker)
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Package assigned successfully to {customer.full_name}',
             'assignment_id': assignment.id,
             'benefit_trackers_created': len(benefit_trackers)
         })
-        
+
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Error assigning package: {str(e)}")
@@ -265,7 +258,7 @@ def api_customer_package_summary(customer_id):
     """Get comprehensive package summary for a customer"""
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
-    
+
     try:
         summary = PackageBillingService.get_customer_package_summary(customer_id)
         return jsonify({
@@ -282,10 +275,10 @@ def api_customer_applicable_packages(customer_id, service_id):
     """Get applicable packages for a customer and service (for billing integration)"""
     if not hasattr(current_user, 'can_access') or not current_user.can_access('billing'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
-    
+
     try:
         applicable_packages = PackageBillingService.find_applicable_packages(customer_id, service_id)
-        
+
         packages_data = []
         for package in applicable_packages:
             package_info = {
@@ -294,7 +287,7 @@ def api_customer_applicable_packages(customer_id, service_id):
                 'benefit_type': package.benefit_type,
                 'priority': PackageBillingService.BENEFIT_PRIORITY.get(package.benefit_type, 999)
             }
-            
+
             # Add type-specific details
             if package.benefit_type == 'unlimited':
                 package_info['description'] = 'Unlimited access'
@@ -304,14 +297,14 @@ def api_customer_applicable_packages(customer_id, service_id):
                 package_info['description'] = f'{package.discount_percentage}% discount ({package.remaining_count} uses remaining)'
             elif package.benefit_type == 'prepaid':
                 package_info['description'] = f'₹{package.balance_remaining} prepaid balance'
-            
+
             packages_data.append(package_info)
-        
+
         return jsonify({
             'success': True,
             'applicable_packages': packages_data
         })
-        
+
     except Exception as e:
         app.logger.error(f"Error getting applicable packages: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -322,14 +315,14 @@ def api_reverse_package_usage(usage_id):
     """Reverse package usage (for refunds/voids)"""
     if not hasattr(current_user, 'can_access') or not current_user.can_access('billing'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
-    
+
     try:
         data = request.get_json() or {}
         reason = data.get('reason', 'refund')
-        
+
         result = PackageBillingService.reverse_package_usage(usage_id, reason)
         return jsonify(result)
-        
+
     except Exception as e:
         app.logger.error(f"Error reversing package usage: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -341,11 +334,11 @@ def professional_packages_analytics():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         # Monthly usage analytics
         from sqlalchemy import extract
-        
+
         current_year = datetime.now().year
         monthly_usage = db.session.query(
             extract('month', PackageUsageHistory.charge_date).label('month'),
@@ -354,7 +347,7 @@ def professional_packages_analytics():
         ).filter(
             extract('year', PackageUsageHistory.charge_date) == current_year
         ).group_by(extract('month', PackageUsageHistory.charge_date)).all()
-        
+
         # Top customers by package usage
         top_customers = db.session.query(
             Customer.full_name,
@@ -363,7 +356,7 @@ def professional_packages_analytics():
         ).join(PackageUsageHistory).group_by(
             Customer.id, Customer.full_name
         ).order_by(desc('usage_count')).limit(10).all()
-        
+
         # Package performance
         package_performance = db.session.query(
             PackageBenefitTracker.benefit_type,
@@ -372,13 +365,13 @@ def professional_packages_analytics():
         ).outerjoin(PackageUsageHistory).group_by(
             PackageBenefitTracker.benefit_type
         ).all()
-        
+
         return render_template('professional_packages_analytics.html',
                              monthly_usage=monthly_usage,
                              top_customers=top_customers,
                              package_performance=package_performance,
                              current_year=current_year)
-        
+
     except Exception as e:
         app.logger.error(f"Error loading package analytics: {str(e)}")
         flash('Error loading analytics', 'danger')
