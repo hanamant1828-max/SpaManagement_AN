@@ -306,57 +306,85 @@ class PackageBillingService:
         invoice_item = InvoiceItem.query.get(invoice_item_id)
         requested_quantity = int(invoice_item.quantity) if invoice_item else 1
         
+        # Validate that we have sessions remaining before applying
+        if package.remaining_count <= 0:
+            return {
+                'success': True,
+                'applied': False,
+                'original_price': service_price,
+                'final_price': service_price,
+                'deduction_amount': 0.0,
+                'message': f'No free sessions remaining in {cls._get_package_name(package)}'
+            }
+        
         # Calculate how many sessions can be covered by package
         sessions_to_cover = min(requested_quantity, package.remaining_count)
-        sessions_to_pay = requested_quantity - sessions_to_cover
+        sessions_to_pay = max(0, requested_quantity - sessions_to_cover)
         
-        # Calculate pricing
-        price_per_session = service_price / requested_quantity
+        # Calculate pricing - ensure proper division
+        if requested_quantity > 0:
+            price_per_session = service_price / requested_quantity
+        else:
+            price_per_session = service_price
+            
         covered_amount = sessions_to_cover * price_per_session
         final_price = sessions_to_pay * price_per_session
         
-        # Deduct covered sessions from package
-        package.used_count += sessions_to_cover
-        package.remaining_count = max(0, package.remaining_count - sessions_to_cover)
+        # Ensure final price is never negative
+        final_price = max(0, final_price)
+        covered_amount = min(covered_amount, service_price)
         
-        # Auto-deactivate if exhausted
-        if package.remaining_count == 0:
-            package.is_active = False
+        # Only deduct sessions if we're actually covering some
+        if sessions_to_cover > 0:
+            package.used_count += sessions_to_cover
+            package.remaining_count = max(0, package.remaining_count - sessions_to_cover)
+            
+            # Auto-deactivate if exhausted
+            if package.remaining_count == 0:
+                package.is_active = False
         
-        # Create usage record
-        usage = PackageUsageHistory(
-            customer_id=customer_id,
-            package_benefit_id=package.id,
-            invoice_id=invoice_id,
-            invoice_item_id=invoice_item_id,
-            service_id=service_id,
-            idempotency_key=idempotency_key,
-            benefit_type='free',
-            qty_deducted=sessions_to_cover,
-            amount_deducted=covered_amount,
-            discount_applied=covered_amount,
-            balance_after_qty=package.remaining_count,
-            balance_after_amount=0.0,
-            transaction_type='use',
-            applied_rule='free_session_partial_coverage' if sessions_to_pay > 0 else 'free_session_full_coverage',
-            staff_override=staff_override,
-            applied_by=current_user.id,
-            charge_date=service_date,
-            notes=f'{sessions_to_cover} free sessions used. {sessions_to_pay} sessions to pay. Remaining: {package.remaining_count}'
-        )
-        
-        db.session.add(usage)
-        
-        if sessions_to_pay > 0:
-            # Partial coverage - customer pays for extra sessions
-            message = f'{sessions_to_cover} sessions FREE via package, {sessions_to_pay} sessions charged. {package.remaining_count} sessions remaining'
+        # Create usage record only if sessions were actually used
+        if sessions_to_cover > 0:
+            usage = PackageUsageHistory(
+                customer_id=customer_id,
+                package_benefit_id=package.id,
+                invoice_id=invoice_id,
+                invoice_item_id=invoice_item_id,
+                service_id=service_id,
+                idempotency_key=idempotency_key,
+                benefit_type='free',
+                qty_deducted=sessions_to_cover,
+                amount_deducted=covered_amount,
+                discount_applied=covered_amount,
+                balance_after_qty=package.remaining_count,
+                balance_after_amount=0.0,
+                transaction_type='use',
+                applied_rule='free_session_partial_coverage' if sessions_to_pay > 0 else 'free_session_full_coverage',
+                staff_override=staff_override,
+                applied_by=current_user.id,
+                charge_date=service_date,
+                notes=f'{sessions_to_cover} free sessions used. {sessions_to_pay} sessions charged. Remaining: {package.remaining_count}'
+            )
+            
+            db.session.add(usage)
+            usage_id = usage.id
         else:
-            # Full coverage
-            message = f'All {sessions_to_cover} sessions FREE via package. {package.remaining_count} sessions remaining'
+            usage_id = None
+        
+        # Generate appropriate message
+        if sessions_to_pay > 0 and sessions_to_cover > 0:
+            # Partial coverage - some sessions free, some charged
+            message = f'{sessions_to_cover} of {requested_quantity} sessions FREE via {cls._get_package_name(package)}, {sessions_to_pay} sessions charged (₹{final_price:.2f}). {package.remaining_count} free sessions remaining'
+        elif sessions_to_cover == requested_quantity:
+            # Full coverage - all sessions free
+            message = f'All {sessions_to_cover} sessions FREE via {cls._get_package_name(package)}. {package.remaining_count} free sessions remaining'
+        else:
+            # No coverage - all sessions charged
+            message = f'No free sessions available. All {requested_quantity} sessions charged (₹{service_price:.2f})'
         
         return {
             'success': True,
-            'applied': True,
+            'applied': sessions_to_cover > 0,
             'benefit_type': 'free',
             'original_price': service_price,
             'final_price': final_price,
@@ -369,7 +397,7 @@ class PackageBillingService:
                 'remaining': package.remaining_count,
                 'total': package.total_allocated
             },
-            'usage_id': usage.id,
+            'usage_id': usage_id,
             'message': message
         }
     
