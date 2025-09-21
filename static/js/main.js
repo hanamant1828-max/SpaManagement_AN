@@ -627,6 +627,8 @@ function handleFormSubmit(event) {
             return handleInventorySubmit(event);
         case 'editCustomerForm': // Handle edit customer form submission
             return handleEditCustomerSubmit(event);
+        case 'staffForm': // Handle staff form submission
+            return handleStaffFormSubmit(event);
         default:
             // For regular forms, just show loading state
             showFormLoading(form);
@@ -2734,6 +2736,42 @@ function calculateTotal() {
     } catch (error) {
         console.error('Error calculating total:', error);
     }
+}
+
+// Staff form submission handler (to ensure data refresh)
+function handleStaffFormSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    if (submitBtn.disabled) return;
+
+    showFormLoading(form);
+
+    const formData = new FormData(form);
+    const staffId = formData.get('id'); // Assuming staff ID is available
+
+    fetch(form.action, {
+        method: form.method,
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Staff member saved successfully!', 'success');
+            // Refresh the staff table or redirect to staff management page
+            // A simple reload is effective here to ensure all data is fresh
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification(`Error saving staff: ${data.error}`, 'error');
+            hideFormLoading(form);
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting staff form:', error);
+        showNotification('An unexpected error occurred while saving staff.', 'error');
+        hideFormLoading(form);
+    });
 }
 
 // Face recognition functionality

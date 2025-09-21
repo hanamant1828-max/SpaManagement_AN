@@ -2920,12 +2920,14 @@ function saveKittyParty() {
         return;
     }
 
-    // Disable save button if it exists
-    const saveBtn = document.getElementById('saveKittyParty');
-    const originalText = saveBtn ? saveBtn.innerHTML : '';
-    if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    // Show loading state
+    const submitBtn = document.querySelector('#kittyPartyModal button[type="submit"]') || 
+                     document.getElementById('saveKittyPartyBtn') ||
+                     event.target.querySelector('button[type="submit"]');
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Creating...';
     }
 
     const formData = new FormData(form);
@@ -2959,8 +2961,8 @@ function saveKittyParty() {
 
             // Reset form
             form.reset();
-            if (saveBtn) {
-                saveBtn.disabled = true;
+            if (submitBtn) {
+                submitBtn.disabled = true; // Keep disabled until new data is entered
             }
 
             // Reload table
@@ -2975,9 +2977,9 @@ function saveKittyParty() {
     })
     .finally(() => {
         // Restore button state if button exists
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText || '<i class="fas fa-save me-2"></i>Save Kitty Party';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Kitty Party';
         }
     });
 }
