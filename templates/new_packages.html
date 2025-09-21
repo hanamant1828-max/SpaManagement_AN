@@ -347,7 +347,17 @@
                                             <td>₹{{ "{:,.0f}".format(party.price) }}</td>
                                             <td>{{ '₹{:,.0f}'.format(party.after_value) if party.after_value else 'N/A' }}</td>
                                             <td>{{ party.min_guests }}</td>
-                                            <td><small>{{ party.services_included[:30] if party.services_included else 'None' }}{% if party.services_included and party.services_included|length > 30 %}...{% endif %}</small></td>
+                                            <td>
+                                                <small>
+                                                    {% if party.kittyparty_services %}
+                                                        {% for kps in party.kittyparty_services %}
+                                                            {{ kps.service.name }}{% if not loop.last %}, {% endif %}
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        No services selected
+                                                    {% endif %}
+                                                </small>
+                                            </td>
                                             <td>
                                                 <small>
                                                     {% if party.valid_from and party.valid_to %}
@@ -675,12 +685,12 @@
                         <input type="number" class="form-control" name="min_guests" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Services Included</label>
-                        <select multiple class="form-select" name="service_ids" id="kittyServicesSelect">
-                            {% for service in services %}
-                                <option value="{{ service.id }}">{{ service.name }} - ₹{{ service.price }}</option>
-                            {% endfor %}
+                        <label class="form-label">Services Included *</label>
+                        <select multiple class="form-select" name="service_ids" id="kittyServicesSelect" required size="6">
+                            <!-- Services will be loaded dynamically -->
                         </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
+                        <div class="invalid-feedback">Please select at least one service for this kitty party</div>
                     </div>
 
                     <!-- Validity Date Fields -->
@@ -1714,6 +1724,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Load services for kitty party modal
+function loadServicesForKittyParty() {
+    fetch('/packages/api/services')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('kittyServicesSelect');
+                if (select) {
+                    select.innerHTML = '';
+                    
+                    data.services.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.id;
+                        option.textContent = `${service.name} - ₹${service.price}`;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+        });
+}
 
 
 function editKitty(partyId) {

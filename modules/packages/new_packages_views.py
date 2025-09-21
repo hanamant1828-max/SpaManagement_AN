@@ -74,8 +74,11 @@ def packages():
     kitty_parties = get_all_kitty_parties()
 
     # Get customers for assignment dropdowns
-    from models import Customer
+    from models import Customer, Service
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+    
+    # Get services for dropdowns
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
     return render_template('new_packages.html',
                          prepaid_packages=prepaid_packages,
@@ -85,6 +88,7 @@ def packages():
                          yearly_memberships=yearly_memberships,
                          kitty_parties=kitty_parties,
                          customers=customers,
+                         services=services,
                          stats=stats)
 
 # ========================================
