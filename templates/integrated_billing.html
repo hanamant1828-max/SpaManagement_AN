@@ -201,7 +201,7 @@
                                             <select class="form-select product-select" name="product_ids[]" onchange="loadBatchesForProduct(this)">
                                                 <option value="">Select Product</option>
                                                 {% for product in inventory_items %}
-                                                <option value="{{ product.id }}">{{ product.name }} (Total Stock: {{ product.total_stock }})</option>
+                                                <option value="{{ product.id }}" data-name="{{ product.name }}">{{ product.name }} (Total Stock: {{ product.total_stock }})</option>
                                                 {% endfor %}
                                             </select>
                                         </div>
@@ -214,12 +214,11 @@
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label">Quantity</label>
-                                            <input type="number" class="form-control quantity-input" name="product_quantities[]" placeholder="Qty" min="1" value="1" step="0.5" onchange="validateStock(this)">
-                                            <small class="text-muted available-stock"></small>
+                                            <input type="number" class="form-control quantity-input" name="product_quantities[]" value="1" min="0.1" step="0.1" onchange="validateInventoryQuantity(this)">
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label">Unit Price</label>
-                                            <input type="number" class="form-control unit-price" name="product_prices[]" placeholder="Price" step="0.01" readonly>
+                                            <input type="number" class="form-control unit-price" name="product_prices[]" placeholder="Price" step="0.01" min="0" required>
                                         </div>
                                         <div class="col-md-1">
                                             <label class="form-label">&nbsp;</label>
@@ -516,6 +515,8 @@
 </div>
 
 <script>
+var availableBatches = []; // Global array to hold all available batches
+
 // Add service row
 function addServiceRow() {
     const container = document.getElementById('servicesContainer');
@@ -571,80 +572,111 @@ function addProductRow() {
     container.appendChild(newRow);
 }
 
-// Load batches for selected product (FIFO by expiry)
-function loadBatchesForProduct(productSelect) {
-    const productId = productSelect.value;
-    const productRow = productSelect.closest('.product-row');
-    const batchSelect = productRow.querySelector('.batch-select');
-    const batchInfo = productRow.querySelector('.batch-info');
-    const availableStock = productRow.querySelector('.available-stock');
-    const unitPrice = productRow.querySelector('.unit-price');
-
-    if (!productId) {
-        batchSelect.innerHTML = '<option value="">Select Product First</option>';
-        batchSelect.disabled = true;
-        batchInfo.innerHTML = '';
-        availableStock.innerHTML = '';
-        unitPrice.value = '';
-        return;
-    }
-
-    // Fetch batches for this product (FIFO by expiry)
-    fetch(`/api/inventory/batches/for-product/${productId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.batches.length > 0) {
-                batchSelect.innerHTML = '<option value="">Select Batch</option>';
-
-                data.batches.forEach(batch => {
-                    const option = document.createElement('option');
-                    option.value = batch.id;
-                    option.dataset.stock = batch.qty_available;
-                    option.dataset.price = batch.selling_price || batch.unit_cost || 0;
-                    option.dataset.expiry = batch.expiry_date;
-                    option.dataset.batchName = batch.batch_name;
-
-                    const expiryText = batch.expiry_date ? ` (Exp: ${new Date(batch.expiry_date).toLocaleDateString()})` : '';
-                    const stockText = ` - Stock: ${batch.qty_available}`;
-                    option.textContent = `${batch.batch_name}${expiryText}${stockText}`;
-
-                    batchSelect.appendChild(option);
+// Load available batches for consumption (FIFO ordering)
+        function loadAvailableBatches() {
+            fetch('/api/inventory/batches/for-consumption')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.batches) {
+                        availableBatches = data.batches;
+                        console.log('Available batches loaded:', availableBatches.length);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading batches:', error);
                 });
+        }
 
-                // Auto-select first batch (FIFO)
-                if (data.batches.length > 0) {
-                    const firstBatch = data.batches[0];
-                    batchSelect.value = firstBatch.id;
+        // Load batches for selected product (FIFO - First In First Out by expiry)
+        function loadBatchesForProduct(productSelect) {
+            const row = productSelect.closest('.row');
+            const batchSelect = row.querySelector('.batch-select');
+            const batchInfo = row.querySelector('.batch-info');
+            const quantityInput = row.querySelector('input[name="product_quantities[]"]');
+            const priceInput = row.querySelector('input[name="product_prices[]"]');
 
-                    // Update info displays
-                    const expiry = firstBatch.expiry_date ? new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
-                    const daysToExpiry = firstBatch.days_to_expiry;
-                    const expiryClass = daysToExpiry <= 30 ? 'batch-warning' : 'batch-success';
+            const productId = productSelect.value;
 
-                    batchInfo.innerHTML = `
-                        <strong>Auto-selected (FIFO):</strong> ${firstBatch.batch_name}<br>
-                        <span class="${expiryClass}">Expiry: ${expiry}</span>
-                    `;
-
-                    availableStock.innerHTML = `Available: ${firstBatch.qty_available}`;
-                    unitPrice.value = firstBatch.selling_price || firstBatch.unit_cost || 0;
-                }
-
-                batchSelect.disabled = false;
-            } else {
-                batchSelect.innerHTML = '<option value="">No batches with stock</option>';
-                batchSelect.disabled = true;
-                batchInfo.innerHTML = '<span class="batch-warning">No stock available for this product</span>';
-                availableStock.innerHTML = '';
-                unitPrice.value = '';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading batches:', error);
-            batchSelect.innerHTML = '<option value="">Error loading batches</option>';
+            // Reset batch selection
+            batchSelect.innerHTML = '<option value="">Loading batches...</option>';
             batchSelect.disabled = true;
-        });
-}
+            batchInfo.innerHTML = '';
+
+            if (!productId) {
+                batchSelect.innerHTML = '<option value="">Select Product First</option>';
+                return;
+            }
+
+            // Find batches for this product (FIFO by expiry date)
+            const productBatches = availableBatches.filter(batch => {
+                // Check if product matches (either by product name or ID)
+                const selectedOption = productSelect.selectedOptions[0];
+                const productName = selectedOption.dataset.name;
+                return batch.product_name === productName && batch.qty_available > 0;
+            });
+
+            if (productBatches.length === 0) {
+                batchSelect.innerHTML = '<option value="">No stock available</option>';
+                batchInfo.innerHTML = '<span class="text-danger">⚠️ No stock available for this product</span>';
+                return;
+            }
+
+            // Sort by expiry date (FIFO - First to expire first)
+            productBatches.sort((a, b) => {
+                if (!a.expiry_date && !b.expiry_date) return 0;
+                if (!a.expiry_date) return 1;
+                if (!b.expiry_date) return -1;
+                return new Date(a.expiry_date) - new Date(b.expiry_date);
+            });
+
+            // Auto-select first batch (FIFO)
+            const firstBatch = productBatches[0];
+            batchSelect.innerHTML = `<option value="${firstBatch.id}" selected>${firstBatch.dropdown_display}</option>`;
+
+            // Add other batches as options
+            productBatches.slice(1).forEach(batch => {
+                const option = document.createElement('option');
+                option.value = batch.id;
+                option.textContent = batch.dropdown_display;
+                batchSelect.appendChild(option);
+            });
+
+            batchSelect.disabled = false;
+
+            // Show batch info
+            const expiryText = firstBatch.expiry_date ? 
+                `Expires: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
+            batchInfo.innerHTML = `
+                <strong>Auto-selected:</strong> ${firstBatch.batch_name}<br>
+                <strong>Available:</strong> ${firstBatch.qty_available} ${firstBatch.unit}<br>
+                <strong>${expiryText}</strong>
+            `;
+
+            // Set max quantity
+            if (quantityInput) {
+                quantityInput.max = firstBatch.qty_available;
+                quantityInput.placeholder = `Max: ${firstBatch.qty_available}`;
+            }
+
+            // Update batch info when batch selection changes
+            batchSelect.addEventListener('change', function() {
+                const selectedBatch = productBatches.find(b => b.id == this.value);
+                if (selectedBatch) {
+                    const expiryText = selectedBatch.expiry_date ? 
+                        `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
+                    batchInfo.innerHTML = `
+                        <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
+                        <strong>Available:</strong> ${selectedBatch.qty_available} ${selectedBatch.unit}<br>
+                        <strong>${expiryText}</strong>
+                    `;
+                    if (quantityInput) {
+                        quantityInput.max = selectedBatch.qty_available;
+                        quantityInput.placeholder = `Max: ${selectedBatch.qty_available}`;
+                    }
+                }
+            });
+        }
+
 
 // Validate stock availability
 function validateStock(quantityInput) {
@@ -691,17 +723,17 @@ document.getElementById('client_id').addEventListener('change', function() {
         })
         .then(data => {
             console.log('Package data received:', data); // Debug log
-            
+
             if (data.error) {
                 packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error}</small>`;
                 return;
             }
-            
+
             if (data.packages && data.packages.length > 0) {
                 let html = '<strong>Active Packages:</strong><br>';
                 data.packages.forEach(pkg => {
                     html += `<div class="badge badge-success me-1 mb-1">${pkg.package_name}</div>`;
-                    
+
                     // Display package details based on type
                     pkg.sessions.forEach(session => {
                         if (session.benefit_type === 'unlimited') {
@@ -713,12 +745,12 @@ document.getElementById('client_id').addEventListener('change', function() {
                         }
                     });
                 });
-                
+
                 // Add summary if available
                 if (data.summary) {
                     html += `<hr><small class="text-muted">Total Active: ${data.summary.total_active_packages} packages</small>`;
                 }
-                
+
                 packagesDiv.innerHTML = html;
             } else {
                 packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
@@ -1099,9 +1131,41 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     });
 });
 
-// Initialize tax calculations on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateTaxCalculations();
-});
+// Validate inventory quantity against available stock
+        function validateInventoryQuantity(quantityInput) {
+            const row = quantityInput.closest('.row');
+            const batchSelect = row.querySelector('.batch-select');
+            const productSelect = row.querySelector('.product-select');
+
+            if (!batchSelect.value || !productSelect.value) return;
+
+            const selectedBatch = availableBatches.find(b => b.id == batchSelect.value);
+            if (selectedBatch) {
+                const requestedQty = parseFloat(quantityInput.value);
+                const availableQty = parseFloat(selectedBatch.qty_available);
+
+                if (requestedQty > availableQty) {
+                    quantityInput.classList.add('is-invalid');
+                    // Show error message
+                    let errorMsg = row.querySelector('.quantity-error');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('div');
+                        errorMsg.className = 'quantity-error text-danger small mt-1';
+                        quantityInput.parentNode.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = `Maximum available: ${availableQty} ${selectedBatch.unit}`;
+                    quantityInput.value = availableQty; // Auto-correct to max available
+                } else {
+                    quantityInput.classList.remove('is-invalid');
+                    const errorMsg = row.querySelector('.quantity-error');
+                    if (errorMsg) errorMsg.remove();
+                }
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableBatches();
+        });
 </script>
 {% endblock %}

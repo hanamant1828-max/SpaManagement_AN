@@ -21,7 +21,7 @@ def number_to_words(amount):
         ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
         teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
         tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-        
+
         def convert_hundreds(num):
             result = ''
             if num >= 100:
@@ -36,46 +36,46 @@ def number_to_words(amount):
             if num > 0:
                 result += ones[num] + ' '
             return result
-        
+
         if amount == 0:
             return 'Zero Rupees Only'
-        
+
         rupees = int(amount)
         paise = int((amount - rupees) * 100)
-        
+
         result = ''
-        
+
         # Handle crores
         if rupees >= 10000000:
             crores = rupees // 10000000
             result += convert_hundreds(crores) + 'Crore '
             rupees %= 10000000
-        
+
         # Handle lakhs
         if rupees >= 100000:
             lakhs = rupees // 100000
             result += convert_hundreds(lakhs) + 'Lakh '
             rupees %= 100000
-        
+
         # Handle thousands
         if rupees >= 1000:
             thousands = rupees // 1000
             result += convert_hundreds(thousands) + 'Thousand '
             rupees %= 1000
-        
+
         # Handle remaining rupees
         if rupees > 0:
             result += convert_hundreds(rupees)
-        
+
         result = result.strip()
         if result:
             result = 'Rupees ' + result
         else:
             result = 'Rupees Zero'
-        
+
         if paise > 0:
             result += ' and ' + convert_hundreds(paise).strip() + ' Paise'
-        
+
         result += ' Only'
         return result
     except:
@@ -102,18 +102,49 @@ def integrated_billing():
         return redirect(url_for('dashboard'))
 
     # Get data for billing interface
-    from models import Customer, Service
-    customers = Customer.query.filter_by(is_active=True).all()
-    services = Service.query.filter_by(is_active=True).all()
+    from models import Customer, Service, Package
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.full_name).all()
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+    packages = Package.query.filter_by(is_active=True).order_by(Package.name).all()
 
-    # Get inventory products with stock information
+    # Get inventory items (products with stock) for retail sales
     inventory_items = []
-    if InventoryProduct is not None:
-        inventory_products = InventoryProduct.query.filter_by(is_active=True).all()
-        for product in inventory_products:
-            # Only include products that have stock available
-            if product.total_stock > 0:
-                inventory_items.append(product)
+    try:
+        from modules.inventory.models import InventoryProduct, InventoryBatch
+        from sqlalchemy.orm import joinedload
+
+        # Get products with their batches and calculate total stock
+        products = InventoryProduct.query.options(
+            joinedload(InventoryProduct.batches),
+            joinedload(InventoryProduct.category)
+        ).filter(InventoryProduct.is_active == True).all()
+
+        print(f"DEBUG: Found {len(products)} active products")
+
+        for product in products:
+            # Calculate total available stock from active batches
+            active_batches = [batch for batch in product.batches if batch.status == 'active']
+            total_stock = sum(float(batch.qty_available or 0) for batch in active_batches)
+
+            print(f"DEBUG: Product {product.name} has {len(active_batches)} active batches with total stock: {total_stock}")
+
+            # Include all products regardless of stock for billing (they can be services too)
+            inventory_items.append({
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku,
+                'unit_of_measure': product.unit_of_measure or 'pcs',
+                'total_stock': total_stock,
+                'category': product.category.name if product.category else 'Uncategorized',
+                'is_retail_item': product.is_retail_item,
+                'is_service_item': product.is_service_item
+            })
+
+    except Exception as e:
+        print(f"Error loading inventory items: {e}")
+        import traceback
+        traceback.print_exc()
+        inventory_items = []
 
     # Get recent invoices with error handling
     from models import EnhancedInvoice
@@ -152,6 +183,7 @@ def integrated_billing():
     return render_template('integrated_billing.html',
                          customers=customers,
                          services=services,
+                         packages=packages,
                          inventory_items=inventory_items,
                          recent_invoices=recent_invoices,
                          total_revenue=total_revenue,
@@ -216,12 +248,12 @@ def create_professional_invoice():
         sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
         igst_rate = float(request.form.get('igst_rate', 0)) / 100
         is_interstate = request.form.get('is_interstate') == 'on'
-        
+
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value', 0))
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
-        
+
         payment_terms = request.form.get('payment_terms', 'immediate')
         payment_method = request.form.get('payment_method', 'cash')
 
@@ -230,7 +262,7 @@ def create_professional_invoice():
             batch = InventoryBatch.query.get(item['batch_id'])
             if not batch or batch.is_expired:
                 return jsonify({'success': False, 'message': f'Invalid or expired batch for product ID {item["product_id"]}'})
-            
+
             if float(batch.qty_available) < item['quantity']:
                 return jsonify({
                     'success': False, 
@@ -256,7 +288,7 @@ def create_professional_invoice():
             # Generate professional invoice number
             current_date = datetime.datetime.now()
             latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
-            
+
             if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{current_date.strftime('%Y%m%d')}"):
                 try:
                     last_sequence = int(latest_invoice.invoice_number.split('-')[-1])
@@ -265,7 +297,7 @@ def create_professional_invoice():
                     invoice_sequence = 1
             else:
                 invoice_sequence = 1
-            
+
             invoice_number = f"INV-{current_date.strftime('%Y%m%d')}-{invoice_sequence:04d}"
 
             # Create enhanced invoice with professional fields
@@ -273,7 +305,7 @@ def create_professional_invoice():
             invoice.invoice_number = invoice_number
             invoice.client_id = int(client_id)
             invoice.invoice_date = current_date
-            
+
             # Initialize with temporary values - will be recalculated after package benefits
             invoice.services_subtotal = services_subtotal
             invoice.inventory_subtotal = inventory_subtotal
@@ -284,7 +316,7 @@ def create_professional_invoice():
             invoice.tips_amount = tips_amount
             invoice.total_amount = 0  # Will be calculated after package benefits
             invoice.balance_due = 0   # Will be calculated after package benefits
-            
+
             # Store GST configuration
             invoice.cgst_rate = cgst_rate * 100
             invoice.sgst_rate = sgst_rate * 100
@@ -292,12 +324,12 @@ def create_professional_invoice():
             invoice.is_interstate = is_interstate
             invoice.additional_charges = additional_charges
             invoice.payment_terms = payment_terms
-            
+
             # Initialize GST amounts - will be calculated after package benefits
             invoice.cgst_amount = 0
             invoice.sgst_amount = 0
             invoice.igst_amount = 0
-            
+
             # Tax breakdown for legacy support - will be updated after package calculations
             tax_breakdown = {
                 'cgst_rate': cgst_rate * 100,
@@ -311,7 +343,7 @@ def create_professional_invoice():
                 'payment_terms': payment_terms,
                 'payment_method': payment_method
             }
-            
+
             invoice.notes = json.dumps(tax_breakdown)
             invoice.payment_methods = json.dumps({payment_method: 0})  # Will be updated after calculations
 
@@ -323,7 +355,7 @@ def create_professional_invoice():
             package_benefits_applied = 0
             total_package_deductions = 0
             package_details = []
-            
+
             for service_data in services_data:
                 service = Service.query.get(service_data['service_id'])
                 if service:
@@ -338,18 +370,18 @@ def create_professional_invoice():
                     item.quantity = service_data['quantity']
                     item.unit_price = service.price
                     item.original_amount = service.price * service_data['quantity']
-                    
+
                     # Apply package benefits automatically
                     original_price = service.price * service_data['quantity']
                     final_price = original_price
                     deduction_amount = 0
                     package_applied = None
-                    
+
                     # Try to apply package benefits
                     try:
                         db.session.add(item)
                         db.session.flush()  # Get item ID for idempotency
-                        
+
                         benefit_result = PackageBillingService.apply_package_benefit(
                             customer_id=int(client_id),
                             service_id=service.id,
@@ -358,17 +390,17 @@ def create_professional_invoice():
                             invoice_item_id=item.id,
                             service_date=current_date
                         )
-                        
+
                         if benefit_result['success'] and benefit_result.get('applied', False):
                             final_price = benefit_result['final_price']
                             deduction_amount = benefit_result['deduction_amount']
                             package_applied = benefit_result.get('package_name', 'Package')
-                            
+
                             # Update item with package benefit details
                             item.deduction_amount = deduction_amount
                             item.final_amount = final_price
                             item.is_package_deduction = True
-                            
+
                             # Update description to show package benefit
                             benefit_type = benefit_result.get('benefit_type', 'package')
                             if benefit_type == 'unlimited':
@@ -382,10 +414,10 @@ def create_professional_invoice():
                             elif benefit_type == 'prepaid':
                                 remaining = benefit_result.get('remaining_balance', {}).get('remaining', 0)
                                 item.description = f"{service.description} (Prepaid deduction via {package_applied}, ₹{remaining:.2f} balance)"
-                            
+
                             package_benefits_applied += 1
                             total_package_deductions += deduction_amount
-                            
+
                             package_details.append({
                                 'service_name': service.name,
                                 'benefit_type': benefit_type,
@@ -399,19 +431,19 @@ def create_professional_invoice():
                             # No package benefit applied
                             item.final_amount = original_price
                             item.is_package_deduction = False
-                            
+
                     except Exception as e:
                         app.logger.warning(f"Package benefit application failed for service {service.id}: {str(e)}")
                         # Continue with regular pricing if package application fails
                         item.final_amount = original_price
                         item.is_package_deduction = False
-                    
+
                     service_items_created += 1
 
             # Create invoice items for inventory and reduce stock
             inventory_items_created = 0
             stock_reduced_count = 0
-            
+
             for item_data in inventory_data:
                 batch = InventoryBatch.query.get(item_data['batch_id'])
                 product = InventoryProduct.query.get(item_data['product_id'])
@@ -449,15 +481,15 @@ def create_professional_invoice():
             # Calculate final services subtotal after package deductions
             actual_services_subtotal = services_subtotal - total_package_deductions
             actual_gross_subtotal = actual_services_subtotal + inventory_subtotal
-            
+
             # Calculate discount on the final subtotal
             if discount_type == 'percentage':
                 actual_discount_amount = (actual_gross_subtotal * discount_value) / 100
             else:
                 actual_discount_amount = min(discount_value, actual_gross_subtotal)
-            
+
             actual_net_subtotal = max(0, actual_gross_subtotal - actual_discount_amount)
-            
+
             # Calculate taxes on the final net subtotal
             if is_interstate:
                 actual_igst_amount = actual_net_subtotal * igst_rate
@@ -467,22 +499,23 @@ def create_professional_invoice():
                 actual_cgst_amount = actual_net_subtotal * cgst_rate
                 actual_sgst_amount = actual_net_subtotal * sgst_rate
                 actual_igst_amount = 0
-            
+
             actual_total_tax = actual_cgst_amount + actual_sgst_amount + actual_igst_amount
             actual_total_amount = actual_net_subtotal + actual_total_tax + additional_charges + tips_amount
-            
+
             # Update invoice with final calculated amounts
             invoice.services_subtotal = actual_services_subtotal
             invoice.gross_subtotal = actual_gross_subtotal
             invoice.net_subtotal = actual_net_subtotal
             invoice.tax_amount = actual_total_tax
             invoice.discount_amount = actual_discount_amount
+            invoice.tips_amount = tips_amount
             invoice.total_amount = actual_total_amount
             invoice.balance_due = actual_total_amount
             invoice.cgst_amount = actual_cgst_amount
             invoice.sgst_amount = actual_sgst_amount
             invoice.igst_amount = actual_igst_amount
-            
+
             # Update tax breakdown with final amounts
             tax_breakdown = {
                 'cgst_rate': cgst_rate * 100,
@@ -494,11 +527,10 @@ def create_professional_invoice():
                 'is_interstate': is_interstate,
                 'additional_charges': additional_charges,
                 'payment_terms': payment_terms,
-                'payment_method': payment_method,
                 'package_deductions': total_package_deductions,
                 'package_benefits_applied': package_benefits_applied
             }
-            
+
             invoice.notes = json.dumps(tax_breakdown)
             invoice.payment_methods = json.dumps({payment_method: actual_total_amount})
 
@@ -522,12 +554,12 @@ def create_professional_invoice():
                 'package_benefits_applied': package_benefits_applied,
                 'total_package_deductions': float(total_package_deductions)
             }
-            
+
             # Add package benefit details if any were applied
             if package_benefits_applied > 0:
                 response_data['package_details'] = package_details
                 response_data['message'] += f' with {package_benefits_applied} package benefits applied (₹{total_package_deductions:.2f} savings)'
-            
+
             return jsonify(response_data)
 
         except Exception as e:
@@ -613,11 +645,11 @@ def create_integrated_invoice():
             if batch.selling_price:
                 actual_price = float(batch.selling_price)
                 submitted_price = item['unit_price']
-                
+
                 # Allow up to 50% discount, but prevent price inflation or excessive discounts
                 min_allowed_price = actual_price * 0.5  # 50% discount max
                 max_allowed_price = actual_price * 1.1   # 10% markup max for rounding
-                
+
                 if submitted_price < min_allowed_price or submitted_price > max_allowed_price:
                     # Log suspicious price manipulation attempt
                     app.logger.warning(f"Price manipulation attempt detected: User {current_user.id} tried to set price {submitted_price} for batch {batch.batch_name} (actual: {actual_price})")
@@ -638,7 +670,7 @@ def create_integrated_invoice():
             service = Service.query.get(service_data['service_id'])
             if not service:
                 return jsonify({'success': False, 'message': f'Service not found: {service_data["service_id"]}'})
-            
+
             # For services, we don't accept client price input - always use actual service price
             # This prevents any service price manipulation
             # Note: If custom service pricing is needed in the future, implement proper authorization checks
@@ -673,7 +705,7 @@ def create_integrated_invoice():
         try:
                 # Get latest invoice to generate sequential number
                 latest_invoice = db.session.query(EnhancedInvoice).order_by(EnhancedInvoice.id.desc()).first()
-                
+
                 if latest_invoice and latest_invoice.invoice_number.startswith(f"INV-{datetime.datetime.now().strftime('%Y%m%d')}"):
                     # Extract sequence number from existing invoice number
                     try:
@@ -684,7 +716,7 @@ def create_integrated_invoice():
                 else:
                     # First invoice of the day
                     invoice_sequence = 1
-                
+
                 invoice_number = f"INV-{datetime.datetime.now().strftime('%Y%m%d')}-{invoice_sequence:04d}"
 
                 # Create enhanced invoice
@@ -729,7 +761,7 @@ def create_integrated_invoice():
                 inventory_items_created = 0
                 stock_reduced_count = 0
                 stock_operations = []  # Track all operations for potential rollback
-                
+
                 for item_data in inventory_data:
                     batch = InventoryBatch.query.get(item_data['batch_id'])
                     product = InventoryProduct.query.get(item_data['product_id'])
@@ -813,12 +845,12 @@ def get_customer_packages(client_id):
         except ImportError as e:
             app.logger.error(f"Import error: {str(e)}")
             return jsonify({'error': 'System error', 'packages': []})
-        
+
         # Verify customer exists
         customer = Customer.query.get(client_id)
         if not customer:
             return jsonify({'error': 'Customer not found', 'packages': []})
-        
+
         # Get all active package assignments for the customer with error handling
         try:
             assignments = ServicePackageAssignment.query.filter_by(
@@ -828,19 +860,19 @@ def get_customer_packages(client_id):
         except Exception as e:
             app.logger.error(f"Database query error: {str(e)}")
             return jsonify({'error': 'Database error', 'packages': []})
-        
+
         package_data = []
-        
+
         for assignment in assignments:
             try:
                 # Get package template details safely
                 package_template = assignment.get_package_template()
                 if not package_template:
                     continue
-                    
+
                 # Format session details based on package type
                 session_details = []
-                
+
                 if assignment.package_type == 'service_package':
                     service_name = 'Service'
                     try:
@@ -848,7 +880,7 @@ def get_customer_packages(client_id):
                             service_name = assignment.service.name
                     except:
                         pass
-                        
+
                     session_details.append({
                         'service_id': assignment.service_id,
                         'service_name': service_name,
@@ -912,7 +944,7 @@ def get_customer_packages(client_id):
         # Calculate totals safely
         total_prepaid_balance = 0
         total_free_sessions = 0
-        
+
         try:
             for assignment in assignments:
                 if assignment.package_type == 'prepaid' and assignment.remaining_credit:
@@ -1135,7 +1167,7 @@ def save_invoice_draft():
     """Save invoice as draft for later completion"""
     if not current_user.can_access('billing'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
-    
+
     try:
         # Implementation for saving draft invoices
         return jsonify({'success': True, 'message': 'Draft saved successfully'})
@@ -1149,11 +1181,11 @@ def print_professional_invoice(invoice_id):
     if not current_user.can_access('billing'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     from models import EnhancedInvoice, InvoiceItem
     invoice = EnhancedInvoice.query.get_or_404(invoice_id)
     invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
-    
+
     # Parse tax details from notes
     import json
     tax_details = {}
@@ -1161,7 +1193,7 @@ def print_professional_invoice(invoice_id):
         tax_details = json.loads(invoice.notes) if invoice.notes else {}
     except:
         pass
-    
+
     return render_template('professional_invoice_print.html',
                          invoice=invoice,
                          invoice_items=invoice_items,
@@ -1173,7 +1205,7 @@ def generate_invoice_preview():
     """Generate professional invoice preview"""
     if not current_user.can_access('billing'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         data = request.json or {}
         # Generate preview HTML
@@ -1214,12 +1246,12 @@ def generate_invoice_preview():
             </div>
         </div>
         """
-        
+
         return jsonify({
             'success': True,
             'preview_html': preview_html
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
