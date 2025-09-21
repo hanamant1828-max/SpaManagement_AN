@@ -234,22 +234,16 @@
                         <textarea class="form-control" name="description" rows="3"></textarea>
                     </div>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" name="duration" min="15" step="15" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Price <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" name="price" step="0.01" min="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Commission Rate (%)</label>
-                                <input type="number" class="form-control" name="commission_rate" step="0.01" min="0" max="100" value="10">
                             </div>
                         </div>
                     </div>
@@ -306,22 +300,16 @@
                         <textarea class="form-control" id="editServiceDescription" name="description" rows="3"></textarea>
                     </div>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="editServiceDuration" name="duration" min="15" step="15" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Price <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="editServicePrice" name="price" step="0.01" min="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Commission Rate (%)</label>
-                                <input type="number" class="form-control" id="editServiceCommissionRate" name="commission_rate" step="0.01" min="0" max="100">
                             </div>
                         </div>
                     </div>
@@ -550,7 +538,7 @@ function editService(serviceId) {
                 document.getElementById('editServiceDuration').value = service.duration || 60;
                 document.getElementById('editServicePrice').value = service.price || 0;
                 document.getElementById('editServiceCategory').value = service.category_id || '';
-                document.getElementById('editServiceCommissionRate').value = service.commission_rate || 10;
+                
                 document.getElementById('editServiceActive').checked = service.is_active;
                 
                 // Show modal
