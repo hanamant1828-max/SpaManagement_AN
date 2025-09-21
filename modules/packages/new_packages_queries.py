@@ -227,6 +227,11 @@ def get_all_student_offers():
     from models import StudentOffer
     return StudentOffer.query.filter_by(is_active=True).order_by(StudentOffer.created_at.desc()).all()
 
+def get_student_offer_by_id(offer_id):
+    """Get student offer by ID"""
+    from models import StudentOffer
+    return StudentOffer.query.get(offer_id)
+
 def create_student_offer(data):
     """Create new student offer"""
     from models import StudentOffer, StudentOfferService

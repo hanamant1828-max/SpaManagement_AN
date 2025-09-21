@@ -6,6 +6,9 @@ from flask_login import login_required, current_user
 from app import app, db
 from models import Service, ServicePackage, ServicePackageAssignment, Customer, PrepaidPackage, Membership # Added missing imports
 from .new_packages_queries import (
+    # Statistics
+    get_all_package_statistics,
+
     # Prepaid Packages
     get_all_prepaid_packages, get_prepaid_package_by_id, create_prepaid_package, update_prepaid_package, delete_prepaid_package,
 
