@@ -161,7 +161,7 @@ def integrated_billing():
 @app.route('/integrated-billing/create-professional', methods=['POST'])
 @login_required
 def create_professional_invoice():
-    """Create new professional invoice with complete GST/SGST tax support"""
+    """Create new professional invoice with complete GST/SGST tax support and automatic package benefit application"""
     if not current_user.can_access('billing'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
@@ -169,6 +169,7 @@ def create_professional_invoice():
         from models import Customer, Service, EnhancedInvoice, InvoiceItem
         from modules.inventory.models import InventoryBatch, InventoryProduct
         from modules.inventory.queries import create_consumption_record
+        from modules.packages.package_billing_service import PackageBillingService
         import datetime
 
         # Parse form data
@@ -336,11 +337,16 @@ def create_professional_invoice():
             db.session.add(invoice)
             db.session.flush()  # Get the invoice ID
 
-            # Create invoice items for services
+            # Create invoice items for services with automatic package benefit application
             service_items_created = 0
+            package_benefits_applied = 0
+            total_package_deductions = 0
+            package_details = []
+            
             for service_data in services_data:
                 service = Service.query.get(service_data['service_id'])
                 if service:
+                    # Create base invoice item
                     item = InvoiceItem()
                     item.invoice_id = invoice.id
                     item.item_type = 'service'
@@ -351,8 +357,74 @@ def create_professional_invoice():
                     item.quantity = service_data['quantity']
                     item.unit_price = service.price
                     item.original_amount = service.price * service_data['quantity']
-                    item.final_amount = service.price * service_data['quantity']
-                    db.session.add(item)
+                    
+                    # Apply package benefits automatically
+                    original_price = service.price * service_data['quantity']
+                    final_price = original_price
+                    deduction_amount = 0
+                    package_applied = None
+                    
+                    # Try to apply package benefits
+                    try:
+                        db.session.add(item)
+                        db.session.flush()  # Get item ID for idempotency
+                        
+                        benefit_result = PackageBillingService.apply_package_benefit(
+                            customer_id=int(client_id),
+                            service_id=service.id,
+                            service_price=original_price,
+                            invoice_id=invoice.id,
+                            invoice_item_id=item.id,
+                            service_date=current_date
+                        )
+                        
+                        if benefit_result['success'] and benefit_result.get('applied', False):
+                            final_price = benefit_result['final_price']
+                            deduction_amount = benefit_result['deduction_amount']
+                            package_applied = benefit_result.get('package_name', 'Package')
+                            
+                            # Update item with package benefit details
+                            item.deduction_amount = deduction_amount
+                            item.final_amount = final_price
+                            item.is_package_deduction = True
+                            
+                            # Update description to show package benefit
+                            benefit_type = benefit_result.get('benefit_type', 'package')
+                            if benefit_type == 'unlimited':
+                                item.description = f"{service.description} (Unlimited access via {package_applied})"
+                            elif benefit_type == 'free':
+                                remaining = benefit_result.get('remaining_balance', {}).get('remaining', 0)
+                                item.description = f"{service.description} (Free session via {package_applied}, {remaining} remaining)"
+                            elif benefit_type == 'discount':
+                                remaining = benefit_result.get('remaining_balance', {}).get('remaining', 0)
+                                item.description = f"{service.description} (Discount via {package_applied}, {remaining} uses left)"
+                            elif benefit_type == 'prepaid':
+                                remaining = benefit_result.get('remaining_balance', {}).get('remaining', 0)
+                                item.description = f"{service.description} (Prepaid deduction via {package_applied}, ₹{remaining:.2f} balance)"
+                            
+                            package_benefits_applied += 1
+                            total_package_deductions += deduction_amount
+                            
+                            package_details.append({
+                                'service_name': service.name,
+                                'benefit_type': benefit_type,
+                                'package_name': package_applied,
+                                'original_price': original_price,
+                                'final_price': final_price,
+                                'deduction': deduction_amount,
+                                'message': benefit_result.get('message', '')
+                            })
+                        else:
+                            # No package benefit applied
+                            item.final_amount = original_price
+                            item.is_package_deduction = False
+                            
+                    except Exception as e:
+                        app.logger.warning(f"Package benefit application failed for service {service.id}: {str(e)}")
+                        # Continue with regular pricing if package application fails
+                        item.final_amount = original_price
+                        item.is_package_deduction = False
+                    
                     service_items_created += 1
 
             # Create invoice items for inventory and reduce stock
@@ -392,24 +464,81 @@ def create_professional_invoice():
                     )
                     stock_reduced_count += 1
 
+            # Recalculate invoice totals after package deductions
+            if total_package_deductions > 0:
+                # Recalculate services subtotal after package deductions
+                actual_services_subtotal = services_subtotal - total_package_deductions
+                actual_gross_subtotal = actual_services_subtotal + inventory_subtotal
+                
+                # Recalculate discount on the new subtotal
+                if discount_type == 'percentage':
+                    actual_discount_amount = (actual_gross_subtotal * discount_value) / 100
+                else:
+                    actual_discount_amount = min(discount_amount, actual_gross_subtotal)
+                
+                actual_net_subtotal = actual_gross_subtotal - actual_discount_amount
+                
+                # Recalculate taxes on the new net subtotal
+                if is_interstate:
+                    actual_igst_amount = actual_net_subtotal * igst_rate
+                    actual_cgst_amount = 0
+                    actual_sgst_amount = 0
+                else:
+                    actual_cgst_amount = actual_net_subtotal * cgst_rate
+                    actual_sgst_amount = actual_net_subtotal * sgst_rate
+                    actual_igst_amount = 0
+                
+                actual_total_tax = actual_cgst_amount + actual_sgst_amount + actual_igst_amount
+                actual_total_amount = actual_net_subtotal + actual_total_tax + additional_charges + tips_amount
+                
+                # Update invoice with recalculated amounts
+                invoice.services_subtotal = actual_services_subtotal
+                invoice.gross_subtotal = actual_gross_subtotal
+                invoice.net_subtotal = actual_net_subtotal
+                invoice.tax_amount = actual_total_tax
+                invoice.discount_amount = actual_discount_amount
+                invoice.total_amount = actual_total_amount
+                invoice.balance_due = actual_total_amount
+                invoice.cgst_amount = actual_cgst_amount
+                invoice.sgst_amount = actual_sgst_amount
+                invoice.igst_amount = actual_igst_amount
+                
+                # Update tax breakdown
+                tax_breakdown['cgst_amount'] = actual_cgst_amount
+                tax_breakdown['sgst_amount'] = actual_sgst_amount
+                tax_breakdown['igst_amount'] = actual_igst_amount
+                tax_breakdown['package_deductions'] = total_package_deductions
+                tax_breakdown['package_benefits_applied'] = package_benefits_applied
+                
+                invoice.notes = json.dumps(tax_breakdown)
+
             # Commit all changes
             db.session.commit()
 
-            return jsonify({
+            # Prepare response with package benefit details
+            response_data = {
                 'success': True,
                 'message': f'Professional Invoice {invoice_number} created successfully',
                 'invoice_id': invoice.id,
                 'invoice_number': invoice_number,
-                'total_amount': float(total_amount),
-                'cgst_amount': float(cgst_amount),
-                'sgst_amount': float(sgst_amount),
-                'igst_amount': float(igst_amount),
-                'tax_amount': float(total_tax),
+                'total_amount': float(invoice.total_amount),
+                'cgst_amount': float(invoice.cgst_amount),
+                'sgst_amount': float(invoice.sgst_amount),
+                'igst_amount': float(invoice.igst_amount),
+                'tax_amount': float(invoice.tax_amount),
                 'service_items_created': service_items_created,
                 'inventory_items_created': inventory_items_created,
                 'stock_reduced': stock_reduced_count,
-                'deductions_applied': 0
-            })
+                'package_benefits_applied': package_benefits_applied,
+                'total_package_deductions': float(total_package_deductions)
+            }
+            
+            # Add package benefit details if any were applied
+            if package_benefits_applied > 0:
+                response_data['package_details'] = package_details
+                response_data['message'] += f' with {package_benefits_applied} package benefits applied (₹{total_package_deductions:.2f} savings)'
+            
+            return jsonify(response_data)
 
         except Exception as e:
             db.session.rollback()
