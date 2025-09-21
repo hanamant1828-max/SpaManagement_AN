@@ -2108,18 +2108,24 @@ function initializeStudentOfferModals() {
     sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
     const futureDate = sixMonthsLater.toISOString().split('T')[0];
 
-    document.getElementById('studentValidFrom').value = today;
-    document.getElementById('studentValidTo').value = futureDate;
+    const validFromField = document.querySelector('input[name="valid_from"]');
+    const validToField = document.querySelector('input[name="valid_to"]');
+    
+    if (validFromField) validFromField.value = today;
+    if (validToField) validToField.value = futureDate;
 
     // Form validation event listeners
     const addForm = document.getElementById('addStudentOfferForm');
     if (addForm) {
         addForm.addEventListener('input', validateStudentOfferForm);
         addForm.addEventListener('change', validateStudentOfferForm);
+        
+        // Initial validation to set correct button state
+        validateStudentOfferForm();
     }
 
     // Valid days dropdown change handler
-    const validDaysSelect = document.getElementById('studentValidDays');
+    const validDaysSelect = document.querySelector('select[name="valid_days"]');
     if (validDaysSelect) {
         validDaysSelect.addEventListener('change', function() {
             const customDiv = document.getElementById('customValidDaysDiv');
@@ -2145,7 +2151,7 @@ function initializeStudentOfferModals() {
     }
 
     // Save button event listener
-    const saveBtn = document.getElementById('saveStudentOffer');
+    const saveBtn = document.getElementById('saveStudentOfferBtn');
     if (saveBtn) {
         saveBtn.addEventListener('click', saveStudentOffer);
     }
@@ -2164,8 +2170,8 @@ async function loadServicesForStudentOffers() {
         const data = await response.json();
 
         if (data.success) {
-            const addSelect = document.getElementById('studentOfferServices');
-            const editSelect = document.getElementById('editStudentOfferServices');
+            const addSelect = document.getElementById('serviceIds');
+            const editSelect = document.getElementById('editServiceIds');
 
             const optionsHTML = data.services.map(service => 
                 `<option value="${service.id}">${service.name} - ₹${service.price}</option>`
@@ -2181,15 +2187,17 @@ async function loadServicesForStudentOffers() {
 
 // Validate student offer form
 function validateStudentOfferForm() {
-    const services = document.getElementById('studentOfferServices');
-    const discount = document.getElementById('studentDiscountPercentage');
-    const validFrom = document.getElementById('studentValidFrom');
-    const validTo = document.getElementById('studentValidTo');
-    const saveBtn = document.getElementById('saveStudentOffer');
+    const services = document.getElementById('serviceIds');
+    const discount = document.getElementById('discountPercentage');
+    const validFrom = document.querySelector('input[name="valid_from"]');
+    const validTo = document.querySelector('input[name="valid_to"]');
+    const saveBtn = document.getElementById('saveStudentOfferBtn');
 
-    const isValid = services.selectedOptions.length > 0 && 
-                   discount.value && parseFloat(discount.value) >= 1 && parseFloat(discount.value) <= 100 &&
-                   validFrom.value && validTo.value && new Date(validTo.value) > new Date(validFrom.value);
+    // Check all required fields
+    const isValid = services && services.selectedOptions.length > 0 && 
+                   discount && discount.value && parseFloat(discount.value) >= 1 && parseFloat(discount.value) <= 100 &&
+                   validFrom && validFrom.value && validTo && validTo.value && 
+                   new Date(validTo.value) > new Date(validFrom.value);
 
     if (saveBtn) {
         saveBtn.disabled = !isValid;
@@ -2201,11 +2209,11 @@ function validateStudentOfferForm() {
 
 // Update student offer preview
 function updateStudentOfferPreview() {
-    const services = document.getElementById('studentOfferServices');
-    const discount = document.getElementById('studentDiscountPercentage');
-    const validDays = document.getElementById('studentValidDays');
-    const validFrom = document.getElementById('studentValidFrom');
-    const validTo = document.getElementById('studentValidTo');
+    const services = document.getElementById('serviceIds');
+    const discount = document.getElementById('discountPercentage');
+    const validDays = document.querySelector('select[name="valid_days"]');
+    const validFrom = document.querySelector('input[name="valid_from"]');
+    const validTo = document.querySelector('input[name="valid_to"]');
     const preview = document.getElementById('studentOfferPreview');
 
     if (services.selectedOptions.length > 0 && discount.value) {
@@ -2238,7 +2246,7 @@ async function saveStudentOffer() {
         const formData = new FormData(form);
 
         // Handle valid days
-        const validDaysSelect = document.getElementById('studentValidDays');
+        const validDaysSelect = document.querySelector('select[name="valid_days"]');
         const customValidDays = document.getElementById('customValidDays');
         if (validDaysSelect.value === 'Custom' && customValidDays.value) {
             formData.set('valid_days', customValidDays.value);
@@ -2274,7 +2282,7 @@ async function saveStudentOffer() {
 
             // Reset form
             form.reset();
-            document.getElementById('saveStudentOffer').disabled = true;
+            document.getElementById('saveStudentOfferBtn').disabled = true;
 
             // Reload table
             await loadStudentPackages();
