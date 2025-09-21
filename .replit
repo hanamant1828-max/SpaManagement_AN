@@ -117,23 +117,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Spa Management Frontend"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Spa Management System"
-
-[[workflows.workflow]]
-name = "Spa Management Frontend"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow]]
 name = "Spa Management System"
@@ -150,10 +134,6 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 45499
-externalPort = 3001
 
 [agent]
 expertMode = true
