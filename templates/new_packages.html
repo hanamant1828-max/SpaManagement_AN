@@ -686,10 +686,10 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Services Included *</label>
-                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;" id="kittyServicesContainer">
-                            <!-- Services will be loaded dynamically as checkboxes -->
-                        </div>
-                        <div class="form-text">Select multiple services for this kitty party</div>
+                        <select class="form-select" id="kittyServicesSelect" name="service_ids" multiple size="6" required>
+                            <!-- Services will be loaded dynamically -->
+                        </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
                         <div class="invalid-feedback">Please select at least one service for this kitty party</div>
                     </div>
 
@@ -1673,11 +1673,13 @@ function submitKittyForm() {
     const data = {};
     const selectedServices = [];
     
-    // Get all checked service checkboxes
-    const checkedServices = document.querySelectorAll('.kitty-service-checkbox:checked');
-    checkedServices.forEach(checkbox => {
-        selectedServices.push(parseInt(checkbox.value));
-    });
+    // Get selected services from multi-select dropdown
+    const servicesSelect = document.getElementById('kittyServicesSelect');
+    if (servicesSelect) {
+        Array.from(servicesSelect.selectedOptions).forEach(option => {
+            selectedServices.push(parseInt(option.value));
+        });
+    }
 
     // Collect other form data
     for (let [key, value] of formData.entries()) {
@@ -1740,21 +1742,15 @@ function loadServicesForKittyParty() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const container = document.getElementById('kittyServicesContainer');
-                if (container) {
-                    container.innerHTML = '';
+                const select = document.getElementById('kittyServicesSelect');
+                if (select) {
+                    select.innerHTML = '';
                     
                     data.services.forEach(service => {
-                        const checkboxDiv = document.createElement('div');
-                        checkboxDiv.className = 'form-check mb-2';
-                        checkboxDiv.innerHTML = `
-                            <input class="form-check-input kitty-service-checkbox" type="checkbox" 
-                                   value="${service.id}" id="kitty_service_${service.id}" name="service_ids">
-                            <label class="form-check-label" for="kitty_service_${service.id}">
-                                ${service.name} - ₹${service.price}
-                            </label>
-                        `;
-                        container.appendChild(checkboxDiv);
+                        const option = document.createElement('option');
+                        option.value = service.id;
+                        option.textContent = `${service.name} - ₹${service.price}`;
+                        select.appendChild(option);
                     });
                 }
             }
