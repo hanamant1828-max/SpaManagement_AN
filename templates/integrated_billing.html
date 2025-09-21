@@ -679,26 +679,54 @@ document.getElementById('client_id').addEventListener('change', function() {
         return;
     }
 
+    // Show loading state
+    packagesDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
+
     fetch(`/integrated-billing/customer-packages/${clientId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Package data received:', data); // Debug log
+            
+            if (data.error) {
+                packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error}</small>`;
+                return;
+            }
+            
             if (data.packages && data.packages.length > 0) {
                 let html = '<strong>Active Packages:</strong><br>';
                 data.packages.forEach(pkg => {
                     html += `<div class="badge badge-success me-1 mb-1">${pkg.package_name}</div>`;
+                    
+                    // Display package details based on type
                     pkg.sessions.forEach(session => {
-                        if (session.sessions_remaining > 0) {
+                        if (session.benefit_type === 'unlimited') {
+                            html += `<small class="d-block text-success">${session.service_name}: ${session.description}</small>`;
+                        } else if (session.benefit_type === 'prepaid') {
+                            html += `<small class="d-block text-info">${session.description}</small>`;
+                        } else if (session.sessions_remaining > 0) {
                             html += `<small class="d-block">${session.service_name}: ${session.sessions_remaining} sessions left</small>`;
                         }
                     });
                 });
+                
+                // Add summary if available
+                if (data.summary) {
+                    html += `<hr><small class="text-muted">Total Active: ${data.summary.total_active_packages} packages</small>`;
+                }
+                
                 packagesDiv.innerHTML = html;
             } else {
-                packagesDiv.innerHTML = '<small class="text-muted">No active packages</small>';
+                packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
             }
         })
         .catch(error => {
-            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages</small>';
+            console.error('Error loading packages:', error);
+            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</small>';
         });
 });
 
