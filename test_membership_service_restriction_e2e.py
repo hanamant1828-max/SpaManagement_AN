@@ -124,9 +124,10 @@ class MembershipServiceRestrictionTester:
                 assignment = ServicePackageAssignment(
                     customer_id=test_customer.id,
                     package_type='membership',
-                    membership_id=test_membership.id,
+                    package_reference_id=test_membership.id,
                     assigned_on=datetime.utcnow(),
                     expires_on=datetime.utcnow() + timedelta(days=365),
+                    price_paid=10000.0,
                     status='active'
                 )
                 db.session.add(assignment)
