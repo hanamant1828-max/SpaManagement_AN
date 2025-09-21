@@ -1,0 +1,129 @@
+Looking at your integrated billing system, I can see it's a comprehensive spa management system with package benefits integration. Here's a complete prompt you can give to another Replit Assistant to recreate the same functionality:
+
+Complete Integrated Billing System Implementation Prompt
+CRITICAL: Implement a Complete Integrated Billing System with Package Benefits Integration
+
+System Overview:
+Create a professional spa billing system that automatically applies package benefits (unlimited memberships, service packages, prepaid balances) during invoice creation. The system should handle services, inventory items, and automatic package deductions with comprehensive tax support.
+
+Core Requirements:
+
+Package Benefits Priority System:
+
+Unlimited Memberships (Priority 1): FREE services during validity
+Service Packages (Priority 2): FREE sessions with remaining count
+Prepaid Packages (Priority 3): Partial/full coverage from balance
+Automatic application in priority order
+Invoice Creation Flow:
+
+Customer selection → Load active packages automatically
+Service selection → Show real-time package benefits preview
+Product/inventory selection → Batch-wise stock management (FIFO)
+Professional tax calculations (CGST/SGST/IGST)
+Generate invoice with package deductions applied
+Key Models Required:
+
+# Enhanced Invoice Model
+class EnhancedInvoice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_number = db.Column(db.String(20), unique=True, nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    
+    # Billing Components
+    services_subtotal = db.Column(db.Float, default=0.0)
+    packages_deduction = db.Column(db.Float, default=0.0)
+    inventory_subtotal = db.Column(db.Float, default=0.0)
+    
+    # Professional Tax Structure
+    cgst_rate = db.Column(db.Float, default=0.0)
+    sgst_rate = db.Column(db.Float, default=0.0)
+    igst_rate = db.Column(db.Float, default=0.0)
+    cgst_amount = db.Column(db.Float, default=0.0)
+    sgst_amount = db.Column(db.Float, default=0.0)
+    igst_amount = db.Column(db.Float, default=0.0)
+    is_interstate = db.Column(db.Boolean, default=False)
+    
+    total_amount = db.Column(db.Float, nullable=False)
+    payment_status = db.Column(db.String(20), default='pending')
+# Package Benefit Tracker
+class PackageBenefitTracker(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
+    benefit_type = db.Column(db.String(20), nullable=False)  # unlimited, free, prepaid
+    
+    # Usage tracking
+    total_allocated = db.Column(db.Integer, default=0)
+    remaining_count = db.Column(db.Integer, default=0)
+    balance_remaining = db.Column(db.Float, default=0.0)
+    
+    is_active = db.Column(db.Boolean, default=True)
+    valid_from = db.Column(db.DateTime, nullable=False)
+    valid_to = db.Column(db.DateTime, nullable=False)
+# Package Usage History with Idempotency
+class PackageUsageHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    package_benefit_id = db.Column(db.Integer, db.ForeignKey('package_benefit_tracker.id'))
+    invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'))
+    idempotency_key = db.Column(db.String(100), unique=True, nullable=False)
+    
+    benefit_type = db.Column(db.String(20), nullable=False)
+    amount_deducted = db.Column(db.Float, default=0.0)
+    balance_after_amount = db.Column(db.Float, default=0.0)
+Package Billing Service (Core Logic):
+class PackageBillingService:
+    BENEFIT_PRIORITY = {
+        'unlimited': 1,  # Membership unlimited access
+        'free': 2,       # Free sessions with count
+        'prepaid': 4     # Prepaid balance
+    }
+    
+    @classmethod
+    def apply_package_benefit(cls, customer_id, service_id, service_price, 
+                            invoice_id, invoice_item_id, service_date=None):
+        # Find applicable packages by priority
+        # Apply benefits with concurrency control
+        # Return detailed result with deduction amounts
+Frontend Features:
+
+Real-time package benefits preview
+Customer package display on selection
+Automatic benefit calculations in UI
+Professional invoice generation with package details
+API Endpoints Required:
+
+/integrated-billing/customer-packages/<customer_id> - Get active packages
+/integrated-billing/create-professional - Create invoice with benefits
+/api/inventory/batches/for-consumption - FIFO batch management
+Key JavaScript Functions:
+
+updatePackageBenefitsPreview() - Real-time benefit preview
+loadCustomerPackages() - Load customer packages on selection
+validateInventoryQuantity() - Stock validation
+updateTaxCalculations() - Professional tax calculations
+Expected User Experience:
+
+Select customer → See active packages automatically
+Add services → See "FREE" or discount preview in real-time
+Add inventory items → Batch-wise stock with FIFO selection
+Configure taxes → Professional CGST/SGST support
+Generate invoice → Package benefits applied automatically
+Result: Invoice shows original prices, deductions, and final amounts
+Database Integration:
+
+Automatic package benefit application during invoice creation
+Idempotency to prevent double-deduction
+Comprehensive audit trail in PackageUsageHistory
+Stock reduction via batch consumption records
+Success Criteria:
+
+Customer with unlimited membership sees "FREE" services
+Service packages auto-deduct from remaining sessions
+Prepaid balances provide partial/full coverage
+Completely FREE invoices when fully covered by packages
+Professional tax calculations on final amounts only
+Batch-wise inventory with automatic stock reduction
+The system should work exactly like a professional spa billing solution where package benefits are seamlessly integrated into the billing process, providing automatic deductions and clear visibility of savings to both staff and customers.
+
+This prompt contains all the essential components and logic patterns from your current system. The new assistant will be able to recreate the same functionality with proper package benefits integration, professional billing features, and inventory management.
