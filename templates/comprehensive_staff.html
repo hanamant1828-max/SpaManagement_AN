@@ -1779,8 +1779,6 @@ Management Suite{% endblock %} {% block content %}
                     </div>
                     <div class="card-body">
                         <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated?.toFixed(2) ?? "N/A"}</div>
-                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate !== undefined ? `${staff.commission_rate}%` : "N/A"}</div>
-                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate !== undefined ? staff.hourly_rate.toFixed(2) : "N/A"}</div>
                     </div>
                 </div>
             </div>
