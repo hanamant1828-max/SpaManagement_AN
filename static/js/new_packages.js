@@ -235,10 +235,13 @@ function initializeStudentOfferModals() {
         editForm.addEventListener('change', validateStudentOfferForm);
     }
     
-    // Save button event listeners
+    // Save button event listeners for student offer
     const saveBtn = document.getElementById('saveStudentOffer');
     if (saveBtn) {
-        saveBtn.addEventListener('click', submitStudentOfferForm);
+        saveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            submitStudentOfferForm();
+        });
     }
     
     const editSaveBtn = document.getElementById('saveEditStudentOffer');
@@ -265,6 +268,37 @@ function validateStudentOfferForm() {
     
     return isValid;
 }
+
+// Add real-time validation to student offer form
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for student offer form validation
+    const studentOfferModal = document.getElementById('addStudentOfferModal');
+    if (studentOfferModal) {
+        studentOfferModal.addEventListener('shown.bs.modal', function() {
+            // Enable save button by default and validate on changes
+            const saveBtn = document.getElementById('saveStudentOffer');
+            const form = document.getElementById('addStudentOfferForm');
+            
+            if (form && saveBtn) {
+                // Initially enable the button
+                saveBtn.disabled = false;
+                
+                // Add event listeners for real-time validation
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    input.addEventListener('input', validateStudentOfferForm);
+                    input.addEventListener('change', validateStudentOfferForm);
+                });
+                
+                // Special handling for checkboxes
+                const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', validateStudentOfferForm);
+                });
+            }
+        });
+    }
+});
 
 function updateStudentOfferPreview() {
     const serviceIds = document.querySelectorAll('input[name="service_ids"]:checked');
