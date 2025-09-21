@@ -1,0 +1,105 @@
+🧪 End-to-End Testing Plan – Assign Package (Early Package View)
+1. Pre-Conditions
+
+User is logged in with valid credentials.
+
+At least one Customer exists in the system.
+
+At least one Package is already created in Package Management (with included services and validity).
+
+Customer does not already have the same package assigned.
+
+2. UI & Navigation
+
+✅ Open Early Package View → Check that package list loads correctly.
+
+✅ Click “Assign Package” Button → Verify modal/form opens with correct fields:
+
+Customer selection (dropdown/searchable)
+
+Package selection (dropdown/list of active packages)
+
+Valid From / Valid To dates (auto or selectable)
+
+Conditions/Notes (optional field if present)
+
+Save/Cancel buttons
+
+3. Functional Testing
+A. Positive Flow
+
+Select a customer.
+
+Select an active package.
+
+Choose valid start date (today or future).
+
+System auto-calculates expiry date (based on package validity).
+
+Click Save.
+
+✅ Expected: Success message → "Package assigned successfully".
+
+✅ Package should appear under Customer’s Assigned Packages list.
+
+B. Validation & Error Handling
+
+Try saving without selecting a Customer → Error: "Customer is required".
+
+Try saving without selecting a Package → Error: "Package is required".
+
+Assign same package twice → Should prevent duplication OR show message "Package already assigned".
+
+Enter past date as start date → Validation error.
+
+If package is inactive/expired → Should not be assignable.
+
+C. Business Rule Checks
+
+Package validity auto-applied (e.g., 30 days, 90 days).
+
+Check if multiple packages can be assigned to one customer (system should allow or prevent depending on your business rules).
+
+Ensure service credits/benefits from package reflect under customer profile.
+
+4. Integration Testing
+
+Assigned package should update Billing Module:
+
+If service inside package is billed, system deducts from package instead of charging full price.
+
+Check integration with Reports/Dashboard:
+
+Package assignment should appear in revenue/profit stats.
+
+Verify that assigned package is visible in Customer History / Profile view.
+
+5. Edge Case Testing
+
+Assign package to a new customer with no prior history.
+
+Assign multiple packages with overlapping dates (verify system behavior).
+
+Delete/Deactivate a package after assigning → System should handle gracefully (existing assignment valid or marked as expired).
+
+Assign package with future start date → It should remain “Scheduled” until start date.
+
+Assign package on last day of validity → Expiry date must be correctly calculated.
+
+6. Security & Permissions
+
+Only authorized roles (e.g., Admin/Manager) should see “Assign Package” button.
+
+Unauthorized users should not be able to assign packages via API calls.
+
+CSRF tokens validated when assigning via form submission.
+
+7. Post-Conditions
+
+Package record stored in customer_packages (or mapping table):
+
+id, customer_id, package_id, valid_from, valid_to, status.
+
+System logs the assignment event (audit trail).
+
+Assigned package appears immediately in UI list.
