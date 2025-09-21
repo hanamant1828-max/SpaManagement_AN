@@ -82,6 +82,7 @@ try:
     from modules.expenses import expenses_views
     from modules.reports import reports_views
     from modules.packages import packages_views
+    from modules.packages import membership_views
     from modules.checkin import checkin_views
     from modules.notifications import notifications_views
     from modules.settings import settings_views

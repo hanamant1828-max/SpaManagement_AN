@@ -177,6 +177,7 @@ from modules.billing.billing_views import *
 from modules.billing.integrated_billing_views import *
 from modules.inventory.views import *
 from modules.packages.new_packages_views import *
+from modules.packages.membership_views import *
 
 # Department Management Routes
 @app.route('/api/departments', methods=['GET'])
