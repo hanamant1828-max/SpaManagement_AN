@@ -45,8 +45,17 @@ def membership_add_submit():
         price_str = request.form.get('price', '0')
         validity_months_str = request.form.get('validity_months', '12')
         services_included = request.form.get('services_included', '').strip()
-        description = request.form.get('description', '').strip() if request.form.get('description') else None
+        description_raw = request.form.get('description', '')
+        description = description_raw.strip() if description_raw else None
         is_active = request.form.get('is_active') == 'on'
+        
+        print(f"Debug - Form data received:")
+        print(f"  name: '{name}'")
+        print(f"  price: '{price_str}'")
+        print(f"  validity_months: '{validity_months_str}'")
+        print(f"  services_included: '{services_included}'")
+        print(f"  description: '{description}'")
+        print(f"  is_active: {is_active}")
         
         # Validate required fields
         if not name:
@@ -75,6 +84,7 @@ def membership_add_submit():
         
         # Get selected services
         selected_services = request.form.getlist('service_ids')
+        print(f"Debug - Selected services: {selected_services}")
         
         # Create membership
         membership = Membership(
@@ -110,7 +120,15 @@ def membership_add_submit():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        error_details = traceback.format_exc()
         print(f"Error creating membership: {str(e)}")
+        print(f"Full error traceback: {error_details}")
+        
+        # Return error response for AJAX requests
+        if request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+            return f'Error creating membership: {str(e)}', 500
+        
         flash(f'Error creating membership: {str(e)}', 'error')
         return redirect(url_for('membership_add'))
 

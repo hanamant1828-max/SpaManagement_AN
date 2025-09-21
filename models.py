@@ -480,7 +480,7 @@ class Membership(db.Model):
     validity_months = db.Column(db.Integer, nullable=False)  # Usually 12
     services_included = db.Column(db.Text, nullable=True)  # Keep for backward compatibility
     description = db.Column(db.Text, nullable=True)  # Description field for membership details
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
