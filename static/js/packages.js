@@ -2631,7 +2631,15 @@ async function refreshCurrentTabTable() {
  * Load packages for tables
  */
 async function loadMembershipPackages() {
-    console.log('Loading membership packages specifically');
+    console.log('Loading membership packages specifically for membership tab only');
+    
+    // Only load if we're on the membership tab
+    const membershipTab = document.getElementById('assign-membership');
+    if (!membershipTab || !membershipTab.classList.contains('active')) {
+        console.log('Not on membership tab, skipping membership load');
+        return;
+    }
+    
     await loadPackageTypeIntoTable('membership', 'tblMemberships');
 }
 
@@ -2775,12 +2783,36 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
     try {
         console.log(`Loading ${packageType} packages into ${tableId}`);
 
+        // Check if the target table exists and is visible
+        const targetTable = document.getElementById(tableId);
+        if (!targetTable) {
+            console.log(`Table ${tableId} not found, skipping load`);
+            return;
+        }
+
+        // Check if we're on the correct tab for this package type
+        const tabMap = {
+            'tblMemberships': 'assign-membership',
+            'tblStudentOffers': 'assign-student', 
+            'tblYearlyMemberships': 'assign-yearly',
+            'tblKittyPackages': 'assign-kitty'
+        };
+
+        const expectedTab = tabMap[tableId];
+        if (expectedTab) {
+            const tabElement = document.getElementById(expectedTab);
+            if (!tabElement || !tabElement.classList.contains('active')) {
+                console.log(`Not on correct tab for ${tableId}, skipping load`);
+                return;
+            }
+        }
+
         // API endpoints for each package type
         const endpoints = {
-            membership: '/api/packages?type=membership',
-            student: '/api/packages?type=student_offer',
-            yearly: '/api/packages?type=yearly_membership',
-            kitty: '/api/packages?type=kitty_party'
+            membership: '/api/memberships',
+            student: '/api/student-offers',
+            yearly: '/api/yearly-memberships',
+            kitty: '/api/kitty-parties'
         };
 
         const endpoint = endpoints[packageType];
@@ -2795,7 +2827,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
         }
 
         const data = await response.json();
-        const packages = data.packages || data;
+        const packages = Array.isArray(data) ? data : (data.packages || data);
 
         // Get the table body element
         const tableBody = document.querySelector(`#${tableId} tbody`);
@@ -2807,18 +2839,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
         // Clear existing content
         tableBody.innerHTML = '';
 
-        // Filter packages by type to ensure only correct type is shown
-        const filteredPackages = packages.filter(pkg => {
-            const typeMap = {
-                membership: 'membership',
-                student: 'student_offer', 
-                yearly: 'yearly_membership',
-                kitty: 'kitty_party'
-            };
-            return pkg.package_type === typeMap[packageType];
-        });
-
-        if (filteredPackages.length === 0) {
+        if (!packages || packages.length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center text-muted py-4">
@@ -2830,16 +2851,21 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
             return;
         }
 
-        // Populate table with filtered packages
-        filteredPackages.forEach(pkg => {
+        // Populate table with packages
+        packages.forEach(pkg => {
             const row = document.createElement('tr');
 
             // Build services display
             let servicesDisplay = 'No services specified';
             if (pkg.services && pkg.services.length > 0) {
-                servicesDisplay = pkg.services.slice(0, 2).map(s => s.service?.name || s.name).join(', ');
+                servicesDisplay = pkg.services.slice(0, 2).map(s => s.name).join(', ');
                 if (pkg.services.length > 2) {
                     servicesDisplay += ` +${pkg.services.length - 2} more`;
+                }
+            } else if (pkg.selected_services && pkg.selected_services.length > 0) {
+                servicesDisplay = pkg.selected_services.slice(0, 2).map(s => s.name).join(', ');
+                if (pkg.selected_services.length > 2) {
+                    servicesDisplay += ` +${pkg.selected_services.length - 2} more`;
                 }
             } else if (pkg.services_included) {
                 servicesDisplay = pkg.services_included.length > 50 ? 
@@ -2847,35 +2873,69 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
                     pkg.services_included;
             }
 
-            row.innerHTML = `
-                <td><strong>${pkg.name}</strong></td>
-                <td>₹${parseFloat(pkg.price || pkg.total_price || 0).toLocaleString()}</td>
-                <td>${pkg.validity_months || pkg.validity_days || 'N/A'} ${pkg.validity_months ? 'months' : 'days'}</td>
-                <td>${servicesDisplay}</td>
-                <td>
-                    <span class="badge ${pkg.is_active ? 'bg-success' : 'bg-secondary'}">
-                        ${pkg.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                </td>
-                <td>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-info" onclick="viewPackage(${pkg.id})" title="View">
-                            <i class="fas fa-eye"></i>
+            if (packageType === 'membership') {
+                row.innerHTML = `
+                    <td><strong>${pkg.name}</strong></td>
+                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
+                    <td>${pkg.validity_months || 12} months</td>
+                    <td>${servicesDisplay}</td>
+                    <td>
+                        <span class="badge ${pkg.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${pkg.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'membership')" title="Assign">
+                            <i class="fas fa-user-plus"></i> Assign
                         </button>
-                        <button class="btn btn-outline-primary" onclick="editPackage(${pkg.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
+                    </td>
+                `;
+            } else if (packageType === 'yearly') {
+                row.innerHTML = `
+                    <td><strong>${pkg.name}</strong></td>
+                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
+                    <td>${pkg.validity_months || 12} months</td>
+                    <td>${pkg.discount_percent || 0}%</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'yearly')" title="Assign">
+                            <i class="fas fa-user-plus"></i> Assign
                         </button>
-                        <button class="btn btn-success" onclick="assignPackageToCustomer(${pkg.id}, '${pkg.name}', '${packageType}')" title="Assign">
-                            <i class="fas fa-user-plus"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
+                    </td>
+                `;
+            } else if (packageType === 'kitty') {
+                row.innerHTML = `
+                    <td><strong>${pkg.name}</strong></td>
+                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
+                    <td>₹${parseFloat(pkg.after_value || 0).toLocaleString()}</td>
+                    <td>${pkg.min_guests || 'N/A'}</td>
+                    <td>${servicesDisplay}</td>
+                    <td>${pkg.valid_from && pkg.valid_to ? `${pkg.valid_from} to ${pkg.valid_to}` : 'No validity period'}</td>
+                    <td>${pkg.conditions || 'No conditions'}</td>
+                    <td>
+                        <span class="badge ${pkg.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${pkg.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-warning" onclick="editKittyParty(${pkg.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteKittyParty(${pkg.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn btn-primary" onclick="assignKittyParty(${pkg.id})" title="Assign">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+            }
 
             tableBody.appendChild(row);
         });
 
-        console.log(`Successfully loaded ${filteredPackages.length} ${packageType} packages`);
+        console.log(`Successfully loaded ${packages.length} ${packageType} packages`);
 
     } catch (error) {
         console.error(`Error loading ${packageType} packages:`, error);

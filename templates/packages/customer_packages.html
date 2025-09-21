@@ -1453,25 +1453,60 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
-    // Add tab event listeners to ensure correct data loading
+    // Add tab event listeners to ensure correct data loading and clear other tabs
     document.getElementById('assign-membership-tab').addEventListener('shown.bs.tab', function() {
         console.log('Membership tab shown - loading membership packages only');
+        // Clear other tab tables to prevent cross-contamination
+        clearOtherTabTables('membership');
         loadMembershipPackages();
     });
 
     document.getElementById('assign-student-tab').addEventListener('shown.bs.tab', function() {
         console.log('Student tab shown - loading student packages only');
+        clearOtherTabTables('student');
         loadStudentPackages();
     });
 
     document.getElementById('assign-yearly-tab').addEventListener('shown.bs.tab', function() {
         console.log('Yearly tab shown - loading yearly packages only');
+        clearOtherTabTables('yearly');
         loadYearlyPackages();
     });
 
     document.getElementById('assign-kitty-tab').addEventListener('shown.bs.tab', function() {
         console.log('Kitty tab shown - loading kitty packages only');
+        clearOtherTabTables('kitty');
         loadKittyPackages();
+    });
+
+    document.getElementById('assign-prepaid-tab').addEventListener('shown.bs.tab', function() {
+        console.log('Prepaid tab shown - clearing membership table');
+        clearOtherTabTables('prepaid');
+    });
+
+    document.getElementById('assign-service-tab').addEventListener('shown.bs.tab', function() {
+        console.log('Service tab shown - clearing membership table');
+        clearOtherTabTables('service');
+    });
+}
+
+// Function to clear other tab tables to prevent cross-contamination
+function clearOtherTabTables(activeTabType) {
+    const tablesToClear = {
+        'tblMemberships': 'membership',
+        'tblStudentOffers': 'student', 
+        'tblYearlyMemberships': 'yearly',
+        'tblKittyPackages': 'kitty'
+    };
+
+    Object.keys(tablesToClear).forEach(tableId => {
+        if (tablesToClear[tableId] !== activeTabType) {
+            const tableBody = document.querySelector(`#${tableId} tbody`);
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                console.log(`Cleared ${tableId} table`);
+            }
+        }
     });
 });
 
