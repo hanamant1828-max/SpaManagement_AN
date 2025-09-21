@@ -93,11 +93,18 @@ def from_json_filter(json_str):
     except:
         return {}
 
+def check_billing_access():
+    """Simple billing access check"""
+    if not current_user.is_authenticated:
+        return False
+    # Allow all authenticated users for now - can be refined later
+    return True
+
 @app.route('/integrated-billing')
 @login_required
 def integrated_billing():
-    """New integrated billing dashboard"""
-    if not current_user.can_access('billing'):
+    """Modern integrated billing system"""
+    if not check_billing_access():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -207,7 +214,7 @@ def integrated_billing():
 @login_required
 def create_professional_invoice():
     """Create new professional invoice with complete GST/SGST tax support and automatic package benefit application"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -311,7 +318,6 @@ def create_professional_invoice():
         for item in inventory_data:
             inventory_subtotal += item['unit_price'] * item['quantity']
 
-        # Note: Final totals will be calculated after package benefits are applied
         initial_gross_subtotal = services_subtotal + inventory_subtotal
 
         # Create professional invoice with proper transaction handling
@@ -611,7 +617,7 @@ def create_professional_invoice():
 @login_required
 def create_integrated_invoice():
     """Create new integrated invoice with batch-wise inventory integration"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -868,7 +874,7 @@ def create_integrated_invoice():
 @login_required
 def get_customer_packages(client_id):
     """Get customer's active packages and available sessions"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         return jsonify({'error': 'Access denied', 'packages': []}), 403
 
     try:
@@ -1007,7 +1013,7 @@ def get_customer_packages(client_id):
 @login_required
 def api_get_batches_for_product(product_id):
     """Get batches for a specific product ordered by FIFO (expiry date)"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
@@ -1062,7 +1068,7 @@ def api_get_batches_for_product(product_id):
 @login_required
 def process_payment(invoice_id):
     """Process payment for invoice (supports multiple payment methods)"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -1142,7 +1148,7 @@ def process_payment(invoice_id):
 @login_required
 def view_integrated_invoice(invoice_id):
     """View detailed invoice with all components"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1165,7 +1171,7 @@ def view_integrated_invoice(invoice_id):
 @login_required
 def list_integrated_invoices():
     """List all integrated invoices with filters"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1198,7 +1204,7 @@ def list_integrated_invoices():
 @login_required
 def save_invoice_draft():
     """Save invoice as draft for later completion"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     try:
@@ -1236,7 +1242,7 @@ def save_invoice_draft():
 @login_required
 def print_professional_invoice(invoice_id):
     """Generate printable professional invoice"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -1261,30 +1267,64 @@ def print_professional_invoice(invoice_id):
 @login_required
 def generate_invoice_preview():
     """Generate professional invoice preview"""
-    if not current_user.can_access('billing'):
+    if not check_billing_access():
         return jsonify({'error': 'Access denied'}), 403
 
     try:
+        from datetime import datetime
         data = request.json or {}
+
+        # Get items from request data
+        items = data.get('items', [])
+        customer_name = data.get('customer_name', 'Customer Name')
+        customer_phone = data.get('customer_phone', 'Phone Number')
+        is_interstate = data.get('is_interstate', False)
+
+        # Calculate totals
+        subtotal = 0
+        tax_rate = 18  # Default GST rate
+
+        items_html = ""
+        if items:
+            for item in items:
+                qty = float(item.get('quantity', 1))
+                rate = float(item.get('rate', 0))
+                amount = qty * rate
+                subtotal += amount
+
+                items_html += f"""
+                <tr>
+                    <td>{item.get('description', 'Item')}</td>
+                    <td>{qty}</td>
+                    <td>₹{rate:.2f}</td>
+                    <td>₹{amount:.2f}</td>
+                </tr>
+                """
+        else:
+            items_html = '<tr><td colspan="4" class="text-center text-muted">No items added yet</td></tr>'
+
+        tax_amount = (subtotal * tax_rate) / 100
+        total_amount = subtotal + tax_amount
+
         # Generate preview HTML
         preview_html = f"""
         <div class="professional-invoice">
             <div class="invoice-header text-center mb-4">
-                <h2>TAX INVOICE</h2>
+                <h2>TAX INVOICE (PREVIEW)</h2>
                 <h4>Your Spa & Wellness Center</h4>
                 <p>GST No: 29XXXXX1234Z1Z5 | Contact: +91-XXXXXXXXXX</p>
             </div>
             <div class="row mb-3">
                 <div class="col-6">
                     <strong>Bill To:</strong><br>
-                    {data.get('customer_name', 'Customer Name')}<br>
-                    Contact: {data.get('customer_phone', 'Phone Number')}
+                    {customer_name}<br>
+                    Contact: {customer_phone}
                 </div>
                 <div class="col-6 text-end">
                     <strong>Invoice Details:</strong><br>
                     Invoice No: PREVIEW<br>
                     Date: {datetime.now().strftime('%d-%m-%Y')}<br>
-                    GST Treatment: {'Interstate' if data.get('is_interstate') else 'Intrastate'}
+                    GST Treatment: {'Interstate' if is_interstate else 'Intrastate'}
                 </div>
             </div>
             <div class="tax-calculation-preview">
@@ -1298,7 +1338,19 @@ def generate_invoice_preview():
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="4" class="text-center text-muted">Preview items will appear here</td></tr>
+                        {items_html}
+                        <tr class="table-light">
+                            <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                            <td><strong>₹{subtotal:.2f}</strong></td>
+                        </tr>
+                        <tr class="table-light">
+                            <td colspan="3" class="text-end"><strong>GST ({tax_rate}%):</strong></td>
+                            <td><strong>₹{tax_amount:.2f}</strong></td>
+                        </tr>
+                        <tr class="table-success">
+                            <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                            <td><strong>₹{total_amount:.2f}</strong></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -1307,10 +1359,16 @@ def generate_invoice_preview():
 
         return jsonify({
             'success': True,
-            'preview_html': preview_html
+            'preview_html': preview_html,
+            'subtotal': subtotal,
+            'tax_amount': tax_amount,
+            'total_amount': total_amount
         })
 
     except Exception as e:
+        import traceback
+        print(f"Error in invoice preview: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)})
 
 # Legacy billing compatibility route

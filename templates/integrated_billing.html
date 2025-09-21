@@ -815,7 +815,7 @@ document.getElementById('client_id').addEventListener('change', function() {
         })
         .catch(error => {
             console.error('Error loading packages:', error);
-            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</small>';
+            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</button>';
             customerPackageData = null;
         });
 });
@@ -891,7 +891,7 @@ function calculateServicesSubtotal() {
                 packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
                 if (packageBenefit) {
                     finalPrice = packageBenefit.finalPrice;
-                    
+
                     // Update service display to show package benefit
                     updateServiceDisplayWithBenefit(row, packageBenefit, index);
                 }
@@ -944,15 +944,15 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
                     const pricePerSession = originalPrice; // Service price is for one session
                     const sessionsToCover = Math.min(quantity, session.sessions_remaining);
                     const sessionsToPayFor = Math.max(0, quantity - sessionsToCover);
-                    
+
                     const coveredAmount = sessionsToCover * pricePerSession;
                     const finalPrice = sessionsToPayFor * pricePerSession;
-                    
+
                     // Ensure calculations are accurate
                     const totalServicePrice = originalPrice * quantity;
                     const actualDiscount = Math.min(coveredAmount, totalServicePrice);
                     const actualFinalPrice = Math.max(0, totalServicePrice - actualDiscount);
-                    
+
                     if (sessionsToPayFor > 0) {
                         // Partial coverage - some sessions free, some charged
                         return {
@@ -1045,7 +1045,7 @@ function updateServiceDisplayWithBenefit(row, benefit, index) {
         // Partial coverage or discount
         const isPartialCoverage = benefit.sessionsCovered && benefit.sessionsToPayFor;
         const coveragePercent = Math.round((benefit.discount / benefit.originalPrice) * 100);
-        
+
         benefitDisplay.innerHTML = `
             <small class="fw-bold">
                 <i class="fas fa-percentage me-1 text-info"></i>${benefit.description}
@@ -1155,45 +1155,137 @@ function removePaymentMethod(button) {
 
 // Invoice Actions
 function previewInvoice() {
-    // Generate preview modal with current form data
-    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
-    const title = document.getElementById('resultModalTitle');
-    const body = document.getElementById('resultModalBody');
+    // Get the modal and elements
+    const modal = new bootstrap.Modal(document.getElementById('invoicePreviewModal'));
+    const previewBody = document.getElementById('invoicePreviewBody');
 
-    title.textContent = 'Invoice Preview';
-    title.className = 'text-info';
-
-    const customer = document.getElementById('client_id');
-    const customerName = customer.options[customer.selectedIndex].text;
+    // Collect current invoice data from the form
+    const customerId = document.getElementById('client_id').value;
+    const customerSelect = document.getElementById('client_id');
+    const customerName = customerSelect.options[customerSelect.selectedIndex].text;
 
     const servicesSubtotal = calculateServicesSubtotal();
     const inventorySubtotal = calculateInventorySubtotal();
     const grossSubtotal = servicesSubtotal + inventorySubtotal;
+    const discountType = document.getElementById('discount_type').value;
+    const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
+    const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
+    const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
+    const isInterstate = document.getElementById('is_interstate').checked;
+    const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+    const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+    const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
 
-    body.innerHTML = `
-        <div class="invoice-preview">
-            <h5>Customer: ${customerName}</h5>
-            <hr>
-            <div class="row">
-                <div class="col-6"><strong>Services Subtotal:</strong></div>
-                <div class="col-6 text-end">₹${servicesSubtotal.toFixed(2)}</div>
-            </div>
-            <div class="row">
-                <div class="col-6"><strong>Inventory Subtotal:</strong></div>
-                <div class="col-6 text-end">₹${inventorySubtotal.toFixed(2)}</div>
-            </div>
-            <div class="row">
-                <div class="col-6"><strong>Gross Subtotal:</strong></div>
-                <div class="col-6 text-end">₹${grossSubtotal.toFixed(2)}</div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <p class="text-muted">This is a preview. Click "Generate Professional Invoice" to create the actual invoice.</p>
-            </div>
-        </div>
-    `;
+    const invoiceDataForPreview = {
+        customer_name: customerName.split(' - ')[0], // Extract name from "Name - Phone"
+        customer_id: customerId,
+        services: [],
+        inventory_items: [],
+        discount_type: discountType,
+        discount_value: discountValue,
+        additional_charges: additionalCharges,
+        tips_amount: tipsAmount,
+        is_interstate: isInterstate,
+        cgst_rate: cgstRate,
+        sgst_rate: sgstRate,
+        igst_rate: igstRate,
+        notes: document.getElementById('notes').value
+    };
 
-    modal.show();
+    // Collect service items
+    document.querySelectorAll('.service-row').forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
+        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
+        const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+        const originalPrice = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
+        const quantity = parseFloat(quantityInput.value) || 1;
+        const appointmentId = appointmentIdInput.value;
+
+        if (serviceSelect.value) {
+            // Check for package benefits
+            const packageBenefit = checkServicePackageBenefit(parseInt(serviceSelect.value), serviceName, originalPrice, quantity);
+            let finalPrice = originalPrice * quantity;
+            let discount = 0;
+            let benefitDescription = '';
+
+            if (packageBenefit) {
+                finalPrice = packageBenefit.finalPrice;
+                discount = packageBenefit.discount;
+                benefitDescription = packageBenefit.description;
+            }
+
+            invoiceDataForPreview.services.push({
+                name: serviceName,
+                quantity: quantity,
+                unit_price: originalPrice,
+                subtotal: originalPrice * quantity,
+                final_price: finalPrice,
+                discount: discount,
+                package_benefit: benefitDescription
+            });
+        }
+    });
+
+    // Collect inventory items
+    document.querySelectorAll('.product-row').forEach(row => {
+        const productSelect = row.querySelector('.product-select');
+        const batchSelect = row.querySelector('.batch-select');
+        const quantityInput = row.querySelector('.quantity-input');
+        const priceInput = row.querySelector('.unit-price');
+
+        if (productSelect.value && batchSelect.value && quantityInput.value && priceInput.value) {
+            const productName = productSelect.options[productSelect.selectedIndex].text.split(' (')[0]; // Get name without stock info
+            const batchName = batchSelect.options[batchSelect.selectedIndex].text;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(priceInput.value) || 0;
+            const subtotal = quantity * unitPrice;
+
+            invoiceDataForPreview.inventory_items.push({
+                name: productName,
+                batch: batchName,
+                quantity: quantity,
+                unit_price: unitPrice,
+                subtotal: subtotal
+            });
+        }
+    });
+
+    // Make the API call to get the preview HTML
+    fetch('/api/invoice-preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(invoiceDataForPreview)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && data.preview_html) {
+            previewBody.innerHTML = data.preview_html;
+            modal.show();
+        } else {
+            // Show error in the result modal instead of the preview modal
+            const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+            document.getElementById('resultModalTitle').textContent = 'Error generating preview';
+            document.getElementById('resultModalTitle').className = 'text-danger';
+            document.getElementById('resultModalBody').innerHTML = `<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>${data.error || 'Failed to load preview content.'}</div>`;
+            resultModal.show();
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching invoice preview:', error);
+        const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+        document.getElementById('resultModalTitle').textContent = 'Error';
+        document.getElementById('resultModalTitle').className = 'text-danger';
+        document.getElementById('resultModalBody').innerHTML = `<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Failed to generate invoice preview. ${error.message}</div>`;
+        resultModal.show();
+    });
 }
 
 function saveAsDraft() {
@@ -1201,12 +1293,12 @@ function saveAsDraft() {
     const saveButton = document.getElementById('saveDraftBtn');
     const statusDiv = document.getElementById('draftSaveStatus');
     const originalText = saveButton.innerHTML;
-    
+
     // Show loading state
     saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
     saveButton.disabled = true;
     statusDiv.innerHTML = '';
-    
+
     // Prepare form data
     const formData = new FormData(document.getElementById('billingForm'));
     formData.append('save_as_draft', 'true');
@@ -1225,7 +1317,7 @@ function saveAsDraft() {
         // Reset button state
         saveButton.innerHTML = originalText;
         saveButton.disabled = false;
-        
+
         if (data.success) {
             // Show success message
             statusDiv.innerHTML = `
@@ -1234,7 +1326,7 @@ function saveAsDraft() {
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             `;
-            
+
             // Auto-hide alert after 4 seconds
             setTimeout(() => {
                 const alert = statusDiv.querySelector('.alert');
@@ -1256,9 +1348,9 @@ function saveAsDraft() {
         // Reset button state
         saveButton.innerHTML = originalText;
         saveButton.disabled = false;
-        
+
         console.error('Draft save error:', error);
-        
+
         // Show error message
         statusDiv.innerHTML = `
             <div class="alert alert-danger alert-dismissible fade show mt-2">
@@ -1338,7 +1430,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     // Check if at least one service or product is selected
     const serviceSelected = Array.from(document.querySelectorAll('select[name="service_ids[]"]')).some(select => select.value);
     const productSelected = Array.from(document.querySelectorAll('select[name="product_ids[]"]')).some(select => select.value);
-    
+
     if (!serviceSelected && !productSelected) {
         alert('Please select at least one service or product to create an invoice.');
         // Reset button state
@@ -1354,7 +1446,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     quantityInputs.forEach(input => {
         const productRow = input.closest('.product-row');
         const productSelect = productRow.querySelector('.product-select');
-        
+
         // Only validate if product is selected
         if (productSelect && productSelect.value) {
             validateInventoryQuantity(input);
@@ -1390,7 +1482,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         // Always reset button state first
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -1575,7 +1667,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             loadAvailableBatches();
             updateTaxCalculations(); // Initial calculation update based on default values
             toggleTaxType(); // Apply initial tax type settings
-            
+
             // Add event listeners for real-time package benefit calculation
             setupServiceChangeListeners();
         });
@@ -1599,13 +1691,13 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                             // New service row added, attach listeners
                             const serviceSelect = node.querySelector('select[name="service_ids[]"]');
                             const quantityInput = node.querySelector('input[name="service_quantities[]"]');
-                            
+
                             if (serviceSelect) {
                                 serviceSelect.addEventListener('change', () => {
                                     setTimeout(updateTaxCalculations, 100);
                                 });
                             }
-                            
+
                             if (quantityInput) {
                                 quantityInput.addEventListener('input', () => {
                                     setTimeout(updateTaxCalculations, 100);
