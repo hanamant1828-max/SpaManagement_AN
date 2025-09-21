@@ -295,6 +295,10 @@ def create_error_response(error, status_code=400):
     friendly_error = friendly_messages.get(error, error)
     return jsonify({'success': False, 'error': friendly_error}), status_code
 
+# Create the blueprint if it doesn't exist
+from flask import Blueprint
+packages_api = Blueprint('packages_api', __name__, url_prefix='/packages/api')
+
 @packages_api.route('/service-packages', methods=['POST'])
 @login_required
 def create_service_package():

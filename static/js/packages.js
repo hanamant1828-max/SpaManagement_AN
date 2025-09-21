@@ -717,7 +717,7 @@ function openPrepaidAssignModal(template) {
 // Service Package Form Submission
 function submitServiceForm() {
     console.log('Submitting service package form...');
-    
+
     try {
         const form = document.getElementById('servicePackageForm');
         if (!form) {
@@ -726,12 +726,12 @@ function submitServiceForm() {
         }
 
         const formData = new FormData(form);
-        
+
         // Validate required fields
         const packageName = formData.get('name');
         const payFor = formData.get('pay_for');
         const totalServices = formData.get('total_services');
-        
+
         if (!packageName || !payFor || !totalServices) {
             alert('Please fill in all required fields');
             return;
@@ -746,7 +746,10 @@ function submitServiceForm() {
 
         fetch('/api/service-packages', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
         })
         .then(response => response.json())
         .then(data => {
@@ -756,10 +759,10 @@ function submitServiceForm() {
                 if (modal) {
                     modal.hide();
                 }
-                
+
                 // Show success message
                 showToast('Service package created successfully!', 'success');
-                
+
                 // Reload the page to show new package
                 setTimeout(() => {
                     window.location.reload();
@@ -779,7 +782,7 @@ function submitServiceForm() {
                 saveButton.innerHTML = 'Save Package';
             }
         });
-        
+
     } catch (error) {
         console.error('Service form submission error:', error);
         showToast('Error submitting form. Please try again.', 'error');
