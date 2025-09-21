@@ -174,10 +174,14 @@
                                         <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory({{ category.id }})" data-bs-toggle="tooltip" title="Edit category details">
                                             <i class="fas fa-edit"></i>
                                         </button>
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleCategory({{ category.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate category' if category.is_active else 'Activate category' }}">
+                                            <i class="fas fa-{{ 'eye-slash' if category.is_active else 'eye' }}"></i>
+                                        </button>
                                         <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }})" data-bs-toggle="tooltip" title="Delete category permanently">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
+</old_str>
                                 </tr>
                                 {% endfor %}
                             </tbody>
