@@ -1,11 +1,46 @@
 import os
+import re
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import event
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, login_required
 # Department will be imported inside functions to avoid circular imports
+
+
+def compute_sqlite_uri():
+    """Compute SQLite database URI for the current instance"""
+    # Create base directory for databases
+    base_dir = os.path.join(os.getcwd(), 'hanamantdatabase')
+    os.makedirs(base_dir, exist_ok=True)
+    
+    # Determine instance identifier
+    instance = os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'
+    
+    # Sanitize instance name to prevent path traversal
+    instance = re.sub(r'[^A-Za-z0-9_-]', '_', instance)
+    
+    # Create absolute path to database file
+    db_path = os.path.abspath(os.path.join(base_dir, f'{instance}.db'))
+    
+    # Return SQLite URI with absolute path
+    return f'sqlite:///{db_path}'
+
+
+def configure_sqlite_pragmas(dbapi_connection, connection_record):
+    """Configure SQLite-specific PRAGMA settings"""
+    # Only apply to SQLite connections
+    if hasattr(dbapi_connection, 'execute'):
+        cursor = dbapi_connection.cursor()
+        # Enable foreign key constraints
+        cursor.execute('PRAGMA foreign_keys=ON')
+        # Use WAL mode for better concurrency
+        cursor.execute('PRAGMA journal_mode=WAL')
+        # Set synchronous mode for balance of safety and performance
+        cursor.execute('PRAGMA synchronous=NORMAL')
+        cursor.close()
 
 
 class Base(DeclarativeBase):
@@ -25,12 +60,14 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# configure the database, relative to the app instance folder
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+# Configure the database - always use SQLite with hanamantdatabase folder for each clone
+app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
+    "connect_args": {
+        "check_same_thread": False  # Allow SQLite to be used across threads
+    }
 }
+print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit webview
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -68,6 +105,11 @@ def init_app():
     """Initialize the application with proper error handling"""
     with app.app_context():
         try:
+            # Add SQLite PRAGMA event listener for SQLite connections (inside app context)
+            event.listen(db.engine, 'connect', configure_sqlite_pragmas)
+            print(f"SQLite PRAGMAs configured for: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            print(f"Instance identifier: {os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'}")
+            
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
             # Import inventory models for database creation
@@ -77,10 +119,11 @@ def init_app():
 
             # Try to create tables, but handle conflicts gracefully
             db.create_all()
-            print("Database initialized successfully")
+            print("SQLite database tables created successfully")
+            print(f"Database file location: {app.config['SQLALCHEMY_DATABASE_URI']}")
         except Exception as e:
-            print(f"Database initialization warning: {e}")
-            print("Continuing with existing database...")
+            print(f"SQLite database initialization warning: {e}")
+            print("Continuing with existing SQLite database...")
 
         try:
             # Import and register basic routes
