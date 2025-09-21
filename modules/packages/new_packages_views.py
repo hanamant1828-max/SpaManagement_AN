@@ -7,6 +7,7 @@ from app import app, db
 from models import Service, ServicePackage # Added ServicePackage to imports
 from .new_packages_queries import *
 import logging
+from datetime import datetime, timedelta
 
 # ========================================
 # MAIN PACKAGES PAGE WITH TABS
@@ -681,7 +682,7 @@ def api_get_services():
     """Get available services"""
     try:
         services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-        
+
         service_list = []
         for s in services:
             service_list.append({
@@ -710,11 +711,10 @@ def api_create_template():
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
         template_type = data.get('type')
-        
+
         if template_type == 'membership':
             # Create membership template
             from models import Membership, MembershipService
-            from datetime import datetime
             
             membership = Membership(
                 name=data.get('name'),
@@ -722,34 +722,34 @@ def api_create_template():
                 validity_months=12,  # Default validity
                 is_active=True
             )
-            
+
             db.session.add(membership)
             db.session.flush()  # Get the membership ID
-            
+
             # Add services if provided
             items = data.get('items', [])
             for item in items:
                 service_id = item.get('service_id')
                 sessions = item.get('sessions', 1)
-                
+
                 if service_id:
                     membership_service = MembershipService(
                         membership_id=membership.id,
                         service_id=int(service_id)
                     )
                     db.session.add(membership_service)
-            
+
             db.session.commit()
-            
+
             return jsonify({
                 'success': True,
                 'message': f'Membership "{membership.name}" created successfully',
                 'template_id': membership.id
             })
-        
+
         else:
             return jsonify({'success': False, 'error': 'Unsupported template type'}), 400
-            
+
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error creating template: {e}")
@@ -757,270 +757,146 @@ def api_create_template():
 
 @app.route('/packages/api/assign', methods=['POST'])
 @login_required
-def api_assign_package():
-    """Assign package to customer using new package assignment model"""
+def assign_package():
+    """Assign package to customer via API"""
     try:
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
-        package_type = data.get('package_type')
-        package_id = data.get('package_id')
-        customer_id = data.get('customer_id')
-        service_id = data.get('service_id')
-        price_paid = data.get('price_paid')
-        expires_on = data.get('expires_on')
-        notes = data.get('notes', '')
-
         # Validate required fields
-        if not all([package_type, package_id, customer_id]):
-            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        required_fields = ['package_id', 'package_type', 'client_id', 'price_paid']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'{field} is required'}), 400
 
-        if price_paid is None or price_paid < 0:
-            return jsonify({'success': False, 'error': 'Invalid price paid'}), 400
-
-        # Import models
-        from models import Customer
-        from datetime import datetime, timedelta
-
-        # Verify customer exists
-        customer = Customer.query.get(customer_id)
+        # Get customer
+        customer = Customer.query.get(data['client_id'])
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
-        # For service packages, verify service exists
-        if package_type == 'service_package' and service_id:
-            service = Service.query.get(service_id)
-            if not service:
-                return jsonify({'success': False, 'error': 'Service not found'}), 404
+        # Create package assignment based on type
+        package_type = data['package_type']
 
-        # Handle prepaid package assignment
-        if package_type == 'prepaid':
-            from .new_packages_queries import get_prepaid_package_by_id
-
-            template = get_prepaid_package_by_id(package_id)
-            if not template:
-                return jsonify({'success': False, 'error': 'Prepaid package template not found'}), 404
+        if package_type == 'membership':
+            # Get membership template
+            membership = Membership.query.get(data['package_id'])
+            if not membership:
+                return jsonify({'success': False, 'error': 'Membership not found'}), 404
 
             # Calculate expiry date
-            if expires_on:
-                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
+            expiry_date = None
+            if data.get('expiry_date'):
+                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
             else:
-                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30)
-
-            # Create a new service package assignment record directly
-            from models import ServicePackageAssignment
+                expiry_date = datetime.utcnow() + timedelta(days=membership.validity_months * 30)
 
             # Create assignment record
             assignment = ServicePackageAssignment(
-                customer_id=customer_id,
-                package_type='prepaid',
-                package_reference_id=package_id,
-                service_id=service_id,
-                assigned_on=datetime.utcnow(),
-                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
-                price_paid=price_paid,
-                notes=notes,
-                status='active'
-            )
-
-            db.session.add(assignment)
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': f'Prepaid package "{template.name}" assigned successfully to {customer.full_name}',
-                'id': assignment.id
-            })
-
-        # Handle service package assignment
-        elif package_type == 'service_package':
-            from .new_packages_queries import get_service_package_by_id
-
-            template = get_service_package_by_id(package_id)
-            if not template:
-                return jsonify({'success': False, 'error': 'Service package template not found'}), 404
-
-            # Calculate expiry date
-            if expires_on:
-                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
-            else:
-                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30) if template.validity_months else None
-
-            # Calculate price if not provided
-            if price_paid == 0 and service_id:
-                service = Service.query.get(service_id)
-                if service:
-                    service_price = service.price * template.pay_for
-                    price_paid = service_price
-
-            # Create a new service package assignment record
-            from models import ServicePackageAssignment
-
-            assignment = ServicePackageAssignment(
-                customer_id=customer_id,
-                package_type='service_package',
-                package_reference_id=package_id,
-                service_id=service_id,
-                assigned_on=datetime.utcnow(),
-                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
-                price_paid=price_paid,
-                notes=notes,
-                status='active',
-                total_sessions=template.total_services,
-                used_sessions=0,
-                remaining_sessions=template.total_services
-            )
-
-            db.session.add(assignment)
-            db.session.commit()
-
-            service_name = Service.query.get(service_id).name if service_id else "selected service"
-
-            return jsonify({
-                'success': True,
-                'message': f'Service package "{template.name}" assigned successfully to {customer.full_name} for {service_name}',
-                'id': assignment.id
-            })
-
-        # Handle membership assignment
-        elif package_type == 'membership':
-            from .new_packages_queries import get_membership_by_id
-
-            template = get_membership_by_id(package_id)
-            if not template:
-                return jsonify({'success': False, 'error': 'Membership template not found'}), 404
-
-            # Calculate expiry date
-            if expires_on:
-                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
-            else:
-                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30)
-
-            # Create assignment record
-            assignment = ServicePackageAssignment(
-                customer_id=customer_id,
+                customer_id=data['client_id'],
                 package_type='membership',
-                package_reference_id=package_id,
+                package_reference_id=membership.id,
+                service_id=data.get('service_id'),  # Optional for memberships
                 assigned_on=datetime.utcnow(),
-                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
-                price_paid=price_paid or template.price,
-                notes=notes,
-                status='active'
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Membership doesn't use sessions/credit tracking
+                total_sessions=0,
+                used_sessions=0,
+                remaining_sessions=0,
+                credit_amount=0,
+                used_credit=0,
+                remaining_credit=0
             )
 
-            db.session.add(assignment)
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': f'Membership "{template.name}" assigned successfully to {customer.full_name}',
-                'id': assignment.id
-            })
-
-        # Handle student offer assignment
-        elif package_type == 'student':
-            from .new_packages_queries import get_student_offer_by_id
-
-            template = get_student_offer_by_id(package_id)
-            if not template:
-                return jsonify({'success': False, 'error': 'Student offer template not found'}), 404
+        elif package_type == 'prepaid':
+            # Get prepaid package template
+            prepaid = PrepaidPackage.query.get(data['package_id'])
+            if not prepaid:
+                return jsonify({'success': False, 'error': 'Prepaid package not found'}), 404
 
             # Calculate expiry date
-            if expires_on:
-                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
+            expiry_date = None
+            if data.get('expiry_date'):
+                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
             else:
-                expiry_date = datetime.now().date() + timedelta(days=template.valid_days) if template.valid_days else None
+                expiry_date = datetime.utcnow() + timedelta(days=prepaid.validity_months * 30)
 
             # Create assignment record
             assignment = ServicePackageAssignment(
-                customer_id=customer_id,
-                package_type='student',
-                package_reference_id=package_id,
+                customer_id=data['client_id'],
+                package_type='prepaid',
+                package_reference_id=prepaid.id,
+                service_id=None,  # Prepaid packages are service-agnostic
                 assigned_on=datetime.utcnow(),
-                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
-                price_paid=price_paid or template.after_price,
-                notes=notes,
-                status='active'
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Prepaid uses credit tracking
+                total_sessions=0,
+                used_sessions=0,
+                remaining_sessions=0,
+                credit_amount=prepaid.after_value,
+                used_credit=0,
+                remaining_credit=prepaid.after_value
             )
 
-            db.session.add(assignment)
-            db.session.commit()
+        elif package_type == 'service_package':
+            # Get service package template
+            service_pkg = ServicePackage.query.get(data['package_id'])
+            if not service_pkg:
+                return jsonify({'success': False, 'error': 'Service package not found'}), 404
 
-            return jsonify({
-                'success': True,
-                'message': f'Student offer "{template.service_name}" assigned successfully to {customer.full_name}',
-                'id': assignment.id
-            })
-
-        # Handle yearly membership assignment
-        elif package_type == 'yearly':
-            from .new_packages_queries import get_yearly_membership_by_id
-
-            template = get_yearly_membership_by_id(package_id)
-            if not template:
-                return jsonify({'success': False, 'error': 'Yearly membership template not found'}), 404
+            # Service ID is required for service packages
+            if not data.get('service_id'):
+                return jsonify({'success': False, 'error': 'Service selection is required for service packages'}), 400
 
             # Calculate expiry date
-            if expires_on:
-                expiry_date = datetime.strptime(expires_on, '%Y-%m-%d').date()
-            else:
-                expiry_date = datetime.now().date() + timedelta(days=template.validity_months * 30)
+            expiry_date = None
+            if data.get('expiry_date'):
+                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
+            elif service_pkg.validity_months:
+                expiry_date = datetime.utcnow() + timedelta(days=service_pkg.validity_months * 30)
 
             # Create assignment record
             assignment = ServicePackageAssignment(
-                customer_id=customer_id,
-                package_type='yearly',
-                package_reference_id=package_id,
+                customer_id=data['client_id'],
+                package_type='service_package',
+                package_reference_id=service_pkg.id,
+                service_id=data['service_id'],
                 assigned_on=datetime.utcnow(),
-                expires_on=datetime.combine(expiry_date, datetime.min.time()) if expiry_date else None,
-                price_paid=price_paid or template.price,
-                notes=notes,
-                status='active'
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Service package uses session tracking
+                total_sessions=service_pkg.total_services,
+                used_sessions=0,
+                remaining_sessions=service_pkg.total_services,
+                credit_amount=0,
+                used_credit=0,
+                remaining_credit=0
             )
-
-            db.session.add(assignment)
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': f'Yearly membership "{template.name}" assigned successfully to {customer.full_name}',
-                'id': assignment.id
-            })
-
-        # Handle kitty party assignment
-        elif package_type == 'kitty':
-            from .new_packages_queries import get_kitty_party_by_id
-
-            template = get_kitty_party_by_id(package_id)
-            if not template:
-                return jsonify({'success': False, 'error': 'Kitty party template not found'}), 404
-
-            # Create assignment record (kitty parties may not have expiry)
-            assignment = ServicePackageAssignment(
-                customer_id=customer_id,
-                package_type='kitty',
-                package_reference_id=package_id,
-                assigned_on=datetime.utcnow(),
-                expires_on=None,  # Kitty parties typically don't expire
-                price_paid=price_paid or template.price,
-                notes=notes,
-                status='active'
-            )
-
-            db.session.add(assignment)
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': f'Kitty party "{template.name}" assigned successfully to {customer.full_name}',
-                'id': assignment.id
-            })
 
         else:
-            return jsonify({'success': False, 'error': 'Package type not supported'}), 400
+            return jsonify({'success': False, 'error': f'Package type {package_type} not supported yet'}), 400
+
+        db.session.add(assignment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'{package_type.title()} assigned successfully to {customer.full_name}',
+            'assignment_id': assignment.id
+        })
 
     except Exception as e:
-        db.session.rollback()
         logging.error(f"Error assigning package: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to assign package'}), 500
