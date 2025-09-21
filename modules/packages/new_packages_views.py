@@ -9,6 +9,26 @@ from .new_packages_queries import *
 import logging
 from datetime import datetime, timedelta
 
+# Assuming 'packages_blueprint' is defined elsewhere and imported, and logger is configured.
+# For the purpose of this example, let's assume they are available.
+# If not, these would need to be defined or imported.
+# from flask import Blueprint
+# packages_blueprint = Blueprint('packages', __name__)
+# logger = logging.getLogger(__name__)
+
+# Placeholder for packages_blueprint and logger if not defined in the original context
+try:
+    packages_blueprint
+except NameError:
+    from flask import Blueprint
+    packages_blueprint = Blueprint('packages', __name__)
+    app.register_blueprint(packages_blueprint) # Register blueprint with app
+
+try:
+    logger
+except NameError:
+    logger = logging.getLogger(__name__)
+
 # ========================================
 # MAIN PACKAGES PAGE WITH TABS
 # ========================================
@@ -947,7 +967,7 @@ def get_assigned_customers(package_type, package_id):
     try:
         # Map yearly to yearly_membership for compatibility
         actual_package_type = 'yearly_membership' if package_type == 'yearly' else package_type
-        
+
         # Get assignments for the specified package
         assignments = ServicePackageAssignment.query.filter_by(
             package_type=actual_package_type,

@@ -539,9 +539,13 @@ class KittyParty(db.Model):
     price = db.Column(db.Float, nullable=False)
     after_value = db.Column(db.Float, nullable=True)
     min_guests = db.Column(db.Integer, nullable=False)
+    valid_from = db.Column(db.Date, nullable=True)
+    valid_to = db.Column(db.Date, nullable=True)
+    conditions = db.Column(db.Text, nullable=True)
     services_included = db.Column(db.Text, nullable=True)  # Keep for backward compatibility
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     kittyparty_services = db.relationship('KittyPartyService', backref='kittyparty', lazy=True, cascade='all, delete-orphan')

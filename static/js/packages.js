@@ -18,6 +18,15 @@ let currentPackageDetails = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer Packages JS loaded');
     initializePackages();
+
+    // Initialize kitty party modals
+    initializeKittyPartyModals();
+
+    // Initialize student offer modals
+    initializeStudentOfferModals();
+
+    // Setup event listeners for tables
+    setupTableEventDelegation();
 });
 
 /**
@@ -1769,7 +1778,7 @@ function showToast(message, type = 'info') {
     } else {
         // Create a simple Bootstrap toast
         const toastContainer = document.getElementById('toast-container') || createToastContainer();
-        
+
         const toastId = 'toast-' + Date.now();
         const bgClass = {
             'success': 'bg-success',
@@ -1791,7 +1800,7 @@ function showToast(message, type = 'info') {
         `;
 
         toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-        
+
         const toastElement = document.getElementById(toastId);
         const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 });
         bsToast.show();
@@ -1916,17 +1925,17 @@ function confirmPackageAssignment() {
 
 // Event delegation for assign buttons
 document.addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-action="assign"]');
-    if (!btn) return;
+    if (e.target.closest('[data-action="assign"]')) {
+        const btn = e.target.closest('[data-action="assign"]');
+        e.preventDefault();
+        e.stopPropagation();
 
-    e.preventDefault();
-    e.stopPropagation();
+        const templateId = btn.dataset.templateId;
+        const packageType = btn.dataset.packageType || 'prepaid';
 
-    const templateId = btn.dataset.templateId;
-    const packageType = btn.dataset.packageType || 'prepaid';
-
-    if (templateId) {
-        window.PackagesUI.assignFromTemplate(templateId, packageType);
+        if (templateId) {
+            window.PackagesUI.assignFromTemplate(templateId, packageType);
+        }
     }
 });
 
@@ -2309,55 +2318,6 @@ function assignStudentOffer(offerId) {
 }
 
 // ========================================
-// GLOBAL FUNCTION ATTACHMENTS
-// ========================================
-// Attach functions to global scope for inline onclick handlers
-
-window.openAssignModal = openAssignModal;
-window.openDetails = openDetails;
-window.openUseModal = openUseModal;
-window.openAdjustModal = openAdjustModal;
-window.clearFilters = clearFilters;
-window.applyFilters = applyFilters;
-window.changePage = changePage;
-window.confirmPackageAssignment = confirmPackageAssignment;
-// Student offer functions
-window.loadStudentPackages = loadStudentPackages;
-window.editStudentOffer = editStudentOffer;
-window.deleteStudentOffer = deleteStudentOffer;
-window.assignStudentOffer = assignStudentOffer;
-
-
-// Event listeners and initializations
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize student offer modals
-    initializeStudentOfferModals();
-
-    function updateSelectedServices() {
-        const selectedServices = [];
-        document.querySelectorAll('.service-checkbox:checked').forEach(function(checkbox) {
-            const serviceItem = checkbox.closest('.service-item');
-            const sessions = serviceItem.querySelector('.sessions-input').value || 1;
-            const discount = serviceItem.querySelector('.discount-input').value || 0;
-
-            selectedServices.push({
-                service_id: parseInt(checkbox.value),
-                sessions: parseInt(sessions),
-                discount: parseFloat(discount)
-            });
-        });
-
-        document.getElementById('selected_services_json').value = JSON.stringify(selectedServices);
-    }
-
-    // Initialize tooltips for all action buttons
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-});
-
-// ========================================
 // MINIMAL ASSIGN FLOW FUNCTIONALITY
 // ========================================
 
@@ -2727,7 +2687,7 @@ function createPackageTableRow(pkg, packageType) {
 }
 
 // Event delegation for assign buttons - Wait for DOM to be ready
-document.addEventListener('DOMContentLoaded', function() {
+function setupTableEventDelegation() {
     // Event delegation for assign buttons
     document.addEventListener('click', function(e) {
         if (e.target.closest('[data-action="assign-simple"]')) {
@@ -2738,12 +2698,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Save button event listener
+    // Save button event listener for simple assign modal
     const saveBtn = document.getElementById('asSave');
     if (saveBtn) {
         saveBtn.addEventListener('click', saveAssignSimple);
     }
-});
+}
 
 // Expose functions to global scope immediately
 window.loadMembershipPackages = loadMembershipPackages;
@@ -2752,3 +2712,340 @@ window.loadYearlyPackages = loadYearlyPackages;
 window.loadKittyPackages = loadKittyPackages;
 window.openAssignSimple = openAssignSimple;
 window.saveAssignSimple = saveAssignSimple;
+
+// Kitty party functions
+window.loadKittyPackages = loadKittyPackages;
+window.editKittyParty = editKittyParty;
+window.deleteKittyParty = deleteKittyParty;
+window.assignKittyParty = assignKittyParty;
+
+
+// Load kitty packages for tables
+async function loadKittyPackages() {
+    try {
+        console.log('Loading kitty party packages...');
+
+        const response = await fetch('/api/kitty-parties');
+        const data = await response.json();
+
+        if (data.success && data.parties) {
+            const tableBody = document.querySelector('#tblKittyPackages tbody');
+            tableBody.innerHTML = '';
+
+            data.parties.forEach(party => {
+                const row = document.createElement('tr');
+                const servicesList = party.services.map(s => s.name).join(', ');
+                const validPeriod = party.valid_from && party.valid_to ? 
+                    `${party.valid_from} to ${party.valid_to}` : 'No validity period';
+                const afterValue = party.after_value ? `₹${party.after_value}` : 'N/A';
+                const conditions = party.conditions || 'No conditions';
+
+                row.innerHTML = `
+                    <td><strong>${party.name}</strong></td>
+                    <td>₹${party.price}</td>
+                    <td>${afterValue}</td>
+                    <td>${party.min_guests}</td>
+                    <td><small>${servicesList}</small></td>
+                    <td><small>${validPeriod}</small></td>
+                    <td><small>${conditions}</small></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-warning" onclick="editKittyParty(${party.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteKittyParty(${party.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn btn-primary" onclick="assignKittyParty(${party.id})" title="Assign">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update count
+            document.getElementById('kitty-total-count').textContent = data.parties.length;
+        }
+    } catch (error) {
+        console.error('Error loading kitty party packages:', error);
+        showToast('Error loading kitty party packages', 'error');
+    }
+}
+
+// Initialize kitty party modals
+function initializeKittyPartyModals() {
+    // Load services into dropdowns
+    loadServicesForKittyParties();
+
+    // Set default dates (today and 3 months from now)
+    const today = new Date().toISOString().split('T')[0];
+    const threeMonthsLater = new Date();
+    threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+    const futureDate = threeMonthsLater.toISOString().split('T')[0];
+
+    document.getElementById('kittyValidFrom').value = today;
+    document.getElementById('kittyValidTo').value = futureDate;
+
+    // Form validation event listeners
+    const addForm = document.getElementById('addKittyPartyForm');
+    if (addForm) {
+        addForm.addEventListener('input', validateKittyPartyForm);
+        addForm.addEventListener('change', validateKittyPartyForm);
+    }
+
+    // Save button event listener
+    const saveBtn = document.getElementById('saveKittyParty');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveKittyParty);
+    }
+
+    // Update button event listener
+    const updateBtn = document.getElementById('updateKittyParty');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', updateKittyParty);
+    }
+}
+
+// Load services for kitty party dropdowns
+async function loadServicesForKittyParties() {
+    try {
+        const response = await fetch('/packages/api/services');
+        const data = await response.json();
+
+        if (data.success) {
+            const addSelect = document.getElementById('kittyPartyServices');
+            const editSelect = document.getElementById('editKittyPartyServices');
+
+            const optionsHTML = data.services.map(service => 
+                `<option value="${service.id}">${service.name} - ₹${service.price}</option>`
+            ).join('');
+
+            if (addSelect) addSelect.innerHTML = optionsHTML;
+            if (editSelect) editSelect.innerHTML = optionsHTML;
+        }
+    } catch (error) {
+        console.error('Error loading services:', error);
+    }
+}
+
+// Validate kitty party form
+function validateKittyPartyForm() {
+    const name = document.getElementById('kittyPartyName');
+    const price = document.getElementById('kittyPrice');
+    const minGuests = document.getElementById('kittyMinGuests');
+    const services = document.getElementById('kittyPartyServices');
+    const saveBtn = document.getElementById('saveKittyParty');
+
+    const isValid = name.value.trim() && 
+                   price.value && parseFloat(price.value) > 0 &&
+                   minGuests.value && parseInt(minGuests.value) > 0 &&
+                   services.selectedOptions.length > 0;
+
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+
+    // Update preview
+    updateKittyPartyPreview();
+}
+
+// Update kitty party preview
+function updateKittyPartyPreview() {
+    const name = document.getElementById('kittyPartyName');
+    const price = document.getElementById('kittyPrice');
+    const afterValue = document.getElementById('kittyAfterValue');
+    const minGuests = document.getElementById('kittyMinGuests');
+    const services = document.getElementById('kittyPartyServices');
+    const validFrom = document.getElementById('kittyValidFrom');
+    const validTo = document.getElementById('kittyValidTo');
+    const preview = document.getElementById('kittyPartyPreview');
+
+    if (name.value && price.value && minGuests.value && services.selectedOptions.length > 0) {
+        const selectedServices = Array.from(services.selectedOptions).map(opt => opt.textContent);
+        const afterVal = afterValue.value ? `₹${afterValue.value}` : 'Not set';
+        const validPeriod = validFrom.value && validTo.value ? 
+            `${validFrom.value} to ${validTo.value}` : 'No validity period';
+
+        const previewHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Party:</strong> ${name.value}<br>
+                    <strong>Price:</strong> ₹${price.value}<br>
+                    <strong>After Value:</strong> ${afterVal}<br>
+                    <strong>Min Guests:</strong> ${minGuests.value}
+                </div>
+                <div class="col-md-6">
+                    <strong>Services:</strong><br>
+                    <ul class="mb-2">
+                        ${selectedServices.map(s => `<li class="small">${s}</li>`).join('')}
+                    </ul>
+                    <strong>Valid:</strong> ${validPeriod}
+                </div>
+            </div>
+        `;
+        preview.innerHTML = previewHTML;
+    } else {
+        preview.innerHTML = '<p class="text-muted">Fill in party details to see preview</p>';
+    }
+}
+
+// Save kitty party
+async function saveKittyParty() {
+    try {
+        const form = document.getElementById('addKittyPartyForm');
+        const formData = new FormData(form);
+
+        // Convert to JSON
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'service_ids') {
+                if (!data[key]) data[key] = [];
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
+        });
+
+        const response = await fetch('/api/kitty-parties', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success || response.ok) {
+            showToast('Kitty party created successfully!', 'success');
+
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addKittyPartyModal'));
+            modal.hide();
+
+            // Reset form
+            form.reset();
+            document.getElementById('saveKittyParty').disabled = true;
+
+            // Reload table
+            await loadKittyPackages();
+        } else {
+            throw new Error(result.error || 'Failed to create kitty party');
+        }
+    } catch (error) {
+        console.error('Error saving kitty party:', error);
+        showToast('Error creating kitty party: ' + error.message, 'error');
+    }
+}
+
+// Edit kitty party
+async function editKittyParty(partyId) {
+    try {
+        const response = await fetch(`/api/kitty-parties`);
+        const data = await response.json();
+        const party = data.parties.find(p => p.id === partyId);
+
+        if (party) {
+            // Populate edit form
+            document.getElementById('editPartyId').value = party.id;
+            document.getElementById('editKittyPartyName').value = party.name;
+            document.getElementById('editKittyPrice').value = party.price;
+            document.getElementById('editKittyAfterValue').value = party.after_value || '';
+            document.getElementById('editKittyMinGuests').value = party.min_guests;
+            document.getElementById('editKittyValidFrom').value = party.valid_from || '';
+            document.getElementById('editKittyValidTo').value = party.valid_to || '';
+            document.getElementById('editKittyConditions').value = party.conditions || '';
+
+            // Select services
+            const serviceSelect = document.getElementById('editKittyPartyServices');
+            Array.from(serviceSelect.options).forEach(option => {
+                option.selected = party.services.some(s => s.id == option.value);
+            });
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editKittyPartyModal'));
+            modal.show();
+        }
+    } catch (error) {
+        console.error('Error loading kitty party for edit:', error);
+        showToast('Error loading kitty party', 'error');
+    }
+}
+
+// Update kitty party
+async function updateKittyParty() {
+    try {
+        const form = document.getElementById('editKittyPartyForm');
+        const formData = new FormData(form);
+        const partyId = document.getElementById('editPartyId').value;
+
+        // Convert to JSON
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'service_ids') {
+                if (!data[key]) data[key] = [];
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
+        });
+
+        const response = await fetch(`/api/kitty-parties/${partyId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success || response.ok) {
+            showToast('Kitty party updated successfully!', 'success');
+
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editKittyPartyModal'));
+            modal.hide();
+
+            // Reload table
+            await loadKittyPackages();
+        } else {
+            throw new Error(result.error || 'Failed to update kitty party');
+        }
+    } catch (error) {
+        console.error('Error updating kitty party:', error);
+        showToast('Error updating kitty party: ' + error.message, 'error');
+    }
+}
+
+// Delete kitty party
+async function deleteKittyParty(partyId) {
+    if (!confirm('Are you sure you want to delete this kitty party?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/kitty-parties/${partyId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success || response.ok) {
+            showToast('Kitty party deleted successfully!', 'success');
+            await loadKittyPackages();
+        } else {
+            throw new Error(result.error || 'Failed to delete kitty party');
+        }
+    } catch (error) {
+        console.error('Error deleting kitty party:', error);
+        showToast('Error deleting kitty party: ' + error.message, 'error');
+    }
+}
+
+// Assign kitty party
+function assignKittyParty(partyId) {
+    openAssignSimple(partyId, 'kitty');
+}
