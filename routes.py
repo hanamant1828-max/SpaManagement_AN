@@ -11,6 +11,66 @@ import utils
 import base64
 import os
 
+def create_default_data():
+    """Create default data for the application"""
+    try:
+        from models import User, Role, Permission, Category, Department, Service, Customer
+
+        # Create default admin user if it doesn't exist
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
+            admin_user = User(
+                username='admin',
+                email='admin@spa.com',
+                first_name='System',
+                last_name='Administrator',
+                role='admin',
+                is_active=True,
+                password_hash=generate_password_hash('admin123')
+            )
+            db.session.add(admin_user)
+            print("Created default admin user with proper password hash")
+        elif not admin_user.password_hash:
+            # Fix existing admin user if password_hash is missing
+            admin_user.password_hash = generate_password_hash('admin123')
+            admin_user.is_active = True
+            print("Fixed admin user password hash")
+
+        # Create default categories
+        categories = [
+            {'name': 'facial', 'display_name': 'Facial Services', 'category_type': 'service'},
+            {'name': 'massage', 'display_name': 'Massage Services', 'category_type': 'service'},
+            {'name': 'beauty', 'display_name': 'Beauty Services', 'category_type': 'service'},
+            {'name': 'supplies', 'display_name': 'Supplies', 'category_type': 'expense'},
+            {'name': 'utilities', 'display_name': 'Utilities', 'category_type': 'expense'}
+        ]
+
+        for cat_data in categories:
+            category = Category.query.filter_by(name=cat_data['name']).first()
+            if not category:
+                category = Category(**cat_data)
+                db.session.add(category)
+
+        # Create default services
+        services = [
+            {'name': 'Basic Facial', 'price': 50.0, 'duration': 60, 'category': 'facial'},
+            {'name': 'Deep Tissue Massage', 'price': 80.0, 'duration': 90, 'category': 'massage'},
+            {'name': 'Manicure', 'price': 25.0, 'duration': 45, 'category': 'beauty'}
+        ]
+
+        for service_data in services:
+            service = Service.query.filter_by(name=service_data['name']).first()
+            if not service:
+                service = Service(**service_data, is_active=True)
+                db.session.add(service)
+
+        db.session.commit()
+        print("Default data created successfully")
+
+    except Exception as e:
+        print(f"Error creating default data: {e}")
+        db.session.rollback()
+
 # Import module views individually to avoid conflicts
 try:
     from modules.auth import auth_views
@@ -19,18 +79,21 @@ try:
     from modules.clients import clients_views
     from modules.services import services_views
     from modules.inventory import views as inventory_views
-    # from modules.billing import billing_views  # Removed - billing_views.py deleted
-    from modules.staff.shift_scheduler_views import shift_scheduler_bp
-    app.register_blueprint(shift_scheduler_bp)
     from modules.expenses import expenses_views
     from modules.reports import reports_views
     from modules.packages import packages_views
+    from modules.packages import membership_views
     from modules.checkin import checkin_views
     from modules.notifications import notifications_views
     from modules.settings import settings_views
     from modules.staff import staff_views
-    from modules.staff import shift_scheduler_views
-    # from modules.hanamantinventory import views as hanaman_views  # Removed
+    from modules.staff.shift_scheduler_views import shift_scheduler_bp
+    from modules.billing import integrated_billing_views
+
+    # Register the shift scheduler blueprint
+    app.register_blueprint(shift_scheduler_bp)
+    print("Shift scheduler blueprint registered successfully")
+    print("Integrated billing views imported successfully")
     print("All modules imported successfully")
 except ImportError as e:
     print(f"Module import error: {e}")
@@ -49,7 +112,7 @@ def create_default_data():
                        Commission, Promotion, Waitlist, RecurringAppointment, Location, 
                        BusinessSettings, Role, Permission, RolePermission, Category, 
                        Department, SystemSetting)
-    
+
     try:
         # Create default admin user if not exists
         admin_user = User.query.filter_by(username='admin').first()
@@ -69,6 +132,12 @@ def create_default_data():
             is_active=True
         )
         db.session.add(admin_user)
+        print("Created admin user in second function")
+    elif not admin_user.password_hash or not admin_user.is_active:
+        # Fix existing admin user issues
+        admin_user.password_hash = generate_password_hash('admin123')
+        admin_user.is_active = True
+        print("Fixed admin user in second function")
 
     # Create default roles
     default_roles = [
@@ -140,41 +209,46 @@ def create_default_data():
     #     print("Inventory defaults initialized!")
     # except Exception as e:
     #     print(f"Error initializing inventory defaults: {e}")
-    
+
     print("Comprehensive default data created successfully")
 
 # Root route
 @app.route('/')
 def index():
-    """Root route - redirect to dashboard for testing"""
+    """Root route - redirect to dashboard or return simple OK"""
     try:
-        # For testing - always redirect to dashboard
         return redirect(url_for('dashboard'))
-    except Exception as e:
-        print(f"Error in index route: {e}")
-        # For testing - always redirect to dashboard
-        return redirect(url_for('dashboard'))
+    except Exception:
+        # Fallback if dashboard route not available
+        return render_template('dashboard.html') if os.path.exists('templates/dashboard.html') else "Spa Management System - OK", 200
+
+# Health check route for deployment  
+@app.route('/health')
+def health_check():
+    return {
+        'status': 'ok', 
+        'service': 'spa_management',
+        'version': '1.0.0'
+    }, 200
 
 # Backward compatibility route
 @app.route('/clients')
-
 def clients_redirect():
     return redirect(url_for('customers'))
 
 # Additional routes that don't fit in modules yet
-@app.route('/alerts')
-
-def alerts():
-    if False:
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    return render_template('alerts.html')
+# alerts route is now handled in dashboard module
 
 @app.route('/test_navigation')
 
 def test_navigation():
     """Navigation testing page"""
     return render_template('test_navigation.html')
+
+@app.route('/billing')
+def billing():
+    """Redirect to integrated billing"""
+    return redirect(url_for('integrated_billing'))
 
 @app.route('/communications')
 
@@ -525,7 +599,6 @@ def update_business_settings():
 
 # API endpoints for Role Management
 @app.route('/api/roles', methods=['POST'])
-
 def api_create_role():
     """API endpoint to create a new role"""
     if False:
@@ -552,7 +625,6 @@ def api_create_role():
         return {'error': str(e)}, 500
 
 @app.route('/api/roles/<int:role_id>', methods=['DELETE'])
-
 def api_delete_role(role_id):
     """API endpoint to delete a role"""
     if False:
@@ -573,7 +645,6 @@ def api_delete_role(role_id):
         return {'error': str(e)}, 500
 
 @app.route('/api/roles/<int:role_id>/permissions', methods=['GET'])
-
 def api_get_role_permissions(role_id):
     """API endpoint to get role permissions"""
     if False:
@@ -592,7 +663,6 @@ def api_get_role_permissions(role_id):
         return {'error': str(e)}, 500
 
 @app.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
-
 def api_update_role_permissions(role_id):
     """API endpoint to update role permissions"""
     if False:
@@ -628,10 +698,9 @@ def api_update_role_permissions(role_id):
 
 # Additional API routes
 @app.route('/api/services')
-
 def api_services():
     from models import Service
-    
+
     services = Service.query.filter_by(is_active=True).all()
     return jsonify([{
         'id': s.id,
@@ -641,10 +710,9 @@ def api_services():
     } for s in services])
 
 @app.route('/api/staff')
-
 def api_staff():
     from models import User
-    
+
     staff = User.query.filter(User.role.in_(['staff', 'manager'])).filter_by(is_active=True).all()
     return jsonify([{
         'id': s.id,

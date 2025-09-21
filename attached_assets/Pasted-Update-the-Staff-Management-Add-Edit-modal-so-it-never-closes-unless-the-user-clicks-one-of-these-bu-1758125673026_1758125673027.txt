@@ -1,0 +1,108 @@
+Update the Staff Management Add/Edit modal so it never closes unless the user clicks one of these buttons:
+
+Close (id: #btnStaffClose)
+
+Save (id: #btnStaffSave) or Update (id: #btnStaffUpdate)
+
+All other dismissal methods must be disabled:
+
+Clicking outside/backdrop
+
+Pressing Esc
+
+Clicking the X icon in the header
+
+Files (adapt to repo names)
+
+Modal markup & styles: staff-modal.html / staff.css
+
+Modal logic: staff-modal.js (or wherever the modal is controlled)
+
+If using a framework, update the appropriate component (e.g., StaffModal.*).
+
+Required behavior
+
+Backdrop
+
+Make the backdrop non-dismissable. Backdrop clicks do not close the modal.
+
+Esc key
+
+Prevent Esc from closing the modal.
+
+Header “X”
+
+Remove it or keep it but disable it. Only the Close button should close.
+
+Programmatic guards
+
+Intercept any generic hide/close attempts and block them unless the trigger was #btnStaffClose, #btnStaffSave, or #btnStaffUpdate.
+
+Implement with a scoped flag or checking the event target.
+
+Unsaved changes (optional)
+
+If there are pending edits and the user clicks Close, show a small confirm dialog:
+“Discard changes?” → Discard / Cancel.
+
+Save/Update should proceed without the confirm.
+
+Accessibility
+
+Keep focus trapping inside the modal.
+
+When blocked (e.g., backdrop/Esc), keep focus inside; do not shift focus unexpectedly.
+
+Restore focus to the button that opened the modal on successful close.
+
+Framework specifics (apply the one we use)
+
+Bootstrap 5/4
+
+Initialize with { backdrop: 'static', keyboard: false }.
+
+Listen for hide.bs.modal; preventDefault() unless the initiator is one of the allowed buttons.
+
+HTML <dialog>
+
+Use showModal(); prevent the cancel event: e.preventDefault().
+
+Ignore backdrop clicks (handle via click on ::backdrop by blocking).
+
+Only call close() from the allowed buttons.
+
+Custom modal
+
+Remove backdrop click listener or make it a no-op.
+
+On keydown Esc inside the modal, preventDefault() and stop propagation.
+
+Ensure only the allowed buttons call the close function.
+
+IDs & hooks (ensure these exist)
+
+Modal root: #staffModal
+
+Buttons: #btnStaffSave, #btnStaffUpdate, #btnStaffClose
+
+(If header X remains) give it id #btnStaffHeaderX and disable it.
+
+QA checklist
+
+Click outside the modal → stays open.
+
+Press Esc → stays open.
+
+Click the X (if present) → stays open.
+
+Click Close → closes (optionally confirm if unsaved).
+
+Click Save/Update → saves/updates then closes.
+
+No console errors; focus returns to the opener button.
+
+Deliverables
+
+Updated modal markup & JS implementing the above.
+
+Brief comment in the JS explaining why only Close/Save/Update may close the modal.

@@ -62,12 +62,18 @@ def update_customer(customer_id, customer_data):
 
 def delete_customer(customer_id):
     """Soft delete a customer"""
-    customer = Customer.query.get(customer_id)
-    if customer:
-        customer.is_active = False
-        db.session.commit()
-        return True
-    return False
+    from models import Customer
+    try:
+        customer = Customer.query.get(customer_id)
+        if customer:
+            customer.is_active = False
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting customer {customer_id}: {e}")
+        return False
 
 def get_customer_appointments(customer_id):
     """Get appointments for a customer"""

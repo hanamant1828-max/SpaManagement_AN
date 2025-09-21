@@ -81,12 +81,27 @@ def create_expense_route():
             flash('Expense description is required. Please provide details about the expense.', 'danger')
             return redirect(url_for('expenses'))
         
+        # Handle time field
+        expense_time = None
+        time_str = request.form.get('expense_time')
+        if time_str:
+            try:
+                from datetime import time
+                hour, minute = map(int, time_str.split(':'))
+                expense_time = time(hour, minute)
+            except (ValueError, AttributeError):
+                expense_time = None
+
         expense_data = {
             'amount': amount,
             'description': description,
             'category_id': form.category_id.data if form.category_id.data else None,
+            'category': request.form.get('category', 'general'),  # Fallback category
             'expense_date': form.expense_date.data or date.today(),
+            'expense_time': expense_time,
+            'payment_method': request.form.get('payment_method', 'cash'),
             'receipt_path': (form.receipt_path.data or '').strip(),
+            'notes': (form.notes.data or '').strip(),
             'created_by': current_user.id
         }
         

@@ -1,0 +1,111 @@
+Remove the Work Schedule block from the Add New Staff Member modal and make sure the form, validations, and backend no longer expect those fields.
+
+Files to update
+
+Frontend (adjust for my stack):
+
+If plain HTML/JS: staff-modal.html, staff-modal.css, staff-modal.js
+
+If component-based: StaffModal.* (React/Vue/Svelte) and its styles
+
+Backend (only if we currently send/expect schedule fields):
+
+Controller/route handling Staff create/update
+
+DTO/model/schema where shiftStart, shiftEnd, workingDays may exist
+
+What to remove (UI)
+
+Entire card/fieldset titled “Work Schedule” containing:
+
+Shift Start (time)
+
+Shift End (time)
+
+Working Days (any input, text box, or helper)
+
+Remove any helper text referencing scheduling inside this modal.
+
+What to add (UI)
+
+In place of that block, show a tiny muted note under the form:
+
+“Scheduling is managed separately. Use Staff Scheduling after saving the staff profile.”
+
+Reflow the layout so the right column (where Work Schedule was) doesn’t leave empty space:
+
+Expand adjacent sections to full width on desktop.
+
+Keep spacing and headings consistent.
+
+Keep all remaining sections unchanged:
+
+Basic Information
+
+Role & Department
+
+Personal Details
+
+Advanced Features
+
+Additional Information
+
+Form & validation updates
+
+Remove any required or optional validations for:
+
+shiftStart, shiftEnd, workingDays
+
+Ensure the Submit/Save button state no longer depends on those fields.
+
+On submit, the payload must not include those keys.
+
+Backend/API updates
+
+If staff create/update endpoints currently accept these fields:
+
+Mark them deprecated and ignore, or
+
+Remove them from DTOs entirely.
+
+Database:
+
+If columns exist (shift_start, shift_end, working_days), do not drop today. Make them nullable and stop writing to them. (Optional migration later.)
+
+Make sure staff creation works without these fields and returns the same success response.
+
+Cleanup
+
+Delete any dead code (getters, watchers, parsers) tied to the removed fields.
+
+Remove tooltip text or examples like “1111100 = Monday to Friday” if still present.
+
+No console warnings/errors after save.
+
+QA (manual checks)
+
+Open Add New Staff Member → confirm Work Schedule block is gone, layout looks balanced.
+
+Fill required fields (username, first/last name, email, etc.) → Save succeeds.
+
+Inspect network request → payload has no shiftStart, shiftEnd, or workingDays.
+
+Create and edit a staff again → still no schedule fields sent; no errors.
+
+Confirm the small note about using Staff Scheduling is visible.
+
+If a Staff Scheduling page exists, its entry point still works independently.
+
+Acceptance criteria
+
+No Work Schedule UI in the modal.
+
+No validation expecting schedule fields.
+
+No schedule fields sent to the server.
+
+Save/edit flows succeed with zero console errors.
+
+Layout remains professional on desktop and mobile.
+
+If file names/paths differ, adapt, but keep the removal and reflow exactly as specified.

@@ -117,7 +117,7 @@
                                         <td>{{ appointment.service.name }}</td>
                                         <td>{{ utils.format_datetime(appointment.appointment_date) }}</td>
                                         <td>
-                                            <span class="badge bg-{{ utils.get_status_class(appointment.status) }}">
+                                            <span class="badge bg-{{ utils.get_status_badge_class(appointment.status) }}">
                                                 {{ appointment.status.replace('_', ' ').title() }}
                                             </span>
                                         </td>

@@ -119,7 +119,7 @@
                             <tbody>
                                 {% for appointment in appointments %}
                                 <tr>
-                                    <td>{{ appointment.appointment_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ appointment.appointment_date.strftime('%Y-%m-%d %I:%M %p') }}</td>
                                     <td>{{ appointment.service.name if appointment.service else 'N/A' }}</td>
                                     <td>{{ appointment.assigned_staff.full_name if appointment.assigned_staff else 'N/A' }}</td>
                                     <td>

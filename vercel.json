@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/static/(.*)", "destination": "/static/$1" },
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.11",
+      "includeFiles": ["templates/**", "modules/**", "models.py", "routes.py", "forms.py", "utils.py", "app.py"]
+    }
+  }
+}

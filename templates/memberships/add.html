@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Membership{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-plus me-2"></i>Add New Membership
+                    </h1>
+                    <p class="text-muted">Create a new membership package for your spa</p>
+                </div>
+                <a href="{{ url_for('memberships_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Memberships
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-id-card me-2"></i>Membership Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('membership_add_submit') }}">
+                        <!-- Basic Information -->
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="name" class="form-label">Membership Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required 
+                                       placeholder="e.g., Premium Spa Membership">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="validity_months" class="form-label">Validity (Months) *</label>
+                                <input type="number" class="form-control" id="validity_months" name="validity_months" 
+                                       value="12" min="1" max="36" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="price" class="form-label">Price (₹) *</label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       step="0.01" min="0" required placeholder="0.00">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                    <label class="form-check-label" for="is_active">
+                                        <strong>Active Membership</strong>
+                                        <br><small class="text-muted">Available for new customers</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Describe the membership benefits and terms..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="services_included" class="form-label">Services Summary</label>
+                            <textarea class="form-control" id="services_included" name="services_included" rows="2" 
+                                      placeholder="Brief summary of included services (e.g., All spa services with 20% discount)"></textarea>
+                        </div>
+
+                        <!-- Service Selection -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="fas fa-spa me-2"></i>Included Services
+                                <small class="text-muted">(Select services included in this membership)</small>
+                            </h6>
+
+                            {% if services %}
+                            <div class="row">
+                                {% for service in services %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       name="service_ids" value="{{ service.id }}" 
+                                                       id="service_{{ service.id }}">
+                                                <label class="form-check-label w-100" for="service_{{ service.id }}">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <h6 class="card-title mb-1">{{ service.name }}</h6>
+                                                            {% if service.description %}
+                                                            <p class="card-text small text-muted mb-2">{{ service.description[:60] }}...</p>
+                                                            {% endif %}
+                                                            <div class="badge bg-primary">₹{{ service.price }}</div>
+                                                            {% if service.duration %}
+                                                            <div class="badge bg-secondary ms-1">{{ service.duration }} min</div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No services available. Please add services first before creating memberships.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('memberships_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Create Membership
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add form validation and service selection handling
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const form = document.querySelector('form');
+        const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]');
+
+        console.log('Membership add form initialized');
+
+        // Handle form submission
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                try {
+                    const nameInput = document.querySelector('input[name="name"]');
+                    const priceInput = document.querySelector('input[name="price"]');
+
+                    if (!nameInput || !priceInput) {
+                        console.error('Required form inputs not found');
+                        return true; // Let server handle validation
+                    }
+
+                    const name = nameInput.value.trim();
+                    const price = parseFloat(priceInput.value);
+
+                    if (!name) {
+                        e.preventDefault();
+                        alert('Please enter a membership name');
+                        return false;
+                    }
+
+                    if (!price || price <= 0) {
+                        e.preventDefault();
+                        alert('Please enter a valid price greater than 0');
+                        return false;
+                    }
+
+                    console.log('Form validation passed');
+                    return true;
+                } catch (error) {
+                    console.error('Form submission error:', error);
+                    return true; // Let server handle it
+                }
+            });
+        }
+
+        // Handle service selection
+        if (serviceCheckboxes.length > 0) {
+            serviceCheckboxes.forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    try {
+                        updateSelectedServices();
+                    } catch (error) {
+                        console.error('Service selection error:', error);
+                    }
+                });
+            });
+        }
+
+        function updateSelectedServices() {
+            try {
+                const selected = document.querySelectorAll('input[name="service_ids"]:checked');
+                console.log(`${selected.length} services selected`);
+            } catch (error) {
+                console.error('Update selected services error:', error);
+            }
+        }
+
+    } catch (error) {
+        console.error('Membership form initialization error:', error);
+    }
+});
+</script>
+
+{% endblock %}

@@ -76,11 +76,6 @@
 
                     {% if true %}
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('bookings') }}">
-                            <i class="fas fa-calendar-alt me-2"></i><span>Smart Booking & Calendar</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('staff_availability') }}">
                             <i class="fas fa-users-cog me-2"></i><span>Staff Availability - Quick Book</span>
                         </a>
@@ -109,9 +104,10 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('shift_scheduler.shift_scheduler') }}">
-                            <i class="fas fa-calendar-alt me-2"></i><span>Shift Scheduler</span>
+                            <i class="fas fa-calendar-week me-2"></i><span>Shift Scheduler</span>
                         </a>
                     </li>
+
                     {% endif %}
 
                     {% if true %}
@@ -131,11 +127,10 @@
                     {% endif %}
 
                     {% if true %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('integrated_billing') }}">
-                            <i class="fas fa-cash-register me-2"></i><span>Billing System</span>
+                    <a class="nav-link text-white" href="{{ url_for('integrated_billing') }}">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Integrated Billing
                         </a>
-                    </li>
                     {% endif %}
 
 
@@ -150,7 +145,12 @@
                     {% if true %}
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('packages') }}">
-                            <i class="fas fa-gift me-2"></i><span>Package Management</span>
+                            <i class="fas fa-gift me-2"></i><span>Professional Packages</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('customer_packages') }}">
+                            <i class="fas fa-users me-2"></i>Customer Packages
                         </a>
                     </li>
                     {% endif %}

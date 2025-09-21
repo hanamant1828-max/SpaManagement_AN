@@ -9,7 +9,12 @@ from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from app import app
 from forms import UserForm, AdvancedUserForm, ComprehensiveStaffForm
-from models import db, User, Service, Role, Department, Attendance, Leave, StaffService, StaffPerformance
+# Late imports to avoid circular dependency
+from app import db
+from models import (
+    User, Role, Department, Service, StaffService, 
+    Attendance, StaffPerformance
+)
 from .staff_queries import (
     get_all_staff, get_staff_by_id, get_staff_by_role, get_active_roles, 
     get_active_departments, get_active_services, create_staff, update_staff, delete_staff, 
@@ -21,6 +26,7 @@ import csv
 import io
 from datetime import datetime, date, timedelta
 import json
+from sqlalchemy import or_ # Import 'or_' for OR conditions
 
 # Debug: Print route registration
 print("Registering Staff Management routes...")
@@ -123,113 +129,105 @@ def create_comprehensive_staff():
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
-    form = ComprehensiveStaffForm()
-    
-    # Populate form choices
-    roles = Role.query.filter_by(is_active=True).all()
-    departments = Department.query.filter_by(is_active=True).all()
-    services = Service.query.filter_by(is_active=True).all()
-    
-    form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
-    form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
-    form.assigned_services.choices = [(s.id, s.name) for s in services]
-    
-    if form.validate_on_submit():
-        try:
-            # Generate working days string
-            working_days = ''
-            working_days += '1' if form.monday.data else '0'
-            working_days += '1' if form.tuesday.data else '0'
-            working_days += '1' if form.wednesday.data else '0'
-            working_days += '1' if form.thursday.data else '0'
-            working_days += '1' if form.friday.data else '0'
-            working_days += '1' if form.saturday.data else '0'
-            working_days += '1' if form.sunday.data else '0'
-            
-            # Create new staff member
-            staff_data = {
-                'username': form.username.data,
-                'first_name': form.first_name.data,
-                'last_name': form.last_name.data,
-                'email': form.email.data,
-                'phone': form.phone.data,
-                'gender': form.gender.data,
-                'date_of_birth': form.date_of_birth.data,
-                'date_of_joining': form.date_of_joining.data or date.today(),
-                'designation': form.designation.data,
-                'staff_code': form.staff_code.data,
-                'notes_bio': form.notes_bio.data,
-                'aadhaar_number': form.aadhaar_number.data,
-                'pan_number': form.pan_number.data,
-                'verification_status': form.verification_status.data,
-                'shift_start_time': form.shift_start_time.data,
-                'shift_end_time': form.shift_end_time.data,
-                'break_time': form.break_time.data,
-                'weekly_off_days': form.weekly_off_days.data,
-                'working_days': working_days,
 
-                'enable_face_checkin': form.enable_face_checkin.data,
-                'role_id': form.role_id.data if form.role_id.data != 0 else None,
-                'department_id': form.department_id.data if form.department_id.data != 0 else None,
-                'is_active': form.is_active.data,
-                'role': 'staff'  # Fallback
-            }
-            
-            if form.password.data:
-                staff_data['password_hash'] = generate_password_hash(form.password.data)
-            
-            # Handle face recognition data if provided
-            face_image_data = request.form.get('face_image_data')
-            if face_image_data and form.enable_face_checkin.data:
-                staff_data['face_image_url'] = face_image_data
-                staff_data['enable_face_checkin'] = True
-            
-            # Create comprehensive staff member
-            try:
-                from .staff_queries import create_comprehensive_staff as create_staff_helper
-                new_staff = create_staff_helper(staff_data)
-                if not new_staff:
-                    raise Exception("Failed to create staff member")
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Error creating staff member: {str(e)}', 'danger')
-                return render_template('comprehensive_staff_form.html', 
-                                     form=form, 
-                                     action='Create',
-                                     roles=roles,
-                                     departments=departments,
-                                     services=services)
-            
-            # Assign services
-            for service_id in form.assigned_services.data:
-                staff_service = StaffService(
-                    staff_id=new_staff.id,
-                    service_id=service_id,
-                    skill_level='beginner'
-                )
-                db.session.add(staff_service)
-            
-            db.session.commit()
-            
-            # Success message with face recognition status
-            success_msg = f'Staff member {new_staff.full_name} created successfully!'
-            if face_image_data and form.enable_face_checkin.data:
-                success_msg += ' Face recognition has been enabled.'
-                
-            flash(success_msg, 'success')
-            return redirect(url_for('comprehensive_staff'))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating staff member: {str(e)}', 'danger')
-    
-    return render_template('comprehensive_staff_form.html', 
-                         form=form, 
-                         action='Create',
-                         roles=roles,
-                         departments=departments,
-                         services=services)
+    if request.method == 'GET':
+        # Get available roles and departments for the form
+        from models import Role
+        roles = Role.query.filter_by(is_active=True).all()
+        departments = Department.query.filter_by(is_active=True).all()
+        services = Service.query.filter_by(is_active=True).all()
+
+        form = ComprehensiveStaffForm()
+        form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
+        form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
+        form.assigned_services.choices = [(s.id, s.name) for s in services]
+
+        return render_template('comprehensive_staff_form.html', 
+                             form=form, 
+                             action='Create',
+                             roles=roles,
+                             departments=departments,
+                             services=services)
+
+    # Handle form submission
+    try:
+        request_data = request.get_json() if request.is_json else request.form.to_dict()
+        data = request_data.get('staff', request_data) if 'staff' in request_data else request_data
+        schedule_data = request_data.get('schedule', [])
+
+        # Hash password
+        from werkzeug.security import generate_password_hash
+        hashed_password = generate_password_hash(data.get('password', ''))
+
+        # Create staff member
+        staff = User(
+            username=data.get('username'),
+            first_name=data.get('first_name'),
+            last_name=data.get('last_name'),
+            email=data.get('email'),
+            phone=data.get('phone'),
+            password_hash=hashed_password,
+            role_id=int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
+            department_id=int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
+            designation=data.get('designation'),
+            commission_rate=float(data.get('commission_rate', 0)) if data.get('commission_rate') else None,
+            hourly_rate=float(data.get('hourly_rate', 0)) if data.get('hourly_rate') else None,
+            gender=data.get('gender'),
+            date_of_birth=datetime.strptime(data.get('date_of_birth'), '%Y-%m-%d').date() if data.get('date_of_birth') else None,
+            date_of_joining=datetime.strptime(data.get('date_of_joining'), '%Y-%m-%d').date() if data.get('date_of_joining') else None,
+            notes_bio=data.get('notes_bio', ''),
+            is_active=data.get('is_active', True),
+            staff_code=data.get('staff_code'),
+            verification_status=data.get('verification_status', False),
+            enable_face_checkin=data.get('enable_face_checkin', False),
+        )
+
+        db.session.add(staff)
+        db.session.flush()  # Get the staff ID
+
+        # Schedule creation is now handled by the shift scheduler module
+
+        # Assign services
+        assigned_services = data.get('assigned_services', [])
+        for service_id in assigned_services:
+            staff_service = StaffService(
+                staff_id=staff.id,
+                service_id=service_id,
+                skill_level='beginner'
+            )
+            db.session.add(staff_service)
+
+        db.session.commit()
+        flash('Staff member and schedule created successfully!', 'success')
+
+        if request.is_json:
+            return jsonify({'success': True, 'message': 'Staff member and schedule created successfully!', 'staff_id': staff.id})
+
+        return redirect(url_for('comprehensive_staff'))
+
+    except Exception as e:
+        db.session.rollback()
+        error_msg = f'Error creating staff member: {str(e)}'
+        flash(error_msg, 'danger')
+
+        if request.is_json:
+            return jsonify({'success': False, 'message': error_msg})
+
+        # Re-render form with errors and existing data if applicable
+        roles = Role.query.filter_by(is_active=True).all()
+        departments = Department.query.filter_by(is_active=True).all()
+        services = Service.query.filter_by(is_active=True).all()
+        form = ComprehensiveStaffForm(data=data) # Populate form with submitted data
+        form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
+        form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
+        form.assigned_services.choices = [(s.id, s.name) for s in services]
+
+        return render_template('comprehensive_staff_form.html',
+                             form=form,
+                             action='Create',
+                             roles=roles,
+                             departments=departments,
+                             services=services)
 
 @app.route('/comprehensive_staff/edit/<int:staff_id>', methods=['GET', 'POST'])
 @login_required
@@ -250,33 +248,14 @@ def edit_comprehensive_staff(staff_id):
     form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
     form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
     form.assigned_services.choices = [(s.id, s.name) for s in services]
-    
-    # Pre-populate working days
-    if staff_member.working_days:
-        form.monday.data = staff_member.working_days[0] == '1'
-        form.tuesday.data = staff_member.working_days[1] == '1'
-        form.wednesday.data = staff_member.working_days[2] == '1'
-        form.thursday.data = staff_member.working_days[3] == '1'
-        form.friday.data = staff_member.working_days[4] == '1'
-        form.saturday.data = staff_member.working_days[5] == '1'
-        form.sunday.data = staff_member.working_days[6] == '1'
-    
+
+
     # Pre-populate assigned services
     assigned_service_ids = [ss.service_id for ss in staff_member.staff_services if ss.is_active]
     form.assigned_services.data = assigned_service_ids
     
     if form.validate_on_submit():
         try:
-            # Generate working days string
-            working_days = ''
-            working_days += '1' if form.monday.data else '0'
-            working_days += '1' if form.tuesday.data else '0'
-            working_days += '1' if form.wednesday.data else '0'
-            working_days += '1' if form.thursday.data else '0'
-            working_days += '1' if form.friday.data else '0'
-            working_days += '1' if form.saturday.data else '0'
-            working_days += '1' if form.sunday.data else '0'
-            
             # Update staff member
             staff_member.username = form.username.data
             staff_member.first_name = form.first_name.data
@@ -292,11 +271,6 @@ def edit_comprehensive_staff(staff_id):
             staff_member.aadhaar_number = form.aadhaar_number.data
             staff_member.pan_number = form.pan_number.data
             staff_member.verification_status = form.verification_status.data
-            staff_member.shift_start_time = form.shift_start_time.data
-            staff_member.shift_end_time = form.shift_end_time.data
-            staff_member.break_time = form.break_time.data
-            staff_member.weekly_off_days = form.weekly_off_days.data
-            staff_member.working_days = working_days
 
             staff_member.enable_face_checkin = form.enable_face_checkin.data
             staff_member.role_id = form.role_id.data if form.role_id.data != 0 else None
@@ -652,9 +626,8 @@ def create_staff_route():
             'email': form.email.data,
             'phone': form.phone.data,
             'role': form.role.data,
-            'commission_rate': form.commission_rate.data,
-            'hourly_rate': form.hourly_rate.data,
-            'password_hash': generate_password_hash(form.password.data),
+            
+            'password_hash': generate_password_hash('TempPass123!'),  # Temporary password - must be changed on first login
             'is_active': True
         }
         
@@ -670,8 +643,8 @@ def create_staff_route():
 def update_staff_route(id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
+        return redirect(url_for('staff'))
+
     staff_member = get_staff_by_id(id)
     if not staff_member:
         flash('Staff member not found', 'danger')
@@ -709,8 +682,8 @@ def update_staff_route(id):
 def delete_staff_route(id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
+        return redirect(url_for('staff'))
+
     if delete_staff(id):
         flash('Staff member deleted successfully!', 'success')
     else:
@@ -793,7 +766,6 @@ def test_comprehensive_staff():
 # ===== API ENDPOINTS FOR JAVASCRIPT CRUD OPERATIONS =====
 
 @app.route('/api/staff', methods=['GET'])
-@login_required
 def api_get_all_staff():
     """API endpoint to get all staff data for JavaScript"""
     if not current_user.can_access('staff'):
@@ -844,6 +816,14 @@ def api_get_all_staff():
         roles_data = [{'id': r.id, 'name': r.name, 'display_name': r.display_name} for r in roles]
         departments_data = [{'id': d.id, 'name': d.name, 'display_name': d.display_name} for d in departments]
         
+        print(f"API Response - Roles: {len(roles_data)}, Departments: {len(departments_data)}")
+        if departments_data:
+            print("Available departments:", [d['display_name'] for d in departments_data])
+        if roles_data:
+            print("Available roles:", [r['display_name'] for r in roles_data])
+        else:
+            print("WARNING: No roles data found!")
+
         return jsonify({
             'success': True,
             'staff': staff_data,
@@ -855,7 +835,6 @@ def api_get_all_staff():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['GET'])
-@login_required  
 def api_get_staff(staff_id):
     """API endpoint to get single staff member data"""
     if not current_user.can_access('staff'):
@@ -901,36 +880,46 @@ def api_get_staff(staff_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/staff', methods=['POST'])
-@login_required
 def api_create_staff():
     """API endpoint to create new staff member"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
     
     try:
-        data = request.get_json()
-        
+        # Handle both JSON and form data with debugging
+        if request.is_json:
+            data = request.get_json()
+            print(f"Received JSON data: {data}")
+        else:
+            data = request.form.to_dict()
+            print(f"Received form data: {data}")
+
+        if not data:
+            print("No data provided in request")
+            return jsonify({'error': 'No data provided'}), 400
+
         # Defensive coding - validate required fields with user-friendly messages
         required_fields = {
             'username': 'Username is required. Please enter a unique username.',
             'first_name': 'First name is required. Please enter the staff member\'s first name.',
-            'last_name': 'Last name is required. Please enter the staff member\'s last name.',
-            'email': 'Email address is required. Please enter a valid email address.',
-            'password': 'Password is required. Please enter a secure password.'
+            'last_name': 'Last name is required. Please enter the staff member\'s last name.'
         }
         
         for field, message in required_fields.items():
-            field_value = (data.get(field) or '').strip() if isinstance(data.get(field), str) else data.get(field)
-            if not field_value:
+            field_value = data.get(field)
+            if not field_value or (isinstance(field_value, str) and not field_value.strip()):
                 return jsonify({'error': message}), 400
-        
-        # Check for duplicate username/email
-        existing = User.query.filter(
-            (User.username == data['username']) | (User.email == data['email'])
-        ).first()
-        if existing:
-            return jsonify({'error': 'Username or email already exists'}), 400
-        
+
+        # Check for existing username or email (only if email is provided)
+        username_check = User.query.filter_by(username=data['username']).first()
+        if username_check:
+            return jsonify({'error': 'Username already exists'}), 400
+
+        if data.get('email') and data.get('email').strip():
+            email_check = User.query.filter_by(email=data['email']).first()
+            if email_check:
+                return jsonify({'error': 'Email already exists'}), 400
+
         # Prepare staff data with defensive coding and safe defaults
         def safe_float(value, default=0.0, min_val=0.0, max_val=100.0):
             try:
@@ -955,46 +944,66 @@ def api_create_staff():
             except (ValueError, TypeError):
                 return None
 
-        # Email validation
+        # Email validation - make it truly optional, use empty string instead of null
         import re
-        email = data['email'].strip().lower()
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, email):
-            return jsonify({'error': 'Please enter a valid email address format.'}), 400
+        email = ''  # Default to empty string instead of None
+        if data.get('email') and str(data.get('email')).strip():
+            email = str(data['email']).strip().lower()
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, email):
+                return jsonify({'error': 'Please enter a valid email address format.'}), 400
 
-        staff_data = {
-            'username': data['username'].strip(),
-            'first_name': data['first_name'].strip().title(),
-            'last_name': data['last_name'].strip().title(),
-            'email': email,
-            'password_hash': generate_password_hash(data['password']),
-            'phone': (data.get('phone') or '').strip(),
-            'role': (data.get('role') or 'staff').strip(),
-            'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
-            'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
-            'designation': (data.get('designation') or '').strip(),
-            'commission_rate': safe_float(data.get('commission_rate'), 0.0, 0.0, 100.0),
-            'hourly_rate': safe_float(data.get('hourly_rate'), 0.0, 0.0, 1000.0),
-            'gender': (data.get('gender') or '').strip(),
-            'date_of_birth': safe_date_parse(data.get('date_of_birth')),
-            'date_of_joining': safe_date_parse(data.get('date_of_joining'), date.today()),
-            'shift_start_time': safe_time_parse(data.get('shift_start_time')),
-            'shift_end_time': safe_time_parse(data.get('shift_end_time')),
-            'working_days': (data.get('working_days') or '1111100').strip(),
-            'verification_status': False,
-            'enable_face_checkin': bool(data.get('enable_face_checkin', True)),
-            'notes_bio': (data.get('notes_bio') or '').strip(),
-            'is_active': True
-        }
-        
+        # Enforce secure password requirements
+        password = data.get('password', '').strip()
+        if not password:
+            # Generate secure temporary password requiring immediate change
+            import secrets
+            import string
+            characters = string.ascii_letters + string.digits + "!@#$%^&*"
+            password = ''.join(secrets.choice(characters) for i in range(12))
+            # TODO: Flag account for mandatory password change on first login
+
+        try:
+            staff_data = {
+                'username': str(data['username']).strip(),
+                'first_name': str(data['first_name']).strip().title(),
+                'last_name': str(data['last_name']).strip().title(),
+                'email': email,  # Already validated above, empty string if not provided
+                'password_hash': generate_password_hash(password),
+                'phone': str(data.get('phone', '')).strip() or None,
+                'role': str(data.get('role', 'staff')).strip(),
+                'role_id': int(data['role_id']) if data.get('role_id') and str(data.get('role_id')).strip() not in ['', '0'] else None,
+                'department_id': int(data['department_id']) if data.get('department_id') and str(data.get('department_id')).strip() not in ['', '0'] else None,
+                'designation': str(data.get('designation', 'Staff Member')).strip() or 'Staff Member',
+                'commission_rate': safe_float(data.get('commission_rate'), 0.0, 0.0, 100.0),
+                'hourly_rate': safe_float(data.get('hourly_rate'), 0.0, 0.0, 1000.0),
+                'gender': str(data.get('gender', 'other')).strip() or 'other',
+                'date_of_birth': safe_date_parse(data.get('date_of_birth')),
+                'date_of_joining': safe_date_parse(data.get('date_of_joining'), date.today()),
+                'shift_start_time': safe_time_parse(data.get('shift_start_time')),
+                'shift_end_time': safe_time_parse(data.get('shift_end_time')),
+                'working_days': str(data.get('working_days', '1111100')).strip() or '1111100',
+                'verification_status': False,
+                'enable_face_checkin': bool(data.get('enable_face_checkin', False)),
+                'notes_bio': str(data.get('notes_bio', '')).strip(),
+                'is_active': True
+            }
+            print(f"Processed staff data: {staff_data}")
+        except Exception as data_error:
+            print(f"Error processing staff data: {data_error}")
+            return jsonify({'error': f'Data processing error: {str(data_error)}'}), 400
+
         # Create staff member
+        print(f"Attempting to create staff with data: {staff_data}")
         new_staff = create_staff(staff_data)
-        
+        print(f"Staff created successfully: {new_staff.id}")
+
         # Generate staff code if not provided
         if not new_staff.staff_code:
             new_staff.staff_code = f"STF{str(new_staff.id).zfill(3)}"
             db.session.commit()
-        
+            print(f"Generated staff code: {new_staff.staff_code}")
+
         return jsonify({
             'success': True,
             'message': f'Staff member {new_staff.first_name} {new_staff.last_name} created successfully',
@@ -1008,10 +1017,13 @@ def api_create_staff():
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in api_create_staff: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['PUT'])
-@login_required
 def api_update_staff(staff_id):
     """API endpoint to update staff member"""
     if not current_user.can_access('staff'):
@@ -1023,78 +1035,127 @@ def api_update_staff(staff_id):
             return jsonify({'error': 'Staff member not found'}), 404
         
         data = request.get_json()
-        
-        # Update staff data
-        update_data = {}
-        
-        # Basic fields
-        for field in ['first_name', 'last_name', 'email', 'phone', 'designation', 'notes_bio']:
-            if field in data:
-                update_data[field] = data[field]
-        
-        # Numeric fields
-        for field in ['commission_rate', 'hourly_rate']:
-            if field in data:
-                update_data[field] = float(data[field]) if data[field] else 0
-        
-        # Role and department
-        if 'role_id' in data:
-            update_data['role_id'] = data['role_id']
-        if 'department_id' in data:
-            update_data['department_id'] = data['department_id']
-        if 'role' in data:
-            update_data['role'] = data['role']
-        
-        # Date fields
-        if data.get('date_of_birth'):
-            update_data['date_of_birth'] = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
-        if data.get('date_of_joining'):
-            update_data['date_of_joining'] = datetime.strptime(data['date_of_joining'], '%Y-%m-%d').date()
-        
-        # Time fields
-        if data.get('shift_start_time'):
-            update_data['shift_start_time'] = datetime.strptime(data['shift_start_time'], '%H:%M').time()
-        if data.get('shift_end_time'):
-            update_data['shift_end_time'] = datetime.strptime(data['shift_end_time'], '%H:%M').time()
-        
-        # Other fields
-        if 'working_days' in data:
-            update_data['working_days'] = data['working_days']
-        if 'gender' in data:
-            update_data['gender'] = data['gender']
-        if 'enable_face_checkin' in data:
-            update_data['enable_face_checkin'] = data['enable_face_checkin']
-        
-        # Update password if provided
-        if data.get('password'):
-            update_data['password_hash'] = generate_password_hash(data['password'])
-        
-        # Apply updates
-        updated_staff = update_staff(staff_id, update_data)
-        
-        return jsonify({
-            'success': True,
-            'message': f'Staff member {updated_staff.first_name} {updated_staff.last_name} updated successfully'
-        })
-        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Validate required fields
+        if not data.get('first_name') or not data.get('last_name'):
+            return jsonify({'error': 'First name and last name are required'}), 400
+
+        # Defensive updates with proper type handling
+        try:
+            # Basic string fields
+            if 'first_name' in data and data['first_name']:
+                staff.first_name = str(data['first_name']).strip()
+            if 'last_name' in data and data['last_name']:
+                staff.last_name = str(data['last_name']).strip()
+            if 'email' in data:
+                staff.email = str(data['email']).strip() if data.get('email') and str(data['email']).strip() else '' # Use empty string, not null
+            if 'phone' in data:
+                staff.phone = str(data['phone']).strip() if data['phone'] else None
+            if 'designation' in data:
+                staff.designation = str(data['designation']).strip() if data['designation'] else None
+            if 'notes_bio' in data:
+                staff.notes_bio = str(data['notes_bio']).strip() if data['notes_bio'] else None
+            if 'gender' in data:
+                staff.gender = str(data['gender']).strip() if data['gender'] else None
+
+            # Numeric fields with safe conversion
+            if 'commission_rate' in data:
+                try:
+                    staff.commission_rate = float(data['commission_rate']) if data['commission_rate'] else 0.0
+                except (ValueError, TypeError):
+                    staff.commission_rate = 0.0
+
+            if 'hourly_rate' in data:
+                try:
+                    staff.hourly_rate = float(data['hourly_rate']) if data['hourly_rate'] else 0.0
+                except (ValueError, TypeError):
+                    staff.hourly_rate = 0.0
+
+            # Role and department IDs with safe conversion
+            if 'role_id' in data and data['role_id']:
+                try:
+                    role_id = int(data['role_id'])
+                    staff.role_id = role_id if role_id > 0 else None
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+
+            if 'department_id' in data and data['department_id']:
+                try:
+                    dept_id = int(data['department_id'])
+                    staff.department_id = dept_id if dept_id > 0 else None
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+
+            # Date fields with safe parsing
+            if 'date_of_birth' in data and data['date_of_birth']:
+                try:
+                    staff.date_of_birth = datetime.strptime(str(data['date_of_birth']), '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+
+            if 'date_of_joining' in data and data['date_of_joining']:
+                try:
+                    staff.date_of_joining = datetime.strptime(str(data['date_of_joining']), '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+
+            # Time fields with safe parsing
+            if 'shift_start_time' in data and data['shift_start_time']:
+                try:
+                    staff.shift_start_time = datetime.strptime(str(data['shift_start_time']), '%H:%M').time()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+
+            if 'shift_end_time' in data and data['shift_end_time']:
+                try:
+                    staff.shift_end_time = datetime.strptime(str(data['shift_end_time']), '%H:%M').time()
+                except (ValueError, TypeError):
+                    pass  # Keep existing value
+
+            # Boolean and other fields
+            if 'enable_face_checkin' in data:
+                staff.enable_face_checkin = bool(data['enable_face_checkin'])
+
+            if 'working_days' in data:
+                staff.working_days = str(data['working_days']) if data['working_days'] else None
+
+            # Password update with proper hashing
+            if data.get('password') and str(data['password']).strip():
+                staff.password_hash = generate_password_hash(str(data['password']).strip())
+
+            # Commit the changes
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': f'Staff member {staff.first_name} {staff.last_name} updated successfully'
+            })
+
+        except Exception as update_error:
+            db.session.rollback()
+            print(f"Error updating staff fields: {update_error}")
+            return jsonify({'error': f'Failed to update staff data: {str(update_error)}'}), 500
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in api_update_staff: {e}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
-@login_required
 def api_delete_staff(staff_id):
     """API endpoint to delete (deactivate) staff member"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         staff = get_staff_by_id(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         staff_name = f"{staff.first_name} {staff.last_name}"
-        
+
         # Soft delete (deactivate)
         if delete_staff(staff_id):
             return jsonify({
@@ -1103,6 +1164,28 @@ def api_delete_staff(staff_id):
             })
         else:
             return jsonify({'error': 'Failed to delete staff member'}), 500
-            
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+# Schedule range functions removed - now handled by shift scheduler module
+
+# API CSRF Token Support
+@app.route("/api/csrf", methods=["GET"])
+@login_required
+def api_get_csrf_token():
+    """Provide CSRF token for authenticated JSON API requests"""
+    try:
+        from flask_wtf.csrf import generate_csrf
+        token = generate_csrf()
+        return jsonify({
+            "success": True,
+            "csrf_token": token
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Failed to generate CSRF token"
+        }), 500

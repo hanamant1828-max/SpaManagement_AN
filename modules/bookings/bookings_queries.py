@@ -26,55 +26,91 @@ def get_staff_schedule(staff_id, filter_date):
         func.date(Appointment.appointment_date) == filter_date
     ).order_by(Appointment.appointment_date).all()
 
+def parse_break_time(break_time_string):
+    """Parse break time string like '60 minutes (13:00 - 14:00)' to get start and end times"""
+    if not break_time_string:
+        return None, None
+
+    try:
+        # Look for pattern like "(13:00 - 14:00)" in the break_time string
+        import re
+        pattern = r'\((\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\)'
+        match = re.search(pattern, break_time_string)
+
+        if match:
+            break_start = match.group(1)  # e.g., "13:00"
+            break_end = match.group(2)    # e.g., "14:00"
+            return break_start, break_end
+        else:
+            return None, None
+    except Exception as e:
+        print(f"Error parsing break time '{break_time_string}': {e}")
+        return None, None
+
+def get_staff_schedule_for_date(staff_id, filter_date):
+    """Get staff schedule for a specific date from StaffScheduleRange"""
+    if not staff_id:
+        return None
+
+    from models import StaffScheduleRange
+
+    # Get schedule that covers the filter_date
+    schedule = StaffScheduleRange.query.filter(
+        StaffScheduleRange.staff_id == staff_id,
+        StaffScheduleRange.start_date <= filter_date,
+        StaffScheduleRange.end_date >= filter_date,
+        StaffScheduleRange.is_active == True
+    ).order_by(StaffScheduleRange.priority.desc()).first()
+
+    if not schedule:
+        return None
+
+    # Check if staff is working on this day of the week
+    weekday = filter_date.weekday()  # Monday = 0, Sunday = 6
+    working_days = [schedule.monday, schedule.tuesday, schedule.wednesday, 
+                   schedule.thursday, schedule.friday, schedule.saturday, schedule.sunday]
+
+    if not working_days[weekday]:
+        return None  # Staff is not working on this day
+
+    return schedule
+
 def get_time_slots(filter_date, staff_id=None, service_id=None):
-    """Generate available time slots for booking"""
-    # Define business hours (9 AM to 6 PM)
-    business_start = 9
-    business_end = 18
-    slot_duration = 30  # 30-minute slots
+    """Get available time slots for a given date"""
+    try:
+        from datetime import datetime, timedelta
 
-    slots = []
-    current_time = datetime.combine(filter_date, datetime.min.time().replace(hour=business_start))
-    end_time = datetime.combine(filter_date, datetime.min.time().replace(hour=business_end))
+        # Generate time slots from 9 AM to 6 PM
+        time_slots = []
+        start_hour = 9
+        end_hour = 18
 
-    # Get existing appointments for the date
-    existing_appointments = get_appointments_by_date(filter_date)
+        for hour in range(start_hour, end_hour):
+            for minutes in [0, 30]:
+                slot_time = datetime.combine(filter_date, datetime.min.time().replace(hour=hour, minute=minutes))
 
-    # Get service duration if specified
-    service_duration = 60  # Default 60 minutes
-    if service_id:
-        service = Service.query.get(service_id)
-        if service:
-            service_duration = service.duration
+                # Check if this slot is available
+                existing_appointments = get_appointments_by_date(filter_date)
+                is_available = True
 
-    while current_time < end_time:
-        # Check if slot is available
-        is_available = True
+                for appointment in existing_appointments:
+                    if (appointment.appointment_date.time() == slot_time.time() and
+                        (not staff_id or appointment.staff_id == staff_id)):
+                        is_available = False
+                        break
 
-        # Check against existing appointments
-        for appointment in existing_appointments:
-            if staff_id and appointment.staff_id != staff_id:
-                continue
+                time_slots.append({
+                    'time': slot_time.strftime('%H:%M'),
+                    'display_time': slot_time.strftime('%I:%M %p'),
+                    'datetime': slot_time,  # Add the datetime object
+                    'available': is_available
+                })
 
-            appointment_start = appointment.appointment_date
-            appointment_end = appointment_start + timedelta(minutes=appointment.service.duration if appointment.service else 60)
+        return time_slots
 
-            # Check if slot conflicts with existing appointment
-            slot_end = current_time + timedelta(minutes=service_duration)
-            if not (current_time >= appointment_end or slot_end <= appointment_start):
-                is_available = False
-                break
-
-        slots.append({
-            'time': current_time.strftime('%H:%M'),
-            'datetime': current_time,
-            'available': is_available,
-            'display_time': current_time.strftime('%I:%M %p')
-        })
-
-        current_time += timedelta(minutes=slot_duration)
-
-    return slots
+    except Exception as e:
+        print(f"Error getting time slots: {e}")
+        return []
 
 def get_active_clients():
     """Get all active clients"""
@@ -153,7 +189,7 @@ def create_appointment(appointment_data):
                 if isinstance(appointment_date, str):
                     appointment_date = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M')
                 appointment_data['end_time'] = appointment_date + timedelta(minutes=service.duration)
-        
+
         appointment = Appointment(**appointment_data)
         db.session.add(appointment)
         db.session.commit()

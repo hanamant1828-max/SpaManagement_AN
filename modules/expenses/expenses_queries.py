@@ -4,7 +4,7 @@ Expenses-related database queries
 from datetime import datetime, date
 from sqlalchemy import func, and_
 from app import db
-from models import Expense, Category, User
+from models import Expense, Category
 
 def get_all_expenses():
     """Get all expenses"""

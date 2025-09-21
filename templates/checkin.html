@@ -189,13 +189,11 @@ async function performCheckinRecognition(video) {
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
         
         // Send for recognition
-        const csrfToken = document.querySelector('[name=csrf_token]')?.value;
         
         const response = await fetch('/api/recognize_face', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(csrfToken && {'X-CSRFToken': csrfToken})
             },
             body: JSON.stringify({
                 face_image: imageData

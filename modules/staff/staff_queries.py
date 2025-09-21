@@ -4,7 +4,12 @@ Supporting all 11 requirements for professional staff management
 """
 from sqlalchemy import and_, func, desc, or_
 from app import db
-from models import User, Role, Department, Appointment, Commission, Attendance, StaffService, Service, StaffPerformance
+# Import models to avoid NameError issues
+from models import (
+    User, Role, Department, Service, StaffService,
+    Attendance, StaffPerformance,
+    Appointment, Commission
+)
 from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash
 
@@ -62,17 +67,87 @@ def get_staff_by_role(role_name):
 def get_active_roles():
     """Get all active roles"""
     try:
-        return Role.query.filter_by(is_active=True).all()
+        roles = Role.query.filter_by(is_active=True).all()
+        print(f"Found {len(roles)} active roles")
+        for role in roles:
+            print(f"  - {role.name}: {role.display_name}")
+
+        # If no roles exist, create default ones
+        if not roles:
+            print("No roles found, creating default roles...")
+            return create_default_roles()
+
+        return roles
     except Exception as e:
         print(f"Error getting active roles: {e}")
+        # Try to create default roles if there's an error
+        return create_default_roles()
+
+def create_default_roles():
+    """Create default roles if none exist"""
+    try:
+        from models import Role
+        from app import db
+
+        default_roles_data = [
+            {'name': 'admin', 'display_name': 'Administrator', 'description': 'Full system access'},
+            {'name': 'manager', 'display_name': 'Manager', 'description': 'Management level access'},
+            {'name': 'staff', 'display_name': 'Staff Member', 'description': 'Standard staff access'},
+            {'name': 'receptionist', 'display_name': 'Receptionist', 'description': 'Front desk access'},
+            {'name': 'therapist', 'display_name': 'Therapist', 'description': 'Service provider access'}
+        ]
+
+        created_roles = []
+        for role_data in default_roles_data:
+            role = Role(**role_data, is_active=True)
+            db.session.add(role)
+            created_roles.append(role)
+
+        db.session.commit()
+        print(f"Created {len(created_roles)} default roles")
+        return created_roles
+    except Exception as e:
+        print(f"Error creating default roles: {e}")
+        db.session.rollback()
         return []
 
 def get_active_departments():
     """Get all active departments"""
     try:
-        return Department.query.filter_by(is_active=True).all()
+        departments = Department.query.filter_by(is_active=True).order_by(Department.display_name).all()
+        print(f"Found {len(departments)} active departments")
+        for dept in departments:
+            print(f"  - {dept.name}: {dept.display_name}")
+        return departments
     except Exception as e:
         print(f"Error getting active departments: {e}")
+        # If no departments exist, create some basic ones
+        return create_default_departments()
+
+def create_default_departments():
+    """Create default departments if none exist"""
+    try:
+        from models import Department
+        from app import db
+
+        default_depts = [
+            {'name': 'spa_services', 'display_name': 'Spa Services', 'description': 'Spa and wellness services'},
+            {'name': 'reception', 'display_name': 'Reception', 'description': 'Front desk operations'},
+            {'name': 'management', 'display_name': 'Management', 'description': 'Administrative roles'}
+        ]
+
+        created_depts = []
+        for dept_data in default_depts:
+            dept = Department(**dept_data)
+            db.session.add(dept)
+            created_depts.append(dept)
+
+        db.session.commit()
+        print(f"Created {len(created_depts)} default departments")
+        return created_depts
+    except Exception as e:
+        print(f"Error creating default departments: {e}")
+        db.session.rollback()
         return []
 
 def get_active_services():
@@ -92,12 +167,24 @@ def create_staff(staff_data):
 
 def update_staff(staff_id, staff_data):
     """Update an existing staff member"""
-    staff = User.query.get(staff_id)
-    if staff:
+    try:
+        staff = User.query.get(staff_id)
+        if not staff:
+            return None
+
+        # Safely update each field
         for key, value in staff_data.items():
-            setattr(staff, key, value)
+            if hasattr(staff, key):
+                setattr(staff, key, value)
+            else:
+                print(f"Warning: Staff model does not have attribute '{key}'")
+
         db.session.commit()
-    return staff
+        return staff
+    except Exception as e:
+        print(f"Error updating staff: {e}")
+        db.session.rollback()
+        return None
 
 def delete_staff(staff_id):
     """Soft delete a staff member"""
@@ -285,17 +372,87 @@ def get_comprehensive_staff():
 def get_active_roles():
     """Get all active roles"""
     try:
-        return Role.query.filter_by(is_active=True).all()
+        roles = Role.query.filter_by(is_active=True).all()
+        print(f"Found {len(roles)} active roles")
+        for role in roles:
+            print(f"  - {role.name}: {role.display_name}")
+
+        # If no roles exist, create default ones
+        if not roles:
+            print("No roles found, creating default roles...")
+            return create_default_roles()
+
+        return roles
     except Exception as e:
         print(f"Error getting active roles: {e}")
+        # Try to create default roles if there's an error
+        return create_default_roles()
+
+def create_default_roles():
+    """Create default roles if none exist"""
+    try:
+        from models import Role
+        from app import db
+
+        default_roles_data = [
+            {'name': 'admin', 'display_name': 'Administrator', 'description': 'Full system access'},
+            {'name': 'manager', 'display_name': 'Manager', 'description': 'Management level access'},
+            {'name': 'staff', 'display_name': 'Staff Member', 'description': 'Standard staff access'},
+            {'name': 'receptionist', 'display_name': 'Receptionist', 'description': 'Front desk access'},
+            {'name': 'therapist', 'display_name': 'Therapist', 'description': 'Service provider access'}
+        ]
+
+        created_roles = []
+        for role_data in default_roles_data:
+            role = Role(**role_data, is_active=True)
+            db.session.add(role)
+            created_roles.append(role)
+
+        db.session.commit()
+        print(f"Created {len(created_roles)} default roles")
+        return created_roles
+    except Exception as e:
+        print(f"Error creating default roles: {e}")
+        db.session.rollback()
         return []
 
 def get_active_departments():
     """Get all active departments"""
     try:
-        return Department.query.filter_by(is_active=True).all()
+        departments = Department.query.filter_by(is_active=True).order_by(Department.display_name).all()
+        print(f"Found {len(departments)} active departments")
+        for dept in departments:
+            print(f"  - {dept.name}: {dept.display_name}")
+        return departments
     except Exception as e:
         print(f"Error getting active departments: {e}")
+        # If no departments exist, create some basic ones
+        return create_default_departments()
+
+def create_default_departments():
+    """Create default departments if none exist"""
+    try:
+        from models import Department
+        from app import db
+
+        default_depts = [
+            {'name': 'spa_services', 'display_name': 'Spa Services', 'description': 'Spa and wellness services'},
+            {'name': 'reception', 'display_name': 'Reception', 'description': 'Front desk operations'},
+            {'name': 'management', 'display_name': 'Management', 'description': 'Administrative roles'}
+        ]
+
+        created_depts = []
+        for dept_data in default_depts:
+            dept = Department(**dept_data)
+            db.session.add(dept)
+            created_depts.append(dept)
+
+        db.session.commit()
+        print(f"Created {len(created_depts)} default departments")
+        return created_depts
+    except Exception as e:
+        print(f"Error creating default departments: {e}")
+        db.session.rollback()
         return []
 
 def get_active_services():
@@ -329,7 +486,7 @@ def create_comprehensive_staff(form_data):
 
         staff_member = User(
             username=form_data['username'],
-            email=form_data.get('email'),
+            email=form_data.get('email') if form_data.get('email') and form_data.get('email').strip() else None,
             first_name=form_data['first_name'],
             last_name=form_data['last_name'],
             phone=form_data.get('phone'),
@@ -355,13 +512,6 @@ def create_comprehensive_staff(form_data):
             face_image_url=form_data.get('face_image_url'),
             facial_encoding=form_data.get('facial_encoding'),
             enable_face_checkin=form_data.get('enable_face_checkin', True),
-
-            # Work Schedule
-            working_days=form_data.get('working_days', '1111100'),
-            shift_start_time=form_data.get('shift_start_time'),
-            shift_end_time=form_data.get('shift_end_time'),
-            break_time=form_data.get('break_time'),
-            weekly_off_days=form_data.get('weekly_off_days'),
 
             # Commission
             commission_percentage=float(form_data.get('commission_percentage') or 0.0),
@@ -396,3 +546,56 @@ def create_comprehensive_staff(form_data):
         db.session.rollback()
         print(f"Error creating comprehensive staff: {e}")
         return None
+
+def get_staff_schedule_ranges(staff_id):
+    """Get all schedule ranges for a staff member"""
+    try:
+        from models import StaffScheduleRange
+        return StaffScheduleRange.query.filter_by(
+            staff_id=staff_id,
+            is_active=True
+        ).order_by(StaffScheduleRange.start_date).all()
+    except Exception as e:
+        print(f"Error getting staff schedule ranges: {e}")
+        return []
+
+def get_schedule_range_by_id(schedule_id):
+    """Get a specific schedule range by ID"""
+    try:
+        from models import StaffScheduleRange
+        return StaffScheduleRange.query.get(schedule_id)
+    except Exception as e:
+        print(f"Error getting schedule range by ID: {e}")
+        return None
+
+def update_schedule_range(schedule_id, update_data):
+    """Update a schedule range"""
+    try:
+        from models import StaffScheduleRange
+        schedule = StaffScheduleRange.query.get(schedule_id)
+        if schedule:
+            for key, value in update_data.items():
+                if hasattr(schedule, key):
+                    setattr(schedule, key, value)
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error updating schedule range: {e}")
+        db.session.rollback()
+        return False
+
+def delete_schedule_range(schedule_id):
+    """Soft delete a schedule range"""
+    try:
+        from models import StaffScheduleRange
+        schedule = StaffScheduleRange.query.get(schedule_id)
+        if schedule:
+            schedule.is_active = False
+            db.session.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error deleting schedule range: {e}")
+        db.session.rollback()
+        return False

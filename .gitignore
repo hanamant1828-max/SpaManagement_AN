@@ -56,7 +56,7 @@ db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-instance/
+# instance/ - Allow database for demo purposes
 .webassets-cache
 
 # Scrapy stuff:
@@ -139,7 +139,8 @@ cython_debug/
 .pythonlibs/
 uv.lock
 
-# Keep SQLite databases in the project for sharing
+# Allow SQLite databases to be pushed to GitHub for data sharing
+# Uncomment the lines below if you want to keep databases local:
 # *.db
 # *.sqlite
 # *.sqlite3
@@ -200,3 +201,59 @@ pids
 *.pid
 *.seed
 *.pid.lock
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Secrets (but not the database!)
+.env
+secrets.txt
+
+# Keep the database file - this is our demo data!
+# DO NOT ignore instance/spa_management.db - we want this in version control
+
+# Vercel
+.vercel
+
+# Local database directories (for Vercel deployment)
+hanamantdatabase/

@@ -1,8 +1,5 @@
-{% extends "base.html" %}
-
-{% block title %}Staff Management - Spa & Salon Management Suite{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Staff Management - Spa & Salon
+Management Suite{% endblock %} {% block content %}
 <div class="container-fluid">
     <!-- Header -->
     <div class="row mb-4">
@@ -12,13 +9,27 @@
                     <i class="fas fa-users-cog me-2"></i>Staff Management
                 </h1>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="showAddModal()">
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#staffModal"
+                        onclick="showAddModal()"
+                    >
                         <i class="fas fa-plus me-2"></i>Add New Staff
                     </button>
-                    <button type="button" class="btn btn-success" onclick="exportStaffData()">
+                    <button
+                        type="button"
+                        class="btn btn-success"
+                        onclick="exportStaffData()"
+                    >
                         <i class="fas fa-download me-2"></i>Export Data
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="refreshStaffData()">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="refreshStaffData()"
+                    >
                         <i class="fas fa-sync-alt me-2"></i>Refresh
                     </button>
                 </div>
@@ -98,25 +109,41 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Search Staff</label>
-                            <input type="text" class="form-control" id="searchInput" 
-                                   placeholder="Search by name, email, code..." 
-                                   onkeyup="filterStaff()">
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="searchInput"
+                                placeholder="Search by name, email, code..."
+                                onkeyup="filterStaff()"
+                            />
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Role</label>
-                            <select class="form-select" id="roleFilter" onchange="filterStaff()">
+                            <select
+                                class="form-select"
+                                id="roleFilter"
+                                onchange="filterStaff()"
+                            >
                                 <option value="">All Roles</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Department</label>
-                            <select class="form-select" id="departmentFilter" onchange="filterStaff()">
+                            <select
+                                class="form-select"
+                                id="departmentFilter"
+                                onchange="filterStaff()"
+                            >
                                 <option value="">All Departments</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Status</label>
-                            <select class="form-select" id="statusFilter" onchange="filterStaff()">
+                            <select
+                                class="form-select"
+                                id="statusFilter"
+                                onchange="filterStaff()"
+                            >
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
@@ -124,7 +151,11 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">&nbsp;</label>
-                            <button type="button" class="btn btn-outline-secondary d-block w-100" onclick="clearFilters()">
+                            <button
+                                type="button"
+                                class="btn btn-outline-secondary d-block w-100"
+                                onclick="clearFilters()"
+                            >
                                 <i class="fas fa-times me-1"></i>Clear
                             </button>
                         </div>
@@ -151,7 +182,7 @@
                     </div>
 
                     <!-- Staff Table -->
-                    <div id="staffTableContainer" style="display: none;">
+                    <div id="staffTableContainer" style="display: none">
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -173,13 +204,30 @@
                     </div>
 
                     <!-- Empty State -->
-                    <div id="emptyState" class="text-center py-5" style="display: none;">
+                    <div
+                        id="emptyState"
+                        class="text-center py-5"
+                        style="display: none"
+                    >
                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No staff members found</h5>
-                        <p class="text-muted">Add your first staff member to get started.</p>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="showAddModal()">
-                            <i class="fas fa-plus me-2"></i>Add Staff Member
+                        <p class="text-muted">
+                            No staff available. Please add new staff to get started.
+                        </p>
+                        <button
+                            type="button"
+                            class="btn btn-primary btn-lg"
+                            data-bs-toggle="modal"
+                            data-bs-target="#staffModal"
+                            onclick="showAddModal()"
+                        >
+                            <i class="fas fa-plus me-2"></i>Add Your First Staff Member
                         </button>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                Staff members will appear here once added
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -188,58 +236,107 @@
 </div>
 
 <!-- Staff Add/Edit Modal -->
-<div class="modal fade" id="staffModal" tabindex="-1" aria-labelledby="staffModalLabel" aria-hidden="true">
+<div
+    class="modal fade"
+    id="staffModal"
+    tabindex="-1"
+    aria-labelledby="staffModalLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+>
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="staffModalLabel">Add New Staff Member</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="staffModalLabel">
+                    Add New Staff Member
+                </h5>
+                <!-- Header X button disabled - only Close/Save/Update buttons can close modal -->
             </div>
             <form id="staffForm">
                 <div class="modal-body">
-                    <input type="hidden" id="staffId" value="">
-                    <input type="hidden" id="formMode" value="add">
+                    <input type="hidden" id="staffId" value="" />
+                    <input type="hidden" id="formMode" value="add" />
 
                     <div class="row g-3">
                         <!-- Basic Information -->
                         <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Basic Information</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Basic Information
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Username *</label>
-                                <input type="text" class="form-control" id="username" required>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="username"
+                                    required
+                                />
                             </div>
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">First Name *</label>
-                                        <input type="text" class="form-control" id="firstName" required>
+                                        <label class="form-label"
+                                            >First Name *</label
+                                        >
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            id="firstName"
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Last Name *</label>
-                                        <input type="text" class="form-control" id="lastName" required>
+                                        <label class="form-label"
+                                            >Last Name *</label
+                                        >
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            id="lastName"
+                                            required
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Email *</label>
-                                <input type="email" class="form-control" id="email" required>
+                                <label class="form-label">Email</label>
+                                <input
+                                    type="email"
+                                    class="form-control"
+                                    id="email"
+                                />
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Phone</label>
-                                <input type="text" class="form-control" id="phone">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="phone"
+                                />
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password">
-                                <small class="form-text text-muted" id="passwordHelp">Leave blank to keep current password</small>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="password"
+                                />
+                                <small
+                                    class="form-text text-muted"
+                                    id="passwordHelp"
+                                    >Leave blank to keep current password</small
+                                >
                             </div>
                         </div>
 
                         <!-- Role & Department -->
                         <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Role & Department</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Role & Department
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Role</label>
                                 <select class="form-select" id="roleId">
@@ -254,27 +351,20 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Designation</label>
-                                <input type="text" class="form-control" id="designation">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="designation"
+                                />
                             </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Commission Rate (%)</label>
-                                        <input type="number" class="form-control" id="commissionRate" min="0" max="100" step="0.1">
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Hourly Rate ($)</label>
-                                        <input type="number" class="form-control" id="hourlyRate" min="0" step="0.01">
-                                    </div>
-                                </div>
-                            </div>
+                            
                         </div>
 
                         <!-- Personal Details -->
                         <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Personal Details</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Personal Details
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Gender</label>
                                 <select class="form-select" id="gender">
@@ -287,71 +377,129 @@
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Date of Birth</label>
-                                        <input type="date" class="form-control" id="dateOfBirth">
+                                        <label class="form-label"
+                                            >Date of Birth</label
+                                        >
+                                        <input
+                                            type="date"
+                                            class="form-control"
+                                            id="dateOfBirth"
+                                        />
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Date of Joining</label>
-                                        <input type="date" class="form-control" id="dateOfJoining">
+                                        <label class="form-label"
+                                            >Date of Joining</label
+                                        >
+                                        <input
+                                            type="date"
+                                            class="form-control"
+                                            id="dateOfJoining"
+                                        />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Work Schedule (Basic) -->
-                        <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Work Schedule</h6>
+                        <div hidden class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">
+                                Work Schedule
+                            </h6>
                             <div class="row">
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Shift Start</label>
-                                        <input type="time" class="form-control" id="shiftStart">
+                                        <label class="form-label"
+                                            >Shift Start</label
+                                        >
+                                        <input
+                                            type="time"
+                                            class="form-control"
+                                            id="shiftStart"
+                                        />
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Shift End</label>
-                                        <input type="time" class="form-control" id="shiftEnd">
+                                        <label class="form-label"
+                                            >Shift End</label
+                                        >
+                                        <input
+                                            type="time"
+                                            class="form-control"
+                                            id="shiftEnd"
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Working Days</label>
-                                <input type="text" class="form-control" id="workingDays" 
-                                       placeholder="e.g., Monday-Friday">
-                                <small class="text-muted">For detailed schedule management, use the Schedule button in the staff table.</small>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="workingDays"
+                                    placeholder="e.g., Monday-Friday"
+                                />
+                                <small class="text-muted"
+                                    >For detailed schedule management, use the
+                                    Schedule button in the staff table.</small
+                                >
                             </div>
                         </div>
 
                         <!-- Advanced Features -->
-                        <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">Advanced Features</h6>
+                        <div hidden class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">
+                                Advanced Features
+                            </h6>
                             <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="enableFaceCheckin" checked>
-                                <label class="form-check-label" for="enableFaceCheckin">
-                                    <i class="fas fa-user-lock me-2"></i>Enable Face Check-in
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="enableFaceCheckin"
+                                    checked
+                                />
+                                <label
+                                    class="form-check-label"
+                                    for="enableFaceCheckin"
+                                >
+                                    <i class="fas fa-user-lock me-2"></i>Enable
+                                    Face Check-in
                                 </label>
                             </div>
                         </div>
 
                         <!-- Notes -->
                         <div class="col-12">
-                            <h6 class="text-primary border-bottom pb-2">Additional Information</h6>
+                            <h6 class="text-primary border-bottom pb-2">
+                                Additional Information
+                            </h6>
                             <div class="mb-3">
                                 <label class="form-label">Notes/Bio</label>
-                                <textarea class="form-control" id="notesBio" rows="3" 
-                                          placeholder="Additional notes or biography"></textarea>
+                                <textarea
+                                    class="form-control"
+                                    id="notesBio"
+                                    rows="3"
+                                    placeholder="Additional notes or biography"
+                                ></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>Cancel
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        id="btnStaffClose"
+                    >
+                        <i class="fas fa-times me-1"></i>Close
                     </button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        id="btnStaffSave"
+                    >
                         <i class="fas fa-save me-1"></i>Save Staff
                     </button>
                 </div>
@@ -360,274 +508,49 @@
     </div>
 </div>
 
-<!-- Schedule Range Modal -->
-<div class="modal fade" id="scheduleRangeModal" tabindex="-1" aria-labelledby="scheduleRangeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="scheduleRangeModalLabel">
-                    <i class="fas fa-calendar-plus me-2"></i>Add Schedule Range
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="scheduleRangeForm">
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <!-- Schedule Name and Date Range -->
-                        <div class="col-md-6">
-                            <label class="form-label">Schedule Name *</label>
-                            <input type="text" class="form-control" id="scheduleName" required placeholder="e.g., Regular Hours, Holiday Schedule">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Start Date *</label>
-                            <input type="date" class="form-control" id="startDate" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">End Date *</label>
-                            <input type="date" class="form-control" id="endDate" required>
-                        </div>
-
-                        <!-- Working Days -->
-                        <div class="col-12">
-                            <label class="form-label">Working Days *</label>
-                            <div class="d-flex gap-3 flex-wrap">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rangeMonday">
-                                    <label class="form-check-label" for="rangeMonday">
-                                        <i class="fas fa-calendar-day me-1"></i>Monday
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rangeTuesday">
-                                    <label class="form-check-label" for="rangeTuesday">
-                                        <i class="fas fa-calendar-day me-1"></i>Tuesday
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rangeWednesday">
-                                    <label class="form-check-label" for="rangeWednesday">
-                                        <i class="fas fa-calendar-day me-1"></i>Wednesday
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rangeThursday">
-                                    <label class="form-check-label" for="rangeThursday">
-                                        <i class="fas fa-calendar-day me-1"></i>Thursday
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rangeFriday">
-                                    <label class="form-check-label" for="rangeFriday">
-                                        <i class="fas fa-calendar-day me-1"></i>Friday
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rangeSaturday">
-                                    <label class="form-check-label" for="rangeSaturday">
-                                        <i class="fas fa-calendar-day me-1"></i>Saturday
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rangeSunday">
-                                    <label class="form-check-label" for="rangeSunday">
-                                        <i class="fas fa-calendar-day me-1"></i>Sunday
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Shift Details -->
-                        <div class="col-md-4">
-                            <label class="form-label">Shift Start *</label>
-                            <input type="time" class="form-control" id="rangeShiftStart" value="09:00" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Shift End *</label>
-                            <input type="time" class="form-control" id="rangeShiftEnd" value="17:00" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Break Minutes</label>
-                            <input type="number" class="form-control" id="breakMinutes" value="30" min="0" max="180">
-                        </div>
-
-                        <!-- Priority and Description -->
-                        <div class="col-md-6">
-                            <label class="form-label">Priority</label>
-                            <select class="form-select" id="priority">
-                                <option value="1">Normal (1)</option>
-                                <option value="2">High (2)</option>
-                                <option value="3">Critical (3)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Description</label>
-                            <input type="text" class="form-control" id="description" placeholder="Optional description">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>Cancel
-                    </button>
-                    <button type="button" class="btn btn-danger" id="deleteScheduleBtn" onclick="deleteScheduleRange()" style="display: none;">Delete Schedule</button>
-                    <button type="button" class="btn btn-primary" id="saveScheduleBtn" onclick="saveScheduleRange()">Save Schedule</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Schedule Management Modal -->
-<div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="scheduleModalLabel">
-                    <i class="fas fa-calendar-alt me-2"></i>Staff Schedule Management
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="scheduleStaffId" value="">
-
-                <!-- Date Range Scheduler -->
-                <div class="card border-primary mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">
-                            <i class="fas fa-calendar-week me-2"></i>Date Range Scheduler
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <!-- Step 1: Date Range Selection -->
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label">From Date *</label>
-                                <input type="date" class="form-control" id="modalScheduleFromDate" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">To Date *</label>
-                                <input type="date" class="form-control" id="modalScheduleToDate" required>
-                            </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <button type="button" class="btn btn-primary" onclick="generateModalDaySchedule()">
-                                    <i class="fas fa-magic me-2"></i>Generate Days
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Bulk Actions -->
-                        <div id="modalBulkActions" class="d-none mb-4">
-                            <div class="border rounded p-3 bg-light">
-                                <h6 class="text-secondary mb-3">
-                                    <i class="fas fa-bolt me-2"></i>Bulk Actions
-                                </h6>
-                                <div class="row g-2">
-                                    <div class="col-md-3">
-                                        <button type="button" class="btn btn-sm btn-outline-primary w-100" onclick="modalApplyToAllDays()">
-                                            <i class="fas fa-copy me-1"></i>Apply to All
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button type="button" class="btn btn-sm btn-outline-warning w-100" onclick="modalMarkWeekendsOff()">
-                                            <i class="fas fa-calendar-times me-1"></i>Weekends Off
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Day-by-Day Schedule Table -->
-                        <div id="modalDayScheduleContainer" class="d-none">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="text-secondary mb-0">
-                                    <i class="fas fa-list me-2"></i>Day-by-Day Schedule
-                                </h6>
-                                <span id="modalDayCount" class="badge bg-info"></span>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover" id="modalDayScheduleTable">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Day</th>
-                                            <th>Working?</th>
-                                            <th>Start Time</th>
-                                            <th>End Time</th>
-                                            <th>Break</th>
-                                            <th>Notes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="modalDayScheduleBody">
-                                        <!-- Generated rows will be inserted here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="mt-3 text-end">
-                                <button type="button" class="btn btn-success" onclick="saveModalDaySchedule()">
-                                    <i class="fas fa-save me-2"></i>Save Schedule
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Current Schedule Ranges -->
-                <div class="card border-0 bg-light">
-                    <div class="card-body p-3">
-                        <h6 class="card-title mb-3">
-                            <i class="fas fa-clock me-2"></i>Current Schedule Ranges
-                        </h6>
-                        <div id="modalCurrentScheduleRanges" class="schedule-ranges-container">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover" id="modalScheduleRangesTable">
-                                    <thead class="table-primary">
-                                        <tr>
-                                            <th>Schedule</th>
-                                            <th>Period</th>
-                                            <th>Day</th>
-                                            <th>Working</th>
-                                            <th>Time</th>
-                                            <th>Break</th>
-                                            <th>Priority</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Schedule ranges will be loaded here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<div
+    class="modal fade"
+    id="deleteModal"
+    tabindex="-1"
+    aria-labelledby="deleteModalLabel"
+    aria-hidden="true"
+>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="deleteModalLabel">
+                    Confirm Delete
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
             </div>
             <div class="modal-body">
                 <div class="text-center">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i
+                        class="fas fa-exclamation-triangle fa-3x text-warning mb-3"
+                    ></i>
                     <h5>Are you sure?</h5>
                     <p id="deleteMessage">This action cannot be undone.</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    id="confirmDeleteBtn"
+                >
                     <i class="fas fa-trash me-1"></i>Delete
                 </button>
             </div>
@@ -636,12 +559,25 @@
 </div>
 
 <!-- Performance Modal -->
-<div class="modal fade" id="performanceModal" tabindex="-1" aria-labelledby="performanceModalLabel" aria-hidden="true">
+<div
+    class="modal fade"
+    id="performanceModal"
+    tabindex="-1"
+    aria-labelledby="performanceModalLabel"
+    aria-hidden="true"
+>
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="performanceModalLabel">Staff Performance</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="performanceModalLabel">
+                    Staff Performance
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
             </div>
             <div class="modal-body">
                 <div id="performanceContent">
@@ -658,320 +594,514 @@
 </div>
 
 <!-- Alert Container -->
-<div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+<div
+    id="alertContainer"
+    class="position-fixed top-0 end-0 p-3"
+    style="z-index: 1050"
+>
     <!-- Alerts will be dynamically added here -->
 </div>
 
 <script>
-// Enhanced staff management JavaScript
-let allStaff = []; // Renamed from staffList to avoid conflict with filteredStaff
-let filteredStaff = []; // Declare filteredStaff variable
-let rolesData = []; // Renamed from roles
-let departmentsData = []; // Renamed from departments
-let services = []; // Assuming this is intended to be used elsewhere or is a placeholder
-let currentStaffId = null;
-let staffModal;
-let isEditing = false; // Added to track edit mode
-let currentDeleteId = null; // Added for delete confirmation
-let currentEditingScheduleId = null; // Added for editing schedule ranges
+    // Basic staff management JavaScript
+    let allStaff = []; // Renamed from staffList to avoid conflict with filteredStaff
+    let filteredStaff = []; // Declare filteredStaff variable
+    let rolesData = []; // Renamed from roles
+    let departmentsData = []; // Renamed from departments
+    let services = []; // Assuming this is intended to be used elsewhere or is a placeholder
+    let currentStaffId = null;
+    let staffModal;
+    let isEditing = false; // Added to track edit mode
+    let currentDeleteId = null; // Added for delete confirmation
+    let hasUnsavedChanges = false; // Track unsaved changes
+    let authorizedCloseSource = null; // Track authorized close source
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Bootstrap Modal Staff Management loaded');
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("Bootstrap Modal Staff Management loaded");
 
-    // Initialize modal
-    const modalElement = document.getElementById('staffModal');
-    if (modalElement) {
-        staffModal = new bootstrap.Modal(modalElement);
-    }
+        try {
+            // Initialize modal with comprehensive protection
+            const modalElement = document.getElementById("staffModal");
+            if (modalElement) {
+                staffModal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',  // Prevent backdrop close
+                    keyboard: false      // Prevent Esc key close
+                });
 
-    // Load initial data
-    loadStaffData();
-    loadMetadata();
+                // Set up comprehensive modal protection
+                setupModalProtection(modalElement);
+            } else {
+                console.error("Staff modal element not found");
+            }
 
-    // Setup form submission
-    const staffForm = document.getElementById('staffForm');
-    if (staffForm) {
-        staffForm.addEventListener('submit', handleFormSubmission);
-    }
+            // Load initial data
+            loadStaffData();
+            loadMetadata();
 
-    // Setup delete confirmation button
-    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', () => {
-            performDelete(currentDeleteId);
+            // Setup form submission
+            const staffForm = document.getElementById("staffForm");
+            if (staffForm) {
+                staffForm.addEventListener("submit", handleFormSubmission);
+                // Track form changes for unsaved changes detection
+                trackFormChanges(staffForm);
+            } else {
+                console.error("Staff form not found");
+            }
+
+            // Setup authorized close buttons
+            setupAuthorizedCloseButtons();
+
+            // Setup delete confirmation button
+            const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener("click", () => {
+                    performDelete(currentDeleteId);
+                });
+            }
+
+        } catch (error) {
+            console.error("Error initializing staff management:", error);
+            showNotification("Error initializing staff management. Please refresh the page.", "error");
+        }
+    });
+
+    // Comprehensive modal protection system
+    // Only Close/Save/Update buttons can close the modal as per requirements
+    function setupModalProtection(modalElement) {
+        console.log("Setting up comprehensive modal protection");
+
+        // Intercept all hide attempts
+        modalElement.addEventListener('hide.bs.modal', function(event) {
+            console.log("Modal hide attempt detected, source:", authorizedCloseSource);
+
+            // Only allow authorized close sources
+            if (!isAuthorizedClose()) {
+                console.log("Unauthorized close attempt blocked");
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }
+
+            // Reset authorization after successful close
+            authorizedCloseSource = null;
+        });
+
+        // Block any programmatic hide attempts
+        const originalHide = staffModal.hide;
+        staffModal.hide = function() {
+            if (!isAuthorizedClose()) {
+                console.log("Programmatic hide blocked - unauthorized source");
+                return;
+            }
+            originalHide.call(this);
+        };
+
+        // Reset form state when modal is fully hidden
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            hasUnsavedChanges = false;
+            authorizedCloseSource = null;
         });
     }
 
-    // Initialize schedule range modal
-    initializeModalScheduleManagement();
-});
+    // Check if the current close attempt is from an authorized source
+    function isAuthorizedClose() {
+        return authorizedCloseSource === 'btnStaffClose' ||
+               authorizedCloseSource === 'btnStaffSave' ||
+               authorizedCloseSource === 'btnStaffUpdate';
+    }
 
-async function handleFormSubmission(e) {
-    e.preventDefault();
+    // Setup event listeners for authorized close buttons
+    function setupAuthorizedCloseButtons() {
+        // Close button with unsaved changes confirmation
+        const closeBtn = document.getElementById("btnStaffClose");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", handleCloseButton);
+        }
 
-    const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.innerHTML;
+        // Save button (form submission will trigger close)
+        const saveBtn = document.getElementById("btnStaffSave");
+        if (saveBtn) {
+            // The form submission will handle the close after successful save
+            console.log("Save button found and ready");
+        }
+    }
 
-    try {
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    // Handle Close button click with unsaved changes confirmation
+    async function handleCloseButton() {
+        if (hasUnsavedChanges) {
+            const confirmClose = await showUnsavedChangesDialog();
+            if (!confirmClose) {
+                return; // User chose to cancel
+            }
+        }
 
-        const formData = collectFormData();
+        // Authorize the close and close the modal
+        authorizedCloseSource = 'btnStaffClose';
+        staffModal.hide();
+    }
 
-        // Validate required fields
-        const validation = validateFormData(formData);
-        if (!validation.isValid) {
-            showNotification(validation.message, 'error');
+    // Show unsaved changes confirmation dialog
+    function showUnsavedChangesDialog() {
+        return new Promise((resolve) => {
+            const result = confirm("You have unsaved changes. Do you want to discard them and close?");
+            resolve(result);
+        });
+    }
+
+    // Track form changes to detect unsaved modifications
+    function trackFormChanges(form) {
+        const inputs = form.querySelectorAll('input, select, textarea');
+
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                hasUnsavedChanges = true;
+            });
+
+            input.addEventListener('change', () => {
+                hasUnsavedChanges = true;
+            });
+        });
+    }
+
+    async function handleFormSubmission(e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById("btnStaffSave");
+        const formMode = document.getElementById("formMode");
+        
+        if (!submitBtn || !formMode) {
+            console.error("Required form elements not found");
+            showNotification("Form elements not found. Please refresh the page.", "error");
             return;
         }
+        
+        const originalText = submitBtn.innerHTML;
+        const mode = formMode.value;
 
-        const mode = document.getElementById('formMode').value;
+        try {
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
 
-        let response;
-        if (mode === 'edit') {
-            response = await updateStaff(currentStaffId, formData);
-        } else {
-            response = await createStaff(formData);
+            const formData = collectFormData();
+
+            // Validate required fields
+            const validation = validateFormData(formData);
+            if (!validation.isValid) {
+                showNotification(validation.message, "error");
+                return;
+            }
+
+            let response;
+            if (mode === "edit") {
+                // Update button ID for edit mode
+                submitBtn.id = "btnStaffUpdate";
+                response = await updateStaff(currentStaffId, formData);
+            } else {
+                response = await createStaff(formData);
+            }
+
+            if (response && response.success) {
+                showNotification(response.message, "success");
+
+                // Authorize close from Save/Update button and close modal
+                authorizedCloseSource = mode === "edit" ? 'btnStaffUpdate' : 'btnStaffSave';
+                hasUnsavedChanges = false; // Clear unsaved changes flag
+                
+                // Close modal safely
+                if (staffModal) {
+                    staffModal.hide();
+                } else {
+                    console.error("Staff modal not available for closing");
+                }
+                
+                // Reload staff list with error handling
+                try {
+                    await loadStaffData();
+                } catch (loadError) {
+                    console.error("Error reloading staff data:", loadError);
+                    showNotification("Staff saved but list refresh failed. Please refresh the page.", "warning");
+                }
+            } else {
+                const errorMsg =
+                    response?.error || "An error occurred while saving";
+                showNotification(errorMsg, "error");
+            }
+        } catch (error) {
+            console.error("Form submission error:", error);
+            showNotification("Network error: " + error.message, "error");
+        } finally {
+            // Reset button state safely
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
         }
-
-        if (response && response.success) {
-            showNotification(response.message, 'success');
-            staffModal.hide();
-            loadStaffData(); // Reload staff list
-        } else {
-            const errorMsg = response?.error || 'An error occurred while saving';
-            showNotification(errorMsg, 'error');
-        }
-
-    } catch (error) {
-        console.error('Form submission error:', error);
-        showNotification('Network error: ' + error.message, 'error');
-    } finally {
-        // Reset button state
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
     }
-}
 
-function validateFormData(data) {
-    const required = ['username', 'first_name', 'last_name', 'email'];
+    function validateFormData(data) {
+        const required = ["username", "first_name", "last_name"];
 
-    for (const field of required) {
-        if (!data[field] || data[field].trim() === '') {
+        for (const field of required) {
+            if (!data[field] || data[field].trim() === "") {
+                return {
+                    isValid: false,
+                    message: `${field.replace("_", " ").toUpperCase()} is required`,
+                };
+            }
+        }
+
+        // Email validation (only if email is provided)
+        if (data.email && data.email.trim() !== "") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(data.email)) {
+                return {
+                    isValid: false,
+                    message: "Please enter a valid email address",
+                };
+            }
+        }
+
+        return { isValid: true };
+    }
+
+    async function createStaff(staffData) {
+        try {
+            console.log("Creating staff with data:", staffData);
+
+            const response = await fetch("/api/staff", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(staffData),
+            });
+
+            const result = await response.json();
+
+            console.log("API Response:", result);
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error ||
+                        `HTTP ${response.status}: ${response.statusText}`,
+                );
+            }
+
+            return result;
+        } catch (error) {
+            console.error("Error creating staff:", error);
             return {
-                isValid: false,
-                message: `${field.replace('_', ' ').toUpperCase()} is required`
+                success: false,
+                error: error.message || "Failed to create staff member",
             };
         }
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
-        return {
-            isValid: false,
-            message: 'Please enter a valid email address'
-        };
-    }
-
-    return { isValid: true };
-}
-
-async function createStaff(staffData) {
-    try {
-        console.log('Creating staff with data:', staffData);
-
-        const response = await fetch('/api/staff', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(staffData)
-        });
-
-        const result = await response.json();
-
-        console.log('API Response:', result);
-
-        if (!response.ok) {
-            throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error('Error creating staff:', error);
-        return {
-            success: false,
-            error: error.message || 'Failed to create staff member'
-        };
-    }
-}
-
-function collectFormData() {
-    const data = {
-        username: getFieldValue('username'),
-        first_name: getFieldValue('firstName'),
-        last_name: getFieldValue('lastName'),
-        email: getFieldValue('email'),
-        phone: getFieldValue('phone'),
-        password: getFieldValue('password'),
-        role: getFieldValue('role') || 'staff',
-        role_id: getFieldValue('roleId'),
-        department_id: getFieldValue('departmentId'),
-        designation: getFieldValue('designation'),
-        gender: getFieldValue('gender'),
-        date_of_birth: getFieldValue('dateOfBirth'),
-        date_of_joining: getFieldValue('dateOfJoining'),
-        shift_start_time: getFieldValue('shiftStart'),
-        shift_end_time: getFieldValue('shiftEnd'),
-        commission_rate: parseFloat(getFieldValue('commissionRate')) || 0,
-        hourly_rate: parseFloat(getFieldValue('hourlyRate')) || 0,
-        notes_bio: getFieldValue('notesBio'),
-        enable_face_checkin: getCheckboxValue('enableFaceCheckin'),
-        verification_status: getCheckboxValue('verificationStatus'), // Assuming this field exists and is relevant
-        is_active: getCheckboxValue('isActive', true) // Assuming a default for isActive if not present
-    };
-
-    console.log('Collected form data:', data);
-    return data;
-}
-
-function getFieldValue(fieldId) {
-    const field = document.getElementById(fieldId);
-    if (!field) {
-        console.warn(`Field ${fieldId} not found`);
-        return '';
-    }
-    return field.value?.trim() || '';
-}
-
-
-function getCheckboxValue(fieldId, defaultValue = false) {
-    const element = document.getElementById(fieldId);
-    return element ? element.checked : defaultValue;
-}
-
-// Load metadata (roles, departments, services)
-async function loadMetadata() {
-    try {
-        // This function loads dropdown data and is called from loadStaffData
-        // The actual loading is handled in loadStaffData for efficiency
-        console.log('Metadata loading handled in loadStaffData');
-    } catch (error) {
-        console.error('Error in loadMetadata:', error);
-    }
-}
-
-// Load all staff data from API
-async function loadStaffData() {
-    try {
-        showLoading(true);
-
-        const response = await fetch('/api/staff');
-        const data = await response.json();
-
-        if (data.success) {
-            allStaff = data.staff;
-            filteredStaff = [...allStaff]; // Initialize filtered staff
-            rolesData = data.roles;
-            departmentsData = data.departments;
-
-            populateDropdowns();
-            updateStats();
-            renderStaffTable();
+    function collectFormData() {
+        const data = {
+            username: getFieldValue("username"),
+            first_name: getFieldValue("firstName"),
+            last_name: getFieldValue("lastName"),
+            email: getFieldValue("email") || '',  // Use empty string instead of null
+            phone: getFieldValue("phone") || null,
+            password: getFieldValue("password"),
+            role: getFieldValue("role") || "staff",
+            role_id: getFieldValue("roleId") || null,
+            department_id: getFieldValue("departmentId") || null,
+            designation: getFieldValue("designation") || "Staff Member",
+            gender: getFieldValue("gender") || "other",
+            date_of_birth: getFieldValue("dateOfBirth") || null,
+            date_of_joining: getFieldValue("dateOfJoining") || null,
+            shift_start_time: getFieldValue("shiftStart") || null,
+            shift_end_time: getFieldValue("shiftEnd") || null,
             
-            // Show table if we have data
-            if (allStaff.length > 0) {
-                showTable(true);
+            notes_bio: getFieldValue("notesBio") || "",
+            enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
+            is_active: true
+        };
+
+        console.log("Collected form data:", data);
+        return data;
+    }
+
+    function getFieldValue(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (!field) {
+            console.warn(`Field ${fieldId} not found`);
+            return "";
+        }
+        return field.value?.trim() || "";
+    }
+
+    function getCheckboxValue(fieldId, defaultValue = false) {
+        const element = document.getElementById(fieldId);
+        return element ? element.checked : defaultValue;
+    }
+
+    // Load metadata (roles, departments, services)
+    async function loadMetadata() {
+        try {
+            // This function loads dropdown data and is called from loadStaffData
+            // The actual loading is handled in loadStaffData for efficiency
+            console.log("Metadata loading handled in loadStaffData");
+        } catch (error) {
+            console.error("Error in loadMetadata:", error);
+        }
+    }
+
+    // Load all staff data from API with comprehensive error handling
+    async function loadStaffData() {
+        try {
+            console.log("Loading staff data...");
+            showLoading(true);
+
+            const response = await fetch("/api/staff");
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            showAlert('Staff data loaded successfully', 'success');
-        } else {
-            throw new Error(data.error || 'Failed to load staff data');
+            const data = await response.json();
+
+            if (data.success) {
+                // Safely assign data with fallbacks
+                allStaff = Array.isArray(data.staff) ? data.staff : [];
+                filteredStaff = [...allStaff]; // Initialize filtered staff
+                rolesData = Array.isArray(data.roles) ? data.roles : [];
+                departmentsData = Array.isArray(data.departments) ? data.departments : [];
+
+                console.log("Staff data loaded:", allStaff.length, "staff members");
+                console.log("Roles data received:", rolesData.length, "roles");
+                console.log("Departments data received:", departmentsData.length, "departments");
+
+                // Update UI components safely
+                try {
+                    populateDropdowns();
+                    updateStats();
+                    renderStaffTable();
+                } catch (uiError) {
+                    console.error("Error updating UI components:", uiError);
+                    showNotification("Data loaded but UI update failed", "warning");
+                }
+
+                // Decide what to show based on data
+                if (allStaff.length > 0) {
+                    showTable(true);
+                    showNotification(`${allStaff.length} staff members loaded successfully`, "success", 3000);
+                } else {
+                    showEmptyState();
+                    showNotification("No staff members found", "info", 3000);
+                }
+
+            } else {
+                throw new Error(data.error || "Failed to load staff data");
+            }
+        } catch (error) {
+            console.error("Error loading staff data:", error);
+            
+            // Provide user-friendly error messages
+            let errorMessage = "Error loading staff data";
+            if (error.message.includes("fetch")) {
+                errorMessage = "Network error - please check your connection";
+            } else if (error.message.includes("JSON")) {
+                errorMessage = "Server response error - please try refreshing";
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, "error");
+            showEmptyState();
+            
+            // Initialize with empty data to prevent null reference errors
+            allStaff = [];
+            filteredStaff = [];
+            rolesData = [];
+            departmentsData = [];
+            
+        } finally {
+            showLoading(false);
         }
-    } catch (error) {
-        console.error('Error loading staff data:', error);
-        showAlert('Error loading staff data: ' + error.message, 'danger');
-        showEmptyState();
-    } finally {
-        showLoading(false);
     }
-}
 
-// Populate dropdown menus
-function populateDropdowns() {
-    // Populate role dropdowns
-    const roleSelects = ['roleFilter', 'roleId'];
-    roleSelects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    // Clear existing options (except first)
-                    const firstOption = select.firstElementChild;
-                    select.innerHTML = '';
-                    if (firstOption) {
-                        select.appendChild(firstOption);
-                    }
-
-                    rolesData.forEach(role => {
-                        const option = document.createElement('option');
-                        option.value = role.id;
-                        option.textContent = role.display_name;
-                        select.appendChild(option);
-                    });
+    // Populate dropdown menus
+    function populateDropdowns() {
+        // Populate role dropdowns
+        const roleSelects = ["roleFilter", "roleId"];
+        roleSelects.forEach((selectId) => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                // Clear existing options (except first)
+                const firstOption = select.firstElementChild;
+                select.innerHTML = "";
+                if (firstOption) {
+                    select.appendChild(firstOption);
                 }
-            });
 
-    // Populate department dropdowns
-    const deptSelects = ['departmentFilter', 'departmentId'];
-    deptSelects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    // Clear existing options (except first)
-                    const firstOption = select.firstElementChild;
-                    select.innerHTML = '';
-                    if (firstOption) {
-                        select.appendChild(firstOption);
-                    }
+                rolesData.forEach((role) => {
+                    const option = document.createElement("option");
+                    option.value = role.id;
+                    option.textContent = role.display_name;
+                    select.appendChild(option);
+                });
+            }
+        });
 
-                    departmentsData.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.display_name;
-                        select.appendChild(option);
-                    });
+        // Populate department dropdowns
+        const deptSelects = ["departmentFilter", "departmentId"];
+        deptSelects.forEach((selectId) => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                // Clear existing options (except first)
+                const firstOption = select.firstElementChild;
+                select.innerHTML = "";
+                if (firstOption) {
+                    select.appendChild(firstOption);
                 }
-            });
-}
 
-// Update statistics cards
-function updateStats() {
-    const totalStaff = allStaff.length;
-    const activeStaff = allStaff.filter(s => s.is_active).length;
+                console.log(`Populating ${selectId} with ${departmentsData.length} departments`);
+                departmentsData.forEach((dept) => {
+                    const option = document.createElement("option");
+                    option.value = dept.id;
+                    option.textContent = dept.display_name || dept.name;
+                    select.appendChild(option);
+                    console.log(`Added department option: ${dept.display_name || dept.name} (ID: ${dept.id})`);
+                });
+            }
+        });
+    }
 
-    document.getElementById('totalStaffCount').textContent = totalStaff;
-    document.getElementById('activeStaffCount').textContent = activeStaff;
-    document.getElementById('departmentCount').textContent = departmentsData.length;
-    document.getElementById('roleCount').textContent = rolesData.length;
-}
+    // Update statistics cards
+    function updateStats() {
+        const totalStaff = allStaff.length;
+        const activeStaff = allStaff.filter((s) => s.is_active).length;
 
-// Render staff table
-function renderStaffTable() {
-    // Initialize filteredStaff with all staff data
-    filteredStaff = [...allStaff];
-    // Apply filters immediately after loading data
-    filterStaff(); 
-}
+        document.getElementById("totalStaffCount").textContent = totalStaff;
+        document.getElementById("activeStaffCount").textContent = activeStaff;
+        document.getElementById("departmentCount").textContent =
+            departmentsData.length;
+        document.getElementById("roleCount").textContent = rolesData.length;
+    }
 
-// Create staff table row
-function createStaffRow(staff) {
-    const row = document.createElement('tr');
-    row.setAttribute('data-staff-id', staff.id);
+    // Render staff table
+    function renderStaffTable() {
+        // Initialize filteredStaff with all staff data
+        filteredStaff = [...allStaff];
+        // Apply filters immediately after loading data
+        filterStaff();
+    }
 
-    // Generate initials
-    const initials = (staff.first_name?.[0] || 'S') + (staff.last_name?.[0] || 'M');
+    // Create staff table row
+    function createStaffRow(staff) {
+        const row = document.createElement("tr");
+        row.setAttribute("data-staff-id", staff.id);
 
-    row.innerHTML = `
+        // Generate initials
+        const initials =
+            (staff.first_name?.[0] || "S") + (staff.last_name?.[0] || "M");
+
+        row.innerHTML = `
         <td>
             <div class="d-flex align-items-center">
                 <div class="avatar-circle me-3" style="width: 40px; height: 40px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
@@ -979,7 +1109,7 @@ function createStaffRow(staff) {
                 </div>
                 <div>
                     <strong>${staff.full_name}</strong>
-                    <br><small class="text-muted">${staff.staff_code || ''}</small>
+                    <br><small class="text-muted">${staff.staff_code || ""}</small>
                     <br><small class="text-muted">${staff.username}</small>
                 </div>
             </div>
@@ -987,32 +1117,31 @@ function createStaffRow(staff) {
         <td>
             <div><strong>${staff.role_display}</strong></div>
             <div><small class="text-muted">${staff.department_display}</small></div>
-            <div><span class="badge bg-secondary">${staff.designation || 'No Designation'}</span></div>
+            <div><span class="badge bg-secondary">${staff.designation || "No Designation"}</span></div>
         </td>
         <td>
-            <div>${staff.email || 'No email'}</div>
-            <div><small class="text-muted">${staff.phone || 'No phone'}</small></div>
-            ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ''}
+            <div>${staff.email || "No email"}</div>
+            <div><small class="text-muted">${staff.phone || "No phone"}</small></div>
+            ${staff.gender ? `<div><small class="text-muted">${staff.gender.charAt(0).toUpperCase() + staff.gender.slice(1)}</small></div>` : ""}
         </td>
         <td>
-            <div><strong>Commission:</strong> ${staff.commission_rate}%</div>
-            <div><strong>Hourly:</strong> $${staff.hourly_rate}</div>
-            ${staff.shift_start_time && staff.shift_end_time ? 
-                `<div><small>Shift: ${staff.shift_start_time} - ${staff.shift_end_time}</small></div>` : 
-                '<div><small>No shift set</small></div>'
+            ${
+                staff.shift_start_time && staff.shift_end_time
+                    ? `<div><small>Shift: ${staff.shift_start_time} - ${staff.shift_end_time}</small></div>`
+                    : "<div><small>No shift set</small></div>"
             }
         </td>
         <td>
             <div><strong>Revenue:</strong> $${staff.total_revenue_generated.toFixed(2)}</div>
             <div><small>Clients: ${staff.total_clients_served}</small></div>
-            ${staff.average_rating > 0 ? `<div><small>Rating: ⭐${staff.average_rating.toFixed(1)}</small></div>` : ''}
+            ${staff.average_rating > 0 ? `<div><small>Rating: ⭐${staff.average_rating.toFixed(1)}</small></div>` : ""}
         </td>
         <td>
-            <span class="badge bg-${staff.is_active ? 'success' : 'danger'}">
-                ${staff.is_active ? 'Active' : 'Inactive'}
+            <span class="badge bg-${staff.is_active ? "success" : "danger"}">
+                ${staff.is_active ? "Active" : "Inactive"}
             </span>
-            ${staff.verification_status ? '<br><span class="badge bg-info mt-1">Verified</span>' : ''}
-            ${staff.enable_face_checkin ? '<br><span class="badge bg-primary mt-1">Face ID</span>' : ''}
+            ${staff.verification_status ? '<br><span class="badge bg-info mt-1">Verified</span>' : ""}
+            ${staff.enable_face_checkin ? '<br><span class="badge bg-primary mt-1">Face ID</span>' : ""}
         </td>
         <td>
             <div class="btn-group-vertical btn-group-sm">
@@ -1022,9 +1151,6 @@ function createStaffRow(staff) {
                 <button type="button" class="btn btn-outline-info btn-sm" onclick="viewPerformance(${staff.id})" title="Performance">
                     <i class="fas fa-chart-line"></i>
                 </button>
-                <button type="button" class="btn btn-outline-success btn-sm" onclick="openScheduleModal(${staff.id})" title="Schedule">
-                    <i class="fas fa-calendar-alt"></i>
-                </button>
                 <button type="button" class="btn btn-outline-danger btn-sm" onclick="showDeleteModal(${staff.id})" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -1032,319 +1158,619 @@ function createStaffRow(staff) {
         </td>
     `;
 
-    return row;
-}
-
-// Filter staff based on search and filters
-function filterStaff() {
-    console.log('Filtering staff. Total staff:', allStaff.length);
-    let filtered = [...allStaff];
-
-    // Search filter
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    if (searchTerm) {
-        filtered = filtered.filter(staff => 
-            staff.full_name.toLowerCase().includes(searchTerm) ||
-            staff.email.toLowerCase().includes(searchTerm) ||
-            (staff.staff_code && staff.staff_code.toLowerCase().includes(searchTerm)) ||
-            staff.username.toLowerCase().includes(searchTerm) ||
-            (staff.phone && staff.phone.includes(searchTerm))
-        );
-        console.log('After search filter:', filtered.length);
+        return row;
     }
 
-    // Role filter
-    const roleFilter = document.getElementById('roleFilter').value;
-    if (roleFilter) {
-        filtered = filtered.filter(staff => staff.role_id == roleFilter);
-        console.log('After role filter:', filtered.length);
-    }
+    // Filter staff based on search and filters
+    function filterStaff() {
+        console.log("Filtering staff. Total staff:", allStaff.length);
+        let filtered = [...allStaff];
 
-    // Department filter
-    const deptFilter = document.getElementById('departmentFilter').value;
-    if (deptFilter) {
-        filtered = filtered.filter(staff => staff.department_id == deptFilter);
-        console.log('After department filter:', filtered.length);
-    }
-
-    // Status filter
-    const statusFilter = document.getElementById('statusFilter').value;
-    if (statusFilter === 'active') {
-        filtered = filtered.filter(staff => staff.is_active);
-        console.log('After status filter (active):', filtered.length);
-    } else if (statusFilter === 'inactive') {
-        filtered = filtered.filter(staff => !staff.is_active);
-        console.log('After status filter (inactive):', filtered.length);
-    }
-
-    // Update the global filteredStaff array
-    filteredStaff = filtered; 
-    console.log('Final filtered staff count:', filteredStaff.length);
-    renderFilteredStaff(); // Render the filtered list
-}
-
-// Render filtered staff
-function renderFilteredStaff() {
-    const tbody = document.getElementById('staffTableBody');
-    if (!tbody) {
-        console.error('Staff table body not found');
-        return;
-    }
-    
-    tbody.innerHTML = '';
-
-    if (!filteredStaff || filteredStaff.length === 0) {
-        console.log('No filtered staff to display');
-        showEmptyState();
-        return;
-    }
-
-    console.log('Rendering', filteredStaff.length, 'staff members');
-    filteredStaff.forEach(staff => {
-        const row = createStaffRow(staff);
-        tbody.appendChild(row);
-    });
-
-    showTable(true);
-}
-
-// Clear all filters
-function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('roleFilter').value = '';
-    document.getElementById('departmentFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    filterStaff(); // Re-apply filters (which will now be empty)
-}
-
-// Show/hide loading state
-function showLoading(show) {
-    document.getElementById('loadingState').style.display = show ? 'block' : 'none';
-    document.getElementById('staffTableContainer').style.display = 'none'; // Hide table while loading
-    document.getElementById('emptyState').style.display = 'none'; // Hide empty state while loading
-}
-
-// Show/hide table
-function showTable(show) {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('staffTableContainer').style.display = show ? 'block' : 'none';
-    document.getElementById('emptyState').style.display = show ? 'none' : 'block';
-}
-
-// Show empty state
-function showEmptyState() {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('staffTableContainer').style.display = 'none';
-    document.getElementById('emptyState').style.display = 'block';
-}
-
-// Show add modal
-function showAddModal() {
-    isEditing = false; // Ensure we are in add mode
-    document.getElementById('formMode').value = 'add';
-    document.getElementById('staffModalLabel').textContent = 'Add New Staff Member';
-    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
-    document.getElementById('passwordHelp').textContent = 'Password is required for new staff';
-    document.getElementById('password').required = true; // Make password required for new staff
-
-    clearForm(); // Clear any previous data
-    staffModal.show(); // Show the modal
-}
-
-// Edit staff
-async function editStaff(staffId) {
-    try {
-        isEditing = true; // Set editing mode
-        currentStaffId = staffId; // Store the ID of the staff being edited
-
-        document.getElementById('formMode').value = 'edit';
-        document.getElementById('staffModalLabel').textContent = 'Edit Staff Member';
-        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
-        document.getElementById('passwordHelp').textContent = 'Leave blank to keep current password';
-        document.getElementById('password').required = false; // Password is not required for editing
-
-        // Load staff data from API first
-        const response = await fetch(`/api/staff/${staffId}`);
-        const data = await response.json();
-
-        if (data.success) {
-            populateForm(data.staff); // Populate form with fetched data
-            staffModal.show(); // Show the modal
-        } else {
-            // Fallback: If API fails, try to get from local data (allStaff)
-            const staff = allStaff.find(s => s.id === staffId);
-            if (staff) {
-                populateForm(staff);
-                staffModal.show();
-            } else {
-                throw new Error(data.error || 'Staff member not found via API or local data');
-            }
+        // Search filter
+        const searchTerm = document
+            .getElementById("searchInput")
+            .value.toLowerCase();
+        if (searchTerm) {
+            filtered = filtered.filter(
+                (staff) =>
+                    staff.full_name.toLowerCase().includes(searchTerm) ||
+                    staff.email.toLowerCase().includes(searchTerm) ||
+                    (staff.staff_code &&
+                        staff.staff_code.toLowerCase().includes(searchTerm)) ||
+                    staff.username.toLowerCase().includes(searchTerm) ||
+                    (staff.phone && staff.phone.includes(searchTerm)),
+            );
+            console.log("After search filter:", filtered.length);
         }
-    } catch (error) {
-        console.error('Error editing staff:', error);
-        showAlert('Error loading staff data for editing: ' + error.message, 'danger');
+
+        // Role filter
+        const roleFilter = document.getElementById("roleFilter").value;
+        if (roleFilter) {
+            filtered = filtered.filter((staff) => staff.role_id == roleFilter);
+            console.log("After role filter:", filtered.length);
+        }
+
+        // Department filter
+        const deptFilter = document.getElementById("departmentFilter").value;
+        if (deptFilter) {
+            filtered = filtered.filter(
+                (staff) => staff.department_id == deptFilter,
+            );
+            console.log("After department filter:", filtered.length);
+        }
+
+        // Status filter
+        const statusFilter = document.getElementById("statusFilter").value;
+        if (statusFilter === "active") {
+            filtered = filtered.filter((staff) => staff.is_active);
+            console.log("After status filter (active):", filtered.length);
+        } else if (statusFilter === "inactive") {
+            filtered = filtered.filter((staff) => !staff.is_active);
+            console.log("After status filter (inactive):", filtered.length);
+        }
+
+        // Update the global filteredStaff array
+        filteredStaff = filtered;
+        console.log("Final filtered staff count:", filteredStaff.length);
+        renderFilteredStaff(); // Render the filtered list
     }
-}
 
-// Populate form with staff data
-function populateForm(staff) {
-    document.getElementById('staffId').value = staff.id || '';
-    document.getElementById('username').value = staff.username || '';
-    document.getElementById('firstName').value = staff.first_name || '';
-    document.getElementById('lastName').value = staff.last_name || '';
-    document.getElementById('email').value = staff.email || '';
-    document.getElementById('phone').value = staff.phone || '';
-    document.getElementById('roleId').value = staff.role_id || '';
-    document.getElementById('departmentId').value = staff.department_id || '';
-    document.getElementById('designation').value = staff.designation || '';
-    document.getElementById('commissionRate').value = staff.commission_rate !== undefined ? staff.commission_rate : '';
-    document.getElementById('hourlyRate').value = staff.hourly_rate !== undefined ? staff.hourly_rate : '';
-    document.getElementById('gender').value = staff.gender || '';
-    document.getElementById('dateOfBirth').value = staff.date_of_birth || '';
-    document.getElementById('dateOfJoining').value = staff.date_of_joining || '';
-    document.getElementById('shiftStart').value = staff.shift_start_time || '';
-    document.getElementById('shiftEnd').value = staff.shift_end_time || '';
-    document.getElementById('workingDays').value = staff.working_days || '';
-    document.getElementById('enableFaceCheckin').checked = staff.enable_face_checkin || false;
-    document.getElementById('notesBio').value = staff.notes_bio || '';
-}
+    // Render filtered staff with comprehensive null checks
+    function renderFilteredStaff() {
+        console.log("Starting renderFilteredStaff with", filteredStaff?.length || 0, "staff members");
+        
+        const tbody = document.getElementById("staffTableBody");
+        const loadingState = document.getElementById("loadingState");
+        const tableContainer = document.getElementById("staffTableContainer");
+        const emptyState = document.getElementById("emptyState");
 
-// Clear form fields and reset state
-function clearForm() {
-    document.getElementById('staffForm').reset(); // Reset form to its initial state
-    document.getElementById('staffId').value = ''; // Clear hidden ID field
-    document.getElementById('formMode').value = 'add'; // Reset mode to add
-    document.getElementById('staffModalLabel').textContent = 'Add New Staff Member'; // Reset modal title
-    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Staff'; // Reset button text
-    document.getElementById('passwordHelp').textContent = 'Password is required for new staff'; // Reset password help text
-    document.getElementById('password').required = true; // Make password required again for add mode
-}
+        // Comprehensive element checks
+        if (!tbody) {
+            console.error("Critical error: Staff table body element not found");
+            showEmptyState();
+            return;
+        }
 
+        // Hide loading state first
+        if (loadingState) {
+            loadingState.style.display = "none";
+        }
 
-// Save staff (add or update)
-async function saveStaff() {
-    try {
-        const formData = {
-            username: getFieldValue('username'),
-            first_name: getFieldValue('firstName'),
-            last_name: getFieldValue('lastName'),
-            email: getFieldValue('email'),
-            phone: getFieldValue('phone'),
-            role_id: parseInt(getFieldValue('roleId')) || null,
-            department_id: parseInt(getFieldValue('departmentId')) || null,
-            designation: getFieldValue('designation'),
-            commission_rate: parseFloat(getFieldValue('commissionRate')) || 0,
-            hourly_rate: parseFloat(getFieldValue('hourlyRate')) || 0,
-            gender: getFieldValue('gender'),
-            date_of_birth: getFieldValue('dateOfBirth'),
-            date_of_joining: getFieldValue('dateOfJoining'),
-            shift_start_time: getFieldValue('shiftStart'),
-            shift_end_time: getFieldValue('shiftEnd'),
-            working_days: getFieldValue('workingDays'),
-            enable_face_checkin: getCheckboxValue('enableFaceCheckin'),
-            notes_bio: getFieldValue('notesBio')
+        // Clear existing content safely
+        try {
+            tbody.innerHTML = "";
+        } catch (error) {
+            console.error("Error clearing table body:", error);
+            showEmptyState();
+            return;
+        }
+
+        // Check if we have staff data to render
+        if (!filteredStaff || !Array.isArray(filteredStaff) || filteredStaff.length === 0) {
+            console.log("No filtered staff to display - showing empty state");
+            showEmptyState();
+            return;
+        }
+
+        console.log("Rendering", filteredStaff.length, "staff members");
+        
+        try {
+            let successfulRenders = 0;
+            
+            filteredStaff.forEach((staff, index) => {
+                try {
+                    const row = createStaffRow(staff);
+                    if (row) {
+                        tbody.appendChild(row);
+                        successfulRenders++;
+                    } else {
+                        console.warn(`Failed to create row for staff ${staff.id}`);
+                    }
+                } catch (rowError) {
+                    console.error(`Error creating row for staff ${staff.id}:`, rowError);
+                }
+            });
+
+            if (successfulRenders > 0) {
+                showTable(true);
+                console.log(`Successfully rendered ${successfulRenders} staff members`);
+            } else {
+                console.error("No staff rows could be rendered");
+                showEmptyState();
+            }
+            
+        } catch (error) {
+            console.error("Error in renderFilteredStaff:", error);
+            showEmptyState();
+        }
+    }
+
+    // Clear all filters
+    function clearFilters() {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("roleFilter").value = "";
+        document.getElementById("departmentFilter").value = "";
+        document.getElementById("statusFilter").value = "";
+        filterStaff(); // Re-apply filters (which will now be empty)
+    }
+
+    // Show/hide loading state
+    function showLoading(show) {
+        document.getElementById("loadingState").style.display = show
+            ? "block"
+            : "none";
+        document.getElementById("staffTableContainer").style.display = "none"; // Hide table while loading
+        document.getElementById("emptyState").style.display = "none"; // Hide empty state while loading
+    }
+
+    // Show/hide table with comprehensive checks and fallback messages
+    function showTable(show) {
+        const loadingState = document.getElementById("loadingState");
+        const tableContainer = document.getElementById("staffTableContainer");
+        const emptyState = document.getElementById("emptyState");
+        
+        // Always hide loading state
+        if (loadingState) {
+            loadingState.style.display = "none";
+        }
+
+        if (show) {
+            // Show table, hide empty state
+            if (tableContainer) {
+                tableContainer.style.display = "block";
+            } else {
+                console.error("Table container not found - cannot show table");
+                return;
+            }
+            
+            if (emptyState) {
+                emptyState.style.display = "none";
+            }
+            
+            console.log("Staff table displayed successfully");
+        } else {
+            // Hide table, potentially show empty state
+            if (tableContainer) {
+                tableContainer.style.display = "none";
+            }
+            console.log("Staff table hidden");
+        }
+
+        // Ensure main navigation buttons are always visible
+        ensureNavigationVisible();
+    }
+
+    // Show empty state with fallback message
+    function showEmptyState() {
+        const loadingState = document.getElementById("loadingState");
+        const tableContainer = document.getElementById("staffTableContainer");
+        const emptyState = document.getElementById("emptyState");
+        
+        // Hide other states
+        if (loadingState) {
+            loadingState.style.display = "none";
+        }
+        
+        if (tableContainer) {
+            tableContainer.style.display = "none";
+        }
+
+        // Show empty state
+        if (emptyState) {
+            emptyState.style.display = "block";
+            console.log("Empty state displayed");
+            
+            // Update empty state content to ensure it's helpful
+            const emptyStateContent = emptyState.querySelector('h5');
+            if (emptyStateContent && !emptyStateContent.textContent.includes('No staff')) {
+                emptyStateContent.textContent = 'No staff members found';
+            }
+            
+            const emptyStateDescription = emptyState.querySelector('p');
+            if (emptyStateDescription && !emptyStateDescription.textContent.includes('available')) {
+                emptyStateDescription.textContent = 'No staff available. Please add new staff to get started.';
+            }
+        } else {
+            console.error("Empty state element not found - creating fallback");
+            createFallbackEmptyMessage();
+        }
+        
+        // Always ensure navigation is visible
+        ensureNavigationVisible();
+    }
+
+    // Ensure navigation and add buttons are always visible
+    function ensureNavigationVisible() {
+        // Main header Add button
+        const headerAddBtn = document.querySelector('[data-bs-target="#staffModal"]');
+        if (headerAddBtn) {
+            headerAddBtn.style.display = "inline-block";
+            headerAddBtn.style.visibility = "visible";
+        }
+
+        // Empty state Add button
+        const emptyAddBtn = document.querySelector('#emptyState [data-bs-target="#staffModal"]');
+        if (emptyAddBtn) {
+            emptyAddBtn.style.display = "inline-block";
+            emptyAddBtn.style.visibility = "visible";
+        }
+
+        // Header navigation
+        const headerNav = document.querySelector('.d-flex.justify-content-between.align-items-center');
+        if (headerNav) {
+            headerNav.style.display = "flex";
+            headerNav.style.visibility = "visible";
+        }
+    }
+
+    // Create fallback empty message if empty state element is missing
+    function createFallbackEmptyMessage() {
+        const cardBody = document.querySelector('.card-body');
+        if (cardBody) {
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.id = 'fallbackEmptyState';
+            fallbackDiv.className = 'text-center py-5';
+            fallbackDiv.innerHTML = `
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No staff members found</h5>
+                <p class="text-muted">No staff available. Please add new staff to get started.</p>
+                <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#staffModal" onclick="showAddModal()">
+                    <i class="fas fa-plus me-2"></i>Add Your First Staff Member
+                </button>
+            `;
+            
+            cardBody.appendChild(fallbackDiv);
+            console.log("Fallback empty state created");
+        }
+    }
+
+    // Show add modal
+    function showAddModal() {
+        isEditing = false; // Ensure we are in add mode
+        
+        // Safe element updates with null checks
+        const formMode = document.getElementById("formMode");
+        const modalLabel = document.getElementById("staffModalLabel");
+        const saveBtn = document.getElementById("btnStaffSave");
+        const passwordHelp = document.getElementById("passwordHelp");
+        const passwordField = document.getElementById("password");
+        
+        if (formMode) formMode.value = "add";
+        if (modalLabel) modalLabel.textContent = "Add New Staff Member";
+        if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
+        if (passwordHelp) passwordHelp.textContent = "Password is required for new staff";
+        if (passwordField) passwordField.required = true;
+
+        clearForm(); // Clear any previous data
+        if (staffModal) staffModal.show(); // Show the modal
+    }
+
+    // Edit staff with comprehensive error handling and null checks
+    async function editStaff(staffId) {
+        try {
+            console.log("Editing staff with ID:", staffId);
+            
+            // Validate staff ID
+            if (!staffId || staffId <= 0) {
+                throw new Error("Invalid staff ID provided");
+            }
+
+            isEditing = true; // Set editing mode
+            currentStaffId = staffId; // Store the ID of the staff being edited
+
+            // Safely update form elements with null checks
+            const formMode = document.getElementById("formMode");
+            const modalLabel = document.getElementById("staffModalLabel");
+            const saveBtn = document.getElementById("btnStaffSave");
+            const passwordHelp = document.getElementById("passwordHelp");
+            const passwordField = document.getElementById("password");
+
+            if (formMode) formMode.value = "edit";
+            if (modalLabel) modalLabel.textContent = "Edit Staff Member";
+            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Update Staff';
+            if (passwordHelp) passwordHelp.textContent = "Leave blank to keep current password";
+            if (passwordField) passwordField.required = false;
+
+            // Load staff data from API first
+            console.log(`Fetching staff data from /api/staff/${staffId}`);
+            const response = await fetch(`/api/staff/${staffId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+
+            if (data.success && data.staff) {
+                populateForm(data.staff); // Populate form with fetched data
+                
+                // Show modal safely
+                if (staffModal) {
+                    staffModal.show();
+                } else {
+                    console.error("Staff modal not initialized");
+                    throw new Error("Modal not available");
+                }
+            } else {
+                // Fallback: If API fails, try to get from local data (allStaff)
+                console.log("API failed, trying local data fallback");
+                const staff = allStaff.find((s) => s.id == staffId);
+                if (staff) {
+                    populateForm(staff);
+                    if (staffModal) {
+                        staffModal.show();
+                    } else {
+                        throw new Error("Modal not available");
+                    }
+                } else {
+                    throw new Error(data.error || "Staff member not found via API or local data");
+                }
+            }
+        } catch (error) {
+            console.error("Error editing staff:", error);
+            
+            // Provide user-friendly error message
+            let errorMessage = "Error loading staff data for editing";
+            if (error.message.includes("Invalid staff ID")) {
+                errorMessage = "Invalid staff member selected";
+            } else if (error.message.includes("HTTP")) {
+                errorMessage = "Server error loading staff data";
+            } else if (error.message.includes("Modal")) {
+                errorMessage = "Interface error - please refresh the page";
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, "error");
+        }
+    }
+
+    // Populate form with staff data
+    function populateForm(staff) {
+        const fields = {
+            "staffId": staff.id || "",
+            "username": staff.username || "",
+            "firstName": staff.first_name || "",
+            "lastName": staff.last_name || "",
+            "email": staff.email || "",
+            "phone": staff.phone || "",
+            "roleId": staff.role_id || "",
+            "departmentId": staff.department_id || "",
+            "designation": staff.designation || "",
+            "gender": staff.gender || "",
+            "dateOfBirth": staff.date_of_birth || "",
+            "dateOfJoining": staff.date_of_joining || "",
+            "shiftStart": staff.shift_start_time || "",
+            "shiftEnd": staff.shift_end_time || "",
+            "workingDays": staff.working_days || "",
+            "notesBio": staff.notes_bio || ""
         };
 
-        // Add password only if it's provided (for edit mode) or required (for add mode)
-        const passwordField = document.getElementById('password');
-        if (passwordField && passwordField.value) {
-            formData.password = passwordField.value;
-        } else if (document.getElementById('formMode').value === 'add' && !formData.password) {
-            // If in add mode and password is not provided, this will be caught by validation
-            // Or we can explicitly check here if needed.
-        }
-
-
-        let url, method;
-        if (isEditing) { // Use the isEditing flag
-            const staffId = document.getElementById('staffId').value;
-            url = `/api/staff/${staffId}`;
-            method = 'PUT';
-        } else {
-            url = '/api/staff';
-            method = 'POST';
-        }
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
+        // Safely populate text fields
+        Object.entries(fields).forEach(([fieldId, value]) => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.value = value;
+            } else {
+                console.warn(`Field ${fieldId} not found in form`);
+            }
         });
 
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert(data.message, 'success');
-
-            // Hide modal
-            staffModal.hide(); // Use the globally initialized modal instance
-
-            loadStaffData(); // Refresh data
-        } else {
-            throw new Error(data.error || 'An unknown error occurred');
+        // Handle checkbox separately
+        const faceCheckinField = document.getElementById("enableFaceCheckin");
+        if (faceCheckinField) {
+            faceCheckinField.checked = staff.enable_face_checkin || false;
         }
-    } catch (error) {
-        console.error('Error saving staff:', error);
-        showAlert('Error saving staff: ' + error.message, 'danger');
     }
-}
 
-// Show delete modal with confirmation message
-function showDeleteModal(staffId) {
-    const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) return;
-
-    currentDeleteId = staffId; // Store the ID for confirmation
-    document.getElementById('deleteMessage').textContent = 
-        `Are you sure you want to delete ${staff.full_name} (${staff.username})? This action cannot be undone.`;
-
-    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    modal.show();
-}
-
-// Perform delete operation
-async function performDelete(staffId) {
-    if (!staffId) {
-        console.error("No staff ID provided for deletion.");
-        return;
-    }
-    try {
-        const response = await fetch(`/api/staff/${staffId}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert(data.message, 'success');
-
-            // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-            modal.hide();
-
-            currentDeleteId = null; // Clear the stored ID
-            loadStaffData(); // Refresh data
-        } else {
-            throw new Error(data.error || 'Failed to delete staff member');
+    // Clear form fields and reset state
+    function clearForm() {
+        const staffForm = document.getElementById("staffForm");
+        const staffId = document.getElementById("staffId");
+        const formMode = document.getElementById("formMode");
+        const modalLabel = document.getElementById("staffModalLabel");
+        const saveBtn = document.getElementById("btnStaffSave");
+        const passwordHelp = document.getElementById("passwordHelp");
+        const passwordField = document.getElementById("password");
+        
+        if (staffForm) {
+            try {
+                staffForm.reset();
+            } catch (error) {
+                console.warn("Error resetting form:", error);
+            }
         }
-    } catch (error) {
-        console.error('Error deleting staff:', error);
-        showAlert('Error deleting staff: ' + error.message, 'danger');
+        
+        if (staffId) staffId.value = "";
+        if (formMode) formMode.value = "add";
+        if (modalLabel) modalLabel.textContent = "Add New Staff Member";
+        if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Add Staff';
+        if (passwordHelp) passwordHelp.textContent = "Password is required for new staff";
+        if (passwordField) passwordField.required = true;
+        
+        // Clear any previous validation states
+        if (staffForm) {
+            const inputs = staffForm.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.classList.remove('is-invalid', 'is-valid');
+            });
+        }
     }
-}
 
-// View performance details
-function viewPerformance(staffId) {
-    const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) {
-        showAlert('Staff member not found.', 'danger');
-        return;
+    // Save staff (add or update)
+    async function saveStaff() {
+        try {
+            const formData = {
+                username: getFieldValue("username"),
+                first_name: getFieldValue("firstName"),
+                last_name: getFieldValue("lastName"),
+                email: getFieldValue("email"),
+                phone: getFieldValue("phone"),
+                role_id: parseInt(getFieldValue("roleId")) || null,
+                department_id: parseInt(getFieldValue("departmentId")) || null,
+                designation: getFieldValue("designation"),
+                commission_rate:
+                    parseFloat(getFieldValue("commissionRate")) || 0,
+                hourly_rate: parseFloat(getFieldValue("hourlyRate")) || 0,
+                gender: getFieldValue("gender"),
+                date_of_birth: getFieldValue("dateOfBirth"),
+                date_of_joining: getFieldValue("dateOfJoining"),
+                shift_start_time: getFieldValue("shiftStart"),
+                shift_end_time: getFieldValue("shiftEnd"),
+                working_days: getFieldValue("workingDays"),
+                enable_face_checkin: getCheckboxValue("enableFaceCheckin"),
+                notes_bio: getFieldValue("notesBio"),
+            };
+
+            // Add password only if it's provided (for edit mode) or required (for add mode)
+            const passwordField = document.getElementById("password");
+            if (passwordField && passwordField.value) {
+                formData.password = passwordField.value;
+            } else if (
+                document.getElementById("formMode").value === "add" &&
+                !formData.password
+            ) {
+                // If in add mode and password is not provided, this will be caught by validation
+                // Or we can explicitly check here if needed.
+            }
+
+            let url, method;
+            if (isEditing) {
+                // Use the isEditing flag
+                const staffId = document.getElementById("staffId").value;
+                url = `/api/staff/${staffId}`;
+                method = "PUT";
+            } else {
+                url = "/api/staff";
+                method = "POST";
+            }
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showAlert(data.message, "success");
+
+                // Hide modal
+                staffModal.hide(); // Use the globally initialized modal instance
+
+                loadStaffData(); // Refresh data
+            } else {
+                throw new Error(data.error || "An unknown error occurred");
+            }
+        } catch (error) {
+            console.error("Error saving staff:", error);
+            showAlert("Error saving staff: " + error.message, "danger");
+        }
     }
 
-    document.getElementById('performanceModalLabel').textContent = `${staff.full_name} - Performance`;
-    document.getElementById('performanceContent').innerHTML = `
+    // Show delete modal with confirmation message
+    function showDeleteModal(staffId) {
+        const staff = allStaff.find((s) => s.id === staffId);
+        if (!staff) return;
+
+        currentDeleteId = staffId; // Store the ID for confirmation
+        document.getElementById("deleteMessage").textContent =
+            `Are you sure you want to delete ${staff.full_name} (${staff.username})? This action cannot be undone.`;
+
+        const modal = new bootstrap.Modal(
+            document.getElementById("deleteModal"),
+        );
+        modal.show();
+    }
+
+    // Perform delete operation with comprehensive error handling
+    async function performDelete(staffId) {
+        if (!staffId) {
+            console.error("No staff ID provided for deletion.");
+            showNotification("No staff member selected for deletion", "error");
+            return;
+        }
+
+        console.log("Deleting staff member:", staffId);
+        
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                showNotification(data.message, "success");
+
+                // Hide modal safely
+                const deleteModal = document.getElementById("deleteModal");
+                if (deleteModal) {
+                    const modal = bootstrap.Modal.getInstance(deleteModal);
+                    if (modal) {
+                        modal.hide();
+                    } else {
+                        console.warn("Modal instance not found, hiding directly");
+                        deleteModal.style.display = "none";
+                        // Clean up backdrop
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+                        document.body.classList.remove('modal-open');
+                    }
+                } else {
+                    console.error("Delete modal not found");
+                }
+
+                currentDeleteId = null; // Clear the stored ID
+                
+                // Refresh data with error handling
+                try {
+                    await loadStaffData();
+                } catch (loadError) {
+                    console.error("Error reloading data after delete:", loadError);
+                    showNotification("Staff deleted but list refresh failed. Please refresh the page.", "warning");
+                }
+            } else {
+                throw new Error(data.error || "Failed to delete staff member");
+            }
+        } catch (error) {
+            console.error("Error deleting staff:", error);
+            
+            let errorMessage = "Error deleting staff member";
+            if (error.message.includes("HTTP 404")) {
+                errorMessage = "Staff member not found";
+            } else if (error.message.includes("HTTP 403")) {
+                errorMessage = "Access denied - insufficient permissions";
+            } else if (error.message.includes("HTTP")) {
+                errorMessage = "Server error - please try again";
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, "error");
+        }
+    }
+
+    // View performance details
+    function viewPerformance(staffId) {
+        const staff = allStaff.find((s) => s.id === staffId);
+        if (!staff) {
+            showAlert("Staff member not found.", "danger");
+            return;
+        }
+
+        document.getElementById("performanceModalLabel").textContent =
+            `${staff.full_name} - Performance`;
+        document.getElementById("performanceContent").innerHTML = `
         <div class="row">
             <div class="col-md-6">
                 <div class="card border-primary mb-3">
@@ -1352,9 +1778,9 @@ function viewPerformance(staffId) {
                         <h6 class="mb-0">Revenue & Commission</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated?.toFixed(2) ?? 'N/A'}</div>
-                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate !== undefined ? `${staff.commission_rate}%` : 'N/A'}</div>
-                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate !== undefined ? staff.hourly_rate.toFixed(2) : 'N/A'}</div>
+                        <div class="mb-2"><strong>Total Revenue:</strong> $${staff.total_revenue_generated?.toFixed(2) ?? "N/A"}</div>
+                        <div class="mb-2"><strong>Commission Rate:</strong> ${staff.commission_rate !== undefined ? `${staff.commission_rate}%` : "N/A"}</div>
+                        <div class="mb-2"><strong>Hourly Rate:</strong> $${staff.hourly_rate !== undefined ? staff.hourly_rate.toFixed(2) : "N/A"}</div>
                     </div>
                 </div>
             </div>
@@ -1364,9 +1790,9 @@ function viewPerformance(staffId) {
                         <h6 class="mb-0">Client Service</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served ?? 'N/A'}</div>
-                        <div class="mb-2"><strong>Average Rating:</strong> ${staff.average_rating > 0 ? `⭐${staff.average_rating.toFixed(1)}` : 'No rating yet'}</div>
-                        <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? 'success' : 'danger'}">${staff.is_active ? 'Active' : 'Inactive'}</span></div>
+                        <div class="mb-2"><strong>Clients Served:</strong> ${staff.total_clients_served ?? "N/A"}</div>
+                        <div class="mb-2"><strong>Average Rating:</strong> ${staff.average_rating > 0 ? `⭐${staff.average_rating.toFixed(1)}` : "No rating yet"}</div>
+                        <div class="mb-2"><strong>Status:</strong> <span class="badge bg-${staff.is_active ? "success" : "danger"}">${staff.is_active ? "Active" : "Inactive"}</span></div>
                     </div>
                 </div>
             </div>
@@ -1378,850 +1804,186 @@ function viewPerformance(staffId) {
                         <h6 class="mb-0">Work Schedule</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-2"><strong>Shift:</strong> ${staff.shift_start_time && staff.shift_end_time ? `${staff.shift_start_time} - ${staff.shift_end_time}` : 'Not set'}</div>
-                        <div class="mb-2"><strong>Working Days:</strong> ${staff.working_days || 'Not set'}</div>
-                        <div class="mb-2"><strong>Last Login:</strong> ${staff.last_login ? new Date(staff.last_login).toLocaleDateString() : 'Never'}</div>
+                        <div class="mb-2"><strong>Shift:</strong> ${staff.shift_start_time && staff.shift_end_time ? `${staff.shift_start_time} - ${staff.shift_end_time}` : "Not set"}</div>
+                        <div class="mb-2"><strong>Working Days:</strong> ${staff.working_days || "Not set"}</div>
+                        <div class="mb-2"><strong>Last Login:</strong> ${staff.last_login ? new Date(staff.last_login).toLocaleDateString() : "Never"}</div>
                     </div>
                 </div>
             </div>
         </div>
     `;
 
-    const modal = new bootstrap.Modal(document.getElementById('performanceModal'));
-    modal.show();
-}
+        const modal = new bootstrap.Modal(
+            document.getElementById("performanceModal"),
+        );
+        modal.show();
+    }
 
-// Refresh staff data and show notification
-async function refreshStaffData() {
-    showAlert('Refreshing staff data...', 'info');
-    await loadStaffData();
-}
+    // Refresh staff data and show notification
+    async function refreshStaffData() {
+        showAlert("Refreshing staff data...", "info");
+        await loadStaffData();
+    }
 
-// Placeholder for export functionality
-function exportStaffData() {
-    showAlert('Export functionality - Feature coming soon!', 'info');
-}
+    // Placeholder for export functionality
+    function exportStaffData() {
+        showAlert("Export functionality - Feature coming soon!", "info");
+    }
 
-// Show a temporary alert message
-function showAlert(message, type = 'info') {
-    const alertContainer = document.getElementById('alertContainer');
-    const alertId = 'alert-' + Date.now(); // Unique ID for each alert
+    // Show notification with comprehensive error handling
+    function showNotification(message, type = "info", duration = 5000) {
+        console.log(`Showing notification: ${message} (${type})`);
+        
+        let alertContainer = document.getElementById("alertContainer");
+        
+        // Create alert container if it doesn't exist
+        if (!alertContainer) {
+            console.log("Alert container not found, creating one");
+            alertContainer = document.createElement("div");
+            alertContainer.id = "alertContainer";
+            alertContainer.className = "position-fixed top-0 end-0 p-3";
+            alertContainer.style.zIndex = "1050";
+            document.body.appendChild(alertContainer);
+        }
+        
+        const alertId = "alert-" + Date.now(); // Unique ID for each alert
+        
+        // Map types for Bootstrap classes
+        const typeMap = {
+            'success': 'success',
+            'error': 'danger',
+            'danger': 'danger',
+            'warning': 'warning',
+            'info': 'info'
+        };
+        
+        const bootstrapType = typeMap[type] || 'info';
 
-    const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
+        const alertHtml = `
+        <div class="alert alert-${bootstrapType} alert-dismissible fade show" id="${alertId}" role="alert">
+            <i class="fas fa-${getNotificationIcon(type)} me-2"></i>
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    `;
+        `;
 
-    alertContainer.insertAdjacentHTML('beforeend', alertHtml);
-
-    // Automatically remove the alert after a few seconds
-    setTimeout(() => {
-        const alertElement = document.getElementById(alertId);
-        if (alertElement) {
-            // Use bootstrap's alert dismissal for proper animation
-            const alert = new bootstrap.Alert(alertElement);
-            alert.close();
-        }
-    }, 5000); // Alert disappears after 5 seconds
-}
-
-// Initialize modal for schedule ranges
-function initializeModalScheduleManagement() {
-    const modalElement = document.getElementById('scheduleRangeModal');
-    if (modalElement) {
-        modalScheduleRangeModal = new bootstrap.Modal(modalElement);
-    }
-
-    const scheduleForm = document.getElementById('scheduleRangeForm');
-    if (scheduleForm) {
-        scheduleForm.addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent default form submission
-            saveModalScheduleRange(); // Call the save function
-        });
-    }
-}
-
-// Open schedule range modal (called from staff edit/add)
-function openScheduleRangeModal() {
-    // Reset form and set defaults
-    document.getElementById('scheduleRangeForm').reset();
-    document.getElementById('rangeShiftStart').value = '09:00';
-    document.getElementById('rangeShiftEnd').value = '17:00';
-    document.getElementById('breakMinutes').value = '30';
-    document.getElementById('priority').value = '1'; // Default to Normal priority
-
-    // Check default working days (Mon-Fri)
-    ['rangeMonday', 'rangeTuesday', 'rangeWednesday', 'rangeThursday', 'rangeFriday'].forEach(id => {
-        document.getElementById(id).checked = true;
-    });
-    ['rangeSaturday', 'rangeSunday'].forEach(id => {
-        document.getElementById(id).checked = false;
-    });
-
-    // Update modal title and button for adding
-    document.querySelector('#scheduleRangeModal .modal-title').innerHTML = 
-        `<i class="fas fa-calendar-plus me-2"></i>Add Schedule Range`;
-    document.getElementById('saveScheduleBtn').textContent = 'Save Schedule Range';
-    document.getElementById('deleteScheduleBtn').style.display = 'none'; // Hide delete button
-
-    // Show the modal
-    if (modalScheduleRangeModal) {
-        modalScheduleRangeModal.show();
-    }
-}
-
-// Save or update a schedule range
-async function saveModalScheduleRange() {
-    const staffId = document.getElementById('staffId').value; // Get staff ID from the main staff form
-    if (!staffId) {
-        showAlert('Please save the staff member details first before adding schedule ranges', 'warning');
-        return;
-    }
-    currentModalStaffId = staffId; // Store globally for other schedule functions
-
-    // Collect working days
-    const workingDays = {
-        monday: document.getElementById('rangeMonday').checked,
-        tuesday: document.getElementById('rangeTuesday').checked,
-        wednesday: document.getElementById('rangeWednesday').checked,
-        thursday: document.getElementById('rangeThursday').checked,
-        friday: document.getElementById('rangeFriday').checked,
-        saturday: document.getElementById('rangeSaturday').checked,
-        sunday: document.getElementById('rangeSunday').checked
-    };
-
-    const scheduleData = {
-        schedule_name: getFieldValue('scheduleName'),
-        start_date: getFieldValue('startDate'),
-        end_date: getFieldValue('endDate'),
-        working_days: workingDays,
-        shift_start_time: getFieldValue('rangeShiftStart'),
-        shift_end_time: getFieldValue('rangeShiftEnd'),
-        break_time: getFieldValue('breakMinutes'),
-        priority: parseInt(getFieldValue('priority')) || 1,
-        description: getFieldValue('description')
-    };
-
-    // Basic validation for schedule range
-    if (!scheduleData.schedule_name || !scheduleData.start_date || !scheduleData.end_date ||
-        !scheduleData.shift_start_time || !scheduleData.shift_end_time) {
-        showAlert('Please fill in all required schedule fields (Name, Dates, Times)', 'warning');
-        return;
-    }
-
-    const isEditing = currentEditingScheduleId !== null;
-    const url = isEditing
-        ? `/api/staff/${staffId}/schedule-ranges/${currentEditingScheduleId}`
-        : `/api/staff/${staffId}/schedule-ranges`;
-    const method = isEditing ? 'PUT' : 'POST';
-
-    try {
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(scheduleData)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showAlert(result.message || 'Schedule range saved successfully!', 'success');
-            if (modalScheduleRangeModal) {
-                modalScheduleRangeModal.hide();
-            }
-            await loadModalScheduleRanges(staffId); // Refresh the list in the schedule modal
-            resetScheduleRangeModal(); // Reset the form for next time
-        } else {
-            throw new Error(result.message || 'Failed to save schedule range');
-        }
-    } catch (error) {
-        console.error('Error saving schedule range:', error);
-        showAlert('Error saving schedule range: ' + error.message, 'danger');
-    }
-}
-
-// Load and render schedule ranges for a specific staff member
-async function loadModalScheduleRanges(staffId) {
-    if (!staffId) return;
-
-    try {
-        const response = await fetch(`/api/staff/${staffId}/schedule-ranges`);
-        const data = await response.json();
-
-        const tbody = document.querySelector('#modalScheduleRangesTable tbody');
-        if (!tbody) {
-            console.error('Schedule ranges table body not found.');
+        try {
+            alertContainer.insertAdjacentHTML("beforeend", alertHtml);
+        } catch (error) {
+            console.error("Error showing alert:", error);
+            // Fallback: console log and basic alert
+            console.log(`NOTIFICATION: ${message}`);
             return;
         }
 
-        if (data.success && data.schedule_ranges && data.schedule_ranges.length > 0) {
-            renderScheduleRangesTable(data.schedule_ranges);
-        } else {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center text-muted py-3">
-                        <i class="fas fa-calendar-times me-2"></i>
-                        No schedule ranges defined yet. Click "Add Schedule Range" to create one.
-                    </td>
-                </tr>
-            `;
-        }
-    } catch (error) {
-        console.error('Error loading schedule ranges:', error);
-        showAlert('Error loading schedule ranges: ' + error.message, 'danger');
+        // Automatically remove the alert after specified duration
+        setTimeout(() => {
+            const alertElement = document.getElementById(alertId);
+            if (alertElement) {
+                try {
+                    // Use bootstrap's alert dismissal for proper animation
+                    const alert = new bootstrap.Alert(alertElement);
+                    alert.close();
+                } catch (error) {
+                    console.warn("Error closing alert:", error);
+                    // Fallback: remove element directly
+                    if (alertElement.parentNode) {
+                        alertElement.parentNode.removeChild(alertElement);
+                    }
+                }
+            }
+        }, duration);
     }
-}
 
-// Render schedule ranges in a table format
-function renderScheduleRangesTable(ranges) {
-    const tbody = document.querySelector('#modalScheduleRangesTable tbody');
-    if (!tbody) return;
+    // Get notification icon for different types
+    function getNotificationIcon(type) {
+        const icons = {
+            'success': 'check-circle',
+            'error': 'exclamation-circle',
+            'danger': 'exclamation-circle',
+            'warning': 'exclamation-triangle',
+            'info': 'info-circle'
+        };
+        return icons[type] || 'info-circle';
+    }
 
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    // Legacy function for compatibility
+    function showAlert(message, type = "info") {
+        showNotification(message, type);
+    }
 
-    let html = '';
-
-    ranges.forEach((range, rangeIndex) => {
-        // Add a row for the schedule name and period only for the first day of the range
-        html += `
-            <tr>
-                <td class="align-middle">
-                    <strong>${range.schedule_name}</strong>
-                    <br><small>${range.start_date} to ${range.end_date}</small>
-                </td>
-                <td class="align-middle">${days[0]}</td>
-                <td class="align-middle">
-                    <span class="badge ${getDayBadgeClass(days[0])}">${days[0]}</span>
-                </td>
-                <td class="align-middle">
-                    <span class="badge ${range.working_days.monday ? 'bg-success' : 'bg-secondary'}">
-                        <i class="fas fa-${range.working_days.monday ? 'check' : 'times'} me-1"></i>
-                        ${range.working_days.monday ? 'Yes' : 'No'}
-                    </span>
-                </td>
-                <td class="align-middle">${range.working_days.monday ? `${range.shift_start_time} - ${range.shift_end_time}` : '-'}</td>
-                <td class="align-middle">${range.working_days.monday ? `${range.break_time} min` : '-'}</td>
-                <td class="align-middle"><span class="badge bg-primary">Prio ${range.priority}</span></td>
-                <td class="align-middle">
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-sm btn-outline-primary me-2" onclick="editScheduleRange(${range.id})">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteScheduleRangeConfirm(${range.id})">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-
-        // Add rows for subsequent days in the range
-        for (let i = 1; i < days.length; i++) {
-            const dayName = days[i];
-            const dayKey = dayKeys[i];
-            html += `
-                <tr>
-                    <td></td> <!-- Empty cell for schedule name/period -->
-                    <td class="align-middle">${dayName}</td>
-                    <td class="align-middle">
-                        <span class="badge ${getDayBadgeClass(dayName)}">${dayName}</span>
-                    </td>
-                    <td class="align-middle">
-                        <span class="badge ${range.working_days[dayKey] ? 'bg-success' : 'bg-secondary'}">
-                            <i class="fas fa-${range.working_days[dayKey] ? 'check' : 'times'} me-1"></i>
-                            ${range.working_days[dayKey] ? 'Yes' : 'No'}
-                        </span>
-                    </td>
-                    <td class="align-middle">${range.working_days[dayKey] ? `${range.shift_start_time} - ${range.shift_end_time}` : '-'}</td>
-                    <td class="align-middle">${range.working_days[dayKey] ? `${range.break_time} min` : '-'}</td>
-                    <td></td> <!-- Empty cell for priority -->
-                    <td></td> <!-- Empty cells for actions -->
-                </tr>
-            `;
-        }
-        // Add a separator between different schedule ranges
-        if (rangeIndex < ranges.length - 1) {
-            html += `<tr><td colspan="8" class="border-top border-2"></td></tr>`;
+    // Global error handler
+    window.addEventListener('error', function(event) {
+        console.error('Global JavaScript Error:', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error
+        });
+        
+        // Show user-friendly message for critical errors
+        if (event.message.includes('Cannot set properties of null') || 
+            event.message.includes('Cannot read properties of null')) {
+            showNotification('Interface update error. Please refresh the page if issues persist.', 'warning');
         }
     });
 
-    tbody.innerHTML = html;
-}
+    // Helper function to update staff data via API
+    async function updateStaff(staffId, staffData) {
+        try {
+            console.log("Updating staff with data:", staffData);
 
-// Edit a schedule range
-function editScheduleRange(scheduleId) {
-    currentEditingScheduleId = scheduleId; // Store the ID of the range being edited
+            // Validate staffId
+            if (!staffId || staffId <= 0) {
+                throw new Error('Invalid staff ID provided');
+            }
 
-    // Fetch the schedule range details
-    fetch(`/api/staff/schedule-ranges/${scheduleId}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const schedule = data.schedule;
+            // Ensure required fields are present
+            if (!staffData.first_name || !staffData.last_name) {
+                throw new Error('First name and last name are required');
+            }
 
-            // Populate the modal form with the fetched data
-            document.getElementById('scheduleName').value = schedule.schedule_name;
-            document.getElementById('startDate').value = schedule.start_date;
-            document.getElementById('endDate').value = schedule.end_date;
-            document.getElementById('rangeShiftStart').value = schedule.shift_start_time;
-            document.getElementById('rangeShiftEnd').value = schedule.shift_end_time;
-            document.getElementById('breakMinutes').value = schedule.break_time;
-            document.getElementById('priority').value = schedule.priority;
-            document.getElementById('description').value = schedule.description;
-
-            // Update checkboxes for working days
-            const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            dayKeys.forEach(key => {
-                const checkboxId = `range${key.charAt(0).toUpperCase() + key.slice(1)}`;
-                document.getElementById(checkboxId).checked = schedule.working_days[key];
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(staffData),
             });
 
-            // Update modal title and button text to reflect editing
-            document.querySelector('#scheduleRangeModal .modal-title').innerHTML = 
-                `<i class="fas fa-edit me-2"></i>Edit Schedule Range`;
-            document.getElementById('saveScheduleBtn').textContent = 'Update Schedule Range';
-            document.getElementById('deleteScheduleBtn').style.display = 'inline-block'; // Show delete button
+            console.log("Update response status:", response.status);
 
-            // Show the modal
-            if (modalScheduleRangeModal) {
-                modalScheduleRangeModal.show();
+            let result;
+            try {
+                result = await response.json();
+            } catch (jsonError) {
+                throw new Error(`Failed to parse server response: ${response.statusText}`);
             }
-        } else {
-            showAlert('Error loading schedule data: ' + data.error, 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error fetching schedule range:', error);
-        showAlert('Error loading schedule data', 'danger');
-    });
-}
 
-// Confirm deletion of a schedule range
-function deleteScheduleRangeConfirm(scheduleId) {
-    if (confirm('Are you sure you want to delete this schedule range? This action cannot be undone.')) {
-        deleteScheduleRange(scheduleId);
-    }
-}
+            console.log("Update API Response:", result);
 
-// Delete a schedule range
-async function deleteScheduleRange(scheduleId) {
-    const staffId = document.getElementById('staffId').value; // Get staff ID from the main form
-    if (!staffId) {
-        showAlert('Staff ID not found. Cannot delete schedule.', 'danger');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/staff/${staffId}/schedule-ranges/${scheduleId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
+            if (!response.ok) {
+                throw new Error(
+                    result.error ||
+                        `HTTP ${response.status}: ${response.statusText}`,
+                );
             }
-        });
 
-        const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || "Update failed");
+            }
 
-        if (result.success) {
-            showAlert(result.message || 'Schedule range deleted successfully!', 'success');
-            await loadModalScheduleRanges(staffId); // Refresh the list
-        } else {
-            throw new Error(result.message || 'Failed to delete schedule range');
+            return result;
+        } catch (error) {
+            console.error("Error updating staff:", error);
+            return {
+                success: false,
+                error: error.message || "Failed to update staff member",
+            };
         }
-    } catch (error) {
-        console.error('Error deleting schedule range:', error);
-        showAlert('Error deleting schedule range: ' + error.message, 'danger');
     }
-}
-
-// Reset the schedule range modal form to its initial state
-function resetScheduleRangeModal() {
-    document.getElementById('scheduleRangeForm').reset();
-    document.getElementById('scheduleRangeModalLabel').innerHTML = 
-        `<i class="fas fa-calendar-plus me-2"></i>Add Schedule Range`;
-    document.getElementById('saveScheduleBtn').textContent = 'Save Schedule Range';
-    document.getElementById('deleteScheduleBtn').style.display = 'none';
-    currentEditingScheduleId = null; // Reset editing ID
-    currentModalStaffId = null; // Reset staff ID context
-}
-
-// --- Date Range Scheduler Functions ---
-let currentScheduleDays = []; // Stores the generated day-by-day schedule data
-
-// Generate day-by-day schedule from date range
-function generateDaySchedule() {
-    const fromDate = document.getElementById('scheduleFromDate').value;
-    const toDate = document.getElementById('scheduleToDate').value;
-
-    if (!fromDate || !toDate) {
-        showAlert('Please select both From Date and To Date', 'warning');
-        return;
-    }
-    if (new Date(fromDate) > new Date(toDate)) {
-        showAlert('From Date cannot be later than To Date', 'warning');
-        return;
-    }
-
-    const days = [];
-    let current = new Date(fromDate);
-    const end = new Date(toDate);
-
-    while (current <= end) {
-        days.push({
-            date: formatDateForInput(current),
-            dayName: current.toLocaleDateString('en-US', { weekday: 'long' }),
-            working: !isWeekend(current), // Default: weekdays working, weekends off
-            startTime: '09:00',
-            endTime: '17:00',
-            breakMinutes: '60',
-            notes: ''
-        });
-        current.setDate(current.getDate() + 1); // Move to the next day
-    }
-
-    currentScheduleDays = days; // Update global state
-    renderDayScheduleTable(); // Render the table
-
-    // Show bulk actions and the day schedule container
-    document.getElementById('bulkActions').classList.remove('d-none');
-    document.getElementById('dayScheduleContainer').classList.remove('d-none');
-    document.getElementById('dayCount').textContent = `${days.length} days`; // Update day count
-}
-
-// Render the day-by-day schedule table
-function renderDayScheduleTable() {
-    const tbody = document.getElementById('dayScheduleBody');
-    let html = '';
-
-    currentScheduleDays.forEach((day, index) => {
-        html += `
-            <tr class="${day.working ? 'table-success' : 'table-light'}">
-                <td>
-                    <strong>${formatDisplayDate(day.date)}</strong>
-                </td>
-                <td>
-                    <span class="badge ${getDayBadgeClass(day.dayName)}">${day.dayName}</span>
-                </td>
-                <td>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" 
-                               id="working_${index}" ${day.working ? 'checked' : ''} 
-                               onchange="toggleDayWorking(${index})">
-                        <label class="form-check-label" for="working_${index}">
-                            <span class="badge ${day.working ? 'bg-success' : 'bg-secondary'}">
-                                ${day.working ? 'Yes' : 'No'}
-                            </span>
-                        </label>
-                    </div>
-                </td>
-                <td>
-                    <input type="time" class="form-control form-control-sm" value="${day.startTime}" 
-                           id="startTime_${index}" ${!day.working ? 'disabled' : ''} 
-                           onchange="updateDayField(${index}, 'startTime', this.value)">
-                </td>
-                <td>
-                    <input type="time" class="form-control form-control-sm" value="${day.endTime}" 
-                           id="endTime_${index}" ${!day.working ? 'disabled' : ''} 
-                           onchange="updateDayField(${index}, 'endTime', this.value)">
-                </td>
-                <td>
-                    <div class="input-group input-group-sm">
-                        <input type="number" class="form-control" value="${day.breakMinutes}" min="0" max="480" 
-                               id="breakMinutes_${index}" ${!day.working ? 'disabled' : ''} 
-                               onchange="updateDayField(${index}, 'breakMinutes', this.value)">
-                        <span class="input-group-text">min</span>
-                    </div>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm" value="${day.notes}" 
-                           id="notes_${index}" placeholder="Notes..." 
-                           onchange="updateDayField(${index}, 'notes', this.value)">
-                </td>
-            </tr>
-        `;
-    });
-
-    tbody.innerHTML = html;
-}
-
-// Toggle working status for a day
-function toggleDayWorking(index) {
-    currentScheduleDays[index].working = !currentScheduleDays[index].working;
-    renderDayScheduleTable(); // Re-render to update row colors and disabled states
-}
-
-// Update a specific field for a day
-function updateDayField(index, field, value) {
-    currentScheduleDays[index][field] = value;
-}
-
-// Apply template to all working days
-function applyToAllDays() {
-    // Find the first working day as a template
-    const templateDay = currentScheduleDays.find(day => day.working);
-    if (!templateDay) {
-        showAlert('Please set up at least one working day as a template', 'warning');
-        return;
-    }
-
-    // Apply template values to all other working days
-    currentScheduleDays.forEach(day => {
-        if (day.working) {
-            day.startTime = templateDay.startTime;
-            day.endTime = templateDay.endTime;
-            day.breakMinutes = templateDay.breakMinutes;
-        }
-    });
-
-    renderDayScheduleTable(); // Update the table view
-    showAlert('Applied template to all working days!', 'success');
-}
-
-// Mark weekends as non-working
-function markWeekendsOff() {
-    currentScheduleDays.forEach(day => {
-        if (day.dayName === 'Saturday' || day.dayName === 'Sunday') {
-            day.working = false;
-        }
-    });
-    renderDayScheduleTable(); // Update the table view
-    showAlert('Marked all weekends as off!', 'success');
-}
-
-// Placeholder for "Copy Previous Week" functionality
-function copyPreviousWeek() {
-    showAlert('Copy previous week functionality - Coming soon!', 'info');
-}
-
-// Placeholder for "Save as Template" functionality
-function saveAsTemplate() {
-    showAlert('Save as template functionality - Coming soon!', 'info');
-}
-
-// Placeholder for "View Schedule Templates" functionality
-function viewScheduleTemplates() {
-    showAlert('Schedule templates - Coming soon!', 'info');
-}
-
-// Save the generated day-by-day schedule
-async function saveDaySchedule() {
-    const staffId = document.getElementById('scheduleStaffId').value; // Get staff ID from the schedule modal
-    if (!staffId) {
-        showAlert('Staff ID is missing. Cannot save schedule.', 'danger');
-        return;
-    }
-    if (currentScheduleDays.length === 0) {
-        showAlert('Please generate a schedule first', 'warning');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/staff/${staffId}/day-schedule`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ days: currentScheduleDays })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showAlert(result.message || 'Day-by-day schedule saved successfully!', 'success');
-            closeDateRangeScheduler(); // Close the scheduler section
-            await loadModalScheduleRanges(staffId); // Refresh schedule ranges display
-        } else {
-            throw new Error(result.message || 'Failed to save schedule');
-        }
-    } catch (error) {
-        console.error('Error saving day schedule:', error);
-        showAlert('Error saving schedule: ' + error.message, 'danger');
-    }
-}
-
-// Close the date range scheduler section
-function closeDateRangeScheduler() {
-    document.getElementById('dateRangeScheduler').classList.add('d-none');
-    document.getElementById('bulkActions').classList.add('d-none');
-    document.getElementById('dayScheduleContainer').classList.add('d-none');
-    currentScheduleDays = []; // Clear the stored schedule data
-}
-
-// --- Helper Functions ---
-function formatDateForInput(date) {
-    return date.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
-}
-
-function formatDisplayDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // Format for display
-}
-
-function isWeekend(date) {
-    const day = date.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
-    return day === 0 || day === 6;
-}
-
-function getDayBadgeClass(dayName) {
-    const classes = {
-        'Monday': 'bg-primary',
-        'Tuesday': 'bg-info',
-        'Wednesday': 'bg-success',
-        'Thursday': 'bg-warning text-dark', // Dark text for better contrast on yellow
-        'Friday': 'bg-danger',
-        'Saturday': 'bg-secondary',
-        'Sunday': 'bg-dark'
-    };
-    return classes[dayName] || 'bg-secondary'; // Default to secondary
-}
-
-// --- Schedule Modal Functions ---
-let modalScheduleDays = []; // Data for the schedule generated within the modal
-let scheduleModalInstance; // Bootstrap modal instance for the schedule modal
-
-// Open the main schedule modal for a staff member
-function openScheduleModal(staffId) {
-    const staff = allStaff.find(s => s.id === staffId);
-    if (!staff) {
-        showAlert('Staff member not found.', 'danger');
-        return;
-    }
-
-    document.getElementById('scheduleStaffId').value = staffId; // Store staff ID
-    document.getElementById('scheduleModalLabel').innerHTML = 
-        `<i class="fas fa-calendar-alt me-2"></i>Schedule Management - ${staff.full_name}`;
-
-    resetScheduleModal(); // Reset all sections of the modal
-    loadModalScheduleRanges(staffId); // Load existing schedule ranges
-
-    // Initialize and show the modal
-    scheduleModalInstance = new bootstrap.Modal(document.getElementById('scheduleModal'));
-    scheduleModalInstance.show();
-}
-
-// Reset all parts of the schedule modal
-function resetScheduleModal() {
-    // Reset day-by-day scheduler section
-    modalScheduleDays = [];
-    document.getElementById('modalDayScheduleBody').innerHTML = '';
-    document.getElementById('modalBulkActions').classList.add('d-none');
-    document.getElementById('modalDayScheduleContainer').classList.add('d-none');
-    document.getElementById('modalDayCount').textContent = '';
-
-    // Set default dates for the scheduler (next week)
-    const today = new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
-    const endOfWeek = new Date(nextWeek);
-    endOfWeek.setDate(nextWeek.getDate() + 6);
-
-    document.getElementById('modalScheduleFromDate').value = formatDateForInput(nextWeek);
-    document.getElementById('modalScheduleToDate').value = formatDateForInput(endOfWeek);
-
-    resetScheduleRangeModal(); // Also reset the schedule range form part
-}
-
-// Generate day-by-day schedule within the modal
-function generateModalDaySchedule() {
-    const fromDate = document.getElementById('modalScheduleFromDate').value;
-    const toDate = document.getElementById('modalScheduleToDate').value;
-
-    if (!fromDate || !toDate) {
-        showAlert('Please select both From Date and To Date', 'warning');
-        return;
-    }
-    if (new Date(fromDate) > new Date(toDate)) {
-        showAlert('From Date cannot be later than To Date', 'warning');
-        return;
-    }
-
-    const days = [];
-    let current = new Date(fromDate);
-    const end = new Date(toDate);
-
-    while (current <= end) {
-        days.push({
-            date: formatDateForInput(current),
-            dayName: current.toLocaleDateString('en-US', { weekday: 'long' }),
-            working: !isWeekend(current),
-            startTime: '09:00',
-            endTime: '17:00',
-            breakMinutes: '60',
-            notes: ''
-        });
-        current.setDate(current.getDate() + 1);
-    }
-
-    modalScheduleDays = days;
-    renderModalDayScheduleTable(); // Render the table
-
-    // Show relevant sections
-    document.getElementById('modalBulkActions').classList.remove('d-none');
-    document.getElementById('modalDayScheduleContainer').classList.remove('d-none');
-    document.getElementById('modalDayCount').textContent = `${days.length} days`;
-}
-
-// Render the day-by-day schedule table within the modal
-function renderModalDayScheduleTable() {
-    const tbody = document.getElementById('modalDayScheduleBody');
-    let html = '';
-
-    modalScheduleDays.forEach((day, index) => {
-        html += `
-            <tr class="${day.working ? 'table-success' : 'table-light'}">
-                <td><strong>${formatDisplayDate(day.date)}</strong></td>
-                <td><span class="badge ${getDayBadgeClass(day.dayName)}">${day.dayName}</span></td>
-                <td>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" 
-                               id="modal_working_${index}" ${day.working ? 'checked' : ''} 
-                               onchange="toggleModalDayWorking(${index})">
-                        <label class="form-check-label" for="modal_working_${index}">
-                            <span class="badge ${day.working ? 'bg-success' : 'bg-secondary'}">${day.working ? 'Yes' : 'No'}</span>
-                        </label>
-                    </div>
-                </td>
-                <td>
-                    <input type="time" class="form-control form-control-sm" value="${day.startTime}" 
-                           id="modal_startTime_${index}" ${!day.working ? 'disabled' : ''} 
-                           onchange="updateModalDayField(${index}, 'startTime', this.value)">
-                </td>
-                <td>
-                    <input type="time" class="form-control form-control-sm" value="${day.endTime}" 
-                           id="modal_endTime_${index}" ${!day.working ? 'disabled' : ''} 
-                           onchange="updateModalDayField(${index}, 'endTime', this.value)">
-                </td>
-                <td>
-                    <div class="input-group input-group-sm">
-                        <input type="number" class="form-control" value="${day.breakMinutes}" min="0" max="480" 
-                               id="modal_breakMinutes_${index}" ${!day.working ? 'disabled' : ''} 
-                               onchange="updateModalDayField(${index}, 'breakMinutes', this.value)">
-                        <span class="input-group-text">min</span>
-                    </div>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm" value="${day.notes}" 
-                           id="modal_notes_${index}" placeholder="Notes..." 
-                           onchange="updateModalDayField(${index}, 'notes', this.value)">
-                </td>
-            </tr>
-        `;
-    });
-    tbody.innerHTML = html;
-}
-
-// Toggle working status for a day in the modal
-function toggleModalDayWorking(index) {
-    modalScheduleDays[index].working = !modalScheduleDays[index].working;
-    renderModalDayScheduleTable();
-}
-
-// Update a field for a day in the modal
-function updateModalDayField(index, field, value) {
-    modalScheduleDays[index][field] = value;
-}
-
-// Modal bulk action: Apply template to all working days
-function modalApplyToAllDays() {
-    const templateDay = modalScheduleDays.find(day => day.working);
-    if (!templateDay) {
-        showAlert('Please set up at least one working day as a template', 'warning');
-        return;
-    }
-
-    modalScheduleDays.forEach(day => {
-        if (day.working) {
-            day.startTime = templateDay.startTime;
-            day.endTime = templateDay.endTime;
-            day.breakMinutes = templateDay.breakMinutes;
-        }
-    });
-    renderModalDayScheduleTable();
-    showAlert('Applied template to all working days', 'success');
-}
-
-// Modal bulk action: Mark all weekends as off
-function modalMarkWeekendsOff() {
-    modalScheduleDays.forEach(day => {
-        if (day.dayName === 'Saturday' || day.dayName === 'Sunday') {
-            day.working = false;
-        }
-    });
-    renderModalDayScheduleTable();
-    showAlert('Marked all weekends as off', 'success');
-}
-
-// Save the day-by-day schedule generated in the modal
-async function saveModalDaySchedule() {
-    const staffId = document.getElementById('scheduleStaffId').value;
-    if (!staffId) {
-        showAlert('Staff ID is missing. Cannot save schedule.', 'danger');
-        return;
-    }
-    if (modalScheduleDays.length === 0) {
-        showAlert('Please generate day schedule first', 'warning');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/staff/${staffId}/day-schedule`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ days: modalScheduleDays })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showAlert(result.message || 'Day-by-day schedule saved successfully!', 'success');
-            resetScheduleModal(); // Reset the modal state
-            await loadModalScheduleRanges(staffId); // Refresh the schedule ranges list
-        } else {
-            throw new Error(result.message || 'Failed to save schedule');
-        }
-    } catch (error) {
-        console.error('Error saving day schedule:', error);
-        showAlert('Error saving schedule: ' + error.message, 'danger');
-    }
-}
-
-// Helper function to update staff data via API
-async function updateStaff(staffId, staffData) {
-    try {
-        console.log('Updating staff with data:', staffData);
-
-        const response = await fetch(`/api/staff/${staffId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(staffData)
-        });
-
-        const result = await response.json();
-        console.log('Update API Response:', result);
-
-        if (!response.ok) {
-            throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error('Error updating staff:', error);
-        return {
-            success: false,
-            error: error.message || 'Failed to update staff member'
-        };
-    }
-}
-
-
 </script>
 
 {% endblock %}

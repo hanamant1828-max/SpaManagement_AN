@@ -7,15 +7,18 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1><i class="fas fa-exclamation-triangle me-2"></i>Product Alerts</h1>
-                <button type="button" class="btn btn-primary">
-                    <i class="fas fa-refresh me-2"></i>Refresh Alerts
+                <div>
+                    <h2><i class="fas fa-exclamation-triangle me-2"></i>Product Alerts</h2>
+                    <p class="text-muted mb-0">Monitor expired, expiring, and low stock items</p>
+                </div>
+                <button id="refreshAlerts" class="btn btn-primary" onclick="refreshAlerts()">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh Alerts
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Alert Statistics -->
+    <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="card bg-danger text-white">
@@ -23,7 +26,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h4>{{ expired_items|length }}</h4>
-                            <p>Expired Items</p>
+                            <p>Expired Batches</p>
                         </div>
                         <i class="fas fa-times-circle fa-2x"></i>
                     </div>
@@ -36,7 +39,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h4>{{ expiring_soon|length }}</h4>
-                            <p>Expiring Soon</p>
+                            <p>Expiring Within 2 Months</p>
                         </div>
                         <i class="fas fa-exclamation-triangle fa-2x"></i>
                     </div>
@@ -49,7 +52,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h4>{{ low_stock_items|length }}</h4>
-                            <p>Low Stock</p>
+                            <p>Low Stock Products</p>
                         </div>
                         <i class="fas fa-arrow-down fa-2x"></i>
                     </div>
@@ -64,37 +67,39 @@
         <div class="col-12">
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
-                    <h5><i class="fas fa-times-circle me-2"></i>Expired Items - Immediate Action Required</h5>
+                    <h5><i class="fas fa-times-circle me-2"></i>Expired Batches - Immediate Action Required</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Item Name</th>
-                                    <th>Category</th>
-                                    <th>Expired Date</th>
-                                    <th>Current Stock</th>
-                                    <th>Supplier</th>
-                                    <th>Actions</th>
+                                    <th>Batch Name</th>
+                                    <th>Product Name</th>
+                                    <th>Location</th>
+                                    <th>Qty Available</th>
+                                    <th>Unit</th>
+                                    <th>Expiry Date</th>
+                                    <th>Days Expired</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in expired_items %}
+                                {% for batch in expired_items %}
                                 <tr class="table-danger">
+                                    <td><strong>{{ batch.batch_name }}</strong></td>
+                                    <td>{{ batch.product.name if batch.product else 'Unassigned Product' }}</td>
+                                    <td>{{ batch.location.name if batch.location else 'No Location' }}</td>
+                                    <td>{{ batch.qty_available or 0 }}</td>
+                                    <td>{{ batch.product.unit_of_measure if batch.product else 'pcs' }}</td>
+                                    <td>{{ batch.expiry_date.strftime('%d-%m-%Y') if batch.expiry_date else 'N/A' }}</td>
                                     <td>
-                                        <strong>{{ item.name }}</strong>
-                                        {% if item.description %}
-                                        <br><small class="text-muted">{{ item.description }}</small>
-                                        {% endif %}
+                                        {% set days_expired = (today - batch.expiry_date).days if batch.expiry_date else 0 %}
+                                        <span class="badge bg-danger">{{ days_expired }} days</span>
                                     </td>
-                                    <td><span class="badge bg-secondary">{{ item.category.title() }}</span></td>
-                                    <td>{{ item.expiry_date.strftime('%Y-%m-%d') }}</td>
-                                    <td>{{ item.current_stock }}</td>
-                                    <td>{{ item.supplier_name or 'N/A' }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash me-1"></i>Remove
+                                        <button class="btn btn-sm btn-danger" onclick="removeExpiredBatch('{{ batch.id }}')">
+                                            Remove Batch
                                         </button>
                                     </td>
                                 </tr>
@@ -113,42 +118,62 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-warning">
-                <div class="card-header bg-warning text-dark">
-                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Items Expiring Within 30 Days</h5>
+                <div class="card-header bg-warning text-white">
+                    <h5><i class="fas fa-clock me-2"></i>Products Expiring Soon (Within 2 Months) - Batch-wise</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Item Name</th>
-                                    <th>Category</th>
+                                    <th>Batch Name</th>
+                                    <th>Product Name</th>
+                                    <th>Location</th>
+                                    <th>Qty Available</th>
+                                    <th>Unit</th>
                                     <th>Expiry Date</th>
                                     <th>Days Left</th>
-                                    <th>Current Stock</th>
-                                    <th>Supplier</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in expiring_soon %}
-                                <tr class="table-warning">
+                                {% for batch in expiring_soon %}
+                                <tr class="{% if batch.days_to_expiry <= 7 %}table-danger{% elif batch.days_to_expiry <= 30 %}table-warning{% endif %}">
+                                    <td><strong>{{ batch.batch_name }}</strong></td>
+                                    <td>{{ batch.product.name if batch.product else 'Unassigned Product' }}</td>
+                                    <td>{{ batch.location.name if batch.location else 'No Location' }}</td>
+                                    <td>{{ batch.qty_available or 0 }}</td>
+                                    <td>{{ batch.product.unit_of_measure if batch.product else 'pcs' }}</td>
+                                    <td>{{ batch.expiry_date.strftime('%d-%m-%Y') if batch.expiry_date else 'N/A' }}</td>
                                     <td>
-                                        <strong>{{ item.name }}</strong>
-                                        {% if item.description %}
-                                        <br><small class="text-muted">{{ item.description }}</small>
+                                        {% if batch.days_to_expiry <= 7 %}
+                                            <span class="badge bg-danger">{{ batch.days_to_expiry }} days</span>
+                                        {% elif batch.days_to_expiry <= 30 %}
+                                            <span class="badge bg-warning">{{ batch.days_to_expiry }} days</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ batch.days_to_expiry }} days</span>
                                         {% endif %}
                                     </td>
-                                    <td><span class="badge bg-secondary">{{ item.category.title() }}</span></td>
-                                    <td>{{ item.expiry_date.strftime('%Y-%m-%d') }}</td>
                                     <td>
-                                        <span class="badge bg-warning">Soon</span>
+                                        {% if batch.days_to_expiry <= 7 %}
+                                            <span class="badge bg-danger">Critical</span>
+                                        {% elif batch.days_to_expiry <= 30 %}
+                                            <span class="badge bg-warning">Warning</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Monitor</span>
+                                        {% endif %}
                                     </td>
-                                    <td>{{ item.current_stock }}</td>
-                                    <td>{{ item.supplier_name or 'N/A' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Color Legend:</strong>
+                        <span class="badge bg-danger ms-2">≤ 7 days</span>
+                        <span class="badge bg-warning ms-2">8-30 days</span>
+                        <span class="badge bg-info ms-2">31-60 days</span>
                     </div>
                 </div>
             </div>
@@ -212,11 +237,73 @@
                 <div class="card-body text-center py-5">
                     <i class="fas fa-check-circle fa-4x text-success mb-4"></i>
                     <h3>All Clear!</h3>
-                    <p class="text-muted">No product alerts at this time. All items are in good condition with adequate stock levels.</p>
+                    <p class="text-muted mb-0">No product alerts at this time. All items are in good condition with adequate stock levels.</p>
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
 </div>
+
+<script>
+function markAsHandled(itemId) {
+    if (confirm('Mark this item as handled?')) {
+        // Here you would make an AJAX call to mark the item as handled
+        console.log('Marking item as handled:', itemId);
+        // For now, just remove the row
+        event.target.closest('tr').style.opacity = '0.5';
+        event.target.textContent = 'Handled';
+        event.target.disabled = true;
+    }
+}
+
+function removeExpiredBatch(batchId) {
+    if (confirm('Are you sure you want to remove this expired batch from inventory? This will mark the batch as expired and remove it from active stock.')) {
+        // Make AJAX call to update batch status
+        fetch(`/api/inventory/batches/${batchId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: 'expired'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                event.target.closest('tr').remove();
+
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    Batch has been marked as expired and removed from active inventory.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+            } else {
+                alert('Error removing batch: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error removing batch. Please try again.');
+        });
+    }
+}
+
+// Refresh alerts function
+function refreshAlerts() {
+    location.reload();
+}
+
+// Auto-refresh alerts every 10 minutes
+setInterval(function() {
+    if (document.getElementById('refreshAlerts')) {
+        location.reload();
+    }
+}, 600000);
+</script>
 {% endblock %}

@@ -1,0 +1,2425 @@
+{% extends "base.html" %}
+
+{% block title %}Package Management - Spa & Salon Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-box"></i> Package Management</h4>
+                    <div>
+                        <span class="badge bg-primary">Total: {{ stats.total_packages }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+
+                    <!-- Navigation Tabs -->
+                    <ul class="nav nav-tabs" id="packageTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="prepaid-tab" data-bs-toggle="tab" data-bs-target="#prepaid" type="button" role="tab">
+                                <i class="fas fa-credit-card"></i> Prepaid Packages
+                                <span class="badge bg-success ms-1">{{ stats.prepaid_packages }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="service-tab" data-bs-toggle="tab" data-bs-target="#service" type="button" role="tab">
+                                <i class="fas fa-spa"></i> Service Packages
+                                <span class="badge bg-info ms-1">{{ stats.service_packages }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="membership-tab" data-bs-toggle="tab" data-bs-target="#membership" type="button" role="tab">
+                                <i class="fas fa-id-card"></i> Memberships
+                                <span class="badge bg-warning ms-1">{{ stats.memberships }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="student-tab" data-bs-toggle="tab" data-bs-target="#student" type="button" role="tab">
+                                <i class="fas fa-graduation-cap"></i> Student Offers
+                                <span class="badge bg-secondary ms-1">{{ stats.student_offers }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="yearly-tab" data-bs-toggle="tab" data-bs-target="#yearly" type="button" role="tab">
+                                <i class="fas fa-calendar-alt"></i> Yearly Memberships
+                                <span class="badge bg-dark ms-1">{{ stats.yearly_memberships }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="kitty-tab" data-bs-toggle="tab" data-bs-target="#kitty" type="button" role="tab">
+                                <i class="fas fa-users"></i> Kitty Parties
+                                <span class="badge bg-danger ms-1">{{ stats.kitty_parties }}</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content mt-3" id="packageTabContent">
+
+                        <!-- Prepaid Packages Tab -->
+                        <div class="tab-pane fade show active" id="prepaid" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Prepaid Packages</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#prepaidModal">
+                                    <i class="fas fa-plus"></i> Add Prepaid Package
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Pay Amount</th>
+                                            <th>Get Value</th>
+                                            <th>Benefit %</th>
+                                            <th>Validity</th>
+                                            <th>Money Saved</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prepaidTableBody">
+                                        {% for package in prepaid_packages %}
+                                        <tr>
+                                            <td>{{ package.name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(package.actual_price) }}</td>
+                                            <td>₹{{ "{:,.0f}".format(package.after_value) }}</td>
+                                            <td>{{ package.benefit_percent }}%</td>
+                                            <td>{{ package.validity_months }} months</td>
+                                            <td class="text-success">₹{{ "{:,.0f}".format(package.money_saved) }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editPrepaid({{ package.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deletePrepaid({{ package.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Service Packages Tab -->
+                        <div class="tab-pane fade" id="service" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Service Packages</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceModal">
+                                    <i class="fas fa-plus"></i> Add Service Package
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Pay For</th>
+                                            <th>Total Services</th>
+                                            <th>Free Services</th>
+                                            <th>Benefit %</th>
+                                            <th>Validity</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="serviceTableBody">
+                                        {% for package in service_packages %}
+                                        <tr>
+                                            <td>
+                                                {{ package.name }}
+                                                {% if package.service %}
+                                                    <small class="text-muted d-block">Service: {{ package.service.name }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ package.pay_for }}</td>
+                                            <td>{{ package.total_services }}</td>
+                                            <td class="text-success">{{ package.free_services }}</td>
+                                            <td>{{ package.benefit_percent }}%</td>
+                                            <td>{{ package.validity_months }} months</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm" onclick="assignPackage({{ package.id }}, '{{ package.name }}', 'service')" title="Assign Package">
+                                                        <i class="fas fa-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editService({{ package.id }})" title="Edit Package">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteService({{ package.id }})" title="Delete Package">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Memberships Tab -->
+                        <div class="tab-pane fade" id="membership" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Memberships</h5>
+                                <a href="{{ url_for('membership_add') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Add Membership
+                                </a>
+                            </div></div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Validity</th>
+                                            <th>Services Included</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="membershipTableBody">
+                                        {% for membership in memberships %}
+                                        <tr>
+                                            <td>{{ membership.name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(membership.price) }}</td>
+                                            <td>{{ membership.validity_months }} months</td>
+                                            <td>{{ membership.services_included[:50] if membership.services_included else 'No services specified' }}{{ '...' if membership.services_included and membership.services_included|length > 50 else '' }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('membership_view', membership_id=membership.id) }}" class="btn btn-outline-info btn-sm" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('membership_edit', membership_id=membership.id) }}" class="btn btn-outline-primary btn-sm" title="Edit Membership">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <button class="btn btn-success btn-sm"
+                                                            onclick="openAssignSimple({{ membership.id }}, 'membership')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ membership.id }}"
+                                                            data-package-type="membership">
+                                                        <i class="fas fa-user-plus"></i> Assign
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Student Offers Tab -->
+                        <div class="tab-pane fade" id="student" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Student Offers</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#studentModal">
+                                    <i class="fas fa-plus"></i> Add Student Offer
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Service</th>
+                                            <th>Actual Price</th>
+                                            <th>Discount %</th>
+                                            <th>After Price</th>
+                                            <th>Money Saved</th>
+                                            <th>Valid Days</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentTableBody">
+                                        {% for offer in student_offers %}
+                                        <tr>
+                                            <td>{{ offer.service_name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(offer.actual_price) }}</td>
+                                            <td>{{ offer.discount_percent }}%</td>
+                                            <td>₹{{ "{:,.0f}".format(offer.after_price) }}</td>
+                                            <td class="text-success">₹{{ "{:,.0f}".format(offer.money_saved) }}</td>
+                                            <td>{{ offer.valid_days }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm"
+                                                            onclick="openAssignSimple({{ offer.id }}, 'student')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ offer.id }}"
+                                                            data-package-type="student">
+                                                        <i class="fas fa-user-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editStudent({{ offer.id }})">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteStudent({{ offer.id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Yearly Memberships Tab -->
+                        <div class="tab-pane fade" id="yearly" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Yearly Memberships</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#yearlyModal">
+                                    <i class="fas fa-plus"></i> Add Yearly Membership
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Discount %</th>
+                                            <th>Validity</th>
+                                            <th>Extra Benefits</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="yearlyTableBody">
+                                        {% for membership in yearly_memberships %}
+                                        <tr>
+                                            <td>{{ membership.name }}</td>
+                                            <td>₹{{ "{:,.0f}".format(membership.price) }}</td>
+                                            <td>{{ membership.discount_percent }}%</td>
+                                            <td>{{ membership.validity_months }} months</td>
+                                            <td>{{ membership.extra_benefits[:30] if membership.extra_benefits else 'None' }}...</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success btn-sm"
+                                                            onclick="openAssignSimple({{ membership.id }}, 'yearly')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ membership.id }}"
+                                                            data-package-type="yearly">
+                                                        <i class="fas fa-user-plus"></i> Assign
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="editYearly({{ membership.id }})">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" onclick="deleteYearly({{ membership.id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Kitty Parties Tab -->
+                        <div class="tab-pane fade" id="kitty" role="tabpanel">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h5>Kitty Parties</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#kittyModal">
+                                    <i class="fas fa-plus"></i> Add Kitty Party
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Party Name</th>
+                                            <th>Price</th>
+                                            <th>After Value</th>
+                                            <th>Min Guests</th>
+                                            <th>Services</th>
+                                            <th>Valid From–To</th>
+                                            <th>Conditions</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="kittyTableBody">
+                                        {% for party in kitty_parties %}
+                                        <tr>
+                                            <td><strong>{{ party.name }}</strong></td>
+                                            <td>₹{{ "{:,.0f}".format(party.price) }}</td>
+                                            <td>{{ '₹{:,.0f}'.format(party.after_value) if party.after_value else 'N/A' }}</td>
+                                            <td>{{ party.min_guests }}</td>
+                                            <td>
+                                                <small>
+                                                    {% if party.kittyparty_services %}
+                                                        {% for kps in party.kittyparty_services %}
+                                                            {{ kps.service.name }}{% if not loop.last %}, {% endif %}
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        No services selected
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    {% if party.valid_from and party.valid_to %}
+                                                        {{ party.valid_from.strftime('%d/%m/%Y') if party.valid_from else '' }} –
+                                                        {{ party.valid_to.strftime('%d/%m/%Y') if party.valid_to else '' }}
+                                                    {% else %}
+                                                        <span class="text-muted">No validity period</span>
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    {{ party.conditions[:40] if party.conditions else 'No conditions' }}
+                                                    {% if party.conditions and party.conditions|length > 40 %}...{% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% if party.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    {% if party.is_active %}
+                                                    <button class="btn btn-success btn-sm"
+                                                            onclick="openAssignSimple({{ party.id }}, 'kitty')"
+                                                            title="Assign to Customer"
+                                                            data-action="assign-simple"
+                                                            data-template-id="{{ party.id }}"
+                                                            data-package-type="kitty">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                    <button class="btn btn-outline-warning btn-sm" onclick="editKitty({{ party.id }})" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteKitty({{ party.id }})" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for adding/editing packages would go here -->
+<!-- For brevity, showing just one example modal -->
+
+<!-- Prepaid Package Modal -->
+<div class="modal fade" id="prepaidModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Prepaid Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="prepaidForm">
+                    <div class="mb-3">
+                        <label class="form-label">Package Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Actual Price (Pay Amount)</label>
+                        <input type="number" class="form-control" name="actual_price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">After Value (Get Amount)</label>
+                        <input type="number" class="form-control" name="after_value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Benefit Percentage</label>
+                        <input type="number" class="form-control" name="benefit_percent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity (Months)</label>
+                        <input type="number" class="form-control" name="validity_months" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPrepaidForm()">Save Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Package Modal (Example - Add if missing in original or incomplete) -->
+<div class="modal fade" id="serviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Service Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="serviceForm">
+                    <div class="mb-3">
+                        <label class="form-label">Package Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Service Selection:</strong> The specific service will be chosen when assigning this package to a customer.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pay For</label>
+                        <input type="number" class="form-control" name="pay_for" required min="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Services</label>
+                        <input type="number" class="form-control" name="total_services" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Free Services</label>
+                        <input type="number" class="form-control" name="free_services" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Benefit Percentage</label>
+                        <input type="number" class="form-control" name="benefit_percent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity (Months)</label>
+                        <input type="number" class="form-control" name="validity_months" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitServiceForm()">Save Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Membership Modal -->
+<div class="modal fade" id="membershipModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Membership Package</h5>
+                <button type="button" class="btn-close" onclick="closeMembershipModal()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger" id="mbErrorAlert" style="display: none;"></div>
+
+                <form id="membershipForm">
+                    <div class="mb-3">
+                        <label class="form-label">Membership Name *</label>
+                        <input type="text" class="form-control" id="mbName" name="name" required
+                               placeholder="e.g., Premium Spa Membership">
+                        <div class="invalid-feedback">Please enter a membership name</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Price *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="mbPrice" name="price"
+                                   min="0" step="0.01" required placeholder="75000">
+                            <div class="invalid-feedback">Please enter a valid price (≥ 0)</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Validity From Date *</label>
+                            <input type="date" class="form-control" id="mbValidityFrom" name="validity_from" required>
+                            <div class="invalid-feedback">Please select a from date</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Validity To Date *</label>
+                            <input type="date" class="form-control" id="mbValidityTo" name="validity_to" required>
+                            <div class="invalid-feedback">To date must be after from date</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Services & Sessions *</label>
+                        <div class="card">
+                            <div class="card-header">
+                                <input type="text" class="form-control" id="mbServiceSearch"
+                                       placeholder="Search services...">
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <div id="mbServiceList">
+                                    <!-- Services will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback">Please select at least one service with sessions ≥ 1</div>
+                        <small class="text-muted">Select services and specify sessions for each</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeMembershipModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveMembershipBtn" disabled>Save Membership</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Offer Modal (Example) -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Student Offer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="studentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select Service</label>
+                        <select class="form-select" name="service_id" id="student_service_select" required onchange="updateStudentServicePrice()">
+                            <option value="">Choose a service...</option>
+                            {% for service in services %}
+                                <option value="{{ service.id }}" data-price="{{ service.price }}">{{ service.name }} - ₹{{ service.price }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Actual Price</label>
+                        <input type="number" class="form-control" name="actual_price" id="student_actual_price" required readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount Percentage</label>
+                        <input type="number" class="form-control" name="discount_percent" required min="0" max="100" onchange="calculateStudentDiscountPrice()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">After Discount Price</label>
+                        <input type="number" class="form-control" name="after_price" id="student_after_price" required readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Valid Days</label>
+                        <input type="text" class="form-control" name="valid_days" placeholder="e.g. Mon-Fri" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitStudentForm()">Save Offer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yearly Membership Modal (Example) -->
+<div class="modal fade" id="yearlyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Yearly Membership</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="yearlyForm">
+                    <div class="mb-3">
+                        <label class="form-label">Membership Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price</label>
+                        <input type="number" class="form-control" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount Percentage</label>
+                        <input type="number" class="form-control" name="discount_percent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity (Months)</label>
+                        <input type="number" class="form-control" name="validity_months" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Extra Benefits</label>
+                        <textarea class="form-control" name="extra_benefits"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitYearlyForm()">Save Membership</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kitty Party Modal (Example) -->
+<div class="modal fade" id="kittyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Kitty Party</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="kittyForm">
+                    <div class="mb-3">
+                        <label class="form-label">Party Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price</label>
+                        <input type="number" class="form-control" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">After Value</label>
+                        <input type="number" class="form-control" name="after_value" >
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Minimum Guests</label>
+                        <input type="number" class="form-control" name="min_guests" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Services Included *</label>
+                        <div id="kittyServicesContainer" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            <div class="row g-2" id="kittyServicesCheckboxes">
+                                <!-- Service checkboxes will be loaded dynamically -->
+                                <div class="col-12 text-muted text-center py-3" id="servicesLoading">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading services...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text">Select multiple services for this kitty party</div>
+                        <div class="invalid-feedback">Please select at least one service for this kitty party</div>
+                    </div>
+
+                    <!-- Validity Date Fields -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Valid From Date *</label>
+                            <input type="date" class="form-control" name="valid_from" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valid To Date *</label>
+                            <input type="date" class="form-control" name="valid_to" required>
+                        </div>
+                    </div>
+
+                    <!-- Conditions/Notes Field -->
+                    <div class="mb-3">
+                        <label class="form-label">Conditions / Notes</label>
+                        <textarea class="form-control" name="conditions" rows="3" placeholder="Enter any special conditions, terms, or notes for this kitty party package..."></textarea>
+                    </div>
+
+                    <!-- Is Active Toggle -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="kittyIsActive" checked>
+                            <label class="form-check-label" for="kittyIsActive">
+                                <strong>Is Active</strong> <small class="text-muted">(Package available for assignment)</small>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitKittyForm()">Save Party</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Package Assignment Modal -->
+<div class="modal fade" id="assignServicePackageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="serviceAssignModalTitle">Assign Package: "Package Name"</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignServicePackageForm">
+                    <input type="hidden" id="service_assign_package_id">
+                    <input type="hidden" id="service_assign_package_type" value="service">
+
+                    <div class="mb-3">
+                        <label class="form-label">Customer *</label>
+                        <select name="customer_id" id="service_assign_customer_id" class="form-select" required>
+                            <option value="">Search / select customer...</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Service *</label>
+                        <select name="service_id" id="service_assign_service_id" class="form-select" required>
+                            <option value="">Choose a service...</option>
+                            <!-- Services will be loaded dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">Package Summary</h6>
+                                <div class="row mb-3">
+                                    <div class="col-4 text-center">
+                                        <strong>Pay For:</strong> <span id="summary_pay_for" class="badge bg-primary">-</span>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <strong>Free:</strong> <span id="summary_free" class="badge bg-success">-</span>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <strong>TOTAL:</strong> <span id="summary_total" class="badge bg-info">-</span>
+                                    </div>
+                                </div>
+
+                                <!-- Cost Breakdown -->
+                                <div class="cost-breakdown" id="cost_breakdown" style="display: none;">
+                                    <hr class="my-3">
+                                    <h6 class="text-muted mb-2">Cost Breakdown</h6>
+
+                                    <div class="row small">
+                                        <div class="col-8">Service Price (per session):</div>
+                                        <div class="col-4 text-end" id="service_price_display">₹0</div>
+                                    </div>
+
+                                    <div class="row small">
+                                        <div class="col-8">Total Services (<span id="total_sessions_text">4</span> sessions):</div>
+                                        <div class="col-4 text-end" id="total_cost_display">₹0</div>
+                                    </div>
+
+                                    <div class="row small text-success">
+                                        <div class="col-8">Package Discount (<span id="free_sessions_text">1</span> free session):</div>
+                                        <div class="col-4 text-end" id="package_discount_display">-₹0</div>
+                                    </div>
+
+                                    <hr class="my-2">
+
+                                    <div class="row fw-bold">
+                                        <div class="col-8">You Pay (for <span id="paid_sessions_text">3</span> sessions):</div>
+                                        <div class="col-4 text-end text-primary" id="final_payment_display">₹0</div>
+                                    </div>
+
+                                    <div class="row small text-success">
+                                        <div class="col-8">Total Savings:</div>
+                                        <div class="col-4 text-end fw-bold" id="total_savings_display">₹0</div>
+                                    </div>
+
+                                    <div class="row small text-muted mt-2">
+                                        <div class="col-12 text-center">
+                                            <i class="fas fa-gift me-1"></i>
+                                            You get <span id="benefit_percent_display">25%</span> more value!
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Expiry (optional)</label>
+                        <input type="date" name="expiry_date" id="service_assign_expiry" class="form-control">
+                        <small class="text-muted">Leave empty for standard validity period</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" id="service_assign_notes" class="form-control" rows="3" placeholder="Additional notes about this assignment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitServicePackageAssignment()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Regular Package Assignment Modal (for other package types) -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Package to Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPackageForm">
+                    <input type="hidden" id="assign_package_id">
+                    <input type="hidden" id="assign_package_type">
+                    <div class="mb-3">
+                        <label class="form-label">Package Name</label>
+                        <input type="text" id="assign_package_name" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Customer</label>
+                        <select name="customer_id" id="assign_customer_id" class="form-select" required>
+                            <option value="">Choose customer...</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Custom Amount (Optional)</label>
+                        <input type="number" name="custom_amount" id="assign_custom_amount" class="form-control" step="0.01">
+                        <small class="text-muted">Leave empty to use standard package amount</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" id="assign_notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPackageAssignment()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Minimal Assign Modal -->
+<div class="modal fade" id="assignSimpleModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus text-primary me-2"></i>Assign Package to Customer
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignSimpleForm">
+                    <div class="mb-3">
+                        <label for="asTemplateName" class="form-label">Package</label>
+                        <input type="text" class="form-control" id="asTemplateName" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="asCustomer" class="form-label">Customer *</label>
+                        <select class="form-select" id="asCustomer" required>
+                            <option value="">Select customer...</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select a customer.
+                        </div>
+                    </div>
+
+                    <!-- Hidden fields -->
+                    <input type="hidden" id="asTemplateId">
+                    <input type="hidden" id="asPackageType">
+                    <input type="hidden" id="asPricePaid">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="asSave" disabled>
+                    <i class="fas fa-user-plus me-2"></i>Assign
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedServices = new Set();
+
+// Function to submit prepaid package form
+function submitPrepaidForm() {
+    const form = document.getElementById('prepaidForm');
+    const formData = new FormData(form);
+
+    // Convert FormData to JSON
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/prepaid-packages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('prepaidModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating package');
+    });
+}
+
+// Function to edit prepaid package
+function editPrepaid(packageId) {
+    // Implementation for editing prepaid package
+    console.log('Edit prepaid package:', packageId);
+    // You can add modal opening logic here
+}
+
+// Function to delete prepaid package
+function deletePrepaid(packageId) {
+    if (confirm('Are you sure you want to delete this prepaid package?')) {
+        fetch(`/api/prepaid-packages/${packageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting package');
+        });
+    }
+}
+
+// Function to submit service package form
+function submitServiceForm() {
+    const form = document.getElementById('serviceForm');
+    const formData = new FormData(form);
+
+    // Convert FormData to JSON
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/service-packages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('serviceModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating package');
+    });
+}
+
+// Service package CRUD functions
+function editService(packageId) {
+    console.log('Edit service package:', packageId);
+}
+
+function deleteService(packageId) {
+    if (confirm('Are you sure you want to delete this service package?')) {
+        fetch(`/api/service-packages/${packageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+// Function to submit membership form
+function submitMembershipForm() {
+    console.log('Submitting membership form...');
+
+    if (!validateForm()) {
+        console.log('Form validation failed, not submitting');
+        return;
+    }
+
+    const form = document.getElementById('membershipForm');
+    if (!form) {
+        showError('Form not found');
+        return;
+    }
+
+    const name = form.querySelector('#mbName').value.trim();
+    const price = parseFloat(form.querySelector('#mbPrice').value);
+    const validityFrom = form.querySelector('#mbValidityFrom').value;
+    const validityTo = form.querySelector('#mbValidityTo').value;
+    const selectedServiceElements = form.querySelectorAll('.service-checkbox:checked');
+
+    let items = [];
+    selectedServiceElements.forEach(checkbox => {
+        const serviceItem = checkbox.closest('.service-item');
+        const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+
+        if (sessionsInput) {
+            const sessions = parseInt(sessionsInput.value);
+            const serviceId = checkbox.value;
+
+            if (!isNaN(sessions) && sessions >= 1) {
+                items.push({
+                    service_id: parseInt(serviceId),
+                    sessions: sessions
+                });
+            }
+        }
+    });
+
+    console.log('Form data to submit:', {
+        name,
+        price,
+        validityFrom,
+        validityTo,
+        items
+    });
+
+    if (items.length === 0) {
+        showError('Please select at least one service with sessions ≥ 1');
+        return;
+    }
+
+    const data = {
+        type: "membership",
+        name: name,
+        price: price,
+        validity_from: validityFrom,
+        validity_to: validityTo,
+        items: items
+    };
+
+    // Disable save button during submission
+    const saveBtn = document.getElementById('saveMembershipBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    fetch('/packages/api/templates', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            showToast('Membership created successfully!', 'success');
+            closeMembershipModal();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showError(result.error || 'An unexpected error occurred.');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Membership';
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting membership:', error);
+        if (error.errors) {
+            let errorMessage = 'Validation errors: ';
+            for (const field in error.errors) {
+                errorMessage += `${field}: ${error.errors[field].join(', ')}. `;
+            }
+            showError(errorMessage);
+        } else if (error.message) {
+            showError(error.message);
+        } else {
+            showError('Failed to create membership. Please check your inputs.');
+        }
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Membership';
+    });
+}
+
+function showError(message) {
+    try {
+        const errorAlert = document.getElementById('mbErrorAlert');
+        const saveBtn = document.getElementById('saveMembershipBtn');
+
+        if (errorAlert) {
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        if (saveBtn) {
+            saveBtn.disabled = true; // Disable save on error
+        }
+    } catch (error) {
+        console.error('Error in showError:', error);
+    }
+}
+
+function clearError() {
+    try {
+        const errorAlert = document.getElementById('mbErrorAlert');
+        if (errorAlert) {
+            errorAlert.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error in clearError:', error);
+    }
+}
+
+function closeMembershipModal() {
+    const modalElement = document.getElementById('membershipModal');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+        modal.hide();
+    }
+    // Reset form fields and error messages
+    resetMembershipForm();
+}
+
+function loadServicesForMembership() {
+    console.log('Loading services for membership...');
+
+    fetch('/packages/api/services')
+        .then(response => {
+            console.log('Services API response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Services API response data:', data);
+
+            const serviceListDiv = document.getElementById('mbServiceList');
+            if (!serviceListDiv) {
+                console.error('Service list container not found');
+                return;
+            }
+
+            if (data.success && data.services) {
+                serviceListDiv.innerHTML = ''; // Clear previous list
+
+                const searchInput = document.getElementById('mbServiceSearch');
+                // Store all services for searching
+                window.allServices = data.services;
+
+                console.log(`Loaded ${data.services.length} services:`, data.services);
+
+                renderServiceList(window.allServices);
+
+                // Add event listener for search input
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => {
+                        const searchTerm = searchInput.value.toLowerCase();
+                        const filteredServices = window.allServices.filter(service =>
+                            service.name.toLowerCase().includes(searchTerm)
+                        );
+                        renderServiceList(filteredServices);
+                    });
+                }
+            } else {
+                const errorMsg = data.error || 'Could not load services.';
+                console.error('Failed to load services:', errorMsg);
+                serviceListDiv.innerHTML = `<p class="text-muted">${errorMsg}</p>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+            const serviceListDiv = document.getElementById('mbServiceList');
+            if (serviceListDiv) {
+                serviceListDiv.innerHTML = '<p class="text-danger">Error loading services. Please try again.</p>';
+            }
+        });
+}
+
+function renderServiceList(services) {
+    const serviceListDiv = document.getElementById('mbServiceList');
+    if (!serviceListDiv) {
+        console.error('Service list container not found');
+        return;
+    }
+
+    serviceListDiv.innerHTML = ''; // Clear current list
+
+    if (services.length === 0) {
+        serviceListDiv.innerHTML = '<p class="text-muted">No services found.</p>';
+        return;
+    }
+
+    services.forEach(service => {
+        const serviceDiv = document.createElement('div');
+        serviceDiv.classList.add('mb-2', 'p-2', 'border', 'rounded', 'service-item');
+        serviceDiv.innerHTML = `
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input service-checkbox" type="checkbox" value="${service.id}" id="service_${service.id}">
+                        <label class="form-check-label service-name" for="service_${service.id}">
+                            ${service.name}
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Sessions</label>
+                    <input type="number" class="form-control form-control-sm service-sessions" min="1" value="1" disabled>
+                </div>
+                <div class="col-md-2 text-end">
+                    <small class="text-muted">₹${service.price ? service.price.toFixed(0) : '0'}</small>
+                </div>
+            </div>
+        `;
+        serviceListDiv.appendChild(serviceDiv);
+    });
+
+    // Add event listeners to checkboxes and session inputs
+    serviceListDiv.querySelectorAll('.service-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            try {
+                const serviceItem = e.target.closest('.service-item');
+                const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+
+                if (sessionsInput) {
+                    sessionsInput.disabled = !e.target.checked;
+                    if (e.target.checked) {
+                        sessionsInput.value = 1; // Reset to 1 when checked
+                        sessionsInput.focus(); // Focus on sessions input when checked
+                    }
+                }
+
+                console.log('Service checkbox changed:', {
+                    serviceId: e.target.value,
+                    checked: e.target.checked,
+                    sessions: sessionsInput ? sessionsInput.value : 'not found'
+                });
+
+                // Only validate if form exists
+                const form = document.getElementById('membershipForm');
+                if (form) {
+                    setTimeout(() => validateForm(), 10);
+                }
+            } catch (error) {
+                console.error('Error in checkbox change handler:', error);
+            }
+        });
+    });
+
+    serviceListDiv.querySelectorAll('.service-sessions').forEach(input => {
+        input.addEventListener('input', () => {
+            try {
+                console.log('Sessions input changed:', input.value);
+                // Only validate if form exists
+                const form = document.getElementById('membershipForm');
+                if (form) {
+                    setTimeout(() => validateForm(), 10);
+                }
+            } catch (error) {
+                console.error('Error in sessions input handler:', error);
+            }
+        });
+
+        input.addEventListener('change', () => {
+            try {
+                console.log('Sessions input change event:', input.value);
+                // Only validate if form exists
+                const form = document.getElementById('membershipForm');
+                if (form) {
+                    setTimeout(() => validateForm(), 10);
+                }
+            } catch (error) {
+                console.error('Error in sessions change handler:', error);
+            }
+        });
+    });
+
+    console.log(`Rendered ${services.length} services with event listeners`);
+}
+
+function validateForm() {
+    try {
+        const form = document.getElementById('membershipForm');
+        if (!form) {
+            // Form not available yet, silently return false
+            return false;
+        }
+
+        const nameInput = form.querySelector('#mbName');
+        const priceInput = form.querySelector('#mbPrice');
+        const validityFromInput = form.querySelector('#mbValidityFrom');
+        const validityToInput = form.querySelector('#mbValidityTo');
+        const serviceCheckboxes = form.querySelectorAll('.service-checkbox:checked');
+        const saveBtn = document.getElementById('saveMembershipBtn');
+
+        // Check if required elements exist
+        if (!nameInput || !priceInput || !validityFromInput || !validityToInput || !saveBtn) {
+            console.log('Missing required form elements');
+            return false;
+        }
+
+        let isNameValid = nameInput.value.trim() !== '';
+        let isPriceValid = !isNaN(parseFloat(priceInput.value)) && parseFloat(priceInput.value) >= 0;
+        let areDatesValid = validityFromInput.value && validityToInput.value && new Date(validityToInput.value) >= new Date(validityFromInput.value);
+        let isServiceSelected = false;
+        let areSessionsValid = true;
+
+        let checkedServicesCount = serviceCheckboxes ? serviceCheckboxes.length : 0;
+        let validSessionCount = 0;
+
+        // Check each checked service checkbox
+        if (serviceCheckboxes && serviceCheckboxes.length > 0) {
+            serviceCheckboxes.forEach(checkbox => {
+                try {
+                    const serviceItem = checkbox.closest('.service-item');
+                    const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+
+                    if (sessionsInput && !sessionsInput.disabled) {
+                        const sessions = parseInt(sessionsInput.value);
+                        console.log(`Service ${checkbox.value}: sessions = ${sessions}`);
+                        if (!isNaN(sessions) && sessions >= 1) {
+                            validSessionCount++;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error validating service checkbox:', e);
+                }
+            });
+        }
+
+        isServiceSelected = checkedServicesCount > 0 && validSessionCount === checkedServicesCount;
+        areSessionsValid = validSessionCount === checkedServicesCount;
+
+        // Update Bootstrap validation classes safely
+        try {
+            if (nameInput) {
+                nameInput.classList.remove('is-invalid');
+                if (!isNameValid) nameInput.classList.add('is-invalid');
+            }
+            if (priceInput) {
+                priceInput.classList.remove('is-invalid');
+                if (!isPriceValid) priceInput.classList.add('is-invalid');
+            }
+            if (validityFromInput) {
+                validityFromInput.classList.remove('is-invalid');
+                if (!validityFromInput.value) validityFromInput.classList.add('is-invalid');
+            }
+            if (validityToInput) {
+                validityToInput.classList.remove('is-invalid');
+                if (!validityToInput.value || new Date(validityToInput.value) < new Date(validityFromInput.value)) {
+                    validityToInput.classList.add('is-invalid');
+                }
+            }
+        } catch (e) {
+            console.error('Error updating validation classes:', e);
+        }
+
+        // Show/hide service selection validation message
+        try {
+            if (checkedServicesCount === 0) {
+                showError('Please select at least one service with sessions ≥ 1');
+            } else if (!areSessionsValid) {
+                showError('All selected services must have sessions ≥ 1');
+            } else {
+                clearError(); // Clear error if services are valid
+            }
+        } catch (e) {
+            console.error('Error in service validation messaging:', e);
+        }
+
+        const formIsValid = isNameValid && isPriceValid && areDatesValid && isServiceSelected && areSessionsValid;
+
+        if (saveBtn) {
+            saveBtn.disabled = !formIsValid;
+            console.log(`Save button disabled: ${saveBtn.disabled}`);
+        }
+
+        console.log('Validation result:', {
+            isNameValid,
+            isPriceValid,
+            areDatesValid,
+            checkedServicesCount,
+            validSessionCount,
+            isServiceSelected,
+            areSessionsValid,
+            formIsValid
+        });
+
+        return formIsValid;
+    } catch (error) {
+        console.error('Error in validateForm:', error);
+        return false;
+    }
+}
+
+
+// Membership CRUD functions
+function editMembership(membershipId) {
+    console.log('Edit membership:', membershipId);
+    // TODO: Implement edit functionality, possibly pre-filling the modal
+}
+
+function deleteMembership(membershipId) {
+    if (confirm('Are you sure you want to delete this membership?')) {
+        fetch(`/api/memberships/${membershipId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+// Student offer price calculation functions
+function updateStudentServicePrice() {
+    const serviceSelect = document.getElementById('student_service_select');
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+    const price = selectedOption.getAttribute('data-price');
+
+    if (price) {
+        document.getElementById('student_actual_price').value = price;
+        calculateStudentDiscountPrice();
+    }
+}
+
+function calculateStudentDiscountPrice() {
+    const actualPrice = parseFloat(document.getElementById('student_actual_price').value) || 0;
+    const discountPercent = parseFloat(document.querySelector('input[name="discount_percent"]').value) || 0;
+
+    const afterPrice = actualPrice * (1 - discountPercent / 100);
+    document.getElementById('student_after_price').value = afterPrice.toFixed(2);
+}
+
+// Function to submit student offer form
+function submitStudentForm() {
+    const form = document.getElementById('studentForm');
+    const formData = new FormData(form);
+
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/student-offers', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating student offer');
+    });
+}
+
+// Student offer CRUD functions
+function editStudent(offerId) {
+    console.log('Edit student offer:', offerId);
+}
+
+function deleteStudent(offerId) {
+    if (confirm('Are you sure you want to delete this student offer?')) {
+        fetch(`/api/student-offers/${offerId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+// Function to submit yearly membership form
+function submitYearlyForm() {
+    const form = document.getElementById('yearlyForm');
+    const formData = new FormData(form);
+
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    fetch('/api/yearly-memberships', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('yearlyModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating membership');
+    });
+}
+
+// Yearly membership CRUD functions
+function editYearly(membershipId) {
+    console.log('Edit yearly membership:', membershipId);
+}
+
+function deleteYearly(membershipId) {
+    if (confirm('Are you sure you want to delete this yearly membership?')) {
+        fetch(`/api/yearly-memberships/${membershipId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+// Load services for kitty party modal
+function loadServicesForKittyParty() {
+    fetch('/packages/api/services')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const container = document.getElementById('kittyServicesCheckboxes');
+                const loadingDiv = document.getElementById('servicesLoading');
+
+                if (loadingDiv) {
+                    loadingDiv.style.display = 'none';
+                }
+
+                container.innerHTML = '';
+
+                data.services.forEach(service => {
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'col-12 mb-2';
+
+                    checkboxDiv.innerHTML = `
+                        <div class="form-check border rounded p-2 h-100">
+                            <input class="form-check-input" type="checkbox" name="service_ids" value="${service.id}" id="service_${service.id}">
+                            <label class="form-check-label w-100" for="service_${service.id}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-medium">${service.name}</span>
+                                    <span class="badge bg-primary">₹${service.price}</span>
+                                </div>
+                            </label>
+                        </div>
+                    `;
+
+                    container.appendChild(checkboxDiv);
+                });
+
+                if (data.services.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-muted text-center py-3">No services available</div>';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+            const container = document.getElementById('kittyServicesCheckboxes');
+            const loadingDiv = document.getElementById('servicesLoading');
+
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+
+            container.innerHTML = '<div class="col-12 text-danger text-center py-3">Error loading services</div>';
+        });
+}
+
+// Function to submit kitty party form
+function submitKittyForm() {
+    const form = document.getElementById('kittyForm');
+    const formData = new FormData(form);
+    
+    // Fix: Find the submit button in the modal footer, not inside the form
+    const submitBtn = document.querySelector('#kittyModal .modal-footer .btn-primary');
+
+    // Check if services are still loading
+    const loadingDiv = document.getElementById('servicesLoading');
+    if (loadingDiv && loadingDiv.style.display !== 'none') {
+        alert('Please wait for services to load before submitting');
+        return;
+    }
+
+    // Check if button was found before trying to disable it
+    if (submitBtn) {
+        // Disable submit button to prevent multiple submissions
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+
+    // Convert FormData to JSON and collect selected services
+    const data = {};
+    const selectedServices = [];
+
+    // Get selected services from checkboxes - improved selector
+    const serviceCheckboxes = document.querySelectorAll('#kittyServicesCheckboxes input[name="service_ids"]:checked');
+    const serviceIds = Array.from(serviceCheckboxes).map(cb => parseInt(cb.value));
+
+    console.log('Found service checkboxes:', document.querySelectorAll('#kittyServicesCheckboxes input[name="service_ids"]').length);
+    console.log('Selected service checkboxes:', serviceCheckboxes.length);
+    console.log('Selected service IDs:', serviceIds);
+
+    // Better validation with visual feedback
+    const servicesContainer = document.getElementById('kittyServicesContainer');
+    const invalidFeedback = servicesContainer.parentElement.querySelector('.invalid-feedback');
+    
+    if (serviceIds.length === 0) {
+        // Show visual validation feedback
+        servicesContainer.classList.add('border-danger');
+        if (invalidFeedback) {
+            invalidFeedback.style.display = 'block';
+        }
+        alert('Please select at least one service for this kitty party');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
+        return;
+    } else {
+        // Remove error styling if services are selected
+        servicesContainer.classList.remove('border-danger');
+        if (invalidFeedback) {
+            invalidFeedback.style.display = 'none';
+        }
+    }
+
+    data.service_ids = serviceIds;
+    console.log('Selected services:', serviceIds);
+
+
+    // Collect other form data
+    for (let [key, value] of formData.entries()) {
+        if (key !== 'service_ids') {
+            data[key] = value;
+        }
+    }
+
+    // Validate required fields with better error messages
+    if (!data.name || data.name.trim() === '') {
+        alert('Please enter a party name');
+        document.querySelector('[name="name"]').focus();
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
+        return;
+    }
+
+    if (!data.price || parseFloat(data.price) <= 0) {
+        alert('Please enter a valid price');
+        document.querySelector('[name="price"]').focus();
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
+        return;
+    }
+
+    if (!data.min_guests || parseInt(data.min_guests) <= 0) {
+        alert('Please enter minimum number of guests');
+        document.querySelector('[name="min_guests"]').focus();
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
+        return;
+    }
+
+    // Check validity dates if they exist
+    if (data.valid_from && data.valid_to && new Date(data.valid_to) < new Date(data.valid_from)) {
+        alert('Valid To date cannot be before Valid From date.');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
+        return;
+    }
+
+
+    console.log('Submitting kitty party data:', data);
+
+    fetch('/api/kitty-parties', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Kitty party created successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('kittyModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to create kitty party'));
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Save Party';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating kitty party. Please try again.');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
+    });
+}
+
+// Initialize kitty party modal when it's shown
+document.addEventListener('DOMContentLoaded', function() {
+    const kittyModal = document.getElementById('kittyModal');
+    if (kittyModal) {
+        kittyModal.addEventListener('shown.bs.modal', function() {
+            loadServicesForKittyParty();
+
+            // Add real-time validation for checkboxes
+            const form = document.getElementById('kittyForm');
+
+            // Add event listeners to service checkboxes when they're loaded
+            setTimeout(() => {
+                const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]');
+                serviceCheckboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const checkedBoxes = document.querySelectorAll('input[name="service_ids"]:checked');
+                        const container = document.getElementById('kittyServicesContainer');
+
+                        if (checkedBoxes.length > 0) {
+                            container.classList.remove('border-danger');
+                        }
+                    });
+                });
+            }, 1000); // Wait for services to load
+
+            // Reset form and validation when modal opens
+            if (form) {
+                form.reset();
+                form.querySelectorAll('.is-invalid, .is-valid').forEach(el => {
+                    el.classList.remove('is-invalid', 'is-valid');
+                });
+            }
+        });
+    }
+});
+
+
+
+function editKitty(partyId) {
+    console.log('Edit kitty party:', partyId);
+}
+
+function deleteKitty(partyId) {
+    if (confirm('Are you sure you want to delete this kitty party?')) {
+        fetch(`/api/kitty-parties/${partyId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function assignPackage(packageId, packageName, packageType) {
+    if (packageType === 'service') {
+        // Handle Service Package assignment
+        assignServicePackage(packageId, packageName);
+    } else {
+        // Handle other package types
+        document.getElementById('assign_package_id').value = packageId;
+        document.getElementById('assign_package_name').value = packageName;
+        document.getElementById('assign_package_type').value = packageType;
+
+        // Reset form
+        document.getElementById('assignPackageForm').reset();
+        document.getElementById('assign_package_id').value = packageId;
+        document.getElementById('assign_package_name').value = packageName;
+        document.getElementById('assign_package_type').value = packageType;
+
+        const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
+        modal.show();
+    }
+}
+
+function assignServicePackage(packageId, packageName) {
+    // Set package details
+    document.getElementById('service_assign_package_id').value = packageId;
+    document.getElementById('serviceAssignModalTitle').textContent = `Assign Package: "${packageName}"`;
+
+    // Reset form
+    document.getElementById('assignServicePackageForm').reset();
+    document.getElementById('service_assign_package_id').value = packageId;
+
+    // Load services for selection
+    loadServicesForAssignment();
+
+    // Load package details for summary
+    loadServicePackageDetails(packageId);
+
+    const modal = new bootstrap.Modal(document.getElementById('assignServicePackageModal'));
+    modal.show();
+}
+
+function loadServicesForAssignment() {
+    fetch('/packages/api/services')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const serviceSelect = document.getElementById('service_assign_service_id');
+                serviceSelect.innerHTML = '<option value="">Choose a service...</option>';
+
+                data.services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} - ₹${service.price} (${service.duration} min)`;
+                    option.setAttribute('data-price', service.price);
+                    option.setAttribute('data-name', service.name);
+                    serviceSelect.appendChild(option);
+                });
+
+                // Add event listener for service selection
+                serviceSelect.addEventListener('change', function() {
+                    calculateServiceCostBreakdown();
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+            alert('Error loading services');
+        });
+}
+
+function calculateServiceCostBreakdown() {
+    const serviceSelect = document.getElementById('service_assign_service_id');
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+
+    if (!selectedOption || !selectedOption.value || !window.currentPackageTemplate) {
+        document.getElementById('cost_breakdown').style.display = 'none';
+        return;
+    }
+
+    const servicePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+    const serviceName = selectedOption.getAttribute('data-name') || '';
+    const template = window.currentPackageTemplate;
+
+    const totalSessions = template.total_services || 4;
+    const payForSessions = template.pay_for || 3;
+    const freeSessions = template.free_services || 1;
+
+    // Calculate costs
+    const totalCost = servicePrice * totalSessions;
+    const packageDiscount = servicePrice * freeSessions;
+    const finalPayment = servicePrice * payForSessions;
+    const totalSavings = packageDiscount;
+
+    // Update display
+    document.getElementById('service_price_display').textContent = `₹${servicePrice.toFixed(0)}`;
+    document.getElementById('total_cost_display').textContent = `₹${totalCost.toFixed(0)}`;
+    document.getElementById('package_discount_display').textContent = `-₹${packageDiscount.toFixed(0)}`;
+    document.getElementById('final_payment_display').textContent = `₹${finalPayment.toFixed(0)}`;
+    document.getElementById('total_savings_display').textContent = `₹${totalSavings.toFixed(0)}`;
+
+    // Show the breakdown
+    document.getElementById('cost_breakdown').style.display = 'block';
+}
+
+function loadServicePackageDetails(packageId) {
+    fetch(`/packages/api/templates/${packageId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.template) {
+                const template = data.template;
+                document.getElementById('summary_pay_for').textContent = template.pay_for || '-';
+                document.getElementById('summary_free').textContent = template.free_services || '-';
+                document.getElementById('summary_total').textContent = template.total_services || '-';
+
+                // Store template data for calculations
+                window.currentPackageTemplate = template;
+
+                // Update text placeholders
+                document.getElementById('total_sessions_text').textContent = template.total_services || 4;
+                document.getElementById('free_sessions_text').textContent = template.free_services || 1;
+                document.getElementById('paid_sessions_text').textContent = template.pay_for || 3;
+                document.getElementById('benefit_percent_display').textContent = Math.round(template.benefit_percent || 25) + '%';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading package details:', error);
+        });
+}
+
+function submitServicePackageAssignment() {
+    const form = document.getElementById('assignServicePackageForm');
+    const formData = new FormData(form);
+    const customerId = document.getElementById('service_assign_customer_id').value;
+    const serviceId = document.getElementById('service_assign_service_id').value;
+    const packageId = document.getElementById('service_assign_package_id').value;
+
+    if (!customerId) {
+        alert('Please select a customer');
+        return;
+    }
+
+    if (!serviceId) {
+        alert('Please select a service');
+        return;
+    }
+
+    // Prepare data for API
+    const assignmentData = {
+        package_type: 'service_package',
+        package_id: parseInt(packageId),
+        customer_id: parseInt(customerId),
+        service_id: parseInt(serviceId),
+        price_paid: 0, // Will be set by package template price
+        expires_on: formData.get('expiry_date') || null,
+        notes: formData.get('notes') || ''
+    };
+
+    // Submit assignment
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(assignmentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('assignServicePackageModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while assigning the package');
+    });
+}
+
+function submitPackageAssignment() {
+    const form = document.getElementById('assignPackageForm');
+    const formData = new FormData(form);
+    const packageId = document.getElementById('assign_package_id').value;
+    const packageType = document.getElementById('assign_package_type').value;
+
+    // Add hidden fields to formData
+    formData.append('package_id', packageId);
+    formData.append('package_type', packageType);
+
+    fetch(`/packages/assign/${packageId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while assigning the package');
+    });
+}
+
+// ========================================
+// MINIMAL ASSIGN FLOW FUNCTIONALITY
+// ========================================
+
+/**
+ * Open minimal assign modal for specific package types
+ */
+function openAssignSimple(templateId, packageType) {
+    console.log('Opening simple assign modal for:', templateId, packageType);
+
+    try {
+        // Get package details based on type
+        let packageData = getPackageDataById(templateId, packageType);
+
+        if (packageData) {
+            // Fill template name
+            document.getElementById('asTemplateName').value = packageData.name;
+
+            // Set hidden fields
+            document.getElementById('asTemplateId').value = templateId;
+            document.getElementById('asPackageType').value = packageType;
+            document.getElementById('asPricePaid').value = packageData.price || 0;
+
+            // Enable save button when customer is selected
+            const customerSelect = document.getElementById('asCustomer');
+            customerSelect.addEventListener('change', function() {
+                const saveBtn = document.getElementById('asSave');
+                saveBtn.disabled = !this.value;
+            });
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('assignSimpleModal'));
+            modal.show();
+        } else {
+            alert('Error loading package details');
+        }
+    } catch (error) {
+        console.error('Error opening simple assign modal:', error);
+        alert('Error loading package details');
+    }
+}
+
+/**
+ * Get package data by ID and type from the rendered data
+ */
+function getPackageDataById(templateId, packageType) {
+    let packageData = null;
+
+    // Get data from the respective table based on package type
+    if (packageType === 'membership') {
+        // Find in memberships table
+        const rows = document.querySelectorAll('#membershipTableBody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[1].textContent.replace(/[₹,]/g, '')) || 0
+                };
+            }
+        });
+    } else if (packageType === 'student') {
+        // Find in student offers table
+        const rows = document.querySelectorAll('#studentTableBody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[3].textContent.replace(/[₹,]/g, '')) || 0 // After price
+                };
+            }
+        });
+    } else if (packageType === 'yearly') {
+        // Find in yearly memberships table
+        const rows = document.querySelectorAll('#yearlyTableBody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[1].textContent.replace(/[₹,]/g, '')) || 0
+                };
+            }
+        });
+    } else if (packageType === 'kitty') {
+        // Find in kitty parties table
+        const rows = document.querySelectorAll('#kittyTableBody tr');
+        rows.forEach(row => {
+            const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
+            if (assignBtn) {
+                const cells = row.querySelectorAll('td');
+                packageData = {
+                    name: cells[0].textContent.trim(),
+                    price: parseFloat(cells[1].textContent.replace(/[₹,]/g, '')) || 0
+                };
+            }
+        });
+    }
+
+    return packageData;
+}
+
+/**
+ * Save simple package assignment
+ */
+function saveAssignSimple() {
+    console.log('Saving simple package assignment...');
+
+    try {
+        const templateId = document.getElementById('asTemplateId').value;
+        const packageType = document.getElementById('asPackageType').value;
+        const customerId = document.getElementById('asCustomer').value;
+        const pricePaid = document.getElementById('asPricePaid').value;
+
+        if (!templateId || !packageType || !customerId) {
+            alert('Please fill all required fields');
+            return;
+        }
+
+        const data = {
+            package_type: packageType,
+            package_id: templateId,
+            customer_id: parseInt(customerId),
+            price_paid: parseFloat(pricePaid)
+        };
+
+        fetch('/packages/api/assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Package assigned successfully!');
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
+                modal.hide();
+
+                // Reset form
+                document.getElementById('assignSimpleForm').reset();
+                document.getElementById('asSave').disabled = true;
+
+                // Optionally reload page to show updated data
+                location.reload();
+
+            } else {
+                alert(result.error || 'Error assigning package');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving package assignment:', error);
+            alert('Error assigning package');
+        });
+    } catch (error) {
+        console.error('Error saving package assignment:', error);
+        alert('Error assigning package');
+    }
+}
+
+// Add event listener for membership save button
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Initializing membership modal');
+
+    const saveBtn = document.getElementById('asSave');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveAssignSimple);
+    }
+
+    // Add event listener for membership save button
+    const saveMembershipBtn = document.getElementById('saveMembershipBtn');
+    if (saveMembershipBtn) {
+        saveMembershipBtn.addEventListener('click', submitMembershipForm);
+        console.log('Save membership button event listener attached');
+    }
+
+    // Load services when membership modal is shown
+    const membershipModal = document.getElementById('membershipModal');
+    if (membershipModal) {
+        membershipModal.addEventListener('shown.bs.modal', function (event) {
+            console.log('Membership modal shown - loading services');
+            loadServicesForMembership();
+
+            // Set default dates when modal opens
+            const form = document.getElementById('membershipForm');
+            if (form) {
+                const today = new Date();
+                const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+
+                const fromInput = document.getElementById('mbValidityFrom');
+                const toInput = document.getElementById('mbValidityTo');
+
+                if (fromInput && !fromInput.value) {
+                    fromInput.value = today.toISOString().split('T')[0];
+                }
+                if (toInput && !toInput.value) {
+                    toInput.value = nextYear.toISOString().split('T')[0];
+                }
+
+                // Add form validation listeners only when modal is open
+                form.addEventListener('input', validateForm);
+                form.addEventListener('change', validateForm);
+            }
+        });
+
+        membershipModal.addEventListener('hidden.bs.modal', function (event) {
+            console.log('Membership modal hidden - resetting form');
+            resetMembershipForm();
+        });
+    }
+
+    // Load services when membership tab is shown (backup)
+    const membershipTab = document.getElementById('membership-tab');
+    if (membershipTab) {
+        membershipTab.addEventListener('shown.bs.tab', function (event) {
+            console.log('Membership tab shown');
+            if (!window.servicesLoadedForMembership) {
+                loadServicesForMembership();
+                window.servicesLoadedForMembership = true;
+            }
+        });
+    }
+
+    // Initialize kitty party modal defaults when opened
+    const kittyModal = document.getElementById('kittyModal');
+    if (kittyModal) {
+        kittyModal.addEventListener('show.bs.modal', function () {
+            console.log('Kitty party modal opening - setting defaults');
+
+            // Set default dates (today and 3 months from now)
+            const today = new Date().toISOString().split('T')[0];
+            const threeMonthsLater = new Date();
+            threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+            const futureDate = threeMonthsLater.toISOString().split('T')[0];
+
+            // Set default values
+            const form = document.getElementById('kittyForm');
+            if (form) {
+                form.querySelector('[name="valid_from"]').value = today;
+                form.querySelector('[name="valid_to"]').value = futureDate;
+                form.querySelector('[name="is_active"]').checked = true;
+
+                // Clear other fields for fresh entry
+                form.querySelector('[name="name"]').value = '';
+                form.querySelector('[name="price"]').value = '';
+                form.querySelector('[name="after_value"]').value = '';
+                form.querySelector('[name="min_guests"]').value = '';
+                form.querySelector('[name="conditions"]').value = '';
+
+                // Clear service selections (checkboxes)
+                const serviceCheckboxes = form.querySelectorAll('input[name="service_ids"]');
+                serviceCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+        });
+    }
+});
+
+function resetMembershipForm() {
+    const form = document.getElementById('membershipForm');
+    if (form) {
+        form.reset();
+
+        // Reset dates to defaults
+        const today = new Date();
+        const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+
+        document.getElementById('mbValidityFrom').value = today.toISOString().split('T')[0];
+        document.getElementById('mbValidityTo').value = nextYear.toISOString().split('T')[0];
+
+        // Clear validation classes
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+        // Clear error message
+        clearError();
+
+        // Disable save button
+        document.getElementById('saveMembershipBtn').disabled = true;
+
+        console.log('Membership form reset');
+    }
+}
+
+// Add toast notification function if not exists
+function showToast(message, type) {
+    // Simple toast implementation
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+
+{% endblock %}

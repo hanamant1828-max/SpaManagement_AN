@@ -21,7 +21,7 @@
                             <p class="mb-0">
                                 <strong>Customer:</strong> {{ appointment.client.full_name }}<br>
                                 <strong>Service:</strong> {{ appointment.service.name }}<br>
-                                <strong>Date & Time:</strong> {{ appointment.appointment_date.strftime('%Y-%m-%d at %H:%M') }}<br>
+                                <strong>Date & Time:</strong> {{ appointment.appointment_date.strftime('%Y-%m-%d at %I:%M %p') }}<br>
                                 <strong>Staff:</strong> {{ appointment.assigned_staff.full_name }}<br>
                                 <strong>Status:</strong> {{ appointment.status.title() }}
                             </p>

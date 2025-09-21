@@ -133,39 +133,47 @@
                             <table class="spa-table">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Description</th>
+                                        <th>Date & Time</th>
+                                        <th>Purpose/Description</th>
                                         <th>Category</th>
                                         <th>Amount</th>
-                                        <th>Receipt</th>
-                                        <th>Created By</th>
+                                        <th>Payment Method</th>
+                                        <th>Staff Member</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for expense in expenses %}
                                     <tr>
-                                        <td>{{ utils.format_date(expense.expense_date) }}</td>
                                         <td>
-                                            <div>{{ expense.description }}</div>
-                                            {% if expense.notes %}
-                                            <small class="text-muted">{{ utils.truncate_text(expense.notes, 40) }}</small>
+                                            <div><strong>{{ utils.format_date(expense.expense_date) }}</strong></div>
+                                            {% if expense.expense_time %}
+                                            <small class="text-muted">at {{ expense.expense_time.strftime('%I:%M %p') if expense.expense_time else 'N/A' }}</small>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <span class="badge bg-secondary">{{ expense.category.title() }}</span>
+                                            <div><strong>{{ expense.description }}</strong></div>
+                                            {% if expense.notes %}
+                                            <small class="text-muted">{{ utils.truncate_text(expense.notes, 50) }}</small>
+                                            {% endif %}
                                         </td>
                                         <td>
-                                            <strong>{{ utils.format_currency(expense.amount) }}</strong>
+                                            <span class="badge bg-secondary">{{ expense.category.title() if expense.category else 'General' }}</span>
                                         </td>
                                         <td>
-                                            {% if expense.receipt_number %}
-                                                <span class="badge bg-info">{{ expense.receipt_number }}</span>
+                                            <strong class="text-danger">₹{{ "%.2f"|format(expense.amount) }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if expense.payment_method %}
+                                                <span class="badge bg-info">{{ expense.payment_method.title() }}</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>{{ expense.created_by_user.full_name }}</td>
+                                        <td>
+                                            <div>{{ expense.created_by_user.full_name }}</div>
+                                            <small class="text-muted">{{ expense.created_at.strftime('%d %b %Y') }}</small>
+                                        </td>
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <button class="btn btn-sm btn-outline-primary" 
@@ -282,31 +290,52 @@
                     {{ form.hidden_tag() }}
                     
                     <div class="row">
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="description" class="form-label">Description *</label>
-                                {{ form.description(class="form-control") }}
+                                <label for="description" class="form-label">Purpose/Description *</label>
+                                {{ form.description(class="form-control", placeholder="What was this expense for? (e.g., Office supplies, Client refreshments, Equipment repair)") }}
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="mb-3">
-                                <label for="amount" class="form-label">Amount *</label>
-                                {{ form.amount(class="form-control", step="0.01") }}
+                                <label for="amount" class="form-label">Amount Spent *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    {{ form.amount(class="form-control", step="0.01", placeholder="0.00") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="expense_time" class="form-label">Time *</label>
+                                <input type="time" name="expense_time" class="form-control" required>
                             </div>
                         </div>
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="category_id" class="form-label">Category *</label>
+                                <label for="category_id" class="form-label">Expense Category *</label>
                                 {{ form.category_id(class="form-select") }}
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="expense_date" class="form-label">Expense Date *</label>
-                                {{ form.expense_date(class="form-control") }}
+                                <label for="expense_date" class="form-label">Date *</label>
+                                {{ form.expense_date(class="form-control", value=datetime.now().strftime('%Y-%m-%d')) }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="payment_method" class="form-label">Payment Method</label>
+                                <select name="payment_method" class="form-select">
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Credit/Debit Card</option>
+                                    <option value="upi">UPI</option>
+                                    <option value="petty_cash">Petty Cash</option>
+                                    <option value="reimbursement">Reimbursement</option>
+                                </select>
                             </div>
                         </div>
                     </div>

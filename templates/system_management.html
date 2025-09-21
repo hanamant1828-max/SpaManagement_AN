@@ -1,0 +1,598 @@
+{% extends "base.html" %}
+{% block title %}System Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">System Management</h1>
+                <div class="badge bg-primary">Admin Panel</div>
+            </div>
+
+            <!-- System Overview Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Roles</h6>
+                                    <h4>{{ roles|length if roles else 0 }}</h4>
+                                </div>
+                                <i class="fas fa-users-cog fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Categories</h6>
+                                    <h4>{{ categories|length if categories else 0 }}</h4>
+                                </div>
+                                <i class="fas fa-tags fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Departments</h6>
+                                    <h4>{{ departments|length if departments else 0 }}</h4>
+                                </div>
+                                <i class="fas fa-building fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Settings</h6>
+                                    <h4>{{ system_settings|length if system_settings else 0 }}</h4>
+                                </div>
+                                <i class="fas fa-cogs fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Sections -->
+            <div class="row">
+                <!-- Roles Management -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-users-cog me-2"></i>Roles Management
+                            </h5>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                                <i class="fas fa-plus me-1"></i>Add Role
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            {% if roles %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Role</th>
+                                            <th>Display Name</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for role in roles %}
+                                        <tr>
+                                            <td>{{ role.name }}</td>
+                                            <td>{{ role.display_name }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if role.is_active else 'secondary' }}">
+                                                    {{ 'Active' if role.is_active else 'Inactive' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-center">No roles configured yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categories Management -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tags me-2"></i>Categories Management
+                            </h5>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                                <i class="fas fa-plus me-1"></i>Add Category
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            {% if categories %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Type</th>
+                                            <th>Color</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for category in categories %}
+                                        <tr>
+                                            <td>{{ category.display_name }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ category.category_type }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ category.color or '#007bff' }};">
+                                                    {{ category.color or '#007bff' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-center">No categories configured yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Departments Management -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-building me-2"></i>Departments Management
+                            </h5>
+                            <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#addDepartmentModal" onclick="showAddDepartmentModal()">
+                                <i class="fas fa-plus me-1"></i>Add Department
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="departmentsContainer">
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-building fa-2x mb-2"></i>
+                                    <p>No departments configured yet.</p>
+                                    <div class="spinner-border spinner-border-sm d-none" id="departmentsLoading" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Settings -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cogs me-2"></i>System Settings
+                            </h5>
+                            <button class="btn btn-warning btn-sm">
+                                <i class="fas fa-plus me-1"></i>Add Setting
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            {% if system_settings %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for setting in system_settings %}
+                                        <tr>
+                                            <td>{{ setting.key }}</td>
+                                            <td>{{ setting.value[:30] }}{{ '...' if setting.value|length > 30 else '' }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-center">No system settings configured yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-bolt me-2"></i>Quick Actions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <a href="{{ url_for('role_management') }}" class="btn btn-outline-primary w-100">
+                                        <i class="fas fa-users-cog me-2"></i>Role Management
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{{ url_for('settings') }}" class="btn btn-outline-success w-100">
+                                        <i class="fas fa-user-cog me-2"></i>User Settings
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{{ url_for('business_settings') }}" class="btn btn-outline-info w-100">
+                                        <i class="fas fa-building me-2"></i>Business Settings
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <button class="btn btn-outline-warning w-100" onclick="location.reload()">
+                                        <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Role Modal (placeholder) -->
+<div class="modal fade" id="addRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Role creation form will be implemented here.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">Save Role</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal (placeholder) -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Category creation form will be implemented here.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success">Save Category</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Department Modal -->
+<div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDepartmentModalLabel">Add Department</h5>
+            </div>
+            <form id="departmentForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="deptName" class="form-label">Department Name *</label>
+                        <input type="text" class="form-control" id="deptName" required placeholder="e.g., spa_services">
+                        <small class="form-text text-muted">Use lowercase with underscores (e.g., spa_services, hair_salon)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deptDisplayName" class="form-label">Display Name *</label>
+                        <input type="text" class="form-control" id="deptDisplayName" required placeholder="e.g., Spa Services">
+                        <small class="form-text text-muted">This is shown in the user interface</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deptDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="deptDescription" rows="3" placeholder="Brief description of this department"></textarea>
+                    </div>
+                    <div id="departmentFormError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeDepartmentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveDepartmentBtn">
+                        <i class="fas fa-save me-1"></i>Save Department
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Department Management Functions
+let departmentModal = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal
+    const modalElement = document.getElementById('addDepartmentModal');
+    if (modalElement) {
+        departmentModal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+
+    // Load departments on page load
+    loadDepartments();
+
+    // Setup form submission
+    const form = document.getElementById('departmentForm');
+    if (form) {
+        form.addEventListener('submit', handleDepartmentFormSubmission);
+    }
+});
+
+function showAddDepartmentModal() {
+    // Reset form
+    document.getElementById('departmentForm').reset();
+    document.getElementById('addDepartmentModalLabel').textContent = 'Add Department';
+    document.getElementById('departmentFormError').classList.add('d-none');
+
+    // Show modal
+    if (departmentModal) {
+        departmentModal.show();
+    }
+}
+
+function closeDepartmentModal() {
+    if (departmentModal) {
+        departmentModal.hide();
+    }
+}
+
+async function handleDepartmentFormSubmission(e) {
+    e.preventDefault();
+
+    const saveBtn = document.getElementById('saveDepartmentBtn');
+    const errorDiv = document.getElementById('departmentFormError');
+
+    // Get form data
+    const formData = {
+        name: document.getElementById('deptName').value.trim().toLowerCase().replace(/\s+/g, '_'),
+        display_name: document.getElementById('deptDisplayName').value.trim(),
+        description: document.getElementById('deptDescription').value.trim()
+    };
+
+    // Validate
+    if (!formData.name || !formData.display_name) {
+        showDepartmentError('Please fill in all required fields');
+        return;
+    }
+
+    // Show loading
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    errorDiv.classList.add('d-none');
+
+    try {
+        const response = await fetch('/api/departments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification('Department created successfully!', 'success');
+            closeDepartmentModal();
+            loadDepartments(); // Refresh the list
+        } else {
+            showDepartmentError(result.error || 'Failed to create department');
+        }
+    } catch (error) {
+        console.error('Error creating department:', error);
+        showDepartmentError('Network error: ' + error.message);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Department';
+    }
+}
+
+function showDepartmentError(message) {
+    const errorDiv = document.getElementById('departmentFormError');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('d-none');
+}
+
+async function loadDepartments() {
+    const container = document.getElementById('departmentsContainer');
+    const loading = document.getElementById('departmentsLoading');
+
+    if (loading) {
+        loading.classList.remove('d-none');
+    }
+
+    try {
+        const response = await fetch('/api/departments');
+        const result = await response.json();
+
+        if (result.success) {
+            displayDepartments(result.departments);
+        } else {
+            container.innerHTML = '<div class="alert alert-danger">Error loading departments: ' + (result.error || 'Unknown error') + '</div>';
+        }
+    } catch (error) {
+        console.error('Error loading departments:', error);
+        container.innerHTML = '<div class="alert alert-danger">Network error loading departments</div>';
+    } finally {
+        if (loading) {
+            loading.classList.add('d-none');
+        }
+    }
+}
+
+function displayDepartments(departments) {
+    const container = document.getElementById('departmentsContainer');
+
+    if (departments.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-building fa-2x mb-2"></i>
+                <p>No departments configured yet.</p>
+                <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#addDepartmentModal" onclick="showAddDepartmentModal()">
+                    <i class="fas fa-plus me-1"></i>Add Your First Department
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Display Name</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    departments.forEach(dept => {
+        html += `
+            <tr>
+                <td><code>${dept.name}</code></td>
+                <td>${dept.display_name}</td>
+                <td>${dept.description || '<em>No description</em>'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editDepartment(${dept.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteDepartment(${dept.id}, '${dept.display_name}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+async function deleteDepartment(deptId, displayName) {
+    if (!confirm(\`Are you sure you want to delete the department "\${displayName}"? This action cannot be undone.\`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(\`/api/departments/\${deptId}\`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification('Department deleted successfully!', 'success');
+            loadDepartments(); // Refresh the list
+        } else {
+            showNotification('Error deleting department: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting department:', error);
+        showNotification('Network error deleting department', 'error');
+    }
+}
+
+function editDepartment(deptId) {
+    showNotification('Edit functionality - Coming soon!', 'info');
+}
+
+// Notification function
+function showNotification(message, type = 'info', duration = 5000) {
+    // Create notification
+    const alertTypes = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'danger': 'alert-danger', 
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    };
+
+    const alertClass = alertTypes[type] || 'alert-info';
+    const alertId = 'alert-' + Date.now();
+
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+             id="${alertId}" 
+             style="top: 20px; right: 20px; z-index: 1055; min-width: 300px;">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' || type === 'danger' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+        const alert = document.getElementById(alertId);
+        if (alert) {
+            alert.remove();
+        }
+    }, duration);
+}
+</script>
+
+</script>
+
+{% endblock %}

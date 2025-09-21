@@ -1,41 +1,45 @@
-from app import app
-from flask_login import login_required
-import routes  # This already imports all the module views
 
-# Import integrated billing views
-try:
-    import modules.billing.integrated_billing_views
-    print("Integrated billing views loaded successfully")
-except ImportError as e:
-    print(f"Warning: Could not load integrated billing views: {e}")
+#!/usr/bin/env python3
 
-# Initialize default data and routes in a more robust way
-def initialize_app():
+import os
+import sys
+
+# Set required environment variables if not present
+if not os.environ.get("SESSION_SECRET"):
+    os.environ["SESSION_SECRET"] = "1578063aca108928c78100b516702a5765d2d05e85b4fb8bb29a75db0bfc34ca"
+    print("✅ SESSION_SECRET set")
+
+if not os.environ.get("DATABASE_URL"):
+    os.environ["DATABASE_URL"] = "postgresql://replit:postgres@localhost:5432/spa_management"
+    print("✅ DATABASE_URL set")
+
+# Set PORT from environment if available (for Replit deployment)
+port = int(os.environ.get("PORT", 5000))
+
+def main():
+    """Main application entry point with crash guards"""
+    print("🚀 Starting Spa Management System...")
+    print(f"📡 Server will be available at: http://0.0.0.0:{port}")
+    print("🌐 Access via webview or browser")
+    
     try:
-        with app.app_context():
-            print("Initializing default data...")
-            from routes import create_default_data
-            create_default_data()
-            
-            # Try to restore data from Replit DB if available
-            try:
-                from replit import db as replit_db
-                if 'users' in replit_db and len(replit_db['users']) > 1:  # More than just admin
-                    print("🔄 Restoring data from Replit DB...")
-                    import subprocess
-                    subprocess.run(['python', 'database_migration.py', 'import'], check=False)
-                    print("✅ Data restored from Replit DB")
-            except Exception as restore_error:
-                print(f"Note: Could not restore from Replit DB: {restore_error}")
-            
-            # Professional inventory views removed
-                
+        # Import app with error handling
+        from app import app
+        print("✅ App imported successfully")
+        
+        # Health check route is handled in routes.py
+        
+        # Start the server
+        app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
+        
+    except ImportError as e:
+        print(f"❌ Import error: {e}")
+        print("💡 Check if all required modules are available")
+        sys.exit(1)
     except Exception as e:
-        print(f"Warning: Could not initialize default data: {e}")
-        print("Application will start with limited functionality")
+        print(f"❌ Failed to start server: {e}")
+        print("💡 Check the error details above")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    print("Starting Spa Management System...")
-    initialize_app()
-    print("Starting Flask application on 0.0.0.0:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)
+    main()

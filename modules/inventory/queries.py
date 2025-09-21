@@ -364,19 +364,20 @@ def create_consumption_record(batch_id, quantity, issued_to, reference=None, not
         old_qty = float(batch.qty_available)
         batch.qty_available -= float(quantity)
 
-        # Create audit log
-        create_audit_log(
-            batch_id=batch_id,
-            product_id=batch.product_id,
-            user_id=user_id,
-            action_type='consumption',
-            quantity_delta=-float(quantity),
-            stock_before=old_qty,
-            stock_after=float(batch.qty_available),
-            reference_type='consumption',
-            reference_id=consumption.id,
-            notes=f"Consumed by: {issued_to}"
-        )
+        # Create audit log only if user_id is provided
+        if user_id:
+            create_audit_log(
+                batch_id=batch_id,
+                product_id=batch.product_id,
+                user_id=user_id,
+                action_type='consumption',
+                quantity_delta=-float(quantity),
+                stock_before=old_qty,
+                stock_after=float(batch.qty_available),
+                reference_type='consumption',
+                reference_id=consumption.id,
+                notes=f"Consumed by: {issued_to}"
+            )
 
         db.session.add(consumption)
         db.session.commit()
@@ -420,19 +421,20 @@ def create_adjustment_record(batch_id, adjustment_type, quantity, remarks, user_
             batch.qty_available -= float(quantity)
             quantity_delta = -float(quantity)
 
-        # Create audit log
-        create_audit_log(
-            batch_id=batch_id,
-            product_id=batch.product_id,
-            user_id=user_id,
-            action_type=f'adjustment_{adjustment_type}',
-            quantity_delta=quantity_delta,
-            stock_before=old_qty,
-            stock_after=float(batch.qty_available),
-            reference_type='adjustment',
-            reference_id=adjustment.id,
-            notes=remarks
-        )
+        # Create audit log only if user_id is provided
+        if user_id:
+            create_audit_log(
+                batch_id=batch_id,
+                product_id=batch.product_id,
+                user_id=user_id,
+                action_type=f'adjustment_{adjustment_type}',
+                quantity_delta=quantity_delta,
+                stock_before=old_qty,
+                stock_after=float(batch.qty_available),
+                reference_type='adjustment',
+                reference_id=adjustment.id,
+                notes=remarks
+            )
 
         db.session.add(adjustment)
         db.session.commit()

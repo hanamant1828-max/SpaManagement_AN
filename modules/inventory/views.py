@@ -79,17 +79,17 @@ def api_create_product():
         data = request.get_json()
         
         # Handle both camelCase (frontend) and underscore (backend) field names
-        product = create_product({
-            'name': data.get('name'),
-            'description': data.get('description', ''),
-            'category_id': data.get('category_id') or data.get('categoryId'),  # Support both formats
-            'sku': data.get('sku', ''),
-            'unit_of_measure': data.get('unit_of_measure') or data.get('unit', 'pcs'),  # Support both formats
-            'barcode': data.get('barcode', ''),
-            'is_active': True,
-            'is_service_item': data.get('is_service_item', False) or data.get('trackBatches', False),
-            'is_retail_item': data.get('is_retail_item', True) or data.get('trackSerials', True)
-        })
+        product = InventoryProduct(
+            name=data.get('name'),
+            description=data.get('description', ''),
+            category_id=data.get('category_id') or data.get('categoryId'),
+            sku=data.get('sku', ''),
+            unit_of_measure=data.get('unit_of_measure') or data.get('unit', 'pcs'),
+            barcode=data.get('barcode', ''),
+            is_active=True,
+            is_service_item=False,  # Default to False
+            is_retail_item=True     # Default to True for spa products
+        )
 
         return jsonify({
             'success': True,
@@ -376,28 +376,68 @@ def api_create_adjustment():
     try:
         data = request.get_json()
 
-        batch = InventoryBatch.query.get(data.get('batch_id'))
+        # Handle both single item and items array structures
+        if 'items' in data and data['items']:
+            # New structure with items array
+            item = data['items'][0]  # Get first item
+            batch_id = item.get('batch_id')
+            quantity = float(item.get('quantity_in', 0))
+            unit_cost = float(item.get('unit_cost', 0))
+            product_id = item.get('product_id')
+            location_id = item.get('location_id')
+            adjustment_type = item.get('adjustment_type', 'add')
+        else:
+            # Direct structure
+            batch_id = data.get('batch_id')
+            quantity = float(data.get('quantity', 0))
+            unit_cost = float(data.get('unit_cost', 0))
+            product_id = data.get('product_id')
+            location_id = data.get('location_id')
+            adjustment_type = data.get('adjustment_type', 'add')
+
+        # Validate required fields
+        if not batch_id:
+            return jsonify({'error': 'Batch is required'}), 400
+        if quantity <= 0:
+            return jsonify({'error': 'Quantity must be positive'}), 400
+        if adjustment_type not in ['add', 'remove']:
+            return jsonify({'error': 'Invalid adjustment type'}), 400
+
+        batch = InventoryBatch.query.get(batch_id)
         if not batch:
             return jsonify({'error': 'Batch not found'}), 404
 
-        # Assign product and location to batch if not already assigned
-        if data.get('product_id') and not batch.product_id:
-            batch.product_id = data.get('product_id')
-        
-        if data.get('location_id') and not batch.location_id:
-            batch.location_id = data.get('location_id')
+        # Additional validation for remove operations
+        if adjustment_type == 'remove':
+            current_stock = float(batch.qty_available or 0)
+            if quantity > current_stock:
+                return jsonify({'error': f'Cannot remove {quantity}. Only {current_stock} available in stock.'}), 400
+
+        # Assign product and location to batch if provided and not already assigned
+        if product_id and not batch.product_id:
+            batch.product_id = int(product_id)
+
+        if location_id and not batch.location_id:
+            batch.location_id = str(location_id)
 
         adjustment = InventoryAdjustment(
-            batch_id=data.get('batch_id'),
-            adjustment_type='add',
-            quantity=float(data.get('quantity', 0)),
-            unit_cost=float(data.get('unit_cost', batch.unit_cost or 0)),
-            notes=data.get('notes', ''),
-            created_by=current_user.id
+            batch_id=batch_id,
+            adjustment_type=adjustment_type,
+            quantity=quantity,
+            remarks=data.get('notes', '') or f'Stock {adjustment_type} via inventory management',
+            created_by=None  # No user tracking for now
         )
 
-        # Update batch quantity
-        batch.qty_available = float(batch.qty_available or 0) + float(data.get('quantity', 0))
+        # Update batch quantity based on adjustment type
+        if adjustment_type == 'add':
+            batch.qty_available = float(batch.qty_available or 0) + quantity
+            if unit_cost > 0:
+                batch.unit_cost = unit_cost
+        else:  # remove
+            batch.qty_available = float(batch.qty_available or 0) - quantity
+            # Ensure qty_available doesn't go negative
+            if batch.qty_available < 0:
+                batch.qty_available = 0
 
         db.session.add(adjustment)
         db.session.commit()
@@ -415,18 +455,46 @@ def api_create_adjustment():
 def api_get_batches_for_consumption():
     """Get batches available for consumption with FEFO ordering"""
     try:
-        from .queries import get_available_batches_for_consumption
-        batches = get_available_batches_for_consumption()
-        return jsonify([{
-            'id': b.id,
-            'batch_name': b.batch_name,
-            'product_name': b.product.name if b.product else 'Unassigned',
-            'location_name': b.location.name if b.location else 'Unassigned',
-            'qty_available': float(b.qty_available or 0),
-            'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
-            'dropdown_display': b.dropdown_display
-        } for b in batches])
+        from sqlalchemy.orm import joinedload
+        from datetime import date
+
+        # Load batches with their related product and location data
+        batches = InventoryBatch.query.options(
+            joinedload(InventoryBatch.product),
+            joinedload(InventoryBatch.location)
+        ).filter(
+            InventoryBatch.status == 'active',
+            InventoryBatch.qty_available > 0
+        ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
+
+        batch_data = []
+        for b in batches:
+            qty_available = float(b.qty_available or 0)
+            unit = b.product.unit_of_measure if b.product else 'pcs'
+            product_name = b.product.name if b.product else 'Unassigned'
+            location_name = b.location.name if b.location else 'Unassigned'
+            
+            # Create dropdown display text
+            expiry_text = f", Exp: {b.expiry_date.strftime('%d/%m/%Y')}" if b.expiry_date else ""
+            dropdown_display = f"{b.batch_name} ({product_name}{expiry_text}) - Available: {qty_available} {unit}"
+            
+            batch_data.append({
+                'id': b.id,
+                'batch_name': b.batch_name,
+                'product_name': product_name,
+                'location_name': location_name,
+                'qty_available': qty_available,
+                'unit': unit,
+                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+                'dropdown_display': dropdown_display
+            })
+
+        return jsonify({
+            'success': True,
+            'batches': batch_data
+        })
     except Exception as e:
+        print(f"Error in api_get_batches_for_consumption: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/available', methods=['GET'])
@@ -558,6 +626,34 @@ def api_update_product(product_id):
 
         if not product:
             return jsonify({'error': 'Product not found'}), 404
+
+        # Check for duplicate SKU (excluding current product)
+        if data.get('sku') and data.get('sku') != product.sku:
+            existing = InventoryProduct.query.filter(
+                InventoryProduct.sku == data.get('sku'),
+                InventoryProduct.id != product_id
+            ).first()
+            if existing:
+                return jsonify({'error': 'SKU already exists'}), 400
+
+        # Handle both camelCase (frontend) and underscore (backend) field names
+        if data.get('name'):
+            product.name = data.get('name')
+        if data.get('description') is not None:
+            product.description = data.get('description')
+        if data.get('category_id') or data.get('categoryId'):
+            product.category_id = data.get('category_id') or data.get('categoryId')
+        if data.get('sku'):
+            product.sku = data.get('sku')
+        if data.get('unit_of_measure') or data.get('unit'):
+            product.unit_of_measure = data.get('unit_of_measure') or data.get('unit')
+        if data.get('barcode') is not None:
+            product.barcode = data.get('barcode')
+        # is_service_item and is_retail_item are no longer user-editable
+        # They maintain their current values
+
+        product.updated_at = datetime.utcnow()
+        db.session.commit()
 
         return jsonify({
             'success': True,

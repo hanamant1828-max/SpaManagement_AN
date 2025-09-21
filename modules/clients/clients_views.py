@@ -3,16 +3,10 @@ Customer views and routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app import app
-from forms import CustomerForm, AdvancedCustomerForm
-from .clients_queries import (
-    get_all_customers, get_customer_by_id, search_customers, create_customer,
-    update_customer, delete_customer, get_customer_appointments,
-    get_customer_communications, get_customer_stats
-)
-# Import db and Customer model for face management endpoints
+from app import app, db
 from models import Customer
-from app import db
+from forms import CustomerForm, AdvancedCustomerForm
+from .clients_queries import *
 
 @app.route('/customers')
 @app.route('/clients')  # Keep for backward compatibility
@@ -48,67 +42,77 @@ def create_customer_route():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    form = AdvancedCustomerForm()
-    if form.validate_on_submit():
-        # Validate and clean data
-        email_value = form.email.data
-        if email_value and email_value.strip():
-            email_value = email_value.strip().lower()
-        else:
-            email_value = None
+    try:
+        # Get form data manually to handle CSRF issues
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        phone = request.form.get('phone', '').strip()
+        email = request.form.get('email', '').strip()
+        address = request.form.get('address', '').strip()
+        date_of_birth = request.form.get('date_of_birth')
+        gender = request.form.get('gender', '').strip()
+        preferences = request.form.get('preferences', '').strip()
+        allergies = request.form.get('allergies', '').strip()
+        notes = request.form.get('notes', '').strip()
 
-        phone_value = form.phone.data.strip() if form.phone.data else ""
+        # Basic validation
+        if not first_name:
+            flash('First name is required. Please enter the customer\'s first name.', 'danger')
+            return redirect(url_for('customers'))
+
+        if not last_name:
+            flash('Last name is required. Please enter the customer\'s last name.', 'danger')
+            return redirect(url_for('customers'))
+
+        if not phone:
+            flash('Phone number is required. Please enter the customer\'s phone number.', 'danger')
+            return redirect(url_for('customers'))
+
+        # Clean email
+        email_value = email.lower() if email else None
 
         # Server-side validation for duplicates
         from .clients_queries import get_customer_by_phone, get_customer_by_email
 
-        # Check for duplicate phone number (only if phone is provided)
-        if phone_value and get_customer_by_phone(phone_value):
+        # Check for duplicate phone number
+        if get_customer_by_phone(phone):
             flash('A customer with this phone number already exists. Please use a different phone number.', 'danger')
             return redirect(url_for('customers'))
 
-        # Check for duplicate email (only if email is provided and not empty)
+        # Check for duplicate email (only if email is provided)
         if email_value and get_customer_by_email(email_value):
             flash('A customer with this email address already exists. Please use a different email or update the existing customer profile.', 'danger')
             return redirect(url_for('customers'))
 
-        customer_data = {
-            'first_name': (form.first_name.data or '').strip().title(),
-            'last_name': (form.last_name.data or '').strip().title(),
-            'phone': phone_value,
-            'email': email_value,
-            'address': (form.address.data or '').strip(),
-            'date_of_birth': form.date_of_birth.data,
-            'gender': form.gender.data if form.gender.data and form.gender.data.strip() else None,
+        # Parse date of birth
+        dob = None
+        if date_of_birth:
+            try:
+                from datetime import datetime
+                dob = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                dob = None
 
-            'allergies': (form.allergies.data or '').strip(),
-            'notes': (form.notes.data or '').strip()
+        customer_data = {
+            'first_name': first_name.title(),
+            'last_name': last_name.title(),
+            'phone': phone,
+            'email': email_value,
+            'address': address,
+            'date_of_birth': dob,
+            'gender': gender if gender else None,
+            'preferences': preferences,
+            'allergies': allergies,
+            'notes': notes
         }
 
-        # Additional validation
-        if not customer_data['first_name']:
-            flash('First name is required. Please enter the customer\'s first name.', 'danger')
-            return redirect(url_for('customers'))
+        new_customer = create_customer(customer_data)
+        flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
 
-        if not customer_data['last_name']:
-            flash('Last name is required. Please enter the customer\'s last name.', 'danger')
-            return redirect(url_for('customers'))
-
-        # Add missing advanced form fields
-        customer_data['emergency_contact'] = (form.emergency_contact.data or '').strip()
-        customer_data['emergency_phone'] = (form.emergency_phone.data or '').strip()  
-        customer_data['medical_conditions'] = (form.medical_conditions.data or '').strip()
-
-        try:
-            new_customer = create_customer(customer_data)
-            flash(f'Customer "{new_customer.first_name} {new_customer.last_name}" has been created successfully!', 'success')
-        except Exception as e:
-            flash(f'Error creating customer: {str(e)}', 'danger')
-    else:
-        # Form validation failed - show specific field errors
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field.replace("_", " ").title()}: {error}', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating customer: {str(e)}', 'danger')
+        print(f"Customer creation error: {e}")
 
     return redirect(url_for('customers'))
 
@@ -231,18 +235,55 @@ def delete_client_route(id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    client = get_customer_by_id(id)
-    client_name = f"{client.first_name} {client.last_name}" if client else "Customer"
-
     try:
+        # Import Customer model directly to avoid import issues
+        from models import Customer
+        
+        client = get_customer_by_id(id)
+        client_name = f"{client.first_name} {client.last_name}" if client else "Customer"
+
         if delete_customer(id):
             flash(f'Customer "{client_name}" has been deleted successfully!', 'success')
         else:
             flash(f'Unable to delete customer "{client_name}". This customer may have associated appointments or records.', 'warning')
     except Exception as e:
-        flash(f'Error deleting customer "{client_name}": {str(e)}', 'danger')
+        flash(f'Error deleting customer: {str(e)}', 'danger')
 
     return redirect(url_for('customers'))
+
+@app.route('/delete_customer/<int:id>', methods=['DELETE'])
+@login_required
+def delete_customer_api(id):
+    """API endpoint to delete a customer with proper JSON responses"""
+    if not current_user.can_access('clients'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        # Import Customer model with late import to avoid circular dependencies
+        from models import Customer
+
+        # Check if customer exists
+        customer = Customer.query.get(id)
+        if not customer:
+            return jsonify({'success': False, 'message': 'Customer not found'}), 404
+
+        customer_name = f"{customer.first_name} {customer.last_name}"
+
+        # Soft delete - mark as inactive instead of hard delete to preserve data integrity
+        customer.is_active = False
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Customer "{customer_name}" deleted successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
 
 @app.route('/clients/<int:id>')
 @login_required
@@ -279,12 +320,27 @@ def api_get_customer(customer_id):
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
+        # Calculate visit history and status
+        total_visits = customer.total_visits or 0
+        total_spent = customer.total_spent or 0.0
+        last_visit = customer.last_visit.isoformat() if customer.last_visit else None
+
+        # Determine customer status
+        status = 'New Customer'
+        if not customer.is_active:
+            status = 'Inactive'
+        elif total_visits >= 10:
+            status = 'Loyal Customer'
+        elif total_visits > 0:
+            status = 'Regular Customer'
+
         return jsonify({
             'success': True,
             'customer': {
                 'id': customer.id,
                 'first_name': customer.first_name,
                 'last_name': customer.last_name,
+                'full_name': customer.full_name,
                 'phone': customer.phone,
                 'email': customer.email or '',
                 'address': customer.address or '',
@@ -294,7 +350,13 @@ def api_get_customer(customer_id):
                 'emergency_phone': customer.emergency_phone or '',
                 'medical_conditions': customer.medical_conditions or '',
                 'allergies': customer.allergies or '',
-                'notes': customer.notes or ''
+                'notes': customer.notes or '',
+                'total_visits': total_visits,
+                'total_spent': total_spent,
+                'last_visit': last_visit,
+                'status': status,
+                'is_active': customer.is_active,
+                'created_at': customer.created_at.isoformat() if customer.created_at else None
             }
         })
     except Exception as e:
@@ -303,41 +365,17 @@ def api_get_customer(customer_id):
 
 @app.route('/api/customers', methods=['GET'])
 @login_required
-def api_get_customers():
-    """API endpoint to get all customers for JavaScript"""
-    if not current_user.can_access('clients'):
-        return jsonify({'error': 'Access denied'}), 403
+def api_customers():
+    from models import Customer
 
-    try:
-        customers = get_all_customers()
-        customer_data = []
-        for customer in customers:
-            customer_data.append({
-                'id': customer.id,
-                'first_name': customer.first_name,
-                'last_name': customer.last_name,
-                'full_name': customer.full_name,
-                'email': customer.email,
-                'phone': customer.phone,
-                'gender': customer.gender,
-                'date_of_birth': customer.date_of_birth.isoformat() if customer.date_of_birth else None,
-                'address': customer.address,
-                'total_visits': customer.total_visits,
-                'total_spent': customer.total_spent,
-                'last_visit': customer.last_visit.isoformat() if customer.last_visit else None,
-                'is_active': customer.is_active,
-                'status': customer.status,
-                'loyalty_points': customer.loyalty_points,
-                'is_vip': customer.is_vip
-            })
+    customers = Customer.query.filter_by(is_active=True).all()
+    return jsonify([{
+        'id': c.id,
+        'name': c.full_name,
+        'phone': c.phone,
+        'email': c.email
+    } for c in customers])
 
-        return jsonify({
-            'success': True,
-            'customers': customer_data
-        })
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/save_face', methods=['POST'])
 @login_required

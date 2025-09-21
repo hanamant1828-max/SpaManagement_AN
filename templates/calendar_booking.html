@@ -11,7 +11,7 @@
                     <i class="fas fa-calendar-alt me-2"></i>Calendar Booking
                 </h1>
                 <div class="d-flex gap-2">
-                    <input type="date" class="form-control" id="dateSelector" value="{{ selected_date.strftime('%Y-%m-%d') }}" 
+                    <input type="date" class="form-control" id="dateSelector" value="{{ selected_date.strftime('%Y-%m-%d') }}"
                            onchange="window.location.href='{{ url_for('appointments_schedule') }}?date=' + this.value">
                     <a href="{{ url_for('bookings') }}" class="btn btn-outline-primary">
                         <i class="fas fa-calendar me-2"></i>Full Calendar
@@ -118,6 +118,28 @@
                                         <div class="d-flex flex-column align-items-center">
                                             <div class="fw-bold">{{ staff_member.first_name }} {{ staff_member.last_name }}</div>
                                             <small class="text-muted">{{ staff_member.role }}</small>
+                                            {% set schedule = staff_schedules.get(staff_member.id) %}
+                                            {% if schedule and schedule.has_shift %}
+                                                {% if schedule.is_absent %}
+                                                <div class="badge bg-dark mt-1">
+                                                    <i class="fas fa-user-times me-1"></i>Absent Today
+                                                </div>
+                                                {% else %}
+                                                <div class="badge bg-info mt-1">
+                                                    {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} – 
+                                                    {{ schedule.shift_end.strftime('%I:%M %p') if schedule.shift_end else 'N/A' }}
+                                                </div>
+                                                {% if schedule.break_start and schedule.break_end %}
+                                                <div class="badge bg-warning text-dark mt-1">
+                                                    Break: {{ schedule.break_start.strftime('%I:%M %p') }} – {{ schedule.break_end.strftime('%I:%M %p') }}
+                                                </div>
+                                                {% endif %}
+                                                {% endif %}
+                                            {% else %}
+                                            <div class="badge bg-secondary mt-1">
+                                                <i class="fas fa-ban me-1"></i>Not Scheduled
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </th>
                                     {% endfor %}
@@ -131,29 +153,71 @@
                                     </td>
                                     {% for staff_member in staff_members %}
                                     {% set slot_key = (staff_member.id, time_slot.start_time) %}
-                                    {% set availability = staff_availability.get(slot_key, {'status': 'available'}) %}
+                                    {% set availability = staff_availability.get(slot_key, {'status': 'unknown'}) %}
+
                                     <td class="text-center p-1">
-                                        {% if availability.status == 'booked' and availability.appointment %}
-                                        <div class="bg-danger text-white p-2 rounded appointment-slot" 
-                                             data-appointment-id="{{ availability.appointment.id }}">
-                                            <div class="fw-bold small">{{ availability.client_name }}</div>
-                                            <div class="small">{{ availability.service_name }}</div>
-                                            <div class="small">
-                                                {% if availability.appointment.amount %}
-                                                    ${{ "%.2f"|format(availability.appointment.amount) }}
-                                                {% endif %}
-                                            </div>
+                                        {% if availability.status == 'booked' %}
+                                        <div class="{{ availability.css_class }} p-2 rounded small appointment-slot"
+                                             data-appointment-id="{{ availability.appointment.id if availability.appointment else '' }}"
+                                             style="cursor: pointer; min-height: 60px; display: flex; flex-direction: column; justify-content: center;"
+                                             onclick="showAppointmentDetails({{ availability.appointment.id if availability.appointment else 'null' }})">
+                                            <div class="fw-bold">{{ availability.client_name }}</div>
+                                            <div>{{ availability.service_name }}</div>
                                         </div>
-                                        {% else %}
-                                        <button type="button" class="btn btn-success btn-sm w-100 book-slot-btn" 
+                                        {% elif availability.status == 'break' %}
+                                        <div class="{{ availability.css_class }} p-2 rounded small" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-coffee"></i></div>
+                                            <div class="small fw-bold">Break Time</div>
+                                            {% if availability.break_times %}
+                                            <div class="small">{{ availability.break_times }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% elif availability.status == 'absent' %}
+                                        <div class="{{ availability.css_class }} p-2 rounded small" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-user-times"></i></div>
+                                            <div class="small fw-bold">Absent</div>
+                                        </div>
+                                        {% elif availability.status == 'not_available' %}
+                                        <div class="{{ availability.css_class }} p-2 rounded small" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-ban"></i></div>
+                                            <div class="small fw-bold">Not Available</div>
+                                            <div class="small">No Shift</div>
+                                        </div>
+                                        {% elif availability.status == 'off_duty' %}
+                                        <div class="{{ availability.css_class }} p-2 rounded small border" 
+                                             title="{{ availability.reason }}"
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-clock"></i></div>
+                                            <div class="small fw-bold">Off Duty</div>
+                                            {% if availability.shift_times %}
+                                            <div class="small">Shift: {{ availability.shift_times }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% elif availability.status == 'available' %}
+                                        <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn"
                                                 data-staff-id="{{ staff_member.id }}"
                                                 data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
                                                 data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
                                                 data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
-                                                data-bs-toggle="modal" data-bs-target="#bookingModal">
-                                            <i class="fas fa-plus"></i>
-                                            <div class="small">Available</div>
+                                                data-display-time="{{ time_slot.start_time.strftime('%I:%M %p') }}"
+                                                data-bs-toggle="modal" data-bs-target="#quickBookModal"
+                                                title="Available during shift: {{ availability.shift_times if availability.shift_times else 'Full day' }}"
+                                                style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-plus"></i></div>
+                                            <div class="small">Book</div>
                                         </button>
+                                        {% else %}
+                                        <div class="bg-light text-muted p-2 rounded small border" 
+                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
+                                            <div><i class="fas fa-question"></i></div>
+                                            <div class="small">Unknown</div>
+                                        </div>
                                         {% endif %}
                                     </td>
                                     {% endfor %}
@@ -204,7 +268,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge 
+                                        <span class="badge
                                             {% if appointment.status == 'completed' %}bg-success
                                             {% elif appointment.status == 'scheduled' %}bg-primary
                                             {% elif appointment.status == 'cancelled' %}bg-danger
@@ -290,6 +354,56 @@
     </div>
 </div>
 
+<!-- Quick Book Modal -->
+<div class="modal fade" id="quickBookModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Book Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickBookingForm">
+                    <div class="mb-3">
+                        <label for="quickClientSelect" class="form-label">Client</label>
+                        <select class="form-select" id="quickClientSelect" required>
+                            <option value="">Select Client</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickServiceSelect" class="form-label">Service</label>
+                        <select class="form-select" id="quickServiceSelect" required>
+                            <option value="">Select Service</option>
+                            {% for service in services %}
+                            <option value="{{ service.id }}" data-price="{{ service.price }}">
+                                {{ service.name }} - ${{ service.price }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" id="quickSelectedStaffId">
+                    <input type="hidden" id="quickSelectedDate">
+                    <input type="hidden" id="quickSelectedTime">
+                    <input type="hidden" id="quickSelectedStaffName">
+                    <input type="hidden" id="quickSelectedDisplayTime">
+                </form>
+                <div id="quickBookingSummary" class="mt-3 p-3 bg-light rounded d-none">
+                    <h6>Booking Summary:</h6>
+                    <div id="quickSummaryDetails"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitQuickBooking()">Book Appointment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script>
 // Handle booking button clicks
 document.addEventListener('DOMContentLoaded', function() {
@@ -299,35 +413,71 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('selectedStaffId').value = this.dataset.staffId;
             document.getElementById('selectedDate').value = this.dataset.date;
             document.getElementById('selectedTime').value = this.dataset.time;
-            
+
             // Update modal title
             const modalTitle = document.querySelector('#bookingModal .modal-title');
-            modalTitle.textContent = `Book Appointment - ${this.dataset.staffName} at ${this.dataset.time}`;
+            modalTitle.textContent = `Book Appointment - ${this.dataset.staffName} at ${this.dataset.displayTime}`;
         });
     });
+
+    // Handle quick book button clicks
+    const quickBookButtons = document.querySelectorAll('.quick-book-btn');
+    quickBookButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('quickSelectedStaffId').value = this.dataset.staffId;
+            document.getElementById('quickSelectedDate').value = this.dataset.date;
+            document.getElementById('quickSelectedTime').value = this.dataset.time;
+            document.getElementById('quickSelectedStaffName').value = this.dataset.staffName;
+            document.getElementById('quickSelectedDisplayTime').value = this.dataset.displayTime;
+
+            // Update modal title
+            const modalTitle = document.querySelector('#quickBookModal .modal-title');
+            modalTitle.textContent = `Quick Book Appointment - ${this.dataset.staffName} at ${this.dataset.displayTime}`;
+        });
+    });
+
 
     // Show booking summary when service is selected
     document.getElementById('serviceSelect').addEventListener('change', function() {
         const serviceSelect = this;
         const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-        
+        const summary = document.getElementById('bookingSummary');
+        const summaryDetails = document.getElementById('summaryDetails');
+
         if (selectedOption.value) {
-            const summary = document.getElementById('bookingSummary');
-            const summaryDetails = document.getElementById('summaryDetails');
-            
             summaryDetails.innerHTML = `
                 <div><strong>Service:</strong> ${selectedOption.textContent}</div>
-                <div><strong>Staff:</strong> ${document.getElementById('selectedStaffId').dataset.staffName}</div>
+                <div><strong>Staff:</strong> ${document.getElementById('selectedStaffId').value ? document.querySelector(`[data-staff-id='${document.getElementById('selectedStaffId').value}']`).dataset.staffName : 'N/A'}</div>
                 <div><strong>Date:</strong> ${document.getElementById('selectedDate').value}</div>
                 <div><strong>Time:</strong> ${document.getElementById('selectedTime').value}</div>
             `;
-            
             summary.classList.remove('d-none');
         } else {
-            document.getElementById('bookingSummary').classList.add('d-none');
+            summary.classList.add('d-none');
+        }
+    });
+
+    // Show quick booking summary when service is selected
+    document.getElementById('quickServiceSelect').addEventListener('change', function() {
+        const serviceSelect = this;
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        const summary = document.getElementById('quickBookingSummary');
+        const summaryDetails = document.getElementById('quickSummaryDetails');
+
+        if (selectedOption.value) {
+            summaryDetails.innerHTML = `
+                <div><strong>Service:</strong> ${selectedOption.textContent}</div>
+                <div><strong>Staff:</strong> ${document.getElementById('quickSelectedStaffName').value}</div>
+                <div><strong>Date:</strong> ${document.getElementById('quickSelectedDate').value}</div>
+                <div><strong>Time:</strong> ${document.getElementById('quickSelectedTime').value}</div>
+            `;
+            summary.classList.remove('d-none');
+        } else {
+            summary.classList.add('d-none');
         }
     });
 });
+
 
 function submitBooking() {
     const formData = {
@@ -365,6 +515,49 @@ function submitBooking() {
     .catch(error => {
         alert('Error booking appointment: ' + error);
     });
+}
+
+function submitQuickBooking() {
+    const formData = {
+        client_id: document.getElementById('quickClientSelect').value,
+        service_id: document.getElementById('quickServiceSelect').value,
+        staff_id: document.getElementById('quickSelectedStaffId').value,
+        appointment_date: document.getElementById('quickSelectedDate').value,
+        appointment_time: document.getElementById('quickSelectedTime').value,
+        notes: document.getElementById('appointmentNotes').value // Assuming notes field is common or can be reused
+    };
+
+    // Validate required fields
+    if (!formData.client_id || !formData.service_id || !formData.staff_id) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    // Submit the booking
+    fetch('/appointments/book', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Appointment booked successfully!');
+            location.reload(); // Refresh to show updated schedule
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error booking appointment: ' + error);
+    });
+}
+
+function showAppointmentDetails(appointmentId) {
+    if (!appointmentId) return;
+    window.location.href = `/appointments/${appointmentId}`;
 }
 
 function markCompleted(appointmentId) {

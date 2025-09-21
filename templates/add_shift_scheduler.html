@@ -1,0 +1,253 @@
+
+{% extends "base.html" %}
+
+{% block title %}Add Shift Schedule - Management Suite{% endblock %}
+
+{% block extra_head %}
+<link href="{{ url_for('static', filename='css/shift_scheduler.css') }}" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="shift-scheduler-container">
+    <div class="container-fluid">
+        <!-- Enhanced Page Header -->
+        <div class="page-header">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <h1 class="mb-2">
+                            {% if action == 'view' %}
+                                <i class="fas fa-eye me-3"></i>View Shift Schedule
+                            {% elif action == 'edit' %}
+                                <i class="fas fa-edit me-3"></i>Edit Shift Schedule
+                            {% else %}
+                                <i class="fas fa-calendar-plus me-3"></i>Add Shift Schedule
+                            {% endif %}
+                        </h1>
+                        <p class="mb-0">
+                            {% if action == 'view' %}
+                                Read-only display of the schedule details
+                            {% elif action == 'edit' %}
+                                Modify existing shift schedule with day-by-day configuration
+                            {% else %}
+                                Create detailed shift schedules with day-by-day configuration
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                        <a href="{{ url_for('shift_scheduler.shift_scheduler') }}" class="btn btn-outline-light btn-lg hover-lift">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Shift Management
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1: Basic Information -->
+        <div class="card mb-4 fade-in">
+            <div class="card-header bg-primary">
+                <h5 class="mb-0 d-flex align-items-center text-white">
+                    <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    Step 1: Basic Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="basicInfoForm">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label for="staffSelect" class="form-label fw-bold">
+                                <i class="fas fa-user me-1"></i>Staff Member
+                            </label>
+                            <select class="form-select" id="staffSelect" name="staff_member" required>
+                                <option value="">Choose staff member...</option>
+                                {% for staff in staff_members %}
+                                    <option value="{{ staff.id }}" data-name="{{ staff.full_name }}">
+                                        {{ staff.full_name }} - {{ staff.role }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="scheduleName" class="form-label fw-bold">
+                                <i class="fas fa-tag me-1"></i>Schedule Name
+                            </label>
+                            <input type="text" class="form-control" id="scheduleName" name="schedule_name" 
+                                   placeholder="e.g. Morning Shift, Part-time Schedule" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="fromDate" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>From Date
+                            </label>
+                            <input type="date" class="form-control" id="fromDate" name="from_date" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="toDate" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>To Date
+                            </label>
+                            <input type="date" class="form-control" id="toDate" name="to_date" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="priority" class="form-label fw-bold">
+                                <i class="fas fa-flag me-1"></i>Priority
+                            </label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="1">Normal</option>
+                                <option value="2">High</option>
+                                <option value="3">Critical</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="description" class="form-label fw-bold">
+                                <i class="fas fa-sticky-note me-1"></i>Description
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Optional notes about this shift schedule..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-primary btn-lg" id="generateDaysBtn">
+                            <i class="fas fa-cogs me-2"></i>👉 Generate Days
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Step 2: Day-by-Day Configuration (Hidden by default) -->
+        <div class="card mb-4 fade-in" id="dayConfigSection" style="display: none;">
+            <div class="card-header bg-success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 d-flex align-items-center text-white">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                            <i class="fas fa-calendar-days"></i>
+                        </div>
+                        Step 2: Day-by-Day Configuration
+                        <span class="badge bg-white text-success ms-3" id="dayCount">0 days</span>
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-light btn-sm" id="applyToAllBtn">
+                            <i class="fas fa-magic me-1"></i>Apply to All Days
+                        </button>
+                        <button type="button" class="btn btn-outline-light btn-sm" id="markWeekendsOffBtn">
+                            <i class="fas fa-calendar-times me-1"></i>Mark Weekends Off
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- Bulk Configuration Panel -->
+                <div class="bg-light border-bottom p-3" id="bulkConfigPanel">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Default Start Time</label>
+                            <input type="time" class="form-control" id="defaultStartTime" value="09:00">
+                            <small class="text-muted" id="defaultStartTimeDisplay">09:00 AM</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Default End Time</label>
+                            <input type="time" class="form-control" id="defaultEndTime" value="17:00">
+                            <small class="text-muted" id="defaultEndTimeDisplay">05:00 PM</small>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Break Start</label>
+                            <input type="time" class="form-control" id="defaultBreakStart" value="13:00">
+                            <small class="text-muted" id="defaultBreakStartDisplay">01:00 PM</small>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Break End</label>
+                            <input type="time" class="form-control" id="defaultBreakEnd" value="14:00">
+                            <small class="text-muted" id="defaultBreakEndDisplay">02:00 PM</small>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Break (min)</label>
+                            <input type="number" class="form-control" id="defaultBreak" value="60" min="0" max="480" readonly>
+                        </div></div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-info w-100" id="applyDefaultsBtn">
+                                <i class="fas fa-download me-2"></i>Apply Defaults
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Days Configuration Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="daysConfigTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="5%" class="text-center">#</th>
+                                <th width="15%">Date</th>
+                                <th width="15%">Day of Week</th>
+                                <th width="15%">Start Time</th>
+                                <th width="15%">End Time</th>
+                                <th width="8%">Break Start</th>
+                                <th width="8%">Break End</th>
+                                <th width="6%">Break (min)</th>
+                                <th width="8%" class="text-center">Working</th>
+                                <th width="10%">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="daysConfigBody">
+                            <!-- Dynamic rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Review and Save -->
+        <div class="card mb-4 fade-in" id="reviewSection" style="display: none;">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0 d-flex align-items-center text-dark">
+                    <div class="bg-dark bg-opacity-20 rounded-circle p-2 me-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    Step 3: Review and Save
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="reviewSummary">
+                            <!-- Summary will be populated here -->
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button type="button" class="btn btn-success btn-lg" id="saveScheduleBtn">
+                            <i class="fas fa-save me-2"></i>Save Schedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h6 class="mb-0">Processing your request...</h6>
+                <small class="text-muted" id="loadingMessage">Please wait</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/add_shift_scheduler.js') }}"></script>
+{% endblock %}

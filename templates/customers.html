@@ -518,7 +518,7 @@
                                 </thead>
                                 <tbody>
                                     {% for customer in customers %}
-                                    <tr>
+                                    <tr data-customer-id="{{ customer.id }}">
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="customer-avatar">
@@ -577,24 +577,24 @@
                                                 <button class="btn btn-action btn-outline-primary" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#viewCustomerModal" 
-                                                        onclick="viewCustomer({{ customer.id }})"
+                                                        onclick="viewCustomer({{ customer.id if customer.id else 'null' }})"
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-success" 
-                                                        onclick="bookAppointment({{ customer.id }})"
+                                                        onclick="bookAppointment({{ customer.id if customer.id else 'null' }})"
                                                         title="Book Appointment">
                                                     <i class="fas fa-calendar-plus"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-warning" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#editCustomerModal" 
-                                                        onclick="editCustomer({{ customer.id }})"
+                                                        onclick="editCustomer({{ customer.id if customer.id else 'null' }})"
                                                         title="Edit Customer">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button class="btn btn-action btn-outline-danger" 
-                                                        onclick="deleteCustomer({{ customer.id }}, '{{ customer.first_name }} {{ customer.last_name }}')"
+                                                        onclick="deleteCustomer({{ customer.id if customer.id else 'null' }}, '{{ (customer.first_name ~ ' ' ~ customer.last_name)|replace("'", "\\'") }}')"
                                                         title="Delete Customer">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -755,7 +755,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('create_customer_route') }}">
+            <form method="POST" action="{{ url_for('create_customer_route') }}" novalidate>
                 <div class="modal-body">
                     {{ form.hidden_tag() }}
 
@@ -860,7 +860,6 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="editCustomerForm" method="POST" action="">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">
@@ -965,6 +964,26 @@
                 <button type="button" class="btn btn-primary btn-lg" onclick="bookAppointmentFromModal()">
                     <i class="fas fa-calendar-plus me-2"></i>Book Appointment
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Profile Modal -->
+<div class="modal fade" id="customerProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Customer Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="customerProfileContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -1128,7 +1147,7 @@
             showFaceNotification('Photo captured! Click "Save Face Data" to store it.', 'success');
         }
 
-        async function saveFaceData() {
+        function saveFaceData() {
             console.log('Saving face data...');
 
             if (!currentCustomerId || !capturedImageData) {
@@ -1242,20 +1261,69 @@
             // Initialize camera buttons
             initializeCameraButtons();
 
-        // Initialize customer management and face capture
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Customers page loaded, initializing face capture...');
-
-            // Wait for all elements to be rendered
-            setTimeout(() => {
-                setupFaceCapture();
-                initializeCameraButtons();
-                populateCustomerSelect();
-
-                // Verify all required elements exist
-                verifyFaceCaptureElements();
-            }, 1000);
+        // Global error handler for JavaScript errors
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error caught:', e.error);
+            if (e.error && e.error.message && e.error.message.includes('missing ) after argument list')) {
+                console.error('Syntax error in customer action buttons detected');
+                showFaceNotification('JavaScript error detected. Please refresh the page.', 'danger');
+            }
         });
+
+        // Validate customer IDs before any operations
+        function validateCustomerId(customerId, operation) {
+            if (!customerId || customerId === 'null' || customerId === null || customerId === undefined || isNaN(customerId)) {
+                console.error(`Invalid customer ID for ${operation}:`, customerId);
+                showFaceNotification(`Error: Invalid customer data. Please refresh the page.`, 'danger');
+                return false;
+            }
+            return true;
+        }
+
+        // Initialize customer management separately from face capture
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Customers page loaded, validating customer action buttons...');
+
+            // Validate all customer action buttons immediately
+            validateCustomerActionButtons();
+        });
+
+        function validateCustomerActionButtons() {
+            console.log('Validating customer action buttons...');
+
+            // Find all customer action buttons
+            const actionButtons = document.querySelectorAll('[onclick*="viewCustomer"], [onclick*="editCustomer"], [onclick*="deleteCustomer"], [onclick*="bookAppointment"]');
+
+            let invalidButtonCount = 0;
+
+            actionButtons.forEach((button, index) => {
+                const onclick = button.getAttribute('onclick');
+                console.log(`Button ${index}: ${onclick}`);
+
+                if (onclick && (onclick.includes('undefined') || onclick.includes('null') || onclick.includes('Customer(null'))) {
+                    console.error(`Invalid onclick found: ${onclick}`);
+                    button.disabled = true;
+                    button.title = 'Error: Invalid customer data - please refresh the page';
+                    button.style.opacity = '0.5';
+                    invalidButtonCount++;
+                } else {
+                    // Try to extract customer ID from onclick
+                    const match = onclick.match(/\((\d+)/);
+                    if (match && match[1]) {
+                        console.log(`Valid customer ID found: ${match[1]}`);
+                    } else {
+                        console.warn(`Could not extract customer ID from: ${onclick}`);
+                    }
+                }
+            });
+
+            if (invalidButtonCount > 0) {
+                console.warn(`Found ${invalidButtonCount} invalid customer buttons`);
+                showFaceNotification(`Found ${invalidButtonCount} invalid customer buttons. Please refresh the page.`, 'warning');
+            } else {
+                console.log('All customer action buttons are valid');
+            }
+        }
 
         function verifyFaceCaptureElements() {
             const requiredElements = [
@@ -1304,7 +1372,7 @@
             }
         }
 
-        // Load face data when Face Recognition tab is activated
+        // Load face data only when Face Recognition tab is activated
         const faceTab = document.getElementById('face-capture-tab');
         if (faceTab) {
             faceTab.addEventListener('shown.bs.tab', function() {
@@ -1312,9 +1380,6 @@
                 loadFaceDataTable();
             });
         }
-
-        // Initialize face data table immediately (no infinite loader)
-        loadFaceDataTable();
 
         // Load customers function
         function loadCustomers() {
@@ -1465,6 +1530,417 @@
         }
     </script>
     <script>
+        // Customer management functions
+        let currentEditCustomerId = null;
+
+        // Function to ensure customer data is visible immediately
+        function ensureCustomerDataVisibility() {
+            console.log('Ensuring customer data visibility...');
+            
+            // Remove any loading overlays or spinners that might be hiding data
+            const loadingElements = document.querySelectorAll('.spinner-border, .text-center[style*="loading"]');
+            loadingElements.forEach(element => {
+                if (element.textContent.includes('Loading') || element.classList.contains('spinner-border')) {
+                    element.style.display = 'none';
+                }
+            });
+            
+            // Ensure customer table is visible
+            const customerTable = document.querySelector('.spa-table, table');
+            if (customerTable) {
+                customerTable.style.display = '';
+                const tableContainer = customerTable.closest('.card-body, .table-responsive, .professional-card');
+                if (tableContainer) {
+                    tableContainer.style.display = '';
+                }
+            }
+            
+            // Ensure stats are visible
+            const statsOverview = document.querySelector('.stats-overview');
+            if (statsOverview) {
+                statsOverview.style.display = 'block';
+            }
+            
+            console.log('Customer data visibility ensured');
+        }
+
+        // Ensure data loads immediately on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Customers page DOM loaded - ensuring data visibility');
+            
+            // Force immediate data visibility
+            setTimeout(function() {
+                ensureCustomerDataVisibility();
+            }, 100);
+            
+            // Force show customer data immediately
+            const customerTable = document.querySelector('.spa-table tbody');
+            const statsOverview = document.querySelector('.stats-overview');
+            const emptyState = document.querySelector('.empty-state');
+            
+            // Ensure customer table is visible if it has data
+            if (customerTable && customerTable.children.length > 0) {
+                customerTable.style.display = '';
+                customerTable.parentElement.style.display = '';
+                
+                // Hide any loading states
+                const loadingStates = document.querySelectorAll('.text-center[style*="loading"], .spinner-border');
+                loadingStates.forEach(loader => {
+                    if (loader.textContent.includes('Loading') || loader.classList.contains('spinner-border')) {
+                        loader.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Show stats if available
+            if (statsOverview && !emptyState) {
+                statsOverview.style.display = 'block';
+            }
+            
+            // Initialize face capture only when specifically needed
+            const faceTab = document.getElementById('face-capture-tab');
+            if (faceTab) {
+                faceTab.addEventListener('shown.bs.tab', function() {
+                    console.log('Face capture tab activated - initializing face features');
+                    setTimeout(initializeFaceCaptureFeatures, 100);
+                });
+            }
+            
+            console.log('Customer data visibility ensured on page load');
+        });
+
+        // Separate face capture initialization to prevent interference
+        function initializeFaceCaptureFeatures() {
+            setupFaceCapture();
+            initializeCameraButtons();
+            populateCustomerSelect();
+            verifyFaceCaptureElements();
+        }
+
+        // Open customer profile modal
+        function openCustomerProfile(customerId) {
+            const modal = new bootstrap.Modal(document.getElementById('customerProfileModal'));
+            const contentDiv = document.getElementById('customerProfileContent');
+
+            // Show loading spinner
+            contentDiv.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading customer details...</p>
+                </div>
+            `;
+
+            modal.show();
+
+            // Fetch customer data
+            fetch(`/api/customers/${customerId}`)
+                .then(response => {
+                    if (response.status === 404) {
+                        throw new Error('not_found');
+                    } else if (!response.ok) {
+                        throw new Error('server_error');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        renderCustomerProfile(data.customer);
+                    } else {
+                        throw new Error(data.error || 'unknown_error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading customer:', error);
+                    showCustomerError(error.message, customerId);
+                });
+        }
+
+        // Render customer profile in modal
+        function renderCustomerProfile(customer) {
+            const contentDiv = document.getElementById('customerProfileContent');
+
+            // Generate avatar initials
+            const initials = `${customer.first_name.charAt(0)}${customer.last_name.charAt(0)}`.toUpperCase();
+
+            // Format dates
+            const formatDate = (dateString) => {
+                if (!dateString) return 'Not provided';
+                return new Date(dateString).toLocaleDateString();
+            };
+
+            // Status badges
+            const statusBadges = [];
+            if (customer.is_vip) statusBadges.push('<span class="badge bg-warning">VIP</span>');
+            if (customer.is_active) statusBadges.push('<span class="badge bg-success">Active</span>');
+            else statusBadges.push('<span class="badge bg-secondary">Inactive</span>');
+
+            contentDiv.innerHTML = `
+                <div class="card border-0">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <div class="avatar-circle bg-primary text-white mb-3" style="width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto;">
+                                    ${initials}
+                                </div>
+                                <div class="mb-2">
+                                    ${statusBadges.join(' ')}
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <h4 class="mb-1">${customer.full_name}</h4>
+                                <p class="text-muted mb-3">${customer.status || 'Customer'}</p>
+
+                                <div class="row mb-3">
+                                    <div class="col-sm-6">
+                                        <strong>Phone:</strong><br>
+                                        <a href="tel:${customer.phone}" class="text-decoration-none">${customer.phone || 'Not provided'}</a>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <strong>Email:</strong><br>
+                                        <a href="mailto:${customer.email}" class="text-decoration-none">${customer.email || 'Not provided'}</a>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-sm-6">
+                                        <strong>Date of Birth:</strong><br>
+                                        ${formatDate(customer.date_of_birth)}${customer.age ? ` (${customer.age} years)` : ''}
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <strong>Gender:</strong><br>
+                                        ${customer.gender || 'Not specified'}
+                                    </div>
+                                </div>
+
+                                ${customer.address ? `
+                                    <div class="mb-3">
+                                        <strong>Address:</strong><br>
+                                        ${customer.address.replace(/\n/g, '<br>')}
+                                    </div>
+                                ` : ''}
+
+                                <div class="row mb-3">
+                                    <div class="col-sm-4">
+                                        <strong>Total Visits:</strong><br>
+                                        <span class="badge bg-info">${customer.total_visits}</span>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <strong>Lifetime Value:</strong><br>
+                                        <span class="badge bg-success">₹${customer.total_spent.toFixed(2)}</span>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <strong>Last Visit:</strong><br>
+                                        ${formatDate(customer.last_visit)}
+                                    </div>
+                                </div>
+
+                                ${customer.preferences ? `
+                                    <div class="mb-3">
+                                        <strong>Preferences:</strong><br>
+                                        <span class="text-muted">${customer.preferences}</span>
+                                    </div>
+                                ` : ''}
+
+                                ${customer.allergies ? `
+                                    <div class="mb-3">
+                                        <strong>Allergies:</strong><br>
+                                        <span class="text-danger">${customer.allergies}</span>
+                                    </div>
+                                ` : ''}
+
+                                ${customer.notes ? `
+                                    <div class="mb-3">
+                                        <strong>Notes:</strong><br>
+                                        <span class="text-muted">${customer.notes}</span>
+                                    </div>
+                                ` : ''}
+
+                                <div class="mt-4">
+                                    <a href="/appointments/new?client_id=${customer.id}" class="btn btn-primary">
+                                        <i class="fas fa-calendar-plus me-2"></i>Book Appointment
+                                    </a>
+                                    <button class="btn btn-outline-primary ms-2" onclick="editCustomer(${customer.id})">
+                                        <i class="fas fa-edit me-2"></i>Edit Customer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show error in customer profile modal
+        function showCustomerError(errorType, customerId) {
+            const contentDiv = document.getElementById('customerProfileContent');
+
+            let errorMessage = 'An unexpected error occurred.';
+            let errorIcon = 'fas fa-exclamation-triangle';
+
+            if (errorType === 'not_found') {
+                errorMessage = "We couldn't find this customer. It may have been deleted.";
+                errorIcon = 'fas fa-user-slash';
+            } else if (errorType === 'server_error' || errorType === 'unknown_error') {
+                errorMessage = "We couldn't load customer details. Please try again.";
+                errorIcon = 'fas fa-server';
+            }
+
+            contentDiv.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="${errorIcon} text-danger" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-danger">Error Loading Customer</h5>
+                    <p class="text-muted">${errorMessage}</p>
+                    <button class="btn btn-primary" onclick="openCustomerProfile(${customerId})">
+                        <i class="fas fa-retry me-2"></i>Try Again
+                    </button>
+                </div>
+            `;
+        }
+
+        function editCustomer(customerId) {
+            console.log('Edit customer called with ID:', customerId);
+
+            // Validate customer ID before proceeding
+            if (!validateCustomerId(customerId, 'editCustomer')) {
+                return;
+            }
+
+            loadCustomerDataForEdit(customerId);
+        }
+
+        function loadCustomerDataForEdit(customerId) {
+            console.log('Loading customer data for editing:', customerId);
+
+            // Double-check customer ID validation
+            if (!validateCustomerId(customerId, 'loadCustomerDataForEdit')) {
+                return;
+            }
+
+            currentEditCustomerId = customerId;
+
+            // Make AJAX call to get customer data
+            fetch(`/api/customers/${customerId}`)
+                .then(response => {
+                    console.log('API response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Customer data received:', data);
+
+                    if (data.success && data.customer) {
+                        populateEditForm(data.customer);
+
+                        // Show the modal
+                        const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+                        modal.show();
+                    } else {
+                        alert('Error loading customer data: ' + (data.error || 'Customer not found'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching customer:', error);
+                    alert('Failed to load customer data. Please try again.');
+                });
+        }
+
+        function populateEditForm(customer) {
+            console.log('Populating edit form with customer data:', customer);
+
+            // Update form action
+            const form = document.getElementById('editCustomerForm');
+            if (form) {
+                form.action = `/clients/update/${customer.id}`;
+            }
+
+            // Populate form fields
+            const fields = {
+                'edit_first_name': customer.first_name,
+                'edit_last_name': customer.last_name,
+                'edit_phone': customer.phone,
+                'edit_email': customer.email,
+                'edit_address': customer.address,
+                'edit_date_of_birth': customer.date_of_birth,
+                'edit_gender': customer.gender,
+                'edit_preferences': customer.preferences,
+                'edit_allergies': customer.allergies,
+                'edit_notes': customer.notes
+            };
+
+            for (const [fieldId, value] of Object.entries(fields)) {
+                const field = document.getElementById(fieldId);
+                if (field && value !== null && value !== undefined) {
+                    field.value = value;
+                    console.log(`Set ${fieldId} to:`, value);
+                }
+            }
+
+            console.log('Edit form populated successfully');
+        }
+
+        function deleteCustomer(customerId, customerName) {
+            // Validate customer ID
+            if (!validateCustomerId(customerId, 'deleteCustomer')) {
+                return;
+            }
+
+            // Escape customer name for safe display
+            const safeName = customerName ? customerName.replace(/'/g, "\\'") : 'this customer';
+
+            if (confirm(`Are you sure you want to delete customer "${safeName}"?\n\nThis action will deactivate the customer but preserve their data.`)) {
+                // Show loading notification
+                showNotification('Deleting customer...', 'info');
+
+                // Use the POST route that actually works
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/clients/delete/${customerId}`;
+                form.style.display = 'none';
+
+                // Add CSRF token if available
+                const csrfToken = document.querySelector('meta[name=csrf-token]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = csrfToken.getAttribute('content');
+                    form.appendChild(csrfInput);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function bookAppointment(customerId) {
+            // Validate customer ID
+            if (!validateCustomerId(customerId, 'bookAppointment')) {
+                return;
+            }
+
+            // Redirect to booking page with customer ID
+            window.location.href = `/bookings?customer_id=${customerId}`;
+        }
+
+        function bookAppointmentFromModal() {
+            if (currentEditCustomerId) {
+                bookAppointment(currentEditCustomerId);
+            } else {
+                // Get customer ID from the modal if available
+                const customerDetails = document.getElementById('customerDetails');
+                if (customerDetails) {
+                    // Try to extract customer ID from the modal content
+                    const customerIdMatch = customerDetails.innerHTML.match(/data-customer-id="(\d+)"/);
+                    if (customerIdMatch) {
+                        bookAppointment(parseInt(customerIdMatch[1]));
+                        return;
+                    }
+                }
+                alert('No customer selected');
+            }
+        }
+
         function setupFaceCapture() {
             console.log('Setting up face capture elements...');
             const faceClientSelect = document.getElementById('faceClientSelect');

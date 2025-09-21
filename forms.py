@@ -8,7 +8,7 @@ from wtforms.widgets import TextArea
 
 class LoginForm(FlaskForm):
     """User login form"""
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
+    identifier = StringField('Username or Email', validators=[DataRequired(), Length(min=3, max=120)])
     password = PasswordField('Password', validators=[DataRequired()])
     remember = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
@@ -16,7 +16,7 @@ class LoginForm(FlaskForm):
 class UserForm(FlaskForm):
     """User registration/edit form"""
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[Optional(), Email()])
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
@@ -90,9 +90,9 @@ class ServiceForm(FlaskForm):
 
 class AppointmentForm(FlaskForm):
     """Appointment form"""
-    customer_id = SelectField('Customer', coerce=int, validators=[DataRequired()])
-    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
-    staff_id = SelectField('Staff Member', coerce=int, validators=[Optional()])
+    customer_id = SelectField('Customer', coerce=lambda x: int(x) if x and x != '0' else None, validators=[DataRequired()])
+    service_id = SelectField('Service', coerce=lambda x: int(x) if x and x != '0' else None, validators=[DataRequired()])
+    staff_id = SelectField('Staff Member', coerce=lambda x: int(x) if x and x != '0' else None, validators=[Optional()])
     appointment_date = DateTimeField('Appointment Date', validators=[DataRequired()])
     status = SelectField('Status', choices=[
         ('pending', 'Pending'),
@@ -223,7 +223,7 @@ class AdvancedCustomerForm(FlaskForm):
 class AdvancedUserForm(FlaskForm):
     """Advanced user form with additional fields"""
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[Optional(), Email()])
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
@@ -293,7 +293,7 @@ class SystemSettingForm(FlaskForm):
 class ComprehensiveStaffForm(FlaskForm):
     """Comprehensive staff form with all fields"""
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[Optional(), Email()])
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     phone = StringField('Phone', validators=[Optional(), Length(max=20)])
@@ -316,24 +316,8 @@ class ComprehensiveStaffForm(FlaskForm):
     department_id = SelectField('Department', coerce=int, validators=[Optional()])
     assigned_services = SelectMultipleField('Assigned Services', coerce=int, validators=[Optional()])
     
-    # Basic Schedule (Legacy Support)
-    shift_start_time = TimeField('Shift Start Time', validators=[Optional()])
-    shift_end_time = TimeField('Shift End Time', validators=[Optional()])
-    break_time = StringField('Break Time', validators=[Optional(), Length(max=50)])
-    weekly_off_days = StringField('Weekly Off Days', validators=[Optional(), Length(max=20)])
     
-    # Working Days Checkboxes (Legacy Support)
-    monday = BooleanField('Monday', default=True)
-    tuesday = BooleanField('Tuesday', default=True)
-    wednesday = BooleanField('Wednesday', default=True)
-    thursday = BooleanField('Thursday', default=True)
-    friday = BooleanField('Friday', default=True)
-    saturday = BooleanField('Saturday', default=False)
-    sunday = BooleanField('Sunday', default=False)
-    
-    # Performance & Commission
-    commission_percentage = FloatField('Commission (%)', validators=[Optional(), NumberRange(min=0, max=100)])
-    hourly_rate = FloatField('Hourly Rate', validators=[Optional(), NumberRange(min=0)])
+    # Performance & Commission section removed
     
     # Facial Recognition
     enable_face_checkin = BooleanField('Enable Face Check-in', default=True)

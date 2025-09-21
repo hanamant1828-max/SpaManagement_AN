@@ -41,32 +41,46 @@ def get_service_by_id(service_id):
 
 def create_service(data):
     """Create new service"""
+    from models import Service, Category
     try:
-        service = Service(
-            name=data['name'],
-            description=data.get('description', ''),
-            duration=data['duration'],
-            price=data['price'],
-            category_id=data.get('category_id'),
-            is_active=data.get('is_active', True),
-            created_at=datetime.utcnow()
-        )
+        # Create service instance
+        service = Service()
+        service.name = data['name']
+        service.description = data.get('description', '')
+        service.duration = data['duration']
+        service.price = data['price']
+        service.category_id = data.get('category_id')
+        service.is_active = data.get('is_active', True)
+        service.created_at = datetime.utcnow()
         
-        # Handle legacy category field
+        # Handle legacy category field for backward compatibility
         if data.get('category_id'):
-            category = Category.query.get(data['category_id'])
-            if category:
-                service.category = category.name
+            try:
+                category = Category.query.get(data['category_id'])
+                if category:
+                    service.category = category.name
+                else:
+                    service.category = 'general'  # fallback category
+            except:
+                service.category = 'general'  # fallback category
+        else:
+            service.category = 'general'  # fallback category
         
         # Add commission rate if it exists in the model
         if hasattr(service, 'commission_rate'):
-            service.commission_rate = data.get('commission_rate', 10)
+            service.commission_rate = data.get('commission_rate', 10.0)
+        
+        print(f"Creating service: {service.name}, price: {service.price}, duration: {service.duration}")
         
         db.session.add(service)
         db.session.commit()
+        
+        print(f"Service created successfully with ID: {service.id}")
         return service
+        
     except Exception as e:
         db.session.rollback()
+        print(f"Error creating service: {str(e)}")
         raise e
 
 def update_service(service_id, data):

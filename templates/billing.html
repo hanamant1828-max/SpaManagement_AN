@@ -221,7 +221,7 @@
                                         <td>{{ utils.format_date(invoice.invoice_date.date()) }}</td>
                                         <td>{{ utils.format_currency(invoice.total_amount) }}</td>
                                         <td>
-                                            <span class="badge bg-{{ utils.get_status_class(invoice.payment_status) }}">
+                                            <span class="badge bg-{{ utils.get_status_badge_class(invoice.payment_status) }}">
                                                 {{ invoice.payment_status.replace('_', ' ').title() }}
                                             </span>
                                         </td>
