@@ -1533,9 +1533,45 @@
         // Customer management functions
         let currentEditCustomerId = null;
 
+        // Function to ensure customer data is visible immediately
+        function ensureCustomerDataVisibility() {
+            console.log('Ensuring customer data visibility...');
+            
+            // Remove any loading overlays or spinners that might be hiding data
+            const loadingElements = document.querySelectorAll('.spinner-border, .text-center[style*="loading"]');
+            loadingElements.forEach(element => {
+                if (element.textContent.includes('Loading') || element.classList.contains('spinner-border')) {
+                    element.style.display = 'none';
+                }
+            });
+            
+            // Ensure customer table is visible
+            const customerTable = document.querySelector('.spa-table, table');
+            if (customerTable) {
+                customerTable.style.display = '';
+                const tableContainer = customerTable.closest('.card-body, .table-responsive, .professional-card');
+                if (tableContainer) {
+                    tableContainer.style.display = '';
+                }
+            }
+            
+            // Ensure stats are visible
+            const statsOverview = document.querySelector('.stats-overview');
+            if (statsOverview) {
+                statsOverview.style.display = 'block';
+            }
+            
+            console.log('Customer data visibility ensured');
+        }
+
         // Ensure data loads immediately on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Customers page DOM loaded - ensuring data visibility');
+            
+            // Force immediate data visibility
+            setTimeout(function() {
+                ensureCustomerDataVisibility();
+            }, 100);
             
             // Force show customer data immediately
             const customerTable = document.querySelector('.spa-table tbody');

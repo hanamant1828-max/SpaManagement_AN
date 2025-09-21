@@ -2912,11 +2912,11 @@ function updateKittyPartyPreview() {
 
 // Save kitty party
 function saveKittyParty() {
-    console.log('🎯 Submitting kitty party form...');
+    console.log('Submitting kitty party form...');
 
     const form = document.getElementById('addKittyPartyForm');
     if (!form) {
-        console.error('❌ Kitty party form not found');
+        console.error('Kitty party form not found');
         return;
     }
 
@@ -2957,10 +2957,14 @@ function saveKittyParty() {
 
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('addKittyPartyModal'));
-            modal.hide();
+            if (modal) {
+                modal.hide();
+            }
 
             // Reset form
-            form.reset();
+            if (form) {
+                form.reset();
+            }
             if (submitBtn) {
                 submitBtn.disabled = true; // Keep disabled until new data is entered
             }
@@ -3054,7 +3058,9 @@ async function updateKittyParty() {
 
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editKittyPartyModal'));
-            modal.hide();
+            if (modal) {
+                modal.hide();
+            }
 
             // Reload table
             await loadKittyPackages();

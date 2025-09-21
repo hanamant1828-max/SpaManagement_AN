@@ -11,6 +11,28 @@ window.SpaApp = {
     }
 };
 
+// Book appointment from modal function - defined at the top
+function bookAppointmentFromModal() {
+    if (window.currentEditCustomerId) {
+        bookAppointment(window.currentEditCustomerId);
+    } else {
+        // Get customer ID from the modal if available
+        const customerDetails = document.getElementById('customerDetails');
+        if (customerDetails) {
+            // Try to extract customer ID from the modal content
+            const customerIdMatch = customerDetails.innerHTML.match(/data-customer-id="(\d+)"/);
+            if (customerIdMatch) {
+                bookAppointment(parseInt(customerIdMatch[1]));
+                return;
+            }
+        }
+        alert('No customer selected');
+    }
+}
+
+// Make function globally available immediately
+window.bookAppointmentFromModal = bookAppointmentFromModal;
+
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
@@ -2814,7 +2836,7 @@ function handleStaffFormSubmit(event) {
 let video, canvas, context;
 let isRecognizing = false;
 
-// Book appointment from modal function
+// Book appointment from modal function - defined early
 function bookAppointmentFromModal() {
     if (currentEditCustomerId) {
         bookAppointment(currentEditCustomerId);
@@ -2833,8 +2855,10 @@ function bookAppointmentFromModal() {
     }
 }
 
+// Make bookAppointmentFromModal globally available immediately
+window.bookAppointmentFromModal = bookAppointmentFromModal;
+
 // Export functions globally to avoid conflicts
 window.editCustomer = editCustomer;
 window.viewCustomer = viewCustomer;
 window.bookAppointment = bookAppointment;
-window.bookAppointmentFromModal = bookAppointmentFromModal;
