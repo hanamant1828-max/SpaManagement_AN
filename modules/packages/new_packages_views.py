@@ -890,6 +890,39 @@ def assign_package():
                 remaining_credit=0
             )
 
+        elif package_type == 'yearly_membership': # Added handling for 'yearly_membership'
+            # Get yearly membership template
+            yearly_membership = Membership.query.filter_by(package_type='yearly_membership', id=data['package_id']).first() # Assuming yearly memberships are also stored in Membership table with a type
+            if not yearly_membership:
+                return jsonify({'success': False, 'error': 'Yearly membership not found'}), 404
+
+            # Calculate expiry date
+            expiry_date = None
+            if data.get('expiry_date'):
+                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
+            elif yearly_membership.validity_months:
+                expiry_date = datetime.utcnow() + timedelta(days=yearly_membership.validity_months * 30)
+
+            # Create assignment record for yearly membership
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='yearly_membership',
+                package_reference_id=yearly_membership.id,
+                service_id=data.get('service_id'), # Optional for yearly memberships
+                assigned_on=datetime.utcnow(),
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Yearly membership might track credits or sessions, adjust as needed
+                total_sessions=0, # Placeholder
+                used_sessions=0, # Placeholder
+                remaining_sessions=0, # Placeholder
+                credit_amount=0, # Placeholder
+                used_credit=0, # Placeholder
+                remaining_credit=0 # Placeholder
+            )
         else:
             return jsonify({'success': False, 'error': f'Package type {package_type} not supported yet'}), 400
 
@@ -925,7 +958,7 @@ def get_assigned_customers(package_type, package_id):
             customer = assignments[0].customer
             package_template = assignments[0].get_package_template()
             package_name = package_template.name if package_template else f"{package_type.title()} Package"
-            
+
             for assignment in assignments:
                 customer = assignment.customer # Get customer for each assignment
 
@@ -1010,4 +1043,133 @@ def get_all_package_assignments():
 
     except Exception as e:
         logging.error(f"Error getting all assignments: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/packages/api/view-assignment-details/<int:assignment_id>', methods=['GET'])
+@login_required
+def view_assignment_details(assignment_id):
+    """View detailed information about a specific package assignment"""
+    try:
+        assignment = ServicePackageAssignment.query.get(assignment_id)
+        if not assignment:
+            return jsonify({'success': False, 'error': 'Assignment not found'}), 404
+
+        customer = assignment.customer
+        package_template = assignment.get_package_template()
+
+        assignment_data = {
+            'assignment_id': assignment.id,
+            'customer': {
+                'id': customer.id,
+                'name': customer.full_name,
+                'phone': customer.phone or '',
+                'email': customer.email or ''
+            },
+            'package': {
+                'id': assignment.package_reference_id,
+                'name': package_template.name if package_template else f"{assignment.package_type.title()} Package",
+                'type': assignment.package_type
+            },
+            'assignment_details': {
+                'assigned_on': assignment.assigned_on.strftime('%Y-%m-%d'),
+                'expires_on': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else 'No expiry',
+                'status': assignment.status,
+                'price_paid': float(assignment.price_paid),
+                'discount': float(assignment.discount),
+                'notes': assignment.notes or ''
+            },
+            'usage_details': {
+                'total_sessions': assignment.total_sessions,
+                'used_sessions': assignment.used_sessions,
+                'remaining_sessions': assignment.remaining_sessions,
+                'credit_amount': float(assignment.credit_amount),
+                'used_credit': float(assignment.used_credit),
+                'remaining_credit': float(assignment.remaining_credit)
+            }
+        }
+
+        # Render modal content
+        from flask import render_template_string
+        modal_html = render_template_string('''
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle text-primary me-2"></i>Assignment Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Customer:</strong><br>
+                        {{ assignment.customer.name }}<br>
+                        <small class="text-muted">{{ assignment.customer.phone }}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Package:</strong><br>
+                        {{ assignment.package.name }}<br>
+                        <span class="badge bg-secondary">{{ assignment.package.type }}</span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <strong>Assigned:</strong><br>
+                        {{ assignment.assignment_details.assigned_on }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Expires:</strong><br>
+                        {{ assignment.assignment_details.expires_on }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Price Paid:</strong><br>
+                        ₹{{ "%.2f"|format(assignment.assignment_details.price_paid) }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Status:</strong><br>
+                        <span class="badge bg-success">{{ assignment.assignment_details.status }}</span>
+                    </div>
+                </div>
+
+                {% if assignment.usage_details.total_sessions > 0 %}
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Usage Summary:</strong><br>
+                        Sessions: {{ assignment.usage_details.used_sessions }} / {{ assignment.usage_details.total_sessions }}
+                        ({{ assignment.usage_details.remaining_sessions }} remaining)
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if assignment.usage_details.credit_amount > 0 %}
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Credit Summary:</strong><br>
+                        Used: ₹{{ "%.2f"|format(assignment.usage_details.used_credit) }} / ₹{{ "%.2f"|format(assignment.usage_details.credit_amount) }}
+                        (₹{{ "%.2f"|format(assignment.usage_details.remaining_credit) }} remaining)
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if assignment.assignment_details.notes %}
+                <div class="row">
+                    <div class="col-12">
+                        <strong>Notes:</strong><br>
+                        {{ assignment.assignment_details.notes }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        ''', assignment=assignment_data)
+
+        return jsonify({
+            'success': True,
+            'html': modal_html,
+            'assignment': assignment_data
+        })
+
+    except Exception as e:
+        logging.error(f"Error getting assignment details: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

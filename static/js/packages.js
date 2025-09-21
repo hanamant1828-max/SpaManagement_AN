@@ -644,10 +644,10 @@ document.addEventListener('click', e => {
 // Assign prepaid from template function
 function assignPrepaidFromTemplate(templateId) {
     console.log('Assigning prepaid from template:', templateId);
-    
+
     // Show loading state
     showToast('Loading package template...', 'info');
-    
+
     // Fetch template details and open modal
     fetch(`/packages/api/templates/${templateId}`)
         .then(response => response.json())
@@ -667,7 +667,7 @@ function assignPrepaidFromTemplate(templateId) {
 // Open prepaid assign modal with template data
 function openPrepaidAssignModal(template) {
     console.log('Opening prepaid assign modal with template:', template);
-    
+
     // Populate template data
     document.getElementById('apTemplateName').value = template.name;
     document.getElementById('apTemplateId').value = template.id;
@@ -676,25 +676,25 @@ function openPrepaidAssignModal(template) {
     document.getElementById('apBenefit').value = template.benefit_percent || 0;
     document.getElementById('apValidity').value = template.validity_months || 3;
     document.getElementById('apPricePaid').value = template.pay_amount || template.actual_price || 0;
-    
+
     // Clear other fields
     document.getElementById('apCustomer').value = '';
     document.getElementById('apService').value = '';
     document.getElementById('apExpiresOn').value = '';
     document.getElementById('apNotes').value = '';
-    
+
     // Load customers and services
     Promise.all([loadCustomersForPrepaid(), loadServicesForPrepaid()])
         .then(() => {
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('assignPrepaidModal'));
             modal.show();
-            
+
             // Focus on customer select
             setTimeout(() => {
                 document.getElementById('apCustomer').focus();
             }, 300);
-            
+
             // Update form validation
             validatePrepaidForm();
         })
@@ -712,7 +712,7 @@ function loadCustomersForPrepaid() {
             if (data.success) {
                 const select = document.getElementById('apCustomer');
                 select.innerHTML = '<option value="">Search / select customer...</option>';
-                
+
                 data.customers.forEach(customer => {
                     const option = document.createElement('option');
                     option.value = customer.id;
@@ -731,7 +731,7 @@ function loadServicesForPrepaid() {
             if (data.success) {
                 const select = document.getElementById('apService');
                 select.innerHTML = '<option value="">Choose a service...</option>';
-                
+
                 data.services.forEach(service => {
                     const option = document.createElement('option');
                     option.value = service.id;
@@ -747,12 +747,12 @@ function validatePrepaidForm() {
     const customer = document.getElementById('apCustomer').value;
     const service = document.getElementById('apService').value;
     const pricePaid = parseFloat(document.getElementById('apPricePaid').value) || 0;
-    
+
     const isValid = customer && service && pricePaid >= 0;
-    
+
     const saveBtn = document.getElementById('apSave');
     saveBtn.disabled = !isValid;
-    
+
     // Update summary if valid
     if (isValid) {
         updatePrepaidSummary();
@@ -767,10 +767,10 @@ function updatePrepaidSummary() {
     const getValue = parseFloat(document.getElementById('apGetValue').value) || 0;
     const pricePaid = parseFloat(document.getElementById('apPricePaid').value) || 0;
     const validity = document.getElementById('apValidity').value || 0;
-    
+
     // Calculate actual benefit based on price paid
     const actualBenefit = pricePaid > 0 ? ((getValue - pricePaid) / pricePaid * 100) : 0;
-    
+
     const summaryContent = `
         <div class="row">
             <div class="col-md-6">
@@ -783,7 +783,7 @@ function updatePrepaidSummary() {
             </div>
         </div>
     `;
-    
+
     document.getElementById('apSummaryContent').innerHTML = summaryContent;
     document.getElementById('apSummary').style.display = 'block';
 }
@@ -796,18 +796,18 @@ function savePrepaidAssignment() {
     const pricePaid = parseFloat(document.getElementById('apPricePaid').value);
     const expiresOn = document.getElementById('apExpiresOn').value || null;
     const notes = document.getElementById('apNotes').value || '';
-    
+
     if (!templateId || !customerId || !serviceId || pricePaid < 0) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
-    
+
     // Show loading state
     const saveBtn = document.getElementById('apSave');
     const originalText = saveBtn.innerHTML;
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-    
+
     const assignmentData = {
         package_type: 'prepaid',
         package_id: templateId,
@@ -817,7 +817,7 @@ function savePrepaidAssignment() {
         expires_on: expiresOn,
         notes: notes
     };
-    
+
     fetch('/packages/api/assign', {
         method: 'POST',
         headers: {
@@ -829,16 +829,16 @@ function savePrepaidAssignment() {
     .then(data => {
         if (data.success) {
             showToast(`✅ Assigned '${document.getElementById('apTemplateName').value}' to ${document.getElementById('apCustomer').selectedOptions[0]?.textContent.split(' - ')[0] || 'customer'}`, 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('assignPrepaidModal'));
             modal.hide();
-            
+
             // Refresh packages table if it exists
             if (typeof loadPackages === 'function') {
                 loadPackages();
             }
-            
+
             // Refresh page as fallback
             setTimeout(() => {
                 window.location.reload();
@@ -866,7 +866,7 @@ document.addEventListener('DOMContentLoaded', function() {
         prepaidForm.addEventListener('input', validatePrepaidForm);
         prepaidForm.addEventListener('change', validatePrepaidForm);
     }
-    
+
     // Price paid changes trigger benefit recalculation
     const pricePaidInput = document.getElementById('apPricePaid');
     if (pricePaidInput) {
@@ -875,7 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updatePrepaidSummary();
         });
     }
-    
+
     // Edit pay amount toggle
     const editPayAmountBtn = document.getElementById('editPayAmount');
     if (editPayAmountBtn) {
@@ -890,13 +890,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 payAmountInput.setAttribute('readonly', true);
                 editPayAmountBtn.innerHTML = '<i class="fas fa-edit"></i>';
                 editPayAmountBtn.title = 'Edit Pay Amount';
-                
+
                 // Update price paid to match pay amount if not manually set
                 const pricePaidInput = document.getElementById('apPricePaid');
                 if (!pricePaidInput.value || pricePaidInput.value == payAmountInput.value) {
                     pricePaidInput.value = payAmountInput.value;
                 }
-                
+
                 validatePrepaidForm();
             }
         });
@@ -921,9 +921,14 @@ function assignFromTemplate(templateId, packageType) {
     openAssignPackageModal(templateId, packageName, packageType, packagePrice);
 }
 
-// Expose functions globally
+// Expose functions to global scope
 window.PackagesUI.assignFromTemplate = assignFromTemplate;
 window.PackagesUI.assignPrepaidFromTemplate = assignPrepaidFromTemplate;
+
+// Add missing global functions
+window.viewAssignmentDetails = viewAssignmentDetails;
+window.viewCustomerDetails = viewCustomerDetails;
+
 
 /**
  * Show package preview when template is selected
@@ -1770,19 +1775,19 @@ document.addEventListener('keydown', function(e) {
 async function loadStudentPackages() {
     try {
         console.log('Loading student offers...');
-        
+
         const response = await fetch('/api/student-offers');
         const data = await response.json();
-        
+
         if (data && Array.isArray(data)) {
             const tableBody = document.querySelector('#tblStudentOffers tbody');
             tableBody.innerHTML = '';
-            
+
             data.forEach(offer => {
                 const row = document.createElement('tr');
                 const servicesList = offer.services.map(s => s.name).join(', ');
                 const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
-                
+
                 row.innerHTML = `
                     <td><strong>${offer.discount_percentage}%</strong></td>
                     <td><small>${servicesList}</small></td>
@@ -1805,7 +1810,7 @@ async function loadStudentPackages() {
                 `;
                 tableBody.appendChild(row);
             });
-            
+
             // Update count
             document.getElementById('student-total-count').textContent = data.length;
         }
@@ -1819,23 +1824,23 @@ async function loadStudentPackages() {
 function initializeStudentOfferModals() {
     // Load services into dropdowns
     loadServicesForStudentOffers();
-    
+
     // Set default dates (today and 6 months from now)
     const today = new Date().toISOString().split('T')[0];
     const sixMonthsLater = new Date();
     sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
     const futureDate = sixMonthsLater.toISOString().split('T')[0];
-    
+
     document.getElementById('studentValidFrom').value = today;
     document.getElementById('studentValidTo').value = futureDate;
-    
+
     // Form validation event listeners
     const addForm = document.getElementById('addStudentOfferForm');
     if (addForm) {
         addForm.addEventListener('input', validateStudentOfferForm);
         addForm.addEventListener('change', validateStudentOfferForm);
     }
-    
+
     // Valid days dropdown change handler
     const validDaysSelect = document.getElementById('studentValidDays');
     if (validDaysSelect) {
@@ -1848,7 +1853,7 @@ function initializeStudentOfferModals() {
             }
         });
     }
-    
+
     // Edit form valid days handler
     const editValidDaysSelect = document.getElementById('editStudentValidDays');
     if (editValidDaysSelect) {
@@ -1861,13 +1866,13 @@ function initializeStudentOfferModals() {
             }
         });
     }
-    
+
     // Save button event listener
     const saveBtn = document.getElementById('saveStudentOffer');
     if (saveBtn) {
         saveBtn.addEventListener('click', saveStudentOffer);
     }
-    
+
     // Update button event listener
     const updateBtn = document.getElementById('updateStudentOffer');
     if (updateBtn) {
@@ -1880,15 +1885,15 @@ async function loadServicesForStudentOffers() {
     try {
         const response = await fetch('/packages/api/services');
         const data = await response.json();
-        
+
         if (data.success) {
             const addSelect = document.getElementById('studentOfferServices');
             const editSelect = document.getElementById('editStudentOfferServices');
-            
+
             const optionsHTML = data.services.map(service => 
                 `<option value="${service.id}">${service.name} - ₹${service.price}</option>`
             ).join('');
-            
+
             if (addSelect) addSelect.innerHTML = optionsHTML;
             if (editSelect) editSelect.innerHTML = optionsHTML;
         }
@@ -1904,15 +1909,15 @@ function validateStudentOfferForm() {
     const validFrom = document.getElementById('studentValidFrom');
     const validTo = document.getElementById('studentValidTo');
     const saveBtn = document.getElementById('saveStudentOffer');
-    
+
     const isValid = services.selectedOptions.length > 0 && 
                    discount.value && parseFloat(discount.value) >= 1 && parseFloat(discount.value) <= 100 &&
                    validFrom.value && validTo.value && new Date(validTo.value) > new Date(validFrom.value);
-    
+
     if (saveBtn) {
         saveBtn.disabled = !isValid;
     }
-    
+
     // Update preview
     updateStudentOfferPreview();
 }
@@ -1925,7 +1930,7 @@ function updateStudentOfferPreview() {
     const validFrom = document.getElementById('studentValidFrom');
     const validTo = document.getElementById('studentValidTo');
     const preview = document.getElementById('studentOfferPreview');
-    
+
     if (services.selectedOptions.length > 0 && discount.value) {
         const selectedServices = Array.from(services.selectedOptions).map(opt => opt.textContent);
         const previewHTML = `
@@ -1954,14 +1959,14 @@ async function saveStudentOffer() {
     try {
         const form = document.getElementById('addStudentOfferForm');
         const formData = new FormData(form);
-        
+
         // Handle valid days
         const validDaysSelect = document.getElementById('studentValidDays');
         const customValidDays = document.getElementById('customValidDays');
         if (validDaysSelect.value === 'Custom' && customValidDays.value) {
             formData.set('valid_days', customValidDays.value);
         }
-        
+
         // Convert to JSON
         const data = {};
         formData.forEach((value, key) => {
@@ -1972,7 +1977,7 @@ async function saveStudentOffer() {
                 data[key] = value;
             }
         });
-        
+
         const response = await fetch('/api/student-offers', {
             method: 'POST',
             headers: {
@@ -1980,20 +1985,20 @@ async function saveStudentOffer() {
             },
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success || response.ok) {
             showToast('Student offer created successfully!', 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentOfferModal'));
             modal.hide();
-            
+
             // Reset form
             form.reset();
             document.getElementById('saveStudentOffer').disabled = true;
-            
+
             // Reload table
             await loadStudentPackages();
         } else {
@@ -2011,7 +2016,7 @@ async function editStudentOffer(offerId) {
         const response = await fetch(`/api/student-offers`);
         const offers = await response.json();
         const offer = offers.find(o => o.id === offerId);
-        
+
         if (offer) {
             // Populate edit form
             document.getElementById('editOfferId').value = offer.id;
@@ -2020,20 +2025,20 @@ async function editStudentOffer(offerId) {
             document.getElementById('editStudentValidFrom').value = offer.valid_from;
             document.getElementById('editStudentValidTo').value = offer.valid_to;
             document.getElementById('editStudentConditions').value = offer.conditions;
-            
+
             // Select services
             const serviceSelect = document.getElementById('editStudentOfferServices');
             Array.from(serviceSelect.options).forEach(option => {
                 option.selected = offer.services.some(s => s.id == option.value);
             });
-            
+
             // Handle custom valid days
             if (!['Mon-Fri', 'Mon-Sat', 'All Days', 'Weekends'].includes(offer.valid_days)) {
                 document.getElementById('editStudentValidDays').value = 'Custom';
                 document.getElementById('editCustomValidDaysDiv').style.display = 'block';
                 document.getElementById('editCustomValidDays').value = offer.valid_days;
             }
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('editStudentOfferModal'));
             modal.show();
@@ -2050,14 +2055,14 @@ async function updateStudentOffer() {
         const form = document.getElementById('editStudentOfferForm');
         const formData = new FormData(form);
         const offerId = document.getElementById('editOfferId').value;
-        
+
         // Handle valid days
         const validDaysSelect = document.getElementById('editStudentValidDays');
         const customValidDays = document.getElementById('editCustomValidDays');
         if (validDaysSelect.value === 'Custom' && customValidDays.value) {
             formData.set('valid_days', customValidDays.value);
         }
-        
+
         // Convert to JSON
         const data = {};
         formData.forEach((value, key) => {
@@ -2068,7 +2073,7 @@ async function updateStudentOffer() {
                 data[key] = value;
             }
         });
-        
+
         const response = await fetch(`/api/student-offers/${offerId}`, {
             method: 'PUT',
             headers: {
@@ -2076,16 +2081,16 @@ async function updateStudentOffer() {
             },
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success || response.ok) {
             showToast('Student offer updated successfully!', 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentOfferModal'));
             modal.hide();
-            
+
             // Reload table
             await loadStudentPackages();
         } else {
@@ -2102,14 +2107,14 @@ async function deleteStudentOffer(offerId) {
     if (!confirm('Are you sure you want to delete this student offer?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/student-offers/${offerId}`, {
             method: 'DELETE'
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success || response.ok) {
             showToast('Student offer deleted successfully!', 'success');
             await loadStudentPackages();
@@ -2187,26 +2192,26 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 async function openAssignSimple(templateId, packageType) {
     console.log('Opening simple assign modal for:', templateId, packageType);
-    
+
     try {
         // Get template details
         const response = await fetch(`/packages/api/templates/${templateId}`);
         const result = await response.json();
-        
+
         if (result.success && result.template) {
             const template = result.template;
-            
+
             // Fill template name
             document.getElementById('asTemplateName').value = template.name;
-            
+
             // Set hidden fields
             document.getElementById('asTemplateId').value = templateId;
             document.getElementById('asPackageType').value = packageType;
             document.getElementById('asPricePaid').value = template.price || 0;
-            
+
             // Load customers into dropdown
             await loadCustomersForSimpleAssign();
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('assignSimpleModal'));
             modal.show();
@@ -2220,16 +2225,79 @@ async function openAssignSimple(templateId, packageType) {
 }
 
 /**
+ * Open assignment details modal
+ */
+async function viewAssignmentDetails(assignmentId) {
+    try {
+        const response = await fetch(`/packages/api/assignments/${assignmentId}`);
+        const data = await response.json();
+
+        if (data.success && data.assignment) {
+            const assignment = data.assignment;
+
+            // Populate modal fields
+            document.getElementById('viewAssignmentId').textContent = assignment.id;
+            document.getElementById('viewAssignmentCustomer').textContent = assignment.customer_name;
+            document.getElementById('viewAssignmentPackage').textContent = assignment.package_name;
+            document.getElementById('viewAssignmentDate').textContent = assignment.assigned_on;
+            document.getElementById('viewAssignmentPrice').textContent = formatCurrency(assignment.price_paid);
+            document.getElementById('viewAssignmentExpiry').textContent = assignment.expires_on || 'N/A';
+            document.getElementById('viewAssignmentStatus').textContent = assignment.status;
+            document.getElementById('viewAssignmentNotes').textContent = assignment.notes || 'No notes';
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('viewAssignmentDetailsModal'));
+            modal.show();
+        } else {
+            showToast(data.error || 'Error loading assignment details', 'error');
+        }
+    } catch (error) {
+        console.error('Error viewing assignment details:', error);
+        showToast('Error loading assignment details', 'error');
+    }
+}
+
+/**
+ * Open customer details modal
+ */
+async function viewCustomerDetails(customerId) {
+    try {
+        const response = await fetch(`/packages/api/customers/${customerId}`);
+        const data = await response.json();
+
+        if (data.success && data.customer) {
+            const customer = data.customer;
+
+            // Populate modal fields
+            document.getElementById('viewCustomerName').textContent = customer.full_name;
+            document.getElementById('viewCustomerEmail').textContent = customer.email || 'N/A';
+            document.getElementById('viewCustomerPhone').textContent = customer.phone || 'N/A';
+            document.getElementById('viewCustomerAddress').textContent = customer.address || 'N/A';
+            document.getElementById('viewCustomerJoined').textContent = customer.created_at;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('viewCustomerDetailsModal'));
+            modal.show();
+        } else {
+            showToast(data.error || 'Error loading customer details', 'error');
+        }
+    } catch (error) {
+        console.error('Error viewing customer details:', error);
+        showToast('Error loading customer details', 'error');
+    }
+}
+
+/**
  * Load customers for simple assign dropdown
  */
 async function loadCustomersForSimpleAssign() {
     try {
         const response = await fetch('/packages/api/customers');
         const result = await response.json();
-        
+
         const customerSelect = document.getElementById('asCustomer');
         customerSelect.innerHTML = '<option value="">Select customer...</option>';
-        
+
         if (result.success && result.customers) {
             result.customers.forEach(customer => {
                 const option = document.createElement('option');
@@ -2238,13 +2306,13 @@ async function loadCustomersForSimpleAssign() {
                 customerSelect.appendChild(option);
             });
         }
-        
+
         // Enable save button when customer is selected
         customerSelect.addEventListener('change', function() {
             const saveBtn = document.getElementById('asSave');
             saveBtn.disabled = !this.value;
         });
-        
+
     } catch (error) {
         console.error('Error loading customers:', error);
         showToast('Error loading customers', 'error');
@@ -2256,25 +2324,25 @@ async function loadCustomersForSimpleAssign() {
  */
 async function saveAssignSimple() {
     console.log('Saving simple package assignment...');
-    
+
     try {
         const templateId = document.getElementById('asTemplateId').value;
         const packageType = document.getElementById('asPackageType').value;
         const customerId = document.getElementById('asCustomer').value;
         const pricePaid = document.getElementById('asPricePaid').value;
-        
+
         if (!templateId || !packageType || !customerId) {
             showToast('Please fill all required fields', 'warning');
             return;
         }
-        
+
         const data = {
             package_type: packageType,
             package_id: templateId,
             customer_id: parseInt(customerId),
             price_paid: parseFloat(pricePaid)
         };
-        
+
         const response = await fetch('/packages/api/assign', {
             method: 'POST',
             headers: {
@@ -2282,23 +2350,23 @@ async function saveAssignSimple() {
             },
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showToast('Package assigned successfully!', 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
             modal.hide();
-            
+
             // Reset form
             document.getElementById('assignSimpleForm').reset();
             document.getElementById('asSave').disabled = true;
-            
+
             // Refresh current tab table
             await refreshCurrentTabTable();
-            
+
         } else {
             showToast(result.error || 'Error assigning package', 'error');
         }
@@ -2315,7 +2383,7 @@ async function refreshCurrentTabTable() {
     const activeTab = document.querySelector('.tab-pane.active');
     if (activeTab) {
         const tabId = activeTab.id;
-        
+
         // Determine which table to refresh based on active tab
         if (tabId === 'assign-membership') {
             await loadMembershipPackages();
@@ -2356,7 +2424,7 @@ async function loadKittyPackages() {
 async function loadPackageTypeIntoTable(packageType, tableId) {
     try {
         console.log(`Loading ${packageType} packages into ${tableId}`);
-        
+
         // API endpoints for each package type
         const endpoints = {
             membership: '/api/memberships',
@@ -2364,14 +2432,14 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
             yearly: '/api/yearly-memberships',
             kitty: '/api/kitty-parties'
         };
-        
+
         const response = await fetch(endpoints[packageType]);
         const result = await response.json();
-        
+
         const table = document.getElementById(tableId);
         const tbody = table.querySelector('tbody');
         tbody.innerHTML = '';
-        
+
         // Handle different response formats
         let packages = [];
         if (result.success) {
@@ -2385,13 +2453,13 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
                 packages = result.parties;
             }
         }
-        
+
         if (packages && packages.length > 0) {
             packages.forEach(pkg => {
                 const row = createPackageTableRow(pkg, packageType);
                 tbody.appendChild(row);
             });
-            
+
             // Update count
             document.getElementById(`${packageType}-total-count`).textContent = packages.length;
         } else {
@@ -2401,7 +2469,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
             tbody.appendChild(row);
             document.getElementById(`${packageType}-total-count`).textContent = '0';
         }
-        
+
     } catch (error) {
         console.error(`Error loading ${packageType} packages:`, error);
         showToast(`Error loading ${packageType} packages`, 'error');
@@ -2413,7 +2481,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
  */
 function createPackageTableRow(pkg, packageType) {
     const row = document.createElement('tr');
-    
+
     // Column content based on package type
     if (packageType === 'membership') {
         row.innerHTML = `
@@ -2480,7 +2548,7 @@ function createPackageTableRow(pkg, packageType) {
             </td>
         `;
     }
-    
+
     return row;
 }
 
