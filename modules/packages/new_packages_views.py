@@ -12,7 +12,7 @@ from .new_packages_queries import (
     # Prepaid Packages
     get_all_prepaid_packages, get_prepaid_package_by_id, create_prepaid_package, update_prepaid_package, delete_prepaid_package,
 
-    # Service Packages  
+    # Service Packages
     get_all_service_packages, get_service_package_by_id, create_service_package, update_service_package, delete_service_package,
 
     # Memberships
@@ -299,7 +299,7 @@ def api_get_memberships():
             'price': m.price,
             'validity_months': m.validity_months,
             'services_included': m.services_included,
-            'selected_services': [{'id': ms.service.id, 'name': ms.service.name, 'price': ms.service.price} 
+            'selected_services': [{'id': ms.service.id, 'name': ms.service.name, 'price': ms.service.price}
                                 for ms in m.membership_services] if hasattr(m, 'membership_services') else [],
             'is_active': m.is_active,
             'created_at': m.created_at.isoformat()
@@ -386,7 +386,7 @@ def api_get_student_offers():
             'valid_to': o.valid_to.isoformat(),
             'valid_days': o.valid_days,
             'conditions': o.conditions,
-            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price} 
+            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price}
                         for sos in o.student_offer_services],
             'is_active': o.is_active,
             'created_at': o.created_at.isoformat()
@@ -400,21 +400,21 @@ def api_create_student_offer():
     """Create new student offer with multiple service selection"""
     try:
         data = request.get_json() or request.form.to_dict()
-        
+
         # Handle multiple service selection from form data
         if not data.get('service_ids') and request.form:
             data['service_ids'] = request.form.getlist('service_ids')
-        
+
         # Validate required fields
         if not data.get('service_ids') or len(data['service_ids']) == 0:
             return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
-            
+
         if not data.get('discount_percentage'):
             return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
-            
+
         if not data.get('valid_from') or not data.get('valid_to'):
             return jsonify({'success': False, 'error': 'Valid from and to dates are required'}), 400
-        
+
         offer = create_student_offer(data)
         flash('Student offer created successfully!', 'success')
         return jsonify({
@@ -545,7 +545,7 @@ def api_get_kitty_parties():
             'after_value': p.after_value,
             'min_guests': p.min_guests,
             'services_included': p.services_included,
-            'selected_services': [{'id': kps.service.id, 'name': kps.service.name, 'price': kps.service.price} 
+            'selected_services': [{'id': kps.service.id, 'name': kps.service.name, 'price': kps.service.price}
                                 for kps in p.kittyparty_services] if hasattr(p, 'kittyparty_services') else [],
             'is_active': p.is_active,
             'created_at': p.created_at.isoformat()
@@ -785,7 +785,7 @@ def api_get_customers():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/packages/api/services', methods=['GET'])
-@login_required 
+@login_required
 def api_get_services():
     """Get available services"""
     try:

@@ -136,6 +136,10 @@ document.addEventListener('DOMContentLoaded', function() {
         loadStudentPackages();
     }
     
+    // Initialize student offer modals
+    initializeStudentOfferModals();
+});
+    
     // Handle add student offer form submission
     const addForm = document.getElementById('addStudentOfferForm');
     if (addForm) {
@@ -212,6 +216,251 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Student Offer Modal Management
+function initializeStudentOfferModals() {
+    console.log('Initializing student offer modals...');
+    
+    // Initialize form validation for add student offer
+    const addForm = document.getElementById('addStudentOfferForm');
+    if (addForm) {
+        addForm.addEventListener('input', validateStudentOfferForm);
+        addForm.addEventListener('change', validateStudentOfferForm);
+    }
+    
+    // Initialize form validation for edit student offer
+    const editForm = document.getElementById('editStudentOfferForm');
+    if (editForm) {
+        editForm.addEventListener('input', validateStudentOfferForm);
+        editForm.addEventListener('change', validateStudentOfferForm);
+    }
+    
+    // Save button event listeners
+    const saveBtn = document.getElementById('saveStudentOffer');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', submitStudentOfferForm);
+    }
+    
+    const editSaveBtn = document.getElementById('saveEditStudentOffer');
+    if (editSaveBtn) {
+        editSaveBtn.addEventListener('click', submitEditStudentOfferForm);
+    }
+}
+
+function validateStudentOfferForm() {
+    const serviceIds = document.querySelectorAll('input[name="service_ids"]:checked');
+    const discountPercentage = document.getElementById('discountPercentage')?.value;
+    const validFrom = document.getElementById('validFrom')?.value;
+    const validTo = document.getElementById('validTo')?.value;
+    
+    const isValid = serviceIds.length > 0 && discountPercentage && validFrom && validTo;
+    
+    const saveBtn = document.getElementById('saveStudentOffer');
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+    
+    // Update preview
+    updateStudentOfferPreview();
+    
+    return isValid;
+}
+
+function updateStudentOfferPreview() {
+    const serviceIds = document.querySelectorAll('input[name="service_ids"]:checked');
+    const discountPercentage = document.getElementById('discountPercentage')?.value;
+    const preview = document.getElementById('studentOfferPreview');
+    
+    if (!preview) return;
+    
+    if (serviceIds.length > 0 && discountPercentage) {
+        const serviceNames = Array.from(serviceIds).map(input => {
+            const label = input.closest('.form-check').querySelector('label');
+            return label ? label.textContent.trim() : 'Unknown Service';
+        });
+        
+        preview.innerHTML = `
+            <div class="alert alert-success">
+                <h6><i class="fas fa-graduation-cap me-2"></i>Student Offer Preview</h6>
+                <p><strong>Services:</strong> ${serviceNames.join(', ')}</p>
+                <p><strong>Discount:</strong> ${discountPercentage}% off regular price</p>
+                <p><strong>Valid for students with valid ID</strong></p>
+            </div>
+        `;
+    } else {
+        preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
+    }
+}
+
+function submitStudentOfferForm() {
+    console.log('Submitting student offer form...');
+    
+    if (!validateStudentOfferForm()) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const form = document.getElementById('addStudentOfferForm');
+    if (!form) {
+        console.error('Add student offer form not found');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const selectedServices = Array.from(document.querySelectorAll('input[name="service_ids"]:checked'))
+        .map(input => input.value);
+    
+    // Clear existing service_ids and add selected ones
+    formData.delete('service_ids');
+    selectedServices.forEach(serviceId => {
+        formData.append('service_ids', serviceId);
+    });
+    
+    // Show loading state
+    const saveBtn = document.getElementById('saveStudentOffer');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    
+    fetch('/api/student-offers', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Student offer created successfully!');
+            form.reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentOfferModal'));
+            modal.hide();
+            loadStudentPackages();
+        } else {
+            alert('Error creating student offer: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error creating student offer:', error);
+        alert('Error creating student offer. Please try again.');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+function submitEditStudentOfferForm() {
+    console.log('Submitting edit student offer form...');
+    
+    const form = document.getElementById('editStudentOfferForm');
+    if (!form) {
+        console.error('Edit student offer form not found');
+        return;
+    }
+    
+    const offerId = document.getElementById('editStudentOfferId').value;
+    if (!offerId) {
+        alert('No offer ID found for editing');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const selectedServices = Array.from(document.querySelectorAll('#editStudentOfferModal input[name="service_ids"]:checked'))
+        .map(input => input.value);
+    
+    // Clear existing service_ids and add selected ones
+    formData.delete('service_ids');
+    selectedServices.forEach(serviceId => {
+        formData.append('service_ids', serviceId);
+    });
+    
+    // Show loading state
+    const saveBtn = document.getElementById('saveEditStudentOffer');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+    
+    fetch(`/api/student-offers/${offerId}`, {
+        method: 'PUT',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Student offer updated successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentOfferModal'));
+            modal.hide();
+            loadStudentPackages();
+        } else {
+            alert('Error updating student offer: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error updating student offer:', error);
+        alert('Error updating student offer. Please try again.');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+// Assignment functionality
+function submitAssignment() {
+    console.log('Submitting package assignment...');
+    
+    const form = document.getElementById('assignPackageForm');
+    if (!form) {
+        console.error('Assignment form not found');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const assignmentData = {
+        customer_id: formData.get('customer_id'),
+        package_type: formData.get('offer_type'),
+        package_id: formData.get('offer_reference_id'),
+        price_paid: parseFloat(formData.get('custom_price')) || 0,
+        notes: formData.get('notes') || ''
+    };
+    
+    if (!assignmentData.customer_id) {
+        alert('Please select a customer');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.querySelector('#assignPackageModal .btn-primary');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(assignmentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Package assigned successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPackageModal'));
+            modal.hide();
+            form.reset();
+        } else {
+            alert('Error assigning package: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error assigning package:', error);
+        alert('Error assigning package. Please try again.');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
 
 // Additional utility functions for package assignment
 function openAssignSimple(packageId, packageType) {

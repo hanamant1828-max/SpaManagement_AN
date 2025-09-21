@@ -956,6 +956,225 @@
     </div>
 </div>
 
+<!-- Add Student Offer Modal -->
+<div class="modal fade" id="addStudentOfferModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-graduation-cap me-2"></i>Add Student Offer
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addStudentOfferForm">
+                    <div class="row g-3">
+                        <!-- Service Selection -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Select Services *</label>
+                            <div class="card">
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    {% for service in services %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="service_{{ service.id }}">
+                                        <label class="form-check-label" for="service_{{ service.id }}">
+                                            <strong>{{ service.name }}</strong> - ₹{{ service.price }}
+                                            {% if service.duration %}
+                                                <small class="text-muted">({{ service.duration }} min)</small>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <small class="text-muted">Select one or more services for this student offer</small>
+                        </div>
+
+                        <!-- Discount Percentage -->
+                        <div class="col-md-6">
+                            <label for="discountPercentage" class="form-label fw-bold">Discount Percentage *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="discountPercentage" name="discount_percentage" 
+                                       min="1" max="50" step="0.1" required placeholder="25.0">
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">Discount for students (1-50%)</small>
+                        </div>
+
+                        <!-- Valid Days -->
+                        <div class="col-md-6">
+                            <label for="validDays" class="form-label fw-bold">Valid Days</label>
+                            <input type="text" class="form-control" id="validDays" name="valid_days" 
+                                   value="Mon-Fri" placeholder="Mon-Fri">
+                            <small class="text-muted">Days when offer is valid</small>
+                        </div>
+
+                        <!-- Date Range -->
+                        <div class="col-md-6">
+                            <label for="validFrom" class="form-label fw-bold">Valid From *</label>
+                            <input type="date" class="form-control" id="validFrom" name="valid_from" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="validTo" class="form-label fw-bold">Valid To *</label>
+                            <input type="date" class="form-control" id="validTo" name="valid_to" required>
+                        </div>
+
+                        <!-- Conditions -->
+                        <div class="col-12">
+                            <label for="conditions" class="form-label fw-bold">Terms & Conditions</label>
+                            <textarea class="form-control" id="conditions" name="conditions" rows="3" 
+                                      placeholder="Valid student ID required. Cannot be combined with other offers.">Valid with Student ID. Cannot be combined with other offers.</textarea>
+                            <div class="form-text">Terms and conditions for this student offer</div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="mb-3">Offer Preview:</h6>
+                                    <div id="studentOfferPreview">
+                                        <p class="text-muted">Select services and discount to see preview</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveStudentOffer" disabled>
+                    <i class="fas fa-save me-2"></i>Save Student Offer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Offer Modal -->
+<div class="modal fade" id="editStudentOfferModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Edit Student Offer
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editStudentOfferForm">
+                    <input type="hidden" id="editStudentOfferId" name="offer_id">
+
+                    <div class="row g-3">
+                        <!-- Service Selection -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Select Services *</label>
+                            <div class="card">
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    {% for service in services %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="edit_service_{{ service.id }}">
+                                        <label class="form-check-label" for="edit_service_{{ service.id }}">
+                                            <strong>{{ service.name }}</strong> - ₹{{ service.price }}
+                                            {% if service.duration %}
+                                                <small class="text-muted">({{ service.duration }} min)</small>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Discount Percentage -->
+                        <div class="col-md-6">
+                            <label for="editDiscountPercentage" class="form-label fw-bold">Discount Percentage *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="editDiscountPercentage" name="discount_percentage" 
+                                       min="1" max="50" step="0.1" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+
+                        <!-- Valid Days -->
+                        <div class="col-md-6">
+                            <label for="editValidDays" class="form-label fw-bold">Valid Days</label>
+                            <input type="text" class="form-control" id="editValidDays" name="valid_days">
+                        </div>
+
+                        <!-- Date Range -->
+                        <div class="col-md-6">
+                            <label for="editValidFrom" class="form-label fw-bold">Valid From *</label>
+                            <input type="date" class="form-control" id="editValidFrom" name="valid_from" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="editValidTo" class="form-label fw-bold">Valid To *</label>
+                            <input type="date" class="form-control" id="editValidTo" name="valid_to" required>
+                        </div>
+
+                        <!-- Conditions -->
+                        <div class="col-12">
+                            <label for="editConditions" class="form-label fw-bold">Terms & Conditions</label>
+                            <textarea class="form-control" id="editConditions" name="conditions" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveEditStudentOffer">
+                    <i class="fas fa-save me-2"></i>Update Student Offer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Package Modal -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Package to Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPackageForm">
+                    <input type="hidden" id="assignOfferType" name="offer_type">
+                    <input type="hidden" id="assignOfferReferenceId" name="offer_reference_id">
+
+                    <div class="mb-3">
+                        <label class="form-label">Select Customer</label>
+                        <select name="customer_id" class="form-select" required>
+                            <option value="">Choose customer...</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Custom Price (Optional)</label>
+                        <input type="number" name="custom_price" class="form-control" step="0.01">
+                        <small class="text-muted">Leave empty to use standard package price</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAssignment()">Assign Package</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let selectedServices = new Set();
 
@@ -1042,7 +1261,7 @@ function submitServiceForm() {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.JSON.stringify(data)
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {
@@ -1552,13 +1771,42 @@ function calculateStudentDiscountPrice() {
 
 // Function to submit student offer form
 function submitStudentForm() {
-    const form = document.getElementById('studentForm');
+    const form = document.getElementById('addStudentOfferForm');
     const formData = new FormData(form);
 
-    const data = {};
-    formData.forEach((value, key) => {
-        data[key] = value;
-    });
+    const serviceIds = Array.from(form.querySelectorAll('input[name="service_ids"]:checked')).map(cb => parseInt(cb.value));
+    const discountPercentage = parseFloat(form.querySelector('[name="discount_percentage"]').value);
+    const validFrom = form.querySelector('[name="valid_from"]').value;
+    const validTo = form.querySelector('[name="valid_to"]').value;
+    const validDays = form.querySelector('[name="valid_days"]').value;
+    const conditions = form.querySelector('[name="conditions"]').value;
+
+    // Basic validation
+    if (serviceIds.length === 0) {
+        alert('Please select at least one service.');
+        return;
+    }
+    if (isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 50) {
+        alert('Please enter a valid discount percentage between 1 and 50.');
+        return;
+    }
+    if (!validFrom || !validTo || new Date(validTo) < new Date(validFrom)) {
+        alert('Please enter a valid date range (Valid To must be after Valid From).');
+        return;
+    }
+
+    const data = {
+        service_ids: serviceIds,
+        discount_percentage: discountPercentage,
+        valid_from: validFrom,
+        valid_to: validTo,
+        valid_days: validDays,
+        conditions: conditions
+    };
+
+    const saveBtn = document.getElementById('saveStudentOffer');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
 
     fetch('/api/student-offers', {
         method: 'POST',
@@ -1568,25 +1816,55 @@ function submitStudentForm() {
         body: JSON.stringify(data)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            const modal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
+    .then(result => {
+        if (result.success) {
+            alert(result.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentOfferModal'));
             modal.hide();
             location.reload();
         } else {
-            alert('Error: ' + data.error);
+            alert('Error: ' + (result.error || 'Failed to create student offer'));
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Student Offer';
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error creating student offer');
+        alert('An error occurred while creating the student offer.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Student Offer';
     });
 }
 
 // Student offer CRUD functions
 function editStudent(offerId) {
-    console.log('Edit student offer:', offerId);
+    fetch(`/api/student-offers/${offerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.offer) {
+                const offer = data.offer;
+                const form = document.getElementById('editStudentOfferForm');
+                
+                form.querySelector('#editStudentOfferId').value = offer.id;
+                form.querySelectorAll('input[name="service_ids"]').forEach(checkbox => {
+                    checkbox.checked = offer.services.some(s => s.id === parseInt(checkbox.value));
+                });
+                form.querySelector('#editDiscountPercentage').value = offer.discount_percent;
+                form.querySelector('#editValidDays').value = offer.valid_days || '';
+                form.querySelector('#editValidFrom').value = offer.valid_from ? offer.valid_from.split('T')[0] : '';
+                form.querySelector('#editValidTo').value = offer.valid_to ? offer.valid_to.split('T')[0] : '';
+                form.querySelector('#editConditions').value = offer.conditions || '';
+
+                const modal = new bootstrap.Modal(document.getElementById('editStudentOfferModal'));
+                modal.show();
+            } else {
+                alert('Error fetching offer details: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching student offer:', error);
+            alert('Failed to load offer details.');
+        });
 }
 
 function deleteStudent(offerId) {
@@ -1607,6 +1885,77 @@ function deleteStudent(offerId) {
             }
         });
     }
+}
+
+// Function to update student offer
+function updateStudentOffer() {
+    const form = document.getElementById('editStudentOfferForm');
+    const offerId = form.querySelector('#editStudentOfferId').value;
+
+    const serviceIds = Array.from(form.querySelectorAll('input[name="service_ids"]:checked')).map(cb => parseInt(cb.value));
+    const discountPercentage = parseFloat(form.querySelector('#editDiscountPercentage').value);
+    const validFrom = form.querySelector('#editValidFrom').value;
+    const validTo = form.querySelector('#editValidTo').value;
+    const validDays = form.querySelector('#editValidDays').value;
+    const conditions = form.querySelector('#editConditions').value;
+
+    // Basic validation
+    if (!offerId) {
+        alert('Invalid offer ID.');
+        return;
+    }
+    if (serviceIds.length === 0) {
+        alert('Please select at least one service.');
+        return;
+    }
+    if (isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 50) {
+        alert('Please enter a valid discount percentage between 1 and 50.');
+        return;
+    }
+    if (!validFrom || !validTo || new Date(validTo) < new Date(validFrom)) {
+        alert('Please enter a valid date range (Valid To must be after Valid From).');
+        return;
+    }
+
+    const data = {
+        service_ids: serviceIds,
+        discount_percentage: discountPercentage,
+        valid_from: validFrom,
+        valid_to: validTo,
+        valid_days: validDays,
+        conditions: conditions
+    };
+
+    const saveBtn = document.getElementById('saveEditStudentOffer');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+
+    fetch(`/api/student-offers/${offerId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert(result.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentOfferModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to update student offer'));
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Student Offer';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the student offer.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Student Offer';
+    });
 }
 
 // Function to submit yearly membership form
@@ -1724,7 +2073,7 @@ function loadServicesForKittyParty() {
 function submitKittyForm() {
     const form = document.getElementById('kittyForm');
     const formData = new FormData(form);
-    
+
     // Fix: Find the submit button in the modal footer, not inside the form
     const submitBtn = document.querySelector('#kittyModal .modal-footer .btn-primary');
 
@@ -1757,7 +2106,7 @@ function submitKittyForm() {
     // Better validation with visual feedback
     const servicesContainer = document.getElementById('kittyServicesContainer');
     const invalidFeedback = servicesContainer.parentElement.querySelector('.invalid-feedback');
-    
+
     if (serviceIds.length === 0) {
         // Show visual validation feedback
         servicesContainer.classList.add('border-danger');
@@ -2441,6 +2790,15 @@ function showToast(message, type) {
         toast.remove();
     }, 3000);
 }
+
+// Add event listener for the save button in the edit student offer modal
+document.addEventListener('DOMContentLoaded', function() {
+    const saveEditBtn = document.getElementById('saveEditStudentOffer');
+    if (saveEditBtn) {
+        saveEditBtn.addEventListener('click', updateStudentOffer);
+    }
+});
+
 </script>
 
 {% endblock %}
