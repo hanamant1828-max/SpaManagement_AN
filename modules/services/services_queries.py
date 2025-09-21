@@ -88,19 +88,33 @@ def create_service(data):
 def update_service(service_id, data):
     """Update existing service"""
     try:
+        from models import Service, Category
         service = Service.query.get(service_id)
         if not service:
             raise ValueError("Service not found")
         
-        for key, value in data.items():
-            if hasattr(service, key):
-                setattr(service, key, value)
-        
-        # Handle legacy category field
+        # Update service fields
+        service.name = data.get('name', service.name)
+        service.description = data.get('description', service.description)
+        service.duration = data.get('duration', service.duration)
+        service.price = data.get('price', service.price)
+        service.is_active = data.get('is_active', service.is_active)
+
+        # Handle category updates
         if 'category_id' in data and data['category_id']:
             category = Category.query.get(data['category_id'])
             if category:
-                service.category = category.name
+                service.category_id = category.id
+                service.category = category.name # Assuming service has a 'category' attribute that stores the name
+            else:
+                # Handle case where category_id is provided but category not found
+                # Optionally, you could set a default or raise an error
+                pass # Or service.category_id = None, service.category = 'uncategorized'
+        elif 'category_id' in data and data['category_id'] is None:
+            # Handle case where category_id is explicitly set to None
+            service.category_id = None
+            service.category = None # Assuming service has a 'category' attribute that stores the name
+
         
         db.session.commit()
         return service
@@ -111,13 +125,12 @@ def update_service(service_id, data):
 def delete_service(service_id):
     """Delete service with safety checks"""
     try:
+        from models import Service, Appointment, PackageService
         service = Service.query.get(service_id)
         if not service:
             return {'success': False, 'message': 'Service not found'}
         
         # Check if service is used in appointments or packages
-        from models import Appointment, PackageService
-        
         appointments_count = Appointment.query.filter_by(service_id=service_id).count()
         packages_count = PackageService.query.filter_by(service_id=service_id).count()
         
@@ -138,6 +151,7 @@ def delete_service(service_id):
 # Service Category Queries
 def get_all_service_categories():
     """Get all service categories"""
+    from models import Category, Service
     try:
         categories = Category.query.filter_by(
             category_type='service',
@@ -152,6 +166,7 @@ def get_all_service_categories():
 
 def get_category_by_id(category_id):
     """Get category by ID"""
+    from models import Category
     try:
         return Category.query.get(category_id)
     except Exception as e:
@@ -160,6 +175,7 @@ def get_category_by_id(category_id):
 
 def create_category(data):
     """Create new service category"""
+    from models import Category
     try:
         category = Category(
             name=data['name'],
@@ -182,6 +198,7 @@ def create_category(data):
 
 def update_category(category_id, data):
     """Update existing category"""
+    from models import Category
     try:
         category = Category.query.get(category_id)
         if not category:
@@ -199,6 +216,7 @@ def update_category(category_id, data):
 
 def delete_category(category_id):
     """Delete category if no services are associated"""
+    from models import Category, Service
     try:
         category = Category.query.get(category_id)
         if not category:
@@ -218,6 +236,7 @@ def delete_category(category_id):
 
 def reorder_category(category_ids):
     """Reorder categories based on provided list"""
+    from models import Category
     try:
         for index, category_id in enumerate(category_ids):
             category = Category.query.get(category_id)
@@ -303,6 +322,7 @@ def export_categories_csv():
 # Additional Helper Functions
 def search_services(search_term, category_filter=None):
     """Search services by name or description"""
+    from models import Service, Category
     try:
         query = Service.query.filter_by(is_active=True)
         
@@ -323,10 +343,12 @@ def search_services(search_term, category_filter=None):
 
 def get_services_by_category(category_id):
     """Get services by category ID"""
+    from models import Service
     return Service.query.filter_by(category_id=category_id, is_active=True).order_by(Service.name).all()
 
 def get_services_by_price_range(min_price=None, max_price=None, category_filter=None):
     """Get services within price range"""
+    from models import Service
     try:
         query = Service.query.filter_by(is_active=True)
         
