@@ -107,8 +107,8 @@ def customer_packages():
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
     # Get staff for usage recording
-    from models import Staff
-    staff = Staff.query.filter_by(is_active=True).order_by(Staff.first_name, Staff.last_name).all()
+    from models import User
+    staff = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
 
     return render_template('packages/customer_packages.html',
                          customers=customers,
