@@ -6,7 +6,7 @@
 // Load student packages data
 function loadStudentPackages() {
     console.log('Loading student packages...');
-    
+
     fetch('/api/student-offers')
         .then(response => response.json())
         .then(data => {
@@ -15,9 +15,9 @@ function loadStudentPackages() {
                 console.error('Student offers table not found');
                 return;
             }
-            
+
             tbody.innerHTML = '';
-            
+
             data.forEach(offer => {
                 const serviceNames = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
                 const row = `
@@ -45,7 +45,7 @@ function loadStudentPackages() {
                 `;
                 tbody.innerHTML += row;
             });
-            
+
             console.log(`Loaded ${data.length} student offers`);
         })
         .catch(error => {
@@ -56,43 +56,48 @@ function loadStudentPackages() {
 // Edit student offer
 function editStudentOffer(offerId) {
     console.log('Editing student offer:', offerId);
-    
-    fetch(`/api/student-offers/${offerId}`)
+
+    fetch(`/api/student-offers`)
         .then(response => response.json())
-        .then(offer => {
-            // Populate edit form
-            document.getElementById('editStudentOfferId').value = offer.id;
-            document.getElementById('editDiscountPercentage').value = offer.discount_percentage;
-            document.getElementById('editValidFrom').value = offer.valid_from;
-            document.getElementById('editValidTo').value = offer.valid_to;
-            document.getElementById('editValidDays').value = offer.valid_days;
-            document.getElementById('editConditions').value = offer.conditions;
-            
-            // Set selected services in multi-select
-            const serviceSelect = document.getElementById('editServiceIds');
-            if (serviceSelect && offer.services) {
-                Array.from(serviceSelect.options).forEach(option => {
-                    option.selected = offer.services.some(s => s.id == option.value);
+        .then(offers => {
+            const offer = offers.find(o => o.id === offerId);
+
+            if (offer) {
+                // Populate edit form
+                document.getElementById('editStudentOfferId').value = offer.id;
+                document.getElementById('editDiscountPercentage').value = offer.discount_percentage;
+                document.getElementById('editValidFrom').value = offer.valid_from ? offer.valid_from.split('T')[0] : '';
+                document.getElementById('editValidTo').value = offer.valid_to ? offer.valid_to.split('T')[0] : '';
+                document.getElementById('editValidDays').value = offer.valid_days || '';
+                document.getElementById('editConditions').value = offer.conditions || '';
+
+                // Set selected services in checkboxes
+                const serviceCheckboxes = document.querySelectorAll('#editStudentOfferModal input[name="service_ids"]');
+                serviceCheckboxes.forEach(checkbox => {
+                    checkbox.checked = offer.services.some(s => s.id == checkbox.value);
                 });
+
+                // Show edit modal
+                const editModal = new bootstrap.Modal(document.getElementById('editStudentOfferModal'));
+                editModal.show();
+            } else {
+                alert('Student offer not found');
             }
-            
-            // Show edit modal
-            const editModal = new bootstrap.Modal(document.getElementById('editStudentOfferModal'));
-            editModal.show();
         })
         .catch(error => {
             console.error('Error loading student offer for edit:', error);
+            alert('Error loading student offer details');
         });
 }
 
 // Delete student offer
 function deleteStudentOffer(offerId) {
     console.log('Deleting student offer:', offerId);
-    
+
     if (!confirm('Are you sure you want to delete this student offer?')) {
         return;
     }
-    
+
     fetch(`/api/student-offers/${offerId}`, {
         method: 'DELETE',
         headers: {
@@ -117,11 +122,11 @@ function deleteStudentOffer(offerId) {
 // Assign student offer to customer
 function assignStudentOffer(offerId) {
     console.log('Assigning student offer:', offerId);
-    
+
     // Set the offer ID in the assignment modal
     document.getElementById('assignOfferType').value = 'student_offer';
     document.getElementById('assignOfferReferenceId').value = offerId;
-    
+
     // Show assignment modal
     const assignModal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
     assignModal.show();
@@ -130,12 +135,12 @@ function assignStudentOffer(offerId) {
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Student offers JavaScript loaded');
-    
+
     // Load student packages if on the right tab
     if (document.getElementById('tblStudentOffers')) {
         loadStudentPackages();
     }
-    
+
     // Initialize student offer modals
     initializeStudentOfferModals();
 });
@@ -143,21 +148,21 @@ document.addEventListener('DOMContentLoaded', function() {
 // Student Offer Modal Management
 function initializeStudentOfferModals() {
     console.log('Initializing student offer modals...');
-    
+
     // Initialize form validation for add student offer
     const addForm = document.getElementById('addStudentOfferForm');
     if (addForm) {
         addForm.addEventListener('input', validateStudentOfferForm);
         addForm.addEventListener('change', validateStudentOfferForm);
     }
-    
+
     // Initialize form validation for edit student offer
     const editForm = document.getElementById('editStudentOfferForm');
     if (editForm) {
         editForm.addEventListener('input', validateStudentOfferForm);
         editForm.addEventListener('change', validateStudentOfferForm);
     }
-    
+
     // Save button event listeners for student offer
     const saveBtn = document.getElementById('saveStudentOffer');
     if (saveBtn) {
@@ -166,7 +171,7 @@ function initializeStudentOfferModals() {
             submitStudentOfferForm();
         });
     }
-    
+
     const editSaveBtn = document.getElementById('saveEditStudentOffer');
     if (editSaveBtn) {
         editSaveBtn.addEventListener('click', submitEditStudentOfferForm);
@@ -178,17 +183,17 @@ function validateStudentOfferForm() {
     const discountPercentage = document.getElementById('discountPercentage')?.value;
     const validFrom = document.getElementById('validFrom')?.value;
     const validTo = document.getElementById('validTo')?.value;
-    
+
     const isValid = serviceIds.length > 0 && discountPercentage && validFrom && validTo;
-    
+
     const saveBtn = document.getElementById('saveStudentOffer');
     if (saveBtn) {
         saveBtn.disabled = !isValid;
     }
-    
+
     // Update preview
     updateStudentOfferPreview();
-    
+
     return isValid;
 }
 
@@ -201,23 +206,23 @@ document.addEventListener('DOMContentLoaded', function() {
             // Enable save button by default and validate on changes
             const saveBtn = document.getElementById('saveStudentOffer');
             const form = document.getElementById('addStudentOfferForm');
-            
+
             if (form && saveBtn) {
                 // Initially enable the button
                 saveBtn.disabled = false;
-                
+
                 // Remove any existing event listeners first
                 saveBtn.removeEventListener('click', submitStudentOfferForm);
                 // Add the click event listener
                 saveBtn.addEventListener('click', submitStudentOfferForm);
-                
+
                 // Add event listeners for real-time validation
                 const inputs = form.querySelectorAll('input, select, textarea');
                 inputs.forEach(input => {
                     input.addEventListener('input', validateStudentOfferForm);
                     input.addEventListener('change', validateStudentOfferForm);
                 });
-                
+
                 // Special handling for checkboxes
                 const checkboxes = form.querySelectorAll('input[type="checkbox"]');
                 checkboxes.forEach(checkbox => {
@@ -226,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Also add event listener immediately if modal is already shown
     const saveBtn = document.getElementById('saveStudentOffer');
     if (saveBtn) {
@@ -238,15 +243,15 @@ function updateStudentOfferPreview() {
     const serviceIds = document.querySelectorAll('input[name="service_ids"]:checked');
     const discountPercentage = document.getElementById('discountPercentage')?.value;
     const preview = document.getElementById('studentOfferPreview');
-    
+
     if (!preview) return;
-    
+
     if (serviceIds.length > 0 && discountPercentage) {
         const serviceNames = Array.from(serviceIds).map(input => {
             const label = input.closest('.form-check').querySelector('label');
             return label ? label.textContent.trim() : 'Unknown Service';
         });
-        
+
         preview.innerHTML = `
             <div class="alert alert-success">
                 <h6><i class="fas fa-graduation-cap me-2"></i>Student Offer Preview</h6>
@@ -262,34 +267,34 @@ function updateStudentOfferPreview() {
 
 function submitStudentOfferForm() {
     console.log('Submitting student offer form...');
-    
+
     if (!validateStudentOfferForm()) {
         alert('Please fill in all required fields');
         return;
     }
-    
+
     const form = document.getElementById('addStudentOfferForm');
     if (!form) {
         console.error('Add student offer form not found');
         return;
     }
-    
+
     const formData = new FormData(form);
     const selectedServices = Array.from(document.querySelectorAll('input[name="service_ids"]:checked'))
         .map(input => input.value);
-    
+
     // Clear existing service_ids and add selected ones
     formData.delete('service_ids');
     selectedServices.forEach(serviceId => {
         formData.append('service_ids', serviceId);
     });
-    
+
     // Show loading state
     const saveBtn = document.getElementById('saveStudentOffer');
     const originalText = saveBtn.innerHTML;
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-    
+
     fetch('/api/student-offers', {
         method: 'POST',
         body: formData
@@ -318,35 +323,35 @@ function submitStudentOfferForm() {
 
 function submitEditStudentOfferForm() {
     console.log('Submitting edit student offer form...');
-    
+
     const form = document.getElementById('editStudentOfferForm');
     if (!form) {
         console.error('Edit student offer form not found');
         return;
     }
-    
+
     const offerId = document.getElementById('editStudentOfferId').value;
     if (!offerId) {
         alert('No offer ID found for editing');
         return;
     }
-    
+
     const formData = new FormData(form);
     const selectedServices = Array.from(document.querySelectorAll('#editStudentOfferModal input[name="service_ids"]:checked'))
         .map(input => input.value);
-    
+
     // Clear existing service_ids and add selected ones
     formData.delete('service_ids');
     selectedServices.forEach(serviceId => {
         formData.append('service_ids', serviceId);
     });
-    
+
     // Show loading state
     const saveBtn = document.getElementById('saveEditStudentOffer');
     const originalText = saveBtn.innerHTML;
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-    
+
     fetch(`/api/student-offers/${offerId}`, {
         method: 'PUT',
         body: formData
@@ -375,13 +380,13 @@ function submitEditStudentOfferForm() {
 // Assignment functionality
 function submitAssignment() {
     console.log('Submitting package assignment...');
-    
+
     const form = document.getElementById('assignPackageForm');
     if (!form) {
         console.error('Assignment form not found');
         return;
     }
-    
+
     const formData = new FormData(form);
     const assignmentData = {
         customer_id: formData.get('customer_id'),
@@ -390,18 +395,18 @@ function submitAssignment() {
         price_paid: parseFloat(formData.get('custom_price')) || 0,
         notes: formData.get('notes') || ''
     };
-    
+
     if (!assignmentData.customer_id) {
         alert('Please select a customer');
         return;
     }
-    
+
     // Show loading state
     const submitBtn = document.querySelector('#assignPackageModal .btn-primary');
     const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-    
+
     fetch('/packages/api/assign', {
         method: 'POST',
         headers: {
@@ -433,10 +438,10 @@ function submitAssignment() {
 // Additional utility functions for package assignment
 function openAssignSimple(packageId, packageType) {
     console.log('Opening assign modal for:', packageType, packageId);
-    
+
     document.getElementById('assignOfferType').value = packageType;
     document.getElementById('assignOfferReferenceId').value = packageId;
-    
+
     const assignModal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
     assignModal.show();
 }

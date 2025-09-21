@@ -426,6 +426,33 @@ def api_create_student_offer():
         logging.error(f"Error creating student offer: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/student-offers/<int:offer_id>', methods=['GET'])
+@login_required
+def api_get_student_offer(offer_id):
+    """Get specific student offer by ID"""
+    try:
+        offer = get_student_offer_by_id(offer_id)
+        if not offer:
+            return jsonify({'success': False, 'error': 'Student offer not found'}), 404
+            
+        return jsonify({
+            'success': True,
+            'offer': {
+                'id': offer.id,
+                'discount_percentage': offer.discount_percentage,
+                'valid_from': offer.valid_from.isoformat() if offer.valid_from else None,
+                'valid_to': offer.valid_to.isoformat() if offer.valid_to else None,
+                'valid_days': offer.valid_days,
+                'conditions': offer.conditions,
+                'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price}
+                            for sos in offer.student_offer_services],
+                'is_active': offer.is_active
+            }
+        })
+    except Exception as e:
+        logging.error(f"Error getting student offer {offer_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/student-offers/<int:offer_id>', methods=['PUT'])
 @login_required
 def api_update_student_offer(offer_id):
