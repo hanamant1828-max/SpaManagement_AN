@@ -1763,6 +1763,373 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ========================================
+// STUDENT OFFER MANAGEMENT
+// ========================================
+
+// Load student offers packages
+async function loadStudentPackages() {
+    try {
+        console.log('Loading student offers...');
+        
+        const response = await fetch('/api/student-offers');
+        const data = await response.json();
+        
+        if (data && Array.isArray(data)) {
+            const tableBody = document.querySelector('#tblStudentOffers tbody');
+            tableBody.innerHTML = '';
+            
+            data.forEach(offer => {
+                const row = document.createElement('tr');
+                const servicesList = offer.services.map(s => s.name).join(', ');
+                const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
+                
+                row.innerHTML = `
+                    <td><strong>${offer.discount_percentage}%</strong></td>
+                    <td><small>${servicesList}</small></td>
+                    <td>${offer.valid_days}</td>
+                    <td><small>${validPeriod}</small></td>
+                    <td><small>${offer.conditions}</small></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-warning" onclick="editStudentOffer(${offer.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteStudentOffer(${offer.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn btn-primary" onclick="assignStudentOffer(${offer.id})" title="Assign">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Update count
+            document.getElementById('student-total-count').textContent = data.length;
+        }
+    } catch (error) {
+        console.error('Error loading student offers:', error);
+        showToast('Error loading student offers', 'error');
+    }
+}
+
+// Initialize student offer modals
+function initializeStudentOfferModals() {
+    // Load services into dropdowns
+    loadServicesForStudentOffers();
+    
+    // Set default dates (today and 6 months from now)
+    const today = new Date().toISOString().split('T')[0];
+    const sixMonthsLater = new Date();
+    sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+    const futureDate = sixMonthsLater.toISOString().split('T')[0];
+    
+    document.getElementById('studentValidFrom').value = today;
+    document.getElementById('studentValidTo').value = futureDate;
+    
+    // Form validation event listeners
+    const addForm = document.getElementById('addStudentOfferForm');
+    if (addForm) {
+        addForm.addEventListener('input', validateStudentOfferForm);
+        addForm.addEventListener('change', validateStudentOfferForm);
+    }
+    
+    // Valid days dropdown change handler
+    const validDaysSelect = document.getElementById('studentValidDays');
+    if (validDaysSelect) {
+        validDaysSelect.addEventListener('change', function() {
+            const customDiv = document.getElementById('customValidDaysDiv');
+            if (this.value === 'Custom') {
+                customDiv.style.display = 'block';
+            } else {
+                customDiv.style.display = 'none';
+            }
+        });
+    }
+    
+    // Edit form valid days handler
+    const editValidDaysSelect = document.getElementById('editStudentValidDays');
+    if (editValidDaysSelect) {
+        editValidDaysSelect.addEventListener('change', function() {
+            const editCustomDiv = document.getElementById('editCustomValidDaysDiv');
+            if (this.value === 'Custom') {
+                editCustomDiv.style.display = 'block';
+            } else {
+                editCustomDiv.style.display = 'none';
+            }
+        });
+    }
+    
+    // Save button event listener
+    const saveBtn = document.getElementById('saveStudentOffer');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveStudentOffer);
+    }
+    
+    // Update button event listener
+    const updateBtn = document.getElementById('updateStudentOffer');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', updateStudentOffer);
+    }
+}
+
+// Load services for student offer dropdowns
+async function loadServicesForStudentOffers() {
+    try {
+        const response = await fetch('/packages/api/services');
+        const data = await response.json();
+        
+        if (data.success) {
+            const addSelect = document.getElementById('studentOfferServices');
+            const editSelect = document.getElementById('editStudentOfferServices');
+            
+            const optionsHTML = data.services.map(service => 
+                `<option value="${service.id}">${service.name} - ₹${service.price}</option>`
+            ).join('');
+            
+            if (addSelect) addSelect.innerHTML = optionsHTML;
+            if (editSelect) editSelect.innerHTML = optionsHTML;
+        }
+    } catch (error) {
+        console.error('Error loading services:', error);
+    }
+}
+
+// Validate student offer form
+function validateStudentOfferForm() {
+    const services = document.getElementById('studentOfferServices');
+    const discount = document.getElementById('studentDiscountPercentage');
+    const validFrom = document.getElementById('studentValidFrom');
+    const validTo = document.getElementById('studentValidTo');
+    const saveBtn = document.getElementById('saveStudentOffer');
+    
+    const isValid = services.selectedOptions.length > 0 && 
+                   discount.value && parseFloat(discount.value) >= 1 && parseFloat(discount.value) <= 100 &&
+                   validFrom.value && validTo.value && new Date(validTo.value) > new Date(validFrom.value);
+    
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+    
+    // Update preview
+    updateStudentOfferPreview();
+}
+
+// Update student offer preview
+function updateStudentOfferPreview() {
+    const services = document.getElementById('studentOfferServices');
+    const discount = document.getElementById('studentDiscountPercentage');
+    const validDays = document.getElementById('studentValidDays');
+    const validFrom = document.getElementById('studentValidFrom');
+    const validTo = document.getElementById('studentValidTo');
+    const preview = document.getElementById('studentOfferPreview');
+    
+    if (services.selectedOptions.length > 0 && discount.value) {
+        const selectedServices = Array.from(services.selectedOptions).map(opt => opt.textContent);
+        const previewHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Services:</strong><br>
+                    <ul class="mb-2">
+                        ${selectedServices.map(s => `<li class="small">${s}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <strong>Discount:</strong> ${discount.value}%<br>
+                    <strong>Valid:</strong> ${validDays.value}<br>
+                    <strong>Period:</strong> ${validFrom.value} to ${validTo.value}
+                </div>
+            </div>
+        `;
+        preview.innerHTML = previewHTML;
+    } else {
+        preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
+    }
+}
+
+// Save student offer
+async function saveStudentOffer() {
+    try {
+        const form = document.getElementById('addStudentOfferForm');
+        const formData = new FormData(form);
+        
+        // Handle valid days
+        const validDaysSelect = document.getElementById('studentValidDays');
+        const customValidDays = document.getElementById('customValidDays');
+        if (validDaysSelect.value === 'Custom' && customValidDays.value) {
+            formData.set('valid_days', customValidDays.value);
+        }
+        
+        // Convert to JSON
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'service_ids') {
+                if (!data[key]) data[key] = [];
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
+        });
+        
+        const response = await fetch('/api/student-offers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success || response.ok) {
+            showToast('Student offer created successfully!', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentOfferModal'));
+            modal.hide();
+            
+            // Reset form
+            form.reset();
+            document.getElementById('saveStudentOffer').disabled = true;
+            
+            // Reload table
+            await loadStudentPackages();
+        } else {
+            throw new Error(result.error || 'Failed to create student offer');
+        }
+    } catch (error) {
+        console.error('Error saving student offer:', error);
+        showToast('Error creating student offer: ' + error.message, 'error');
+    }
+}
+
+// Edit student offer
+async function editStudentOffer(offerId) {
+    try {
+        const response = await fetch(`/api/student-offers`);
+        const offers = await response.json();
+        const offer = offers.find(o => o.id === offerId);
+        
+        if (offer) {
+            // Populate edit form
+            document.getElementById('editOfferId').value = offer.id;
+            document.getElementById('editStudentDiscountPercentage').value = offer.discount_percentage;
+            document.getElementById('editStudentValidDays').value = offer.valid_days;
+            document.getElementById('editStudentValidFrom').value = offer.valid_from;
+            document.getElementById('editStudentValidTo').value = offer.valid_to;
+            document.getElementById('editStudentConditions').value = offer.conditions;
+            
+            // Select services
+            const serviceSelect = document.getElementById('editStudentOfferServices');
+            Array.from(serviceSelect.options).forEach(option => {
+                option.selected = offer.services.some(s => s.id == option.value);
+            });
+            
+            // Handle custom valid days
+            if (!['Mon-Fri', 'Mon-Sat', 'All Days', 'Weekends'].includes(offer.valid_days)) {
+                document.getElementById('editStudentValidDays').value = 'Custom';
+                document.getElementById('editCustomValidDaysDiv').style.display = 'block';
+                document.getElementById('editCustomValidDays').value = offer.valid_days;
+            }
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editStudentOfferModal'));
+            modal.show();
+        }
+    } catch (error) {
+        console.error('Error loading student offer for edit:', error);
+        showToast('Error loading student offer', 'error');
+    }
+}
+
+// Update student offer
+async function updateStudentOffer() {
+    try {
+        const form = document.getElementById('editStudentOfferForm');
+        const formData = new FormData(form);
+        const offerId = document.getElementById('editOfferId').value;
+        
+        // Handle valid days
+        const validDaysSelect = document.getElementById('editStudentValidDays');
+        const customValidDays = document.getElementById('editCustomValidDays');
+        if (validDaysSelect.value === 'Custom' && customValidDays.value) {
+            formData.set('valid_days', customValidDays.value);
+        }
+        
+        // Convert to JSON
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'service_ids') {
+                if (!data[key]) data[key] = [];
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
+        });
+        
+        const response = await fetch(`/api/student-offers/${offerId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success || response.ok) {
+            showToast('Student offer updated successfully!', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentOfferModal'));
+            modal.hide();
+            
+            // Reload table
+            await loadStudentPackages();
+        } else {
+            throw new Error(result.error || 'Failed to update student offer');
+        }
+    } catch (error) {
+        console.error('Error updating student offer:', error);
+        showToast('Error updating student offer: ' + error.message, 'error');
+    }
+}
+
+// Delete student offer
+async function deleteStudentOffer(offerId) {
+    if (!confirm('Are you sure you want to delete this student offer?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/student-offers/${offerId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success || response.ok) {
+            showToast('Student offer deleted successfully!', 'success');
+            await loadStudentPackages();
+        } else {
+            throw new Error(result.error || 'Failed to delete student offer');
+        }
+    } catch (error) {
+        console.error('Error deleting student offer:', error);
+        showToast('Error deleting student offer: ' + error.message, 'error');
+    }
+}
+
+// Assign student offer
+function assignStudentOffer(offerId) {
+    // Implement assignment logic similar to other package types
+    console.log('Assigning student offer:', offerId);
+    showToast('Student offer assignment feature coming soon!', 'info');
+}
+
+// ========================================
 // GLOBAL FUNCTION ATTACHMENTS
 // ========================================
 // Attach functions to global scope for inline onclick handlers
@@ -1774,12 +2141,18 @@ window.openAdjustModal = openAdjustModal;
 window.clearFilters = clearFilters;
 window.applyFilters = applyFilters;
 window.changePage = changePage;
-window.confirmPackageAssignment = confirmPackageAssignment; // Add this line
+window.confirmPackageAssignment = confirmPackageAssignment;
+// Student offer functions
+window.loadStudentPackages = loadStudentPackages;
+window.editStudentOffer = editStudentOffer;
+window.deleteStudentOffer = deleteStudentOffer;
+window.assignStudentOffer = assignStudentOffer;
 
 
 // Event listeners and initializations
 document.addEventListener('DOMContentLoaded', function() {
-    // ... other initializations ...
+    // Initialize student offer modals
+    initializeStudentOfferModals();
 
     function updateSelectedServices() {
         const selectedServices = [];

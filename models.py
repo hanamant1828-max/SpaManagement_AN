@@ -491,21 +491,31 @@ class StudentOffer(db.Model):
     __tablename__ = "student_offers"
     
     id = db.Column(db.Integer, primary_key=True)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    service_name = db.Column(db.String(100), nullable=False)  # Keep for backward compatibility
-    actual_price = db.Column(db.Float, nullable=False)
-    discount_percent = db.Column(db.Float, nullable=False)
-    after_price = db.Column(db.Float, nullable=False)
-    valid_days = db.Column(db.String(50))  # e.g. "Mon-Fri"
+    discount_percentage = db.Column(db.Float, nullable=False)  # 1-100
+    valid_from = db.Column(db.Date, nullable=False)
+    valid_to = db.Column(db.Date, nullable=False)
+    valid_days = db.Column(db.String(50), default="Mon-Fri")  # e.g. "Mon-Fri"
+    conditions = db.Column(db.Text, default="Valid with Student ID")
     is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    student_offer_services = db.relationship('StudentOfferService', backref='student_offer', lazy=True, cascade='all, delete-orphan')
+
+class StudentOfferService(db.Model):
+    """Many-to-many relationship for student offers and services"""
+    __tablename__ = 'student_offer_services'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    offer_id = db.Column(db.Integer, db.ForeignKey('student_offers.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    service = db.relationship('Service', backref='student_offers')
+    service = db.relationship('Service', backref='student_offer_services')
 
-    @property
-    def money_saved(self):
-        return self.actual_price - self.after_price
+    __table_args__ = (db.UniqueConstraint('offer_id', 'service_id'),)
 
 class YearlyMembership(db.Model):
     """Yearly membership packages"""

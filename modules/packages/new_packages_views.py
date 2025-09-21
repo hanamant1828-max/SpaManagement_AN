@@ -312,13 +312,13 @@ def api_get_student_offers():
         offers = get_all_student_offers()
         return jsonify([{
             'id': o.id,
-            'service_id': o.service_id,
-            'service_name': o.service.name if o.service else o.service_name,
-            'actual_price': o.actual_price,
-            'discount_percent': o.discount_percent,
-            'after_price': o.after_price,
-            'money_saved': o.money_saved,
+            'discount_percentage': o.discount_percentage,
+            'valid_from': o.valid_from.isoformat(),
+            'valid_to': o.valid_to.isoformat(),
             'valid_days': o.valid_days,
+            'conditions': o.conditions,
+            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price} 
+                        for sos in o.student_offer_services],
             'is_active': o.is_active,
             'created_at': o.created_at.isoformat()
         } for o in offers])
