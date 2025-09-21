@@ -1677,7 +1677,9 @@ function submitKittyForm() {
     const servicesSelect = document.getElementById('kittyServicesSelect');
     if (servicesSelect) {
         Array.from(servicesSelect.selectedOptions).forEach(option => {
-            selectedServices.push(parseInt(option.value));
+            if (option.value && option.value !== "") {
+                selectedServices.push(parseInt(option.value));
+            }
         });
     }
 
@@ -1691,16 +1693,36 @@ function submitKittyForm() {
     // Add selected services
     data.service_ids = selectedServices;
 
-    // Validate required fields
-    if (!data.name || !data.price || !data.min_guests) {
-        alert('Please fill in all required fields');
+    // Validate required fields with better error messages
+    if (!data.name || data.name.trim() === '') {
+        alert('Please enter a party name');
+        document.querySelector('[name="name"]').focus();
+        return;
+    }
+
+    if (!data.price || parseFloat(data.price) <= 0) {
+        alert('Please enter a valid price');
+        document.querySelector('[name="price"]').focus();
+        return;
+    }
+
+    if (!data.min_guests || parseInt(data.min_guests) <= 0) {
+        alert('Please enter minimum number of guests');
+        document.querySelector('[name="min_guests"]').focus();
         return;
     }
 
     if (!data.service_ids || data.service_ids.length === 0) {
-        alert('Please select at least one service');
+        alert('Please select at least one service for this kitty party');
+        servicesSelect.focus();
+        // Add visual indication
+        servicesSelect.classList.add('is-invalid');
         return;
+    } else {
+        servicesSelect.classList.remove('is-invalid');
     }
+
+    console.log('Submitting kitty party data:', data);
 
     fetch('/api/kitty-parties', {
         method: 'POST',
@@ -1710,19 +1732,19 @@ function submitKittyForm() {
         body: JSON.stringify(data)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
+    .then(result => {
+        if (result.success) {
+            alert('Kitty party created successfully!');
             const modal = bootstrap.Modal.getInstance(document.getElementById('kittyModal'));
             modal.hide();
             location.reload();
         } else {
-            alert('Error: ' + data.error);
+            alert('Error: ' + (result.error || 'Failed to create kitty party'));
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error creating kitty party');
+        alert('Error creating kitty party. Please try again.');
     });
 }
 
@@ -1732,31 +1754,82 @@ document.addEventListener('DOMContentLoaded', function() {
     if (kittyModal) {
         kittyModal.addEventListener('shown.bs.modal', function() {
             loadServicesForKittyParty();
+            
+            // Add real-time validation
+            const form = document.getElementById('kittyForm');
+            const servicesSelect = document.getElementById('kittyServicesSelect');
+            
+            // Validate services selection on change
+            if (servicesSelect) {
+                servicesSelect.addEventListener('change', function() {
+                    if (this.selectedOptions.length > 0) {
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+                    } else {
+                        this.classList.remove('is-valid');
+                        this.classList.add('is-invalid');
+                    }
+                });
+            }
+            
+            // Reset form and validation when modal opens
+            if (form) {
+                form.reset();
+                form.querySelectorAll('.is-invalid, .is-valid').forEach(el => {
+                    el.classList.remove('is-invalid', 'is-valid');
+                });
+            }
         });
     }
 });
 
 // Load services for kitty party modal
 function loadServicesForKittyParty() {
+    console.log('Loading services for kitty party...');
+    
     fetch('/packages/api/services')
-        .then(response => response.json())
+        .then(response => {
+            console.log('Services API response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Services API response:', data);
+            
             if (data.success) {
                 const select = document.getElementById('kittyServicesSelect');
                 if (select) {
-                    select.innerHTML = '';
+                    select.innerHTML = '<option value="">Select services...</option>';
                     
-                    data.services.forEach(service => {
-                        const option = document.createElement('option');
-                        option.value = service.id;
-                        option.textContent = `${service.name} - ₹${service.price}`;
-                        select.appendChild(option);
-                    });
+                    if (data.services && data.services.length > 0) {
+                        data.services.forEach(service => {
+                            const option = document.createElement('option');
+                            option.value = service.id;
+                            option.textContent = `${service.name} - ₹${service.price}`;
+                            select.appendChild(option);
+                        });
+                        
+                        console.log(`Loaded ${data.services.length} services into kitty party dropdown`);
+                    } else {
+                        select.innerHTML = '<option value="">No services available</option>';
+                        console.warn('No services found in API response');
+                    }
+                } else {
+                    console.error('kittyServicesSelect element not found');
+                }
+            } else {
+                console.error('API returned error:', data.error || 'Unknown error');
+                const select = document.getElementById('kittyServicesSelect');
+                if (select) {
+                    select.innerHTML = '<option value="">Error loading services</option>';
                 }
             }
         })
         .catch(error => {
             console.error('Error loading services:', error);
+            const select = document.getElementById('kittyServicesSelect');
+            if (select) {
+                select.innerHTML = '<option value="">Error loading services</option>';
+            }
         });
 }
 
