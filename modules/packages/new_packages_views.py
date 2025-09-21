@@ -4,7 +4,7 @@ New Package Management Views - Separate endpoints for each package type
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
-from models import Service, ServicePackage # Added ServicePackage to imports
+from models import Service, ServicePackage, ServicePackageAssignment, Customer, PrepaidPackage, Membership # Added missing imports
 from .new_packages_queries import *
 import logging
 from datetime import datetime, timedelta
@@ -764,14 +764,20 @@ def assign_package():
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
+        # Handle both client_id and customer_id for compatibility
+        customer_id = data.get('client_id') or data.get('customer_id')
+        
         # Validate required fields
-        required_fields = ['package_id', 'package_type', 'client_id', 'price_paid']
+        if not customer_id:
+            return jsonify({'success': False, 'error': 'client_id or customer_id is required'}), 400
+        
+        required_fields = ['package_id', 'package_type', 'price_paid']
         for field in required_fields:
             if field not in data:
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
 
         # Get customer
-        customer = Customer.query.get(data['client_id'])
+        customer = Customer.query.get(customer_id)
         if not customer:
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
@@ -793,7 +799,7 @@ def assign_package():
 
             # Create assignment record
             assignment = ServicePackageAssignment(
-                customer_id=data['client_id'],
+                customer_id=customer_id,
                 package_type='membership',
                 package_reference_id=membership.id,
                 service_id=data.get('service_id'),  # Optional for memberships
@@ -827,7 +833,7 @@ def assign_package():
 
             # Create assignment record
             assignment = ServicePackageAssignment(
-                customer_id=data['client_id'],
+                customer_id=customer_id,
                 package_type='prepaid',
                 package_reference_id=prepaid.id,
                 service_id=None,  # Prepaid packages are service-agnostic
@@ -843,7 +849,7 @@ def assign_package():
                 remaining_sessions=0,
                 credit_amount=prepaid.after_value,
                 used_credit=0,
-                remaining_credit=prepaid.after_value
+                remaining_credit=0
             )
 
         elif package_type == 'service_package':
@@ -865,7 +871,7 @@ def assign_package():
 
             # Create assignment record
             assignment = ServicePackageAssignment(
-                customer_id=data['client_id'],
+                customer_id=customer_id,
                 package_type='service_package',
                 package_reference_id=service_pkg.id,
                 service_id=data['service_id'],
