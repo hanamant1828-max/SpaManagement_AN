@@ -251,3 +251,9 @@ secrets.txt
 
 # Keep the database file - this is our demo data!
 # DO NOT ignore instance/spa_management.db - we want this in version control
+
+# Vercel
+.vercel
+
+# Local database directories (for Vercel deployment)
+hanamantdatabase/
