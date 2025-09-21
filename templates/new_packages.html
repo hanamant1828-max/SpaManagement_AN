@@ -1703,27 +1703,58 @@ function loadServicesForKittyParty() {
 function submitKittyForm() {
     const form = document.getElementById('kittyForm');
     const formData = new FormData(form);
-    const submitBtn = form.querySelector('button[type="button"][onclick="submitKittyForm()"]'); // Get the submit button
+    
+    // Fix: Find the submit button in the modal footer, not inside the form
+    const submitBtn = document.querySelector('#kittyModal .modal-footer .btn-primary');
 
-    // Disable submit button to prevent multiple submissions
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    // Check if services are still loading
+    const loadingDiv = document.getElementById('servicesLoading');
+    if (loadingDiv && loadingDiv.style.display !== 'none') {
+        alert('Please wait for services to load before submitting');
+        return;
+    }
 
+    // Check if button was found before trying to disable it
+    if (submitBtn) {
+        // Disable submit button to prevent multiple submissions
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
 
     // Convert FormData to JSON and collect selected services
     const data = {};
     const selectedServices = [];
 
-    // Get selected services from checkboxes
-    const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+    // Get selected services from checkboxes - improved selector
+    const serviceCheckboxes = document.querySelectorAll('#kittyServicesCheckboxes input[name="service_ids"]:checked');
     const serviceIds = Array.from(serviceCheckboxes).map(cb => parseInt(cb.value));
 
-    // Validate at least one service is selected
+    console.log('Found service checkboxes:', document.querySelectorAll('#kittyServicesCheckboxes input[name="service_ids"]').length);
+    console.log('Selected service checkboxes:', serviceCheckboxes.length);
+    console.log('Selected service IDs:', serviceIds);
+
+    // Better validation with visual feedback
+    const servicesContainer = document.getElementById('kittyServicesContainer');
+    const invalidFeedback = servicesContainer.parentElement.querySelector('.invalid-feedback');
+    
     if (serviceIds.length === 0) {
+        // Show visual validation feedback
+        servicesContainer.classList.add('border-danger');
+        if (invalidFeedback) {
+            invalidFeedback.style.display = 'block';
+        }
         alert('Please select at least one service for this kitty party');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
         return;
+    } else {
+        // Remove error styling if services are selected
+        servicesContainer.classList.remove('border-danger');
+        if (invalidFeedback) {
+            invalidFeedback.style.display = 'none';
+        }
     }
 
     data.service_ids = serviceIds;
@@ -1741,32 +1772,40 @@ function submitKittyForm() {
     if (!data.name || data.name.trim() === '') {
         alert('Please enter a party name');
         document.querySelector('[name="name"]').focus();
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
         return;
     }
 
     if (!data.price || parseFloat(data.price) <= 0) {
         alert('Please enter a valid price');
         document.querySelector('[name="price"]').focus();
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
         return;
     }
 
     if (!data.min_guests || parseInt(data.min_guests) <= 0) {
         alert('Please enter minimum number of guests');
         document.querySelector('[name="min_guests"]').focus();
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
         return;
     }
 
     // Check validity dates if they exist
     if (data.valid_from && data.valid_to && new Date(data.valid_to) < new Date(data.valid_from)) {
         alert('Valid To date cannot be before Valid From date.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
         return;
     }
 
@@ -1789,15 +1828,19 @@ function submitKittyForm() {
             location.reload();
         } else {
             alert('Error: ' + (result.error || 'Failed to create kitty party'));
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Save Party';
+            }
         }
     })
     .catch(error => {
         console.error('Error:', error);
         alert('Error creating kitty party. Please try again.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save Party';
+        }
     });
 }
 
