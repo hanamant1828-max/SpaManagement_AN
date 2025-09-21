@@ -104,6 +104,12 @@ def ping():
     """Simple health check endpoint"""
     return 'OK'
 
+# Add favicon route to prevent 404 errors
+@app.route('/favicon.ico')
+def favicon():
+    """Return favicon response to prevent 404 errors"""
+    return '', 204
+
 # Add response headers for Replit Preview compatibility
 @app.after_request
 def after_request(response):
