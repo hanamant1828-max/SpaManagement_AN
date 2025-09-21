@@ -3,19 +3,13 @@ Customer views and routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app import app
-from forms import CustomerForm, AdvancedCustomerForm
-from .clients_queries import (
-    get_all_customers, get_customer_by_id, search_customers, create_customer,
-    update_customer, delete_customer, get_customer_appointments,
-    get_customer_communications, get_customer_stats
-)
-# Late imports to avoid circular dependency
-from app import db
+from app import app, db
+from models import Customer
+from .clients_queries import *
 
 @app.route('/customers')
 @app.route('/clients')  # Keep for backward compatibility
-@login_required  
+@login_required
 def customers():
     if not current_user.can_access('clients'):
         flash('Access denied', 'danger')
@@ -270,14 +264,14 @@ def delete_customer_api(id):
         db.session.commit()
 
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': f'Customer "{customer_name}" deleted successfully'
         }), 200
 
     except Exception as e:
         db.session.rollback()
         return jsonify({
-            'success': False, 
+            'success': False,
             'message': 'Internal server error'
         }), 500
 
