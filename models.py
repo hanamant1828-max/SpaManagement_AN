@@ -18,7 +18,7 @@ class Role(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    users = db.relationship('User', backref='role', lazy=True, foreign_keys='User.role_id')
+    users = db.relationship('User', backref='dynamic_role', lazy=True, foreign_keys='User.role_id')
     permissions = db.relationship('RolePermission', backref='role', lazy=True, cascade='all, delete-orphan')
 
 class Permission(db.Model):
@@ -186,8 +186,8 @@ class User(UserMixin, db.Model):
 
     def has_role(self, role):
         # Support both dynamic and legacy role systems
-        if self.role_id and hasattr(self, 'role') and self.role:
-            return self.role.name == role
+        if self.role_id and hasattr(self, 'dynamic_role') and self.dynamic_role:
+            return self.dynamic_role.name == role
         return self.role == role
 
     def can_access(self, resource):
@@ -218,7 +218,7 @@ class User(UserMixin, db.Model):
         required_permissions = resource_permissions.get(resource, [])
         if not required_permissions:
             # If resource not defined, check basic role access
-            return self.role in ['manager', 'staff'] or (hasattr(self, 'role') and self.role and self.role.is_active)
+            return self.role in ['manager', 'staff'] or (hasattr(self, 'dynamic_role') and self.dynamic_role and self.dynamic_role.is_active)
 
         # Check dynamic role system first
         if self.role_id:
