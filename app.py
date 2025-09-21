@@ -1,12 +1,12 @@
 import os
 import re
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import event
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager, login_required, current_user
 # Department will be imported inside functions to avoid circular imports
 
 
@@ -15,16 +15,16 @@ def compute_sqlite_uri():
     # Create base directory for databases
     base_dir = os.path.join(os.getcwd(), 'hanamantdatabase')
     os.makedirs(base_dir, exist_ok=True)
-    
+
     # Determine instance identifier
     instance = os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'
-    
+
     # Sanitize instance name to prevent path traversal
     instance = re.sub(r'[^A-Za-z0-9_-]', '_', instance)
-    
+
     # Create absolute path to database file
     db_path = os.path.abspath(os.path.join(base_dir, f'{instance}.db'))
-    
+
     # Return SQLite URI with absolute path
     return f'sqlite:///{db_path}'
 
@@ -116,17 +116,17 @@ def after_request(response):
     """Add headers for Replit Preview and CORS"""
     # Allow embedding in Replit Preview
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    
+
     # CORS headers for Replit environment
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
-    
+
     # Cache control for development
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
-    
+
     return response
 
 # Basic routes removed to avoid conflicts with main application routes
@@ -140,7 +140,7 @@ def init_app():
             event.listen(db.engine, 'connect', configure_sqlite_pragmas)
             print(f"SQLite PRAGMAs configured for: {app.config['SQLALCHEMY_DATABASE_URI']}")
             print(f"Instance identifier: {os.environ.get('SPA_DB_INSTANCE') or os.environ.get('REPL_SLUG') or 'default'}")
-            
+
             # Make sure to import the models here or their tables won't be created
             import models  # noqa: F401
             # Import inventory models for database creation
@@ -279,6 +279,13 @@ def api_delete_department(dept_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/')
+def index():
+    """Root route - redirect to dashboard if authenticated, otherwise to login"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
 # Ensure app is available for gunicorn
 if __name__ != '__main__':
