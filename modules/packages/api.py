@@ -2,10 +2,11 @@
 Customer Packages API - JSON endpoints for customer package management
 This file provides additional API utilities and helpers for the packages system
 """
-from flask import jsonify
-from models import PackageTemplate, CustomerPackage, CustomerPackageItem, PackageUsage
-from models import Service, Customer, User
-from datetime import datetime
+from flask import Blueprint, jsonify, request
+from flask_login import login_required, current_user
+from app import db
+from models import Customer, Service, PrepaidPackage, ServicePackage, Membership
+import datetime
 from sqlalchemy import and_, or_, desc, func
 import logging
 
@@ -14,7 +15,7 @@ def format_package_data(package):
     try:
         # Auto-update status
         package.auto_update_status()
-        
+
         return {
             'id': package.id,
             'customer_id': package.customer_id,
@@ -71,51 +72,51 @@ def format_usage_data(usage):
 def validate_package_assignment_data(data):
     """Validate data for package assignment"""
     errors = []
-    
+
     # Required fields
     required_fields = ['customer_id', 'package_id', 'price_paid']
     for field in required_fields:
         if field not in data or not data[field]:
             errors.append(f'{field} is required')
-    
+
     # Validate numeric fields
     if 'price_paid' in data:
         try:
             float(data['price_paid'])
         except (ValueError, TypeError):
             errors.append('price_paid must be a valid number')
-    
+
     if 'discount' in data and data['discount']:
         try:
             float(data['discount'])
         except (ValueError, TypeError):
             errors.append('discount must be a valid number')
-    
+
     # Validate IDs exist
     if 'customer_id' in data:
         customer = Customer.query.get(data['customer_id'])
         if not customer:
             errors.append('Customer not found')
-    
+
     if 'package_id' in data:
         template = PackageTemplate.query.get(data['package_id'])
         if not template:
             errors.append('Package template not found')
         elif not template.is_active:
             errors.append('Package template is not active')
-    
+
     return errors
 
 def validate_usage_data(data):
     """Validate data for package usage"""
     errors = []
-    
+
     # Required fields
     required_fields = ['service_id', 'qty']
     for field in required_fields:
         if field not in data or data[field] is None:
             errors.append(f'{field} is required')
-    
+
     # Validate quantity
     if 'qty' in data:
         try:
@@ -124,7 +125,7 @@ def validate_usage_data(data):
                 errors.append('quantity must be greater than 0')
         except (ValueError, TypeError):
             errors.append('quantity must be a valid integer')
-    
+
     # Validate service exists
     if 'service_id' in data:
         service = Service.query.get(data['service_id'])
@@ -132,7 +133,7 @@ def validate_usage_data(data):
             errors.append('Service not found')
         elif not service.is_active:
             errors.append('Service is not active')
-    
+
     # Validate staff if provided
     if data.get('staff_id'):
         staff = User.query.get(data['staff_id'])
@@ -140,23 +141,23 @@ def validate_usage_data(data):
             errors.append('Staff member not found')
         elif not staff.is_active:
             errors.append('Staff member is not active')
-    
+
     return errors
 
 def validate_adjustment_data(data):
     """Validate data for package adjustment"""
     errors = []
-    
+
     # Required fields
     required_fields = ['service_id', 'qty', 'reason', 'change_type']
     for field in required_fields:
         if field not in data or not data[field]:
             errors.append(f'{field} is required')
-    
+
     # Validate change type
     if 'change_type' in data and data['change_type'] not in ['refund', 'adjust']:
         errors.append('change_type must be either "refund" or "adjust"')
-    
+
     # Validate quantity
     if 'qty' in data:
         try:
@@ -165,20 +166,20 @@ def validate_adjustment_data(data):
                 errors.append('quantity must be greater than 0')
         except (ValueError, TypeError):
             errors.append('quantity must be a valid integer')
-    
+
     # Validate service exists
     if 'service_id' in data:
         service = Service.query.get(data['service_id'])
         if not service:
             errors.append('Service not found')
-    
+
     return errors
 
 def get_package_statistics():
     """Get package statistics for dashboard"""
     try:
         from app import db
-        
+
         stats = {
             'total_packages': CustomerPackage.query.count(),
             'active_packages': CustomerPackage.query.filter_by(status='active').count(),
@@ -188,23 +189,23 @@ def get_package_statistics():
             'total_services_sold': 0,
             'total_services_used': 0
         }
-        
+
         # Calculate revenue
         revenue_result = db.session.query(func.sum(CustomerPackage.price_paid)).scalar()
         stats['total_revenue'] = float(revenue_result) if revenue_result else 0
-        
+
         # Calculate services
         services_result = db.session.query(
             func.sum(CustomerPackageItem.total_qty),
             func.sum(CustomerPackageItem.used_qty)
         ).first()
-        
+
         if services_result and services_result[0]:
             stats['total_services_sold'] = int(services_result[0])
             stats['total_services_used'] = int(services_result[1]) if services_result[1] else 0
-        
+
         return stats
-    
+
     except Exception as e:
         logging.error(f"Error getting package statistics: {e}")
         return {
@@ -220,15 +221,15 @@ def get_package_statistics():
 def build_package_filters(args):
     """Build database filters from query arguments"""
     filters = []
-    
+
     # Customer filter
     if args.get('customer_id'):
         filters.append(CustomerPackage.customer_id == args['customer_id'])
-    
+
     # Status filter
     if args.get('status'):
         filters.append(CustomerPackage.status == args['status'])
-    
+
     # Date range filters
     if args.get('date_from'):
         try:
@@ -236,7 +237,7 @@ def build_package_filters(args):
             filters.append(CustomerPackage.assigned_on >= date_from)
         except ValueError:
             pass
-    
+
     if args.get('date_to'):
         try:
             date_to = datetime.strptime(args['date_to'], '%Y-%m-%d')
@@ -245,18 +246,18 @@ def build_package_filters(args):
             filters.append(CustomerPackage.assigned_on <= date_to)
         except ValueError:
             pass
-    
+
     return filters
 
 def check_package_permissions(user, action, package=None):
     """Check if user has permission for package action"""
     if not hasattr(user, 'can_access'):
         return False
-    
+
     # Basic package access
     if not user.can_access('packages'):
         return False
-    
+
     # Action-specific permissions
     if action == 'create':
         return user.has_role('admin') or user.has_role('manager')
@@ -268,7 +269,7 @@ def check_package_permissions(user, action, package=None):
         return True  # All package users can record usage
     elif action == 'adjust':
         return user.has_role('admin') or user.has_role('manager')
-    
+
     return True
 
 def create_success_response(message, data=None):
@@ -290,6 +291,60 @@ def create_error_response(error, status_code=400):
         'Package expired': 'This package has expired.',
         'Package not active': 'This package is not active.'
     }
-    
+
     friendly_error = friendly_messages.get(error, error)
     return jsonify({'success': False, 'error': friendly_error}), status_code
+
+@packages_api.route('/service-packages', methods=['POST'])
+@login_required
+def create_service_package():
+    """Create a new service package"""
+    try:
+        # Get form data
+        name = request.form.get('name')
+        pay_for = int(request.form.get('pay_for', 0))
+        total_services = int(request.form.get('total_services', 0))
+        free_services = int(request.form.get('free_services', 0))
+        benefit_percentage = float(request.form.get('benefit_percentage', 0))
+        validity_months = int(request.form.get('validity_months', 12))
+
+        # Validate required fields
+        if not name or pay_for <= 0 or total_services <= 0:
+            return jsonify({
+                'success': False,
+                'message': 'Please provide valid package name, pay for amount, and total services'
+            }), 400
+
+        # Create service package
+        service_package = ServicePackage(
+            name=name,
+            pay_for=pay_for,
+            total_services=total_services,
+            free_services=free_services,
+            benefit_percentage=benefit_percentage,
+            validity_months=validity_months,
+            is_active=True,
+            created_by=current_user.id,
+            created_at=datetime.datetime.now()
+        )
+
+        db.session.add(service_package)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Service package created successfully',
+            'package_id': service_package.id
+        })
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'message': 'Invalid input values provided'
+        }), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error creating service package: {str(e)}'
+        }), 500

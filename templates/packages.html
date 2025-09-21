@@ -304,7 +304,7 @@
                                 <input type="number" name="total_sessions" id="totalSessions" class="form-control" readonly>
                             </div>
                         </div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Benefit Percentage</label>
@@ -315,7 +315,7 @@
                                 <input type="number" name="validity_months" id="validityMonths" class="form-control" min="1" value="3">
                             </div>
                         </div>
-                        
+
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Service Selection:</strong> The specific service will be chosen when assigning this package to a customer.
@@ -372,7 +372,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Package</button>
+                    <button type="button" class="btn btn-primary" onclick="submitServiceForm()">Create Package</button>
                 </div>
             </form>
         </div>
@@ -394,7 +394,7 @@
                     <input type="hidden" id="assign_package_id" name="package_id">
                     <input type="hidden" id="assign_package_name" name="package_name">
                     <input type="hidden" id="assign_package_type" name="package_type">
-                    
+
                     <!-- Package Info Display -->
                     <div class="alert alert-info mb-4">
                         <h6 class="alert-heading mb-2">
@@ -425,7 +425,7 @@
                                 Please select a customer.
                             </div>
                         </div>
-                        
+
                         <div class="col-md-4">
                             <label class="form-label">
                                 <i class="fas fa-rupee-sign me-1"></i>Custom Price
@@ -458,7 +458,7 @@
                             </label>
                             <input type="number" id="assign_discount" name="discount" class="form-control" step="0.01" min="0" max="100" value="0">
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label class="form-label">
                                 <i class="fas fa-calendar me-1"></i>Expiry Date
@@ -649,11 +649,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function calculateServicePackageValues() {
         const payFor = parseInt(payForInput.value) || 0;
         const free = parseInt(freeInput.value) || 0;
-        
+
         // Calculate total
         const total = payFor + free;
         totalInput.value = total;
-        
+
         // Calculate benefit percentage
         if (payFor > 0) {
             const benefitPercent = (free / payFor) * 100;
@@ -699,6 +699,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Service package form submission
+function submitServiceForm() {
+    const form = document.getElementById('servicePackageForm');
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
+    // Ensure selected_services is updated before submitting
+    updateSelectedServices(); // Call this to ensure the hidden field has the latest data
+
+    fetch("{{ url_for('add_package') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast('Package created successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addPackageModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error creating package: ' + result.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('An unexpected error occurred.', 'error');
+    });
+}
+
+
 // Package filtering
 function filterPackages(type) {
     const rows = document.querySelectorAll('[data-package-type]');
@@ -724,21 +760,21 @@ function openAssignPackageModal(packageId, packageName, packageType) {
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
     document.getElementById('assign_package_type').value = packageType;
-    
+
     // Display package info
     document.getElementById('display_package_name').textContent = packageName;
     document.getElementById('display_package_type').textContent = packageType.replace('_', ' ').toUpperCase();
-    
+
     // Reset form
     document.getElementById('assignPackageForm').reset();
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
     document.getElementById('assign_package_type').value = packageType;
-    
+
     // Update modal title
     document.getElementById('assignPackageModalTitle').innerHTML = 
         `<i class="fas fa-user-plus me-2"></i>Assign "${packageName}" to Customer`;
-    
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
     modal.show();
@@ -747,7 +783,7 @@ function openAssignPackageModal(packageId, packageName, packageType) {
 function confirmPackageAssignment() {
     const form = document.getElementById('assignPackageForm');
     const formData = new FormData(form);
-    
+
     // Validate required fields
     const customerId = document.getElementById('assign_customer_id').value;
     if (!customerId) {
@@ -755,16 +791,16 @@ function confirmPackageAssignment() {
         showToast('Please select a customer', 'error');
         return;
     }
-    
+
     // Remove validation classes
     document.getElementById('assign_customer_id').classList.remove('is-invalid');
-    
+
     // Disable button during submission
     const submitButton = document.getElementById('confirmAssignButton');
     const originalText = submitButton.innerHTML;
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-    
+
     const data = {};
     formData.forEach((value, key) => {
         if (value) data[key] = value;
@@ -781,7 +817,7 @@ function confirmPackageAssignment() {
     .then(data => {
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
-        
+
         if (data.success) {
             showToast('Package assigned successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
@@ -807,14 +843,14 @@ function viewPackageDetails(packageId) {
 function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toastContainer') || createToastContainer();
     const toastId = 'toast_' + Date.now();
-    
+
     const bgClass = {
         'success': 'bg-success',
         'error': 'bg-danger', 
         'warning': 'bg-warning',
         'info': 'bg-info'
     }[type] || 'bg-info';
-    
+
     const toastHTML = `
         <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header ${bgClass} text-white">
@@ -827,11 +863,11 @@ function showToast(message, type = 'info') {
             </div>
         </div>
     `;
-    
+
     toastContainer.insertAdjacentHTML('beforeend', toastHTML);
     const toast = new bootstrap.Toast(document.getElementById(toastId));
     toast.show();
-    
+
     // Remove toast element after hiding
     document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
         this.remove();

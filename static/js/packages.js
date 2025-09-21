@@ -714,6 +714,76 @@ function openPrepaidAssignModal(template) {
 }
 
 // Load customers for prepaid modal
+// Service Package Form Submission
+function submitServiceForm() {
+    console.log('Submitting service package form...');
+    
+    try {
+        const form = document.getElementById('servicePackageForm');
+        if (!form) {
+            console.error('Service package form not found');
+            return;
+        }
+
+        const formData = new FormData(form);
+        
+        // Validate required fields
+        const packageName = formData.get('name');
+        const payFor = formData.get('pay_for');
+        const totalServices = formData.get('total_services');
+        
+        if (!packageName || !payFor || !totalServices) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        // Show loading state
+        const saveButton = document.querySelector('#servicePackageModal .btn-primary');
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        }
+
+        fetch('/packages/api/service-packages', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('servicePackageModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Show success message
+                alert('Service package created successfully!');
+                
+                // Reload the page to show new package
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Failed to create service package'));
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting service package:', error);
+            alert('Error creating service package. Please try again.');
+        })
+        .finally(() => {
+            // Reset button state
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = 'Save Package';
+            }
+        });
+        
+    } catch (error) {
+        console.error('Service form submission error:', error);
+        alert('Error submitting form. Please try again.');
+    }
+}
+
 function loadCustomersForPrepaid() {
     return fetch('/packages/api/customers?q=')
         .then(response => response.json())
@@ -751,7 +821,7 @@ function loadServicesForPrepaid() {
         });
 }
 
-// Validate prepaid form and enable/disable save button
+// Validate prepaid form and enable/disable save buttonon
 function validatePrepaidForm() {
     const customer = document.getElementById('apCustomer').value;
     const service = document.getElementById('apService').value;
