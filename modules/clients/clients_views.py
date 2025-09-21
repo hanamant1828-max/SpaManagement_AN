@@ -229,16 +229,19 @@ def delete_client_route(id):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    client = get_customer_by_id(id)
-    client_name = f"{client.first_name} {client.last_name}" if client else "Customer"
-
     try:
+        # Import Customer model directly to avoid import issues
+        from models import Customer
+        
+        client = get_customer_by_id(id)
+        client_name = f"{client.first_name} {client.last_name}" if client else "Customer"
+
         if delete_customer(id):
             flash(f'Customer "{client_name}" has been deleted successfully!', 'success')
         else:
             flash(f'Unable to delete customer "{client_name}". This customer may have associated appointments or records.', 'warning')
     except Exception as e:
-        flash(f'Error deleting customer "{client_name}": {str(e)}', 'danger')
+        flash(f'Error deleting customer: {str(e)}', 'danger')
 
     return redirect(url_for('customers'))
 

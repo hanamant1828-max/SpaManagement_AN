@@ -1817,26 +1817,28 @@
             // Escape customer name for safe display
             const safeName = customerName ? customerName.replace(/'/g, "\\'") : 'this customer';
 
-            if (confirm(`Are you sure you want to delete customer "${safeName}"?`)) {
-                fetch(`/delete_customer/${customerId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        location.reload(); // Refresh the page to update the customer list
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting customer:', error);
-                    alert('Failed to delete customer. Please try again.');
-                });
+            if (confirm(`Are you sure you want to delete customer "${safeName}"?\n\nThis action will deactivate the customer but preserve their data.`)) {
+                // Show loading notification
+                showNotification('Deleting customer...', 'info');
+
+                // Use the POST route that actually works
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/clients/delete/${customerId}`;
+                form.style.display = 'none';
+
+                // Add CSRF token if available
+                const csrfToken = document.querySelector('meta[name=csrf-token]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = csrfToken.getAttribute('content');
+                    form.appendChild(csrfInput);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
             }
         }
 
@@ -1854,6 +1856,16 @@
             if (currentEditCustomerId) {
                 bookAppointment(currentEditCustomerId);
             } else {
+                // Get customer ID from the modal if available
+                const customerDetails = document.getElementById('customerDetails');
+                if (customerDetails) {
+                    // Try to extract customer ID from the modal content
+                    const customerIdMatch = customerDetails.innerHTML.match(/data-customer-id="(\d+)"/);
+                    if (customerIdMatch) {
+                        bookAppointment(parseInt(customerIdMatch[1]));
+                        return;
+                    }
+                }
                 alert('No customer selected');
             }
         }
