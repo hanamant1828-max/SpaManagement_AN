@@ -1,0 +1,50 @@
+I have a comprehensive Flask-based spa management system with advanced membership management functionality. Please analyze the membership management logic and provide detailed insights.
+
+System Overview:
+
+Flask web application with SQLAlchemy ORM
+SQLite database with comprehensive spa management modules
+Membership system with service-specific restrictions
+Package assignment and billing integration
+Key Components to Analyze:
+
+Membership Models (models.py):
+
+Membership table with pricing, validity, and service relationships
+MembershipService junction table for many-to-many relationships
+Service assignment logic and unlimited access controls
+Membership Management (modules/packages/):
+
+membership_views.py - CRUD operations
+package_billing_service.py - Billing logic
+new_packages_views.py - Package assignment workflows
+Database Relationships:
+
+How memberships link to specific services (not all services)
+Customer package assignments with expiry tracking
+Session management and usage tracking
+Core Business Logic Question:
+The system implements service-specific membership restrictions. When a customer has a membership, they get unlimited access ONLY to the services explicitly assigned to that membership through the MembershipService relationship table - NOT all services in the system.
+
+Key Files to Examine:
+
+models.py - Database schema
+modules/packages/package_billing_service.py - Core billing logic
+templates/packages/customer_packages.html - UI implementation
+static/js/packages.js - Frontend logic
+Test Results Context:
+Recent E2E testing shows:
+
+✅ Database relationships working correctly
+✅ CRUD operations functional
+✅ Form validation working
+❌ Authentication issues in test environment
+❌ API endpoint JSON parsing issues
+Questions for Analysis:
+
+How does the membership system restrict access to only assigned services?
+What is the unlimited access logic implementation?
+How are membership expiry dates calculated and enforced?
+What is the relationship between memberships, packages, and customer assignments?
+How does the billing system handle membership vs. prepaid packages?
+Please provide a detailed technical analysis of the membership management logic, including the database relationships, business rules, and any recommendations for optimization or fixes.

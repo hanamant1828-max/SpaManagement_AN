@@ -186,7 +186,7 @@ class User(UserMixin, db.Model):
 
     def has_role(self, role):
         # Support both dynamic and legacy role systems
-        if hasattr(self, 'user_role') and self.user_role:
+        if self.role_id and hasattr(self, 'user_role') and self.user_role:
             return self.user_role.name == role
         return self.role == role
 
@@ -221,14 +221,19 @@ class User(UserMixin, db.Model):
             return self.role in ['manager', 'staff'] or (hasattr(self, 'user_role') and self.user_role and self.user_role.is_active)
 
         # Check dynamic role system first
-        if hasattr(self, 'user_role') and self.user_role and self.user_role.is_active:
-            user_permissions = []
-            for role_permission in self.user_role.permissions:
-                if role_permission.permission.is_active:
-                    user_permissions.append(role_permission.permission.name)
+        if self.role_id:
+            try:
+                user_role = Role.query.get(self.role_id)
+                if user_role and user_role.is_active:
+                    user_permissions = []
+                    for role_permission in user_role.permissions:
+                        if role_permission.permission.is_active:
+                            user_permissions.append(role_permission.permission.name)
 
-            # Check if user has any of the required permissions
-            return any(perm in user_permissions for perm in required_permissions)
+                    # Check if user has any of the required permissions
+                    return any(perm in user_permissions for perm in required_permissions)
+            except:
+                pass  # Fall back to legacy system
 
         # Fallback to legacy role system
         role_access_map = {
