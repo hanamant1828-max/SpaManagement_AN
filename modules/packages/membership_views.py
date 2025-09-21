@@ -86,6 +86,11 @@ def membership_add_submit():
         selected_services = request.form.getlist('service_ids')
         print(f"Debug - Selected services: {selected_services}")
         
+        # Validate that at least one service is selected
+        if not selected_services:
+            flash('Please select at least one service for the membership', 'error')
+            return redirect(url_for('membership_add'))
+        
         # Create membership
         membership = Membership(
             name=name,

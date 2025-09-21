@@ -105,13 +105,16 @@
                     <div class="row">
                         {% for ms in membership.membership_services %}
                         <div class="col-md-6 mb-3">
-                            <div class="card">
+                            <div class="card border-success">
                                 <div class="card-body">
-                                    <h6 class="card-title">{{ ms.service.name }}</h6>
+                                    <h6 class="card-title">
+                                        <i class="fas fa-check-circle text-success me-2"></i>{{ ms.service.name }}
+                                    </h6>
                                     {% if ms.service.description %}
                                     <p class="card-text small text-muted">{{ ms.service.description }}</p>
                                     {% endif %}
                                     <div>
+                                        <span class="badge bg-success">✓ Included in Membership</span>
                                         <span class="badge bg-primary">₹{{ ms.service.price }}</span>
                                         {% if ms.service.duration %}
                                         <span class="badge bg-secondary ms-1">{{ ms.service.duration }} min</span>

@@ -83,9 +83,14 @@
                         <!-- Service Selection -->
                         <div class="mb-4">
                             <h6 class="mb-3">
-                                <i class="fas fa-spa me-2"></i>Included Services
-                                <small class="text-muted">(Select services included in this membership)</small>
+                                <i class="fas fa-spa me-2"></i>Included Services *
+                                <small class="text-muted">(Select specific services covered by this membership)</small>
                             </h6>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Important:</strong> Membership benefits will ONLY apply to the services you select below. 
+                                Other services will be charged at regular rates.
+                            </div>
                             
                             {% if services %}
                             <div class="row">

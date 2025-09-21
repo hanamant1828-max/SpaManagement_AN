@@ -396,7 +396,7 @@ def create_professional_invoice():
 
                     # Apply package benefits automatically
                     original_price = service.price * service_data['quantity']
-                    final_price = original_price
+                    final_amount = original_price
                     deduction_amount = 0
                     package_applied = None
 
