@@ -103,7 +103,7 @@ def integrated_billing():
 
     # Get data for billing interface
     from models import Customer, Service, PrepaidPackage, ServicePackage, Membership
-    customers = Customer.query.filter_by(is_active=True).order_by(Customer.full_name).all()
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
     
     # Get all types of packages
