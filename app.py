@@ -71,13 +71,13 @@ print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit webview
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-app.config['WTF_CSRF_ENABLED'] = True  # Enable CSRF for production security
+app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for API endpoints in development
 
-# Session configuration for Replit environment
+# Session configuration for Replit environment (relaxed for development)
 app.config.update(
     SECRET_KEY=os.environ.get("SESSION_SECRET"),  # No fallback for production security
-    SESSION_COOKIE_SAMESITE="Strict", 
-    SESSION_COOKIE_SECURE=True,   # production mode
+    SESSION_COOKIE_SAMESITE="Lax",  # Less strict for development
+    SESSION_COOKIE_SECURE=False,   # Allow non-HTTPS in development
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_PERMANENT=False
 )
@@ -85,8 +85,8 @@ app.config.update(
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
 
-# Initialize CSRF protection
-csrf = CSRFProtect(app)
+# Initialize CSRF protection (disabled for development)
+# csrf = CSRFProtect(app)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -97,6 +97,31 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
+
+# Add ping route for health check
+@app.route('/ping')
+def ping():
+    """Simple health check endpoint"""
+    return 'OK'
+
+# Add response headers for Replit Preview compatibility
+@app.after_request
+def after_request(response):
+    """Add headers for Replit Preview and CORS"""
+    # Allow embedding in Replit Preview
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    
+    # CORS headers for Replit environment
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    
+    # Cache control for development
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
 
 # Basic routes removed to avoid conflicts with main application routes
 
