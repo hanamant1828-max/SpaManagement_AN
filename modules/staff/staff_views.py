@@ -803,8 +803,7 @@ def api_get_all_staff():
                 'designation': staff.designation,
                 'staff_code': staff.staff_code,
                 'employee_id': staff.employee_id,
-                'commission_rate': staff.commission_rate or 0,
-                'hourly_rate': staff.hourly_rate or 0,
+                
                 'is_active': staff.is_active,
                 'gender': staff.gender,
                 'date_of_birth': staff.date_of_birth.isoformat() if staff.date_of_birth else None,
