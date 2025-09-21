@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Add New Membership{% endblock %}
@@ -80,7 +79,7 @@
                                 <i class="fas fa-spa me-2"></i>Included Services
                                 <small class="text-muted">(Select services included in this membership)</small>
                             </h6>
-                            
+
                             {% if services %}
                             <div class="row">
                                 {% for service in services %}
@@ -134,4 +133,78 @@
         </div>
     </div>
 </div>
+
+<script>
+// Add form validation and service selection handling
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const form = document.querySelector('form');
+        const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]');
+
+        console.log('Membership add form initialized');
+
+        // Handle form submission
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                try {
+                    const nameInput = document.querySelector('input[name="name"]');
+                    const priceInput = document.querySelector('input[name="price"]');
+
+                    if (!nameInput || !priceInput) {
+                        console.error('Required form inputs not found');
+                        return true; // Let server handle validation
+                    }
+
+                    const name = nameInput.value.trim();
+                    const price = parseFloat(priceInput.value);
+
+                    if (!name) {
+                        e.preventDefault();
+                        alert('Please enter a membership name');
+                        return false;
+                    }
+
+                    if (!price || price <= 0) {
+                        e.preventDefault();
+                        alert('Please enter a valid price greater than 0');
+                        return false;
+                    }
+
+                    console.log('Form validation passed');
+                    return true;
+                } catch (error) {
+                    console.error('Form submission error:', error);
+                    return true; // Let server handle it
+                }
+            });
+        }
+
+        // Handle service selection
+        if (serviceCheckboxes.length > 0) {
+            serviceCheckboxes.forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    try {
+                        updateSelectedServices();
+                    } catch (error) {
+                        console.error('Service selection error:', error);
+                    }
+                });
+            });
+        }
+
+        function updateSelectedServices() {
+            try {
+                const selected = document.querySelectorAll('input[name="service_ids"]:checked');
+                console.log(`${selected.length} services selected`);
+            } catch (error) {
+                console.error('Update selected services error:', error);
+            }
+        }
+
+    } catch (error) {
+        console.error('Membership form initialization error:', error);
+    }
+});
+</script>
+
 {% endblock %}

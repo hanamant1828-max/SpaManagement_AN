@@ -35,19 +35,46 @@ def membership_add():
 def membership_add_submit():
     """Submit new membership"""
     try:
+        # Validate user permissions
+        if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+            flash('Access denied', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Get form data with validation
         name = request.form.get('name', '').strip()
-        price = float(request.form.get('price', 0))
-        validity_months = int(request.form.get('validity_months', 12))
+        price_str = request.form.get('price', '0')
+        validity_months_str = request.form.get('validity_months', '12')
         services_included = request.form.get('services_included', '').strip()
         description = request.form.get('description', '').strip()
         is_active = request.form.get('is_active') == 'on'
         
+        # Validate required fields
+        if not name:
+            flash('Membership name is required', 'error')
+            return redirect(url_for('membership_add'))
+        
+        # Validate price
+        try:
+            price = float(price_str)
+            if price <= 0:
+                flash('Price must be greater than 0', 'error')
+                return redirect(url_for('membership_add'))
+        except (ValueError, TypeError):
+            flash('Please enter a valid price', 'error')
+            return redirect(url_for('membership_add'))
+        
+        # Validate validity months
+        try:
+            validity_months = int(validity_months_str)
+            if validity_months <= 0:
+                flash('Validity months must be greater than 0', 'error')
+                return redirect(url_for('membership_add'))
+        except (ValueError, TypeError):
+            flash('Please enter valid validity months', 'error')
+            return redirect(url_for('membership_add'))
+        
         # Get selected services
         selected_services = request.form.getlist('service_ids')
-        
-        if not name or price <= 0:
-            flash('Name and valid price are required', 'error')
-            return redirect(url_for('membership_add'))
         
         # Create membership
         membership = Membership(
@@ -65,12 +92,17 @@ def membership_add_submit():
         
         # Add selected services
         for service_id in selected_services:
-            if service_id:
-                membership_service = MembershipService(
-                    membership_id=membership.id,
-                    service_id=int(service_id)
-                )
-                db.session.add(membership_service)
+            if service_id and service_id.strip():
+                try:
+                    service_id_int = int(service_id)
+                    membership_service = MembershipService(
+                        membership_id=membership.id,
+                        service_id=service_id_int
+                    )
+                    db.session.add(membership_service)
+                except (ValueError, TypeError):
+                    print(f"Warning: Invalid service ID: {service_id}")
+                    continue
         
         db.session.commit()
         flash(f'Membership "{name}" created successfully!', 'success')
@@ -78,6 +110,7 @@ def membership_add_submit():
         
     except Exception as e:
         db.session.rollback()
+        print(f"Error creating membership: {str(e)}")
         flash(f'Error creating membership: {str(e)}', 'error')
         return redirect(url_for('membership_add'))
 

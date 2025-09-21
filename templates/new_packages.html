@@ -1323,47 +1323,67 @@ function validateForm() {
         let isServiceSelected = false;
         let areSessionsValid = true;
 
-        let checkedServicesCount = serviceCheckboxes.length;
+        let checkedServicesCount = serviceCheckboxes ? serviceCheckboxes.length : 0;
         let validSessionCount = 0;
 
         // Check each checked service checkbox
-        serviceCheckboxes.forEach(checkbox => {
-            try {
-                const serviceItem = checkbox.closest('.service-item');
-                const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
-                
-                if (sessionsInput && !sessionsInput.disabled) {
-                    const sessions = parseInt(sessionsInput.value);
-                    console.log(`Service ${checkbox.value}: sessions = ${sessions}`);
-                    if (!isNaN(sessions) && sessions >= 1) {
-                        validSessionCount++;
+        if (serviceCheckboxes && serviceCheckboxes.length > 0) {
+            serviceCheckboxes.forEach(checkbox => {
+                try {
+                    const serviceItem = checkbox.closest('.service-item');
+                    const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+                    
+                    if (sessionsInput && !sessionsInput.disabled) {
+                        const sessions = parseInt(sessionsInput.value);
+                        console.log(`Service ${checkbox.value}: sessions = ${sessions}`);
+                        if (!isNaN(sessions) && sessions >= 1) {
+                            validSessionCount++;
+                        }
                     }
+                } catch (e) {
+                    console.error('Error validating service checkbox:', e);
                 }
-            } catch (e) {
-                console.error('Error validating service checkbox:', e);
-            }
-        });
+            });
+        }
 
         isServiceSelected = checkedServicesCount > 0 && validSessionCount === checkedServicesCount;
         areSessionsValid = validSessionCount === checkedServicesCount;
 
         // Update Bootstrap validation classes safely
         try {
-            if (nameInput) nameInput.classList.toggle('is-invalid', !isNameValid);
-            if (priceInput) priceInput.classList.toggle('is-invalid', !isPriceValid);
-            if (validityFromInput) validityFromInput.classList.toggle('is-invalid', !validityFromInput.value);
-            if (validityToInput) validityToInput.classList.toggle('is-invalid', !validityToInput.value || new Date(validityToInput.value) < new Date(validityFromInput.value));
+            if (nameInput) {
+                nameInput.classList.remove('is-invalid');
+                if (!isNameValid) nameInput.classList.add('is-invalid');
+            }
+            if (priceInput) {
+                priceInput.classList.remove('is-invalid');
+                if (!isPriceValid) priceInput.classList.add('is-invalid');
+            }
+            if (validityFromInput) {
+                validityFromInput.classList.remove('is-invalid');
+                if (!validityFromInput.value) validityFromInput.classList.add('is-invalid');
+            }
+            if (validityToInput) {
+                validityToInput.classList.remove('is-invalid');
+                if (!validityToInput.value || new Date(validityToInput.value) < new Date(validityFromInput.value)) {
+                    validityToInput.classList.add('is-invalid');
+                }
+            }
         } catch (e) {
             console.error('Error updating validation classes:', e);
         }
 
         // Show/hide service selection validation message
-        if (checkedServicesCount === 0) {
-            showError('Please select at least one service with sessions ≥ 1');
-        } else if (!areSessionsValid) {
-            showError('All selected services must have sessions ≥ 1');
-        } else {
-            clearError(); // Clear error if services are valid
+        try {
+            if (checkedServicesCount === 0) {
+                showError('Please select at least one service with sessions ≥ 1');
+            } else if (!areSessionsValid) {
+                showError('All selected services must have sessions ≥ 1');
+            } else {
+                clearError(); // Clear error if services are valid
+            }
+        } catch (e) {
+            console.error('Error in service validation messaging:', e);
         }
 
         const formIsValid = isNameValid && isPriceValid && areDatesValid && isServiceSelected && areSessionsValid;
