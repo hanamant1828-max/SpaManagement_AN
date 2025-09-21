@@ -1126,30 +1126,6 @@ function clearError() {
         if (errorAlert) {
             errorAlert.style.display = 'none';
         }
-        // Don't call validateForm recursively, just enable the button if conditions are met
-        setTimeout(() => {
-            const form = document.getElementById('membershipForm');
-            if (form) {
-                const serviceCheckboxes = form.querySelectorAll('.service-checkbox:checked');
-                const saveBtn = document.getElementById('saveMembershipBtn');
-                
-                if (serviceCheckboxes.length > 0 && saveBtn) {
-                    // Quick validation without recursion
-                    let hasValidSessions = false;
-                    serviceCheckboxes.forEach(checkbox => {
-                        const serviceItem = checkbox.closest('.service-item');
-                        const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
-                        if (sessionsInput && parseInt(sessionsInput.value) >= 1) {
-                            hasValidSessions = true;
-                        }
-                    });
-                    
-                    if (hasValidSessions) {
-                        saveBtn.disabled = false;
-                    }
-                }
-            }
-        }, 10);
     } catch (error) {
         console.error('Error in clearError:', error);
     }
@@ -1278,14 +1254,11 @@ function renderServiceList(services) {
                     sessions: sessionsInput ? sessionsInput.value : 'not found'
                 });
                 
-                // Small delay to ensure DOM is updated
-                setTimeout(() => {
-                    try {
-                        validateForm();
-                    } catch (error) {
-                        console.error('Error in delayed validateForm:', error);
-                    }
-                }, 10);
+                // Only validate if form exists
+                const form = document.getElementById('membershipForm');
+                if (form) {
+                    setTimeout(() => validateForm(), 10);
+                }
             } catch (error) {
                 console.error('Error in checkbox change handler:', error);
             }
@@ -1296,13 +1269,11 @@ function renderServiceList(services) {
         input.addEventListener('input', () => {
             try {
                 console.log('Sessions input changed:', input.value);
-                setTimeout(() => {
-                    try {
-                        validateForm();
-                    } catch (error) {
-                        console.error('Error in delayed validateForm:', error);
-                    }
-                }, 10);
+                // Only validate if form exists
+                const form = document.getElementById('membershipForm');
+                if (form) {
+                    setTimeout(() => validateForm(), 10);
+                }
             } catch (error) {
                 console.error('Error in sessions input handler:', error);
             }
@@ -1311,13 +1282,11 @@ function renderServiceList(services) {
         input.addEventListener('change', () => {
             try {
                 console.log('Sessions input change event:', input.value);
-                setTimeout(() => {
-                    try {
-                        validateForm();
-                    } catch (error) {
-                        console.error('Error in delayed validateForm:', error);
-                    }
-                }, 10);
+                // Only validate if form exists
+                const form = document.getElementById('membershipForm');
+                if (form) {
+                    setTimeout(() => validateForm(), 10);
+                }
             } catch (error) {
                 console.error('Error in sessions change handler:', error);
             }
@@ -1331,7 +1300,7 @@ function validateForm() {
     try {
         const form = document.getElementById('membershipForm');
         if (!form) {
-            console.log('validateForm called without a valid form element');
+            // Form not available yet, silently return false
             return false;
         }
 
@@ -2054,6 +2023,27 @@ document.addEventListener('DOMContentLoaded', function() {
         membershipModal.addEventListener('shown.bs.modal', function (event) {
             console.log('Membership modal shown - loading services');
             loadServicesForMembership();
+            
+            // Set default dates when modal opens
+            const form = document.getElementById('membershipForm');
+            if (form) {
+                const today = new Date();
+                const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+
+                const fromInput = document.getElementById('mbValidityFrom');
+                const toInput = document.getElementById('mbValidityTo');
+                
+                if (fromInput && !fromInput.value) {
+                    fromInput.value = today.toISOString().split('T')[0];
+                }
+                if (toInput && !toInput.value) {
+                    toInput.value = nextYear.toISOString().split('T')[0];
+                }
+                
+                // Add form validation listeners only when modal is open
+                form.addEventListener('input', validateForm);
+                form.addEventListener('change', validateForm);
+            }
         });
 
         membershipModal.addEventListener('hidden.bs.modal', function (event) {
@@ -2072,22 +2062,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.servicesLoadedForMembership = true;
             }
         });
-    }
-
-    // Enable/disable save button based on form validity
-    const membershipForm = document.getElementById('membershipForm');
-    if (membershipForm) {
-        membershipForm.addEventListener('input', validateForm);
-        membershipForm.addEventListener('change', validateForm);
-
-        // Set default dates
-        const today = new Date();
-        const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-
-        document.getElementById('mbValidityFrom').value = today.toISOString().split('T')[0];
-        document.getElementById('mbValidityTo').value = nextYear.toISOString().split('T')[0];
-
-        console.log('Default dates set');
     }
 });
 
