@@ -2,6 +2,10 @@
 
 {% block title %}Package Management - Spa & Salon Suite{% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/new_packages.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -36,8 +40,8 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="student-tab" data-bs-toggle="tab" data-bs-target="#student" type="button" role="tab">
-                                <i class="fas fa-graduation-cap"></i> Student Offers
+                            <button class="nav-link" id="assign-student-tab" data-bs-toggle="tab" data-bs-target="#student" type="button" role="tab">
+                                <i class="fas fa-graduation-cap"></i> Student Offers Management
                                 <span class="badge bg-secondary ms-1">{{ stats.student_offers }}</span>
                             </button>
                         </li>
@@ -212,8 +216,8 @@
                         <!-- Student Offers Tab -->
                         <div class="tab-pane fade" id="student" role="tabpanel">
                             <div class="d-flex justify-content-between mb-3">
-                                <h5>Student Offers</h5>
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#studentModal">
+                                <h5>Student Offers Management</h5>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentOfferModal">
                                     <i class="fas fa-plus"></i> Add Student Offer
                                 </button>
                             </div>
@@ -230,7 +234,7 @@
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="studentTableBody">
+                                    <tbody id="tblStudentOffers">
                                         {% for offer in student_offers %}
                                         <tr>
                                             <td>{{ offer.service_name }}</td>
@@ -574,7 +578,7 @@
 </div>
 
 <!-- Student Offer Modal (Enhanced with Multiple Selection) -->
-<div class="modal fade" id="studentModal" tabindex="-1">
+<div class="modal fade" id="addStudentOfferModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -582,10 +586,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="studentForm">
+                <form id="addStudentOfferForm">
                     <div class="mb-3">
                         <label class="form-label">Select Services *</label>
-                        <select multiple class="form-select" name="service_ids" id="student_service_select" required style="height: 150px;">
+                        <select multiple class="form-select" name="service_ids" id="serviceIds" required style="height: 150px;">
                             {% for service in services %}
                                 <option value="{{ service.id }}" data-price="{{ service.price }}">{{ service.name }} - ₹{{ service.price }}</option>
                             {% endfor %}
@@ -595,7 +599,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Discount Percentage *</label>
-                        <input type="number" class="form-control" name="discount_percentage" id="student_discount_percent" required min="0" max="100" onchange="updateStudentOfferPreview()">
+                        <input type="number" class="form-control" name="discount_percentage" id="discountPercentage" required min="0" max="100">
                     </div>
 
                     <div class="row mb-3">
