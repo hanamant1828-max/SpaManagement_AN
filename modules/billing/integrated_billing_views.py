@@ -804,94 +804,131 @@ def create_integrated_invoice():
 def get_customer_packages(client_id):
     """Get customer's active packages and available sessions"""
     if not current_user.can_access('billing'):
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'error': 'Access denied', 'packages': []}), 403
 
     try:
-        # Import the ServicePackageAssignment model
-        from models import ServicePackageAssignment, Customer
+        # Import the ServicePackageAssignment model with error handling
+        try:
+            from models import ServicePackageAssignment, Customer
+        except ImportError as e:
+            app.logger.error(f"Import error: {str(e)}")
+            return jsonify({'error': 'System error', 'packages': []})
         
-        # Get all active package assignments for the customer
-        assignments = ServicePackageAssignment.query.filter_by(
-            customer_id=client_id,
-            status='active'
-        ).all()
+        # Verify customer exists
+        customer = Customer.query.get(client_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found', 'packages': []})
+        
+        # Get all active package assignments for the customer with error handling
+        try:
+            assignments = ServicePackageAssignment.query.filter_by(
+                customer_id=client_id,
+                status='active'
+            ).all()
+        except Exception as e:
+            app.logger.error(f"Database query error: {str(e)}")
+            return jsonify({'error': 'Database error', 'packages': []})
         
         package_data = []
         
         for assignment in assignments:
-            # Get package template details
-            package_template = assignment.get_package_template()
-            if not package_template:
-                continue
+            try:
+                # Get package template details safely
+                package_template = assignment.get_package_template()
+                if not package_template:
+                    continue
+                    
+                # Format session details based on package type
+                session_details = []
                 
-            # Format session details based on package type
-            session_details = []
-            
-            if assignment.package_type == 'service_package':
-                session_details.append({
-                    'service_id': assignment.service_id,
-                    'service_name': assignment.service.name if assignment.service else 'Service',
-                    'sessions_total': assignment.total_sessions,
-                    'sessions_used': assignment.used_sessions,
-                    'sessions_remaining': assignment.remaining_sessions,
-                    'is_unlimited': False,
-                    'benefit_type': 'service_package',
-                    'description': f"{assignment.remaining_sessions} sessions remaining"
-                })
-            elif assignment.package_type == 'prepaid':
-                session_details.append({
-                    'service_id': None,
-                    'service_name': 'All Services (Prepaid)',
-                    'sessions_total': 0,
-                    'sessions_used': 0,
-                    'sessions_remaining': 0,
-                    'is_unlimited': False,
-                    'benefit_type': 'prepaid',
-                    'balance_total': assignment.credit_amount,
-                    'balance_remaining': assignment.remaining_credit,
-                    'description': f"₹{assignment.remaining_credit:.2f} prepaid balance"
-                })
-            elif assignment.package_type == 'membership':
-                session_details.append({
-                    'service_id': None,
-                    'service_name': 'All Services (Membership)',
-                    'sessions_total': 0,
-                    'sessions_used': 0,
-                    'sessions_remaining': float('inf'),
-                    'is_unlimited': True,
-                    'benefit_type': 'unlimited',
-                    'description': 'Unlimited access'
-                })
-            else:
-                # For other package types (student, yearly, kitty)
-                session_details.append({
-                    'service_id': None,
-                    'service_name': f'{assignment.package_type.title()} Package',
-                    'sessions_total': 0,
-                    'sessions_used': 0,
-                    'sessions_remaining': 0,
-                    'is_unlimited': False,
-                    'benefit_type': assignment.package_type,
-                    'description': f'{assignment.package_type.title()} package benefits'
-                })
+                if assignment.package_type == 'service_package':
+                    service_name = 'Service'
+                    try:
+                        if assignment.service:
+                            service_name = assignment.service.name
+                    except:
+                        pass
+                        
+                    session_details.append({
+                        'service_id': assignment.service_id,
+                        'service_name': service_name,
+                        'sessions_total': assignment.total_sessions or 0,
+                        'sessions_used': assignment.used_sessions or 0,
+                        'sessions_remaining': assignment.remaining_sessions or 0,
+                        'is_unlimited': False,
+                        'benefit_type': 'service_package',
+                        'description': f"{assignment.remaining_sessions or 0} sessions remaining"
+                    })
+                elif assignment.package_type == 'prepaid':
+                    session_details.append({
+                        'service_id': None,
+                        'service_name': 'All Services (Prepaid)',
+                        'sessions_total': 0,
+                        'sessions_used': 0,
+                        'sessions_remaining': 0,
+                        'is_unlimited': False,
+                        'benefit_type': 'prepaid',
+                        'balance_total': float(assignment.credit_amount or 0),
+                        'balance_remaining': float(assignment.remaining_credit or 0),
+                        'description': f"₹{float(assignment.remaining_credit or 0):.2f} prepaid balance"
+                    })
+                elif assignment.package_type == 'membership':
+                    session_details.append({
+                        'service_id': None,
+                        'service_name': 'All Services (Membership)',
+                        'sessions_total': 0,
+                        'sessions_used': 0,
+                        'sessions_remaining': 999999,  # Use large number instead of infinity
+                        'is_unlimited': True,
+                        'benefit_type': 'unlimited',
+                        'description': 'Unlimited access'
+                    })
+                else:
+                    # For other package types (student, yearly, kitty)
+                    session_details.append({
+                        'service_id': None,
+                        'service_name': f'{assignment.package_type.title()} Package',
+                        'sessions_total': 0,
+                        'sessions_used': 0,
+                        'sessions_remaining': 0,
+                        'is_unlimited': False,
+                        'benefit_type': assignment.package_type,
+                        'description': f'{assignment.package_type.title()} package benefits'
+                    })
 
-            package_data.append({
-                'id': assignment.id,
-                'package_name': package_template.name,
-                'package_type': assignment.package_type,
-                'expiry_date': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else 'No expiry',
-                'is_active': assignment.status == 'active',
-                'sessions': session_details,
-                'assignment_date': assignment.assigned_on.strftime('%Y-%m-%d')
-            })
+                package_data.append({
+                    'id': assignment.id,
+                    'package_name': package_template.name if hasattr(package_template, 'name') else 'Package',
+                    'package_type': assignment.package_type,
+                    'expiry_date': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else 'No expiry',
+                    'is_active': assignment.status == 'active',
+                    'sessions': session_details,
+                    'assignment_date': assignment.assigned_on.strftime('%Y-%m-%d') if assignment.assigned_on else 'Unknown'
+                })
+            except Exception as e:
+                app.logger.error(f"Error processing assignment {assignment.id}: {str(e)}")
+                continue
+
+        # Calculate totals safely
+        total_prepaid_balance = 0
+        total_free_sessions = 0
+        
+        try:
+            for assignment in assignments:
+                if assignment.package_type == 'prepaid' and assignment.remaining_credit:
+                    total_prepaid_balance += float(assignment.remaining_credit)
+                elif assignment.package_type == 'service_package' and assignment.remaining_sessions:
+                    total_free_sessions += int(assignment.remaining_sessions)
+        except Exception as e:
+            app.logger.error(f"Error calculating totals: {str(e)}")
 
         response_data = {
             'packages': package_data,
             'summary': {
                 'total_active_packages': len(package_data),
                 'has_unlimited_access': any(p['package_type'] == 'membership' for p in package_data),
-                'total_prepaid_balance': sum(a.remaining_credit for a in assignments if a.package_type == 'prepaid'),
-                'total_free_sessions': sum(a.remaining_sessions for a in assignments if a.package_type == 'service_package')
+                'total_prepaid_balance': total_prepaid_balance,
+                'total_free_sessions': total_free_sessions
             }
         }
 
