@@ -528,15 +528,19 @@ function filterServices() {
 }
 
 function editService(serviceId) {
+    console.log('Editing service:', serviceId);
+    
     // Get service data and populate edit modal
     fetch(`/api/services/${serviceId}`)
         .then(response => {
+            console.log('Response status:', response.status);
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.json();
         })
         .then(service => {
+            console.log('Service data received:', service);
             if (service && !service.error) {
                 // Populate edit modal
                 document.getElementById('editServiceId').value = serviceId;
@@ -567,20 +571,25 @@ function toggleService(serviceId) {
         return;
     }
     
+    console.log('Toggling service:', serviceId);
+    
     fetch(`/services/${serviceId}/toggle`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
         }
     })
     .then(response => {
+        console.log('Toggle response status:', response.status);
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return response.json();
     })
     .then(data => {
+        console.log('Toggle response:', data);
         if (data.success) {
+            alert(data.message);
             location.reload();
         } else {
             alert('Error: ' + (data.message || 'Unknown error'));
@@ -599,21 +608,25 @@ function deleteService(serviceId) {
     }
     
     if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+        console.log('Deleting service:', serviceId);
+        
         fetch(`/services/${serviceId}/delete`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
             }
         })
         .then(response => {
+            console.log('Delete response status:', response.status);
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.json();
         })
         .then(data => {
+            console.log('Delete response:', data);
             if (data.success) {
-                alert('Service deleted successfully');
+                alert(data.message || 'Service deleted successfully');
                 location.reload();
             } else {
                 alert('Error: ' + (data.message || 'Unknown error'));
@@ -621,12 +634,7 @@ function deleteService(serviceId) {
         })
         .catch(error => {
             console.error('Error:', error);
-            // Fallback to form submission if fetch fails
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/services/${serviceId}/delete`;
-            document.body.appendChild(form);
-            form.submit();
+            alert('An error occurred: ' + error.message);
         });
     }
 }
