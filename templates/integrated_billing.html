@@ -924,7 +924,7 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
         // Check unlimited membership first (highest priority)
         if (pkg.package_type === 'membership') {
             for (const session of pkg.sessions) {
-                if (session.benefit_type === 'unlimited') {
+                if (session.benefit_type === 'unlimited' && session.service_id === serviceId) {
                     return {
                         type: 'unlimited',
                         packageName: pkg.package_name,

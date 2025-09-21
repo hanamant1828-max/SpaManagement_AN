@@ -88,7 +88,12 @@ class PackageBillingService:
                     membership = Membership.query.get(package.package_assignment.package_reference_id)
                     if membership and hasattr(membership, 'membership_services'):
                         # Only return True if the service is specifically included in the membership
-                        return any(ms.service_id == service_id for ms in membership.membership_services)
+                        included_service_ids = [ms.service_id for ms in membership.membership_services]
+                        print(f"DEBUG: Membership {membership.name} includes services: {included_service_ids}, checking service: {service_id}")
+                        return service_id in included_service_ids
+                    else:
+                        print(f"DEBUG: Membership {membership.name if membership else 'None'} has no services configured")
+                        return False
                 except Exception as e:
                     print(f"Error checking membership services: {e}")
                     return False

@@ -949,7 +949,11 @@ def get_customer_packages(client_id):
                         from models import Membership, MembershipService
                         membership = Membership.query.get(assignment.package_reference_id)
                         if membership and hasattr(membership, 'membership_services'):
-                            for ms in membership.membership_services:
+                            # Show only the specifically included services
+                            included_services = membership.membership_services
+                            print(f"DEBUG: Membership '{membership.name}' has {len(included_services)} included services")
+                            
+                            for ms in included_services:
                                 if ms.service:
                                     session_details.append({
                                         'service_id': ms.service_id,
@@ -962,17 +966,17 @@ def get_customer_packages(client_id):
                                         'description': 'Unlimited access via membership'
                                     })
                         
-                        # If no services found, show fallback
+                        # If no services found, show clear message
                         if not session_details:
                             session_details.append({
                                 'service_id': None,
-                                'service_name': 'Membership (No services configured)',
+                                'service_name': f'Membership "{membership.name if membership else "Unknown"}" (No services selected)',
                                 'sessions_total': 0,
                                 'sessions_used': 0,
                                 'sessions_remaining': 0,
                                 'is_unlimited': False,
                                 'benefit_type': 'unlimited',
-                                'description': 'Please configure membership services'
+                                'description': 'This membership has no services configured. Please edit the membership to add services.'
                             })
                     except Exception as e:
                         print(f"Error loading membership services: {e}")
