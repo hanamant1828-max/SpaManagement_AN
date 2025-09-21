@@ -351,7 +351,7 @@
                                             <td>
                                                 <small>
                                                     {% if party.valid_from and party.valid_to %}
-                                                        {{ party.valid_from.strftime('%d/%m/%Y') if party.valid_from else '' }} – 
+                                                        {{ party.valid_from.strftime('%d/%m/%Y') if party.valid_from else '' }} –
                                                         {{ party.valid_to.strftime('%d/%m/%Y') if party.valid_to else '' }}
                                                     {% else %}
                                                         <span class="text-muted">No validity period</span>
@@ -676,13 +676,13 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Services Included</label>
-                        <select multiple class="form-select" name="service_ids">
+                        <select multiple class="form-select" name="service_ids" id="kittyServicesSelect">
                             {% for service in services %}
                                 <option value="{{ service.id }}">{{ service.name }} - ₹{{ service.price }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <!-- Validity Date Fields -->
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -694,13 +694,13 @@
                             <input type="date" class="form-control" name="valid_to" required>
                         </div>
                     </div>
-                    
+
                     <!-- Conditions/Notes Field -->
                     <div class="mb-3">
                         <label class="form-label">Conditions / Notes</label>
                         <textarea class="form-control" name="conditions" rows="3" placeholder="Enter any special conditions, terms, or notes for this kitty party package..."></textarea>
                     </div>
-                    
+
                     <!-- Is Active Toggle -->
                     <div class="mb-3">
                         <div class="form-check form-switch">
@@ -1006,7 +1006,7 @@ function submitServiceForm() {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {
@@ -1632,67 +1632,54 @@ function deleteYearly(membershipId) {
     }
 }
 
+// Load services for kitty party modal
+function loadServicesForKittyParty() {
+    fetch('/packages/api/services')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('kittyServicesSelect');
+                select.innerHTML = '';
+
+                data.services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} - ₹${service.price}`;
+                    select.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading services:', error);
+        });
+}
+
 // Function to submit kitty party form
 function submitKittyForm() {
     const form = document.getElementById('kittyForm');
     const formData = new FormData(form);
 
-    // Form validation
-    const name = formData.get('name');
-    const price = formData.get('price');
-    const minGuests = formData.get('min_guests');
-    const validFrom = formData.get('valid_from');
-    const validTo = formData.get('valid_to');
-
-    // Validate required fields
-    if (!name || !name.trim()) {
-        alert('Party Name is required');
-        return;
-    }
-    if (!price || parseFloat(price) <= 0) {
-        alert('Please enter a valid price');
-        return;
-    }
-    if (!minGuests || parseInt(minGuests) <= 0) {
-        alert('Please enter a valid minimum guests number');
-        return;
-    }
-    if (!validFrom) {
-        alert('Valid From Date is required');
-        return;
-    }
-    if (!validTo) {
-        alert('Valid To Date is required');
-        return;
-    }
-
-    // Validate date range (Valid To must be >= Valid From)
-    if (new Date(validTo) < new Date(validFrom)) {
-        alert('Valid To Date must be greater than or equal to Valid From Date');
-        return;
-    }
-
-    // Convert to JSON, handling multiple service selections and checkbox
+    // Convert FormData to JSON and handle multiple select
     const data = {};
-    const serviceIds = [];
-
-    formData.forEach((value, key) => {
+    for (let [key, value] of formData.entries()) {
         if (key === 'service_ids') {
-            serviceIds.push(value);
-        } else if (key === 'is_active') {
-            // Checkbox: if present in FormData, it's checked
-            data[key] = true;
+            if (!data[key]) data[key] = [];
+            data[key].push(parseInt(value));
         } else {
             data[key] = value;
         }
-    });
-
-    // Handle is_active checkbox (if not in FormData, it means unchecked)
-    if (!data.hasOwnProperty('is_active')) {
-        data['is_active'] = false;
     }
 
-    data['service_ids'] = serviceIds;
+    // Validate required fields
+    if (!data.name || !data.price || !data.min_guests) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    if (!data.service_ids || data.service_ids.length === 0) {
+        alert('Please select at least one service');
+        return;
+    }
 
     fetch('/api/kitty-parties', {
         method: 'POST',
@@ -1704,12 +1691,12 @@ function submitKittyForm() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message || 'Kitty party created successfully!');
+            alert(data.message);
             const modal = bootstrap.Modal.getInstance(document.getElementById('kittyModal'));
             modal.hide();
             location.reload();
         } else {
-            alert('Error: ' + (data.error || 'Failed to create kitty party'));
+            alert('Error: ' + data.error);
         }
     })
     .catch(error => {
@@ -1718,7 +1705,17 @@ function submitKittyForm() {
     });
 }
 
-// Kitty party CRUD functions
+// Initialize kitty party modal when it's shown
+document.addEventListener('DOMContentLoaded', function() {
+    const kittyModal = document.getElementById('kittyModal');
+    if (kittyModal) {
+        kittyModal.addEventListener('shown.bs.modal', function() {
+            loadServicesForKittyParty();
+        });
+    }
+});
+
+
 function editKitty(partyId) {
     console.log('Edit kitty party:', partyId);
 }
@@ -2182,33 +2179,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Initialize kitty party modal defaults when opened
     const kittyModal = document.getElementById('kittyModal');
     if (kittyModal) {
         kittyModal.addEventListener('show.bs.modal', function () {
             console.log('Kitty party modal opening - setting defaults');
-            
+
             // Set default dates (today and 3 months from now)
             const today = new Date().toISOString().split('T')[0];
             const threeMonthsLater = new Date();
             threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
             const futureDate = threeMonthsLater.toISOString().split('T')[0];
-            
+
             // Set default values
             const form = document.getElementById('kittyForm');
             if (form) {
                 form.querySelector('[name="valid_from"]').value = today;
                 form.querySelector('[name="valid_to"]').value = futureDate;
                 form.querySelector('[name="is_active"]').checked = true;
-                
+
                 // Clear other fields for fresh entry
                 form.querySelector('[name="name"]').value = '';
                 form.querySelector('[name="price"]').value = '';
                 form.querySelector('[name="after_value"]').value = '';
                 form.querySelector('[name="min_guests"]').value = '';
                 form.querySelector('[name="conditions"]').value = '';
-                
+
                 // Clear service selections
                 const serviceSelect = form.querySelector('[name="service_ids"]');
                 if (serviceSelect) {
