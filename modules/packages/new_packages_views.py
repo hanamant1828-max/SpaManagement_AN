@@ -890,16 +890,16 @@ def assign_package():
                 remaining_credit=0
             )
 
-        elif package_type == 'yearly_membership': # Added handling for 'yearly_membership'
+        elif package_type == 'yearly' or package_type == 'yearly_membership':
             # Get yearly membership template
-            yearly_membership = Membership.query.filter_by(package_type='yearly_membership', id=data['package_id']).first() # Assuming yearly memberships are also stored in Membership table with a type
+            yearly_membership = get_yearly_membership_by_id(data['package_id'])
             if not yearly_membership:
                 return jsonify({'success': False, 'error': 'Yearly membership not found'}), 404
 
             # Calculate expiry date
             expiry_date = None
-            if data.get('expiry_date'):
-                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
+            if data.get('expires_on'):
+                expiry_date = datetime.strptime(data['expires_on'], '%Y-%m-%d')
             elif yearly_membership.validity_months:
                 expiry_date = datetime.utcnow() + timedelta(days=yearly_membership.validity_months * 30)
 
@@ -915,13 +915,13 @@ def assign_package():
                 discount=float(data.get('discount', 0)),
                 status='active',
                 notes=data.get('notes', ''),
-                # Yearly membership might track credits or sessions, adjust as needed
-                total_sessions=0, # Placeholder
-                used_sessions=0, # Placeholder
-                remaining_sessions=0, # Placeholder
-                credit_amount=0, # Placeholder
-                used_credit=0, # Placeholder
-                remaining_credit=0 # Placeholder
+                # Yearly membership tracking
+                total_sessions=0,
+                used_sessions=0,
+                remaining_sessions=0,
+                credit_amount=0,
+                used_credit=0,
+                remaining_credit=0
             )
         else:
             return jsonify({'success': False, 'error': f'Package type {package_type} not supported yet'}), 400
@@ -945,9 +945,12 @@ def assign_package():
 def get_assigned_customers(package_type, package_id):
     """Get list of customers assigned to a specific package"""
     try:
+        # Map yearly to yearly_membership for compatibility
+        actual_package_type = 'yearly_membership' if package_type == 'yearly' else package_type
+        
         # Get assignments for the specified package
         assignments = ServicePackageAssignment.query.filter_by(
-            package_type=package_type,
+            package_type=actual_package_type,
             package_reference_id=package_id
         ).join(Customer).all()
 
@@ -976,6 +979,20 @@ def get_assigned_customers(package_type, package_id):
                     'remaining_credit': float(assignment.remaining_credit) if assignment.package_type == 'prepaid' else None,
                     'notes': assignment.notes or ''
                 })
+        else:
+            # Get package name from template even if no assignments
+            if package_type == 'yearly' or package_type == 'yearly_membership':
+                yearly_membership = get_yearly_membership_by_id(package_id)
+                package_name = yearly_membership.name if yearly_membership else f"{package_type.title()} Package"
+            elif package_type == 'membership':
+                membership = get_membership_by_id(package_id)
+                package_name = membership.name if membership else f"{package_type.title()} Package"
+            elif package_type == 'prepaid':
+                prepaid = get_prepaid_package_by_id(package_id)
+                package_name = prepaid.name if prepaid else f"{package_type.title()} Package"
+            elif package_type == 'service_package':
+                service_pkg = get_service_package_by_id(package_id)
+                package_name = service_pkg.name if service_pkg else f"{package_type.title()} Package"
 
         return jsonify({
             'success': True,

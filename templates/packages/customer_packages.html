@@ -1373,10 +1373,10 @@ async function loadAllPackageAssignments() {
                             <td>${statusBadge}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" onclick="viewAssignmentDetails(${assignment.assignment_id})" title="View Details">
+                                    <button class="btn btn-outline-primary" onclick="window.viewAssignmentDetails(${assignment.assignment_id})" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-info" onclick="viewCustomerDetails(${assignment.customer_id})" title="View Customer">
+                                    <button class="btn btn-outline-info" onclick="window.viewCustomerDetails(${assignment.customer_id})" title="View Customer">
                                         <i class="fas fa-user"></i>
                                     </button>
                                 </div>
@@ -1747,7 +1747,7 @@ document.getElementById('savePackageAssignment').addEventListener('click', async
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.JSON.stringify(data)
+            body: JSON.stringify(data)
         });
 
         const result = await response.json();
@@ -1837,10 +1837,10 @@ async function viewAssignedCustomers(packageId, packageType, packageName) {
                             <td>${statusBadge}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" onclick="viewCustomerDetails(${customer.customer_id})" title="View Customer">
+                                    <button class="btn btn-outline-primary" onclick="window.viewCustomerDetails(${customer.customer_id})" title="View Customer">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-info" onclick="viewAssignmentDetails(${customer.assignment_id})" title="View Assignment">
+                                    <button class="btn btn-outline-info" onclick="window.viewAssignmentDetails(${customer.assignment_id})" title="View Assignment">
                                         <i class="fas fa-info-circle"></i>
                                     </button>
                                 </div>

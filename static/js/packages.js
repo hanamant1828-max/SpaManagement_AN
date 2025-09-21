@@ -1061,6 +1061,11 @@ async function viewCustomerDetails(customerId) {
 window.viewAssignmentDetails = viewAssignmentDetails;
 window.viewCustomerDetails = viewCustomerDetails;
 
+// Make these functions available for yearly package assignments
+window.openAssignSimple = openAssignSimple;
+window.saveAssignSimple = saveAssignSimple;
+window.viewAssignedCustomers = viewAssignedCustomers;
+
 
 /**
  * Show package preview when template is selected
@@ -1764,7 +1769,7 @@ function showToast(message, type = 'info') {
     } else {
         // Create a simple Bootstrap toast
         const toastContainer = document.getElementById('toast-container') || createToastContainer();
-
+        
         const toastId = 'toast-' + Date.now();
         const bgClass = {
             'success': 'bg-success',
@@ -1786,7 +1791,7 @@ function showToast(message, type = 'info') {
         `;
 
         toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-
+        
         const toastElement = document.getElementById(toastId);
         const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 });
         bsToast.show();
@@ -2558,7 +2563,7 @@ async function refreshCurrentTabTable() {
             await loadMembershipPackages();
         } else if (tabId === 'assign-student') {
             await loadStudentPackages();
-        } else if (tabId === 'assign-yearly' || tabId === 'assign-yearly-membership') {
+        } else if (tabId === 'assign-yearly') {
             await loadYearlyPackages();
         } else if (tabId === 'assign-kitty') {
             await loadKittyPackages();
