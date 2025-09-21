@@ -944,16 +944,48 @@ def get_customer_packages(client_id):
                         'description': f"₹{float(assignment.remaining_credit or 0):.2f} prepaid balance"
                     })
                 elif assignment.package_type == 'membership':
-                    session_details.append({
-                        'service_id': None,
-                        'service_name': 'All Services (Membership)',
-                        'sessions_total': 0,
-                        'sessions_used': 0,
-                        'sessions_remaining': 999999,  # Use large number instead of infinity
-                        'is_unlimited': True,
-                        'benefit_type': 'unlimited',
-                        'description': 'Unlimited access'
-                    })
+                    # For memberships, list only the included services
+                    try:
+                        from models import Membership, MembershipService
+                        membership = Membership.query.get(assignment.package_reference_id)
+                        if membership and hasattr(membership, 'membership_services'):
+                            for ms in membership.membership_services:
+                                if ms.service:
+                                    session_details.append({
+                                        'service_id': ms.service_id,
+                                        'service_name': f'{ms.service.name} (Membership)',
+                                        'sessions_total': 0,
+                                        'sessions_used': 0,
+                                        'sessions_remaining': 999999,  # Use large number instead of infinity
+                                        'is_unlimited': True,
+                                        'benefit_type': 'unlimited',
+                                        'description': 'Unlimited access via membership'
+                                    })
+                        
+                        # If no services found, show fallback
+                        if not session_details:
+                            session_details.append({
+                                'service_id': None,
+                                'service_name': 'Membership (No services configured)',
+                                'sessions_total': 0,
+                                'sessions_used': 0,
+                                'sessions_remaining': 0,
+                                'is_unlimited': False,
+                                'benefit_type': 'unlimited',
+                                'description': 'Please configure membership services'
+                            })
+                    except Exception as e:
+                        print(f"Error loading membership services: {e}")
+                        session_details.append({
+                            'service_id': None,
+                            'service_name': 'Membership (Error loading services)',
+                            'sessions_total': 0,
+                            'sessions_used': 0,
+                            'sessions_remaining': 0,
+                            'is_unlimited': False,
+                            'benefit_type': 'unlimited',
+                            'description': 'Error loading membership services'
+                        })
                 else:
                     # For other package types (student, yearly, kitty)
                     session_details.append({
