@@ -398,9 +398,10 @@
 
                         <div class="row">
                             <div class="col-md-4">
-                                <button type="button" class="btn btn-info w-100" onclick="saveAsDraft()">
+                                <button type="button" class="btn btn-info w-100" onclick="saveAsDraft()" id="saveDraftBtn">
                                     <i class="fas fa-save me-2"></i>Save as Draft
                                 </button>
+                                <div id="draftSaveStatus"></div>
                             </div>
                             <div class="col-md-4">
                                 <button type="button" class="btn btn-warning w-100" onclick="sendQuotation()">
@@ -995,7 +996,17 @@ function previewInvoice() {
 }
 
 function saveAsDraft() {
-    // Save current form as draft
+    // Get the save draft button and status div
+    const saveButton = document.getElementById('saveDraftBtn');
+    const statusDiv = document.getElementById('draftSaveStatus');
+    const originalText = saveButton.innerHTML;
+    
+    // Show loading state
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    saveButton.disabled = true;
+    statusDiv.innerHTML = '';
+    
+    // Prepare form data
     const formData = new FormData(document.getElementById('billingForm'));
     formData.append('save_as_draft', 'true');
 
@@ -1003,17 +1014,57 @@ function saveAsDraft() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        // Reset button state
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+        
         if (data.success) {
-            alert('Draft saved successfully!');
+            // Show success message
+            statusDiv.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show mt-2">
+                    <i class="fas fa-check-circle me-2"></i>Draft saved successfully! ${data.items_saved ? `(${data.items_saved} items)` : ''}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Auto-hide alert after 4 seconds
+            setTimeout(() => {
+                const alert = statusDiv.querySelector('.alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 4000);
         } else {
-            alert('Error saving draft: ' + data.message);
+            // Show error message
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show mt-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error saving draft.');
+        // Reset button state
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+        
+        console.error('Draft save error:', error);
+        
+        // Show error message
+        statusDiv.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show mt-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>Network error while saving draft. Please check your connection.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
     });
 }
 
