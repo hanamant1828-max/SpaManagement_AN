@@ -329,36 +329,64 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th>Name</th>
+                                            <th>Party Name</th>
                                             <th>Price</th>
                                             <th>After Value</th>
                                             <th>Min Guests</th>
                                             <th>Services</th>
+                                            <th>Valid From–To</th>
+                                            <th>Conditions</th>
+                                            <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="kittyTableBody">
                                         {% for party in kitty_parties %}
                                         <tr>
-                                            <td>{{ party.name }}</td>
+                                            <td><strong>{{ party.name }}</strong></td>
                                             <td>₹{{ "{:,.0f}".format(party.price) }}</td>
                                             <td>{{ '₹{:,.0f}'.format(party.after_value) if party.after_value else 'N/A' }}</td>
                                             <td>{{ party.min_guests }}</td>
-                                            <td>{{ party.services_included[:30] if party.services_included else 'None' }}...</td>
+                                            <td><small>{{ party.services_included[:30] if party.services_included else 'None' }}{% if party.services_included and party.services_included|length > 30 %}...{% endif %}</small></td>
+                                            <td>
+                                                <small>
+                                                    {% if party.valid_from and party.valid_to %}
+                                                        {{ party.valid_from.strftime('%d/%m/%Y') if party.valid_from else '' }} – 
+                                                        {{ party.valid_to.strftime('%d/%m/%Y') if party.valid_to else '' }}
+                                                    {% else %}
+                                                        <span class="text-muted">No validity period</span>
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    {{ party.conditions[:40] if party.conditions else 'No conditions' }}
+                                                    {% if party.conditions and party.conditions|length > 40 %}...{% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% if party.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
+                                                    {% if party.is_active %}
                                                     <button class="btn btn-success btn-sm"
                                                             onclick="openAssignSimple({{ party.id }}, 'kitty')"
                                                             title="Assign to Customer"
                                                             data-action="assign-simple"
                                                             data-template-id="{{ party.id }}"
                                                             data-package-type="kitty">
-                                                        <i class="fas fa-user-plus"></i> Assign
+                                                        <i class="fas fa-user-plus"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-primary" onclick="editKitty({{ party.id }})">
+                                                    {% endif %}
+                                                    <button class="btn btn-outline-warning btn-sm" onclick="editKitty({{ party.id }})" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger" onclick="deleteKitty({{ party.id }})">
+                                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteKitty({{ party.id }})" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -653,6 +681,34 @@
                                 <option value="{{ service.id }}">{{ service.name }} - ₹{{ service.price }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    
+                    <!-- Validity Date Fields -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Valid From Date *</label>
+                            <input type="date" class="form-control" name="valid_from" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valid To Date *</label>
+                            <input type="date" class="form-control" name="valid_to" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Conditions/Notes Field -->
+                    <div class="mb-3">
+                        <label class="form-label">Conditions / Notes</label>
+                        <textarea class="form-control" name="conditions" rows="3" placeholder="Enter any special conditions, terms, or notes for this kitty party package..."></textarea>
+                    </div>
+                    
+                    <!-- Is Active Toggle -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="kittyIsActive" checked>
+                            <label class="form-check-label" for="kittyIsActive">
+                                <strong>Is Active</strong> <small class="text-muted">(Package available for assignment)</small>
+                            </label>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -1581,17 +1637,60 @@ function submitKittyForm() {
     const form = document.getElementById('kittyForm');
     const formData = new FormData(form);
 
-    // Convert to JSON, handling multiple service selections
+    // Form validation
+    const name = formData.get('name');
+    const price = formData.get('price');
+    const minGuests = formData.get('min_guests');
+    const validFrom = formData.get('valid_from');
+    const validTo = formData.get('valid_to');
+
+    // Validate required fields
+    if (!name || !name.trim()) {
+        alert('Party Name is required');
+        return;
+    }
+    if (!price || parseFloat(price) <= 0) {
+        alert('Please enter a valid price');
+        return;
+    }
+    if (!minGuests || parseInt(minGuests) <= 0) {
+        alert('Please enter a valid minimum guests number');
+        return;
+    }
+    if (!validFrom) {
+        alert('Valid From Date is required');
+        return;
+    }
+    if (!validTo) {
+        alert('Valid To Date is required');
+        return;
+    }
+
+    // Validate date range (Valid To must be >= Valid From)
+    if (new Date(validTo) < new Date(validFrom)) {
+        alert('Valid To Date must be greater than or equal to Valid From Date');
+        return;
+    }
+
+    // Convert to JSON, handling multiple service selections and checkbox
     const data = {};
     const serviceIds = [];
 
     formData.forEach((value, key) => {
         if (key === 'service_ids') {
             serviceIds.push(value);
+        } else if (key === 'is_active') {
+            // Checkbox: if present in FormData, it's checked
+            data[key] = true;
         } else {
             data[key] = value;
         }
     });
+
+    // Handle is_active checkbox (if not in FormData, it means unchecked)
+    if (!data.hasOwnProperty('is_active')) {
+        data['is_active'] = false;
+    }
 
     data['service_ids'] = serviceIds;
 
@@ -1605,12 +1704,12 @@ function submitKittyForm() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message);
+            alert(data.message || 'Kitty party created successfully!');
             const modal = bootstrap.Modal.getInstance(document.getElementById('kittyModal'));
             modal.hide();
             location.reload();
         } else {
-            alert('Error: ' + data.error);
+            alert('Error: ' + (data.error || 'Failed to create kitty party'));
         }
     })
     .catch(error => {
@@ -2080,6 +2179,41 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!window.servicesLoadedForMembership) {
                 loadServicesForMembership();
                 window.servicesLoadedForMembership = true;
+            }
+        });
+    }
+    
+    // Initialize kitty party modal defaults when opened
+    const kittyModal = document.getElementById('kittyModal');
+    if (kittyModal) {
+        kittyModal.addEventListener('show.bs.modal', function () {
+            console.log('Kitty party modal opening - setting defaults');
+            
+            // Set default dates (today and 3 months from now)
+            const today = new Date().toISOString().split('T')[0];
+            const threeMonthsLater = new Date();
+            threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+            const futureDate = threeMonthsLater.toISOString().split('T')[0];
+            
+            // Set default values
+            const form = document.getElementById('kittyForm');
+            if (form) {
+                form.querySelector('[name="valid_from"]').value = today;
+                form.querySelector('[name="valid_to"]').value = futureDate;
+                form.querySelector('[name="is_active"]').checked = true;
+                
+                // Clear other fields for fresh entry
+                form.querySelector('[name="name"]').value = '';
+                form.querySelector('[name="price"]').value = '';
+                form.querySelector('[name="after_value"]').value = '';
+                form.querySelector('[name="min_guests"]').value = '';
+                form.querySelector('[name="conditions"]').value = '';
+                
+                // Clear service selections
+                const serviceSelect = form.querySelector('[name="service_ids"]');
+                if (serviceSelect) {
+                    Array.from(serviceSelect.options).forEach(option => option.selected = false);
+                }
             }
         });
     }
