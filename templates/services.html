@@ -98,13 +98,13 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})" data-bs-toggle="tooltip" title="Edit service details">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})" data-bs-toggle="tooltip" title="Edit service details" type="button">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleService({{ service.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate service' if service.is_active else 'Activate service' }}">
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleService({{ service.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate service' if service.is_active else 'Activate service' }}" type="button">
                                             <i class="fas fa-{{ 'eye-slash' if service.is_active else 'eye' }}"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})" data-bs-toggle="tooltip" title="Delete service permanently">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})" data-bs-toggle="tooltip" title="Delete service permanently" type="button">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
