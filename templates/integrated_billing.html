@@ -934,19 +934,44 @@ function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quant
             }
         }
 
-        // Check service package benefits (specific service sessions)
+        // Check service package benefits (specific service sessions) with quantity awareness
         if (pkg.package_type === 'service_package') {
             for (const session of pkg.sessions) {
                 if (session.service_id === serviceId && session.sessions_remaining > 0) {
-                    return {
-                        type: 'service_package',
-                        packageName: pkg.package_name,
-                        originalPrice: originalPrice * quantity,
-                        finalPrice: 0, // FREE
-                        discount: originalPrice * quantity,
-                        description: `FREE via ${pkg.package_name} (${session.sessions_remaining} left)`,
-                        sessionsRemaining: session.sessions_remaining
-                    };
+                    const pricePerSession = originalPrice / quantity;
+                    const sessionsToCover = Math.min(quantity, session.sessions_remaining);
+                    const sessionsToPayFor = quantity - sessionsToCover;
+                    
+                    const coveredAmount = sessionsToCover * pricePerSession;
+                    const finalPrice = sessionsToPayFor * pricePerSession;
+                    
+                    if (sessionsToPayFor > 0) {
+                        // Partial coverage
+                        return {
+                            type: 'service_package',
+                            packageName: pkg.package_name,
+                            originalPrice: originalPrice * quantity,
+                            finalPrice: finalPrice,
+                            discount: coveredAmount,
+                            description: `${sessionsToCover} FREE, ${sessionsToPayFor} charged via ${pkg.package_name}`,
+                            sessionsRemaining: session.sessions_remaining,
+                            sessionsCovered: sessionsToCover,
+                            sessionsToPayFor: sessionsToPayFor
+                        };
+                    } else {
+                        // Full coverage
+                        return {
+                            type: 'service_package',
+                            packageName: pkg.package_name,
+                            originalPrice: originalPrice * quantity,
+                            finalPrice: 0,
+                            discount: originalPrice * quantity,
+                            description: `${sessionsToCover} FREE via ${pkg.package_name} (${session.sessions_remaining - sessionsToCover} left)`,
+                            sessionsRemaining: session.sessions_remaining,
+                            sessionsCovered: sessionsToCover,
+                            sessionsToPayFor: 0
+                        };
+                    }
                 }
             }
         }
@@ -996,6 +1021,7 @@ function updateServiceDisplayWithBenefit(row, benefit, index) {
     }
 
     if (benefit.finalPrice === 0) {
+        // Full coverage
         benefitDisplay.innerHTML = `
             <small class="text-success fw-bold">
                 <i class="fas fa-gift me-1"></i>FREE - ${benefit.description}
@@ -1006,10 +1032,18 @@ function updateServiceDisplayWithBenefit(row, benefit, index) {
         benefitDisplay.style.padding = '4px 8px';
         benefitDisplay.style.borderRadius = '4px';
     } else {
+        // Partial coverage or discount
+        const isPartialCoverage = benefit.sessionsCovered && benefit.sessionsToPayFor;
         benefitDisplay.innerHTML = `
             <small class="text-success fw-bold">
                 <i class="fas fa-tag me-1"></i>${benefit.description}
-                <br>Pay: ₹${benefit.finalPrice.toFixed(2)} <strike class="text-muted">₹${benefit.originalPrice.toFixed(2)}</strike>
+                <br>
+                ${isPartialCoverage ? 
+                    `Free: ${benefit.sessionsCovered} sessions, Pay: ${benefit.sessionsToPayFor} sessions<br>` : 
+                    ''
+                }
+                Pay: ₹${benefit.finalPrice.toFixed(2)} <strike class="text-muted">₹${benefit.originalPrice.toFixed(2)}</strike>
+                <span class="text-success">(Save: ₹${benefit.discount.toFixed(2)})</span>
             </small>
         `;
         benefitDisplay.style.backgroundColor = '#d1ecf1';

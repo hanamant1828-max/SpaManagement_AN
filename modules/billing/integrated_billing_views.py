@@ -411,7 +411,8 @@ def create_professional_invoice():
                             service_price=original_price,
                             invoice_id=invoice.id,
                             invoice_item_id=item.id,
-                            service_date=current_date
+                            service_date=current_date,
+                            requested_quantity=int(service_data['quantity'])
                         )
 
                         if benefit_result['success'] and benefit_result.get('applied', False):

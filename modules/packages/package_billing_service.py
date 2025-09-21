@@ -98,7 +98,7 @@ class PackageBillingService:
     @classmethod
     def apply_package_benefit(cls, customer_id: int, service_id: int, service_price: float, 
                             invoice_id: int, invoice_item_id: int, service_date: datetime = None,
-                            manual_package_id: int = None) -> Dict:
+                            manual_package_id: int = None, requested_quantity: int = 1) -> Dict:
         """
         Apply package benefit to a service with comprehensive tracking
         
@@ -299,11 +299,25 @@ class PackageBillingService:
                           customer_id: int, service_id: int, invoice_id: int,
                           invoice_item_id: int, idempotency_key: str,
                           service_date: datetime, staff_override: bool) -> Dict:
-        """Apply free session benefit"""
+        """Apply free session benefit with quantity awareness"""
         
-        # Deduct from remaining count
-        package.used_count += 1
-        package.remaining_count = max(0, package.remaining_count - 1)
+        # Get the requested quantity from the invoice item
+        from models import InvoiceItem
+        invoice_item = InvoiceItem.query.get(invoice_item_id)
+        requested_quantity = int(invoice_item.quantity) if invoice_item else 1
+        
+        # Calculate how many sessions can be covered by package
+        sessions_to_cover = min(requested_quantity, package.remaining_count)
+        sessions_to_pay = requested_quantity - sessions_to_cover
+        
+        # Calculate pricing
+        price_per_session = service_price / requested_quantity
+        covered_amount = sessions_to_cover * price_per_session
+        final_price = sessions_to_pay * price_per_session
+        
+        # Deduct covered sessions from package
+        package.used_count += sessions_to_cover
+        package.remaining_count = max(0, package.remaining_count - sessions_to_cover)
         
         # Auto-deactivate if exhausted
         if package.remaining_count == 0:
@@ -318,36 +332,45 @@ class PackageBillingService:
             service_id=service_id,
             idempotency_key=idempotency_key,
             benefit_type='free',
-            qty_deducted=1,
-            amount_deducted=service_price,
-            discount_applied=service_price,
+            qty_deducted=sessions_to_cover,
+            amount_deducted=covered_amount,
+            discount_applied=covered_amount,
             balance_after_qty=package.remaining_count,
             balance_after_amount=0.0,
             transaction_type='use',
-            applied_rule='free_session_priority',
+            applied_rule='free_session_partial_coverage' if sessions_to_pay > 0 else 'free_session_full_coverage',
             staff_override=staff_override,
             applied_by=current_user.id,
             charge_date=service_date,
-            notes=f'Free session used. Remaining: {package.remaining_count}'
+            notes=f'{sessions_to_cover} free sessions used. {sessions_to_pay} sessions to pay. Remaining: {package.remaining_count}'
         )
         
         db.session.add(usage)
+        
+        if sessions_to_pay > 0:
+            # Partial coverage - customer pays for extra sessions
+            message = f'{sessions_to_cover} sessions FREE via package, {sessions_to_pay} sessions charged. {package.remaining_count} sessions remaining'
+        else:
+            # Full coverage
+            message = f'All {sessions_to_cover} sessions FREE via package. {package.remaining_count} sessions remaining'
         
         return {
             'success': True,
             'applied': True,
             'benefit_type': 'free',
             'original_price': service_price,
-            'final_price': 0.0,
-            'deduction_amount': service_price,
+            'final_price': final_price,
+            'deduction_amount': covered_amount,
             'package_name': cls._get_package_name(package),
+            'sessions_covered': sessions_to_cover,
+            'sessions_to_pay': sessions_to_pay,
             'remaining_balance': {
                 'type': 'sessions',
                 'remaining': package.remaining_count,
                 'total': package.total_allocated
             },
             'usage_id': usage.id,
-            'message': f'Free session applied. {package.remaining_count} sessions remaining'
+            'message': message
         }
     
     @classmethod
