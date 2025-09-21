@@ -367,10 +367,8 @@ def delete_yearly_membership(membership_id):
 
 def get_all_kitty_parties():
     """Get all kitty parties with linked services"""
-    from sqlalchemy.orm import joinedload
-    return KittyParty.query.options(
-        joinedload(KittyParty.kittyparty_services).joinedload('service')
-    ).filter_by(is_active=True).order_by(KittyParty.created_at.desc()).all()
+    # Simplified query without complex joinedload to avoid SQLAlchemy issues
+    return KittyParty.query.filter_by(is_active=True).order_by(KittyParty.created_at.desc()).all()
 
 def get_kitty_party_by_id(party_id):
     """Get kitty party by ID"""
