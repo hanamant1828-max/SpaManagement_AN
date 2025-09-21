@@ -618,6 +618,9 @@ function addProductRow() {
             if (productBatches.length === 0) {
                 batchSelect.innerHTML = '<option value="">No stock available</option>';
                 batchInfo.innerHTML = '<span class="text-danger">⚠️ No stock available for this product</span>';
+                // Clear previous quantity and price if any
+                if (quantityInput) quantityInput.value = '0';
+                if (priceInput) priceInput.value = '';
                 return;
             }
 
@@ -652,10 +655,16 @@ function addProductRow() {
                 <strong>${expiryText}</strong>
             `;
 
-            // Set max quantity
+            // Set max quantity and placeholder
             if (quantityInput) {
                 quantityInput.max = firstBatch.qty_available;
                 quantityInput.placeholder = `Max: ${firstBatch.qty_available}`;
+                quantityInput.value = '1'; // Reset quantity to 1
+                validateInventoryQuantity(quantityInput); // Validate after setting max and default value
+            }
+            // Set default price based on the selected batch's unit price if available
+            if (priceInput) {
+                priceInput.value = firstBatch.unit_price || '';
             }
 
             // Update batch info when batch selection changes
@@ -672,6 +681,12 @@ function addProductRow() {
                     if (quantityInput) {
                         quantityInput.max = selectedBatch.qty_available;
                         quantityInput.placeholder = `Max: ${selectedBatch.qty_available}`;
+                        quantityInput.value = '1'; // Reset quantity to 1 on batch change
+                        validateInventoryQuantity(quantityInput); // Re-validate
+                    }
+                    // Update price based on selected batch
+                    if (priceInput) {
+                        priceInput.value = selectedBatch.unit_price || '';
                     }
                 }
             });
@@ -683,21 +698,50 @@ function validateStock(quantityInput) {
     const productRow = quantityInput.closest('.product-row');
     const batchSelect = productRow.querySelector('.batch-select');
     const selectedOption = batchSelect.options[batchSelect.selectedIndex];
-    const availableStock = productRow.querySelector('.available-stock');
+    const availableStockDiv = productRow.querySelector('.batch-info'); // Use batch-info div for feedback
 
-    if (selectedOption && selectedOption.dataset.stock) {
-        const available = parseFloat(selectedOption.dataset.stock);
+    if (!selectedOption || selectedOption.value === "") {
+        // No batch selected yet or product not selected
+        if (availableStockDiv) {
+            availableStockDiv.innerHTML = '<span class="text-muted">Select batch to see stock</span>';
+        }
+        quantityInput.setCustomValidity(''); // Clear any previous invalidity
+        return;
+    }
+
+    const selectedBatchId = selectedOption.value;
+    const selectedBatch = availableBatches.find(b => b.id == selectedBatchId);
+
+    if (selectedBatch) {
+        const available = parseFloat(selectedBatch.qty_available);
         const requested = parseFloat(quantityInput.value) || 0;
 
         if (requested > available) {
-            quantityInput.style.borderColor = '#dc3545';
-            availableStock.innerHTML = `<span class="batch-warning">Available: ${available} (Insufficient stock!)</span>`;
+            quantityInput.style.borderColor = '#dc3545'; // Red border for invalid input
+            if (availableStockDiv) {
+                availableStockDiv.innerHTML = `<span class="batch-warning">Available: ${available} (Insufficient stock!)</span>`;
+            }
             quantityInput.setCustomValidity('Insufficient stock');
         } else {
-            quantityInput.style.borderColor = '#28a745';
-            availableStock.innerHTML = `<span class="batch-success">Available: ${available}</span>`;
+            quantityInput.style.borderColor = '#28a745'; // Green border for valid input
+             if (availableStockDiv) {
+                const expiryText = selectedBatch.expiry_date ? 
+                    `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
+                availableStockDiv.innerHTML = `
+                    <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
+                    <strong>Available:</strong> ${selectedBatch.qty_available} ${selectedBatch.unit}<br>
+                    <strong>${expiryText}</strong>
+                `;
+            }
             quantityInput.setCustomValidity('');
         }
+    } else {
+        // If selected batch is not found in availableBatches, reset
+        quantityInput.style.borderColor = '';
+        if (availableStockDiv) {
+            availableStockDiv.innerHTML = '';
+        }
+        quantityInput.setCustomValidity('');
     }
 }
 
@@ -776,8 +820,12 @@ function updateTaxCalculations() {
     if (discountType === 'percentage') {
         discountAmount = (grossSubtotal * discountValue) / 100;
     } else {
+        // Amount discount
         discountAmount = discountValue;
     }
+    // Ensure discount amount doesn't exceed gross subtotal
+    discountAmount = Math.min(discountAmount, grossSubtotal);
+
 
     const taxableAmount = grossSubtotal - discountAmount;
 
@@ -815,9 +863,9 @@ function calculateServicesSubtotal() {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
-        if (serviceSelect && serviceSelect.value && quantityInput) {
+        if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
             const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
-            const quantity = parseFloat(quantityInput.value) || 0;
+            const quantity = parseFloat(quantityInput.value) || 1; // Default to 1 if empty
             total += price * quantity;
         }
     });
@@ -851,14 +899,14 @@ function toggleTaxType() {
         cgstInput.disabled = true;
         sgstInput.disabled = true;
         igstInput.disabled = false;
-        if (igstInput.value === '0') igstInput.value = '18';
+        if (igstInput.value === '0') igstInput.value = '18'; // Default IGST to 18% if not set
     } else {
         igstInput.value = 0;
         igstInput.disabled = true;
         cgstInput.disabled = false;
         sgstInput.disabled = false;
-        if (cgstInput.value === '0') cgstInput.value = '9';
-        if (sgstInput.value === '0') sgstInput.value = '9';
+        if (cgstInput.value === '0') cgstInput.value = '9'; // Default CGST to 9% if not set
+        if (sgstInput.value === '0') sgstInput.value = '9'; // Default SGST to 9% if not set
     }
 
     updateTaxCalculations();
@@ -978,7 +1026,7 @@ function clearForm() {
         document.getElementById('billingForm').reset();
         updateTaxCalculations();
 
-        // Reset all dynamic elements
+        // Clear all dynamic elements
         const productRows = document.querySelectorAll('.product-row');
         productRows.forEach((row, index) => {
             if (index > 0) {
@@ -1019,6 +1067,12 @@ document.addEventListener('change', function(e) {
 document.getElementById('billingForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    // Basic validation for required fields (example: customer)
+    if (!document.getElementById('client_id').value) {
+        alert('Please select a customer.');
+        return;
+    }
+
     // Validate all stock quantities before submission
     const quantityInputs = document.querySelectorAll('.quantity-input');
     let hasStockErrors = false;
@@ -1037,10 +1091,13 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
     const formData = new FormData(this);
 
-    // Add tax calculation data
-    formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) || 0));
-    formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
-    formData.append('total_tax_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) + parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
+    // Add tax calculation data to form data for submission
+    formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('igst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0)); // Assuming IGST is displayed in CGST placeholder if interstate
+    formData.append('discount_amount', (parseFloat(document.getElementById('display_discount').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('additional_charges_display', (parseFloat(document.getElementById('display_additional').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('total_amount', (parseFloat(document.getElementById('display_total').textContent.replace('₹', '').replace(/,/g, '')) || 0));
 
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
@@ -1052,6 +1109,16 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         const title = document.getElementById('resultModalTitle');
         const body = document.getElementById('resultModalBody');
         const viewBtn = document.getElementById('viewInvoiceBtn');
+        const printBtn = document.getElementById('printInvoiceBtn');
+        const emailBtn = document.getElementById('emailInvoiceBtn');
+        const whatsappBtn = document.getElementById('whatsappInvoiceBtn');
+
+        // Reset all action buttons display
+        viewBtn.style.display = 'none';
+        printBtn.style.display = 'none';
+        emailBtn.style.display = 'none';
+        whatsappBtn.style.display = 'none';
+
 
         if (data.success) {
             title.textContent = 'Professional Invoice Created Successfully!';
@@ -1066,29 +1133,33 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 </div>
                 <div class="row">
                     <div class="col-6"><strong>Total Amount:</strong></div>
-                    <div class="col-6">₹${data.total_amount.toLocaleString()}</div>
+                    <div class="col-6">₹${data.total_amount.toLocaleString('en-IN')}</div>
                 </div>
                 <div class="row">
                     <div class="col-6"><strong>CGST:</strong></div>
-                    <div class="col-6">₹${data.cgst_amount.toLocaleString()}</div>
+                    <div class="col-6">₹${data.cgst_amount.toLocaleString('en-IN')}</div>
                 </div>
                 <div class="row">
                     <div class="col-6"><strong>SGST:</strong></div>
-                    <div class="col-6">₹${data.sgst_amount.toLocaleString()}</div>
+                    <div class="col-6">₹${data.sgst_amount.toLocaleString('en-IN')}</div>
                 </div>
             `;
 
             if (data.deductions_applied > 0) {
                 message += `<div class="row text-success">
                     <div class="col-6"><strong>Package Deductions:</strong></div>
-                    <div class="col-6">₹${data.deductions_applied.toLocaleString()}</div>
+                    <div class="col-6">₹${data.deductions_applied.toLocaleString('en-IN')}</div>
                 </div>`;
             }
 
-            if (data.stock_reduced) {
-                message += `<div class="row text-info">
-                    <div class="col-12"><small><strong>Stock Reduced:</strong> ${data.stock_reduced} items from batches</small></div>
-                </div>`;
+            if (data.stock_reduced && data.stock_reduced.length > 0) {
+                message += `<div class="row text-info mt-2">
+                    <div class="col-12"><small><strong>Stock Reduced:</strong></small></div>
+                    <ul class="mb-0">`;
+                data.stock_reduced.forEach(item => {
+                    message += `<li><small>${item.product_name} - Batch ${item.batch_name}: ${item.quantity_reduced} ${item.unit}</small></li>`;
+                });
+                message += `</ul></div>`;
             }
 
             message += '</div>';
@@ -1096,8 +1167,18 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
             viewBtn.style.display = 'block';
             viewBtn.href = `/integrated-billing/invoice/${data.invoice_id}`;
+            printBtn.style.display = 'block';
+            emailBtn.style.display = 'block';
+            whatsappBtn.style.display = 'block';
 
-            // Reset form
+            // Store invoice ID for action buttons
+            viewBtn.dataset.invoiceId = data.invoice_id;
+            printBtn.dataset.invoiceId = data.invoice_id;
+            emailBtn.dataset.invoiceId = data.invoice_id;
+            whatsappBtn.dataset.invoiceId = data.invoice_id;
+
+
+            // Reset form after successful submission
             clearForm();
 
         } else {
@@ -1113,7 +1194,7 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         modal.show();
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Submission Error:', error);
 
         const modal = new bootstrap.Modal(document.getElementById('resultModal'));
         const title = document.getElementById('resultModalTitle');
@@ -1137,7 +1218,14 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
             const batchSelect = row.querySelector('.batch-select');
             const productSelect = row.querySelector('.product-select');
 
-            if (!batchSelect.value || !productSelect.value) return;
+            // Ensure product and batch are selected before validating
+            if (!batchSelect.value || !productSelect.value) {
+                // Clear any previous validation messages if product/batch not selected
+                quantityInput.classList.remove('is-invalid');
+                const errorMsg = row.querySelector('.quantity-error');
+                if (errorMsg) errorMsg.remove();
+                return;
+            }
 
             const selectedBatch = availableBatches.find(b => b.id == batchSelect.value);
             if (selectedBatch) {
@@ -1154,7 +1242,10 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                         quantityInput.parentNode.appendChild(errorMsg);
                     }
                     errorMsg.textContent = `Maximum available: ${availableQty} ${selectedBatch.unit}`;
-                    quantityInput.value = availableQty; // Auto-correct to max available
+                    // Optionally auto-correct or just show error
+                    // quantityInput.value = availableQty; // Auto-correct to max available
+                    // quantityInput.classList.remove('is-invalid'); // Remove invalid class if auto-corrected
+                    // errorMsg.remove(); // Remove error message if auto-corrected
                 } else {
                     quantityInput.classList.remove('is-invalid');
                     const errorMsg = row.querySelector('.quantity-error');
@@ -1165,7 +1256,46 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Integrated billing page loaded, initializing...');
             loadAvailableBatches();
+            updateTaxCalculations(); // Initial calculation update based on default values
+            toggleTaxType(); // Apply initial tax type settings
         });
+
+        // --- Action button handlers ---
+        function proceedWithInvoiceCreation() {
+            document.getElementById('billingForm').submit();
+        }
+
+        function printInvoice() {
+            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+            } else {
+                alert('Invoice ID not found. Cannot print.');
+            }
+        }
+
+        function emailInvoice() {
+            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger an email sending process
+                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot email.');
+            }
+        }
+
+        function whatsappInvoice() {
+            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger a WhatsApp sharing process
+                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot send via WhatsApp.');
+            }
+        }
 </script>
 {% endblock %}

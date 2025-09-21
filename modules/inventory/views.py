@@ -636,10 +636,12 @@ def api_get_batches_for_consumption():
             batch_data.append({
                 'id': b.id,
                 'batch_name': b.batch_name,
+                'product_id': b.product_id,  # Include product_id for proper matching
                 'product_name': product_name,
                 'location_name': location_name,
                 'qty_available': qty_available,
                 'unit': unit,
+                'selling_price': float(b.selling_price) if b.selling_price else None,
                 'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
                 'dropdown_display': dropdown_display
             })
