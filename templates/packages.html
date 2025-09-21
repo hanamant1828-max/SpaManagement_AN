@@ -12,7 +12,7 @@
                     <p class="text-muted">Professional package creation with service discounts and session tracking</p>
                 </div>
                 <div>
-                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addPackageModal">
+                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#servicePackageModal">
                         <i class="fas fa-plus"></i> Add New Package
                     </button>
                     <a href="{{ url_for('export_packages') }}" class="btn btn-outline-secondary">
@@ -239,7 +239,7 @@
 </div>
 
 <!-- Add Package Modal -->
-<div class="modal fade" id="addPackageModal" tabindex="-1">
+<div class="modal fade" id="servicePackageModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -722,7 +722,7 @@ function submitServiceForm() {
     .then(result => {
         if (result.success) {
             showToast('Package created successfully!', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('addPackageModal')).hide();
+            bootstrap.Modal.getInstance(document.getElementById('servicePackageModal')).hide();
             setTimeout(() => location.reload(), 1000);
         } else {
             showToast('Error creating package: ' + result.message, 'error');

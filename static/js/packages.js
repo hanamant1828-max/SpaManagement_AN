@@ -744,7 +744,7 @@ function submitServiceForm() {
             saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         }
 
-        fetch('/packages/api/service-packages', {
+        fetch('/api/service-packages', {
             method: 'POST',
             body: formData
         })
@@ -758,17 +758,19 @@ function submitServiceForm() {
                 }
                 
                 // Show success message
-                alert('Service package created successfully!');
+                showToast('Service package created successfully!', 'success');
                 
                 // Reload the page to show new package
-                window.location.reload();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             } else {
-                alert('Error: ' + (data.message || 'Failed to create service package'));
+                showToast('Error: ' + (data.message || 'Failed to create service package'), 'error');
             }
         })
         .catch(error => {
             console.error('Error submitting service package:', error);
-            alert('Error creating service package. Please try again.');
+            showToast('Error creating service package. Please try again.', 'error');
         })
         .finally(() => {
             // Reset button state
@@ -780,7 +782,7 @@ function submitServiceForm() {
         
     } catch (error) {
         console.error('Service form submission error:', error);
-        alert('Error submitting form. Please try again.');
+        showToast('Error submitting form. Please try again.', 'error');
     }
 }
 
