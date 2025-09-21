@@ -1119,9 +1119,30 @@ document.addEventListener('change', function(e) {
 document.getElementById('billingForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    // Get submit button and show loading state
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Invoice...';
+    submitBtn.disabled = true;
+
     // Basic validation for required fields (example: customer)
     if (!document.getElementById('client_id').value) {
         alert('Please select a customer.');
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+
+    // Check if at least one service or product is selected
+    const serviceSelected = Array.from(document.querySelectorAll('select[name="service_ids[]"]')).some(select => select.value);
+    const productSelected = Array.from(document.querySelectorAll('select[name="product_ids[]"]')).some(select => select.value);
+    
+    if (!serviceSelected && !productSelected) {
+        alert('Please select at least one service or product to create an invoice.');
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
         return;
     }
 
@@ -1130,14 +1151,23 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     let hasStockErrors = false;
 
     quantityInputs.forEach(input => {
-        validateStock(input);
-        if (!input.checkValidity()) {
-            hasStockErrors = true;
+        const productRow = input.closest('.product-row');
+        const productSelect = productRow.querySelector('.product-select');
+        
+        // Only validate if product is selected
+        if (productSelect && productSelect.value) {
+            validateInventoryQuantity(input);
+            if (!input.checkValidity()) {
+                hasStockErrors = true;
+            }
         }
     });
 
     if (hasStockErrors) {
         alert('Please check stock availability for all products before submitting.');
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
         return;
     }
 
@@ -1155,7 +1185,16 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        // Always reset button state first
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         const modal = new bootstrap.Modal(document.getElementById('resultModal'));
         const title = document.getElementById('resultModalTitle');
@@ -1248,16 +1287,39 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
     .catch(error => {
         console.error('Submission Error:', error);
 
+        // Ensure button state is reset
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+
         const modal = new bootstrap.Modal(document.getElementById('resultModal'));
         const title = document.getElementById('resultModalTitle');
         const body = document.getElementById('resultModalBody');
+        const viewBtn = document.getElementById('viewInvoiceBtn');
+        const printBtn = document.getElementById('printInvoiceBtn');
+        const emailBtn = document.getElementById('emailInvoiceBtn');
+        const whatsappBtn = document.getElementById('whatsappInvoiceBtn');
 
-        title.textContent = 'Network Error';
+        // Hide action buttons on error
+        viewBtn.style.display = 'none';
+        printBtn.style.display = 'none';
+        emailBtn.style.display = 'none';
+        whatsappBtn.style.display = 'none';
+
+        title.textContent = 'Invoice Creation Failed';
         title.className = 'text-danger';
         body.innerHTML = `<div class="text-danger">
             <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-            <p>Unable to connect to the billing system. Please check your internet connection and try again.</p>
+            <h5>Invoice creation failed</h5>
+            <p>There was an error processing your invoice. Please try again.</p>
             <small class="text-muted">Error details: ${error.message}</small>
+            <hr>
+            <p class="text-muted"><strong>Troubleshooting tips:</strong></p>
+            <ul class="text-muted">
+                <li>Check that all required fields are filled</li>
+                <li>Verify sufficient stock for selected products</li>
+                <li>Ensure tax rates are valid numbers</li>
+                <li>Try refreshing the page and creating again</li>
+            </ul>
         </div>`;
 
         modal.show();

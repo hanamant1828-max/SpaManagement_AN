@@ -105,12 +105,12 @@ def integrated_billing():
     from models import Customer, Service, PrepaidPackage, ServicePackage, Membership
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
-    
+
     # Get all types of packages
     prepaid_packages = PrepaidPackage.query.filter_by(is_active=True).all()
     service_packages = ServicePackage.query.filter_by(is_active=True).all()
     memberships = Membership.query.filter_by(is_active=True).all()
-    
+
     # Combine all packages for the interface
     packages = []
     for pkg in prepaid_packages:
@@ -226,19 +226,25 @@ def create_professional_invoice():
         if not customer:
             return jsonify({'success': False, 'message': 'Customer not found'})
 
-        # Parse services data
+        # Parse services data with better error handling
         services_data = []
         service_ids = request.form.getlist('service_ids[]')
         service_quantities = request.form.getlist('service_quantities[]')
         appointment_ids = request.form.getlist('appointment_ids[]')
 
         for i, service_id in enumerate(service_ids):
-            if service_id:
-                services_data.append({
-                    'service_id': int(service_id),
-                    'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
-                    'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None
-                })
+            if service_id and service_id.strip():
+                try:
+                    quantity = float(service_quantities[i]) if i < len(service_quantities) and service_quantities[i] else 1
+                    appointment_id = int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] and appointment_ids[i].strip() else None
+
+                    services_data.append({
+                        'service_id': int(service_id),
+                        'quantity': quantity,
+                        'appointment_id': appointment_id
+                    })
+                except (ValueError, TypeError) as e:
+                    return jsonify({'success': False, 'message': f'Invalid service data at position {i+1}: {str(e)}'})
 
         # Parse inventory data
         inventory_data = []
@@ -255,6 +261,10 @@ def create_professional_invoice():
                     'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
                     'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0
                 })
+
+        # Check if we have any services or products
+        if not services_data and not inventory_data:
+            return jsonify({'success': False, 'message': 'At least one service or product must be selected to create an invoice'})
 
         # Professional Tax Calculation
         cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
@@ -1187,7 +1197,7 @@ def save_invoice_draft():
         services_data = request.form.getlist('service_ids[]')
         products_data = request.form.getlist('product_ids[]')
         notes = request.form.get('notes', '')
-        
+
         # For now, just return success - in a full implementation,
         # you would save this data to a drafts table
         draft_data = {
@@ -1197,17 +1207,17 @@ def save_invoice_draft():
             'notes': notes,
             'timestamp': datetime.now().isoformat()
         }
-        
+
         # Log the draft save (in production, save to database)
         app.logger.info(f"Draft saved for user {current_user.id}: {draft_data}")
-        
+
         return jsonify({
             'success': True, 
             'message': 'Draft saved successfully',
             'draft_id': f"draft_{datetime.now().timestamp()}",
             'items_saved': draft_data['services_count'] + draft_data['products_count']
         })
-        
+
     except Exception as e:
         app.logger.error(f"Error saving draft: {str(e)}")
         return jsonify({'success': False, 'message': f'Error saving draft: {str(e)}'})
