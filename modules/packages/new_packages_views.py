@@ -91,6 +91,30 @@ def packages():
                          services=services,
                          stats=stats)
 
+@app.route('/customer-packages')
+@login_required
+def customer_packages():
+    """Customer packages assignment and management page"""
+    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Get customers for assignment
+    from models import Customer, Service
+    customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+
+    # Get services for dropdowns
+    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+
+    # Get staff for usage recording
+    from models import Staff
+    staff = Staff.query.filter_by(is_active=True).order_by(Staff.first_name, Staff.last_name).all()
+
+    return render_template('packages/customer_packages.html',
+                         customers=customers,
+                         services=services,
+                         staff=staff)
+
 # ========================================
 # PREPAID PACKAGES ENDPOINTS
 # ========================================

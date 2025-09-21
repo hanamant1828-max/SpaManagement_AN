@@ -2705,7 +2705,7 @@ function setupTableEventDelegation() {
     }
 }
 
-// Expose functions to global scope immediately
+// Expose functions to global scope
 window.loadMembershipPackages = loadMembershipPackages;
 window.loadStudentPackages = loadStudentPackages;
 window.loadYearlyPackages = loadYearlyPackages;
@@ -2911,32 +2911,45 @@ function updateKittyPartyPreview() {
 }
 
 // Save kitty party
-async function saveKittyParty() {
-    try {
-        const form = document.getElementById('addKittyPartyForm');
-        const formData = new FormData(form);
+function saveKittyParty() {
+    console.log('🎯 Submitting kitty party form...');
 
-        // Convert to JSON
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'service_ids') {
-                if (!data[key]) data[key] = [];
-                data[key].push(value);
-            } else {
-                data[key] = value;
-            }
-        });
+    const form = document.getElementById('addKittyPartyForm');
+    if (!form) {
+        console.error('❌ Kitty party form not found');
+        return;
+    }
 
-        const response = await fetch('/api/kitty-parties', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
+    // Disable save button if it exists
+    const saveBtn = document.getElementById('saveKittyParty');
+    const originalText = saveBtn ? saveBtn.innerHTML : '';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    }
 
-        const result = await response.json();
+    const formData = new FormData(form);
 
+    // Convert to JSON
+    const data = {};
+    formData.forEach((value, key) => {
+        if (key === 'service_ids') {
+            if (!data[key]) data[key] = [];
+            data[key].push(value);
+        } else {
+            data[key] = value;
+        }
+    });
+
+    fetch('/api/kitty-parties', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
         if (result.success || response.ok) {
             showToast('Kitty party created successfully!', 'success');
 
@@ -2946,17 +2959,27 @@ async function saveKittyParty() {
 
             // Reset form
             form.reset();
-            document.getElementById('saveKittyParty').disabled = true;
+            if (saveBtn) {
+                saveBtn.disabled = true;
+            }
 
             // Reload table
-            await loadKittyPackages();
+            loadKittyPackages();
         } else {
             throw new Error(result.error || 'Failed to create kitty party');
         }
-    } catch (error) {
+    })
+    .catch(error => {
         console.error('Error saving kitty party:', error);
         showToast('Error creating kitty party: ' + error.message, 'error');
-    }
+    })
+    .finally(() => {
+        // Restore button state if button exists
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText || '<i class="fas fa-save me-2"></i>Save Kitty Party';
+        }
+    });
 }
 
 // Edit kitty party
