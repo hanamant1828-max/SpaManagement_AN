@@ -1045,6 +1045,33 @@ def get_all_package_assignments():
         logging.error(f"Error getting all assignments: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/packages/api/customers/<int:customer_id>', methods=['GET'])
+@login_required
+def api_get_customer_details(customer_id):
+    """Get customer details by ID"""
+    try:
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        customer_data = {
+            'id': customer.id,
+            'name': customer.full_name,
+            'phone': customer.phone or '',
+            'email': customer.email or '',
+            'address': customer.address or '',
+            'created_at': customer.created_at.strftime('%Y-%m-%d') if customer.created_at else 'N/A'
+        }
+
+        return jsonify({
+            'success': True,
+            'customer': customer_data
+        })
+
+    except Exception as e:
+        logging.error(f"Error getting customer details: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/packages/api/view-assignment-details/<int:assignment_id>', methods=['GET'])
 @login_required
 def view_assignment_details(assignment_id):

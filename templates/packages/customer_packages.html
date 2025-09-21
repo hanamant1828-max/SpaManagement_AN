@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Customer Package Assignment - Management Suite{% endblock %}
@@ -141,7 +140,7 @@
     <div class="row">
         <div class="col-12">
             <div class="tab-content" id="packageTypeTabContent">
-                
+
                 <!-- All Assigned Packages Tab -->
                 <div class="tab-pane fade show active" id="all-packages" role="tabpanel">
                     <div class="card">
@@ -215,7 +214,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             <!-- Package Assignment Summary -->
                             <div class="row mt-4">
                                 <div class="col-12">
@@ -233,7 +232,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Pagination -->
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <div id="paginationInfo" class="text-muted">
@@ -275,7 +274,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="row" id="prepaidPackagesContainer">
                                 <!-- Prepaid packages will be loaded here -->
                             </div>
@@ -309,7 +308,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="row" id="servicePackagesContainer">
                                 <!-- Service packages will be loaded here -->
                             </div>
@@ -343,7 +342,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Memberships Table -->
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover" id="tblMemberships">
@@ -396,7 +395,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Student Offers Table -->
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover" id="tblStudentOffers">
@@ -445,7 +444,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Yearly Memberships Table -->
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover" id="tblYearlyMemberships">
@@ -493,7 +492,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Kitty Parties Table -->
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover" id="tblKittyPackages">
@@ -544,7 +543,7 @@
                                 Please select a customer.
                             </div>
                         </div>
-                        
+
                         <!-- Package Template -->
                         <div class="col-md-6">
                             <label for="assignPackage" class="form-label">Package Template *</label>
@@ -555,7 +554,7 @@
                                 Please select a package template.
                             </div>
                         </div>
-                        
+
                         <!-- Price Paid -->
                         <div class="col-md-4">
                             <label for="assignPrice" class="form-label">Price Paid *</label>
@@ -568,7 +567,7 @@
                                 Please enter a valid price.
                             </div>
                         </div>
-                        
+
                         <!-- Discount -->
                         <div class="col-md-4">
                             <label for="assignDiscount" class="form-label">Discount</label>
@@ -578,14 +577,14 @@
                                        step="0.01" min="0" value="0">
                             </div>
                         </div>
-                        
+
                         <!-- Expires On -->
                         <div class="col-md-4">
                             <label for="assignExpires" class="form-label">Expires On</label>
                             <input type="date" class="form-control" id="assignExpires">
                             <div class="form-text">Leave blank for no expiry</div>
                         </div>
-                        
+
                         <!-- Notes -->
                         <div class="col-12">
                             <label for="assignNotes" class="form-label">Notes</label>
@@ -593,7 +592,7 @@
                                       placeholder="Additional notes about this package assignment..."></textarea>
                         </div>
                     </div>
-                    
+
                     <!-- Package Preview -->
                     <div id="packagePreview" class="mt-4" style="display: none;">
                         <h6 class="text-muted">Package Components:</h6>
@@ -731,7 +730,7 @@
                                 Please select a service.
                             </div>
                         </div>
-                        
+
                         <!-- Quantity -->
                         <div class="col-md-6">
                             <label for="usageQuantity" class="form-label">Quantity *</label>
@@ -741,13 +740,13 @@
                                 Please enter a valid quantity.
                             </div>
                         </div>
-                        
+
                         <!-- Date/Time -->
                         <div class="col-md-6">
                             <label for="usageDateTime" class="form-label">Date/Time</label>
                             <input type="datetime-local" class="form-control" id="usageDateTime">
                         </div>
-                        
+
                         <!-- Staff -->
                         <div class="col-12">
                             <label for="usageStaff" class="form-label">Staff Member</label>
@@ -755,7 +754,7 @@
                                 <option value="">Select staff member...</option>
                             </select>
                         </div>
-                        
+
                         <!-- Notes -->
                         <div class="col-12">
                             <label for="usageNotes" class="form-label">Notes</label>
@@ -763,7 +762,7 @@
                                       placeholder="Additional notes about this usage..."></textarea>
                         </div>
                     </div>
-                    
+
                     <!-- Live Hint -->
                     <div class="mt-3">
                         <div class="alert alert-info" id="usageHint" style="display: none;">
@@ -810,7 +809,7 @@
                                 </label>
                             </div>
                         </div>
-                        
+
                         <!-- Service -->
                         <div class="col-12">
                             <label for="adjustService" class="form-label">Service *</label>
@@ -821,7 +820,7 @@
                                 Please select a service.
                             </div>
                         </div>
-                        
+
                         <!-- Quantity -->
                         <div class="col-md-6">
                             <label for="adjustQuantity" class="form-label">Quantity *</label>
@@ -831,7 +830,7 @@
                                 Please enter a valid quantity.
                             </div>
                         </div>
-                        
+
                         <!-- Reason -->
                         <div class="col-md-6">
                             <label for="adjustReason" class="form-label">Reason *</label>
@@ -843,7 +842,7 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
-                        
+
                         <!-- Notes -->
                         <div class="col-12">
                             <label for="adjustNotes" class="form-label">Notes *</label>
@@ -854,7 +853,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Live Hint -->
                     <div class="mt-3">
                         <div class="alert alert-warning" id="adjustHint" style="display: none;">
@@ -888,7 +887,7 @@
                 <form id="packageAssignmentForm">
                     <input type="hidden" id="selectedPackageId" name="package_id">
                     <input type="hidden" id="selectedPackageType" name="package_type">
-                    
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="assignmentCustomer" class="form-label">Customer *</label>
@@ -896,7 +895,7 @@
                                 <option value="">Select customer...</option>
                             </select>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label for="assignmentPrice" class="form-label">Price Paid *</label>
                             <div class="input-group">
@@ -905,7 +904,7 @@
                                        name="price_paid" step="0.01" min="0" required>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label for="assignmentDiscount" class="form-label">Discount</label>
                             <div class="input-group">
@@ -914,18 +913,18 @@
                                        name="discount" step="0.01" min="0" value="0">
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label for="assignmentExpires" class="form-label">Expires On</label>
                             <input type="date" class="form-control" id="assignmentExpires" name="expires_on">
                         </div>
-                        
+
                         <div class="col-12">
                             <label for="assignmentNotes" class="form-label">Notes</label>
                             <textarea class="form-control" id="assignmentNotes" name="notes" rows="3"></textarea>
                         </div>
                     </div>
-                    
+
                     <!-- Package Details Preview -->
                     <div class="mt-4">
                         <div class="card bg-light">
@@ -965,7 +964,7 @@
                         <label for="asTemplateName" class="form-label">Package</label>
                         <input type="text" class="form-control" id="asTemplateName" readonly>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="asCustomer" class="form-label">Customer *</label>
                         <select class="form-select" id="asCustomer" required>
@@ -975,7 +974,7 @@
                             Please select a customer.
                         </div>
                     </div>
-                    
+
                     <!-- Hidden fields -->
                     <input type="hidden" id="asTemplateId">
                     <input type="hidden" id="asPackageType">
@@ -1104,7 +1103,7 @@
                                 Please select at least one service.
                             </div>
                         </div>
-                        
+
                         <!-- Discount Percentage -->
                         <div class="col-md-6">
                             <label for="studentDiscountPercentage" class="form-label">Discount Percentage *</label>
@@ -1117,7 +1116,7 @@
                                 Please enter a discount between 1-100%.
                             </div>
                         </div>
-                        
+
                         <!-- Valid Days -->
                         <div class="col-md-6">
                             <label for="studentValidDays" class="form-label">Valid Days</label>
@@ -1129,7 +1128,7 @@
                                 <option value="Custom">Custom</option>
                             </select>
                         </div>
-                        
+
                         <!-- Custom Valid Days (hidden by default) -->
                         <div class="col-12" id="customValidDaysDiv" style="display: none;">
                             <label for="customValidDays" class="form-label">Custom Valid Days</label>
@@ -1137,7 +1136,7 @@
                                    placeholder="e.g., Mon, Wed, Fri">
                             <div class="form-text">Enter specific days when this offer is valid</div>
                         </div>
-                        
+
                         <!-- Valid From Date -->
                         <div class="col-md-6">
                             <label for="studentValidFrom" class="form-label">Valid From *</label>
@@ -1147,7 +1146,7 @@
                                 Please select a valid from date.
                             </div>
                         </div>
-                        
+
                         <!-- Valid To Date -->
                         <div class="col-md-6">
                             <label for="studentValidTo" class="form-label">Valid To *</label>
@@ -1157,7 +1156,7 @@
                                 Please select a valid to date.
                             </div>
                         </div>
-                        
+
                         <!-- Conditions -->
                         <div class="col-12">
                             <label for="studentConditions" class="form-label">Conditions</label>
@@ -1165,7 +1164,7 @@
                                       rows="3">Valid with Student ID</textarea>
                             <div class="form-text">Terms and conditions for this student offer</div>
                         </div>
-                        
+
                         <!-- Preview Section -->
                         <div class="col-12">
                             <div class="card bg-light">
@@ -1212,7 +1211,7 @@
                             </select>
                             <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
                         </div>
-                        
+
                         <!-- Discount Percentage -->
                         <div class="col-md-6">
                             <label for="editStudentDiscountPercentage" class="form-label">Discount Percentage *</label>
@@ -1222,7 +1221,7 @@
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
-                        
+
                         <!-- Valid Days -->
                         <div class="col-md-6">
                             <label for="editStudentValidDays" class="form-label">Valid Days</label>
@@ -1234,28 +1233,28 @@
                                 <option value="Custom">Custom</option>
                             </select>
                         </div>
-                        
+
                         <!-- Custom Valid Days (hidden by default) -->
                         <div class="col-12" id="editCustomValidDaysDiv" style="display: none;">
                             <label for="editCustomValidDays" class="form-label">Custom Valid Days</label>
                             <input type="text" class="form-control" id="editCustomValidDays" 
                                    placeholder="e.g., Mon, Wed, Fri">
                         </div>
-                        
+
                         <!-- Valid From Date -->
                         <div class="col-md-6">
                             <label for="editStudentValidFrom" class="form-label">Valid From *</label>
                             <input type="date" class="form-control" id="editStudentValidFrom" 
                                    name="valid_from" required>
                         </div>
-                        
+
                         <!-- Valid To Date -->
                         <div class="col-md-6">
                             <label for="editStudentValidTo" class="form-label">Valid To *</label>
                             <input type="date" class="form-control" id="editStudentValidTo" 
                                    name="valid_to" required>
                         </div>
-                        
+
                         <!-- Conditions -->
                         <div class="col-12">
                             <label for="editStudentConditions" class="form-label">Conditions</label>
@@ -1294,7 +1293,7 @@ async function initializeEnhancedPackages() {
             loadCustomersForAllTabs(),
             loadAllPackageAssignments() // Load existing assignments
         ]);
-        
+
         console.log('Enhanced package assignment system initialized');
     } catch (error) {
         console.error('Error initializing enhanced packages:', error);
@@ -1305,11 +1304,11 @@ async function loadAllPackageAssignments() {
     try {
         const response = await fetch('/packages/api/all-assignments');
         const data = await response.json();
-        
+
         if (data.success) {
             const tableBody = document.getElementById('packagesTableBody');
             document.getElementById('all-count').textContent = data.total_assignments;
-            
+
             if (data.assignments.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
@@ -1323,9 +1322,9 @@ async function loadAllPackageAssignments() {
             } else {
                 tableBody.innerHTML = data.assignments.map(assignment => {
                     const statusBadge = getStatusBadge(assignment.status);
-                    
+
                     let totalInfo, usedInfo, remainingInfo, progressBar;
-                    
+
                     if (assignment.package_type === 'service_package') {
                         totalInfo = `${assignment.total_sessions} sessions`;
                         usedInfo = `${assignment.used_sessions} sessions`;
@@ -1352,7 +1351,7 @@ async function loadAllPackageAssignments() {
                         remainingInfo = 'Active';
                         progressBar = '<span class="text-muted">Membership</span>';
                     }
-                    
+
                     return `
                         <tr>
                             <td>
@@ -1386,7 +1385,7 @@ async function loadAllPackageAssignments() {
                     `;
                 }).join('');
             }
-            
+
             // Update assignment counts in package cards
             await updatePackageAssignmentCounts();
         }
@@ -1408,14 +1407,14 @@ async function updatePackageAssignmentCounts() {
     // Update the "View Assigned" button counts for each package card
     try {
         const packageTypes = ['prepaid', 'service', 'membership', 'student', 'yearly', 'kitty'];
-        
+
         for (const type of packageTypes) {
             if (allPackageTypes[type]) {
                 for (const pkg of allPackageTypes[type]) {
                     try {
                         const response = await fetch(`/packages/api/assigned-customers/${type === 'service' ? 'service_package' : type}/${pkg.id}`);
                         const data = await response.json();
-                        
+
                         if (data.success) {
                             // Update the count in the button
                             const button = document.querySelector(`button[onclick*="viewAssignedCustomers('${pkg.id}', '${type === 'service' ? 'service_package' : type}'"]`);
@@ -1445,27 +1444,27 @@ async function loadAllPackageTypes() {
             { key: 'yearly', url: '/api/yearly-memberships' },
             { key: 'kitty', url: '/api/kitty-parties' }
         ];
-        
+
         for (const endpoint of endpoints) {
             const response = await fetch(endpoint.url);
             const data = await response.json();
             allPackageTypes[endpoint.key] = data.success ? data[endpoint.key] || data.packages || data.memberships || data.offers || data.parties || [] : [];
-            
+
             // Update counts
             const countElement = document.getElementById(`${endpoint.key}-available`);
             if (countElement) {
                 countElement.textContent = allPackageTypes[endpoint.key].length;
             }
-            
+
             const totalCountElement = document.getElementById(`${endpoint.key}-total-count`);
             if (totalCountElement) {
                 totalCountElement.textContent = allPackageTypes[endpoint.key].length;
             }
         }
-        
+
         // Render package cards for each type
         renderPackageCards();
-        
+
     } catch (error) {
         console.error('Error loading package types:', error);
     }
@@ -1475,17 +1474,17 @@ async function loadCustomersForAllTabs() {
     try {
         const response = await fetch('/packages/api/customers');
         const data = await response.json();
-        
+
         if (data.success) {
             const customers = data.customers;
-            
+
             // Populate all customer dropdowns
             const customerSelects = [
                 'prepaidCustomerSelect', 'serviceCustomerSelect', 'membershipCustomerSelect',
                 'studentCustomerSelect', 'yearlyCustomerSelect', 'kittyCustomerSelect',
                 'assignmentCustomer'
             ];
-            
+
             customerSelects.forEach(selectId => {
                 const select = document.getElementById(selectId);
                 if (select) {
@@ -1506,11 +1505,11 @@ async function loadCustomersForAllTabs() {
 
 function renderPackageCards() {
     const packageTypes = ['prepaid', 'service', 'membership', 'student', 'yearly', 'kitty'];
-    
+
     packageTypes.forEach(type => {
         const container = document.getElementById(`${type}PackagesContainer`);
         if (!container || !allPackageTypes[type]) return;
-        
+
         container.innerHTML = allPackageTypes[type].map(pkg => createPackageCard(pkg, type)).join('');
     });
 }
@@ -1554,11 +1553,11 @@ function createPackageCard(pkg, type) {
             valueField: 'min_guests'
         }
     };
-    
+
     const config = typeConfig[type];
     const price = pkg[config.priceField] || 0;
     const value = pkg[config.valueField] || 0;
-    
+
     return `
         <div class="col-md-6 mb-3">
             <div class="card package-card" onclick="selectPackageForAssignment('${pkg.id}', '${type}', ${JSON.stringify(pkg).replace(/"/g, '&quot;')})">
@@ -1570,7 +1569,7 @@ function createPackageCard(pkg, type) {
                         </h5>
                         <span class="badge bg-${config.color} badge-large">₹${price}</span>
                     </div>
-                    
+
                     <div class="row g-2 mb-3">
                         ${type === 'prepaid' ? `
                             <div class="col-6">
@@ -1628,7 +1627,7 @@ function createPackageCard(pkg, type) {
                             </div>
                         `}
                     </div>
-                    
+
                     <div class="d-grid gap-2">
                         <button type="button" class="btn btn-${config.color}">
                             <i class="fas fa-user-plus me-2"></i>Assign to Customer
@@ -1647,24 +1646,24 @@ function createPackageCard(pkg, type) {
 function selectPackageForAssignment(packageId, packageType, packageData) {
     // Show the assignment modal
     const modal = new bootstrap.Modal(document.getElementById('packageAssignmentModal'));
-    
+
     // Update modal title
     const modalTitle = document.getElementById('assignmentModalTitle');
     modalTitle.innerHTML = `<i class="fas fa-gift text-primary me-2"></i>Assign ${packageData.name}`;
-    
+
     // Set hidden fields
     document.getElementById('selectedPackageId').value = packageId;
     document.getElementById('selectedPackageType').value = packageType;
-    
+
     // Set default price
     const priceField = document.getElementById('assignmentPrice');
     const price = packageData.price || packageData.actual_price || packageData.after_price || 0;
     priceField.value = price;
-    
+
     // Show package details
     const detailsContainer = document.getElementById('selectedPackageDetails');
     detailsContainer.innerHTML = createPackageDetailsPreview(packageData, packageType);
-    
+
     // Pre-select customer if one is selected in the tab
     const activeTab = document.querySelector('.tab-pane.active');
     if (activeTab) {
@@ -1673,7 +1672,7 @@ function selectPackageForAssignment(packageId, packageType, packageData) {
             document.getElementById('assignmentCustomer').value = customerSelect.value;
         }
     }
-    
+
     modal.show();
 }
 
@@ -1728,7 +1727,7 @@ function createPackageDetailsPreview(pkg, type) {
 document.getElementById('savePackageAssignment').addEventListener('click', async function() {
     const form = document.getElementById('packageAssignmentForm');
     const formData = new FormData(form);
-    
+
     const data = {
         package_id: formData.get('package_id'),
         package_type: formData.get('package_type'),
@@ -1737,35 +1736,35 @@ document.getElementById('savePackageAssignment').addEventListener('click', async
         discount: parseFloat(formData.get('discount')) || 0,
         notes: formData.get('notes')
     };
-    
+
     if (formData.get('expires_on')) {
         data.expires_on = formData.get('expires_on') + 'T23:59:59';
     }
-    
+
     try {
         const response = await fetch('/packages/api/assign', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(data)
+            body: JSON.JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showToast('Package assigned successfully!', 'success');
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('packageAssignmentModal'));
             modal.hide();
-            
+
             // Reload the assignments
             await loadPackages();
-            
+
             // Update counts
             updateAssignmentCounts();
-            
+
         } else {
             showToast(result.error || 'Error assigning package', 'error');
         }
@@ -1780,7 +1779,7 @@ async function viewAssignedCustomers(packageId, packageType, packageName) {
     try {
         const response = await fetch(`/packages/api/assigned-customers/${packageType}/${packageId}`);
         const data = await response.json();
-        
+
         if (data.success) {
             // Update modal title and package info
             document.getElementById('assignedCustomersModalTitle').innerHTML = 
@@ -1788,16 +1787,16 @@ async function viewAssignedCustomers(packageId, packageType, packageName) {
             document.getElementById('assignedPackageName').textContent = data.package_name;
             document.getElementById('assignedPackageType').textContent = packageType.charAt(0).toUpperCase() + packageType.slice(1);
             document.getElementById('assignedCustomersCount').textContent = data.total_assignments;
-            
+
             const tableBody = document.getElementById('assignedCustomersTableBody');
             const noCustomersDiv = document.getElementById('noAssignedCustomers');
-            
+
             if (data.customers.length === 0) {
                 tableBody.innerHTML = '';
                 noCustomersDiv.style.display = 'block';
             } else {
                 noCustomersDiv.style.display = 'none';
-                
+
                 tableBody.innerHTML = data.customers.map(customer => {
                     let progressInfo = '';
                     if (customer.remaining_sessions !== null) {
@@ -1821,9 +1820,9 @@ async function viewAssignedCustomers(packageId, packageType, packageName) {
                     } else {
                         progressInfo = '<span class="text-muted">Membership</span>';
                     }
-                    
+
                     const statusBadge = getStatusBadge(customer.status);
-                    
+
                     return `
                         <tr>
                             <td>
@@ -1850,11 +1849,11 @@ async function viewAssignedCustomers(packageId, packageType, packageName) {
                     `;
                 }).join('');
             }
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('assignedCustomersModal'));
             modal.show();
-            
+
         } else {
             showToast(data.error || 'Error loading assigned customers', 'error');
         }
@@ -1872,7 +1871,7 @@ function getStatusBadge(status) {
         'cancelled': 'bg-danger',
         'paused': 'bg-secondary'
     };
-    
+
     const badgeClass = statusMap[status] || 'bg-secondary';
     return `<span class="badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
 }
@@ -1888,16 +1887,16 @@ function filterAssignedCustomers() {
     // Implement client-side filtering of the displayed table
     const searchTerm = document.getElementById('assignedCustomersSearch').value.toLowerCase();
     const statusFilter = document.getElementById('assignedStatusFilter').value;
-    
+
     const rows = document.querySelectorAll('#assignedCustomersTableBody tr');
     rows.forEach(row => {
         const customerName = row.cells[0].textContent.toLowerCase();
         const customerPhone = row.cells[1].textContent.toLowerCase();
         const status = row.cells[6].textContent.toLowerCase();
-        
+
         const matchesSearch = !searchTerm || customerName.includes(searchTerm) || customerPhone.includes(searchTerm);
         const matchesStatus = !statusFilter || status.includes(statusFilter.toLowerCase());
-        
+
         if (matchesSearch && matchesStatus) {
             row.style.display = '';
         } else {
@@ -1910,7 +1909,7 @@ function openAssignToPackage() {
     // Close current modal and open assignment modal
     const currentModal = bootstrap.Modal.getInstance(document.getElementById('assignedCustomersModal'));
     currentModal.hide();
-    
+
     // Open assignment modal with current package pre-selected
     openAssignModal();
 }

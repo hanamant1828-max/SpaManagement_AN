@@ -925,6 +925,138 @@ function assignFromTemplate(templateId, packageType) {
 window.PackagesUI.assignFromTemplate = assignFromTemplate;
 window.PackagesUI.assignPrepaidFromTemplate = assignPrepaidFromTemplate;
 
+/**
+ * View assignment details modal
+ */
+async function viewAssignmentDetails(assignmentId) {
+    try {
+        const response = await fetch(`/packages/api/view-assignment-details/${assignmentId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // Create and show modal with the returned HTML
+            const modalHtml = `
+                <div class="modal fade" id="viewAssignmentModal" tabindex="-1" data-bs-backdrop="static">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            ${data.html}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('viewAssignmentModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Add new modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('viewAssignmentModal'));
+            modal.show();
+
+            // Remove modal from DOM when hidden
+            modal._element.addEventListener('hidden.bs.modal', () => {
+                modal._element.remove();
+            });
+        } else {
+            showToast(data.error || 'Error loading assignment details', 'error');
+        }
+    } catch (error) {
+        console.error('Error viewing assignment details:', error);
+        showToast('Error loading assignment details', 'error');
+    }
+}
+
+/**
+ * View customer details modal  
+ */
+async function viewCustomerDetails(customerId) {
+    try {
+        const response = await fetch(`/packages/api/customers/${customerId}`);
+        const data = await response.json();
+
+        if (data.success && data.customer) {
+            const customer = data.customer;
+
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal fade" id="viewCustomerModal" tabindex="-1" data-bs-backdrop="static">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-user text-primary me-2"></i>Customer Details
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <strong>Name:</strong><br>
+                                        ${customer.name}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Phone:</strong><br>
+                                        ${customer.phone || 'N/A'}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <strong>Email:</strong><br>
+                                        ${customer.email || 'N/A'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Member Since:</strong><br>
+                                        ${customer.created_at || 'N/A'}
+                                    </div>
+                                </div>
+                                ${customer.address ? `
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <strong>Address:</strong><br>
+                                        ${customer.address}
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('viewCustomerModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Add new modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('viewCustomerModal'));
+            modal.show();
+
+            // Remove modal from DOM when hidden
+            modal._element.addEventListener('hidden.bs.modal', () => {
+                modal._element.remove();
+            });
+        } else {
+            showToast(data.error || 'Error loading customer details', 'error');
+        }
+    } catch (error) {
+        console.error('Error viewing customer details:', error);
+        showToast('Error loading customer details', 'error');
+    }
+}
+
 // Add missing global functions
 window.viewAssignmentDetails = viewAssignmentDetails;
 window.viewCustomerDetails = viewCustomerDetails;
@@ -1630,12 +1762,49 @@ function showToast(message, type = 'info') {
     if (typeof showNotification === 'function') {
         showNotification(message, type);
     } else {
-        // Fallback to console
-        console.log(`[${type.toUpperCase()}] ${message}`);
+        // Create a simple Bootstrap toast
+        const toastContainer = document.getElementById('toast-container') || createToastContainer();
+        
+        const toastId = 'toast-' + Date.now();
+        const bgClass = {
+            'success': 'bg-success',
+            'error': 'bg-danger', 
+            'warning': 'bg-warning',
+            'info': 'bg-info'
+        }[type] || 'bg-info';
 
-        // You could also create a simple toast here
-        alert(message);
+        const toastHtml = `
+            <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header ${bgClass} text-white border-0">
+                    <strong class="me-auto">Notification</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        const toastElement = document.getElementById(toastId);
+        const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 });
+        bsToast.show();
+
+        // Remove toast element after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
     }
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1055';
+    document.body.appendChild(container);
+    return container;
 }
 
 /**
