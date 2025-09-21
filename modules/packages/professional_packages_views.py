@@ -26,8 +26,22 @@ def professional_packages():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     
-    # Get comprehensive statistics
+    # Get comprehensive statistics aligned with template expectations
+    total_packages = (PrepaidPackage.query.filter_by(is_active=True).count() +
+                     ServicePackage.query.filter_by(is_active=True).count() +
+                     Membership.query.filter_by(is_active=True).count() +
+                     StudentOffer.query.filter_by(is_active=True).count() +
+                     YearlyMembership.query.filter_by(is_active=True).count() +
+                     KittyParty.query.filter_by(is_active=True).count())
+    
     stats = {
+        'total_packages': total_packages,
+        'prepaid_credit_packages': PrepaidPackage.query.filter_by(is_active=True).count(),
+        'prepaid_service_packages': ServicePackage.query.filter_by(is_active=True).count(),
+        'membership_packages': Membership.query.filter_by(is_active=True).count(),
+        'regular_packages': StudentOffer.query.filter_by(is_active=True).count(),
+        'client_assignments': ServicePackageAssignment.query.filter_by(status='active').count(),
+        # Additional useful stats
         'total_active_packages': PackageBenefitTracker.query.filter_by(is_active=True).count(),
         'total_customers_with_packages': db.session.query(PackageBenefitTracker.customer_id).distinct().count(),
         'total_prepaid_balance': db.session.query(

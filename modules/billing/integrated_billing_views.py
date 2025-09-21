@@ -237,7 +237,7 @@ def create_professional_invoice():
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Required: {item["quantity"]}'
                 })
 
-        # Calculate amounts
+        # Calculate initial amounts (will be recalculated after package benefits)
         services_subtotal = 0
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
@@ -248,29 +248,8 @@ def create_professional_invoice():
         for item in inventory_data:
             inventory_subtotal += item['unit_price'] * item['quantity']
 
-        gross_subtotal = services_subtotal + inventory_subtotal
-
-        # Calculate discount
-        if discount_type == 'percentage':
-            discount_amount = (gross_subtotal * discount_value) / 100
-        else:
-            discount_amount = discount_value
-
-        net_subtotal = gross_subtotal - discount_amount
-
-        # Calculate taxes
-        cgst_amount = 0
-        sgst_amount = 0
-        igst_amount = 0
-        
-        if is_interstate:
-            igst_amount = net_subtotal * igst_rate
-        else:
-            cgst_amount = net_subtotal * cgst_rate
-            sgst_amount = net_subtotal * sgst_rate
-
-        total_tax = cgst_amount + sgst_amount + igst_amount
-        total_amount = net_subtotal + total_tax + additional_charges + tips_amount
+        # Note: Final totals will be calculated after package benefits are applied
+        initial_gross_subtotal = services_subtotal + inventory_subtotal
 
         # Create professional invoice with proper transaction handling
         try:
@@ -295,36 +274,38 @@ def create_professional_invoice():
             invoice.client_id = int(client_id)
             invoice.invoice_date = current_date
             
-            # Professional billing fields
+            # Initialize with temporary values - will be recalculated after package benefits
             invoice.services_subtotal = services_subtotal
             invoice.inventory_subtotal = inventory_subtotal
-            invoice.gross_subtotal = gross_subtotal
-            invoice.net_subtotal = net_subtotal
-            invoice.tax_amount = total_tax
-            invoice.discount_amount = discount_amount
+            invoice.gross_subtotal = initial_gross_subtotal
+            invoice.net_subtotal = 0  # Will be calculated after package benefits
+            invoice.tax_amount = 0    # Will be calculated after package benefits
+            invoice.discount_amount = 0  # Will be calculated after package benefits
             invoice.tips_amount = tips_amount
-            invoice.total_amount = total_amount
-            invoice.balance_due = total_amount
+            invoice.total_amount = 0  # Will be calculated after package benefits
+            invoice.balance_due = 0   # Will be calculated after package benefits
             
-            # Store GST fields properly
+            # Store GST configuration
             invoice.cgst_rate = cgst_rate * 100
             invoice.sgst_rate = sgst_rate * 100
             invoice.igst_rate = igst_rate * 100
-            invoice.cgst_amount = cgst_amount
-            invoice.sgst_amount = sgst_amount
-            invoice.igst_amount = igst_amount
             invoice.is_interstate = is_interstate
             invoice.additional_charges = additional_charges
             invoice.payment_terms = payment_terms
             
-            # Tax breakdown for legacy support
+            # Initialize GST amounts - will be calculated after package benefits
+            invoice.cgst_amount = 0
+            invoice.sgst_amount = 0
+            invoice.igst_amount = 0
+            
+            # Tax breakdown for legacy support - will be updated after package calculations
             tax_breakdown = {
                 'cgst_rate': cgst_rate * 100,
                 'sgst_rate': sgst_rate * 100,
                 'igst_rate': igst_rate * 100,
-                'cgst_amount': cgst_amount,
-                'sgst_amount': sgst_amount,
-                'igst_amount': igst_amount,
+                'cgst_amount': 0,
+                'sgst_amount': 0,
+                'igst_amount': 0,
                 'is_interstate': is_interstate,
                 'additional_charges': additional_charges,
                 'payment_terms': payment_terms,
@@ -332,7 +313,7 @@ def create_professional_invoice():
             }
             
             invoice.notes = json.dumps(tax_breakdown)
-            invoice.payment_methods = json.dumps({payment_method: total_amount})
+            invoice.payment_methods = json.dumps({payment_method: 0})  # Will be updated after calculations
 
             db.session.add(invoice)
             db.session.flush()  # Get the invoice ID
@@ -464,53 +445,62 @@ def create_professional_invoice():
                     )
                     stock_reduced_count += 1
 
-            # Recalculate invoice totals after package deductions
-            if total_package_deductions > 0:
-                # Recalculate services subtotal after package deductions
-                actual_services_subtotal = services_subtotal - total_package_deductions
-                actual_gross_subtotal = actual_services_subtotal + inventory_subtotal
-                
-                # Recalculate discount on the new subtotal
-                if discount_type == 'percentage':
-                    actual_discount_amount = (actual_gross_subtotal * discount_value) / 100
-                else:
-                    actual_discount_amount = min(discount_amount, actual_gross_subtotal)
-                
-                actual_net_subtotal = actual_gross_subtotal - actual_discount_amount
-                
-                # Recalculate taxes on the new net subtotal
-                if is_interstate:
-                    actual_igst_amount = actual_net_subtotal * igst_rate
-                    actual_cgst_amount = 0
-                    actual_sgst_amount = 0
-                else:
-                    actual_cgst_amount = actual_net_subtotal * cgst_rate
-                    actual_sgst_amount = actual_net_subtotal * sgst_rate
-                    actual_igst_amount = 0
-                
-                actual_total_tax = actual_cgst_amount + actual_sgst_amount + actual_igst_amount
-                actual_total_amount = actual_net_subtotal + actual_total_tax + additional_charges + tips_amount
-                
-                # Update invoice with recalculated amounts
-                invoice.services_subtotal = actual_services_subtotal
-                invoice.gross_subtotal = actual_gross_subtotal
-                invoice.net_subtotal = actual_net_subtotal
-                invoice.tax_amount = actual_total_tax
-                invoice.discount_amount = actual_discount_amount
-                invoice.total_amount = actual_total_amount
-                invoice.balance_due = actual_total_amount
-                invoice.cgst_amount = actual_cgst_amount
-                invoice.sgst_amount = actual_sgst_amount
-                invoice.igst_amount = actual_igst_amount
-                
-                # Update tax breakdown
-                tax_breakdown['cgst_amount'] = actual_cgst_amount
-                tax_breakdown['sgst_amount'] = actual_sgst_amount
-                tax_breakdown['igst_amount'] = actual_igst_amount
-                tax_breakdown['package_deductions'] = total_package_deductions
-                tax_breakdown['package_benefits_applied'] = package_benefits_applied
-                
-                invoice.notes = json.dumps(tax_breakdown)
+            # Calculate final invoice totals (with or without package deductions)
+            # Calculate final services subtotal after package deductions
+            actual_services_subtotal = services_subtotal - total_package_deductions
+            actual_gross_subtotal = actual_services_subtotal + inventory_subtotal
+            
+            # Calculate discount on the final subtotal
+            if discount_type == 'percentage':
+                actual_discount_amount = (actual_gross_subtotal * discount_value) / 100
+            else:
+                actual_discount_amount = min(discount_value, actual_gross_subtotal)
+            
+            actual_net_subtotal = max(0, actual_gross_subtotal - actual_discount_amount)
+            
+            # Calculate taxes on the final net subtotal
+            if is_interstate:
+                actual_igst_amount = actual_net_subtotal * igst_rate
+                actual_cgst_amount = 0
+                actual_sgst_amount = 0
+            else:
+                actual_cgst_amount = actual_net_subtotal * cgst_rate
+                actual_sgst_amount = actual_net_subtotal * sgst_rate
+                actual_igst_amount = 0
+            
+            actual_total_tax = actual_cgst_amount + actual_sgst_amount + actual_igst_amount
+            actual_total_amount = actual_net_subtotal + actual_total_tax + additional_charges + tips_amount
+            
+            # Update invoice with final calculated amounts
+            invoice.services_subtotal = actual_services_subtotal
+            invoice.gross_subtotal = actual_gross_subtotal
+            invoice.net_subtotal = actual_net_subtotal
+            invoice.tax_amount = actual_total_tax
+            invoice.discount_amount = actual_discount_amount
+            invoice.total_amount = actual_total_amount
+            invoice.balance_due = actual_total_amount
+            invoice.cgst_amount = actual_cgst_amount
+            invoice.sgst_amount = actual_sgst_amount
+            invoice.igst_amount = actual_igst_amount
+            
+            # Update tax breakdown with final amounts
+            tax_breakdown = {
+                'cgst_rate': cgst_rate * 100,
+                'sgst_rate': sgst_rate * 100,
+                'igst_rate': igst_rate * 100,
+                'cgst_amount': actual_cgst_amount,
+                'sgst_amount': actual_sgst_amount,
+                'igst_amount': actual_igst_amount,
+                'is_interstate': is_interstate,
+                'additional_charges': additional_charges,
+                'payment_terms': payment_terms,
+                'payment_method': payment_method,
+                'package_deductions': total_package_deductions,
+                'package_benefits_applied': package_benefits_applied
+            }
+            
+            invoice.notes = json.dumps(tax_breakdown)
+            invoice.payment_methods = json.dumps({payment_method: actual_total_amount})
 
             # Commit all changes
             db.session.commit()
@@ -812,47 +802,99 @@ def create_integrated_invoice():
 @app.route('/integrated-billing/customer-packages/<int:client_id>')
 @login_required
 def get_customer_packages(client_id):
-    """Get customer's active packages and available sessions"""
+    """Get customer's active packages and available sessions using the professional package system"""
     if not current_user.can_access('billing'):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        from models import CustomerPackage, CustomerPackageSession # Ensure these are imported correctly
-        # Get active packages
-        packages = CustomerPackage.query.filter_by(
-            client_id=client_id,
-            is_active=True
-        ).all()
-
+        from modules.packages.package_billing_service import PackageBillingService
+        
+        # Get comprehensive customer package summary using the professional package system
+        summary = PackageBillingService.get_customer_package_summary(client_id)
+        
+        # Convert to format expected by billing interface
         package_data = []
-        for pkg in packages:
-            # Get session details
-            sessions = CustomerPackageSession.query.filter_by(
-                client_package_id=pkg.id
-            ).all()
-
+        
+        for package in summary['packages']:
+            # Get package assignment details
+            assignment = db.session.query(ServicePackageAssignment).get(package['assignment_id'])
+            
+            # Format session details based on package type
             session_details = []
-            for session in sessions:
+            
+            if package['benefit_type'] == 'unlimited':
                 session_details.append({
-                    'service_id': session.service_id,
-                    'service_name': session.service.name,
-                    'sessions_total': session.sessions_total,
-                    'sessions_used': session.sessions_used,
-                    'sessions_remaining': session.sessions_remaining,
-                    'is_unlimited': session.is_unlimited
+                    'service_id': package.get('service_id'),
+                    'service_name': package.get('service_name', 'All Services'),
+                    'sessions_total': 0,
+                    'sessions_used': 0,
+                    'sessions_remaining': float('inf'),
+                    'is_unlimited': True,
+                    'benefit_type': 'unlimited',
+                    'description': 'Unlimited access'
+                })
+            elif package['benefit_type'] == 'free':
+                session_details.append({
+                    'service_id': package.get('service_id'),
+                    'service_name': package.get('service_name', 'Service'),
+                    'sessions_total': package.get('total_allocated', 0),
+                    'sessions_used': package.get('total_allocated', 0) - package.get('remaining_count', 0),
+                    'sessions_remaining': package.get('remaining_count', 0),
+                    'is_unlimited': False,
+                    'benefit_type': 'free',
+                    'description': f"{package.get('remaining_count', 0)} free sessions remaining"
+                })
+            elif package['benefit_type'] == 'discount':
+                session_details.append({
+                    'service_id': package.get('service_id'),
+                    'service_name': package.get('service_name', 'Service'),
+                    'sessions_total': package.get('total_allocated', 0),
+                    'sessions_used': package.get('total_allocated', 0) - package.get('remaining_count', 0),
+                    'sessions_remaining': package.get('remaining_count', 0),
+                    'is_unlimited': False,
+                    'benefit_type': 'discount',
+                    'discount_percentage': package.get('discount_percentage', 0),
+                    'description': f"{package.get('discount_percentage', 0)}% discount ({package.get('remaining_count', 0)} uses remaining)"
+                })
+            elif package['benefit_type'] == 'prepaid':
+                session_details.append({
+                    'service_id': None,
+                    'service_name': 'All Services (Prepaid)',
+                    'sessions_total': 0,
+                    'sessions_used': 0,
+                    'sessions_remaining': 0,
+                    'is_unlimited': False,
+                    'benefit_type': 'prepaid',
+                    'balance_total': package.get('balance_total', 0),
+                    'balance_remaining': package.get('balance_remaining', 0),
+                    'description': f"₹{package.get('balance_remaining', 0):.2f} prepaid balance"
                 })
 
             package_data.append({
-                'id': pkg.id,
-                'package_name': pkg.package.name,
-                'expiry_date': pkg.expiry_date.strftime('%Y-%m-%d'),
-                'sessions': session_details
+                'id': package['id'],
+                'package_name': package['name'],
+                'package_type': package['benefit_type'],
+                'expiry_date': package.get('valid_to', '').split('T')[0] if package.get('valid_to') else 'No expiry',
+                'is_active': package.get('is_active', True),
+                'sessions': session_details,
+                'assignment_date': assignment.assigned_on.strftime('%Y-%m-%d') if assignment else 'N/A'
             })
 
-        return jsonify({'packages': package_data})
+        response_data = {
+            'packages': package_data,
+            'summary': {
+                'total_active_packages': summary['total_active_packages'],
+                'has_unlimited_access': any(p['benefit_type'] == 'unlimited' for p in summary['packages']),
+                'total_prepaid_balance': sum(p.get('balance_remaining', 0) for p in summary['packages'] if p['benefit_type'] == 'prepaid'),
+                'total_free_sessions': sum(p.get('remaining_count', 0) for p in summary['packages'] if p['benefit_type'] == 'free')
+            }
+        }
+
+        return jsonify(response_data)
 
     except Exception as e:
-        return jsonify({'error': f'Error fetching packages: {str(e)}'})
+        app.logger.error(f"Error fetching customer packages for client {client_id}: {str(e)}")
+        return jsonify({'error': f'Error fetching packages: {str(e)}', 'packages': []})
 
 @app.route('/api/inventory/batches/for-product/<int:product_id>')
 @login_required
