@@ -1280,22 +1280,12 @@
             return true;
         }
 
-        // Initialize customer management and face capture
+        // Initialize customer management separately from face capture
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Customers page loaded, initializing face capture...');
+            console.log('Customers page loaded, validating customer action buttons...');
 
-            // Validate all customer action buttons
+            // Validate all customer action buttons immediately
             validateCustomerActionButtons();
-
-            // Wait for all elements to be rendered
-            setTimeout(() => {
-                setupFaceCapture();
-                initializeCameraButtons();
-                populateCustomerSelect();
-
-                // Verify all required elements exist
-                verifyFaceCaptureElements();
-            }, 1000);
         });
 
         function validateCustomerActionButtons() {
@@ -1382,7 +1372,7 @@
             }
         }
 
-        // Load face data when Face Recognition tab is activated
+        // Load face data only when Face Recognition tab is activated
         const faceTab = document.getElementById('face-capture-tab');
         if (faceTab) {
             faceTab.addEventListener('shown.bs.tab', function() {
@@ -1390,9 +1380,6 @@
                 loadFaceDataTable();
             });
         }
-
-        // Initialize face data table immediately (no infinite loader)
-        loadFaceDataTable();
 
         // Load customers function
         function loadCustomers() {
@@ -1545,6 +1532,54 @@
     <script>
         // Customer management functions
         let currentEditCustomerId = null;
+
+        // Ensure data loads immediately on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Customers page DOM loaded - ensuring data visibility');
+            
+            // Force show customer data immediately
+            const customerTable = document.querySelector('.spa-table tbody');
+            const statsOverview = document.querySelector('.stats-overview');
+            const emptyState = document.querySelector('.empty-state');
+            
+            // Ensure customer table is visible if it has data
+            if (customerTable && customerTable.children.length > 0) {
+                customerTable.style.display = '';
+                customerTable.parentElement.style.display = '';
+                
+                // Hide any loading states
+                const loadingStates = document.querySelectorAll('.text-center[style*="loading"], .spinner-border');
+                loadingStates.forEach(loader => {
+                    if (loader.textContent.includes('Loading') || loader.classList.contains('spinner-border')) {
+                        loader.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Show stats if available
+            if (statsOverview && !emptyState) {
+                statsOverview.style.display = 'block';
+            }
+            
+            // Initialize face capture only when specifically needed
+            const faceTab = document.getElementById('face-capture-tab');
+            if (faceTab) {
+                faceTab.addEventListener('shown.bs.tab', function() {
+                    console.log('Face capture tab activated - initializing face features');
+                    setTimeout(initializeFaceCaptureFeatures, 100);
+                });
+            }
+            
+            console.log('Customer data visibility ensured on page load');
+        });
+
+        // Separate face capture initialization to prevent interference
+        function initializeFaceCaptureFeatures() {
+            setupFaceCapture();
+            initializeCameraButtons();
+            populateCustomerSelect();
+            verifyFaceCaptureElements();
+        }
 
         // Open customer profile modal
         function openCustomerProfile(customerId) {

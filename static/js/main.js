@@ -15,7 +15,43 @@ window.SpaApp = {
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     initializeBootstrapComponents();
+    
+    // Ensure customer data is immediately visible on customers page
+    if (window.location.pathname.includes('/customers') || window.location.pathname.includes('/clients')) {
+        ensureCustomerDataVisibility();
+    }
 });
+
+// Function to ensure customer data is visible immediately
+function ensureCustomerDataVisibility() {
+    console.log('Ensuring customer data visibility...');
+    
+    // Remove any loading overlays or spinners that might be hiding data
+    const loadingElements = document.querySelectorAll('.spinner-border, .text-center[style*="loading"]');
+    loadingElements.forEach(element => {
+        if (element.textContent.includes('Loading') || element.classList.contains('spinner-border')) {
+            element.style.display = 'none';
+        }
+    });
+    
+    // Ensure customer table is visible
+    const customerTable = document.querySelector('.spa-table, table');
+    if (customerTable) {
+        customerTable.style.display = '';
+        const tableContainer = customerTable.closest('.card-body, .table-responsive, .professional-card');
+        if (tableContainer) {
+            tableContainer.style.display = '';
+        }
+    }
+    
+    // Ensure stats are visible
+    const statsOverview = document.querySelector('.stats-overview');
+    if (statsOverview) {
+        statsOverview.style.display = 'block';
+    }
+    
+    console.log('Customer data visibility ensured');
+}
 
 function initializeApp() {
     setupGlobalEventListeners();
@@ -2778,7 +2814,27 @@ function handleStaffFormSubmit(event) {
 let video, canvas, context;
 let isRecognizing = false;
 
+// Book appointment from modal function
+function bookAppointmentFromModal() {
+    if (currentEditCustomerId) {
+        bookAppointment(currentEditCustomerId);
+    } else {
+        // Get customer ID from the modal if available
+        const customerDetails = document.getElementById('customerDetails');
+        if (customerDetails) {
+            // Try to extract customer ID from the modal content
+            const customerIdMatch = customerDetails.innerHTML.match(/data-customer-id="(\d+)"/);
+            if (customerIdMatch) {
+                bookAppointment(parseInt(customerIdMatch[1]));
+                return;
+            }
+        }
+        alert('No customer selected');
+    }
+}
+
 // Export functions globally to avoid conflicts
 window.editCustomer = editCustomer;
 window.viewCustomer = viewCustomer;
 window.bookAppointment = bookAppointment;
+window.bookAppointmentFromModal = bookAppointmentFromModal;
