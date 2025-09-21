@@ -216,6 +216,24 @@
                                 </table>
                             </div>
                             
+                            <!-- Package Assignment Summary -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-chart-bar me-2"></i>Package Assignment Summary
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row" id="packageSummaryCards">
+                                                <!-- Summary cards will be loaded here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <!-- Pagination -->
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <div id="paginationInfo" class="text-muted">
@@ -968,6 +986,94 @@
     </div>
 </div>
 
+<!-- Assigned Customers Modal -->
+<div class="modal fade" id="assignedCustomersModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignedCustomersModalTitle">
+                    <i class="fas fa-users text-primary me-2"></i>Customers Assigned to Package
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Package Info -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Package Name:</strong> <span id="assignedPackageName"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Package Type:</strong> <span id="assignedPackageType" class="badge bg-secondary"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Total Assigned:</strong> <span id="assignedCustomersCount" class="badge bg-primary">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search and Filters -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="assignedCustomersSearch" 
+                               placeholder="Search customers...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="assignedStatusFilter">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="clearAssignedFilters()">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="filterAssignedCustomers()">
+                            <i class="fas fa-filter me-1"></i>Filter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Customers Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Customer</th>
+                                <th>Phone</th>
+                                <th>Assigned Date</th>
+                                <th>Expires</th>
+                                <th>Price Paid</th>
+                                <th>Progress</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignedCustomersTableBody">
+                            <!-- Dynamic content will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- No customers message -->
+                <div id="noAssignedCustomers" class="text-center py-4" style="display: none;">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Customers Assigned</h5>
+                    <p class="text-muted">This package has not been assigned to any customers yet.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="openAssignToPackage()">
+                    <i class="fas fa-user-plus me-2"></i>Assign More Customers
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Include JavaScript -->
 <script src="{{ url_for('static', filename='js/packages.js') }}"></script>
 
@@ -986,12 +1092,145 @@ async function initializeEnhancedPackages() {
         await Promise.all([
             loadAllPackageTypes(),
             loadCustomersForAllTabs(),
-            loadPackages() // Load existing assignments
+            loadAllPackageAssignments() // Load existing assignments
         ]);
         
         console.log('Enhanced package assignment system initialized');
     } catch (error) {
         console.error('Error initializing enhanced packages:', error);
+    }
+}
+
+async function loadAllPackageAssignments() {
+    try {
+        const response = await fetch('/packages/api/all-assignments');
+        const data = await response.json();
+        
+        if (data.success) {
+            const tableBody = document.getElementById('packagesTableBody');
+            document.getElementById('all-count').textContent = data.total_assignments;
+            
+            if (data.assignments.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center py-4">
+                            <i class="fas fa-gift fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Package Assignments Found</h5>
+                            <p class="text-muted">Start assigning packages to customers to see them here.</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = data.assignments.map(assignment => {
+                    const statusBadge = getStatusBadge(assignment.status);
+                    
+                    let totalInfo, usedInfo, remainingInfo, progressBar;
+                    
+                    if (assignment.package_type === 'service_package') {
+                        totalInfo = `${assignment.total_sessions} sessions`;
+                        usedInfo = `${assignment.used_sessions} sessions`;
+                        remainingInfo = `${assignment.remaining_sessions} sessions`;
+                        const progress = assignment.total_sessions > 0 ? (assignment.used_sessions / assignment.total_sessions) * 100 : 0;
+                        progressBar = `
+                            <div class="progress mb-1" style="height: 20px;">
+                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
+                            </div>
+                        `;
+                    } else if (assignment.package_type === 'prepaid') {
+                        totalInfo = `₹${assignment.credit_amount}`;
+                        usedInfo = `₹${assignment.used_credit}`;
+                        remainingInfo = `₹${assignment.remaining_credit}`;
+                        const progress = assignment.credit_amount > 0 ? (assignment.used_credit / assignment.credit_amount) * 100 : 0;
+                        progressBar = `
+                            <div class="progress mb-1" style="height: 20px;">
+                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
+                            </div>
+                        `;
+                    } else {
+                        totalInfo = 'Membership';
+                        usedInfo = '-';
+                        remainingInfo = 'Active';
+                        progressBar = '<span class="text-muted">Membership</span>';
+                    }
+                    
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${assignment.customer_name}</strong><br>
+                                <small class="text-muted">${assignment.customer_phone}</small>
+                            </td>
+                            <td>
+                                <strong>${assignment.package_name}</strong><br>
+                                <span class="badge bg-secondary">${assignment.package_type.replace('_', ' ').toUpperCase()}</span>
+                            </td>
+                            <td>
+                                <strong>Assigned:</strong> ${assignment.assigned_on}<br>
+                                <strong>Expires:</strong> ${assignment.expires_on}
+                            </td>
+                            <td>${totalInfo}</td>
+                            <td>${usedInfo}</td>
+                            <td>${remainingInfo}</td>
+                            <td>${progressBar}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewAssignmentDetails(${assignment.assignment_id})" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="viewCustomerDetails(${assignment.customer_id})" title="View Customer">
+                                        <i class="fas fa-user"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            // Update assignment counts in package cards
+            await updatePackageAssignmentCounts();
+        }
+    } catch (error) {
+        console.error('Error loading package assignments:', error);
+        document.getElementById('packagesTableBody').innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center py-4 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h5>Error Loading Assignments</h5>
+                    <p>Please refresh the page to try again.</p>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function updatePackageAssignmentCounts() {
+    // Update the "View Assigned" button counts for each package card
+    try {
+        const packageTypes = ['prepaid', 'service', 'membership', 'student', 'yearly', 'kitty'];
+        
+        for (const type of packageTypes) {
+            if (allPackageTypes[type]) {
+                for (const pkg of allPackageTypes[type]) {
+                    try {
+                        const response = await fetch(`/packages/api/assigned-customers/${type === 'service' ? 'service_package' : type}/${pkg.id}`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Update the count in the button
+                            const button = document.querySelector(`button[onclick*="viewAssignedCustomers('${pkg.id}', '${type === 'service' ? 'service_package' : type}'"]`);
+                            if (button) {
+                                button.innerHTML = `<i class="fas fa-users me-2"></i>View Assigned (${data.total_assignments})`;
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error loading count for ${type} package ${pkg.id}:`, error);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error updating package assignment counts:', error);
     }
 }
 
@@ -1190,9 +1429,13 @@ function createPackageCard(pkg, type) {
                         `}
                     </div>
                     
-                    <div class="d-grid">
+                    <div class="d-grid gap-2">
                         <button type="button" class="btn btn-${config.color}">
                             <i class="fas fa-user-plus me-2"></i>Assign to Customer
+                        </button>
+                        <button type="button" class="btn btn-outline-${config.color} btn-sm" 
+                                onclick="viewAssignedCustomers('${pkg.id}', '${type}', '${pkg.name}')">
+                            <i class="fas fa-users me-2"></i>View Assigned (0)
                         </button>
                     </div>
                 </div>
@@ -1331,6 +1574,146 @@ document.getElementById('savePackageAssignment').addEventListener('click', async
         showToast('Error assigning package', 'error');
     }
 });
+
+// Function to view assigned customers for a specific package
+async function viewAssignedCustomers(packageId, packageType, packageName) {
+    try {
+        const response = await fetch(`/packages/api/assigned-customers/${packageType}/${packageId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update modal title and package info
+            document.getElementById('assignedCustomersModalTitle').innerHTML = 
+                `<i class="fas fa-users text-primary me-2"></i>Customers Assigned to "${packageName}"`;
+            document.getElementById('assignedPackageName').textContent = data.package_name;
+            document.getElementById('assignedPackageType').textContent = packageType.charAt(0).toUpperCase() + packageType.slice(1);
+            document.getElementById('assignedCustomersCount').textContent = data.total_assignments;
+            
+            const tableBody = document.getElementById('assignedCustomersTableBody');
+            const noCustomersDiv = document.getElementById('noAssignedCustomers');
+            
+            if (data.customers.length === 0) {
+                tableBody.innerHTML = '';
+                noCustomersDiv.style.display = 'block';
+            } else {
+                noCustomersDiv.style.display = 'none';
+                
+                tableBody.innerHTML = data.customers.map(customer => {
+                    let progressInfo = '';
+                    if (customer.remaining_sessions !== null) {
+                        const totalSessions = customer.remaining_sessions + (customer.used_sessions || 0);
+                        const progress = totalSessions > 0 ? ((customer.used_sessions || 0) / totalSessions) * 100 : 0;
+                        progressInfo = `
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
+                            </div>
+                            <small class="text-muted">${customer.used_sessions || 0}/${totalSessions} sessions</small>
+                        `;
+                    } else if (customer.remaining_credit !== null) {
+                        const totalCredit = customer.remaining_credit + (customer.used_credit || 0);
+                        const progress = totalCredit > 0 ? ((customer.used_credit || 0) / totalCredit) * 100 : 0;
+                        progressInfo = `
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
+                            </div>
+                            <small class="text-muted">₹${customer.used_credit || 0}/₹${totalCredit} used</small>
+                        `;
+                    } else {
+                        progressInfo = '<span class="text-muted">Membership</span>';
+                    }
+                    
+                    const statusBadge = getStatusBadge(customer.status);
+                    
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${customer.customer_name}</strong><br>
+                                <small class="text-muted">ID: ${customer.customer_id}</small>
+                            </td>
+                            <td>${customer.customer_phone}</td>
+                            <td>${customer.assigned_on}</td>
+                            <td>${customer.expires_on}</td>
+                            <td>₹${customer.price_paid}${customer.discount > 0 ? `<br><small class="text-success">-₹${customer.discount} discount</small>` : ''}</td>
+                            <td>${progressInfo}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewCustomerDetails(${customer.customer_id})" title="View Customer">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="viewAssignmentDetails(${customer.assignment_id})" title="View Assignment">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('assignedCustomersModal'));
+            modal.show();
+            
+        } else {
+            showToast(data.error || 'Error loading assigned customers', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading assigned customers:', error);
+        showToast('Error loading assigned customers', 'error');
+    }
+}
+
+function getStatusBadge(status) {
+    const statusMap = {
+        'active': 'bg-success',
+        'completed': 'bg-primary',
+        'expired': 'bg-warning text-dark',
+        'cancelled': 'bg-danger',
+        'paused': 'bg-secondary'
+    };
+    
+    const badgeClass = statusMap[status] || 'bg-secondary';
+    return `<span class="badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+}
+
+function clearAssignedFilters() {
+    document.getElementById('assignedCustomersSearch').value = '';
+    document.getElementById('assignedStatusFilter').value = '';
+    // Reload the table without filters
+    // This would need to be implemented based on current modal state
+}
+
+function filterAssignedCustomers() {
+    // Implement client-side filtering of the displayed table
+    const searchTerm = document.getElementById('assignedCustomersSearch').value.toLowerCase();
+    const statusFilter = document.getElementById('assignedStatusFilter').value;
+    
+    const rows = document.querySelectorAll('#assignedCustomersTableBody tr');
+    rows.forEach(row => {
+        const customerName = row.cells[0].textContent.toLowerCase();
+        const customerPhone = row.cells[1].textContent.toLowerCase();
+        const status = row.cells[6].textContent.toLowerCase();
+        
+        const matchesSearch = !searchTerm || customerName.includes(searchTerm) || customerPhone.includes(searchTerm);
+        const matchesStatus = !statusFilter || status.includes(statusFilter.toLowerCase());
+        
+        if (matchesSearch && matchesStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function openAssignToPackage() {
+    // Close current modal and open assignment modal
+    const currentModal = bootstrap.Modal.getInstance(document.getElementById('assignedCustomersModal'));
+    currentModal.hide();
+    
+    // Open assignment modal with current package pre-selected
+    openAssignModal();
+}
 
 function updateAssignmentCounts() {
     // This function would update the counts of assigned packages

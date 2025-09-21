@@ -715,7 +715,7 @@ def api_create_template():
         if template_type == 'membership':
             # Create membership template
             from models import Membership, MembershipService
-            
+
             membership = Membership(
                 name=data.get('name'),
                 price=float(data.get('price', 0)),
@@ -766,11 +766,11 @@ def assign_package():
 
         # Handle both client_id and customer_id for compatibility
         customer_id = data.get('client_id') or data.get('customer_id')
-        
+
         # Validate required fields
         if not customer_id:
             return jsonify({'success': False, 'error': 'client_id or customer_id is required'}), 400
-        
+
         required_fields = ['package_id', 'package_type', 'price_paid']
         for field in required_fields:
             if field not in data:
@@ -849,7 +849,7 @@ def assign_package():
                 remaining_sessions=0,
                 credit_amount=prepaid.after_value,
                 used_credit=0,
-                remaining_credit=0
+                remaining_credit=prepaid.after_value
             )
 
         elif package_type == 'service_package':
@@ -906,3 +906,108 @@ def assign_package():
         logging.error(f"Error assigning package: {e}")
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Failed to assign package'}), 500
+
+@app.route('/packages/api/assigned-customers/<package_type>/<int:package_id>', methods=['GET'])
+@login_required
+def get_assigned_customers(package_type, package_id):
+    """Get list of customers assigned to a specific package"""
+    try:
+        # Get assignments for the specified package
+        assignments = ServicePackageAssignment.query.filter_by(
+            package_type=package_type,
+            package_reference_id=package_id
+        ).join(Customer).all()
+
+        customers_list = []
+        package_name = "" # Initialize package_name
+
+        if assignments:
+            customer = assignments[0].customer
+            package_template = assignments[0].get_package_template()
+            package_name = package_template.name if package_template else f"{package_type.title()} Package"
+            
+            for assignment in assignments:
+                customer = assignment.customer # Get customer for each assignment
+
+                customers_list.append({
+                    'assignment_id': assignment.id,
+                    'customer_id': customer.id,
+                    'customer_name': customer.full_name,
+                    'customer_phone': customer.phone or '',
+                    'assigned_on': assignment.assigned_on.strftime('%Y-%m-%d'),
+                    'expires_on': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else 'No expiry',
+                    'status': assignment.status,
+                    'price_paid': float(assignment.price_paid),
+                    'discount': float(assignment.discount),
+                    'remaining_sessions': assignment.remaining_sessions if assignment.package_type == 'service_package' else None,
+                    'remaining_credit': float(assignment.remaining_credit) if assignment.package_type == 'prepaid' else None,
+                    'notes': assignment.notes or ''
+                })
+
+        return jsonify({
+            'success': True,
+            'package_name': package_name,
+            'package_type': package_type,
+            'total_assignments': len(customers_list),
+            'customers': customers_list
+        })
+
+    except Exception as e:
+        logging.error(f"Error getting assigned customers: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/packages/api/all-assignments', methods=['GET'])
+@login_required
+def get_all_package_assignments():
+    """Get all package assignments for the main customer packages view"""
+    try:
+        # Get all assignments with customer and package details
+        assignments = ServicePackageAssignment.query.join(Customer).order_by(
+            ServicePackageAssignment.assigned_on.desc()
+        ).all()
+
+        assignments_list = []
+        for assignment in assignments:
+            customer = assignment.customer
+            package_template = assignment.get_package_template()
+            package_name = package_template.name if package_template else f"{assignment.package_type.title()} Package"
+
+            # Calculate progress based on package type
+            progress = 0
+            if assignment.package_type == 'service_package' and assignment.total_sessions > 0:
+                progress = (assignment.used_sessions / assignment.total_sessions) * 100
+            elif assignment.package_type == 'prepaid' and assignment.credit_amount > 0:
+                progress = (assignment.used_credit / assignment.credit_amount) * 100
+
+            assignments_list.append({
+                'assignment_id': assignment.id,
+                'customer_id': customer.id,
+                'customer_name': customer.full_name,
+                'customer_phone': customer.phone or '',
+                'package_id': assignment.package_reference_id,
+                'package_name': package_name,
+                'package_type': assignment.package_type,
+                'assigned_on': assignment.assigned_on.strftime('%Y-%m-%d'),
+                'expires_on': assignment.expires_on.strftime('%Y-%m-%d') if assignment.expires_on else 'No expiry',
+                'status': assignment.status,
+                'price_paid': float(assignment.price_paid),
+                'discount': float(assignment.discount),
+                'total_sessions': assignment.total_sessions,
+                'used_sessions': assignment.used_sessions,
+                'remaining_sessions': assignment.remaining_sessions,
+                'credit_amount': float(assignment.credit_amount),
+                'used_credit': float(assignment.used_credit),
+                'remaining_credit': float(assignment.remaining_credit),
+                'progress': round(progress, 1),
+                'notes': assignment.notes or ''
+            })
+
+        return jsonify({
+            'success': True,
+            'total_assignments': len(assignments_list),
+            'assignments': assignments_list
+        })
+
+    except Exception as e:
+        logging.error(f"Error getting all assignments: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
