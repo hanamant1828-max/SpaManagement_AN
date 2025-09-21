@@ -67,22 +67,43 @@ class PackageBillingService:
     @classmethod
     def _package_covers_service(cls, package: PackageBenefitTracker, service_id: int) -> bool:
         """Check if a package covers a specific service"""
-        # If package.service_id is None, it's a prepaid package that covers all services
-        if package.service_id is None:
-            return package.benefit_type == 'prepaid'
+        # Prepaid packages (credit-based) cover all services
+        if package.benefit_type == 'prepaid' and package.service_id is None:
+            return True
 
-        # Direct service match
+        # Direct service match for service packages
         if package.service_id == service_id:
             return True
 
-        # Check for membership unlimited access (service_id can be None for unlimited)
-        if package.benefit_type == 'unlimited':
-            # For memberships, check if the service is assigned to the membership
-            if package.package_assignment and package.package_assignment.package_type == 'membership':
-                membership_template = package.package_assignment.get_package_template()
-                if membership_template and hasattr(membership_template, 'membership_services'):
-                    return any(ms.service_id == service_id for ms in membership_template.membership_services)
-            # If it's not a membership or service is not assigned, it doesn't cover
+        # Membership unlimited access - only if service_id is None (unlimited membership)
+        if package.benefit_type == 'unlimited' and package.service_id is None:
+            return True
+
+        # For memberships with specific services, check the service assignments
+        if package.benefit_type == 'unlimited' and package.package_assignment:
+            if package.package_assignment.package_type == 'membership':
+                try:
+                    from models import Membership, MembershipService
+                    membership = Membership.query.get(package.package_assignment.package_reference_id)
+                    if membership and hasattr(membership, 'membership_services'):
+                        return any(ms.service_id == service_id for ms in membership.membership_services)
+                except:
+                    pass
+            return False
+
+        # Student offers and other discount types - check service assignments
+        if package.benefit_type == 'discount':
+            if package.service_id == service_id:
+                return True
+            # Check student offer services
+            if package.package_assignment and package.package_assignment.package_type == 'student_offer':
+                try:
+                    from models import StudentOffer, StudentOfferService
+                    offer = StudentOffer.query.get(package.package_assignment.package_reference_id)
+                    if offer and hasattr(offer, 'student_offer_services'):
+                        return any(sos.service_id == service_id for sos in offer.student_offer_services)
+                except:
+                    pass
             return False
 
         return False

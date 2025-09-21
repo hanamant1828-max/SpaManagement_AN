@@ -164,7 +164,7 @@ def api_assign_professional_package():
         benefit_trackers = []
         
         if package_type == 'prepaid':
-            # Prepaid package - covers all services
+            # Prepaid package - covers all services (service_id = NULL)
             tracker = PackageBenefitTracker(
                 customer_id=customer_id,
                 package_assignment_id=assignment.id,
@@ -178,38 +178,28 @@ def api_assign_professional_package():
             benefit_trackers.append(tracker)
             
         elif package_type == 'membership':
-            # Membership - unlimited access to included services
-            if hasattr(package_template, 'services_included') and package_template.services_included:
-                # Parse services included (comma-separated IDs)
-                try:
-                    service_ids = [int(sid.strip()) for sid in package_template.services_included.split(',') if sid.strip()]
-                    for service_id in service_ids:
-                        tracker = PackageBenefitTracker(
-                            customer_id=customer_id,
-                            package_assignment_id=assignment.id,
-                            service_id=service_id,
-                            benefit_type='unlimited',
-                            valid_from=assigned_on,
-                            valid_to=expires_on
-                        )
-                        benefit_trackers.append(tracker)
-                except:
-                    # If parsing fails, create unlimited for all services
+            # Check if membership has specific services assigned
+            from models import MembershipService
+            membership_services = MembershipService.query.filter_by(membership_id=package_id).all()
+            
+            if membership_services:
+                # Create tracker for each specific service
+                for ms in membership_services:
                     tracker = PackageBenefitTracker(
                         customer_id=customer_id,
                         package_assignment_id=assignment.id,
-                        service_id=None,
+                        service_id=ms.service_id,
                         benefit_type='unlimited',
                         valid_from=assigned_on,
                         valid_to=expires_on
                     )
                     benefit_trackers.append(tracker)
             else:
-                # Unlimited access to all services
+                # Unlimited access to all services (service_id = NULL)
                 tracker = PackageBenefitTracker(
                     customer_id=customer_id,
                     package_assignment_id=assignment.id,
-                    service_id=None,
+                    service_id=None,  # NULL means all services
                     benefit_type='unlimited',
                     valid_from=assigned_on,
                     valid_to=expires_on
@@ -217,35 +207,39 @@ def api_assign_professional_package():
                 benefit_trackers.append(tracker)
                 
         elif package_type == 'service_package':
-            # Service package - free sessions for specific service
-            tracker = PackageBenefitTracker(
-                customer_id=customer_id,
-                package_assignment_id=assignment.id,
-                service_id=package_template.service_id,
-                benefit_type='free',
-                total_allocated=assignment.total_sessions,
-                remaining_count=assignment.total_sessions,
-                valid_from=assigned_on,
-                valid_to=expires_on
-            )
-            benefit_trackers.append(tracker)
+            # Service package - free sessions for specific service only
+            service_id = data.get('service_id') or getattr(package_template, 'service_id', None)
+            if service_id:
+                tracker = PackageBenefitTracker(
+                    customer_id=customer_id,
+                    package_assignment_id=assignment.id,
+                    service_id=service_id,  # Specific service only
+                    benefit_type='free',
+                    total_allocated=assignment.total_sessions,
+                    remaining_count=assignment.total_sessions,
+                    valid_from=assigned_on,
+                    valid_to=expires_on
+                )
+                benefit_trackers.append(tracker)
             
         elif package_type == 'student_offer':
-            # Student offer - discount on specific services
-            if hasattr(package_template, 'services') and package_template.services:
-                for service_relation in package_template.services:
-                    tracker = PackageBenefitTracker(
-                        customer_id=customer_id,
-                        package_assignment_id=assignment.id,
-                        service_id=service_relation.service_id,
-                        benefit_type='discount',
-                        discount_percentage=package_template.discount_percent,
-                        total_allocated=data.get('total_uses', 10),  # Default 10 uses
-                        remaining_count=data.get('total_uses', 10),
-                        valid_from=assigned_on,
-                        valid_to=expires_on
-                    )
-                    benefit_trackers.append(tracker)
+            # Student offer - discount on specific services only
+            from models import StudentOfferService
+            offer_services = StudentOfferService.query.filter_by(offer_id=package_id).all()
+            
+            for sos in offer_services:
+                tracker = PackageBenefitTracker(
+                    customer_id=customer_id,
+                    package_assignment_id=assignment.id,
+                    service_id=sos.service_id,  # Specific service only
+                    benefit_type='discount',
+                    discount_percentage=package_template.discount_percentage,
+                    total_allocated=data.get('total_uses', 10),
+                    remaining_count=data.get('total_uses', 10),
+                    valid_from=assigned_on,
+                    valid_to=expires_on
+                )
+                benefit_trackers.append(tracker)
         
         # Add all benefit trackers
         for tracker in benefit_trackers:
