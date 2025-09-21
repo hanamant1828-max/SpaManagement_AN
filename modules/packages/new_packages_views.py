@@ -397,9 +397,24 @@ def api_get_student_offers():
 @app.route('/api/student-offers', methods=['POST'])
 @login_required
 def api_create_student_offer():
-    """Create new student offer"""
+    """Create new student offer with multiple service selection"""
     try:
         data = request.get_json() or request.form.to_dict()
+        
+        # Handle multiple service selection from form data
+        if not data.get('service_ids') and request.form:
+            data['service_ids'] = request.form.getlist('service_ids')
+        
+        # Validate required fields
+        if not data.get('service_ids') or len(data['service_ids']) == 0:
+            return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
+            
+        if not data.get('discount_percentage'):
+            return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
+            
+        if not data.get('valid_from') or not data.get('valid_to'):
+            return jsonify({'success': False, 'error': 'Valid from and to dates are required'}), 400
+        
         offer = create_student_offer(data)
         flash('Student offer created successfully!', 'success')
         return jsonify({
@@ -409,7 +424,7 @@ def api_create_student_offer():
         })
     except Exception as e:
         logging.error(f"Error creating student offer: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/student-offers/<int:offer_id>', methods=['PUT'])
 @login_required

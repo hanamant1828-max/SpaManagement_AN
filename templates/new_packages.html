@@ -573,9 +573,9 @@
     </div>
 </div>
 
-<!-- Student Offer Modal (Example) -->
+<!-- Student Offer Modal (Enhanced with Multiple Selection) -->
 <div class="modal fade" id="studentModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add Student Offer</h5>
@@ -584,35 +584,52 @@
             <div class="modal-body">
                 <form id="studentForm">
                     <div class="mb-3">
-                        <label class="form-label">Select Service</label>
-                        <select class="form-select" name="service_id" id="student_service_select" required onchange="updateStudentServicePrice()">
-                            <option value="">Choose a service...</option>
+                        <label class="form-label">Select Services *</label>
+                        <select multiple class="form-select" name="service_ids" id="student_service_select" required style="height: 150px;">
                             {% for service in services %}
                                 <option value="{{ service.id }}" data-price="{{ service.price }}">{{ service.name }} - ₹{{ service.price }}</option>
                             {% endfor %}
                         </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple services. The discount will apply to all selected services.</div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Actual Price</label>
-                        <input type="number" class="form-control" name="actual_price" id="student_actual_price" required readonly>
+                        <label class="form-label">Discount Percentage *</label>
+                        <input type="number" class="form-control" name="discount_percentage" id="student_discount_percent" required min="0" max="100" onchange="updateStudentOfferPreview()">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Discount Percentage</label>
-                        <input type="number" class="form-control" name="discount_percent" required min="0" max="100" onchange="calculateStudentDiscountPrice()">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Valid From Date *</label>
+                            <input type="date" class="form-control" name="valid_from" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valid To Date *</label>
+                            <input type="date" class="form-control" name="valid_to" required>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">After Discount Price</label>
-                        <input type="number" class="form-control" name="after_price" id="student_after_price" required readonly>
-                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Valid Days</label>
-                        <input type="text" class="form-control" name="valid_days" placeholder="e.g. Mon-Fri" required>
+                        <input type="text" class="form-control" name="valid_days" placeholder="e.g. Mon-Fri" value="Mon-Fri">
+                        <div class="form-text">Specify which days of the week this offer is valid</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Terms & Conditions</label>
+                        <textarea class="form-control" name="conditions" rows="3" placeholder="Enter terms and conditions for this student offer">Valid with Student ID. Cannot be combined with other offers.</textarea>
+                    </div>
+
+                    <!-- Offer Preview -->
+                    <div class="alert alert-info" id="studentOfferPreview" style="display: none;">
+                        <h6 class="alert-heading">Offer Preview:</h6>
+                        <div id="studentOfferPreviewContent"></div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitStudentForm()">Save Offer</button>
+                <button type="button" class="btn btn-primary" id="saveStudentOfferBtn" onclick="submitStudentForm()" disabled>Save Student Offer</button>
             </div>
         </div>
     </div>

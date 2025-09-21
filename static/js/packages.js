@@ -2209,7 +2209,7 @@ function updateStudentOfferPreview() {
     const preview = document.getElementById('studentOfferPreview');
 
     if (services.selectedOptions.length > 0 && discount.value) {
-        const selectedServices = Array.from(services.selectedOptions).map(opt => opt.textContent);
+        const selectedServices = Array.from(services.selectedOptions).map(s => s.textContent);
         const previewHTML = `
             <div class="row">
                 <div class="col-md-6">
@@ -2632,14 +2632,14 @@ async function refreshCurrentTabTable() {
  */
 async function loadMembershipPackages() {
     console.log('Loading membership packages specifically for membership tab only');
-    
+
     // Only load if we're on the membership tab
     const membershipTab = document.getElementById('assign-membership');
     if (!membershipTab || !membershipTab.classList.contains('active')) {
         console.log('Not on membership tab, skipping membership load');
         return;
     }
-    
+
     await loadPackageTypeIntoTable('membership', 'tblMemberships');
 }
 
