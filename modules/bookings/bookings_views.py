@@ -85,9 +85,9 @@ def bookings():
     if staff_filter:
         appointments = [a for a in appointments if a.staff_id == staff_filter]
 
-    clients = get_active_clients()
+    customers = get_active_clients() # Renamed from clients to customers for consistency
     services = get_active_services()
-    staff = get_staff_members()
+    staff_members = get_staff_members() # Renamed from staff to staff_members
 
     # Debug: Print service data
     print(f"Services loaded for booking: {len(services)} services found")
@@ -100,11 +100,30 @@ def bookings():
     # Get appointment statistics
     stats = get_appointment_stats(filter_date)
 
-    # Create appointment form
     form = AppointmentForm()
-    form.customer_id.choices = [('', 'Select a customer...')] + [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
-    form.service_id.choices = [('', 'Select a service...')] + [(s.id, f"{s.name} - ${s.price:.2f}") for s in services]
-    form.staff_id.choices = [('', 'Select staff member...')] + [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
+
+    # Get customer_id from URL parameter and validate it
+    customer_id_param = request.args.get('customer_id')
+    preselected_customer_id = None
+
+    if customer_id_param:
+        try:
+            preselected_customer_id = int(customer_id_param)
+            # Validate that the customer exists
+            customer_exists = any(c.id == preselected_customer_id for c in customers)
+            if not customer_exists:
+                preselected_customer_id = None
+        except (ValueError, TypeError):
+            preselected_customer_id = None
+
+    # Populate choices
+    form.customer_id.choices = [(0, 'Select Customer')] + [(c.id, c.full_name) for c in customers]
+    form.service_id.choices = [(0, 'Select Service')] + [(s.id, s.name) for s in services]
+    form.staff_id.choices = [(0, 'Select Staff (Optional)')] + [(u.id, f"{u.first_name} {u.last_name}") for u in staff_members]
+
+    # Set the preselected customer if valid
+    if preselected_customer_id:
+        form.customer_id.data = preselected_customer_id
 
     return render_template('bookings.html', 
                          appointments=appointments,
@@ -114,9 +133,9 @@ def bookings():
                          staff_filter=staff_filter,
                          time_slots=time_slots,
                          stats=stats,
-                         clients=clients,
+                         customers=customers, # Pass customers to template
                          services=services,
-                         staff=staff,
+                         staff_members=staff_members, # Pass staff_members to template
                          timedelta=timedelta,
                          date=date)
 
@@ -128,13 +147,13 @@ def create_booking():
         return redirect(url_for('dashboard'))
 
     form = AppointmentForm()
-    clients = get_active_clients()
+    customers = get_active_clients() # Renamed from clients to customers
     services = get_active_services()
-    staff = get_staff_members()
+    staff_members = get_staff_members() # Renamed from staff to staff_members
 
-    form.customer_id.choices = [('', 'Select a customer...')] + [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
-    form.service_id.choices = [('', 'Select a service...')] + [(s.id, f"{s.name} - ${s.price}") for s in services]
-    form.staff_id.choices = [('', 'Select staff member...')] + [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
+    form.customer_id.choices = [(0, 'Select Customer')] + [(c.id, c.full_name) for c in customers]
+    form.service_id.choices = [(0, 'Select Service')] + [(s.id, s.name) for s in services]
+    form.staff_id.choices = [(0, 'Select Staff (Optional)')] + [(u.id, f"{u.first_name} {u.last_name}") for u in staff_members]
 
     if form.validate_on_submit():
         appointment_data = {
@@ -166,13 +185,13 @@ def update_booking(id):
         return redirect(url_for('bookings'))
 
     form = AppointmentForm()
-    clients = get_active_clients()
+    customers = get_active_clients() # Renamed from clients to customers
     services = get_active_services()
-    staff = get_staff_members()
+    staff_members = get_staff_members() # Renamed from staff to staff_members
 
-    form.customer_id.choices = [('', 'Select a customer...')] + [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
-    form.service_id.choices = [('', 'Select a service...')] + [(s.id, f"{s.name} - ${s.price}") for s in services]
-    form.staff_id.choices = [('', 'Select staff member...')] + [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
+    form.customer_id.choices = [(0, 'Select Customer')] + [(c.id, c.full_name) for c in customers]
+    form.service_id.choices = [(0, 'Select Service')] + [(s.id, s.name) for s in services]
+    form.staff_id.choices = [(0, 'Select Staff (Optional)')] + [(u.id, f"{u.first_name} {u.last_name}") for u in staff_members]
 
     if form.validate_on_submit():
         appointment_data = {
@@ -213,13 +232,13 @@ def add_appointment():
         return redirect(url_for('dashboard'))
 
     form = AppointmentForm()
-    clients = get_active_clients()
+    customers = get_active_clients() # Renamed from clients to customers
     services = get_active_services()
-    staff = get_staff_members()
+    staff_members = get_staff_members() # Renamed from staff to staff_members
 
-    form.customer_id.choices = [('', 'Select a customer...')] + [(c.id, f"{c.first_name} {c.last_name}") for c in clients]
-    form.service_id.choices = [('', 'Select a service...')] + [(s.id, f"{s.name} - ${s.price}") for s in services]
-    form.staff_id.choices = [('', 'Select staff member...')] + [(s.id, f"{s.first_name} {s.last_name}") for s in staff]
+    form.customer_id.choices = [(0, 'Select Customer')] + [(c.id, c.full_name) for c in customers]
+    form.service_id.choices = [(0, 'Select Service')] + [(s.id, s.name) for s in services]
+    form.staff_id.choices = [(0, 'Select Staff (Optional)')] + [(u.id, f"{u.first_name} {u.last_name}") for u in staff_members]
 
     if form.validate_on_submit():
         appointment_data = {
@@ -303,7 +322,7 @@ def calendar_booking():
     for staff in staff_members:
         # Find active schedules that cover the selected date and include the day of week
         schedule_info = get_staff_schedule_for_date(staff.id, selected_date)
-        
+
         if schedule_info and schedule_info.get('is_working_day'):
             staff_schedules[staff.id] = {
                 'shift_start': schedule_info['shift_start_time'],
@@ -376,7 +395,7 @@ def calendar_booking():
             shift_end = schedule_info['shift_end']
             break_start = schedule_info.get('break_start')
             break_end = schedule_info.get('break_end')
-            
+
             # Get break time string from schedule_info
             break_time_str = schedule_info.get('break_time')
 
@@ -511,7 +530,7 @@ def book_appointment_api():
         # Check if appointment time is within shift hours
         shift_start = shift_log.shift_start_time
         shift_end = shift_log.shift_end_time
-        
+
         if shift_start and shift_end:
             if appointment_time < shift_start or appointment_time >= shift_end:
                 shift_start_12h = shift_start.strftime('%I:%M %p')
@@ -686,7 +705,7 @@ def staff_availability():
     staff_schedules = {}
     for staff in staff_members:
         schedule_info = get_staff_schedule_for_date(staff.id, selected_date)
-        
+
         if schedule_info and schedule_info.get('is_working_day'):
             staff_schedules[staff.id] = {
                 'has_shift': True,

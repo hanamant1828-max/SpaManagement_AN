@@ -1846,10 +1846,8 @@
                 return;
             }
 
-            // This function would redirect to booking page or open booking modal
-            alert(`Book appointment for customer ID: ${customerId}`);
-            // In a real implementation, you might redirect to:
-            // window.location.href = `/bookings?client_id=${customerId}`;
+            // Redirect to booking page with customer ID
+            window.location.href = `/bookings?customer_id=${customerId}`;
         }
 
         function bookAppointmentFromModal() {

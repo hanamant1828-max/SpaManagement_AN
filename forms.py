@@ -90,9 +90,9 @@ class ServiceForm(FlaskForm):
 
 class AppointmentForm(FlaskForm):
     """Appointment form"""
-    customer_id = SelectField('Customer', coerce=int, validators=[DataRequired()])
-    service_id = SelectField('Service', coerce=int, validators=[DataRequired()])
-    staff_id = SelectField('Staff Member', coerce=int, validators=[Optional()])
+    customer_id = SelectField('Customer', coerce=lambda x: int(x) if x and x != '0' else None, validators=[DataRequired()])
+    service_id = SelectField('Service', coerce=lambda x: int(x) if x and x != '0' else None, validators=[DataRequired()])
+    staff_id = SelectField('Staff Member', coerce=lambda x: int(x) if x and x != '0' else None, validators=[Optional()])
     appointment_date = DateTimeField('Appointment Date', validators=[DataRequired()])
     status = SelectField('Status', choices=[
         ('pending', 'Pending'),
