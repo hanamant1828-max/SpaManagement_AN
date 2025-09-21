@@ -1339,7 +1339,7 @@ function validateForm() {
         const priceInput = form.querySelector('#mbPrice');
         const validityFromInput = form.querySelector('#mbValidityFrom');
         const validityToInput = form.querySelector('#mbValidityTo');
-        const serviceCheckboxes = form.querySelectorAll('.service-checkbox');
+        const serviceCheckboxes = form.querySelectorAll('.service-checkbox:checked');
         const saveBtn = document.getElementById('saveMembershipBtn');
 
         // Check if required elements exist
@@ -1354,35 +1354,29 @@ function validateForm() {
         let isServiceSelected = false;
         let areSessionsValid = true;
 
-        let checkedServicesCount = 0;
+        let checkedServicesCount = serviceCheckboxes.length;
         let validSessionCount = 0;
 
-        // Check each service checkbox
+        // Check each checked service checkbox
         serviceCheckboxes.forEach(checkbox => {
             try {
-                if (checkbox.checked) {
-                    checkedServicesCount++;
-                    const serviceItem = checkbox.closest('.service-item');
-                    const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
-                    
-                    if (sessionsInput) {
-                        const sessions = parseInt(sessionsInput.value);
-                        if (!isNaN(sessions) && sessions >= 1) {
-                            validSessionCount++;
-                        } else {
-                            areSessionsValid = false;
-                        }
-                    } else {
-                        areSessionsValid = false;
+                const serviceItem = checkbox.closest('.service-item');
+                const sessionsInput = serviceItem ? serviceItem.querySelector('.service-sessions') : null;
+                
+                if (sessionsInput && !sessionsInput.disabled) {
+                    const sessions = parseInt(sessionsInput.value);
+                    console.log(`Service ${checkbox.value}: sessions = ${sessions}`);
+                    if (!isNaN(sessions) && sessions >= 1) {
+                        validSessionCount++;
                     }
                 }
             } catch (e) {
                 console.error('Error validating service checkbox:', e);
-                areSessionsValid = false;
             }
         });
 
         isServiceSelected = checkedServicesCount > 0 && validSessionCount === checkedServicesCount;
+        areSessionsValid = validSessionCount === checkedServicesCount;
 
         // Update Bootstrap validation classes safely
         try {
@@ -1407,6 +1401,7 @@ function validateForm() {
         
         if (saveBtn) {
             saveBtn.disabled = !formIsValid;
+            console.log(`Save button disabled: ${saveBtn.disabled}`);
         }
 
         console.log('Validation result:', {
