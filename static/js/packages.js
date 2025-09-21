@@ -713,7 +713,6 @@ function openPrepaidAssignModal(template) {
         });
 }
 
-// Load customers for prepaid modal
 // Service Package Form Submission
 function submitServiceForm() {
     console.log('Submitting service package form...');
@@ -2032,18 +2031,23 @@ document.addEventListener('keydown', function(e) {
 // Load student offers packages
 async function loadStudentPackages() {
     try {
-        console.log('Loading student offers...');
+        console.log('Loading student packages specifically for student tab only');
 
         const response = await fetch('/api/student-offers');
         const data = await response.json();
 
-        if (data && Array.isArray(data)) {
-            const tableBody = document.querySelector('#tblStudentOffers tbody');
-            tableBody.innerHTML = '';
+        const tableBody = document.querySelector('#tblStudentOffers tbody');
+        if (!tableBody) {
+            console.error('Student offers table body not found');
+            return;
+        }
 
+        tableBody.innerHTML = '';
+
+        if (data && data.length > 0) {
             data.forEach(offer => {
                 const row = document.createElement('tr');
-                const servicesList = offer.services.map(s => s.name).join(', ');
+                const servicesList = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
                 const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
 
                 row.innerHTML = `
@@ -2070,8 +2074,23 @@ async function loadStudentPackages() {
             });
 
             // Update count
-            document.getElementById('student-total-count').textContent = data.length;
+            const countElement = document.getElementById('student-total-count');
+            if (countElement) {
+                countElement.textContent = data.length;
+            }
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No student offers found
+                    </td>
+                </tr>
+            `;
         }
+
+        console.log(`Successfully loaded ${data.length || 0} student offers`);
+
     } catch (error) {
         console.error('Error loading student offers:', error);
         showToast('Error loading student offers', 'error');
@@ -2617,13 +2636,131 @@ async function loadMembershipPackages() {
 }
 
 async function loadStudentPackages() {
-    console.log('Loading student packages specifically');
-    await loadPackageTypeIntoTable('student', 'tblStudentOffers');
+    try {
+        console.log('Loading student packages specifically for student tab only');
+
+        const response = await fetch('/api/student-offers');
+        const data = await response.json();
+
+        const tableBody = document.querySelector('#tblStudentOffers tbody');
+        if (!tableBody) {
+            console.error('Student offers table body not found');
+            return;
+        }
+
+        tableBody.innerHTML = '';
+
+        if (data && data.length > 0) {
+            data.forEach(offer => {
+                const row = document.createElement('tr');
+                const servicesList = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
+                const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
+
+                row.innerHTML = `
+                    <td><strong>${offer.discount_percentage}%</strong></td>
+                    <td><small>${servicesList}</small></td>
+                    <td>${offer.valid_days}</td>
+                    <td><small>${validPeriod}</small></td>
+                    <td><small>${offer.conditions}</small></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-warning" onclick="editStudentOffer(${offer.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteStudentOffer(${offer.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn btn-primary" onclick="assignStudentOffer(${offer.id})" title="Assign">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update count
+            const countElement = document.getElementById('student-total-count');
+            if (countElement) {
+                countElement.textContent = data.length;
+            }
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No student offers found
+                    </td>
+                </tr>
+            `;
+        }
+
+        console.log(`Successfully loaded ${data.length || 0} student offers`);
+
+    } catch (error) {
+        console.error('Error loading student offers:', error);
+        showToast('Error loading student offers', 'error');
+    }
 }
 
 async function loadYearlyPackages() {
-    console.log('Loading yearly packages specifically');
-    await loadPackageTypeIntoTable('yearly', 'tblYearlyMemberships');
+    try {
+        console.log('Loading yearly packages specifically for yearly tab only');
+
+        const response = await fetch('/api/yearly-memberships');
+        const data = await response.json();
+
+        const tableBody = document.querySelector('#tblYearlyMemberships tbody');
+        if (!tableBody) {
+            console.error('Yearly memberships table body not found');
+            return;
+        }
+
+        tableBody.innerHTML = '';
+
+        if (data && data.length > 0) {
+            data.forEach(pkg => {
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td><strong>${pkg.name}</strong></td>
+                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
+                    <td>${pkg.validity_months || 'N/A'} months</td>
+                    <td>${pkg.discount_percent || 0}%</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" 
+                                onclick="openAssignSimple(${pkg.id}, 'yearly')" 
+                                title="Assign to customer">
+                            <i class="fas fa-user-plus"></i> Assign
+                        </button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+            // Update count
+            const countElement = document.getElementById('yearly-total-count');
+            if (countElement) {
+                countElement.textContent = data.length;
+            }
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No yearly memberships found
+                    </td>
+                </tr>
+            `;
+        }
+
+        console.log(`Successfully loaded ${data.length || 0} yearly memberships`);
+
+    } catch (error) {
+        console.error('Error loading yearly memberships:', error);
+        showToast('Error loading yearly memberships', 'error');
+    }
 }
 
 async function loadKittyPackages() {
@@ -2696,7 +2833,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
         // Populate table with filtered packages
         filteredPackages.forEach(pkg => {
             const row = document.createElement('tr');
-            
+
             // Build services display
             let servicesDisplay = 'No services specified';
             if (pkg.services && pkg.services.length > 0) {
@@ -2734,7 +2871,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
                     </div>
                 </td>
             `;
-            
+
             tableBody.appendChild(row);
         });
 
@@ -2742,7 +2879,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
 
     } catch (error) {
         console.error(`Error loading ${packageType} packages:`, error);
-        
+
         const tableBody = document.querySelector(`#${tableId} tbody`);
         if (tableBody) {
             tableBody.innerHTML = `
@@ -2754,49 +2891,6 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
                 </tr>
             `;
         }
-    }ty-parties'
-        };
-
-        const response = await fetch(endpoints[packageType]);
-        const result = await response.json();
-
-        const table = document.getElementById(tableId);
-        const tbody = table.querySelector('tbody');
-        tbody.innerHTML = '';
-
-        // Handle different response formats
-        let packages = [];
-        if (result.success) {
-            if (result.packages) {
-                packages = result.packages;
-            } else if (result.memberships) {
-                packages = result.memberships;
-            } else if (result.offers) {
-                packages = result.offers;
-            } else if (result.parties) {
-                packages = result.parties;
-            }
-        }
-
-        if (packages && packages.length > 0) {
-            packages.forEach(pkg => {
-                const row = createPackageTableRow(pkg, packageType);
-                tbody.appendChild(row);
-            });
-
-            // Update count
-            document.getElementById(`${packageType}-total-count`).textContent = packages.length;
-        } else {
-            // Show empty message
-            const row = document.createElement('tr');
-            row.innerHTML = `<td colspan="5" class="text-center text-muted">No ${packageType} packages available</td>`;
-            tbody.appendChild(row);
-            document.getElementById(`${packageType}-total-count`).textContent = '0';
-        }
-
-    } catch (error) {
-        console.error(`Error loading ${packageType} packages:`, error);
-        showToast(`Error loading ${packageType} packages`, 'error');
     }
 }
 
