@@ -5,6 +5,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import app, db
 from models import Customer
+from forms import CustomerForm, AdvancedCustomerForm
 from .clients_queries import *
 
 @app.route('/customers')
