@@ -1764,7 +1764,7 @@ function showToast(message, type = 'info') {
     } else {
         // Create a simple Bootstrap toast
         const toastContainer = document.getElementById('toast-container') || createToastContainer();
-        
+
         const toastId = 'toast-' + Date.now();
         const bgClass = {
             'success': 'bg-success',
@@ -1786,7 +1786,7 @@ function showToast(message, type = 'info') {
         `;
 
         toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-        
+
         const toastElement = document.getElementById(toastId);
         const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 });
         bsToast.show();
@@ -2558,7 +2558,7 @@ async function refreshCurrentTabTable() {
             await loadMembershipPackages();
         } else if (tabId === 'assign-student') {
             await loadStudentPackages();
-        } else if (tabId === 'assign-yearly') {
+        } else if (tabId === 'assign-yearly' || tabId === 'assign-yearly-membership') {
             await loadYearlyPackages();
         } else if (tabId === 'assign-kitty') {
             await loadKittyPackages();
