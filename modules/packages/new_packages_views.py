@@ -517,26 +517,51 @@ def api_get_kitty_parties():
 @app.route('/api/kitty-parties', methods=['POST'])
 @login_required
 def api_create_kitty_party():
-    """Create new kitty party"""
+    """API endpoint to create kitty party"""
     try:
-        if request.content_type and 'application/json' in request.content_type:
+        # Handle both JSON and form data
+        if request.is_json:
             data = request.get_json()
+            print(f"📥 Received JSON data: {data}")
         else:
             data = request.form.to_dict()
-            # Handle multiple service selections from form
-            if 'service_ids' not in data:
-                data['service_ids'] = request.form.getlist('service_ids')
+            # Handle service_ids from form
+            if 'service_ids' in request.form:
+                service_ids = request.form.getlist('service_ids')
+                data['service_ids'] = [sid for sid in service_ids if sid]  # Remove empty values
+            print(f"📥 Received form data: {data}")
 
-        party = create_kitty_party(data)
-        flash('Kitty party created successfully!', 'success')
+        # Validate required fields
+        if not data.get('name'):
+            return jsonify({'success': False, 'error': 'Package name is required'}), 400
+
+        if not data.get('price'):
+            return jsonify({'success': False, 'error': 'Package price is required'}), 400
+
+        # Validate services
+        service_ids = data.get('service_ids', [])
+        if not service_ids or (isinstance(service_ids, list) and len(service_ids) == 0):
+            return jsonify({'success': False, 'error': 'Please select at least one service for this kitty party'}), 400
+
+        print(f"🎯 Creating kitty party: {data.get('name')} with services: {service_ids}")
+
+        # Create the kitty party
+        kitty_party = create_kitty_party(data)
+
         return jsonify({
             'success': True,
-            'message': 'Kitty party created successfully',
-            'party_id': party.id
+            'message': 'Kitty party created successfully!',
+            'party_id': kitty_party.id
         })
+
+    except ValueError as e:
+        print(f"❌ Validation error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
-        logging.error(f"Error creating kitty party: {e}")
-        return jsonify({'error': str(e)}), 500
+        print(f"❌ Error in API create kitty party: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': 'Error creating kitty party. Please try again.'}), 500
 
 @app.route('/api/kitty-parties/<int:party_id>', methods=['PUT'])
 @login_required

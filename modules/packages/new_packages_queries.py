@@ -376,67 +376,81 @@ def get_kitty_party_by_id(party_id):
     return KittyParty.query.get(party_id)
 
 def create_kitty_party(data):
-    """Create new kitty party package"""
+    """Create a new kitty party package"""
     try:
-        # Convert string values to appropriate types
-        name = data.get('name', '').strip()
-        price = float(data.get('price', 0))
-        after_value = float(data.get('after_value', 0)) if data.get('after_value') else None
-        min_guests = int(data.get('min_guests', 1))
-
-        # Handle date fields
-        valid_from = None
-        valid_to = None
-        if data.get('valid_from'):
-            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
-        if data.get('valid_to'):
-            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
-
-        conditions = data.get('conditions', '').strip() if data.get('conditions') else None
-
-        # Fix boolean conversion for is_active
-        is_active_raw = data.get('is_active', True)
-        if isinstance(is_active_raw, str):
-            is_active = is_active_raw.lower() in ('true', '1', 'yes', 'on', 'checked')
+        # Convert is_active properly
+        is_active = data.get('is_active')
+        if isinstance(is_active, str):
+            is_active = is_active.lower() in ['true', '1', 'on', 'yes']
+        elif is_active is None:
+            is_active = True
         else:
-            is_active = bool(is_active_raw)
+            is_active = bool(is_active)
 
-        # Get selected services
+        # Process service IDs first to validate
         service_ids = data.get('service_ids', [])
         if isinstance(service_ids, str):
-            service_ids = [service_ids]
+            # If it's a comma-separated string, split it
+            try:
+                service_ids = [int(x.strip()) for x in service_ids.split(',') if x.strip()]
+            except ValueError:
+                service_ids = []
+        elif not isinstance(service_ids, list):
+            service_ids = [service_ids] if service_ids else []
 
-        # Create kitty party
+        # Convert to integers and filter out invalid ones
+        valid_service_ids = []
+        for sid in service_ids:
+            try:
+                if sid and str(sid).strip():
+                    valid_service_ids.append(int(sid))
+            except (ValueError, TypeError):
+                continue
+
+        # Validate that we have at least one service
+        if not valid_service_ids:
+            raise ValueError("Please select at least one service for this kitty party")
+
+        # Create services_included text from selected services
+        from models import Service
+        selected_services = Service.query.filter(Service.id.in_(valid_service_ids)).all()
+        services_included = ', '.join([service.name for service in selected_services])
+
+        # Create the kitty party
         kitty_party = KittyParty(
-            name=name,
-            price=price,
-            after_value=after_value,
-            min_guests=min_guests,
-            valid_from=valid_from,
-            valid_to=valid_to,
-            conditions=conditions,
-            services_included='',  # Keep empty, use relationships
-            is_active=is_active
+            name=data.get('name'),
+            price=float(data.get('price', 0)),
+            after_value=float(data.get('after_value', 0)),
+            min_guests=int(data.get('min_guests', 1)),
+            valid_from=datetime.strptime(data.get('valid_from'), '%Y-%m-%d').date() if data.get('valid_from') else None,
+            valid_to=datetime.strptime(data.get('valid_to'), '%Y-%m-%d').date() if data.get('valid_to') else None,
+            conditions=data.get('conditions', ''),
+            services_included=services_included,
+            is_active=is_active,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
         )
 
         db.session.add(kitty_party)
         db.session.flush()  # Get the ID
 
-        # Add service relationships
-        for service_id in service_ids:
-            if service_id and str(service_id).isdigit():
-                kitty_service = KittyPartyService(
-                    kittyparty_id=kitty_party.id,
-                    service_id=int(service_id)
-                )
-                db.session.add(kitty_service)
+        # Create package service relationships
+        for service_id in valid_service_ids:
+            kitty_service = KittyPartyService(
+                kittyparty_id=kitty_party.id,
+                service_id=service_id
+            )
+            db.session.add(kitty_service)
 
         db.session.commit()
+        print(f"✅ Successfully created kitty party: {kitty_party.name} with {len(valid_service_ids)} services")
         return kitty_party
 
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error creating kitty party: {e}")
+        print(f"❌ Error creating kitty party: {e}")
+        import traceback
+        traceback.print_exc()
         raise e
 
 def update_kitty_party(party_id, data):

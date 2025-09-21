@@ -1655,17 +1655,17 @@ function loadServicesForKittyParty() {
             if (data.success) {
                 const container = document.getElementById('kittyServicesCheckboxes');
                 const loadingDiv = document.getElementById('servicesLoading');
-                
+
                 if (loadingDiv) {
                     loadingDiv.style.display = 'none';
                 }
-                
+
                 container.innerHTML = '';
 
                 data.services.forEach(service => {
                     const checkboxDiv = document.createElement('div');
                     checkboxDiv.className = 'col-12 mb-2';
-                    
+
                     checkboxDiv.innerHTML = `
                         <div class="form-check border rounded p-2 h-100">
                             <input class="form-check-input" type="checkbox" name="service_ids" value="${service.id}" id="service_${service.id}">
@@ -1677,10 +1677,10 @@ function loadServicesForKittyParty() {
                             </label>
                         </div>
                     `;
-                    
+
                     container.appendChild(checkboxDiv);
                 });
-                
+
                 if (data.services.length === 0) {
                     container.innerHTML = '<div class="col-12 text-muted text-center py-3">No services available</div>';
                 }
@@ -1690,11 +1690,11 @@ function loadServicesForKittyParty() {
             console.error('Error loading services:', error);
             const container = document.getElementById('kittyServicesCheckboxes');
             const loadingDiv = document.getElementById('servicesLoading');
-            
+
             if (loadingDiv) {
                 loadingDiv.style.display = 'none';
             }
-            
+
             container.innerHTML = '<div class="col-12 text-danger text-center py-3">Error loading services</div>';
         });
 }
@@ -1703,18 +1703,32 @@ function loadServicesForKittyParty() {
 function submitKittyForm() {
     const form = document.getElementById('kittyForm');
     const formData = new FormData(form);
+    const submitBtn = form.querySelector('button[type="button"][onclick="submitKittyForm()"]'); // Get the submit button
+
+    // Disable submit button to prevent multiple submissions
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
 
     // Convert FormData to JSON and collect selected services
     const data = {};
     const selectedServices = [];
-    
+
     // Get selected services from checkboxes
     const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]:checked');
-    serviceCheckboxes.forEach(checkbox => {
-        if (checkbox.value && checkbox.value !== "") {
-            selectedServices.push(parseInt(checkbox.value));
-        }
-    });
+    const serviceIds = Array.from(serviceCheckboxes).map(cb => parseInt(cb.value));
+
+    // Validate at least one service is selected
+    if (serviceIds.length === 0) {
+        alert('Please select at least one service for this kitty party');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
+        return;
+    }
+
+    data.service_ids = serviceIds;
+    console.log('Selected services:', serviceIds);
+
 
     // Collect other form data
     for (let [key, value] of formData.entries()) {
@@ -1722,42 +1736,40 @@ function submitKittyForm() {
             data[key] = value;
         }
     }
-    
-    // Add selected services
-    data.service_ids = selectedServices;
 
     // Validate required fields with better error messages
     if (!data.name || data.name.trim() === '') {
         alert('Please enter a party name');
         document.querySelector('[name="name"]').focus();
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
         return;
     }
 
     if (!data.price || parseFloat(data.price) <= 0) {
         alert('Please enter a valid price');
         document.querySelector('[name="price"]').focus();
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
         return;
     }
 
     if (!data.min_guests || parseInt(data.min_guests) <= 0) {
         alert('Please enter minimum number of guests');
         document.querySelector('[name="min_guests"]').focus();
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
         return;
     }
 
-    if (!data.service_ids || data.service_ids.length === 0) {
-        alert('Please select at least one service for this kitty party');
-        // Add visual indication to the services container
-        const servicesContainer = document.getElementById('kittyServicesContainer');
-        if (servicesContainer) {
-            servicesContainer.classList.add('border-danger');
-            // Remove the border color after a moment
-            setTimeout(() => {
-                servicesContainer.classList.remove('border-danger');
-            }, 3000);
-        }
+    // Check validity dates if they exist
+    if (data.valid_from && data.valid_to && new Date(data.valid_to) < new Date(data.valid_from)) {
+        alert('Valid To date cannot be before Valid From date.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
         return;
     }
+
 
     console.log('Submitting kitty party data:', data);
 
@@ -1777,11 +1789,15 @@ function submitKittyForm() {
             location.reload();
         } else {
             alert('Error: ' + (result.error || 'Failed to create kitty party'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
         }
     })
     .catch(error => {
         console.error('Error:', error);
         alert('Error creating kitty party. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Kitty Party';
     });
 }
 
@@ -1791,10 +1807,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (kittyModal) {
         kittyModal.addEventListener('shown.bs.modal', function() {
             loadServicesForKittyParty();
-            
+
             // Add real-time validation for checkboxes
             const form = document.getElementById('kittyForm');
-            
+
             // Add event listeners to service checkboxes when they're loaded
             setTimeout(() => {
                 const serviceCheckboxes = document.querySelectorAll('input[name="service_ids"]');
@@ -1802,14 +1818,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     checkbox.addEventListener('change', function() {
                         const checkedBoxes = document.querySelectorAll('input[name="service_ids"]:checked');
                         const container = document.getElementById('kittyServicesContainer');
-                        
+
                         if (checkedBoxes.length > 0) {
                             container.classList.remove('border-danger');
                         }
                     });
                 });
             }, 1000); // Wait for services to load
-            
+
             // Reset form and validation when modal opens
             if (form) {
                 form.reset();
