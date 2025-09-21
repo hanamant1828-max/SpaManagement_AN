@@ -1,557 +1,708 @@
 {% extends "base.html" %}
 
-{% block title %}Service Management - Spa & Salon Management Suite{% endblock %}
+{% block title %}Service Management - Spa Management{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-4">
+    <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">
-                    <i class="fas fa-spa me-2"></i>Service Management
-                </h1>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#serviceModal" onclick="showAddServiceModal()">
-                        <i class="fas fa-plus me-2"></i>Add New Service
-                    </button>
-                    <button type="button" class="btn btn-success" onclick="exportServices()">
-                        <i class="fas fa-download me-2"></i>Export
-                    </button>
-                </div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-spa me-2"></i>Service Management</h2>
             </div>
         </div>
     </div>
 
-    <!-- Service Categories Tabs -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <ul class="nav nav-tabs" id="serviceTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">
-                        <i class="fas fa-spa me-2"></i>Services
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button" role="tab">
-                        <i class="fas fa-tags me-2"></i>Categories
-                    </button>
-                </li>
-            </ul>
-        </div>
-    </div>
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" id="serviceManagementTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="services-tab" data-bs-toggle="tab" data-bs-target="#services-pane" type="button" role="tab">
+                <i class="fas fa-spa me-2"></i>Services
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-pane" type="button" role="tab">
+                <i class="fas fa-tags me-2"></i>Categories
+            </button>
+        </li>
+    </ul>
 
     <!-- Tab Content -->
-    <div class="tab-content" id="serviceTabContent">
+    <div class="tab-content" id="serviceManagementTabContent">
+
         <!-- Services Tab -->
-        <div class="tab-pane fade show active" id="services" role="tabpanel">
-            <!-- Filters -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Search Services</label>
-                                    <input type="text" class="form-control" id="searchInput" placeholder="Search by name or description..." onkeyup="filterServices()">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Category</label>
-                                    <select class="form-select" id="categoryFilter" onchange="filterServices()">
-                                        <option value="">All Categories</option>
-                                        {% for category in categories %}
-                                        <option value="{{ category.name }}">{{ category.display_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Duration</label>
-                                    <select class="form-select" id="durationFilter" onchange="filterServices()">
-                                        <option value="">All Durations</option>
-                                        <option value="30">30 minutes</option>
-                                        <option value="45">45 minutes</option>
-                                        <option value="60">60 minutes</option>
-                                        <option value="90">90 minutes</option>
-                                        <option value="120">120 minutes</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button type="button" class="btn btn-outline-secondary d-block w-100" onclick="clearFilters()">
-                                        <i class="fas fa-times me-1"></i>Clear
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="tab-pane fade show active" id="services-pane" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center">
+                    <select class="form-select me-3" id="categoryFilter" onchange="filterServices()" style="width: 200px;">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.name }}" {{ 'selected' if category_filter == category.name else '' }}>
+                            {{ category.display_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#exportModal" title="Export services to CSV file">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal" title="Create a new service offering">
+                        <i class="fas fa-plus me-2"></i>Add New Service
+                    </button>
                 </div>
             </div>
 
-            <!-- Services List -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Services</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>SERVICE NAME</th>
-                                            <th>CATEGORY</th>
-                                            <th>DURATION</th>
-                                            <th>PRICE</th>
-                                            <th>DESCRIPTION</th>
-                                            <th>STATUS</th>
-                                            <th>ACTIONS</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="servicesTableBody">
-                                        {% for service in services %}
-                                        <tr data-service-id="{{ service.id }}">
-                                            <td><strong>{{ service.name }}</strong></td>
-                                            <td>{{ service.category }}</td>
-                                            <td>{{ service.duration }} min</td>
-                                            <td>${{ "%.2f"|format(service.price) }}</td>
-                                            <td>{{ service.description[:50] }}{% if service.description|length > 50 %}...{% endif %}</td>
-                                            <td>
-                                                <span class="badge bg-{{ 'success' if service.is_active else 'danger' }}">
-                                                    {{ 'ACTIVE' if service.is_active else 'INACTIVE' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <button type="button" class="btn btn-outline-primary" onclick="editService({{ service.id }})" title="Edit">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-danger" onclick="deleteService({{ service.id }})" title="Delete">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
+            <div class="card">
+                <div class="card-body">
+                    {% if services %}
+                    <div class="spa-table-container">
+                        <div class="spa-table-responsive">
+                            <table class="spa-table">
+                                <thead>
+                                    <tr>
+                                        <th>Service Name</th>
+                                        <th>Category</th>
+                                        <th>Duration</th>
+                                        <th>Price</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for service in services %}
+                                    <tr>
+                                    <td>
+                                        <strong>{{ service.name }}</strong>
+                                        {% if service.category %}
+                                        <br><span class="badge" style="background-color: {{ service.category.color }}; font-size: 0.7rem;">
+                                            {{ service.category.display_name }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if service.category %}
+                                        <span class="badge" style="background-color: {{ service.category.color }}">
+                                            {{ service.category.display_name }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">No Category</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ service.duration }} min</td>
+                                    <td>${{ "%.2f"|format(service.price) }}</td>
+                                    <td>{{ (service.description[:50] + '...') if service.description and service.description|length > 50 else (service.description or '-') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if service.is_active else 'secondary' }}">
+                                            {{ 'Active' if service.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editService({{ service.id }})" data-bs-toggle="tooltip" title="Edit service details">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleService({{ service.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate service' if service.is_active else 'Activate service' }}">
+                                            <i class="fas fa-{{ 'eye-slash' if service.is_active else 'eye' }}"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})" data-bs-toggle="tooltip" title="Delete service permanently">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+                    {% else %}
+                    <div class="spa-table-container">
+                        <div class="spa-table-empty">
+                            <i class="fas fa-spa"></i>
+                            <h5>No services found</h5>
+                            <p class="text-muted">Create your first service to get started.</p>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
         <!-- Categories Tab -->
-        <div class="tab-pane fade" id="categories" role="tabpanel">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Service Categories</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Category Name</th>
-                                            <th>Services Count</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for category in categories %}
-                                        <tr>
-                                            <td>{{ category.display_name }}</td>
-                                            <td>{{ services|selectattr('category', 'equalto', category.name)|list|length }} services</td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+        <div class="tab-pane fade" id="categories-pane" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Service Categories</h5>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Create a new service category">
+                    <i class="fas fa-plus me-2"></i>Add New Category
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {% if categories %}
+                    <div class="spa-table-responsive">
+                        <table class="spa-table">
+                            <thead>
+                                <tr>
+                                    <th>Category Name</th>
+                                    <th>Description</th>
+                                    <th>Color</th>
+                                    <th>Sort Order</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ category.color }}">
+                                            {{ category.display_name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ category.description or '-' }}</td>
+                                    <td>
+                                        <span class="color-preview" style="background-color: {{ category.color }}; width: 20px; height: 20px; display: inline-block; border-radius: 3px;"></span>
+                                        {{ category.color }}
+                                    </td>
+                                    <td>{{ category.sort_order }}</td>
+                                    <td>
+                                        <span class="badge badge-status bg-{{ 'success' if category.is_active else 'secondary' }}">
+                                            {{ 'Active' if category.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td class="action-buttons">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory({{ category.id }})" data-bs-toggle="tooltip" title="Edit category details">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleCategory({{ category.id }})" data-bs-toggle="tooltip" title="{{ 'Deactivate category' if category.is_active else 'Activate category' }}">
+                                            <i class="fas fa-{{ 'eye-slash' if category.is_active else 'eye' }}"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }})" data-bs-toggle="tooltip" title="Delete category permanently">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                        <h5>No categories found</h5>
+                        <p class="text-muted">Create your first service category to organize services.</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Service Add/Edit Modal -->
-<div class="modal fade" id="serviceModal" tabindex="-1" aria-labelledby="serviceModalLabel" aria-hidden="true">
+<!-- Add Service Modal -->
+<div class="modal fade" id="addServiceModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="serviceModalLabel">Add New Service</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Add New Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="serviceForm">
+            <form method="POST" action="{{ url_for('create_service_route') }}">
                 <div class="modal-body">
-                    <input type="hidden" id="serviceId" value="">
-                    <input type="hidden" id="formMode" value="add">
-
-                    <div class="row g-3">
+                    <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label">Service Name *</label>
-                            <input type="text" class="form-control" id="serviceName" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Category *</label>
-                            <select class="form-select" id="serviceCategory" required>
-                                <option value="">Select Category</option>
-                                {% for category in categories %}
-                                <option value="{{ category.name }}">{{ category.display_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Duration (minutes) *</label>
-                            <input type="number" class="form-control" id="serviceDuration" min="15" max="300" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Price ($) *</label>
-                            <input type="number" class="form-control" id="servicePrice" min="0" step="0.01" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="serviceDescription" rows="3"></textarea>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="serviceActive" checked>
-                                <label class="form-check-label" for="serviceActive">
-                                    Active Service
-                                </label>
+                            <div class="mb-3">
+                                <label class="form-label">Service Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="name" required>
                             </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" name="category_id">
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="duration" min="15" step="15" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Price <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Commission Rate (%)</label>
+                                <input type="number" class="form-control" name="commission_rate" step="0.01" min="0" max="100" value="10">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                Active Service
+                            </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="saveServiceBtn">
-                        <i class="fas fa-save me-1"></i>Save Service
-                    </button>
+                    <button type="submit" class="btn btn-primary">Add Service</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Alert Container -->
-<div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
-    <!-- Alerts will be dynamically added here -->
+<!-- Edit Service Modal -->
+<div class="modal fade" id="editServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editServiceForm" action="#">
+                <input type="hidden" id="editServiceId" name="service_id"/>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Service Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editServiceName" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" id="editServiceCategory" name="category_id">
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="editServiceDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="editServiceDuration" name="duration" min="15" step="15" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Price <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="editServicePrice" name="price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Commission Rate (%)</label>
+                                <input type="number" class="form-control" id="editServiceCommissionRate" name="commission_rate" step="0.01" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editServiceActive" name="is_active">
+                            <label class="form-check-label" for="editServiceActive">
+                                Active Service
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Services</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="GET" action="{{ url_for('export_services') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Category Filter</label>
+                        <select class="form-select" name="category">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.name }}">{{ category.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Export CSV</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Service Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_service_category') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" placeholder="e.g., facial, massage" required>
+                        <small class="text-muted">This will be used internally (lowercase, underscores)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="display_name" placeholder="e.g., Facial Treatments" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3" placeholder="Brief description of this category"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control form-control-color" name="color" value="#007bff">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Sort Order</label>
+                                <input type="number" class="form-control" name="sort_order" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="addCategoryActive" checked>
+                            <label class="form-check-label" for="addCategoryActive">
+                                Active Category
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Service Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editCategoryForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editCategoryDisplayName" name="display_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="editCategoryDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control form-control-color" id="editCategoryColor" name="color">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Sort Order</label>
+                                <input type="number" class="form-control" id="editCategorySortOrder" name="sort_order" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editCategoryIsActive" name="is_active">
+                            <label class="form-check-label" for="editCategoryIsActive">
+                                Active Category
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
-let allServices = [];
-let currentServiceId = null;
-let serviceModal;
-
+// Handle edit form submission
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize modal
-    serviceModal = new bootstrap.Modal(document.getElementById('serviceModal'));
-
-    // Load services data
-    loadServicesData();
-
-    // Setup form submission
-    document.getElementById('serviceForm').addEventListener('submit', handleFormSubmission);
-});
-
-async function loadServicesData() {
-    try {
-        const response = await fetch('/api/services');
-        const services = await response.json();
-
-        allServices = services;
-        renderServicesTable();
-
-    } catch (error) {
-        console.error('Error loading services:', error);
-        showNotification('Error loading services data', 'error');
-    }
-}
-
-function renderServicesTable() {
-    const tbody = document.getElementById('servicesTableBody');
-    tbody.innerHTML = '';
-
-    allServices.forEach(service => {
-        const row = createServiceRow(service);
-        tbody.appendChild(row);
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"], [title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-}
-
-function createServiceRow(service) {
-    const row = document.createElement('tr');
-    row.setAttribute('data-service-id', service.id);
-
-    row.innerHTML = `
-        <td><strong>${service.name}</strong></td>
-        <td>${service.category}</td>
-        <td>${service.duration} min</td>
-        <td>$${service.price.toFixed(2)}</td>
-        <td>${service.description.length > 50 ? service.description.substring(0, 50) + '...' : service.description}</td>
-        <td>
-            <span class="badge bg-${service.is_active ? 'success' : 'danger'}">
-                ${service.is_active ? 'ACTIVE' : 'INACTIVE'}
-            </span>
-        </td>
-        <td>
-            <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-outline-primary" onclick="editService(${service.id})" title="Edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger" onclick="deleteService(${service.id})" title="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </td>
-    `;
-
-    return row;
-}
-
-function showAddServiceModal() {
-    currentServiceId = null;
-    document.getElementById('formMode').value = 'add';
-    document.getElementById('serviceModalLabel').textContent = 'Add New Service';
-    document.getElementById('saveServiceBtn').innerHTML = '<i class="fas fa-save me-1"></i>Add Service';
-
-    // Clear form
-    document.getElementById('serviceForm').reset();
-    document.getElementById('serviceId').value = '';
-    document.getElementById('serviceActive').checked = true;
-
-    serviceModal.show();
-}
-
-async function editService(serviceId) {
-    try {
-        currentServiceId = serviceId;
-        document.getElementById('formMode').value = 'edit';
-        document.getElementById('serviceModalLabel').textContent = 'Edit Service';
-        document.getElementById('saveServiceBtn').innerHTML = '<i class="fas fa-save me-1"></i>Update Service';
-
-        // Load service data
-        const response = await fetch(`/api/services/${serviceId}`);
-        const data = await response.json();
-
-        if (data.success) {
-            const service = data.service;
-
-            // Populate form
-            document.getElementById('serviceId').value = service.id;
-            document.getElementById('serviceName').value = service.name;
-            document.getElementById('serviceCategory').value = service.category;
-            document.getElementById('serviceDuration').value = service.duration;
-            document.getElementById('servicePrice').value = service.price;
-            document.getElementById('serviceDescription').value = service.description;
-            document.getElementById('serviceActive').checked = service.is_active;
-
-            serviceModal.show();
-        } else {
-            showNotification('Error loading service data', 'error');
-        }
-
-    } catch (error) {
-        console.error('Error editing service:', error);
-        showNotification('Error loading service for editing', 'error');
-    }
-}
-
-async function handleFormSubmission(e) {
-    e.preventDefault();
-
-    const submitBtn = document.getElementById('saveServiceBtn');
-    const originalText = submitBtn.innerHTML;
-    const mode = document.getElementById('formMode').value;
-
-    try {
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
-
-        const formData = {
-            name: document.getElementById('serviceName').value,
-            category: document.getElementById('serviceCategory').value,
-            duration: parseInt(document.getElementById('serviceDuration').value),
-            price: parseFloat(document.getElementById('servicePrice').value),
-            description: document.getElementById('serviceDescription').value,
-            is_active: document.getElementById('serviceActive').checked
-        };
-
-        let response;
-        if (mode === 'edit') {
-            response = await fetch(`/api/services/${currentServiceId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            });
-        } else {
-            response = await fetch('/api/services', {
+    
+    const editForm = document.getElementById('editServiceForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const serviceId = document.getElementById('editServiceId').value;
+            
+            // Create FormData from the form
+            const formData = new FormData(this);
+            
+            fetch(`/services/${serviceId}/edit`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide modal and reload
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editServiceModal'));
+                    modal.hide();
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the service');
             });
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-            showNotification(result.message, 'success');
-            serviceModal.hide();
-            loadServicesData(); // Reload data
-        } else {
-            showNotification(result.error, 'error');
-        }
-
-    } catch (error) {
-        console.error('Form submission error:', error);
-        showNotification('Error saving service', 'error');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
+        });
     }
-}
-
-async function deleteService(serviceId) {
-    const service = allServices.find(s => s.id === serviceId);
-    if (!service) return;
-
-    if (confirm(`Are you sure you want to delete the service "${service.name}"? This action cannot be undone.`)) {
-        try {
-            const response = await fetch(`/api/services/${serviceId}`, {
-                method: 'DELETE'
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                showNotification(result.message, 'success');
-                loadServicesData(); // Reload data
-            } else {
-                showNotification(result.error, 'error');
-            }
-
-        } catch (error) {
-            console.error('Error deleting service:', error);
-            showNotification('Error deleting service', 'error');
-        }
-    }
-}
-
+});
 function filterServices() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const categoryFilter = document.getElementById('categoryFilter').value;
-    const durationFilter = document.getElementById('durationFilter').value;
-
-    let filtered = allServices.filter(service => {
-        const matchesSearch = service.name.toLowerCase().includes(searchTerm) || 
-                            service.description.toLowerCase().includes(searchTerm);
-        const matchesCategory = !categoryFilter || service.category === categoryFilter;
-        const matchesDuration = !durationFilter || service.duration == durationFilter;
-
-        return matchesSearch && matchesCategory && matchesDuration;
-    });
-
-    // Render filtered results
-    const tbody = document.getElementById('servicesTableBody');
-    tbody.innerHTML = '';
-
-    filtered.forEach(service => {
-        const row = createServiceRow(service);
-        tbody.appendChild(row);
-    });
+    const url = new URL(window.location);
+    if (categoryFilter) {
+        url.searchParams.set('category', categoryFilter);
+    } else {
+        url.searchParams.delete('category');
+    }
+    window.location.href = url;
 }
 
-function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('categoryFilter').value = '';
-    document.getElementById('durationFilter').value = '';
-    filterServices();
+function editService(serviceId) {
+    // Get service data and populate edit modal
+    fetch(`/api/services/${serviceId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(service => {
+            if (service && !service.error) {
+                // Populate edit modal
+                document.getElementById('editServiceId').value = serviceId;
+                document.getElementById('editServiceName').value = service.name || '';
+                document.getElementById('editServiceDescription').value = service.description || '';
+                document.getElementById('editServiceDuration').value = service.duration || 60;
+                document.getElementById('editServicePrice').value = service.price || 0;
+                document.getElementById('editServiceCategory').value = service.category_id || '';
+                document.getElementById('editServiceCommissionRate').value = service.commission_rate || 10;
+                document.getElementById('editServiceActive').checked = service.is_active;
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editServiceModal'));
+                modal.show();
+            } else {
+                alert('Service not found: ' + (service.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading service data: ' + error.message);
+        });
 }
 
-function exportServices() {
-    // Create CSV content
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Service Name,Category,Duration (min),Price ($),Description,Status\n";
-
-    allServices.forEach(service => {
-        const row = [
-            service.name,
-            service.category,
-            service.duration,
-            service.price.toFixed(2),
-            service.description.replace(/,/g, ';'), // Replace commas to avoid CSV issues
-            service.is_active ? 'Active' : 'Inactive'
-        ].join(',');
-        csvContent += row + "\n";
-    });
-
-    // Download file
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `services_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function showNotification(message, type = 'info', duration = 5000) {
-    const container = document.getElementById('alertContainer');
-    const notification = document.createElement('div');
-
-    const bgClass = {
-        'success': 'bg-success',
-        'error': 'bg-danger',
-        'warning': 'bg-warning',
-        'info': 'bg-info'
-    }[type] || 'bg-info';
-
-    notification.className = `toast ${bgClass} text-white`;
-    notification.innerHTML = `
-        <div class="toast-header ${bgClass} text-white border-0">
-            <i class="fas fa-${getNotificationIcon(type)} me-2"></i>
-            <strong class="me-auto">Notification</strong>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-        </div>
-        <div class="toast-body">
-            ${message}
-        </div>
-    `;
-
-    container.appendChild(notification);
-
-    const toast = new bootstrap.Toast(notification, { delay: duration });
-    toast.show();
-
-    notification.addEventListener('hidden.bs.toast', () => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
+function toggleService(serviceId) {
+    if (!serviceId) {
+        alert('Invalid service ID');
+        return;
+    }
+    
+    fetch(`/services/${serviceId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
         }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred: ' + error.message);
     });
 }
 
-function getNotificationIcon(type) {
-    const icons = {
-        'success': 'check-circle',
-        'error': 'exclamation-circle',
-        'warning': 'exclamation-triangle',
-        'info': 'info-circle'
-    };
-    return icons[type] || 'info-circle';
+function deleteService(serviceId) {
+    if (!serviceId) {
+        alert('Invalid service ID');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+        fetch(`/services/${serviceId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Service deleted successfully');
+                location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Fallback to form submission if fetch fails
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/services/${serviceId}/delete`;
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
+}
+
+function editCategory(categoryId) {
+    // Fetch category data and populate edit modal
+    fetch(`/api/categories/${categoryId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        
+        // Populate modal fields
+        document.getElementById('editCategoryDisplayName').value = data.display_name || '';
+        document.getElementById('editCategoryDescription').value = data.description || '';
+        document.getElementById('editCategoryColor').value = data.color || '#007bff';
+        document.getElementById('editCategorySortOrder').value = data.sort_order || 0;
+        document.getElementById('editCategoryIsActive').checked = data.is_active;
+        
+        // Set form action
+        document.getElementById('editCategoryForm').action = `/service-categories/${categoryId}/edit`;
+        
+        // Show modal
+        new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while fetching category data');
+    });
+}
+
+function toggleCategory(categoryId) {
+    fetch(`/service-categories/${categoryId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+function deleteCategory(categoryId) {
+    if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+        fetch(`/service-categories/${categoryId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
 }
 </script>
+
 {% endblock %}
