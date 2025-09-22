@@ -40,15 +40,15 @@ def add_student_offer():
     return render_template("packages/add_student_offer.html")
 
 
-@packages_bp.route("/student-offers/edit", endpoint="edit_student_offer")
+@packages_bp.route("/student-offers/edit/<int:offer_id>", endpoint="edit_student_offer")
 @login_required
-def edit_student_offer():
+def edit_student_offer(offer_id):
     """Edit student offer page"""
     if hasattr(current_user, 'can_access') and not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    return render_template("packages/edit_student_offer.html")
+    return render_template("packages/edit_student_offer.html", offer_id=offer_id)
 
 
 # ========================================

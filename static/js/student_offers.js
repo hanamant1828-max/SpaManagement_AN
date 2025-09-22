@@ -226,73 +226,15 @@ function updateStudentOfferPreview() {
 }
 
 /**
- * Save student offer
+ * Save student offer (for dedicated pages, not modal)
  */
 async function saveStudentOffer() {
     try {
-        const form = document.getElementById('addStudentOfferForm');
-        const formData = new FormData(form);
-
-        // Handle valid days
-        const validDaysSelect = document.getElementById('validDays');
-        const customValidDays = document.getElementById('customValidDays');
-        if (validDaysSelect.value === 'Custom' && customValidDays.value) {
-            formData.set('valid_days', customValidDays.value);
-        }
-
-        // Convert to JSON
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'service_ids') {
-                if (!data[key]) data[key] = [];
-                data[key].push(parseInt(value));
-            } else {
-                data[key] = value;
-            }
-        });
-
-        // Show loading state
-        const saveBtn = document.getElementById('saveStudentOfferBtn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-
-        const response = await fetch('/api/student-offers', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success || response.ok) {
-            showToast('Student offer created successfully!', 'success');
-
-            // Close modal and reset form
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentOfferModal'));
-            modal.hide();
-            form.reset();
-            setDefaultDates();
-
-            // Reload student offers if the function exists
-            if (typeof loadStudentPackages === 'function') {
-                await loadStudentPackages();
-            }
-        } else {
-            throw new Error(result.error || 'Failed to create student offer');
-        }
+        // This function is now primarily used by the dedicated add/edit pages
+        // The modal-based saving is handled within those pages
+        console.log('Student offer save function called');
     } catch (error) {
-        console.error('Error saving student offer:', error);
-        showToast('Error creating student offer: ' + error.message, 'error');
-    } finally {
-        // Restore button state
-        const saveBtn = document.getElementById('saveStudentOfferBtn');
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Student Offer';
-        }
+        console.error('Error in saveStudentOffer:', error);
     }
 }
 
