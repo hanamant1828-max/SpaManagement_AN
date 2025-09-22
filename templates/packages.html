@@ -162,7 +162,7 @@
                                                 </button>
                                                 <button type="button" class="btn btn-primary btn-sm" 
                                                         title="Assign to customer" 
-                                                        onclick="assignPackage({{ package.id }}, '{{ package.name }}', '{{ package.package_type }}', {{ package.total_price }})"
+                                                        onclick="openAssignPackageModal({{ package.id }}, '{{ package.name }}', '{{ package.package_type }}', {{ package.total_price }})"
                                                         data-bs-toggle="tooltip">
                                                     <i class="fas fa-user-plus"></i>
                                                 </button>
@@ -749,7 +749,7 @@ function filterPackages(type) {
 }
 
 // Package assignment functions
-function assignPackage(packageId, packageName, packageType, packagePrice) {
+function openAssignPackageModal(packageId, packageName, packageType, packagePrice) {
     // Set package details
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
@@ -763,12 +763,11 @@ function assignPackage(packageId, packageName, packageType, packagePrice) {
     const assignServiceSelectionDiv = document.getElementById('assign_service_selection');
     if (packageType === 'service_package') {
         assignServiceSelectionDiv.style.display = 'flex'; // Use flex to maintain row layout
-        // Populate service dropdown - This would typically come from an API call
-        // For now, we assume services are available globally or fetched separately
+        // Populate service dropdown
         const assignServiceIdSelect = document.getElementById('assign_service_id');
         // Clear previous options
         assignServiceIdSelect.innerHTML = '<option value="">Select the service this package will cover...</option>';
-        // Populate with actual services (assuming 'services' is available in the Jinja context)
+        // Populate with actual services
         {% for service in services %}
             const option = document.createElement('option');
             option.value = "{{ service.id }}";
@@ -784,7 +783,7 @@ function assignPackage(packageId, packageName, packageType, packagePrice) {
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
     document.getElementById('assign_package_type').value = packageType;
-    document.getElementById('assign_custom_price').value = ''; // Clear custom price
+    document.getElementById('assign_custom_price').value = packagePrice || ''; // Set default price
     document.getElementById('assign_discount').value = '0'; // Reset discount
     document.getElementById('assign_expiry').value = ''; // Clear expiry date
     document.getElementById('assign_notes').value = ''; // Clear notes
@@ -796,6 +795,11 @@ function assignPackage(packageId, packageName, packageType, packagePrice) {
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
     modal.show();
+}
+
+// Backward compatibility
+function assignPackage(packageId, packageName, packageType, packagePrice) {
+    return openAssignPackageModal(packageId, packageName, packageType, packagePrice);
 }
 
 function confirmPackageAssignment() {
@@ -816,7 +820,7 @@ function confirmPackageAssignment() {
         document.getElementById('assign_customer_id').classList.remove('is-invalid');
     }
 
-    if (packageType === 'service_package' && !serviceId) {
+    if (packageType === 'service_package' && document.getElementById('assign_service_selection').style.display !== 'none' && !serviceId) {
         document.getElementById('assign_service_id').classList.add('is-invalid');
         isValid = false;
     } else if (packageType === 'service_package') {
@@ -834,29 +838,39 @@ function confirmPackageAssignment() {
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
 
-    const data = {};
-    formData.forEach((value, key) => {
-        if (value) data[key] = value;
-    });
+    const data = {
+        package_id: document.getElementById('assign_package_id').value,
+        package_type: packageType,
+        client_id: customerId,
+        custom_price: document.getElementById('assign_custom_price').value || '',
+        discount: document.getElementById('assign_discount').value || '0',
+        expiry_date: document.getElementById('assign_expiry').value || '',
+        notes: document.getElementById('assign_notes').value || ''
+    };
 
-    fetch('/packages/assign', {
+    // Add service_id if it's a service package and selected
+    if (packageType === 'service_package' && serviceId) {
+        data.service_id = serviceId;
+    }
+
+    fetch('/packages/api/assign', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
         },
-        body: new URLSearchParams(data)
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
-    .then(data => {
+    .then(result => {
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
 
-        if (data.success) {
+        if (result.success) {
             showToast('Package assigned successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
             setTimeout(() => location.reload(), 1000);
         } else {
-            showToast('Error: ' + (data.message || data.error), 'error');
+            showToast('Error: ' + (result.message || result.error), 'error');
         }
     })
     .catch(error => {
