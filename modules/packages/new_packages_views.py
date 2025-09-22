@@ -399,7 +399,7 @@ def api_get_student_offers():
 def api_create_student_offer():
     """Create new student offer with multiple service selection"""
     try:
-        # Handle both JSON and form data
+        # Handle both JSON and form data (mirror update endpoint logic)
         if request.is_json:
             data = request.get_json()
             print(f"📥 Received JSON data: {data}")
@@ -410,6 +410,9 @@ def api_create_student_offer():
                 data['service_ids'] = request.form.getlist('service_ids')
             print(f"📥 Received form data: {data}")
 
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
         # Validate required fields
         if not data.get('service_ids') or len(data['service_ids']) == 0:
             return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
@@ -417,8 +420,26 @@ def api_create_student_offer():
         if not data.get('discount_percentage'):
             return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
 
+        # Validate discount percentage range
+        try:
+            discount = float(data['discount_percentage'])
+            if discount < 1 or discount > 100:
+                return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid discount percentage format'}), 400
+
         if not data.get('valid_from') or not data.get('valid_to'):
             return jsonify({'success': False, 'error': 'Valid from and to dates are required'}), 400
+
+        # Validate date range
+        try:
+            from datetime import datetime
+            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+            if valid_to < valid_from:
+                return jsonify({'success': False, 'error': 'Valid To Date must be greater than or equal to Valid From Date'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format. Please use YYYY-MM-DD format'}), 400
 
         print(f"🎯 Creating student offer with data: {data}")
 
@@ -471,7 +492,43 @@ def api_get_student_offer(offer_id):
 def api_update_student_offer(offer_id):
     """Update student offer"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            # Handle multiple service selection from form data
+            if 'service_ids' in request.form:
+                data['service_ids'] = request.form.getlist('service_ids')
+
+        # Validate required fields (same as create)
+        if not data.get('service_ids') or len(data['service_ids']) == 0:
+            return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
+
+        if not data.get('discount_percentage'):
+            return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
+
+        # Validate discount percentage range
+        try:
+            discount = float(data['discount_percentage'])
+            if discount < 1 or discount > 100:
+                return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid discount percentage format'}), 400
+
+        if not data.get('valid_from') or not data.get('valid_to'):
+            return jsonify({'success': False, 'error': 'Valid from and to dates are required'}), 400
+
+        # Validate date range
+        try:
+            from datetime import datetime
+            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+            if valid_to < valid_from:
+                return jsonify({'success': False, 'error': 'Valid To Date must be greater than or equal to Valid From Date'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format. Please use YYYY-MM-DD format'}), 400
+
         offer = update_student_offer(offer_id, data)
         flash('Student offer updated successfully!', 'success')
         return jsonify({
@@ -480,13 +537,28 @@ def api_update_student_offer(offer_id):
         })
     except Exception as e:
         logging.error(f"Error updating student offer: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/student-offers/<int:offer_id>', methods=['DELETE'])
 @login_required
 def api_delete_student_offer(offer_id):
     """Delete student offer"""
     try:
+        # Check if student offer exists first by trying to get it
+        try:
+            existing_offer = get_student_offer_by_id(offer_id)
+            if not existing_offer:
+                return jsonify({
+                    'success': False,
+                    'error': 'Student offer not found'
+                }), 404
+        except Exception:
+            # If offer doesn't exist, return 404
+            return jsonify({
+                'success': False,
+                'error': 'Student offer not found'
+            }), 404
+        
         delete_student_offer(offer_id)
         flash('Student offer deleted successfully!', 'success')
         return jsonify({
@@ -495,7 +567,10 @@ def api_delete_student_offer(offer_id):
         })
     except Exception as e:
         logging.error(f"Error deleting student offer: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 # ========================================
 # YEARLY MEMBERSHIPS ENDPOINTS

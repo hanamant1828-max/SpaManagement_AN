@@ -237,11 +237,35 @@
                                     <tbody id="tblStudentOffers">
                                         {% for offer in student_offers %}
                                         <tr>
-                                            <td>{{ offer.service_name }}</td>
-                                            <td>₹{{ "{:,.0f}".format(offer.actual_price) }}</td>
-                                            <td>{{ offer.discount_percent }}%</td>
-                                            <td>₹{{ "{:,.0f}".format(offer.after_price) }}</td>
-                                            <td class="text-success">₹{{ "{:,.0f}".format(offer.money_saved) }}</td>
+                                            <td>
+                                                {% for service in offer.services %}
+                                                    {{ service.name }}{% if not loop.last %}, {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                ₹{% set total_price = 0 %}
+                                                {% for service in offer.services %}
+                                                    {% set total_price = total_price + service.price %}
+                                                {% endfor %}
+                                                {{ "{:,.0f}".format(total_price) }}
+                                            </td>
+                                            <td>{{ offer.discount_percentage }}%</td>
+                                            <td>
+                                                ₹{% set total_price = 0 %}
+                                                {% for service in offer.services %}
+                                                    {% set total_price = total_price + service.price %}
+                                                {% endfor %}
+                                                {% set after_price = total_price * (100 - offer.discount_percentage) / 100 %}
+                                                {{ "{:,.0f}".format(after_price) }}
+                                            </td>
+                                            <td class="text-success">
+                                                ₹{% set total_price = 0 %}
+                                                {% for service in offer.services %}
+                                                    {% set total_price = total_price + service.price %}
+                                                {% endfor %}
+                                                {% set savings = total_price * offer.discount_percentage / 100 %}
+                                                {{ "{:,.0f}".format(savings) }}
+                                            </td>
                                             <td>{{ offer.valid_days }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
@@ -253,10 +277,10 @@
                                                             data-package-type="student">
                                                         <i class="fas fa-user-plus"></i> Assign
                                                     </button>
-                                                    <button class="btn btn-outline-primary" onclick="editStudent({{ offer.id }})">
+                                                    <button class="btn btn-outline-primary" onclick="editStudentOffer({{ offer.id }})">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger" onclick="deleteStudent({{ offer.id }})">
+                                                    <button class="btn btn-outline-danger" onclick="deleteStudentOffer({{ offer.id }})">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
