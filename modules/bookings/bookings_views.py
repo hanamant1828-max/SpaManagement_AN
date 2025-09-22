@@ -1383,24 +1383,6 @@ def delete_appointment_permanent(appointment_id):
 
     return redirect(url_for('staff_availability', date=appointment_date))
 
-@app.route('/appointments/management')
-@login_required
-def appointments_management():
-    """Comprehensive appointments management view with full CRUD operations"""
-    if not current_user.can_access('bookings'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-
-    # Get data for dropdowns
-    clients = get_active_clients()
-    services = get_active_services()
-    staff_members = get_staff_members()
-
-    return render_template('appointments_management.html',
-                         clients=clients,
-                         services=services,
-                         staff_members=staff_members)
-
 @app.route('/appointments/edit/<int:appointment_id>', methods=['GET', 'POST', 'PUT'])
 @login_required
 def edit_appointment(appointment_id):
