@@ -435,7 +435,7 @@ async function handleEditFormSubmit(event) {
     };
 
     try {
-        const response = await fetch(`/api/student-offers/${offerId}`, {
+        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
             method: 'PUT', // Use PUT for updating
             headers: {
                 'Content-Type': 'application/json',
@@ -516,7 +516,7 @@ async function deleteStudentOffer(offerId) {
     }
 
     try {
-        const response = await fetch(`/api/student-offers/${offerId}`, {
+        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
             method: 'DELETE'
         });
 
