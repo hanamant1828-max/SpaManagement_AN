@@ -259,7 +259,7 @@
 </div>
 
 <script>
-// Page-specific initialization
+// Page-specific initialization - Clean implementation without conflicts
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Add Student Offer page initialized');
     initializeAddStudentOfferPage();
@@ -603,12 +603,10 @@ function showLoadingOverlay(show) {
 }
 
 function showErrorMessage(message) {
-    // Create or update error toast
     showToast(message, 'error');
 }
 
 function showSuccessMessage(message) {
-    // Create or update success toast
     showToast(message, 'success');
 }
 
