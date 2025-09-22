@@ -5,7 +5,7 @@ This file provides additional API utilities and helpers for the packages system
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app import db
-from models import Customer, Service, PrepaidPackage, ServicePackage, Membership
+from models import Customer, Service, PrepaidPackage, ServicePackage, Membership, User, CustomerPackage, StudentOffer, StudentOfferService
 import datetime
 from sqlalchemy import and_, or_, desc, func
 import logging
@@ -351,4 +351,105 @@ def create_service_package():
         return jsonify({
             'success': False,
             'message': f'Error creating service package: {str(e)}'
+        }), 500
+
+@packages_api.route('/assign', methods=['POST'])
+@login_required
+def assign_package():
+    """Assign a package to a customer"""
+    try:
+        data = request.get_json()
+
+        customer_id = data.get('customer_id')
+        package_id = data.get('package_id')
+        package_type = data.get('package_type', 'student_offer')
+        price_paid = data.get('price_paid', 0.0)
+        notes = data.get('notes', '')
+
+        if not customer_id or not package_id:
+            return jsonify({
+                'success': False,
+                'error': 'Customer ID and Package ID are required'
+            }), 400
+
+        # Verify customer exists
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({
+                'success': False,
+                'error': 'Customer not found'
+            }), 404
+
+        # Handle student offer assignment
+        if package_type == 'student_offer':
+            # Verify student offer exists
+            student_offer = StudentOffer.query.get(package_id)
+            if not student_offer:
+                return jsonify({
+                    'success': False,
+                    'error': 'Student offer not found'
+                }), 404
+
+            # Create customer package assignment
+            customer_package = CustomerPackage(
+                customer_id=customer_id,
+                package_name=f'Student Offer - {student_offer.discount_percentage}% Discount',
+                package_type='student_offer',
+                package_reference_id=package_id,
+                total_amount=price_paid,
+                paid_amount=price_paid,
+                status='active',
+                notes=notes,
+                created_by=current_user.id,
+                created_at=datetime.utcnow()
+            )
+
+            db.session.add(customer_package)
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': 'Student offer assigned successfully',
+                'assignment_id': customer_package.id
+            })
+
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Unsupported package type'
+            }), 400
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Assignment error: {str(e)}'
+        }), 500
+
+@packages_api.route('/customers', methods=['GET'])
+@login_required
+def get_customers():
+    """Get all customers for assignment"""
+    try:
+        customers = Customer.query.filter_by(is_active=True).all()
+
+        customers_data = []
+        for customer in customers:
+            customers_data.append({
+                'id': customer.id,
+                'name': f"{customer.first_name} {customer.last_name}".strip(),
+                'email': customer.email,
+                'phone': customer.phone,
+                'created_at': customer.created_at.isoformat() if customer.created_at else None
+            })
+
+        return jsonify({
+            'success': True,
+            'customers': customers_data
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Error loading customers: {str(e)}'
         }), 500

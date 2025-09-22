@@ -515,11 +515,117 @@ async function deleteStudentOffer(offerId) {
  * Assign student offer
  */
 function assignStudentOffer(offerId) {
-    // Use the existing assignment system
-    if (typeof openAssignSimple === 'function') {
-        openAssignSimple(offerId, 'student_offer');
+    console.log('Assigning student offer:', offerId);
+    openAssignSimple(offerId, 'student_offer');
+}
+
+/**
+ * Open assignment modal for student offers
+ */
+function openAssignSimple(offerId, packageType) {
+    console.log('Opening assignment modal for:', offerId, packageType);
+    
+    // Set the offer details in the assignment modal
+    const offerTypeInput = document.getElementById('assignOfferType');
+    const offerIdInput = document.getElementById('assignOfferReferenceId');
+    
+    if (offerTypeInput) {
+        offerTypeInput.value = packageType || 'student_offer';
+    }
+    
+    if (offerIdInput) {
+        offerIdInput.value = offerId;
+    }
+    
+    // Load customers for assignment
+    loadCustomersForAssignment();
+    
+    // Show the assignment modal
+    const assignModal = document.getElementById('assignPackageModal');
+    if (assignModal) {
+        const modalInstance = new bootstrap.Modal(assignModal);
+        modalInstance.show();
     } else {
-        showToast('Assignment feature coming soon!', 'info');
+        // Fallback: show simple assignment dialog
+        showSimpleAssignmentDialog(offerId, packageType);
+    }
+}
+
+/**
+ * Load customers for assignment dropdown
+ */
+async function loadCustomersForAssignment() {
+    try {
+        const response = await fetch('/packages/api/customers');
+        const data = await response.json();
+        
+        const customerSelect = document.getElementById('assignCustomerSelect');
+        if (customerSelect && data.success && data.customers) {
+            customerSelect.innerHTML = '<option value="">Choose customer...</option>';
+            
+            data.customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = `${customer.name} - ${customer.phone || customer.email || ''}`;
+                customerSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading customers:', error);
+        showToast('Error loading customers', 'error');
+    }
+}
+
+/**
+ * Simple assignment dialog fallback
+ */
+function showSimpleAssignmentDialog(offerId, packageType) {
+    const customerName = prompt('Enter customer name or ID for assignment:');
+    if (customerName) {
+        // Try to assign directly
+        assignStudentOfferToCustomer(offerId, customerName);
+    }
+}
+
+/**
+ * Assign student offer to customer
+ */
+async function assignStudentOfferToCustomer(offerId, customerId) {
+    try {
+        const assignmentData = {
+            customer_id: customerId,
+            package_id: offerId,
+            package_type: 'student_offer',
+            price_paid: 0.0,
+            notes: 'Student offer assignment'
+        };
+        
+        const response = await fetch('/packages/api/assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(assignmentData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Student offer assigned successfully!', 'success');
+            // Close modal if open
+            const assignModal = document.getElementById('assignPackageModal');
+            if (assignModal) {
+                const modalInstance = bootstrap.Modal.getInstance(assignModal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+        } else {
+            throw new Error(result.error || 'Assignment failed');
+        }
+    } catch (error) {
+        console.error('Error assigning student offer:', error);
+        showToast('Error assigning student offer: ' + error.message, 'error');
     }
 }
 
@@ -608,8 +714,85 @@ function showToast(message, type = 'info') {
     alert(`${emoji} ${message}`);
 }
 
+/**
+ * Confirm assignment from modal
+ */
+function confirmAssignment() {
+    const form = document.getElementById('assignPackageForm');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    const customerId = formData.get('customer_id');
+    const packageId = formData.get('package_id');
+    const packageType = formData.get('package_type');
+    const pricePaid = formData.get('price_paid') || 0;
+    const notes = formData.get('notes') || '';
+    
+    if (!customerId) {
+        showToast('Please select a customer', 'error');
+        return;
+    }
+    
+    if (!packageId) {
+        showToast('Package ID not found', 'error');
+        return;
+    }
+    
+    // Disable button during assignment
+    const confirmBtn = document.getElementById('confirmAssignBtn');
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    
+    // Perform assignment
+    const assignmentData = {
+        customer_id: parseInt(customerId),
+        package_id: parseInt(packageId),
+        package_type: packageType,
+        price_paid: parseFloat(pricePaid),
+        notes: notes
+    };
+    
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(assignmentData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast('Package assigned successfully!', 'success');
+            
+            // Close modal
+            const assignModal = document.getElementById('assignPackageModal');
+            const modalInstance = bootstrap.Modal.getInstance(assignModal);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
+            // Reset form
+            form.reset();
+        } else {
+            throw new Error(result.error || 'Assignment failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error assigning package:', error);
+        showToast('Error assigning package: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Restore button
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+    });
+}
+
 // Expose functions globally for onclick handlers
 window.editStudentOffer = editStudentOffer;
 window.deleteStudentOffer = deleteStudentOffer;
 window.assignStudentOffer = assignStudentOffer;
+window.openAssignSimple = openAssignSimple;
+window.confirmAssignment = confirmAssignment;
 window.loadStudentOffersTable = loadStudentOffersTable;
