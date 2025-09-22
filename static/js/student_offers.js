@@ -1,4 +1,3 @@
-
 /**
  * Student Offers Management JavaScript
  * Handles add, edit, delete, and view operations for student offers
@@ -13,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Student Offers JS loaded');
 
     // Only initialize if we're on a page that needs it
-    if (document.getElementById('addStudentOfferForm') || document.getElementById('editStudentOfferForm')) {
+    if (document.getElementById('addStudentOfferForm') || document.getElementById('editStudentOfferForm') || document.getElementById('tblStudentOffers')) {
         initializeStudentOffers();
     }
 });
@@ -546,14 +545,13 @@ async function loadStudentOffersTable() {
             data.forEach(offer => {
                 const row = document.createElement('tr');
                 const servicesList = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
-                const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
+                const validityDate = offer.valid_to || 'N/A'; // Assuming 'valid_to' is the validity date
 
                 row.innerHTML = `
-                    <td><strong>${offer.discount_percentage}%</strong></td>
+                    <td><strong>${offer.name || 'N/A'}</strong></td> {/* Display Offer Name */}
                     <td><small>${servicesList}</small></td>
-                    <td>${offer.valid_days}</td>
-                    <td><small>${validPeriod}</small></td>
-                    <td><small>${offer.conditions || 'No conditions'}</small></td>
+                    <td><strong>${offer.discount_percentage || 'N/A'}%</strong></td> {/* Display Discount Percentage */}
+                    <td><small>${validityDate}</small></td> {/* Display Validity Date */}
                     <td>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-warning" onclick="editStudentOffer(${offer.id})" title="Edit">
@@ -579,7 +577,7 @@ async function loadStudentOffersTable() {
         } else {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-4">
                         <i class="fas fa-info-circle me-2"></i>
                         No student offers found
                     </td>

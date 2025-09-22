@@ -2052,12 +2052,16 @@ async function loadStudentPackages() {
                 const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
 
                 row.innerHTML = `
+                    <td><strong>${offer.name || 'Student Offer'}</strong></td>
                     <td><small>${servicesList}</small></td>
-                    <td>₹${offer.services ? offer.services.reduce((total, s) => total + s.price, 0).toFixed(2) : '0.00'}</td>
-                    <td><strong>${offer.discount_percentage}%</strong></td>
-                    <td>₹${offer.services ? (offer.services.reduce((total, s) => total + s.price, 0) * (1 - offer.discount_percentage / 100)).toFixed(2) : '0.00'}</td>
-                    <td>₹${offer.services ? (offer.services.reduce((total, s) => total + s.price, 0) * (offer.discount_percentage / 100)).toFixed(2) : '0.00'}</td>
-                    <td>${offer.valid_days}</td>
+                    <td><span class="badge bg-success">${offer.discount_percentage}%</span></td>
+                    <td>
+                        <small>
+                            <strong>From:</strong> ${offer.valid_from}<br>
+                            <strong>To:</strong> ${offer.valid_to}
+                        </small>
+                    </td>
+                    <td><span class="badge bg-info">${offer.valid_days}</span></td>
                     <td>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-success btn-sm"

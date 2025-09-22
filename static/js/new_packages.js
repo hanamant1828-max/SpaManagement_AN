@@ -68,12 +68,16 @@ function loadStudentPackages() {
                 const serviceNames = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
                 const row = `
                     <tr>
-                        <td>${serviceNames}</td>
-                        <td>₹${parseFloat(offer.services?.[0]?.price || 0).toLocaleString()}</td>
-                        <td>${offer.discount_percentage}%</td>
-                        <td>₹${(parseFloat(offer.services?.[0]?.price || 0) * (1 - offer.discount_percentage/100)).toLocaleString()}</td>
-                        <td class="text-success">₹${(parseFloat(offer.services?.[0]?.price || 0) * (offer.discount_percentage/100)).toLocaleString()}</td>
-                        <td>${offer.valid_days}</td>
+                        <td><strong>${offer.name || 'Student Offer'}</strong></td>
+                        <td><small>${serviceNames}</small></td>
+                        <td><span class="badge bg-success">${offer.discount_percentage}%</span></td>
+                        <td>
+                            <small>
+                                <strong>From:</strong> ${offer.valid_from}<br>
+                                <strong>To:</strong> ${offer.valid_to}
+                            </small>
+                        </td>
+                        <td><span class="badge bg-info">${offer.valid_days}</span></td>
                         <td>
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-success btn-sm" onclick="assignStudentOffer(${offer.id})" title="Assign to Customer">
