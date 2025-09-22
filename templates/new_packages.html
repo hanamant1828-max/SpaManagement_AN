@@ -1943,6 +1943,7 @@ function assignServicePackage(packageId, packageName) {
     document.getElementById('service_assign_package_id').value = packageId;
     document.getElementById('assign_service_package_name').textContent = packageName; // Correctly set the title
     loadCustomersForServiceAssignment(); // Load customers when the modal is shown
+    loadServicesForAssignment(); // Load services when the modal is shown
 
     // Load package details for summary
     loadServicePackageDetails(packageId);
