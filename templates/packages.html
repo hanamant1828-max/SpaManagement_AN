@@ -476,7 +476,7 @@
                     <i class="fas fa-times me-2"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-success" id="confirmAssignButton" onclick="confirmPackageAssignment()">
-                    <i class="fas fa-check me-2"></i>Assign Package
+                    <i class="fas fa-check me-2"></i>+ Assign
                 </button>
             </div>
         </div>
@@ -809,19 +809,31 @@ function loadServicesForAssignment() {
 
 // Make confirmPackageAssignment global
 window.confirmPackageAssignment = function() {
-    const form = document.getElementById('assignPackageForm');
+    console.log('confirmPackageAssignment called');
     
-    // Collect form values
-    const packageId = document.getElementById('assign_package_id').value;
-    const customerId = document.getElementById('assign_customer_id').value;
-    const customPrice = document.getElementById('assign_custom_price').value;
-    const discount = document.getElementById('assign_discount').value;
-    const expiryDate = document.getElementById('assign_expiry').value;
-    const notes = document.getElementById('assign_notes').value;
+    const form = document.getElementById('assignPackageForm');
+    if (!form) {
+        console.error('assignPackageForm not found');
+        showToast('Assignment form not found', 'error');
+        return;
+    }
+    
+    // Collect form values with better error handling
+    const packageId = document.getElementById('assign_package_id')?.value;
+    const customerId = document.getElementById('assign_customer_id')?.value;
+    const customPrice = document.getElementById('assign_custom_price')?.value;
+    const discount = document.getElementById('assign_discount')?.value || '0';
+    const expiryDate = document.getElementById('assign_expiry')?.value;
+    const notes = document.getElementById('assign_notes')?.value || '';
+
+    console.log('Form values:', { packageId, customerId, customPrice, discount, expiryDate, notes });
 
     // Validate required fields
     if (!customerId) {
-        document.getElementById('assign_customer_id').classList.add('is-invalid');
+        const customerSelect = document.getElementById('assign_customer_id');
+        if (customerSelect) {
+            customerSelect.classList.add('is-invalid');
+        }
         showToast('Please select a customer', 'error');
         return;
     }
@@ -832,22 +844,27 @@ window.confirmPackageAssignment = function() {
     }
 
     // Remove validation classes
-    document.getElementById('assign_customer_id').classList.remove('is-invalid');
+    const customerSelect = document.getElementById('assign_customer_id');
+    if (customerSelect) {
+        customerSelect.classList.remove('is-invalid');
+    }
 
     // Disable button during submission
     const submitButton = document.getElementById('confirmAssignButton');
-    const originalText = submitButton.innerHTML;
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    const originalText = submitButton?.innerHTML || 'Assign Package';
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    }
 
     // Prepare data object
     const data = {
         package_id: parseInt(packageId),
         client_id: parseInt(customerId),
         custom_price: customPrice ? parseFloat(customPrice) : null,
-        discount: discount ? parseFloat(discount) : 0,
+        discount: parseFloat(discount),
         expiry_date: expiryDate || null,
-        notes: notes || ''
+        notes: notes
     };
 
     console.log('Sending assignment data:', data);
@@ -859,23 +876,35 @@ window.confirmPackageAssignment = function() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(result => {
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
+        console.log('Assignment result:', result);
+        
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
 
         if (result.success) {
             showToast('Package assigned successfully!', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPackageModal'));
+            if (modal) {
+                modal.hide();
+            }
             setTimeout(() => location.reload(), 1000);
         } else {
-            showToast('Error: ' + (result.message || result.error), 'error');
+            showToast('Error: ' + (result.message || result.error || 'Assignment failed'), 'error');
         }
     })
     .catch(error => {
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
-        console.error('Error:', error);
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+        console.error('Assignment error:', error);
         showToast('An error occurred while assigning the package.', 'error');
     });
 };

@@ -159,13 +159,18 @@ def clients_redirect():
 def assign_package():
     """API endpoint to assign package to customer"""
     try:
+        print("Package assignment API called")
         data = request.get_json()
+        print(f"Received data: {data}")
+        
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
         # Validate required fields
         package_id = data.get('package_id')
         client_id = data.get('client_id')
+        
+        print(f"Package ID: {package_id}, Client ID: {client_id}")
         
         if not package_id or not client_id:
             return jsonify({'success': False, 'error': 'Package ID and Client ID are required'}), 400
@@ -176,17 +181,23 @@ def assign_package():
         # Verify package exists
         package = Package.query.get(package_id)
         if not package:
+            print(f"Package {package_id} not found")
             return jsonify({'success': False, 'error': 'Package not found'}), 404
             
-        # Verify customer exists
+        # Verify customer exists  
         customer = Customer.query.get(client_id)
         if not customer:
+            print(f"Customer {client_id} not found")
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        print(f"Found package: {package.name}, customer: {customer.full_name}")
 
         # Calculate assignment details
         custom_price = data.get('custom_price')
         price_paid = float(custom_price) if custom_price else float(package.total_price)
         discount = float(data.get('discount', 0))
+        
+        print(f"Price paid: {price_paid}, discount: {discount}")
         
         # Calculate expiry date
         expiry_date = None
@@ -197,6 +208,8 @@ def assign_package():
             # Use package validity
             from datetime import date, timedelta
             expiry_date = date.today() + timedelta(days=package.validity_days)
+
+        print(f"Expiry date: {expiry_date}")
 
         # Create assignment
         assignment = ClientPackage(
@@ -211,8 +224,10 @@ def assign_package():
             total_sessions=sum([ps.sessions_included for ps in package.services]) if package.services else 0
         )
 
+        print("Creating assignment...")
         db.session.add(assignment)
         db.session.commit()
+        print("Assignment created successfully")
 
         return jsonify({
             'success': True,
@@ -222,8 +237,10 @@ def assign_package():
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error assigning package: {e}")
-        return jsonify({'success': False, 'error': 'Failed to assign package'}), 500
+        print(f"Error assigning package: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Failed to assign package: {str(e)}'}), 500
 
 # Additional routes that don't fit in modules yet
 # alerts route is now handled in dashboard module
