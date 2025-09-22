@@ -166,36 +166,54 @@ def assign_package():
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
-        # Validate required fields
+        # Handle both client_id and customer_id for compatibility
+        customer_id = data.get('customer_id') or data.get('client_id')
         package_id = data.get('package_id')
-        client_id = data.get('client_id')
-        package_type = data.get('package_type', 'regular')
+        package_type = data.get('package_type', 'membership')
         
-        print(f"Package ID: {package_id}, Client ID: {client_id}, Package Type: {package_type}")
+        print(f"Package ID: {package_id}, Customer ID: {customer_id}, Package Type: {package_type}")
         
-        if not package_id or not client_id:
-            return jsonify({'success': False, 'error': 'Package ID and Client ID are required'}), 400
+        if not package_id or not customer_id:
+            return jsonify({'success': False, 'error': 'Package ID and Customer ID are required'}), 400
 
         # Import models
-        from models import Package, Customer, ClientPackage, ServicePackageAssignment
+        from models import Customer, ServicePackageAssignment, Membership, PrepaidPackage, ServicePackage
+        from datetime import datetime, timedelta
         
-        # Verify package exists
-        package = Package.query.get(package_id)
-        if not package:
-            print(f"Package {package_id} not found")
-            return jsonify({'success': False, 'error': 'Package not found'}), 404
-            
         # Verify customer exists  
-        customer = Customer.query.get(client_id)
+        customer = Customer.query.get(customer_id)
         if not customer:
-            print(f"Customer {client_id} not found")
+            print(f"Customer {customer_id} not found")
             return jsonify({'success': False, 'error': 'Customer not found'}), 404
 
-        print(f"Found package: {package.name}, customer: {customer.full_name}")
+        print(f"Found customer: {customer.full_name}")
+
+        # Get package details based on type
+        package_template = None
+        if package_type == 'membership':
+            package_template = Membership.query.get(package_id)
+        elif package_type == 'prepaid':
+            package_template = PrepaidPackage.query.get(package_id)
+        elif package_type == 'service_package':
+            package_template = ServicePackage.query.get(package_id)
+        
+        if not package_template:
+            return jsonify({'success': False, 'error': f'{package_type.title()} package not found'}), 404
+
+        print(f"Found package template: {package_template.name}")
 
         # Calculate assignment details
-        custom_price = data.get('custom_price')
-        price_paid = float(custom_price) if custom_price else float(package.total_price)
+        price_paid = data.get('price_paid')
+        if price_paid is None:
+            if hasattr(package_template, 'price'):
+                price_paid = float(package_template.price)
+            elif hasattr(package_template, 'actual_price'):
+                price_paid = float(package_template.actual_price)
+            else:
+                price_paid = 0.0
+        else:
+            price_paid = float(price_paid)
+        
         discount = float(data.get('discount', 0))
         
         print(f"Price paid: {price_paid}, discount: {discount}")
@@ -203,44 +221,36 @@ def assign_package():
         # Calculate expiry date
         expiry_date = None
         if data.get('expiry_date'):
-            from datetime import datetime
             expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
         else:
             # Use package validity
-            from datetime import datetime, timedelta
-            expiry_date = datetime.now() + timedelta(days=package.validity_days)
+            if hasattr(package_template, 'validity_months') and package_template.validity_months:
+                expiry_date = datetime.utcnow() + timedelta(days=package_template.validity_months * 30)
+            else:
+                expiry_date = datetime.utcnow() + timedelta(days=365)  # Default 1 year
 
         print(f"Expiry date: {expiry_date}")
 
-        # Check if using new package system or legacy
-        if hasattr(package, 'package_type') and package.package_type in ['service_package', 'prepaid', 'membership']:
-            # Use new ServicePackageAssignment model
-            assignment = ServicePackageAssignment(
-                customer_id=client_id,
-                package_type=package.package_type,
-                package_reference_id=package_id,
-                expires_on=expiry_date,
-                price_paid=price_paid,
-                discount=discount,
-                notes=data.get('notes', ''),
-                status='active',
-                total_sessions=sum([ps.sessions_included for ps in package.services]) if hasattr(package, 'services') and package.services else 0,
-                used_sessions=0,
-                remaining_sessions=sum([ps.sessions_included for ps in package.services]) if hasattr(package, 'services') and package.services else 0
-            )
-        else:
-            # Use legacy ClientPackage model
-            assignment = ClientPackage(
-                client_id=client_id,
-                package_id=package_id,
-                expiry_date=expiry_date.date() if isinstance(expiry_date, datetime) else expiry_date,
-                price_paid=price_paid,
-                discount_applied=discount,
-                notes=data.get('notes', ''),
-                is_active=True,
-                sessions_used=0,
-                total_sessions=sum([ps.sessions_included for ps in package.services]) if hasattr(package, 'services') and package.services else 0
-            )
+        # Create assignment using ServicePackageAssignment model
+        assignment = ServicePackageAssignment(
+            customer_id=customer_id,
+            package_type=package_type,
+            package_reference_id=package_id,
+            service_id=data.get('service_id'),  # Optional, for service packages
+            expires_on=expiry_date,
+            price_paid=price_paid,
+            discount=discount,
+            notes=data.get('notes', ''),
+            status='active'
+        )
+
+        # Set package-specific fields
+        if package_type == 'service_package' and hasattr(package_template, 'total_services'):
+            assignment.total_sessions = package_template.total_services
+            assignment.remaining_sessions = package_template.total_services
+        elif package_type == 'prepaid' and hasattr(package_template, 'after_value'):
+            assignment.credit_amount = package_template.after_value
+            assignment.remaining_credit = package_template.after_value
 
         print("Creating assignment...")
         db.session.add(assignment)
@@ -249,7 +259,7 @@ def assign_package():
 
         return jsonify({
             'success': True,
-            'message': f'Package "{package.name}" assigned successfully to {customer.full_name}',
+            'message': f'Package "{package_template.name}" assigned successfully to {customer.full_name}',
             'assignment_id': assignment.id
         })
 
