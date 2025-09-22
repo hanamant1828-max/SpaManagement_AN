@@ -133,9 +133,7 @@ except ImportError as e:
     print("Some modules may not be available")
 
 
-@app.context_processor
-def utility_processor():
-    return dict(utils=utils)
+# utility_processor moved to app.py to avoid conflicts
 
 # Removed duplicate create_default_data function - using the one at the top of the file
 

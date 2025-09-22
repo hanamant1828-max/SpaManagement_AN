@@ -3058,7 +3058,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
                     </td>
                     <td>
                         <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'membership')" title="Assign">
-                            <i class="fas fa-user-plus"></i> Assign
+                            <i class="fas fa-user-plus"></i>
                         </button>
                     </td>
                 `;
@@ -3070,7 +3070,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
                     <td>${pkg.discount_percent || 0}%</td>
                     <td>
                         <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'yearly')" title="Assign">
-                            <i class="fas fa-user-plus"></i> Assign
+                            <i class="fas fa-user-plus"></i>
                         </button>
                     </td>
                 `;

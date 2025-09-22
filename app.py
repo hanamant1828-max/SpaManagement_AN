@@ -99,6 +99,12 @@ def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
 
+# Make utils available in all templates
+@app.context_processor
+def utility_processor():
+    import utils
+    return dict(utils=utils)
+
 # Add ping route for health check
 @app.route('/ping')
 def ping():
