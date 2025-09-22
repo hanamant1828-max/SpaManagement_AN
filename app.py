@@ -95,6 +95,7 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
+    # Import inside function to avoid circular imports
     from models import User
     return User.query.get(int(user_id))
 
@@ -186,99 +187,7 @@ from modules.packages.new_packages_views import *
 from modules.packages.membership_views import *
 from modules.packages.professional_packages_views import *
 
-# Department Management Routes
-@app.route('/api/departments', methods=['GET'])
-@login_required
-def api_get_departments():
-    """Get all departments"""
-    try:
-        departments = Department.query.filter_by(is_active=True).all()
-        return jsonify({
-            'success': True,
-            'departments': [{'id': d.id, 'name': d.name, 'display_name': d.display_name, 'description': d.description} for d in departments]
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/departments', methods=['POST'])
-@login_required
-def api_create_department():
-    """Create new department"""
-    try:
-        data = request.get_json()
-        if not data or not data.get('name') or not data.get('display_name'):
-            return jsonify({'success': False, 'error': 'Name and display name are required'}), 400
-
-        # Check if department already exists
-        existing = Department.query.filter_by(name=data['name']).first()
-        if existing:
-            return jsonify({'success': False, 'error': 'Department already exists'}), 400
-
-        department = Department(
-            name=data['name'],
-            display_name=data['display_name'],
-            description=data.get('description', ''),
-            is_active=True
-        )
-
-        db.session.add(department)
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Department created successfully',
-            'department': {
-                'id': department.id,
-                'name': department.name,
-                'display_name': department.display_name,
-                'description': department.description
-            }
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/departments/<int:dept_id>', methods=['PUT'])
-@login_required
-def api_update_department(dept_id):
-    """Update department"""
-    try:
-        department = Department.query.get_or_404(dept_id)
-        data = request.get_json()
-
-        if data.get('name'):
-            department.name = data['name']
-        if data.get('display_name'):
-            department.display_name = data['display_name']
-        if data.get('description'):
-            department.description = data['description']
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Department updated successfully'
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/departments/<int:dept_id>', methods=['DELETE'])
-@login_required
-def api_delete_department(dept_id):
-    """Delete department"""
-    try:
-        department = Department.query.get_or_404(dept_id)
-        department.is_active = False
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Department deleted successfully'
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+# Department Management Routes moved to routes.py to avoid conflicts
 
 @app.route('/')
 def index():
