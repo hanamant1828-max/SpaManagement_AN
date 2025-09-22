@@ -113,13 +113,25 @@ function openAssignSimple(packageId, packageType) {
         console.log('Set package ID:', packageId);
     }
 
-    // Reset form
+    // Reset form first
     const form = document.getElementById('assignPackageForm') || document.getElementById('assignSimpleForm');
     if (form) {
         form.reset();
         // Re-set the hidden fields after reset
         if (offerTypeInput) offerTypeInput.value = packageType;
         if (offerRefInput) offerRefInput.value = packageId;
+    }
+
+    // Set package name after form reset
+    const packageNameField = document.getElementById('asTemplateName');
+    if (packageNameField && currentPackages && currentPackages.length > 0) {
+        const packageData = currentPackages.find(pkg => pkg.id == packageId);
+        if (packageData) {
+            packageNameField.value = packageData.name || `Package ${packageId}`;
+            // Also set defaultValue to prevent reset from clearing it
+            packageNameField.defaultValue = packageData.name || `Package ${packageId}`;
+            console.log('Set package name:', packageData.name);
+        }
     }
 
     // Reset and load customer dropdown
@@ -137,11 +149,35 @@ function openAssignSimple(packageId, packageType) {
         console.log('Customers loaded for assignment');
     });
 
-    // Show modal
+    // Show modal and set up event listener using Bootstrap modal events
     const modalInstance = new bootstrap.Modal(modal);
+    
+    // Set up event listener when modal is fully shown (reliable timing)
+    modal.addEventListener('shown.bs.modal', function() {
+        const saveBtn = document.getElementById('asSave') || document.getElementById('confirmAssignBtn');
+        
+        if (saveBtn && !saveBtn.dataset.assignListener) {
+            saveBtn.dataset.assignListener = 'true';
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                saveAssignSimple();
+            });
+            
+            console.log('Event listener attached to assign button using modal shown event');
+            
+            // Initially disable the button until customer is selected
+            saveBtn.disabled = true;
+            
+            // Enable button when customer is selected
+            const customerSelect = document.getElementById('asCustomer');
+            if (customerSelect && customerSelect.value) {
+                saveBtn.disabled = false;
+            }
+        }
+    }, { once: true }); // Use once: true to prevent duplicate listeners
+    
     modalInstance.show();
-
-    console.log('Modal opened for package assignment');
 }
 
 // Separate function to handle customer selection
@@ -174,9 +210,26 @@ function saveAssignSimple() {
                       document.getElementById('assignCustomerSelect')?.value ||
                       document.getElementById('assignmentCustomer')?.value;
     
-    const pricePaid = parseFloat(document.getElementById('asPricePaid')?.value || 
-                                document.getElementById('assignPricePaid')?.value ||
-                                document.getElementById('assignmentPrice')?.value) || 0;
+    // Get package price from the current package data if not specified
+    const priceInput = document.getElementById('asPricePaid')?.value || 
+                       document.getElementById('assignPricePaid')?.value ||
+                       document.getElementById('assignmentPrice')?.value;
+    
+    let pricePaid = parseFloat(priceInput);
+    
+    // If price input is empty or NaN (but not 0), try to get default from package data
+    if (isNaN(pricePaid) && currentPackages && currentPackages.length > 0) {
+        const packageData = currentPackages.find(pkg => pkg.id == templateId);
+        if (packageData && packageData.price) {
+            pricePaid = parseFloat(packageData.price);
+            console.log('Using package default price:', pricePaid);
+        }
+    }
+    
+    // Fallback to 0 if still no valid price (preserves intentional 0 values)
+    if (isNaN(pricePaid)) {
+        pricePaid = 0;
+    }
     
     const notes = document.getElementById('asNotes')?.value || 
                  document.getElementById('assignNotes')?.value ||

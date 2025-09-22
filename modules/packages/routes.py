@@ -197,7 +197,7 @@ def api_get_customer_packages():
             )
 
         # Order by assigned date (newest first)
-        query = query.order_by(CustomerPackage.assigned_date.desc())
+        query = query.order_by(CustomerPackage.assigned_on.desc())
 
         # Paginate
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -211,7 +211,7 @@ def api_get_customer_packages():
                 'customer_name': f"{cp.customer.first_name} {cp.customer.last_name}",
                 'package_name': cp.package_template.name,
                 'status': cp.status,
-                'assigned_date': cp.assigned_date.strftime('%Y-%m-%d') if cp.assigned_date else None,
+                'assigned_date': cp.assigned_on.strftime('%Y-%m-%d') if cp.assigned_on else None,
                 'expires_date': cp.expires_date.strftime('%Y-%m-%d') if cp.expires_date else None,
                 'sessions_remaining': cp.sessions_remaining,
                 'total_sessions': cp.total_sessions
