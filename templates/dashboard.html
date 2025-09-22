@@ -88,6 +88,68 @@
         </div>
     </div>
 
+    <!-- Charts and Analytics Section -->
+    <div class="row mb-4">
+        <!-- Revenue Trend Chart -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>Revenue Trend (Last 7 Days)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Popularity Chart -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-chart-pie me-2"></i>Service Popularity
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="serviceChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Charts Row -->
+    <div class="row mb-4">
+        <!-- Monthly Bookings Bar Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-chart-bar me-2"></i>Monthly Bookings
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="bookingsChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Performance Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-users me-2"></i>Staff Performance
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="staffChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Recent Appointments -->
         <div class="col-lg-6 mb-4">

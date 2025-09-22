@@ -3,8 +3,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     initializeDashboard();
 
-    // Auto-refresh dashboard data every 5 minutes
-    setInterval(refreshDashboardData, 300000);
+    // Auto-refresh dashboard data every 5 minutes (only if function exists)
+    if (typeof refreshDashboardData === 'function') {
+        setInterval(refreshDashboardData, 300000);
+    }
 
     // Setup button click handlers
     setupDashboardButtonHandlers();
@@ -92,23 +94,19 @@ function initializeDashboard() {
 }
 
 function initializeCharts() {
-    // Revenue trend chart
-    const revenueCtx = document.getElementById('revenueTrendChart');
-    if (revenueCtx) {
-        createRevenueTrendChart(revenueCtx);
+    console.log('Initializing dashboard charts...');
+    
+    // Check if Chart.js is loaded
+    if (!window.Chart) {
+        console.error('Chart.js not loaded');
+        return;
     }
-
-    // Appointment status chart
-    const statusCtx = document.getElementById('appointmentStatusChart');
-    if (statusCtx) {
-        createAppointmentStatusChart(statusCtx);
-    }
-
-    // Service popularity chart
-    const serviceCtx = document.getElementById('servicePopularityChart');
-    if (serviceCtx) {
-        createServicePopularityChart(serviceCtx);
-    }
+    
+    // Initialize all new charts
+    createRevenueChart();
+    createServiceChart();
+    createBookingsChart();
+    createStaffChart();
 }
 
 function createRevenueTrendChart(ctx) {
@@ -215,6 +213,219 @@ function createServicePopularityChart(ctx) {
                     beginAtZero: true,
                     ticks: {
                         stepSize: 5
+                    }
+                }
+            }
+        }
+    });
+}
+
+// New Chart Functions for Enhanced Dashboard
+
+function createRevenueChart() {
+    const ctx = document.getElementById('revenueChart');
+    if (!ctx) return;
+
+    // Hardcoded revenue data for the last 7 days
+    const revenueData = [1200, 1800, 2100, 1950, 2300, 2800, 3200];
+    const dates = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Daily Revenue ($)',
+                data: revenueData,
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#4e73df',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value;
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+function createServiceChart() {
+    const ctx = document.getElementById('serviceChart');
+    if (!ctx) return;
+
+    // Hardcoded service popularity data
+    const services = ['Facial', 'Massage', 'Manicure', 'Hair Cut', 'Pedicure'];
+    const bookings = [45, 38, 32, 28, 22];
+    const colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'];
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: services,
+            datasets: [{
+                data: bookings,
+                backgroundColor: colors,
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                hoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
+}
+
+function createBookingsChart() {
+    const ctx = document.getElementById('bookingsChart');
+    if (!ctx) return;
+
+    // Hardcoded monthly booking data
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const bookingsData = [145, 182, 156, 201, 188, 223];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Monthly Bookings',
+                data: bookingsData,
+                backgroundColor: 'rgba(54, 185, 204, 0.8)',
+                borderColor: '#36b9cc',
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createStaffChart() {
+    const ctx = document.getElementById('staffChart');
+    if (!ctx) return;
+
+    // Hardcoded staff performance data
+    const staffNames = ['Sarah M.', 'Lisa K.', 'Maria R.', 'Anna B.', 'Jessica L.'];
+    const performanceScores = [92, 88, 85, 90, 87];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: staffNames,
+            datasets: [{
+                label: 'Performance Score (%)',
+                data: performanceScores,
+                backgroundColor: [
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(246, 194, 62, 0.8)',
+                    'rgba(255, 205, 86, 0.8)',
+                    'rgba(255, 159, 64, 0.8)',
+                    'rgba(255, 205, 86, 0.8)'
+                ],
+                borderColor: [
+                    '#f6c23e',
+                    '#f6c23e',
+                    '#f6c23e',
+                    '#f6c23e',
+                    '#f6c23e'
+                ],
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
                     }
                 }
             }
