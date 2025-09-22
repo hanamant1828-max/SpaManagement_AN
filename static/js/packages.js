@@ -14,6 +14,35 @@ let staff = [];
 let currentPackageId = null;
 let currentPackageDetails = null;
 
+// Immediately declare global functions to prevent undefined errors
+window.openAssignModal = openAssignModal;
+window.openAssignSimple = openAssignSimple;
+window.saveAssignSimple = saveAssignSimple;
+window.assignPackage = assignPackage;
+window.clearFilters = clearFilters;
+window.applyFilters = applyFilters;
+window.changePage = changePage;
+window.openDetails = openDetails;
+window.openUseModal = openUseModal;
+window.openAdjustModal = openAdjustModal;
+window.editStudentOffer = editStudentOffer;
+window.deleteStudentOffer = deleteStudentOffer;
+window.assignStudentOffer = assignStudentOffer;
+window.saveStudentOffer = saveStudentOffer;
+window.updateStudentOffer = updateStudentOffer;
+window.editKittyParty = editKittyParty;
+window.deleteKittyParty = deleteKittyParty;
+window.assignKittyParty = assignKittyParty;
+window.saveKittyParty = saveKittyParty;
+window.updateKittyParty = updateKittyParty;
+window.loadMembershipPackages = loadMembershipPackages;
+window.loadStudentPackages = loadStudentPackages;
+window.loadYearlyPackages = loadYearlyPackages;
+window.loadKittyPackages = loadKittyPackages;
+window.viewAssignmentDetails = viewAssignmentDetails;
+window.viewCustomerDetails = viewCustomerDetails;
+window.confirmPackageAssignment = confirmPackageAssignment;
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer Packages JS loaded');
@@ -21,56 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeKittyPartyModals();
     initializeStudentOfferModals();
     setupTableEventDelegation();
-    attachGlobalFunctions(); // This function is added to attach global functions
-});
-
-/**
- * Attach all functions to global scope immediately
- */
-function attachGlobalFunctions() {
-    // Core assignment functions
-    window.openAssignModal = openAssignModal;
-    window.openAssignSimple = openAssignSimple;
-    window.saveAssignSimple = saveAssignSimple;
-    window.assignPackage = assignPackage; // Added missing function
-
-    // Filter and navigation functions
-    window.clearFilters = clearFilters;
-    window.applyFilters = applyFilters;
-    window.changePage = changePage;
-
-    // Package detail functions
-    window.openDetails = openDetails;
-    window.openUseModal = openUseModal;
-    window.openAdjustModal = openAdjustModal;
-
-    // Student offer functions
-    window.editStudentOffer = editStudentOffer;
-    window.deleteStudentOffer = deleteStudentOffer;
-    window.assignStudentOffer = assignStudentOffer;
-    window.saveStudentOffer = saveStudentOffer;
-    window.updateStudentOffer = updateStudentOffer;
-
-    // Kitty party functions
-    window.editKittyParty = editKittyParty;
-    window.deleteKittyParty = deleteKittyParty;
-    window.assignKittyParty = assignKittyParty;
-    window.saveKittyParty = saveKittyParty;
-    window.updateKittyParty = updateKittyParty;
-
-    // Package type loaders
-    window.loadMembershipPackages = loadMembershipPackages;
-    window.loadStudentPackages = loadStudentPackages;
-    window.loadYearlyPackages = loadYearlyPackages;
-    window.loadKittyPackages = loadKittyPackages;
-
-    // Modal functions
-    window.viewAssignmentDetails = viewAssignmentDetails;
-    window.viewCustomerDetails = viewCustomerDetails;
-    window.confirmPackageAssignment = confirmPackageAssignment; // Added missing function
-
     console.log('All global functions attached successfully');
-}
+});
 
 /**
  * Open assign package modal
@@ -106,29 +87,41 @@ function openAssignModal() {
 function openAssignSimple(packageId, packageType) {
     console.log('Opening simple assign modal for:', packageId, packageType);
 
-    const modal = document.getElementById('assignSimpleModal');
+    // Try to use the existing assignPackageModal instead of assignSimpleModal
+    let modal = document.getElementById('assignPackageModal');
     if (!modal) {
-        console.error('assignSimpleModal not found');
-        return;
+        console.error('assignPackageModal not found, trying alternative');
+        // Fallback to other possible modal IDs
+        modal = document.getElementById('assignSimpleModal') || document.getElementById('packageAssignmentModal');
+        if (!modal) {
+            console.error('No assignment modal found');
+            showToast('Assignment modal not available', 'error');
+            return;
+        }
     }
 
-    // Set package details
-    const templateIdInput = document.getElementById('asTemplateId');
-    const packageTypeInput = document.getElementById('asPackageType');
-    const templateNameInput = document.getElementById('asTemplateName'); // Assuming this exists for display
+    // Set hidden fields for package info
+    const offerTypeInput = document.getElementById('assignOfferType') || document.getElementById('asPackageType');
+    const offerRefInput = document.getElementById('assignOfferReferenceId') || document.getElementById('asTemplateId');
+    
+    if (offerTypeInput) offerTypeInput.value = packageType;
+    if (offerRefInput) offerRefInput.value = packageId;
 
-    if (templateIdInput) templateIdInput.value = packageId;
-    if (packageTypeInput) packageTypeInput.value = packageType;
-    if (templateNameInput) templateNameInput.value = `${packageType} Package (ID: ${packageId})`; // Updated display name
-
-    // Reset customer selection
-    const customerSelect = document.getElementById('asCustomer');
+    // Reset and load customer dropdown
+    const customerSelect = document.getElementById('assignCustomerSelect') || document.getElementById('asCustomer');
     if (customerSelect) {
         customerSelect.value = '';
+        // Enable save button when customer is selected
+        customerSelect.addEventListener('change', function() {
+            const saveBtn = document.getElementById('confirmAssignBtn') || document.getElementById('asSave');
+            if (saveBtn) {
+                saveBtn.disabled = !this.value;
+            }
+        });
     }
 
-    // Load customers if not already loaded
-    loadCustomersForSimpleAssign(); // Ensure this function is defined and called
+    // Load customers
+    loadCustomersForAssignment();
 
     // Show modal
     const modalInstance = new bootstrap.Modal(modal);
@@ -459,15 +452,22 @@ async function loadCustomers() {
 }
 
 /**
- * Load customers for simple assign modal dropdown
+ * Load customers for assignment modal dropdown
  */
-async function loadCustomersForSimpleAssign() {
+async function loadCustomersForAssignment() {
     try {
         const response = await fetch('/packages/api/customers');
         const result = await response.json();
 
-        const customerSelect = document.getElementById('asCustomer');
-        if (!customerSelect) return;
+        // Try multiple possible customer select elements
+        const customerSelect = document.getElementById('assignCustomerSelect') || 
+                             document.getElementById('asCustomer') ||
+                             document.querySelector('select[name="customer_id"]');
+        
+        if (!customerSelect) {
+            console.error('Customer select element not found');
+            return;
+        }
 
         customerSelect.innerHTML = '<option value="">Select customer...</option>';
 
@@ -482,7 +482,9 @@ async function loadCustomersForSimpleAssign() {
 
         // Enable save button when customer is selected
         customerSelect.addEventListener('change', function() {
-            const saveBtn = document.getElementById('asSave');
+            const saveBtn = document.getElementById('confirmAssignBtn') || 
+                           document.getElementById('asSave') ||
+                           document.querySelector('.btn-primary[onclick*="assign"]');
             if (saveBtn) {
                 saveBtn.disabled = !this.value;
             }
@@ -492,6 +494,13 @@ async function loadCustomersForSimpleAssign() {
         console.error('Error loading customers:', error);
         showToast('Error loading customers', 'error');
     }
+}
+
+/**
+ * Load customers for simple assign modal dropdown (legacy support)
+ */
+async function loadCustomersForSimpleAssign() {
+    return loadCustomersForAssignment();
 }
 
 /**
@@ -1439,7 +1448,7 @@ async function loadYearlyPackages() {
 }
 
 // ========================================
-// KITTY PARTY PACKAGES
+// KITTY PARTY PACKAGES  
 // ========================================
 
 async function loadKittyPackages() {
@@ -1586,8 +1595,63 @@ function viewCustomerDetails(customerId) {
 }
 
 function confirmPackageAssignment() {
-    console.log('Confirm package assignment');
-    showToast('Assignment confirmation functionality will be available soon', 'info');
+    console.log('Confirming package assignment...');
+
+    // Get form data from the modal
+    const offerType = document.getElementById('assignOfferType')?.value;
+    const offerReferenceId = document.getElementById('assignOfferReferenceId')?.value;
+    const customerId = document.getElementById('assignCustomerSelect')?.value;
+    const pricePaid = parseFloat(document.getElementById('assignPricePaid')?.value) || 0;
+    const notes = document.getElementById('assignNotes')?.value || '';
+
+    if (!customerId || !offerReferenceId) {
+        showToast('Please select a customer and package', 'warning');
+        return;
+    }
+
+    const data = {
+        customer_id: parseInt(customerId),
+        package_id: parseInt(offerReferenceId),
+        package_type: offerType,
+        price_paid: pricePaid,
+        notes: notes
+    };
+
+    const saveBtn = document.getElementById('confirmAssignBtn');
+    const originalText = saveBtn?.innerHTML || 'Assign Package';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    }
+
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast('Package assigned successfully!', 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPackageModal'));
+            if (modal) modal.hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Error assigning package', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error assigning package:', error);
+        showToast('Error assigning package', 'error');
+    })
+    .finally(() => {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    });
 }
 
 function debounce(func, wait) {

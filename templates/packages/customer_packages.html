@@ -100,14 +100,16 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="assign-membership-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#assign-membership" type="button" role="tab">
+                                    data-bs-target="#assign-membership" type="button" role="tab"
+                                    onclick="loadMembershipPackages()">
                                 <i class="fas fa-id-card me-2"></i>Assign Membership
                                 <span class="badge bg-warning text-dark ms-2" id="membership-available">0</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="assign-student-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#assign-student" type="button" role="tab">
+                                    data-bs-target="#assign-student" type="button" role="tab"
+                                    onclick="loadStudentPackages()">
                                 <i class="fas fa-graduation-cap me-2"></i>Assign Student Offer
                                 <span class="badge bg-secondary ms-2" id="student-available">0</span>
                             </button>
@@ -1123,7 +1125,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmAssignBtn">
+                <button type="button" class="btn btn-primary" id="confirmAssignBtn" onclick="confirmPackageAssignment()">
                     <i class="fas fa-user-plus me-2"></i>Assign Package
                 </button>
             </div>
