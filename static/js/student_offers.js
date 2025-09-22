@@ -1,4 +1,3 @@
-
 /**
  * Student Offers Management JavaScript
  * Handles add, edit, delete, and view operations for student offers
@@ -11,7 +10,11 @@ let currentStudentOffers = [];
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Student Offers JS loaded');
-    initializeStudentOffers();
+
+    // Only initialize if we're on a page that needs it
+    if (document.getElementById('addStudentOfferForm') || document.getElementById('editStudentOfferForm')) {
+        initializeStudentOffers();
+    }
 });
 
 /**
@@ -23,7 +26,7 @@ async function initializeStudentOffers() {
         await loadServicesForStudentOffers();
         setupStudentOfferEventListeners();
         setDefaultDates();
-        
+
         console.log('Student Offers initialized successfully');
     } catch (error) {
         console.error('Error initializing student offers:', error);
@@ -43,9 +46,9 @@ function setDefaultDates() {
     // Set defaults for add form
     const validFromField = document.getElementById('validFrom');
     const validToField = document.getElementById('validTo');
-    
-    if (validFromField) validFromField.value = today;
-    if (validToField) validToField.value = futureDate;
+
+    if (validFromField && !validFromField.value) validFromField.value = today;
+    if (validToField && !validToField.value) validToField.value = futureDate;
 }
 
 /**
@@ -58,7 +61,7 @@ async function loadServicesForStudentOffers() {
 
         if (data.success && data.services) {
             studentServices = data.services;
-            
+
             // Populate add form dropdown
             const addSelect = document.getElementById('serviceIds');
             if (addSelect) {
@@ -134,17 +137,6 @@ function setupStudentOfferEventListeners() {
             validateEditStudentOfferForm();
         });
     }
-
-    // Save button event listeners
-    const saveBtn = document.getElementById('saveStudentOfferBtn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveStudentOffer);
-    }
-
-    const updateBtn = document.getElementById('updateStudentOffer');
-    if (updateBtn) {
-        updateBtn.addEventListener('click', updateStudentOffer);
-    }
 }
 
 /**
@@ -219,17 +211,10 @@ function updateStudentOfferPreview() {
                 </div>
             </div>
         `;
-        preview.innerHTML = previewHTML;
+        if (preview) preview.innerHTML = previewHTML;
     } else {
-        preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
+        if (preview) preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
     }
-}
-
-/**
- * Save student offer (for dedicated pages, not modal)
- */
-async function saveStudentOffer() {
-    console.log('Student offer save function called - handled by page-specific code');
 }
 
 /**
@@ -237,82 +222,7 @@ async function saveStudentOffer() {
  */
 function editStudentOffer(offerId) {
     console.log('Redirecting to edit student offer page:', offerId);
-    window.location.href = `/packages/student-offers/edit?id=${offerId}`;
-} '';
-
-            // This file is now focused on dedicated page functionality
-// Modal-based editing is handled by the main packages page
-    }
-}
-
-/**
- * Update student offer
- */
-async function updateStudentOffer() {
-    try {
-        const form = document.getElementById('editStudentOfferForm');
-        const formData = new FormData(form);
-        const offerId = document.getElementById('editOfferId').value;
-
-        // Handle valid days
-        const validDaysSelect = document.getElementById('editStudentValidDays');
-        const customValidDays = document.getElementById('editCustomValidDays');
-        if (validDaysSelect.value === 'Custom' && customValidDays.value) {
-            formData.set('valid_days', customValidDays.value);
-        }
-
-        // Convert to JSON
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'service_ids') {
-                if (!data[key]) data[key] = [];
-                data[key].push(parseInt(value));
-            } else {
-                data[key] = value;
-            }
-        });
-
-        // Show loading state
-        const updateBtn = document.getElementById('updateStudentOffer');
-        const originalText = updateBtn.innerHTML;
-        updateBtn.disabled = true;
-        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-
-        const response = await fetch(`/api/student-offers/${offerId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success || response.ok) {
-            showToast('Student offer updated successfully!', 'success');
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentOfferModal'));
-            modal.hide();
-
-            // Reload student offers if the function exists
-            if (typeof loadStudentPackages === 'function') {
-                await loadStudentPackages();
-            }
-        } else {
-            throw new Error(result.error || 'Failed to update student offer');
-        }
-    } catch (error) {
-        console.error('Error updating student offer:', error);
-        showToast('Error updating student offer: ' + error.message, 'error');
-    } finally {
-        // Restore button state
-        const updateBtn = document.getElementById('updateStudentOffer');
-        if (updateBtn) {
-            updateBtn.disabled = false;
-            updateBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Student Offer';
-        }
-    }
+    window.location.href = `/student-offers/edit?id=${offerId}`;
 }
 
 /**
@@ -332,7 +242,7 @@ async function deleteStudentOffer(offerId) {
 
         if (result.success || response.ok) {
             showToast('Student offer deleted successfully!', 'success');
-            
+
             // Reload student offers if the function exists
             if (typeof loadStudentPackages === 'function') {
                 await loadStudentPackages();
@@ -376,7 +286,7 @@ async function loadStudentOffersTable() {
 
         if (data && data.length > 0) {
             currentStudentOffers = data;
-            
+
             data.forEach(offer => {
                 const row = document.createElement('tr');
                 const servicesList = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
