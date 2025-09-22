@@ -368,36 +368,23 @@ def add_category():
     return redirect(url_for('system_management'))
 
 @app.route('/role_management')
-
+@login_required
 def role_management():
-    if False:
+    """Role management page"""
+    if not current_user.can_access('settings'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
+    return render_template('settings.html')
 
-    from models import Role, Permission, RolePermission
+@app.route('/student-offers/add')
+@login_required
+def student_offers_add():
+    """Add student offer page"""
+    if not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('packages/add_student_offer.html')
 
-    # Get all required data for role management
-    roles = Role.query.all()
-    permissions = Permission.query.all()
-
-    # Group permissions by module
-    permissions_by_module = {}
-    for permission in permissions:
-        module = permission.module
-        if module not in permissions_by_module:
-            permissions_by_module[module] = []
-        permissions_by_module[module].append(permission)
-
-    # Get role permissions for each role
-    role_permissions = {}
-    for role in roles:
-        role_permissions[role.id] = [rp.permission_id for rp in RolePermission.query.filter_by(role_id=role.id).all()]
-
-    return render_template('role_management.html',
-                         roles=roles,
-                         permissions=permissions,
-                         permissions_by_module=permissions_by_module,
-                         role_permissions=role_permissions)
 
 # System Management Data Providers
 @app.route('/add_role', methods=['POST'])

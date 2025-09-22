@@ -190,6 +190,14 @@ def init_app():
 # Initialize the app
 init_app()
 
+# Import and register packages blueprint first
+try:
+    from modules.packages.routes import packages_bp
+    app.register_blueprint(packages_bp)
+    print("Packages blueprint registered successfully")
+except Exception as e:
+    print(f"Error registering packages blueprint: {e}")
+
 # Import all views to register routes
 from modules.auth.auth_views import *
 from modules.dashboard.dashboard_views import *

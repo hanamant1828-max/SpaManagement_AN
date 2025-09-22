@@ -638,7 +638,7 @@ def api_get_student_offers():
 
 
 @packages_bp.route("/api/student-offers", methods=['POST'])
-@login_required  
+@login_required
 def api_create_student_offer():
     """Create new student offer"""
     try:
