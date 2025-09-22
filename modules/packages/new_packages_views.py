@@ -42,7 +42,7 @@ try:
     packages_blueprint
 except NameError:
     from flask import Blueprint
-    packages_blueprint = Blueprint('packages', __name__)
+    packages_blueprint = Blueprint('new_packages', __name__)
     app.register_blueprint(packages_blueprint) # Register blueprint with app
 
 try:
@@ -373,7 +373,7 @@ def api_delete_membership(membership_id):
 # STUDENT OFFERS PAGE ROUTES
 # ========================================
 
-@packages_blueprint.route('/student-offers/add')
+@app.route('/student-offers/add')
 @login_required
 def add_student_offer():
     """Add student offer page"""
@@ -383,7 +383,7 @@ def add_student_offer():
     
     return render_template('packages/add_student_offer.html')
 
-@packages_blueprint.route('/student-offers/edit')
+@app.route('/student-offers/edit')
 @login_required
 def edit_student_offer():
     """Edit student offer page"""

@@ -217,7 +217,7 @@
                         <div class="tab-pane fade" id="student" role="tabpanel">
                             <div class="d-flex justify-content-between mb-3">
                                 <h5>Student Offers Management</h5>
-                                <a href="{{ url_for('packages.add_student_offer') }}" class="btn btn-primary">
+                                <a href="{{ url_for('edit_student_offer') }}" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add Student Offer
                                 </a>
                             </div>
@@ -277,9 +277,9 @@
                                                             data-package-type="student">
                                                         <i class="fas fa-user-plus"></i> Assign
                                                     </button>
-                                                    <button class="btn btn-outline-primary" onclick="editStudentOffer({{ offer.id }})">
+                                                    <a href="{{ url_for('edit_student_offer', id=offer.id) }}" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-edit"></i>
-                                                    </button>
+                                                    </a>
                                                     <button class="btn btn-outline-danger" onclick="deleteStudentOffer({{ offer.id }})">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -715,160 +715,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="submitKittyForm()">Save Party</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Service Package Assignment Modal -->
-<div class="modal fade" id="assignServicePackageModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="serviceAssignModalTitle">Assign Package: "Package Name"</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="assignServicePackageForm">
-                    <input type="hidden" id="service_assign_package_id">
-                    <input type="hidden" id="service_assign_package_type" value="service">
-
-                    <div class="mb-3">
-                        <label class="form-label">Customer *</label>
-                        <select name="customer_id" id="service_assign_customer_id" class="form-select" required>
-                            <option value="">Search / select customer...</option>
-                            {% for customer in customers %}
-                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Service *</label>
-                        <select name="service_id" id="service_assign_service_id" class="form-select" required>
-                            <option value="">Choose a service...</option>
-                            <!-- Services will be loaded dynamically -->
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title mb-3">Package Summary</h6>
-                                <div class="row mb-3">
-                                    <div class="col-4 text-center">
-                                        <strong>Pay For:</strong> <span id="summary_pay_for" class="badge bg-primary">-</span>
-                                    </div>
-                                    <div class="col-4 text-center">
-                                        <strong>Free:</strong> <span id="summary_free" class="badge bg-success">-</span>
-                                    </div>
-                                    <div class="col-4 text-center">
-                                        <strong>TOTAL:</strong> <span id="summary_total" class="badge bg-info">-</span>
-                                    </div>
-                                </div>
-
-                                <!-- Cost Breakdown -->
-                                <div class="cost-breakdown" id="cost_breakdown" style="display: none;">
-                                    <hr class="my-3">
-                                    <h6 class="text-muted mb-2">Cost Breakdown</h6>
-
-                                    <div class="row small">
-                                        <div class="col-8">Service Price (per session):</div>
-                                        <div class="col-4 text-end" id="service_price_display">₹0</div>
-                                    </div>
-
-                                    <div class="row small">
-                                        <div class="col-8">Total Services (<span id="total_sessions_text">4</span> sessions):</div>
-                                        <div class="col-4 text-end" id="total_cost_display">₹0</div>
-                                    </div>
-
-                                    <div class="row small text-success">
-                                        <div class="col-8">Package Discount (<span id="free_sessions_text">1</span> free session):</div>
-                                        <div class="col-4 text-end" id="package_discount_display">-₹0</div>
-                                    </div>
-
-                                    <hr class="my-2">
-
-                                    <div class="row fw-bold">
-                                        <div class="col-8">You Pay (for <span id="paid_sessions_text">3</span> sessions):</div>
-                                        <div class="col-4 text-end text-primary" id="final_payment_display">₹0</div>
-                                    </div>
-
-                                    <div class="row small text-success">
-                                        <div class="col-8">Total Savings:</div>
-                                        <div class="col-4 text-end fw-bold" id="total_savings_display">₹0</div>
-                                    </div>
-
-                                    <div class="row small text-muted mt-2">
-                                        <div class="col-12 text-center">
-                                            <i class="fas fa-gift me-1"></i>
-                                            You get <span id="benefit_percent_display">25%</span> more value!
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Expiry (optional)</label>
-                        <input type="date" name="expiry_date" id="service_assign_expiry" class="form-control">
-                        <small class="text-muted">Leave empty for standard validity period</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" id="service_assign_notes" class="form-control" rows="3" placeholder="Additional notes about this assignment..."></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="submitServicePackageAssignment()">Assign Package</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Regular Package Assignment Modal (for other package types) -->
-<div class="modal fade" id="assignPackageModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Assign Package to Customer</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="assignPackageForm">
-                    <input type="hidden" id="assign_package_id">
-                    <input type="hidden" id="assign_package_type">
-                    <div class="mb-3">
-                        <label class="form-label">Package Name</label>
-                        <input type="text" id="assign_package_name" class="form-control" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Select Customer</label>
-                        <select name="customer_id" id="assign_customer_id" class="form-select" required>
-                            <option value="">Choose customer...</option>
-                            {% for customer in customers %}
-                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Custom Amount (Optional)</label>
-                        <input type="number" name="custom_amount" id="assign_custom_amount" class="form-control" step="0.01">
-                        <small class="text-muted">Leave empty to use standard package amount</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea name="notes" id="assign_notes" class="form-control" rows="2"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitPackageAssignment()">Assign Package</button>
             </div>
         </div>
     </div>
@@ -2339,13 +2185,20 @@ function saveAssignSimple() {
     }
 }
 
+// Add event listener for the save button in the edit student offer modal
+document.addEventListener('DOMContentLoaded', function() {
+    const saveEditBtn = document.getElementById('saveEditStudentOffer');
+    if (saveEditBtn) {
+        saveEditBtn.addEventListener('click', updateStudentOffer);
+    }
+});
+
 // Add event listener for membership save button
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Content Loaded - Initializing membership modal');
-
-    const saveBtn = document.getElementById('asSave');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveAssignSimple);
+    const saveMembershipBtn = document.getElementById('saveMembershipBtn');
+    if (saveMembershipBtn) {
+        saveMembershipBtn.addEventListener('click', submitMembershipForm);
+        console.log('Save membership button event listener attached');
     }
 
     // Add event listener for membership save button
