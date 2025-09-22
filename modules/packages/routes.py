@@ -29,6 +29,28 @@ def index():
     return render_template("packages/customer_packages.html")
 
 
+@packages_bp.route("/student-offers/add", endpoint="add_student_offer")
+@login_required
+def add_student_offer():
+    """Add student offer page"""
+    if hasattr(current_user, 'can_access') and not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    return render_template("packages/add_student_offer.html")
+
+
+@packages_bp.route("/student-offers/edit", endpoint="edit_student_offer")
+@login_required
+def edit_student_offer():
+    """Edit student offer page"""
+    if hasattr(current_user, 'can_access') and not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+
+    return render_template("packages/edit_student_offer.html")
+
+
 # ========================================
 # PACKAGE TEMPLATES API
 # ========================================

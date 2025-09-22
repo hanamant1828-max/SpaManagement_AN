@@ -1,0 +1,391 @@
+
+{% extends "base.html" %}
+
+{% block title %}Add Student Offer - Management Suite{% endblock %}
+
+{% block extra_head %}
+<link href="{{ url_for('static', filename='css/packages.css') }}" rel="stylesheet">
+<style>
+.form-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9ecef;
+}
+
+.form-section h5 {
+    color: #495057;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.service-selection-card {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.service-checkbox {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+
+.service-checkbox:hover {
+    background-color: #f8f9fa;
+}
+
+.preview-card {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 2px solid #2196f3;
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+
+.btn-save {
+    min-width: 150px;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-graduation-cap text-primary me-2"></i>Add Student Offer
+                    </h1>
+                    <p class="text-muted mb-0">Create a new student discount offer</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('packages.index') }}#assign-student" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Packages
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <form id="addStudentOfferForm">
+                <!-- Service Selection Section -->
+                <div class="form-section">
+                    <h5><i class="fas fa-spa me-2"></i>Select Services</h5>
+                    <p class="text-muted mb-3">Choose the services that will be eligible for this student discount</p>
+                    
+                    <div class="service-selection-card">
+                        <div id="servicesContainer">
+                            <!-- Services will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="form-text mt-2">Select at least one service for this offer</div>
+                </div>
+
+                <!-- Discount Configuration Section -->
+                <div class="form-section">
+                    <h5><i class="fas fa-percentage me-2"></i>Discount Configuration</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="discountPercentage" class="form-label">Discount Percentage *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control form-control-lg" id="discountPercentage" 
+                                       name="discount_percentage" required min="1" max="100" step="0.1">
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter a discount between 1-100%
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="validDays" class="form-label">Valid Days</label>
+                            <select class="form-select form-select-lg" id="validDays" name="valid_days">
+                                <option value="Mon-Fri" selected>Monday to Friday</option>
+                                <option value="Mon-Sat">Monday to Saturday</option>
+                                <option value="All Days">All Days</option>
+                                <option value="Weekends">Weekends Only</option>
+                                <option value="Custom">Custom Days</option>
+                            </select>
+                        </div>
+
+                        <!-- Custom Valid Days (hidden initially) -->
+                        <div class="col-12" id="customValidDaysDiv" style="display: none;">
+                            <label for="customValidDays" class="form-label">Custom Valid Days</label>
+                            <input type="text" class="form-control" id="customValidDays" 
+                                   name="custom_valid_days" 
+                                   placeholder="e.g., Mon,Wed,Fri or describe custom schedule">
+                            <div class="form-text">Enter specific days when this offer is valid</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validity Period Section -->
+                <div class="form-section">
+                    <h5><i class="fas fa-calendar-alt me-2"></i>Validity Period</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="validFrom" class="form-label">Valid From *</label>
+                            <input type="date" class="form-control form-control-lg" id="validFrom" 
+                                   name="valid_from" required>
+                            <div class="invalid-feedback">
+                                Please select a valid from date
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="validTo" class="form-label">Valid Until *</label>
+                            <input type="date" class="form-control form-control-lg" id="validTo" 
+                                   name="valid_to" required>
+                            <div class="invalid-feedback">
+                                Please select a valid to date
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms & Conditions Section -->
+                <div class="form-section">
+                    <h5><i class="fas fa-file-contract me-2"></i>Terms & Conditions</h5>
+                    <textarea class="form-control" id="conditions" name="conditions" rows="4" 
+                              placeholder="Enter terms and conditions for this student offer">Valid with Student ID only. Cannot be combined with other offers.</textarea>
+                    <div class="form-text">Optional terms and conditions for this student offer</div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-section">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('packages.index') }}#assign-student" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg btn-save" id="saveStudentOfferBtn" disabled>
+                            <i class="fas fa-save me-2"></i>Save Student Offer
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="col-lg-4">
+            <div class="preview-card position-sticky" style="top: 100px;">
+                <h5 class="mb-3">
+                    <i class="fas fa-eye me-2"></i>Offer Preview
+                </h5>
+                <div id="studentOfferPreview">
+                    <p class="text-muted">Select services and discount to see preview</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/student_offers.js') }}"></script>
+<script>
+// Page-specific initialization
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAddStudentOfferPage();
+});
+
+async function initializeAddStudentOfferPage() {
+    try {
+        // Load services
+        await loadServicesForPage();
+        
+        // Set default dates
+        setDefaultDates();
+        
+        // Setup event listeners
+        setupPageEventListeners();
+        
+        console.log('Add Student Offer page initialized');
+    } catch (error) {
+        console.error('Error initializing page:', error);
+        alert('Error loading page. Please refresh.');
+    }
+}
+
+async function loadServicesForPage() {
+    try {
+        const response = await fetch('/packages/api/services');
+        const data = await response.json();
+
+        if (data.success && data.services) {
+            const container = document.getElementById('servicesContainer');
+            container.innerHTML = '';
+            
+            data.services.forEach(service => {
+                const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'service-checkbox';
+                checkboxDiv.innerHTML = `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="${service.id}" 
+                               id="service_${service.id}" name="service_ids">
+                        <label class="form-check-label" for="service_${service.id}">
+                            <strong>${service.name}</strong> - ₹${service.price}
+                        </label>
+                    </div>
+                `;
+                container.appendChild(checkboxDiv);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading services:', error);
+        document.getElementById('servicesContainer').innerHTML = 
+            '<p class="text-danger">Error loading services. Please refresh the page.</p>';
+    }
+}
+
+function setDefaultDates() {
+    const today = new Date().toISOString().split('T')[0];
+    const sixMonthsLater = new Date();
+    sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+    const futureDate = sixMonthsLater.toISOString().split('T')[0];
+
+    document.getElementById('validFrom').value = today;
+    document.getElementById('validTo').value = futureDate;
+}
+
+function setupPageEventListeners() {
+    // Form validation
+    const form = document.getElementById('addStudentOfferForm');
+    form.addEventListener('input', validateForm);
+    form.addEventListener('change', validateForm);
+
+    // Valid days dropdown
+    const validDaysSelect = document.getElementById('validDays');
+    validDaysSelect.addEventListener('change', function() {
+        const customDiv = document.getElementById('customValidDaysDiv');
+        if (this.value === 'Custom') {
+            customDiv.style.display = 'block';
+        } else {
+            customDiv.style.display = 'none';
+        }
+        validateForm();
+    });
+
+    // Form submit
+    form.addEventListener('submit', handleFormSubmit);
+}
+
+function validateForm() {
+    const services = document.querySelectorAll('input[name="service_ids"]:checked');
+    const discount = document.getElementById('discountPercentage');
+    const validFrom = document.getElementById('validFrom');
+    const validTo = document.getElementById('validTo');
+    const saveBtn = document.getElementById('saveStudentOfferBtn');
+
+    // Check all required fields
+    const isValid = services.length > 0 && 
+                   discount.value && parseFloat(discount.value) >= 1 && parseFloat(discount.value) <= 100 &&
+                   validFrom.value && validTo.value && 
+                   new Date(validTo.value) > new Date(validFrom.value);
+
+    saveBtn.disabled = !isValid;
+
+    // Update preview
+    updatePreview();
+}
+
+function updatePreview() {
+    const services = document.querySelectorAll('input[name="service_ids"]:checked');
+    const discount = document.getElementById('discountPercentage');
+    const validDays = document.getElementById('validDays');
+    const validFrom = document.getElementById('validFrom');
+    const validTo = document.getElementById('validTo');
+    const preview = document.getElementById('studentOfferPreview');
+
+    if (services.length > 0 && discount.value) {
+        const selectedServices = Array.from(services).map(s => {
+            const label = document.querySelector(`label[for="${s.id}"]`);
+            return label ? label.textContent : s.value;
+        });
+
+        const previewHTML = `
+            <div class="mb-3">
+                <strong>Services (${services.length}):</strong>
+                <ul class="mb-2">
+                    ${selectedServices.map(s => `<li class="small">${s}</li>`).join('')}
+                </ul>
+            </div>
+            <div class="mb-3">
+                <strong>Discount:</strong> <span class="badge bg-success fs-6">${discount.value}%</span>
+            </div>
+            <div class="mb-3">
+                <strong>Valid Days:</strong> ${validDays.value}
+            </div>
+            <div>
+                <strong>Period:</strong><br>
+                <small>${validFrom.value || 'Not set'} to ${validTo.value || 'Not set'}</small>
+            </div>
+        `;
+        preview.innerHTML = previewHTML;
+    } else {
+        preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
+    }
+}
+
+async function handleFormSubmit(event) {
+    event.preventDefault();
+
+    const saveBtn = document.getElementById('saveStudentOfferBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+
+    try {
+        const formData = new FormData(event.target);
+        
+        // Handle valid days
+        const validDaysSelect = document.getElementById('validDays');
+        const customValidDays = document.getElementById('customValidDays');
+        if (validDaysSelect.value === 'Custom' && customValidDays.value) {
+            formData.set('valid_days', customValidDays.value);
+        }
+
+        // Convert to JSON
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'service_ids') {
+                if (!data[key]) data[key] = [];
+                data[key].push(parseInt(value));
+            } else {
+                data[key] = value;
+            }
+        });
+
+        const response = await fetch('/api/student-offers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success || response.ok) {
+            alert('Student offer created successfully!');
+            window.location.href = "{{ url_for('packages.index') }}#assign-student";
+        } else {
+            throw new Error(result.error || 'Failed to create student offer');
+        }
+    } catch (error) {
+        console.error('Error saving student offer:', error);
+        alert('Error creating student offer: ' + error.message);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    }
+}
+</script>
+{% endblock %}

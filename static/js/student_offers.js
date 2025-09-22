@@ -297,44 +297,10 @@ async function saveStudentOffer() {
 }
 
 /**
- * Edit student offer
+ * Edit student offer - redirect to dedicated page
  */
-async function editStudentOffer(offerId) {
-    try {
-        const response = await fetch(`/api/student-offers`);
-        const offers = await response.json();
-        const offer = offers.find(o => o.id === offerId);
-
-        if (offer) {
-            // Populate edit form
-            document.getElementById('editOfferId').value = offer.id;
-            document.getElementById('editStudentDiscountPercentage').value = offer.discount_percentage;
-            document.getElementById('editStudentValidDays').value = offer.valid_days;
-            document.getElementById('editStudentValidFrom').value = offer.valid_from;
-            document.getElementById('editStudentValidTo').value = offer.valid_to;
-            document.getElementById('editStudentConditions').value = offer.conditions || '';
-
-            // Select services
-            const serviceSelect = document.getElementById('editStudentOfferServices');
-            Array.from(serviceSelect.options).forEach(option => {
-                option.selected = offer.services && offer.services.some(s => s.id == option.value);
-            });
-
-            // Handle custom valid days
-            if (!['Mon-Fri', 'Mon-Sat', 'All Days', 'Weekends'].includes(offer.valid_days)) {
-                document.getElementById('editStudentValidDays').value = 'Custom';
-                document.getElementById('editCustomValidDaysDiv').style.display = 'block';
-                document.getElementById('editCustomValidDays').value = offer.valid_days;
-            }
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('editStudentOfferModal'));
-            modal.show();
-        }
-    } catch (error) {
-        console.error('Error loading student offer for edit:', error);
-        showToast('Error loading student offer', 'error');
-    }
+function editStudentOffer(offerId) {
+    window.location.href = `/packages/student-offers/edit?id=${offerId}`;
 }
 
 /**
