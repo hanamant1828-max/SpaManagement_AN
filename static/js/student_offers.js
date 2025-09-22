@@ -229,78 +229,19 @@ function updateStudentOfferPreview() {
  * Save student offer (for dedicated pages, not modal)
  */
 async function saveStudentOffer() {
-    try {
-        // This function is now primarily used by the dedicated add/edit pages
-        // The modal-based saving is handled within those pages
-        console.log('Student offer save function called');
-    } catch (error) {
-        console.error('Error in saveStudentOffer:', error);
-    }
+    console.log('Student offer save function called - handled by page-specific code');
 }
 
 /**
- * Edit student offer - open edit modal or redirect to dedicated page
+ * Edit student offer - redirect to dedicated page
  */
 function editStudentOffer(offerId) {
-    // Check if we have a dedicated edit page route
-    if (typeof window.location !== 'undefined') {
-        // Try to open edit modal first, fallback to page redirect
-        const editModal = document.getElementById('editStudentOfferModal');
-        if (editModal) {
-            // Load student offer data and show modal
-            loadStudentOfferForEdit(offerId);
-        } else {
-            // Redirect to edit page if modal not available
-            window.location.href = `/packages/student-offers/edit?id=${offerId}`;
-        }
-    }
-}
+    console.log('Redirecting to edit student offer page:', offerId);
+    window.location.href = `/packages/student-offers/edit?id=${offerId}`;
+} '';
 
-/**
- * Load student offer data for editing
- */
-async function loadStudentOfferForEdit(offerId) {
-    try {
-        const response = await fetch(`/api/student-offers/${offerId}`);
-        const data = await response.json();
-
-        if (data.success && data.offer) {
-            const offer = data.offer;
-            
-            // Populate edit form
-            document.getElementById('editOfferId').value = offer.id;
-            document.getElementById('editStudentDiscountPercentage').value = offer.discount_percentage;
-            document.getElementById('editStudentValidFrom').value = offer.valid_from ? offer.valid_from.split('T')[0] : '';
-            document.getElementById('editStudentValidTo').value = offer.valid_to ? offer.valid_to.split('T')[0] : '';
-            document.getElementById('editStudentConditions').value = offer.conditions || '';
-
-            // Handle valid days
-            const standardDays = ['Mon-Fri', 'Mon-Sat', 'All Days', 'Weekends'];
-            if (standardDays.includes(offer.valid_days)) {
-                document.getElementById('editStudentValidDays').value = offer.valid_days;
-            } else {
-                document.getElementById('editStudentValidDays').value = 'Custom';
-                document.getElementById('editCustomValidDaysDiv').style.display = 'block';
-                document.getElementById('editCustomValidDays').value = offer.valid_days;
-            }
-
-            // Select services
-            const servicesSelect = document.getElementById('editStudentOfferServices');
-            if (servicesSelect && offer.services) {
-                Array.from(servicesSelect.options).forEach(option => {
-                    option.selected = offer.services.some(service => service.id == option.value);
-                });
-            }
-
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('editStudentOfferModal'));
-            modal.show();
-        } else {
-            throw new Error(data.error || 'Student offer not found');
-        }
-    } catch (error) {
-        console.error('Error loading student offer:', error);
-        showToast('Error loading student offer: ' + error.message, 'error');
+            // This file is now focused on dedicated page functionality
+// Modal-based editing is handled by the main packages page
     }
 }
 

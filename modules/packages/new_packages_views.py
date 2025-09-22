@@ -370,6 +370,35 @@ def api_delete_membership(membership_id):
         return jsonify({'error': str(e)}), 500
 
 # ========================================
+# STUDENT OFFERS PAGE ROUTES
+# ========================================
+
+@packages_blueprint.route('/student-offers/add')
+@login_required
+def add_student_offer():
+    """Add student offer page"""
+    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('packages/add_student_offer.html')
+
+@packages_blueprint.route('/student-offers/edit')
+@login_required
+def edit_student_offer():
+    """Edit student offer page"""
+    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    offer_id = request.args.get('id')
+    if not offer_id:
+        flash('Student offer ID is required', 'error')
+        return redirect(url_for('packages'))
+    
+    return render_template('packages/edit_student_offer.html', offer_id=offer_id)
+
+# ========================================
 # STUDENT OFFERS ENDPOINTS
 # ========================================
 

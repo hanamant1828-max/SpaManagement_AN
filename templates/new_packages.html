@@ -924,49 +924,7 @@
 
 
 
-<!-- Ensure JavaScript functions are available globally -->
-<script>
-// Make sure student offer functions are globally accessible
-if (typeof editStudentOffer === 'undefined') {
-    window.editStudentOffer = function(offerId) {
-        console.log('Edit student offer:', offerId);
-        // Try to find and open edit modal
-        const editModal = document.getElementById('editStudentOfferModal');
-        if (editModal) {
-            // Load data and show modal (implement as needed)
-            const modal = new bootstrap.Modal(editModal);
-            modal.show();
-        } else {
-            alert('Edit functionality coming soon');
-        }
-    };
-}
 
-if (typeof deleteStudentOffer === 'undefined') {
-    window.deleteStudentOffer = function(offerId) {
-        if (!confirm('Are you sure you want to delete this student offer?')) {
-            return;
-        }
-
-        fetch(`/api/student-offers/${offerId}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                alert('Student offer deleted successfully!');
-                location.reload();
-            } else {
-                alert('Error: ' + (result.error || 'Failed to delete'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error deleting student offer');
-        });
-    };
-}
-</script>
 
 <script>
 let selectedServices = new Set();
