@@ -45,6 +45,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Note: Blueprint registration handled in app.py to avoid circular imports
+# For this standalone file, we will use app directly
+packages_bp = app # Mocking blueprint for this context
 
 # ========================================
 # MAIN PACKAGES PAGE WITH TABS
@@ -376,7 +378,7 @@ def add_student_offer():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     return render_template('packages/add_student_offer.html')
 
 @app.route('/student-offers/edit')
@@ -386,12 +388,12 @@ def edit_student_offer():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     offer_id = request.args.get('id')
     if not offer_id:
         flash('Student offer ID is required', 'error')
         return redirect(url_for('packages'))
-    
+
     return render_template('packages/edit_student_offer.html', offer_id=offer_id)
 
 # ========================================
@@ -430,7 +432,7 @@ def api_get_student_offer(offer_id):
         offer = get_student_offer_by_id(offer_id)
         if not offer:
             return jsonify({'success': False, 'error': 'Student offer not found'}), 404
-            
+
         return jsonify({
             'success': True,
             'offer': {
@@ -513,7 +515,7 @@ def api_delete_student_offer(offer_id):
                 'success': False,
                 'error': 'Student offer not found'
             }), 404
-        
+
         delete_student_offer(offer_id)
         flash('Student offer deleted successfully!', 'success')
         return jsonify({
@@ -1032,8 +1034,8 @@ def assign_package():
 
         elif package_type == 'service_package':
             # Get service package template
-            service_pkg = ServicePackage.query.get(data['package_id'])
-            if not service_pkg:
+            service_package = ServicePackage.query.get(data['package_id'])
+            if not service_package:
                 return jsonify({'success': False, 'error': 'Service package not found'}), 404
 
             # Service ID is required for service packages
@@ -1042,16 +1044,19 @@ def assign_package():
 
             # Calculate expiry date
             expiry_date = None
-            if data.get('expiry_date'):
-                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
-            elif service_pkg.validity_months:
-                expiry_date = datetime.utcnow() + timedelta(days=service_pkg.validity_months * 30)
+            if data.get('expires_on'):
+                try:
+                    expiry_date = datetime.fromisoformat(data['expires_on'] + 'T23:59:59')
+                except ValueError:
+                    return jsonify({'success': False, 'error': 'Invalid expires_on date format'}), 400
+            elif service_package.validity_months:
+                expiry_date = datetime.utcnow() + timedelta(days=service_package.validity_months * 30)
 
             # Create assignment record
             assignment = ServicePackageAssignment(
                 customer_id=customer_id,
                 package_type='service_package',
-                package_reference_id=service_pkg.id,
+                package_reference_id=service_package.id,
                 service_id=data['service_id'],
                 assigned_on=datetime.utcnow(),
                 expires_on=expiry_date,
@@ -1060,13 +1065,33 @@ def assign_package():
                 status='active',
                 notes=data.get('notes', ''),
                 # Service package uses session tracking
-                total_sessions=service_pkg.total_services,
+                total_sessions=service_package.total_services,
                 used_sessions=0,
-                remaining_sessions=service_pkg.total_services,
+                remaining_sessions=service_package.total_services,
                 credit_amount=0,
                 used_credit=0,
                 remaining_credit=0
             )
+
+            # Validate service exists
+            service = Service.query.get(data['service_id'])
+            if not service:
+                return jsonify({'success': False, 'error': 'Selected service not found'}), 400
+
+            # Check if customer already has an active assignment for this package and service
+            existing_assignment = ServicePackageAssignment.query.filter_by(
+                customer_id=customer_id,
+                package_type='service_package',
+                package_reference_id=data['package_id'],
+                service_id=data['service_id'],
+                status='active'
+            ).first()
+
+            if existing_assignment:
+                return jsonify({
+                    'success': False,
+                    'error': f'Customer already has an active "{service_package.name}" package for {service.name}'
+                }), 400
 
         elif package_type == 'yearly' or package_type == 'yearly_membership':
             # Get yearly membership template
@@ -1101,6 +1126,7 @@ def assign_package():
                 used_credit=0,
                 remaining_credit=0
             )
+
         else:
             return jsonify({'success': False, 'error': f'Package type {package_type} not supported yet'}), 400
 
@@ -1117,6 +1143,32 @@ def assign_package():
         logging.error(f"Error assigning package: {e}")
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Failed to assign package'}), 500
+
+@app.route('/packages/api/service-packages/<int:package_id>', methods=['GET'])
+@login_required
+def get_service_package_details(package_id):
+    """Get service package details for assignment modal"""
+    try:
+        package = ServicePackage.query.get(package_id)
+        if not package:
+            return jsonify({'success': False, 'error': 'Service package not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'package': {
+                'id': package.id,
+                'name': package.name,
+                'pay_for': package.pay_for,
+                'total_services': package.total_services,
+                'validity_months': package.validity_months,
+                'service_id': package.service_id,
+                'choose_on_assign': package.choose_on_assign
+            }
+        })
+
+    except Exception as e:
+        print(f"Error getting service package details: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/packages/api/assigned-customers/<package_type>/<int:package_id>', methods=['GET'])
 @login_required

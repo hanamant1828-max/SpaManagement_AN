@@ -162,7 +162,7 @@
                                                 </button>
                                                 <button type="button" class="btn btn-primary btn-sm" 
                                                         title="Assign to customer" 
-                                                        data-action="{{ 'assign-prepaid' if package.package_type == 'prepaid' else 'assign' }}"
+                                                        onclick="openPackageAssignModal({{ package.id }}, '{{ package.name }}', '{{ package.package_type }}', {{ package.total_price }})"
                                                         data-template-id="{{ package.id }}"
                                                         data-package-type="{{ package.package_type }}"
                                                         data-package-name="{{ package.name }}"
@@ -375,6 +375,115 @@
                     <button type="button" class="btn btn-primary" onclick="submitServiceForm()">Create Package</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Package Modal -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="assignPackageModalTitle">
+                    <i class="fas fa-user-plus me-2"></i>Assign Package to Customer
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPackageForm">
+                    <input type="hidden" id="assign_package_id" name="package_id">
+                    <input type="hidden" id="assign_package_name" name="package_name">
+                    <input type="hidden" id="assign_package_type" name="package_type">
+
+                    <!-- Package Info Display -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading mb-2">
+                            <i class="fas fa-gift me-2"></i>Package Details
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Package:</strong> <span id="display_package_name"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Type:</strong> <span id="display_package_type" class="badge bg-secondary"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">
+                                <i class="fas fa-user me-1"></i>Select Customer *
+                            </label>
+                            <select id="assign_customer_id" name="client_id" class="form-select" required>
+                                <option value="">Choose customer...</option>
+                                {% for client in clients %}
+                                    <option value="{{ client.id }}">{{ client.full_name }} - {{ client.phone }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a customer.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                <i class="fas fa-rupee-sign me-1"></i>Custom Price
+                            </label>
+                            <input type="number" id="assign_custom_price" name="custom_price" class="form-control" step="0.01" min="0" placeholder="Optional">
+                            <small class="text-muted">Leave empty for package price</small>
+                        </div>
+                    </div>
+
+                    <!-- Service Selection for Service Packages -->
+                    <div id="assign_service_selection" class="row g-3 mt-2" style="display: none;">
+                        <div class="col-12">
+                            <label class="form-label">
+                                <i class="fas fa-spa me-1"></i>Select Service *
+                            </label>
+                            <select id="assign_service_id" name="service_id" class="form-select">
+                                <option value="">Select the service this package will cover...</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a service for this package.
+                            </div>
+                            <small class="text-muted">Choose the specific service this package will provide sessions for.</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fas fa-percentage me-1"></i>Discount (%)
+                            </label>
+                            <input type="number" id="assign_discount" name="discount" class="form-control" step="0.01" min="0" max="100" value="0">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fas fa-calendar me-1"></i>Expiry Date
+                            </label>
+                            <input type="date" id="assign_expiry" name="expiry_date" class="form-control">
+                            <small class="text-muted">Optional custom expiry</small>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">
+                            <i class="fas fa-sticky-note me-1"></i>Notes
+                        </label>
+                        <textarea id="assign_notes" name="notes" class="form-control" rows="3" placeholder="Additional notes about this assignment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="confirmAssignButton" onclick="confirmPackageAssignment()">
+                    <i class="fas fa-check me-2"></i>Assign Package
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -755,7 +864,7 @@ function filterPackages(type) {
 }
 
 // Package assignment functions
-function openAssignPackageModal(packageId, packageName, packageType) {
+function openPackageAssignModal(packageId, packageName, packageType, packagePrice) {
     // Set package details
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
@@ -764,12 +873,36 @@ function openAssignPackageModal(packageId, packageName, packageType) {
     // Display package info
     document.getElementById('display_package_name').textContent = packageName;
     document.getElementById('display_package_type').textContent = packageType.replace('_', ' ').toUpperCase();
+    
+    // Handle service selection for service packages
+    const assignServiceSelectionDiv = document.getElementById('assign_service_selection');
+    if (packageType === 'service_package') {
+        assignServiceSelectionDiv.style.display = 'flex'; // Use flex to maintain row layout
+        // Populate service dropdown - This would typically come from an API call
+        // For now, we assume services are available globally or fetched separately
+        const assignServiceIdSelect = document.getElementById('assign_service_id');
+        // Clear previous options
+        assignServiceIdSelect.innerHTML = '<option value="">Select the service this package will cover...</option>';
+        // Populate with actual services (assuming 'services' is available in the Jinja context)
+        {% for service in services %}
+            const option = document.createElement('option');
+            option.value = "{{ service.id }}";
+            option.textContent = "{{ service.name }} ({{ service.duration }} min)";
+            assignServiceIdSelect.appendChild(option);
+        {% endfor %}
+    } else {
+        assignServiceSelectionDiv.style.display = 'none';
+    }
 
-    // Reset form
+    // Reset form and set initial values
     document.getElementById('assignPackageForm').reset();
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
     document.getElementById('assign_package_type').value = packageType;
+    document.getElementById('assign_custom_price').value = ''; // Clear custom price
+    document.getElementById('assign_discount').value = '0'; // Reset discount
+    document.getElementById('assign_expiry').value = ''; // Clear expiry date
+    document.getElementById('assign_notes').value = ''; // Clear notes
 
     // Update modal title
     document.getElementById('assignPackageModalTitle').innerHTML = 
@@ -784,16 +917,31 @@ function confirmPackageAssignment() {
     const form = document.getElementById('assignPackageForm');
     const formData = new FormData(form);
 
-    // Validate required fields
+    // Validation
     const customerId = document.getElementById('assign_customer_id').value;
+    const packageType = document.getElementById('assign_package_type').value;
+    const serviceId = document.getElementById('assign_service_id').value;
+
+    let isValid = true;
+
     if (!customerId) {
         document.getElementById('assign_customer_id').classList.add('is-invalid');
-        showToast('Please select a customer', 'error');
-        return;
+        isValid = false;
+    } else {
+        document.getElementById('assign_customer_id').classList.remove('is-invalid');
     }
 
-    // Remove validation classes
-    document.getElementById('assign_customer_id').classList.remove('is-invalid');
+    if (packageType === 'service_package' && !serviceId) {
+        document.getElementById('assign_service_id').classList.add('is-invalid');
+        isValid = false;
+    } else if (packageType === 'service_package') {
+        document.getElementById('assign_service_id').classList.remove('is-invalid');
+    }
+
+    if (!isValid) {
+        showToast('Please fill in all required fields.', 'error');
+        return;
+    }
 
     // Disable button during submission
     const submitButton = document.getElementById('confirmAssignButton');

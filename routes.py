@@ -71,6 +71,18 @@ def create_default_data():
         print(f"Error creating default data: {e}")
         db.session.rollback()
 
+# Service Package API routes (global fallback)
+@app.route('/packages/api/service-packages/<int:package_id>', methods=['GET'])
+@login_required
+def service_package_api_fallback(package_id):
+    """Fallback API route for service package details"""
+    try:
+        from modules.packages.new_packages_views import get_service_package_details
+        return get_service_package_details(package_id)
+    except Exception as e:
+        print(f"Service package API fallback error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Student Offers API routes (global fallback)
 @app.route('/api/student-offers', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @app.route('/api/student-offers/<int:offer_id>', methods=['GET', 'PUT', 'DELETE'])
