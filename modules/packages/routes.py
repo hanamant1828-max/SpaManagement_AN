@@ -197,6 +197,39 @@ def api_get_customer_packages():
             )
 
         # Order by assigned date (newest first)
+        query = query.order_by(CustomerPackage.assigned_date.desc())
+
+        # Paginate
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        packages = pagination.items
+
+        # Format response
+        result = []
+        for cp in packages:
+            result.append({
+                'id': cp.id,
+                'customer_name': f"{cp.customer.first_name} {cp.customer.last_name}",
+                'package_name': cp.package_template.name,
+                'status': cp.status,
+                'assigned_date': cp.assigned_date.strftime('%Y-%m-%d') if cp.assigned_date else None,
+                'expires_date': cp.expires_date.strftime('%Y-%m-%d') if cp.expires_date else None,
+                'sessions_remaining': cp.sessions_remaining,
+                'total_sessions': cp.total_sessions
+            })
+
+        return jsonify({
+            'success': True,
+            'packages': result,
+            'pagination': {
+                'page': page,
+                'pages': pagination.pages,
+                'per_page': per_page,
+                'total': pagination.total
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @packages_bp.route("/api/assign-service-package", methods=['POST'])
