@@ -2226,81 +2226,8 @@ function initializeStudentOfferModals() {
                 customDiv.style.display = 'block';
             } else {
                 customDiv.style.display = 'none';
-            }
-        });
-    }
-
-    // Edit form valid days handler
-    const editValidDaysSelect = document.getElementById('editStudentValidDays');
-    if (editValidDaysSelect) {
-        editValidDaysSelect.addEventListener('change', function() {
-            const editCustomDiv = document.getElementById('editCustomValidDaysDiv');
-            if (this.value === 'Custom') {
-                editCustomDiv.style.display = 'block';
-            } else {
-                editCustomDiv.style.display = 'none';
-            }
-        });
-    }
-
-    // Save button event listener
-    const saveBtn = document.getElementById('saveStudentOfferBtn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveStudentOffer);
-    }
-
-    // Update button event listener
-    const updateBtn = document.getElementById('updateStudentOffer');
-    if (updateBtn) {
-        updateBtn.addEventListener('click', updateStudentOffer);
-    }
-}
-
-// Load services for student offer dropdowns
-async function loadServicesForStudentOffers() {
-    try {
-        const response = await fetch('/packages/api/services');
-        const data = await response.json();
-
-        if (data.success) {
-            const addSelect = document.getElementById('serviceIds');
-            const editSelect = document.getElementById('editServiceIds');
-
-            const optionsHTML = data.services.map(service => 
-                `<option value="${service.id}">${service.name} - ₹${service.price}</option>`
-            ).join('');
-
-            if (addSelect) addSelect.innerHTML = optionsHTML;
-            if (editSelect) editSelect.innerHTML = optionsHTML;
-        }
-    } catch (error) {
-        console.error('Error loading services:', error);
-    }
-}
-
-// Validate student offer form
-function validateStudentOfferForm() {
-    const services = document.getElementById('serviceIds');
-    const discount = document.getElementById('discountPercentage');
-    const validFrom = document.querySelector('input[name="valid_from"]');
-    const validTo = document.querySelector('input[name="valid_to"]');
-    const saveBtn = document.getElementById('saveStudentOfferBtn');
-
-    // Check all required fields
-    const isValid = services && services.selectedOptions.length > 0 && 
-                   discount && discount.value && parseFloat(discount.value) >= 1 && parseFloat(discount.value) <= 100 &&
-                   validFrom && validFrom.value && validTo && validTo.value && 
-                   new Date(validTo.value) > new Date(validFrom.value);
-
-    if (saveBtn) {
-        saveBtn.disabled = !isValid;
-    }
-
-    // Update preview
-    updateStudentOfferPreview();
-}
-
-// Update student offer preview
+            on>`
+              Update student offer preview
 function updateStudentOfferPreview() {
     const services = document.getElementById('serviceIds');
     const discount = document.getElementById('discountPercentage');
@@ -2330,86 +2257,7 @@ function updateStudentOfferPreview() {
     } else {
         preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
     }
-}
-
-// Save student offer
-async function saveStudentOffer() {
-    try {
-        const form = document.getElementById('addStudentOfferForm');
-        if (!form) {
-            console.error('Student offer form not found');
-            return;
-        }
-
-        // Get the save button for loading state
-        const saveBtn = document.getElementById('saveStudentOfferBtn');
-        if (!saveBtn) {
-            console.error('Save button not found');
-            return;
-        }
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-
-        // Client-side validation
-        const services = form.querySelectorAll('input[name="service_ids"]:checked');
-        const discountInput = form.querySelector('input[name="discount_percentage"]');
-        const validFromInput = form.querySelector('input[name="valid_from"]');
-        const validToInput = form.querySelector('input[name="valid_to"]');
-
-        // Validate at least one service selected
-        if (services.length === 0) {
-            throw new Error('Please select at least one service');
-        }
-
-        // Validate discount percentage
-        const discount = parseFloat(discountInput.value);
-        if (!discount || discount < 1 || discount > 100) {
-            throw new Error('Discount percentage must be between 1 and 100');
-        }
-
-        // Validate dates
-        if (!validFromInput.value || !validToInput.value) {
-            throw new Error('Please select both valid from and to dates');
-        }
-
-        const validFrom = new Date(validFromInput.value);
-        const validTo = new Date(validToInput.value);
-        if (validTo < validFrom) {
-            throw new Error('Valid To Date must be greater than or equal to Valid From Date');
-        }
-
-        const formData = new FormData(form);
-
-        // Handle valid days
-        const validDaysSelect = form.querySelector('select[name="valid_days"]');
-        const customValidDays = form.querySelector('input[name="custom_valid_days"]');
-        if (validDaysSelect && validDaysSelect.value === 'Custom' && customValidDays && customValidDays.value) {
-            formData.set('valid_days', customValidDays.value);
-        }
-
-        // Convert to JSON
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'service_ids') {
-                if (!data[key]) data[key] = [];
-                data[key].push(parseInt(value));
-            } else {
-                data[key] = value;
-            }
-        });
-
-        console.log('Submitting student offer data:', data);
-
-        const response = await fetch('/api/student-offers', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
+}tween 1 anult = await response.json();
 
         if (result.success === true) {
             showToast('Student offer created successfully!', 'success');
@@ -2429,44 +2277,7 @@ async function saveStudentOffer() {
             // Reload table if function exists
             if (typeof loadStudentPackages === 'function') {
                 await loadStudentPackages();
-            }
-
-            // If on dedicated page, redirect back to packages
-            if (window.location.pathname.includes('/add')) {
-                window.location.href = '/packages#assign-student';
-            }
-        } else {
-            throw new Error(result.error || 'Failed to create student offer');
-        }
-    } catch (error) {
-        console.error('Error saving student offer:', error);
-        // Display server error message or generic error
-        const errorMessage = error.message || 'An unexpected error occurred';
-        showToast('Error creating student offer: ' + errorMessage, 'error');
-    } finally {
-        // Always restore button state
-        const saveBtn = document.getElementById('saveStudentOfferBtn');
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Student Offer';
-        }
-    }
-}
-
-// Edit student offer - load data and populate form
-async function editStudentOffer(offerId) {
-    try {
-        // Fetch specific offer data
-        const response = await fetch(`/api/student-offers/${offerId}`);
-        const result = await response.json();
-
-        if (result.success && result.offer) {
-            const offer = result.offer;
             
-            // Populate edit form fields
-            const editForm = document.getElementById('editStudentOfferForm');
-            if (!editForm) {
-                console.error('Edit form not found');
                 return;
             }
 

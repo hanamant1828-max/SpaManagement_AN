@@ -594,3 +594,228 @@ def api_get_staff():
     except Exception as e:
         logging.error(f"Error getting staff: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========================================
+# STUDENT OFFERS API
+# ========================================
+
+@packages_bp.route("/api/student-offers", methods=['GET'])
+@login_required
+def api_get_student_offers():
+    """Get all student offers"""
+    try:
+        from modules.packages.new_packages_queries import get_all_student_offers
+        offers = get_all_student_offers()
+        
+        result = []
+        for offer in offers:
+            # Get services for this offer
+            services = []
+            for offer_service in offer.student_offer_services:
+                services.append({
+                    'id': offer_service.service.id,
+                    'name': offer_service.service.name
+                })
+            
+            result.append({
+                'id': offer.id,
+                'discount_percentage': float(offer.discount_percentage),
+                'valid_from': offer.valid_from.strftime('%Y-%m-%d'),
+                'valid_to': offer.valid_to.strftime('%Y-%m-%d'),
+                'valid_days': offer.valid_days,
+                'conditions': offer.conditions,
+                'is_active': offer.is_active,
+                'services': services,
+                'created_at': offer.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+        
+        return jsonify({'success': True, 'offers': result})
+        
+    except Exception as e:
+        logging.error(f"Error getting student offers: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@packages_bp.route("/api/student-offers", methods=['POST'])
+@login_required
+def api_create_student_offer():
+    """Create new student offer"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['service_ids', 'discount_percentage', 'valid_from', 'valid_to']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'success': False, 'error': f'{field} is required'}), 400
+        
+        # Validate service_ids
+        service_ids = data.get('service_ids', [])
+        if not isinstance(service_ids, list) or len(service_ids) == 0:
+            return jsonify({'success': False, 'error': 'At least one service must be selected'}), 400
+        
+        # Validate discount percentage
+        try:
+            discount = float(data['discount_percentage'])
+            if discount < 1 or discount > 100:
+                return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid discount percentage'}), 400
+        
+        # Validate dates
+        try:
+            from datetime import datetime
+            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+            
+            if valid_to < valid_from:
+                return jsonify({'success': False, 'error': 'Valid Until date must be greater than or equal to Valid From date'}), 400
+                
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid date format'}), 400
+        
+        # Create student offer using the query function
+        from modules.packages.new_packages_queries import create_student_offer
+        
+        offer_data = {
+            'discount_percentage': discount,
+            'valid_from': data['valid_from'],
+            'valid_to': data['valid_to'],
+            'valid_days': data.get('valid_days', 'Mon-Fri'),
+            'conditions': data.get('conditions', 'Valid with Student ID'),
+            'service_ids': service_ids,
+            'is_active': data.get('is_active', True)
+        }
+        
+        offer = create_student_offer(offer_data)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Student offer created successfully',
+            'offer_id': offer.id
+        })
+        
+    except Exception as e:
+        logging.error(f"Error creating student offer: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@packages_bp.route("/api/student-offers/<int:offer_id>", methods=['GET'])
+@login_required
+def api_get_student_offer(offer_id):
+    """Get student offer by ID"""
+    try:
+        from modules.packages.new_packages_queries import get_student_offer_by_id
+        offer = get_student_offer_by_id(offer_id)
+        
+        if not offer:
+            return jsonify({'success': False, 'error': 'Student offer not found'}), 404
+        
+        # Get services for this offer
+        services = []
+        for offer_service in offer.student_offer_services:
+            services.append({
+                'id': offer_service.service.id,
+                'name': offer_service.service.name
+            })
+        
+        result = {
+            'id': offer.id,
+            'discount_percentage': float(offer.discount_percentage),
+            'valid_from': offer.valid_from.strftime('%Y-%m-%d'),
+            'valid_to': offer.valid_to.strftime('%Y-%m-%d'),
+            'valid_days': offer.valid_days,
+            'conditions': offer.conditions,
+            'is_active': offer.is_active,
+            'services': services,
+            'service_ids': [s['id'] for s in services]
+        }
+        
+        return jsonify({'success': True, 'offer': result})
+        
+    except Exception as e:
+        logging.error(f"Error getting student offer: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@packages_bp.route("/api/student-offers/<int:offer_id>", methods=['PUT'])
+@login_required
+def api_update_student_offer(offer_id):
+    """Update student offer"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['service_ids', 'discount_percentage', 'valid_from', 'valid_to']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'success': False, 'error': f'{field} is required'}), 400
+        
+        # Validate service_ids
+        service_ids = data.get('service_ids', [])
+        if not isinstance(service_ids, list) or len(service_ids) == 0:
+            return jsonify({'success': False, 'error': 'At least one service must be selected'}), 400
+        
+        # Validate discount percentage
+        try:
+            discount = float(data['discount_percentage'])
+            if discount < 1 or discount > 100:
+                return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid discount percentage'}), 400
+        
+        # Validate dates
+        try:
+            from datetime import datetime
+            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+            
+            if valid_to < valid_from:
+                return jsonify({'success': False, 'error': 'Valid Until date must be greater than or equal to Valid From date'}), 400
+                
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid date format'}), 400
+        
+        # Update student offer using the query function
+        from modules.packages.new_packages_queries import update_student_offer
+        
+        offer_data = {
+            'discount_percentage': discount,
+            'valid_from': data['valid_from'],
+            'valid_to': data['valid_to'],
+            'valid_days': data.get('valid_days', 'Mon-Fri'),
+            'conditions': data.get('conditions', 'Valid with Student ID'),
+            'service_ids': service_ids,
+            'is_active': data.get('is_active', True)
+        }
+        
+        offer = update_student_offer(offer_id, offer_data)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Student offer updated successfully',
+            'offer_id': offer.id
+        })
+        
+    except Exception as e:
+        logging.error(f"Error updating student offer: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@packages_bp.route("/api/student-offers/<int:offer_id>", methods=['DELETE'])
+@login_required
+def api_delete_student_offer(offer_id):
+    """Delete student offer"""
+    try:
+        from modules.packages.new_packages_queries import delete_student_offer
+        
+        success = delete_student_offer(offer_id)
+        if success:
+            return jsonify({'success': True, 'message': 'Student offer deleted successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Student offer not found'}), 404
+            
+    except Exception as e:
+        logging.error(f"Error deleting student offer: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
