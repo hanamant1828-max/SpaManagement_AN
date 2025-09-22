@@ -528,6 +528,7 @@ function openAssignSimple(offerId, packageType) {
     // Set the offer details in the assignment modal
     const offerTypeInput = document.getElementById('assignOfferType');
     const offerIdInput = document.getElementById('assignOfferReferenceId');
+    const customerSelect = document.getElementById('assignCustomerSelect');
     
     if (offerTypeInput) {
         offerTypeInput.value = packageType || 'student_offer';
@@ -718,39 +719,36 @@ function showToast(message, type = 'info') {
  * Confirm assignment from modal
  */
 function confirmAssignment() {
-    const form = document.getElementById('assignPackageForm');
-    if (!form) return;
+    // Get values from the modal form fields
+    const customerSelect = document.getElementById('assignCustomerSelect');
+    const offerTypeInput = document.getElementById('assignOfferType');
+    const offerIdInput = document.getElementById('assignOfferReferenceId');
     
-    const formData = new FormData(form);
-    const customerId = formData.get('customer_id');
-    const packageId = formData.get('package_id');
-    const packageType = formData.get('package_type');
-    const pricePaid = formData.get('price_paid') || 0;
-    const notes = formData.get('notes') || '';
-    
-    if (!customerId) {
+    if (!customerSelect || !customerSelect.value) {
         showToast('Please select a customer', 'error');
         return;
     }
     
-    if (!packageId) {
+    if (!offerIdInput || !offerIdInput.value) {
         showToast('Package ID not found', 'error');
         return;
     }
     
     // Disable button during assignment
     const confirmBtn = document.getElementById('confirmAssignBtn');
-    const originalText = confirmBtn.innerHTML;
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    if (confirmBtn) {
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    }
     
     // Perform assignment
     const assignmentData = {
-        customer_id: parseInt(customerId),
-        package_id: parseInt(packageId),
-        package_type: packageType,
-        price_paid: parseFloat(pricePaid),
-        notes: notes
+        customer_id: parseInt(customerSelect.value),
+        package_id: parseInt(offerIdInput.value),
+        package_type: offerTypeInput ? offerTypeInput.value : 'student_offer',
+        price_paid: 0.0,
+        notes: 'Student offer assignment'
     };
     
     fetch('/packages/api/assign', {
@@ -763,7 +761,7 @@ function confirmAssignment() {
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            showToast('Package assigned successfully!', 'success');
+            showToast('Student offer assigned successfully!', 'success');
             
             // Close modal
             const assignModal = document.getElementById('assignPackageModal');
@@ -772,8 +770,10 @@ function confirmAssignment() {
                 modalInstance.hide();
             }
             
-            // Reset form
-            form.reset();
+            // Reset form fields
+            if (customerSelect) customerSelect.value = '';
+            if (offerIdInput) offerIdInput.value = '';
+            if (offerTypeInput) offerTypeInput.value = '';
         } else {
             throw new Error(result.error || 'Assignment failed');
         }
@@ -784,8 +784,10 @@ function confirmAssignment() {
     })
     .finally(() => {
         // Restore button
-        confirmBtn.disabled = false;
-        confirmBtn.innerHTML = originalText;
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalText;
+        }
     });
 }
 
@@ -796,3 +798,9 @@ window.assignStudentOffer = assignStudentOffer;
 window.openAssignSimple = openAssignSimple;
 window.confirmAssignment = confirmAssignment;
 window.loadStudentOffersTable = loadStudentOffersTable;
+
+// Also expose the assignment function specifically for student offers
+window.openAssignSimpleStudentOffer = function(offerId) {
+    console.log('Opening assignment for student offer:', offerId);
+    openAssignSimple(offerId, 'student_offer');
+};
