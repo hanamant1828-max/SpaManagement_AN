@@ -47,7 +47,7 @@ window.confirmPackageAssignment = confirmPackageAssignment;
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer Packages JS loaded');
-    initializePackages();
+    initializePackages(); // Event listeners are set up here
     initializeKittyPartyModals();
     initializeStudentOfferModals();
     setupTableEventDelegation();
@@ -157,6 +157,7 @@ function handleCustomerSelection() {
  * Save simple assignment
  */
 function saveAssignSimple() {
+    console.log('*** SAVE ASSIGN SIMPLE FUNCTION CALLED ***');
     console.log('Saving simple assignment...');
 
     // Try to get values from multiple possible modal implementations
@@ -493,7 +494,7 @@ function setupEventListeners() {
         adjustForm.addEventListener('input', validateAdjustForm);
     }
 
-    // Set up multiple assign button event listeners
+    // Set up multiple assign button event listeners  
     const assignButtonSelectors = [
         '#saveAssignPackage',
         '#confirmAssignBtn', 
@@ -502,14 +503,18 @@ function setupEventListeners() {
         '#savePackageAssignment'
     ];
 
+    console.log('*** SETTING UP ASSIGN BUTTON EVENT LISTENERS ***');
     assignButtonSelectors.forEach(selector => {
         const btn = document.querySelector(selector);
         if (btn) {
+            console.log('Found button:', selector, 'disabled:', btn.disabled, 'onclick:', btn.onclick);
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
-                console.log('Assignment button clicked:', selector);
+                console.log('*** BUTTON EVENT LISTENER TRIGGERED ***', selector);
                 saveAssignSimple();
             });
+        } else {
+            console.log('Button not found:', selector);
         }
     });
 

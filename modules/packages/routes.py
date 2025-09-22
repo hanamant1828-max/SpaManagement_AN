@@ -5,8 +5,8 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from flask_login import login_required, current_user
 from app import db
 from models import Service, Customer, User, Appointment
-from models import PackageTemplate, PackageTemplateItem, CustomerPackage, CustomerPackageItem, PackageUsage
-from datetime import datetime
+from models import PackageTemplate, PackageTemplateItem, CustomerPackage, CustomerPackageItem, PackageUsage, ServicePackageAssignment
+from datetime import datetime, timedelta
 from sqlalchemy import and_, or_, desc
 from sqlalchemy.exc import IntegrityError
 import logging
