@@ -217,9 +217,9 @@
                         <div class="tab-pane fade" id="student" role="tabpanel">
                             <div class="d-flex justify-content-between mb-3">
                                 <h5>Student Offers Management</h5>
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentOfferModal">
+                                <a href="{{ url_for('packages.add_student_offer') }}" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add Student Offer
-                                </button>
+                                </a>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-striped">
@@ -601,69 +601,7 @@
     </div>
 </div>
 
-<!-- Student Offer Modal (Enhanced with Multiple Selection) -->
-<div class="modal fade" id="addStudentOfferModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Student Offer</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addStudentOfferForm">
-                    <div class="mb-3">
-                        <label class="form-label">Select Services *</label>
-                        <select multiple class="form-select" name="service_ids" id="serviceIds" required style="height: 150px;">
-                            {% for service in services %}
-                                <option value="{{ service.id }}" data-price="{{ service.price }}">{{ service.name }} - ₹{{ service.price }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">Hold Ctrl/Cmd to select multiple services. The discount will apply to all selected services.</div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Discount Percentage *</label>
-                        <input type="number" class="form-control" name="discount_percentage" id="discountPercentage" required min="0" max="100">
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Valid From Date *</label>
-                            <input type="date" class="form-control" name="valid_from" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Valid To Date *</label>
-                            <input type="date" class="form-control" name="valid_to" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Valid Days</label>
-                        <input type="text" class="form-control" name="valid_days" placeholder="e.g. Mon-Fri" value="Mon-Fri">
-                        <div class="form-text">Specify which days of the week this offer is valid</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Terms & Conditions</label>
-                        <textarea class="form-control" name="conditions" rows="3" placeholder="Enter terms and conditions for this student offer">Valid with Student ID. Cannot be combined with other offers.</textarea>
-                    </div>
-
-                    <!-- Offer Preview -->
-                    <div class="alert alert-info" id="studentOfferPreview" style="display: none;">
-                        <h6 class="alert-heading">Offer Preview:</h6>
-                        <div id="studentOfferPreviewContent"></div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveStudentOffer">
-                    <i class="fas fa-save me-2"></i>Save Student Offer
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Yearly Membership Modal (Example) -->
 <div class="modal fade" id="yearlyModal" tabindex="-1">
@@ -984,8 +922,7 @@
 
 
 
-<!-- Include student offer modal templates -->
-{% include 'packages/student_offer_modal.html' %}
+
 
 <!-- Ensure JavaScript functions are available globally -->
 <script>
@@ -1625,72 +1562,7 @@ function calculateStudentDiscountPrice() {
     document.getElementById('student_after_price').value = afterPrice.toFixed(2);
 }
 
-// Function to submit student offer form
-function submitStudentForm() {
-    const form = document.getElementById('addStudentOfferForm');
-    const formData = new FormData(form);
 
-    const serviceIds = Array.from(form.querySelectorAll('input[name="service_ids"]:checked')).map(cb => parseInt(cb.value));
-    const discountPercentage = parseFloat(form.querySelector('[name="discount_percentage"]').value);
-    const validFrom = form.querySelector('[name="valid_from"]').value;
-    const validTo = form.querySelector('[name="valid_to"]').value;
-    const validDays = form.querySelector('[name="valid_days"]').value;
-    const conditions = form.querySelector('[name="conditions"]').value;
-
-    // Basic validation
-    if (serviceIds.length === 0) {
-        alert('Please select at least one service.');
-        return;
-    }
-    if (isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 50) {
-        alert('Please enter a valid discount percentage between 1 and 50.');
-        return;
-    }
-    if (!validFrom || !validTo || new Date(validTo) < new Date(validFrom)) {
-        alert('Please enter a valid date range (Valid To must be after Valid From).');
-        return;
-    }
-
-    const data = {
-        service_ids: serviceIds,
-        discount_percentage: discountPercentage,
-        valid_from: validFrom,
-        valid_to: validTo,
-        valid_days: validDays,
-        conditions: conditions
-    };
-
-    const saveBtn = document.getElementById('saveStudentOffer');
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-
-    fetch('/api/student-offers', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            alert(result.message);
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentOfferModal'));
-            modal.hide();
-            location.reload();
-        } else {
-            alert('Error: ' + (result.error || 'Failed to create student offer'));
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Student Offer';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while creating the student offer.');
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Student Offer';
-    });
-}
 
 // Student offer CRUD functions
 function editStudentOffer(offerId) {
