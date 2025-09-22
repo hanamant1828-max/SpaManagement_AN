@@ -1461,3 +1461,45 @@ def view_assignment_details(assignment_id):
     except Exception as e:
         logging.error(f"Error getting assignment details: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========================================
+# PACKAGE ASSIGNMENT PAGE
+# ========================================
+
+@app.route('/packages/assign/<package_type>/<int:package_id>')
+@login_required
+def assign_package_page(package_type, package_id):
+    """New dedicated page for package assignment"""
+    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        # Get package details based on type
+        package_data = None
+        if package_type == 'membership':
+            package_data = get_membership_by_id(package_id)
+        elif package_type == 'student':
+            package_data = get_student_offer_by_id(package_id)
+        elif package_type == 'yearly':
+            package_data = get_yearly_membership_by_id(package_id)
+        elif package_type == 'kitty':
+            package_data = get_kitty_party_by_id(package_id)
+        
+        if not package_data:
+            flash('Package not found', 'danger')
+            return redirect(url_for('packages'))
+        
+        # Get all customers for the dropdown
+        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+        
+        return render_template('packages/assign_package.html', 
+                             package=package_data, 
+                             package_type=package_type,
+                             customers=customers)
+    
+    except Exception as e:
+        logger.error(f"Error loading assignment page: {e}")
+        flash('Error loading assignment page', 'danger')
+        return redirect(url_for('packages'))
