@@ -1226,8 +1226,13 @@ function validateAssignForm() {
         isValid = isValid && assignServiceId;
     }
 
-    saveBtn.disabled = !isValid;
-    form.classList.toggle('was-validated', isValid);
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+
+    if (form) {
+        form.classList.toggle('was-validated', isValid);
+    }
 }
 
 /**
@@ -1579,8 +1584,12 @@ function validateUsageForm() {
         isValid = parseInt(quantity) <= remaining;
     }
 
-    saveBtn.disabled = !isValid;
-    form.classList.toggle('was-validated', isValid);
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+    if (form) {
+        form.classList.toggle('was-validated', isValid);
+    }
 }
 
 /**
@@ -1750,8 +1759,12 @@ function validateAdjustForm() {
         }
     }
 
-    saveBtn.disabled = !isValid;
-    form.classList.toggle('was-validated', isValid);
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+    if (form) {
+        form.classList.toggle('was-validated', isValid);
+    }
 }
 
 /**

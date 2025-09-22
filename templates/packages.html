@@ -599,6 +599,7 @@
     </div>
 </div>
 
+{% block extra_scripts %}
 <script>
 // Service selection functionality
 document.addEventListener('DOMContentLoaded', function() {
@@ -935,6 +936,7 @@ function createToastContainer() {
     return container;
 }
 </script>
+{% endblock %}
 
 <!-- Edit Package Modals (Generated for each package) -->
 {% for package in packages %}
