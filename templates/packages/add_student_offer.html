@@ -236,7 +236,7 @@
                         <a href="{{ url_for('packages') }}#assign-student" class="btn btn-secondary btn-lg">
                             <i class="fas fa-times me-2"></i>Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary btn-lg btn-save" id="saveStudentOfferBtn" disabled>
+                        <button type="submit" class="btn btn-secondary btn-lg btn-save" id="saveStudentOfferBtn" disabled>
                             <i class="fas fa-save me-2"></i>Save Student Offer
                         </button>
                     </div>
@@ -320,13 +320,20 @@
                     checkbox.addEventListener('change', validateStudentOfferServices);
                 });
                 
+                // Trigger initial validation
+                validateStudentOfferServices();
+                
             } else {
                 container.innerHTML = '<p class="text-danger">No services available. Please add services first.</p>';
+                studentOfferFormValidation.services = false;
+                updateStudentOfferSaveButton();
             }
         } catch (error) {
             console.error('Error loading services:', error);
             const container = document.getElementById('servicesContainer');
             container.innerHTML = '<p class="text-danger">Error loading services. Please refresh the page.</p>';
+            studentOfferFormValidation.services = false;
+            updateStudentOfferSaveButton();
         }
     }
 
@@ -415,6 +422,7 @@
             studentOfferFormValidation.services = true;
         }
         
+        console.log('Services validation:', studentOfferFormValidation.services);
         updateStudentOfferSaveButton();
         updateStudentOfferPreview();
     }
@@ -450,6 +458,7 @@
             studentOfferFormValidation.discount = true;
         }
         
+        console.log('Discount validation:', studentOfferFormValidation.discount);
         updateStudentOfferSaveButton();
         updateStudentOfferPreview();
     }
@@ -507,6 +516,7 @@
         studentOfferFormValidation.validFrom = fromValid;
         studentOfferFormValidation.validTo = toValid;
         
+        console.log('Date validation:', studentOfferFormValidation.validFrom, studentOfferFormValidation.validTo);
         updateStudentOfferSaveButton();
         updateStudentOfferPreview();
     }
@@ -516,6 +526,14 @@
         const isValid = Object.values(studentOfferFormValidation).every(valid => valid === true);
         if (saveBtn) {
             saveBtn.disabled = !isValid;
+            // Add visual feedback
+            if (isValid) {
+                saveBtn.classList.remove('btn-secondary');
+                saveBtn.classList.add('btn-primary');
+            } else {
+                saveBtn.classList.remove('btn-primary');
+                saveBtn.classList.add('btn-secondary');
+            }
         }
     }
 
