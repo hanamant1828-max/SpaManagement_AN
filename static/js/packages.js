@@ -171,6 +171,9 @@ function attachGlobalFunctions() {
     window.openUseModal = openUseModal;
     window.openAdjustModal = openAdjustModal;
     window.changePage = changePage;
+    window.openAssignPackageModal = openAssignPackageModal;
+    window.assignPackage = assignPackage;
+    window.confirmPackageAssignment = confirmPackageAssignment;
 
     console.log('All global functions attached successfully');
 }
@@ -1224,8 +1227,6 @@ function validateAssignForm() {
     }
 
     saveBtn.disabled = !isValid;
-
-    // Show validation feedback
     form.classList.toggle('was-validated', isValid);
 }
 

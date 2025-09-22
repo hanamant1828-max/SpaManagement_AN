@@ -802,6 +802,11 @@ function assignPackage(packageId, packageName, packageType, packagePrice) {
     return openAssignPackageModal(packageId, packageName, packageType, packagePrice);
 }
 
+// Global function attachment for onclick handlers
+window.openAssignPackageModal = openAssignPackageModal;
+window.assignPackage = assignPackage;
+window.confirmPackageAssignment = confirmPackageAssignment;
+
 function confirmPackageAssignment() {
     const form = document.getElementById('assignPackageForm');
     const formData = new FormData(form);
