@@ -158,8 +158,24 @@ def init_app():
             print("Continuing with existing SQLite database...")
 
         try:
-            # Import and register basic routes
-            import routes
+            # Import and register blueprints
+            try:
+                # Import staff blueprint from staff_views
+                from modules.staff.staff_views import staff_bp
+                app.register_blueprint(staff_bp)
+                print("Staff Management routes registered successfully")
+            except Exception as e:
+                print(f"Error importing staff routes: {e}")
+                print("Staff Management will not be available")
+
+            try:
+                # Import and register shift scheduler blueprint
+                from modules.staff.shift_scheduler_views import shift_scheduler_bp
+                app.register_blueprint(shift_scheduler_bp)
+                print("Shift Scheduler routes registered successfully")
+            except Exception as e:
+                print(f"Error importing shift scheduler routes: {e}")
+                print("Shift Scheduler will not be available")
             print("Routes imported successfully")
         except Exception as e:
             print(f"Warning: Could not import all routes: {e}")

@@ -47,40 +47,6 @@ def create_default_data():
 
         for cat_data in categories:
             category = Category.query.filter_by(name=cat_data['name']).first()
-
-# Student Offers API routes (global fallback)
-@app.route('/api/student-offers', methods=['GET', 'POST', 'PUT', 'DELETE'])
-@app.route('/api/student-offers/<int:offer_id>', methods=['GET', 'PUT', 'DELETE'])
-@login_required
-def student_offers_api_fallback(offer_id=None):
-    """Fallback API routes for student offers"""
-    try:
-        # Import the packages blueprint functions
-        from modules.packages.routes import (
-            api_get_student_offers, api_create_student_offer, 
-            api_get_student_offer, api_update_student_offer, api_delete_student_offer
-        )
-        
-        # Route to appropriate function based on method and parameters
-        if request.method == 'GET':
-            if offer_id:
-                return api_get_student_offer(offer_id)
-            else:
-                return api_get_student_offers()
-        elif request.method == 'POST':
-            return api_create_student_offer()
-        elif request.method == 'PUT' and offer_id:
-            return api_update_student_offer(offer_id)
-        elif request.method == 'DELETE' and offer_id:
-            return api_delete_student_offer(offer_id)
-        else:
-            return jsonify({'success': False, 'error': 'Invalid request'}), 400
-            
-    except Exception as e:
-        print(f"API fallback error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
             if not category:
                 category = Category(**cat_data)
                 db.session.add(category)
@@ -104,6 +70,39 @@ def student_offers_api_fallback(offer_id=None):
     except Exception as e:
         print(f"Error creating default data: {e}")
         db.session.rollback()
+
+# Student Offers API routes (global fallback)
+@app.route('/api/student-offers', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@app.route('/api/student-offers/<int:offer_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
+def student_offers_api_fallback(offer_id=None):
+    """Fallback API routes for student offers"""
+    try:
+        # Import the packages blueprint functions
+        from modules.packages.routes import (
+            api_get_student_offers, api_create_student_offer, 
+            api_get_student_offer, api_update_student_offer, api_delete_student_offer
+        )
+
+        # Route to appropriate function based on method and parameters
+        if request.method == 'GET':
+            if offer_id:
+                return api_get_student_offer(offer_id)
+            else:
+                return api_get_student_offers()
+        elif request.method == 'POST':
+            return api_create_student_offer()
+        elif request.method == 'PUT' and offer_id:
+            return api_update_student_offer(offer_id)
+        elif request.method == 'DELETE' and offer_id:
+            return api_delete_student_offer(offer_id)
+        else:
+            return jsonify({'success': False, 'error': 'Invalid request'}), 400
+
+    except Exception as e:
+        print(f"API fallback error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 # Import module views individually to avoid conflicts
 try:

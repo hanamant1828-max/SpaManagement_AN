@@ -2297,7 +2297,7 @@ async function saveStudentOffer() {
 
         // Get selected service IDs from multi-select
         const selectedServiceIds = Array.from(form.querySelectorAll('#serviceIds option:checked')).map(opt => parseInt(opt.value));
-        
+
         // Add selected services to form data
         formData.append('service_ids', JSON.stringify(selectedServiceIds));
 
@@ -2317,7 +2317,7 @@ async function saveStudentOffer() {
                 data[key] = value;
             }
         });
-        
+
         // Ensure discount is a number
         data.discount_percentage = parseFloat(data.discount_percentage);
 
