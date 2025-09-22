@@ -1981,11 +1981,32 @@ function loadCustomersForServiceAssignment() {
 
 
 function loadServicesForAssignment() {
-    fetch('/packages/api/services')
-        .then(response => response.json())
+    console.log('Loading services for assignment...');
+    
+    fetch('/packages/api/services', {
+        method: 'GET',
+        credentials: 'same-origin', // Include session cookies for authentication
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => {
+            console.log('Services API response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Services API response data:', data);
+            
             if (data.success) {
                 const serviceSelect = document.getElementById('service_assign_service_id');
+                if (!serviceSelect) {
+                    console.error('Service select element not found');
+                    return;
+                }
+                
                 serviceSelect.innerHTML = '<option value="">Choose a service...</option>';
 
                 data.services.forEach(service => {
@@ -1997,15 +2018,20 @@ function loadServicesForAssignment() {
                     serviceSelect.appendChild(option);
                 });
 
+                console.log(`Loaded ${data.services.length} services successfully`);
+
                 // Add event listener for service selection
                 serviceSelect.addEventListener('change', function() {
                     calculateServiceCostBreakdown();
                 });
+            } else {
+                console.error('Services API returned unsuccessful response:', data);
+                alert('Error loading services: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error loading services:', error);
-            alert('Error loading services');
+            alert('Error loading services: ' + error.message);
         });
 }
 
