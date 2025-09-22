@@ -376,7 +376,7 @@ def add_student_offer():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     return render_template('packages/add_student_offer.html')
 
 @app.route('/student-offers/edit')
@@ -386,12 +386,12 @@ def edit_student_offer():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     offer_id = request.args.get('id')
     if not offer_id:
         flash('Student offer ID is required', 'error')
         return redirect(url_for('packages'))
-    
+
     return render_template('packages/edit_student_offer.html', offer_id=offer_id)
 
 # ========================================
@@ -430,7 +430,7 @@ def api_get_student_offer(offer_id):
         offer = get_student_offer_by_id(offer_id)
         if not offer:
             return jsonify({'success': False, 'error': 'Student offer not found'}), 404
-            
+
         return jsonify({
             'success': True,
             'offer': {
@@ -513,7 +513,7 @@ def api_delete_student_offer(offer_id):
                 'success': False,
                 'error': 'Student offer not found'
             }), 404
-        
+
         delete_student_offer(offer_id)
         flash('Student offer deleted successfully!', 'success')
         return jsonify({
@@ -961,33 +961,31 @@ def assign_package():
 
         # Create package assignment based on type
         package_type = data['package_type']
+        package_id = data['package_id'] # Use package_id from data
 
         if package_type == 'membership':
-            # Get membership template
-            membership = Membership.query.get(data['package_id'])
+            # Get membership details
+            from models import Membership
+            membership = Membership.query.get(package_id)
             if not membership:
                 return jsonify({'success': False, 'error': 'Membership not found'}), 404
 
-            # Calculate expiry date
-            expiry_date = None
-            if data.get('expiry_date'):
-                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
-            else:
-                expiry_date = datetime.utcnow() + timedelta(days=membership.validity_months * 30)
+            # Calculate expiry date (membership validity in months)
+            expiry_date = datetime.utcnow() + timedelta(days=membership.validity_months * 30)
 
-            # Create assignment record
+            # Create assignment record for membership
             assignment = ServicePackageAssignment(
                 customer_id=customer_id,
                 package_type='membership',
                 package_reference_id=membership.id,
-                service_id=data.get('service_id'),  # Optional for memberships
+                service_id=data.get('service_id'), # Optional for memberships
                 assigned_on=datetime.utcnow(),
                 expires_on=expiry_date,
-                price_paid=float(data['price_paid']),
+                price_paid=float(data.get('price_paid', membership.price)),
                 discount=float(data.get('discount', 0)),
                 status='active',
                 notes=data.get('notes', ''),
-                # Membership doesn't use sessions/credit tracking
+                # Membership tracking
                 total_sessions=0,
                 used_sessions=0,
                 remaining_sessions=0,
@@ -995,6 +993,8 @@ def assign_package():
                 used_credit=0,
                 remaining_credit=0
             )
+
+            logging.info(f"Creating membership assignment: customer_id={customer_id}, membership_id={membership.id}, expires_on={expiry_date}")
 
         elif package_type == 'prepaid':
             # Get prepaid package template

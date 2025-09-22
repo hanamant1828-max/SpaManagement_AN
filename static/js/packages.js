@@ -88,11 +88,10 @@ function openAssignModal() {
 function openAssignSimple(packageId, packageType) {
     console.log('Opening simple assign modal for:', packageId, packageType);
 
-    // Try to use the existing assignPackageModal instead of assignSimpleModal
+    // Try to use the existing assignPackageModal first
     let modal = document.getElementById('assignPackageModal');
     if (!modal) {
         console.error('assignPackageModal not found, trying alternative');
-        // Fallback to other possible modal IDs
         modal = document.getElementById('assignSimpleModal') || document.getElementById('packageAssignmentModal');
         if (!modal) {
             console.error('No assignment modal found');
@@ -105,28 +104,53 @@ function openAssignSimple(packageId, packageType) {
     const offerTypeInput = document.getElementById('assignOfferType') || document.getElementById('asPackageType');
     const offerRefInput = document.getElementById('assignOfferReferenceId') || document.getElementById('asTemplateId');
     
-    if (offerTypeInput) offerTypeInput.value = packageType;
-    if (offerRefInput) offerRefInput.value = packageId;
+    if (offerTypeInput) {
+        offerTypeInput.value = packageType;
+        console.log('Set package type:', packageType);
+    }
+    if (offerRefInput) {
+        offerRefInput.value = packageId;
+        console.log('Set package ID:', packageId);
+    }
+
+    // Reset form
+    const form = document.getElementById('assignPackageForm') || document.getElementById('assignSimpleForm');
+    if (form) {
+        form.reset();
+        // Re-set the hidden fields after reset
+        if (offerTypeInput) offerTypeInput.value = packageType;
+        if (offerRefInput) offerRefInput.value = packageId;
+    }
 
     // Reset and load customer dropdown
     const customerSelect = document.getElementById('assignCustomerSelect') || document.getElementById('asCustomer');
     if (customerSelect) {
         customerSelect.value = '';
-        // Enable save button when customer is selected
-        customerSelect.addEventListener('change', function() {
-            const saveBtn = document.getElementById('confirmAssignBtn') || document.getElementById('asSave');
-            if (saveBtn) {
-                saveBtn.disabled = !this.value;
-            }
-        });
+        
+        // Remove existing event listeners to avoid duplicates
+        customerSelect.removeEventListener('change', handleCustomerSelection);
+        customerSelect.addEventListener('change', handleCustomerSelection);
     }
 
     // Load customers
-    loadCustomersForAssignment();
+    loadCustomersForAssignment().then(() => {
+        console.log('Customers loaded for assignment');
+    });
 
     // Show modal
     const modalInstance = new bootstrap.Modal(modal);
     modalInstance.show();
+    
+    console.log('Modal opened for package assignment');
+}
+
+// Separate function to handle customer selection
+function handleCustomerSelection() {
+    const saveBtn = document.getElementById('confirmAssignBtn') || document.getElementById('asSave');
+    if (saveBtn) {
+        saveBtn.disabled = !this.value;
+        console.log('Customer selected, save button enabled:', !saveBtn.disabled);
+    }
 }
 
 /**
@@ -135,21 +159,31 @@ function openAssignSimple(packageId, packageType) {
 function saveAssignSimple() {
     console.log('Saving simple assignment...');
 
-    const templateId = document.getElementById('asTemplateId').value;
-    const packageType = document.getElementById('asPackageType').value;
-    const customerId = document.getElementById('asCustomer').value;
-    const pricePaid = parseFloat(document.getElementById('asPricePaid').value) || 0;
-    const notes = document.getElementById('asNotes').value || '';
+    const templateId = document.getElementById('asTemplateId')?.value;
+    const packageType = document.getElementById('asPackageType')?.value || 'membership';
+    const customerId = document.getElementById('asCustomer')?.value;
+    const pricePaid = parseFloat(document.getElementById('asPricePaid')?.value) || 0;
+    const notes = document.getElementById('asNotes')?.value || '';
+
+    console.log('Simple assignment data:', {
+        templateId,
+        packageType,
+        customerId,
+        pricePaid,
+        notes
+    });
 
     if (!templateId || !customerId) {
-        showToast('Please select a customer', 'warning');
+        showToast('Please select a customer and package', 'warning');
         return;
     }
 
     const saveBtn = document.getElementById('asSave');
-    const originalText = saveBtn.innerHTML;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    const originalText = saveBtn?.innerHTML || 'Assign Package';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    }
 
     const data = {
         customer_id: parseInt(customerId),
@@ -159,6 +193,8 @@ function saveAssignSimple() {
         notes: notes
     };
 
+    console.log('Sending simple assignment:', data);
+
     fetch('/packages/api/assign', {
         method: 'POST',
         headers: {
@@ -166,31 +202,42 @@ function saveAssignSimple() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Simple assignment response status:', response.status);
+        return response.json();
+    })
     .then(result => {
+        console.log('Simple assignment result:', result);
         if (result.success) {
             showToast('Package assigned successfully!', 'success');
 
-            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal')) ||
+                         bootstrap.Modal.getInstance(document.getElementById('assignPackageModal'));
             if (modal) {
                 modal.hide();
             }
 
-            document.getElementById('assignSimpleForm').reset(); // Reset form after successful assignment
-            saveBtn.disabled = true; // Disable save button again until new selection
+            // Reset form after successful assignment
+            const form = document.getElementById('assignSimpleForm') || 
+                        document.getElementById('assignPackageForm');
+            if (form) form.reset();
+            
+            if (saveBtn) saveBtn.disabled = true; // Disable save button again until new selection
 
             setTimeout(() => location.reload(), 1000); // Reload page to reflect changes
         } else {
-            showToast(result.error || 'Error assigning package', 'error');
+            showToast(result.error || result.message || 'Error assigning package', 'error');
         }
     })
     .catch(error => {
         console.error('Error saving assignment:', error);
-        showToast('Error assigning package', 'error');
+        showToast('Error assigning package: ' + error.message, 'error');
     })
     .finally(() => {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText;
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
     });
 }
 
@@ -1766,12 +1813,25 @@ function viewCustomerDetails(customerId) {
 function confirmPackageAssignment() {
     console.log('Confirming package assignment...');
 
-    // Get form data from the modal
-    const offerType = document.getElementById('assignOfferType')?.value;
-    const offerReferenceId = document.getElementById('assignOfferReferenceId')?.value;
-    const customerId = document.getElementById('assignCustomerSelect')?.value;
-    const pricePaid = parseFloat(document.getElementById('assignPricePaid')?.value) || 0;
-    const notes = document.getElementById('assignNotes')?.value || '';
+    // Get form data from the modal - check multiple possible element IDs
+    const offerType = document.getElementById('assignOfferType')?.value || 
+                     document.getElementById('asPackageType')?.value || 'membership';
+    const offerReferenceId = document.getElementById('assignOfferReferenceId')?.value || 
+                            document.getElementById('asTemplateId')?.value;
+    const customerId = document.getElementById('assignCustomerSelect')?.value || 
+                      document.getElementById('asCustomer')?.value;
+    const pricePaid = parseFloat(document.getElementById('assignPricePaid')?.value || 
+                                document.getElementById('asPricePaid')?.value) || 0;
+    const notes = document.getElementById('assignNotes')?.value || 
+                 document.getElementById('asNotes')?.value || '';
+
+    console.log('Assignment data:', {
+        offerType,
+        offerReferenceId,
+        customerId,
+        pricePaid,
+        notes
+    });
 
     if (!customerId || !offerReferenceId) {
         showToast('Please select a customer and package', 'warning');
@@ -1786,7 +1846,10 @@ function confirmPackageAssignment() {
         notes: notes
     };
 
-    const saveBtn = document.getElementById('confirmAssignBtn');
+    console.log('Sending assignment data:', data);
+
+    const saveBtn = document.getElementById('confirmAssignBtn') || 
+                   document.getElementById('asSave');
     const originalText = saveBtn?.innerHTML || 'Assign Package';
     if (saveBtn) {
         saveBtn.disabled = true;
@@ -1800,20 +1863,31 @@ function confirmPackageAssignment() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(result => {
+        console.log('Assignment result:', result);
         if (result.success) {
             showToast('Package assigned successfully!', 'success');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPackageModal'));
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')) ||
+                         bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
             if (modal) modal.hide();
+            
+            // Reset form
+            const form = document.getElementById('assignPackageForm') || 
+                        document.getElementById('assignSimpleForm');
+            if (form) form.reset();
+            
             setTimeout(() => location.reload(), 1000);
         } else {
-            showToast(result.error || 'Error assigning package', 'error');
+            showToast(result.error || result.message || 'Error assigning package', 'error');
         }
     })
     .catch(error => {
         console.error('Error assigning package:', error);
-        showToast('Error assigning package', 'error');
+        showToast('Error assigning package: ' + error.message, 'error');
     })
     .finally(() => {
         if (saveBtn) {
