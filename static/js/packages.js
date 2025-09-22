@@ -2051,6 +2051,99 @@ async function loadStudentPackages() {
                 const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
 
                 row.innerHTML = `
+                    <td><small>${servicesList}</small></td>
+                    <td>₹${offer.services ? offer.services.reduce((total, s) => total + s.price, 0).toFixed(2) : '0.00'}</td>
+                    <td><strong>${offer.discount_percentage}%</strong></td>
+                    <td>₹${offer.services ? (offer.services.reduce((total, s) => total + s.price, 0) * (1 - offer.discount_percentage / 100)).toFixed(2) : '0.00'}</td>
+                    <td>₹${offer.services ? (offer.services.reduce((total, s) => total + s.price, 0) * (offer.discount_percentage / 100)).toFixed(2) : '0.00'}</td>
+                    <td>${offer.valid_days}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-success btn-sm"
+                                    onclick="openAssignSimple(${offer.id}, 'student')"
+                                    title="Assign to Customer"
+                                    data-action="assign-simple"
+                                    data-template-id="${offer.id}"
+                                    data-package-type="student">
+                                <i class="fas fa-user-plus"></i> Assign
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="editStudentOffer(${offer.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteStudentOffer(${offer.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update count
+            const countElement = document.getElementById('student-total-count');
+            if (countElement) {
+                countElement.textContent = data.length;
+            }
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No student offers found
+                    </td>
+                </tr>
+            `;
+        }
+
+        console.log(`Successfully loaded ${data.length || 0} student offers`);
+
+    } catch (error) {
+        console.error('Error loading student offers:', error);
+        showToast('Error loading student offers', 'error');
+    }
+}
+
+/**
+ * Delete student offer with confirmation
+ */
+async function deleteStudentOffer(offerId) {
+    if (!confirm('Are you sure you want to delete this student offer?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/student-offers/${offerId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success || response.ok) {
+            showToast('Student offer deleted successfully!', 'success');
+            await loadStudentPackages();
+        } else {
+            throw new Error(result.error || 'Failed to delete student offer');
+        }
+    } catch (error) {
+        console.error('Error deleting student offer:', error);
+        showToast('Error deleting student offer: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Edit student offer function
+ */
+function editStudentOffer(offerId) {
+    if (typeof loadStudentOfferForEdit === 'function') {
+        loadStudentOfferForEdit(offerId);
+    } else {
+        console.log('Edit student offer:', offerId);
+        // Fallback to basic alert
+        alert('Edit functionality will be available soon');
+    }
+} ${offer.valid_to}`;
+
+                row.innerHTML = `
                     <td><strong>${offer.discount_percentage}%</strong></td>
                     <td><small>${servicesList}</small></td>
                     <td>${offer.valid_days}</td>

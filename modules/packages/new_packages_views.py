@@ -545,15 +545,8 @@ def api_delete_student_offer(offer_id):
     """Delete student offer"""
     try:
         # Check if student offer exists first by trying to get it
-        try:
-            existing_offer = get_student_offer_by_id(offer_id)
-            if not existing_offer:
-                return jsonify({
-                    'success': False,
-                    'error': 'Student offer not found'
-                }), 404
-        except Exception:
-            # If offer doesn't exist, return 404
+        existing_offer = get_student_offer_by_id(offer_id)
+        if not existing_offer:
             return jsonify({
                 'success': False,
                 'error': 'Student offer not found'

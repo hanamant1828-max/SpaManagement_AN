@@ -3,6 +3,52 @@
  * Handles Add, Edit, Delete, and Assignment operations
  */
 
+// Global functions for student offer management
+window.editStudentOffer = function(offerId) {
+    console.log('Edit student offer:', offerId);
+    if (typeof loadStudentOfferForEdit === 'function') {
+        loadStudentOfferForEdit(offerId);
+    } else {
+        alert('Edit functionality coming soon');
+    }
+};
+
+window.deleteStudentOffer = function(offerId) {
+    if (!confirm('Are you sure you want to delete this student offer?')) {
+        return;
+    }
+
+    fetch(`/api/student-offers/${offerId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Student offer deleted successfully!');
+            if (typeof loadStudentPackages === 'function') {
+                loadStudentPackages();
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('Error deleting student offer: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting student offer');
+    });
+};
+
+window.assignStudentOffer = function(offerId) {
+    console.log('Assign student offer:', offerId);
+    if (typeof openAssignSimple === 'function') {
+        openAssignSimple(offerId, 'student');
+    } else {
+        alert('Assignment functionality coming soon');
+    }
+};
+
 // Load student packages data
 function loadStudentPackages() {
     console.log('Loading student packages...');

@@ -982,7 +982,7 @@
     </div>
 </div>
 
-<!-- Add Student Offer Modal -->
+<!-- Student Offer Modal (Duplicate - should be removed or managed carefully) -->
 <div class="modal fade" id="addStudentOfferModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1020,7 +1020,7 @@
                         <div class="col-md-6">
                             <label for="discountPercentage" class="form-label fw-bold">Discount Percentage *</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" id="discountPercentage" name="discount_percentage" 
+                                <input type="number" class="form-control" id="discountPercentage" name="discount_percentage"
                                        min="1" max="50" step="0.1" required placeholder="25.0">
                                 <span class="input-group-text">%</span>
                             </div>
@@ -1030,7 +1030,7 @@
                         <!-- Valid Days -->
                         <div class="col-md-6">
                             <label for="validDays" class="form-label fw-bold">Valid Days</label>
-                            <input type="text" class="form-control" id="validDays" name="valid_days" 
+                            <input type="text" class="form-control" id="validDays" name="valid_days"
                                    value="Mon-Fri" placeholder="Mon-Fri">
                             <small class="text-muted">Days when offer is valid</small>
                         </div>
@@ -1049,7 +1049,7 @@
                         <!-- Conditions -->
                         <div class="col-12">
                             <label for="conditions" class="form-label fw-bold">Terms & Conditions</label>
-                            <textarea class="form-control" id="conditions" name="conditions" rows="3" 
+                            <textarea class="form-control" id="conditions" name="conditions" rows="3"
                                       placeholder="Valid student ID required. Cannot be combined with other offers.">Valid with Student ID. Cannot be combined with other offers.</textarea>
                             <div class="form-text">Terms and conditions for this student offer</div>
                         </div>
@@ -1117,7 +1117,7 @@
                         <div class="col-md-6">
                             <label for="editDiscountPercentage" class="form-label fw-bold">Discount Percentage *</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" id="editDiscountPercentage" name="discount_percentage" 
+                                <input type="number" class="form-control" id="editDiscountPercentage" name="discount_percentage"
                                        min="1" max="50" step="0.1" required>
                                 <span class="input-group-text">%</span>
                             </div>
@@ -1200,6 +1200,53 @@
         </div>
     </div>
 </div>
+
+<!-- Include student offer modal templates -->
+{% include 'packages/student_offer_modal.html' %}
+
+<!-- Ensure JavaScript functions are available globally -->
+<script>
+// Make sure student offer functions are globally accessible
+if (typeof editStudentOffer === 'undefined') {
+    window.editStudentOffer = function(offerId) {
+        console.log('Edit student offer:', offerId);
+        // Try to find and open edit modal
+        const editModal = document.getElementById('editStudentOfferModal');
+        if (editModal) {
+            // Load data and show modal (implement as needed)
+            const modal = new bootstrap.Modal(editModal);
+            modal.show();
+        } else {
+            alert('Edit functionality coming soon');
+        }
+    };
+}
+
+if (typeof deleteStudentOffer === 'undefined') {
+    window.deleteStudentOffer = function(offerId) {
+        if (!confirm('Are you sure you want to delete this student offer?')) {
+            return;
+        }
+
+        fetch(`/api/student-offers/${offerId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Student offer deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Failed to delete'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting student offer');
+        });
+    };
+}
+</script>
 
 <script>
 let selectedServices = new Set();
@@ -1863,7 +1910,7 @@ function submitStudentForm() {
 }
 
 // Student offer CRUD functions
-function editStudent(offerId) {
+function editStudentOffer(offerId) {
     fetch(`/api/student-offers/${offerId}`)
         .then(response => response.json())
         .then(data => {
@@ -1893,7 +1940,7 @@ function editStudent(offerId) {
         });
 }
 
-function deleteStudent(offerId) {
+function deleteStudentOffer(offerId) {
     if (confirm('Are you sure you want to delete this student offer?')) {
         fetch(`/api/student-offers/${offerId}`, {
             method: 'DELETE',
