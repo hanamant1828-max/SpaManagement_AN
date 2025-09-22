@@ -103,7 +103,7 @@ function openAssignSimple(packageId, packageType) {
     // Set hidden fields for package info
     const offerTypeInput = document.getElementById('assignOfferType') || document.getElementById('asPackageType');
     const offerRefInput = document.getElementById('assignOfferReferenceId') || document.getElementById('asTemplateId');
-    
+
     if (offerTypeInput) {
         offerTypeInput.value = packageType;
         console.log('Set package type:', packageType);
@@ -126,7 +126,7 @@ function openAssignSimple(packageId, packageType) {
     const customerSelect = document.getElementById('assignCustomerSelect') || document.getElementById('asCustomer');
     if (customerSelect) {
         customerSelect.value = '';
-        
+
         // Remove existing event listeners to avoid duplicates
         customerSelect.removeEventListener('change', handleCustomerSelection);
         customerSelect.addEventListener('change', handleCustomerSelection);
@@ -140,7 +140,7 @@ function openAssignSimple(packageId, packageType) {
     // Show modal
     const modalInstance = new bootstrap.Modal(modal);
     modalInstance.show();
-    
+
     console.log('Modal opened for package assignment');
 }
 
@@ -221,7 +221,7 @@ function saveAssignSimple() {
             const form = document.getElementById('assignSimpleForm') || 
                         document.getElementById('assignPackageForm');
             if (form) form.reset();
-            
+
             if (saveBtn) saveBtn.disabled = true; // Disable save button again until new selection
 
             setTimeout(() => location.reload(), 1000); // Reload page to reflect changes
@@ -254,10 +254,10 @@ function assignPackage(packageId, packageType) {
  */
 function assignServicePackage(packageId, packageName, serviceId = null) {
     console.log('Assigning service package:', packageId, packageName, serviceId);
-    
+
     // Set up assignment modal for service package
     const modal = document.getElementById('assignServicePackageModal') || document.getElementById('assignPackageModal');
-    
+
     if (!modal) {
         console.error('Assignment modal not found');
         showToast('Assignment modal not available', 'error');
@@ -273,7 +273,7 @@ function assignServicePackage(packageId, packageName, serviceId = null) {
     // Set package details
     const packageIdInput = document.getElementById('assign_service_package_id') || document.getElementById('assign_package_id');
     const packageNameSpan = document.getElementById('assign_service_package_name') || document.getElementById('assign_package_name');
-    
+
     if (packageIdInput) packageIdInput.value = packageId;
     if (packageNameSpan) packageNameSpan.textContent = packageName;
 
@@ -456,13 +456,20 @@ function setupEventListeners() {
         adjustForm.addEventListener('input', validateAdjustForm);
     }
 
-    // Save buttons
-    const saveAssignBtn = document.getElementById('saveAssignPackage');
+    // Save buttons - try multiple IDs for assignment buttons
+    const saveAssignBtn = document.getElementById('saveAssignPackage') ||
+                         document.getElementById('confirmAssignBtn') ||
+                         document.getElementById('confirmAssignButton') ||
+                         document.getElementById('asSave');
     const saveUsageBtn = document.getElementById('saveUsage');
     const saveAdjustBtn = document.getElementById('saveAdjustment');
 
     if (saveAssignBtn) {
-        saveAssignBtn.addEventListener('click', saveAssignment);
+        saveAssignBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Assignment button clicked');
+            saveAssignSimple();
+        });
     }
 
     if (saveUsageBtn) {
@@ -472,6 +479,17 @@ function setupEventListeners() {
     if (saveAdjustBtn) {
         saveAdjustBtn.addEventListener('click', saveAdjustment);
     }
+
+    // Set up delegation for dynamically created assign buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.btn[onclick*="Assign"]') || 
+            e.target.matches('button[data-action="assign"]') ||
+            e.target.closest('.btn[onclick*="Assign"]')) {
+            e.preventDefault();
+            console.log('Assign button clicked via delegation');
+            saveAssignSimple();
+        }
+    });
 }
 
 /**
@@ -553,7 +571,7 @@ async function loadCustomersForAssignment() {
         const customerSelect = document.getElementById('assignCustomerSelect') || 
                              document.getElementById('asCustomer') ||
                              document.querySelector('select[name="customer_id"]');
-        
+
         if (!customerSelect) {
             console.error('Customer select element not found');
             return;
@@ -604,7 +622,7 @@ async function loadCustomersForServiceAssignment() {
         const customerSelect = document.getElementById('assign_service_customer') || 
                              document.getElementById('assignCustomer') ||
                              document.querySelector('select[name="customer_id"]');
-        
+
         if (!customerSelect) {
             console.error('Customer select element not found');
             return;
@@ -996,7 +1014,7 @@ async function saveServicePackageAssignment() {
     const saveBtn = document.getElementById('confirmServiceAssignBtn') || 
                    document.getElementById('saveServiceAssignment');
     const originalText = saveBtn?.innerHTML;
-    
+
     if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
@@ -1874,12 +1892,12 @@ function confirmPackageAssignment() {
             const modal = bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')) ||
                          bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
             if (modal) modal.hide();
-            
+
             // Reset form
             const form = document.getElementById('assignPackageForm') || 
                         document.getElementById('assignSimpleForm');
             if (form) form.reset();
-            
+
             setTimeout(() => location.reload(), 1000);
         } else {
             showToast(result.error || result.message || 'Error assigning package', 'error');
