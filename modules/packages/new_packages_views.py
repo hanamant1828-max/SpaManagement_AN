@@ -1000,7 +1000,7 @@ def assign_package():
             # Get prepaid package template
             prepaid = PrepaidPackage.query.get(data['package_id'])
             if not prepaid:
-                return jsonify({'success': False, 'error': 'Prepaid package not found'}), 404
+                return jsonify({'success': False, 'error': 'Prepaid package not found'}), 400
 
             # Calculate expiry date
             expiry_date = None
@@ -1034,7 +1034,7 @@ def assign_package():
             # Get service package template
             service_pkg = ServicePackage.query.get(data['package_id'])
             if not service_pkg:
-                return jsonify({'success': False, 'error': 'Service package not found'}), 404
+                return jsonify({'success': False, 'error': 'Service package not found'}), 400
 
             # Service ID is required for service packages
             if not data.get('service_id'):

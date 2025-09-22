@@ -169,14 +169,15 @@ def assign_package():
         # Validate required fields
         package_id = data.get('package_id')
         client_id = data.get('client_id')
+        package_type = data.get('package_type', 'regular')
         
-        print(f"Package ID: {package_id}, Client ID: {client_id}")
+        print(f"Package ID: {package_id}, Client ID: {client_id}, Package Type: {package_type}")
         
         if not package_id or not client_id:
             return jsonify({'success': False, 'error': 'Package ID and Client ID are required'}), 400
 
         # Import models
-        from models import Package, Customer, ClientPackage
+        from models import Package, Customer, ClientPackage, ServicePackageAssignment
         
         # Verify package exists
         package = Package.query.get(package_id)
@@ -203,26 +204,43 @@ def assign_package():
         expiry_date = None
         if data.get('expiry_date'):
             from datetime import datetime
-            expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+            expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
         else:
             # Use package validity
-            from datetime import date, timedelta
-            expiry_date = date.today() + timedelta(days=package.validity_days)
+            from datetime import datetime, timedelta
+            expiry_date = datetime.now() + timedelta(days=package.validity_days)
 
         print(f"Expiry date: {expiry_date}")
 
-        # Create assignment
-        assignment = ClientPackage(
-            client_id=client_id,
-            package_id=package_id,
-            expiry_date=expiry_date,
-            price_paid=price_paid,
-            discount_applied=discount,
-            notes=data.get('notes', ''),
-            is_active=True,
-            sessions_used=0,
-            total_sessions=sum([ps.sessions_included for ps in package.services]) if package.services else 0
-        )
+        # Check if using new package system or legacy
+        if hasattr(package, 'package_type') and package.package_type in ['service_package', 'prepaid', 'membership']:
+            # Use new ServicePackageAssignment model
+            assignment = ServicePackageAssignment(
+                customer_id=client_id,
+                package_type=package.package_type,
+                package_reference_id=package_id,
+                expires_on=expiry_date,
+                price_paid=price_paid,
+                discount=discount,
+                notes=data.get('notes', ''),
+                status='active',
+                total_sessions=sum([ps.sessions_included for ps in package.services]) if hasattr(package, 'services') and package.services else 0,
+                used_sessions=0,
+                remaining_sessions=sum([ps.sessions_included for ps in package.services]) if hasattr(package, 'services') and package.services else 0
+            )
+        else:
+            # Use legacy ClientPackage model
+            assignment = ClientPackage(
+                client_id=client_id,
+                package_id=package_id,
+                expiry_date=expiry_date.date() if isinstance(expiry_date, datetime) else expiry_date,
+                price_paid=price_paid,
+                discount_applied=discount,
+                notes=data.get('notes', ''),
+                is_active=True,
+                sessions_used=0,
+                total_sessions=sum([ps.sessions_included for ps in package.services]) if hasattr(package, 'services') and package.services else 0
+            )
 
         print("Creating assignment...")
         db.session.add(assignment)

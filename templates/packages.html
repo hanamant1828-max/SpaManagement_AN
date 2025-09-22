@@ -752,20 +752,22 @@ function filterPackages(type) {
 // Package assignment functions
 // Make openAssignPackageModal global
 window.openAssignPackageModal = function(packageId, packageName, packageType) {
+    console.log('Opening assign modal with:', packageId, packageName, packageType);
+    
     // Set package details
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
-    document.getElementById('assign_package_type').value = packageType;
+    document.getElementById('assign_package_type').value = packageType || 'regular';
 
     // Display package info
     document.getElementById('display_package_name').textContent = packageName;
-    document.getElementById('display_package_type').textContent = packageType.replace('_', ' ').toUpperCase();
+    document.getElementById('display_package_type').textContent = (packageType || 'regular').replace('_', ' ').toUpperCase();
 
     // Reset form but preserve package details
     document.getElementById('assignPackageForm').reset();
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
-    document.getElementById('assign_package_type').value = packageType;
+    document.getElementById('assign_package_type').value = packageType || 'regular';
     document.getElementById('assign_discount').value = '0';
 
     // Update modal title
@@ -774,12 +776,20 @@ window.openAssignPackageModal = function(packageId, packageName, packageType) {
 
     // Show/hide service selection based on package type
     const serviceSelection = document.getElementById('assign_service_selection');
-    if (packageType === 'service_package') {
-        serviceSelection.style.display = 'block';
-        // Load services for selection
-        loadServicesForAssignment();
-    } else {
-        serviceSelection.style.display = 'none';
+    if (serviceSelection) {
+        if (packageType === 'service_package') {
+            serviceSelection.style.display = 'block';
+            // Load services for selection
+            loadServicesForAssignment();
+        } else {
+            serviceSelection.style.display = 'none';
+        }
+    }
+
+    // Enable the assign button
+    const assignButton = document.getElementById('confirmAssignButton');
+    if (assignButton) {
+        assignButton.disabled = false;
     }
 
     // Show modal
@@ -820,13 +830,14 @@ window.confirmPackageAssignment = function() {
     
     // Collect form values with better error handling
     const packageId = document.getElementById('assign_package_id')?.value;
+    const packageType = document.getElementById('assign_package_type')?.value || 'regular';
     const customerId = document.getElementById('assign_customer_id')?.value;
     const customPrice = document.getElementById('assign_custom_price')?.value;
     const discount = document.getElementById('assign_discount')?.value || '0';
     const expiryDate = document.getElementById('assign_expiry')?.value;
     const notes = document.getElementById('assign_notes')?.value || '';
 
-    console.log('Form values:', { packageId, customerId, customPrice, discount, expiryDate, notes });
+    console.log('Form values:', { packageId, packageType, customerId, customPrice, discount, expiryDate, notes });
 
     // Validate required fields
     if (!customerId) {
@@ -851,7 +862,7 @@ window.confirmPackageAssignment = function() {
 
     // Disable button during submission
     const submitButton = document.getElementById('confirmAssignButton');
-    const originalText = submitButton?.innerHTML || 'Assign Package';
+    const originalText = submitButton?.innerHTML || '<i class="fas fa-check me-2"></i>+ Assign';
     if (submitButton) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
@@ -861,6 +872,7 @@ window.confirmPackageAssignment = function() {
     const data = {
         package_id: parseInt(packageId),
         client_id: parseInt(customerId),
+        package_type: packageType,
         custom_price: customPrice ? parseFloat(customPrice) : null,
         discount: parseFloat(discount),
         expiry_date: expiryDate || null,
@@ -878,6 +890,9 @@ window.confirmPackageAssignment = function() {
     })
     .then(response => {
         console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return response.json();
     })
     .then(result => {
@@ -894,6 +909,8 @@ window.confirmPackageAssignment = function() {
             if (modal) {
                 modal.hide();
             }
+            // Reset form
+            form.reset();
             setTimeout(() => location.reload(), 1000);
         } else {
             showToast('Error: ' + (result.message || result.error || 'Assignment failed'), 'error');
@@ -905,7 +922,7 @@ window.confirmPackageAssignment = function() {
             submitButton.innerHTML = originalText;
         }
         console.error('Assignment error:', error);
-        showToast('An error occurred while assigning the package.', 'error');
+        showToast('An error occurred while assigning the package: ' + error.message, 'error');
     });
 };
 
