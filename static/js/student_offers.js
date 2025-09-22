@@ -736,8 +736,9 @@ function confirmAssignment() {
     
     // Disable button during assignment
     const confirmBtn = document.getElementById('confirmAssignBtn');
+    let originalText = 'Assign Package';
     if (confirmBtn) {
-        const originalText = confirmBtn.innerHTML;
+        originalText = confirmBtn.innerHTML;
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
     }
@@ -804,3 +805,21 @@ window.openAssignSimpleStudentOffer = function(offerId) {
     console.log('Opening assignment for student offer:', offerId);
     openAssignSimple(offerId, 'student_offer');
 };
+
+// Add missing assignPackage function for other package types
+window.assignPackage = function(packageId, packageType) {
+    console.log('Assigning package:', packageId, packageType);
+    openAssignSimple(packageId, packageType);
+};
+
+// Ensure confirmAssignment is properly bound to the button
+document.addEventListener('DOMContentLoaded', function() {
+    // Bind the confirm assignment button if it exists
+    const confirmBtn = document.getElementById('confirmAssignBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            confirmAssignment();
+        });
+    }
+});
