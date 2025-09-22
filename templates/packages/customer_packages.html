@@ -967,9 +967,6 @@
                         <label class="form-label">Customer *</label>
                         <select id="asCustomer" class="form-select" required>
                             <option value="">Choose customer...</option>
-                            {% for customer in customers %}
-                                <option value="{{ customer.id }}">{{ customer.full_name }} - {{ customer.phone }}</option>
-                            {% endfor %}
                         </select>
                     </div>
 
@@ -986,13 +983,13 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="asSave" disabled onclick="saveSimpleAssignment()">
+                <button type="button" class="btn btn-success" id="asSave" disabled>
                     <i class="fas fa-check me-2"></i>Assign Package
                 </button>
             </div>
         </div>
     </div>
-</div>
+</div></old_str>
 
 <!-- Assigned Customers Modal -->
 <div class="modal fade" id="assignedCustomersModal" tabindex="-1">

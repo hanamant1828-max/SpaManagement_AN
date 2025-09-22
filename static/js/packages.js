@@ -18,22 +18,63 @@ let currentPackageDetails = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer Packages JS loaded');
     initializePackages();
-
-    // Initialize kitty party modals
     initializeKittyPartyModals();
-
-    // Initialize student offer modals
     initializeStudentOfferModals();
-
-    // Setup event listeners for tables
     setupTableEventDelegation();
+    attachGlobalFunctions(); // This function is added to attach global functions
 });
 
 /**
- * Global functions - Define these immediately for inline onclick handlers
+ * Attach all functions to global scope immediately
  */
+function attachGlobalFunctions() {
+    // Core assignment functions
+    window.openAssignModal = openAssignModal;
+    window.openAssignSimple = openAssignSimple;
+    window.saveAssignSimple = saveAssignSimple;
+    window.assignPackage = assignPackage; // Added missing function
 
-// Open assign package modal
+    // Filter and navigation functions
+    window.clearFilters = clearFilters;
+    window.applyFilters = applyFilters;
+    window.changePage = changePage;
+
+    // Package detail functions
+    window.openDetails = openDetails;
+    window.openUseModal = openUseModal;
+    window.openAdjustModal = openAdjustModal;
+
+    // Student offer functions
+    window.editStudentOffer = editStudentOffer;
+    window.deleteStudentOffer = deleteStudentOffer;
+    window.assignStudentOffer = assignStudentOffer;
+    window.saveStudentOffer = saveStudentOffer;
+    window.updateStudentOffer = updateStudentOffer;
+
+    // Kitty party functions
+    window.editKittyParty = editKittyParty;
+    window.deleteKittyParty = deleteKittyParty;
+    window.assignKittyParty = assignKittyParty;
+    window.saveKittyParty = saveKittyParty;
+    window.updateKittyParty = updateKittyParty;
+
+    // Package type loaders
+    window.loadMembershipPackages = loadMembershipPackages;
+    window.loadStudentPackages = loadStudentPackages;
+    window.loadYearlyPackages = loadYearlyPackages;
+    window.loadKittyPackages = loadKittyPackages;
+
+    // Modal functions
+    window.viewAssignmentDetails = viewAssignmentDetails;
+    window.viewCustomerDetails = viewCustomerDetails;
+    window.confirmPackageAssignment = confirmPackageAssignment; // Added missing function
+
+    console.log('All global functions attached successfully');
+}
+
+/**
+ * Open assign package modal
+ */
 function openAssignModal() {
     console.log('Opening assign modal...');
 
@@ -59,7 +100,117 @@ function openAssignModal() {
     });
 }
 
-// Clear all filters
+/**
+ * Open simple assignment modal for packages
+ */
+function openAssignSimple(packageId, packageType) {
+    console.log('Opening simple assign modal for:', packageId, packageType);
+
+    const modal = document.getElementById('assignSimpleModal');
+    if (!modal) {
+        console.error('assignSimpleModal not found');
+        return;
+    }
+
+    // Set package details
+    const templateIdInput = document.getElementById('asTemplateId');
+    const packageTypeInput = document.getElementById('asPackageType');
+    const templateNameInput = document.getElementById('asTemplateName'); // Assuming this exists for display
+
+    if (templateIdInput) templateIdInput.value = packageId;
+    if (packageTypeInput) packageTypeInput.value = packageType;
+    if (templateNameInput) templateNameInput.value = `${packageType} Package (ID: ${packageId})`; // Updated display name
+
+    // Reset customer selection
+    const customerSelect = document.getElementById('asCustomer');
+    if (customerSelect) {
+        customerSelect.value = '';
+    }
+
+    // Load customers if not already loaded
+    loadCustomersForSimpleAssign(); // Ensure this function is defined and called
+
+    // Show modal
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+}
+
+/**
+ * Save simple assignment
+ */
+function saveAssignSimple() {
+    console.log('Saving simple assignment...');
+
+    const templateId = document.getElementById('asTemplateId').value;
+    const packageType = document.getElementById('asPackageType').value;
+    const customerId = document.getElementById('asCustomer').value;
+    const pricePaid = parseFloat(document.getElementById('asPricePaid').value) || 0;
+    const notes = document.getElementById('asNotes').value || '';
+
+    if (!templateId || !customerId) {
+        showToast('Please select a customer', 'warning');
+        return;
+    }
+
+    const saveBtn = document.getElementById('asSave');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+
+    const data = {
+        customer_id: parseInt(customerId),
+        package_id: parseInt(templateId),
+        package_type: packageType,
+        price_paid: pricePaid,
+        notes: notes
+    };
+
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast('Package assigned successfully!', 'success');
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
+            if (modal) {
+                modal.hide();
+            }
+
+            document.getElementById('assignSimpleForm').reset(); // Reset form after successful assignment
+            saveBtn.disabled = true; // Disable save button again until new selection
+
+            setTimeout(() => location.reload(), 1000); // Reload page to reflect changes
+        } else {
+            showToast(result.error || 'Error assigning package', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving assignment:', error);
+        showToast('Error assigning package', 'error');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+/**
+ * Generic assign package function
+ */
+function assignPackage(packageId, packageType) {
+    console.log('Assigning package:', packageId, packageType);
+    openAssignSimple(packageId, packageType);
+}
+
+/**
+ * Clear all filters
+ */
 function clearFilters() {
     console.log('Clearing filters...');
 
@@ -73,14 +224,14 @@ function clearFilters() {
     if (dateFrom) dateFrom.value = '';
     if (dateTo) dateTo.value = '';
 
-    // Reset current filters and reload
     currentFilters = {};
     currentPage = 1;
-
     loadPackages();
 }
 
-// Apply current filters
+/**
+ * Apply current filters
+ */
 function applyFilters() {
     console.log('Applying filters...');
 
@@ -111,20 +262,23 @@ function applyFilters() {
     loadPackages();
 }
 
-// Open package details modal
+/**
+ * Open package details modal
+ */
 function openDetails(packageId) {
     console.log('Opening package details for:', packageId);
-    openPackageDetailsModal(packageId);
+    openPackageDetailsModal(packageId); // Calls the correctly scoped function
 }
 
-// Open usage recording modal
+/**
+ * Open usage recording modal
+ */
 function openUseModal(packageId) {
     console.log('Opening usage modal for package:', packageId);
 
     if (packageId) {
         currentPackageId = packageId;
-        // Load package details first, then open usage modal
-        openPackageDetailsModal(packageId).then(() => {
+        openPackageDetailsModal(packageId).then(() => { // Calls the correctly scoped function
             setTimeout(() => showUsageModal(), 200);
         });
     } else if (currentPackageDetails) {
@@ -134,14 +288,15 @@ function openUseModal(packageId) {
     }
 }
 
-// Open adjustment/refund modal
+/**
+ * Open adjustment/refund modal
+ */
 function openAdjustModal(packageId) {
     console.log('Opening adjust modal for package:', packageId);
 
     if (packageId) {
         currentPackageId = packageId;
-        // Load package details first, then open adjust modal
-        openPackageDetailsModal(packageId).then(() => {
+        openPackageDetailsModal(packageId).then(() => { // Calls the correctly scoped function
             setTimeout(() => showAdjustModal(), 200);
         });
     } else if (currentPackageDetails) {
@@ -151,48 +306,25 @@ function openAdjustModal(packageId) {
     }
 }
 
-// Change pagination page
+/**
+ * Change pagination page
+ */
 function changePage(page) {
     currentPage = page;
     loadPackages();
 }
-
-// ========================================
-// GLOBAL FUNCTION ATTACHMENTS - ENSURE PROPER SCOPE
-// ========================================
-
-// Define functions that need to be called from HTML onclick handlers
-function attachGlobalFunctions() {
-    // Make functions available globally for onclick handlers
-    window.openAssignModal = openAssignModal;
-    window.clearFilters = clearFilters;
-    window.applyFilters = applyFilters;
-    window.openDetails = openDetails;
-    window.openUseModal = openUseModal;
-    window.openAdjustModal = openAdjustModal;
-    window.changePage = changePage;
-
-    console.log('All global functions attached successfully');
-}
-
-// Call immediately after DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    attachGlobalFunctions();
-});
 
 /**
  * Initialize the packages system
  */
 async function initializePackages() {
     try {
-        // Set default date/time
         const now = new Date();
         const dateTimeInput = document.getElementById('usageDateTime');
         if (dateTimeInput) {
             dateTimeInput.value = now.toISOString().slice(0, 16);
         }
 
-        // Load initial data
         await Promise.all([
             loadPackages(),
             loadTemplates(),
@@ -201,9 +333,7 @@ async function initializePackages() {
             loadStaff()
         ]);
 
-        // Setup event listeners
-        setupEventListeners();
-
+        setupEventListeners(); // Setup listeners for UI elements
         console.log('Customer Packages initialized successfully');
     } catch (error) {
         console.error('Error initializing packages:', error);
@@ -212,10 +342,9 @@ async function initializePackages() {
 }
 
 /**
- * Setup event listeners
+ * Setup event listeners for UI elements
  */
 function setupEventListeners() {
-    // Search input
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', debounce(() => {
@@ -224,53 +353,27 @@ function setupEventListeners() {
         }, 500));
     }
 
-    // Assign package form validation
     const assignForm = document.getElementById('assignPackageForm');
     if (assignForm) {
         assignForm.addEventListener('input', validateAssignForm);
     }
 
-    // Package template selection
     const assignPackage = document.getElementById('assignPackage');
     if (assignPackage) {
         assignPackage.addEventListener('change', showPackagePreview);
     }
 
-    // Usage form validation
     const usageForm = document.getElementById('recordUsageForm');
     if (usageForm) {
         usageForm.addEventListener('input', validateUsageForm);
     }
 
-    // Usage service/quantity change for hints
-    const usageService = document.getElementById('usageService');
-    const usageQuantity = document.getElementById('usageQuantity');
-    if (usageService && usageQuantity) {
-        usageService.addEventListener('change', updateUsageHint);
-        usageQuantity.addEventListener('input', updateUsageHint);
-    }
-
-    // Adjust form validation
     const adjustForm = document.getElementById('adjustRefundForm');
     if (adjustForm) {
         adjustForm.addEventListener('input', validateAdjustForm);
     }
 
-    // Adjust service/quantity change for hints
-    const adjustService = document.getElementById('adjustService');
-    const adjustQuantity = document.getElementById('adjustQuantity');
-    if (adjustService && adjustQuantity) {
-        adjustService.addEventListener('change', updateAdjustHint);
-        adjustQuantity.addEventListener('input', updateAdjustHint);
-    }
-
-    // Mode toggle for adjust/refund
-    const adjustModeInputs = document.querySelectorAll('input[name="adjustMode"]');
-    adjustModeInputs.forEach(input => {
-        input.addEventListener('change', updateAdjustHint);
-    });
-
-    // Save buttons - check for existence before adding listeners
+    // Save buttons
     const saveAssignBtn = document.getElementById('saveAssignPackage');
     const saveUsageBtn = document.getElementById('saveUsage');
     const saveAdjustBtn = document.getElementById('saveAdjustment');
@@ -289,7 +392,7 @@ function setupEventListeners() {
 }
 
 /**
- * Load packages with current filters
+ * Load packages with current filters applied
  */
 async function loadPackages() {
     try {
@@ -322,7 +425,7 @@ async function loadPackages() {
 }
 
 /**
- * Load package templates
+ * Load package templates from API
  */
 async function loadTemplates() {
     try {
@@ -339,7 +442,7 @@ async function loadTemplates() {
 }
 
 /**
- * Load customers
+ * Load customers from API
  */
 async function loadCustomers() {
     try {
@@ -356,7 +459,43 @@ async function loadCustomers() {
 }
 
 /**
- * Load services
+ * Load customers for simple assign modal dropdown
+ */
+async function loadCustomersForSimpleAssign() {
+    try {
+        const response = await fetch('/packages/api/customers');
+        const result = await response.json();
+
+        const customerSelect = document.getElementById('asCustomer');
+        if (!customerSelect) return;
+
+        customerSelect.innerHTML = '<option value="">Select customer...</option>';
+
+        if (result.success && result.customers) {
+            result.customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = `${customer.name} - ${customer.phone || 'No phone'}`;
+                customerSelect.appendChild(option);
+            });
+        }
+
+        // Enable save button when customer is selected
+        customerSelect.addEventListener('change', function() {
+            const saveBtn = document.getElementById('asSave');
+            if (saveBtn) {
+                saveBtn.disabled = !this.value;
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading customers:', error);
+        showToast('Error loading customers', 'error');
+    }
+}
+
+/**
+ * Load services from API
  */
 async function loadServices() {
     try {
@@ -373,7 +512,7 @@ async function loadServices() {
 }
 
 /**
- * Load staff
+ * Load staff from API
  */
 async function loadStaff() {
     try {
@@ -390,7 +529,7 @@ async function loadStaff() {
 }
 
 /**
- * Populate dropdowns
+ * Populate dropdowns with loaded data
  */
 function populateTemplateSelect() {
     const select = document.getElementById('assignPackage');
@@ -459,7 +598,7 @@ function populateStaffSelect() {
 }
 
 /**
- * Render packages table
+ * Render the packages table with loaded data
  */
 function renderPackagesTable() {
     const tbody = document.getElementById('packagesTableBody');
@@ -483,9 +622,7 @@ function renderPackagesTable() {
 
         return `
             <tr>
-                <td>
-                    <strong>${pkg.customer_name}</strong>
-                </td>
+                <td><strong>${pkg.customer_name}</strong></td>
                 <td>${pkg.package_name}</td>
                 <td>
                     <small class="text-muted">Assigned:</small> ${pkg.assigned_on}<br>
@@ -529,7 +666,7 @@ function renderPackagesTable() {
 }
 
 /**
- * Get CSS class for status badge
+ * Get CSS class for status badge based on status
  */
 function getStatusClass(status) {
     const classes = {
@@ -542,7 +679,7 @@ function getStatusClass(status) {
 }
 
 /**
- * Update pagination
+ * Update pagination controls based on API response
  */
 function updatePagination(pagination) {
     const info = document.getElementById('paginationInfo');
@@ -596,580 +733,20 @@ function updatePagination(pagination) {
 }
 
 /**
- * Change page
- */
-function changePage(page) {
-    currentPage = page;
-    loadPackages();
-}
-
-/**
- * Open assign package modal
- */
-function openAssignPackageModal(packageId, packageName, packageType, packagePrice = null) {
-    // Set package details
-    document.getElementById('assign_package_id').value = packageId;
-    document.getElementById('assign_package_name').value = packageName;
-    document.getElementById('assign_package_type').value = packageType;
-
-    // Display package info
-    document.getElementById('display_package_name').textContent = packageName;
-    document.getElementById('display_package_type').textContent = packageType.replace('_', ' ').toUpperCase();
-
-    // Reset form
-    document.getElementById('assignPackageForm').reset();
-    document.getElementById('assign_package_id').value = packageId;
-    document.getElementById('assign_package_name').value = packageName;
-    document.getElementById('assign_package_type').value = packageType;
-
-    // Set default price if provided
-    if (packagePrice) {
-        document.getElementById('assign_custom_price').value = packagePrice;
-    }
-
-    // Update modal title
-    document.getElementById('assignPackageModalTitle').innerHTML =
-        `<i class="fas fa-user-plus me-2"></i>Assign "${packageName}" to Customer`;
-
-    // Focus on customer select
-    setTimeout(() => {
-        document.getElementById('assign_customer_id').focus();
-    }, 300);
-
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
-    modal.show();
-}
-
-// Global PackagesUI namespace for assign from template functionality
-window.PackagesUI = window.PackagesUI || {};
-
-// Event delegation for prepaid assignment
-document.addEventListener('click', e => {
-    const b = e.target.closest('[data-action="assign-prepaid"]');
-    if (!b) return;
-    PackagesUI.assignPrepaidFromTemplate(b.dataset.templateId);
-});
-
-// Assign prepaid from template function
-function assignPrepaidFromTemplate(templateId) {
-    console.log('Assigning prepaid from template:', templateId);
-
-    // Show loading state
-    showToast('Loading package template...', 'info');
-
-    // Fetch template details and open modal
-    fetch(`/packages/api/templates/${templateId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                openPrepaidAssignModal(data.template);
-            } else {
-                throw new Error(data.error || 'Failed to load template');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading template:', error);
-            showToast('Error loading template: ' + error.message, 'error');
-        });
-}
-
-// Open prepaid assign modal with template data
-function openPrepaidAssignModal(template) {
-    console.log('Opening prepaid assign modal with template:', template);
-
-    // Populate template data
-    document.getElementById('apTemplateName').value = template.name;
-    document.getElementById('apTemplateId').value = template.id;
-    document.getElementById('apPayAmount').value = template.pay_amount || template.actual_price || 0;
-    document.getElementById('apGetValue').value = template.get_value || template.after_value || 0;
-    document.getElementById('apBenefit').value = template.benefit_percent || 0;
-    document.getElementById('apValidity').value = template.validity_months || 3;
-    document.getElementById('apPricePaid').value = template.pay_amount || template.actual_price || 0;
-
-    // Clear other fields
-    document.getElementById('apCustomer').value = '';
-    document.getElementById('apService').value = '';
-    document.getElementById('apExpiresOn').value = '';
-    document.getElementById('apNotes').value = '';
-
-    // Load customers and services
-    Promise.all([loadCustomersForPrepaid(), loadServicesForPrepaid()])
-        .then(() => {
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('assignPrepaidModal'));
-            modal.show();
-
-            // Focus on customer select
-            setTimeout(() => {
-                document.getElementById('apCustomer').focus();
-            }, 300);
-
-            // Update form validation
-            validatePrepaidForm();
-        })
-        .catch(error => {
-            console.error('Error loading modal data:', error);
-            showToast('Error loading data for assignment', 'error');
-        });
-}
-
-// Service Package Form Submission
-function submitServiceForm() {
-    console.log('Submitting service package form...');
-
-    try {
-        const form = document.getElementById('servicePackageForm');
-        if (!form) {
-            console.error('Service package form not found');
-            return;
-        }
-
-        const formData = new FormData(form);
-
-        // Validate required fields
-        const packageName = formData.get('name');
-        const payFor = formData.get('pay_for');
-        const totalServices = formData.get('total_services');
-
-        if (!packageName || !payFor || !totalServices) {
-            alert('Please fill in all required fields');
-            return;
-        }
-
-        // Show loading state
-        const saveButton = document.querySelector('#servicePackageModal .btn-primary');
-        if (saveButton) {
-            saveButton.disabled = true;
-            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        }
-
-        fetch('/api/service-packages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('servicePackageModal'));
-                if (modal) {
-                    modal.hide();
-                }
-
-                // Show success message
-                showToast('Service package created successfully!', 'success');
-
-                // Reload the page to show new package
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                showToast('Error: ' + (data.message || 'Failed to create service package'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error submitting service package:', error);
-            showToast('Error creating service package. Please try again.', 'error');
-        })
-        .finally(() => {
-            // Reset button state
-            if (saveButton) {
-                saveButton.disabled = false;
-                saveButton.innerHTML = 'Save Package';
-            }
-        });
-
-    } catch (error) {
-        console.error('Service form submission error:', error);
-        showToast('Error submitting form. Please try again.', 'error');
-    }
-}
-
-function loadCustomersForPrepaid() {
-    return fetch('/packages/api/customers?q=')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const select = document.getElementById('apCustomer');
-                select.innerHTML = '<option value="">Search / select customer...</option>';
-
-                data.customers.forEach(customer => {
-                    const option = document.createElement('option');
-                    option.value = customer.id;
-                    option.textContent = `${customer.name} - ${customer.phone || 'No phone'}`;
-                    select.appendChild(option);
-                });
-            }
-        });
-}
-
-// Load services for prepaid modal  
-function loadServicesForPrepaid() {
-    return fetch('/packages/api/services')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const select = document.getElementById('apService');
-                select.innerHTML = '<option value="">Choose a service...</option>';
-
-                data.services.forEach(service => {
-                    const option = document.createElement('option');
-                    option.value = service.id;
-                    option.textContent = `${service.name} - ₹${service.price}`;
-                    select.appendChild(option);
-                });
-            }
-        });
-}
-
-// Validate prepaid form and enable/disable save buttonon
-function validatePrepaidForm() {
-    const customer = document.getElementById('apCustomer').value;
-    const service = document.getElementById('apService').value;
-    const pricePaid = parseFloat(document.getElementById('apPricePaid').value) || 0;
-
-    const isValid = customer && service && pricePaid >= 0;
-
-    const saveBtn = document.getElementById('apSave');
-    saveBtn.disabled = !isValid;
-
-    // Update summary if valid
-    if (isValid) {
-        updatePrepaidSummary();
-    } else {
-        document.getElementById('apSummary').style.display = 'none';
-    }
-}
-
-// Update prepaid assignment summary
-function updatePrepaidSummary() {
-    const payAmount = parseFloat(document.getElementById('apPayAmount').value) || 0;
-    const getValue = parseFloat(document.getElementById('apGetValue').value) || 0;
-    const pricePaid = parseFloat(document.getElementById('apPricePaid').value) || 0;
-    const validity = document.getElementById('apValidity').value || 0;
-
-    // Calculate actual benefit based on price paid
-    const actualBenefit = pricePaid > 0 ? ((getValue - pricePaid) / pricePaid * 100) : 0;
-
-    const summaryContent = `
-        <div class="row">
-            <div class="col-md-6">
-                <strong>Pay:</strong> ₹${pricePaid.toFixed(2)} → 
-                <strong>Get value:</strong> ₹${getValue.toFixed(2)}
-            </div>
-            <div class="col-md-6">
-                <strong>Benefit:</strong> ${actualBenefit.toFixed(1)}% • 
-                <strong>Validity:</strong> ${validity} months
-            </div>
-        </div>
-    `;
-
-    document.getElementById('apSummaryContent').innerHTML = summaryContent;
-    document.getElementById('apSummary').style.display = 'block';
-}
-
-// Save prepaid assignment
-function savePrepaidAssignment() {
-    const templateId = document.getElementById('apTemplateId').value;
-    const customerId = document.getElementById('apCustomer').value;
-    const serviceId = document.getElementById('apService').value;
-    const pricePaid = parseFloat(document.getElementById('apPricePaid').value);
-    const expiresOn = document.getElementById('apExpiresOn').value || null;
-    const notes = document.getElementById('apNotes').value || '';
-
-    if (!templateId || !customerId || !serviceId || pricePaid < 0) {
-        showToast('Please fill in all required fields', 'error');
-        return;
-    }
-
-    // Show loading state
-    const saveBtn = document.getElementById('apSave');
-    const originalText = saveBtn.innerHTML;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-
-    const assignmentData = {
-        package_type: 'prepaid',
-        package_id: templateId,
-        customer_id: customerId,
-        service_id: serviceId,
-        price_paid: pricePaid,
-        expires_on: expiresOn,
-        notes: notes
-    };
-
-    fetch('/packages/api/assign', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(assignmentData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`✅ Assigned '${document.getElementById('apTemplateName').value}' to ${document.getElementById('apCustomer').selectedOptions[0]?.textContent.split(' - ')[0] || 'customer'}`, 'success');
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('assignPrepaidModal'));
-            modal.hide();
-
-            // Refresh packages table if it exists
-            if (typeof loadPackages === 'function') {
-                loadPackages();
-            }
-
-            // Refresh page as fallback
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-        } else {
-            throw new Error(data.error || 'Assignment failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error assigning package:', error);
-        showToast('Error assigning package: ' + error.message, 'error');
-    })
-    .finally(() => {
-        // Restore button state
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText;
-    });
-}
-
-// Setup prepaid form event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Form validation events
-    const prepaidForm = document.getElementById('assignPrepaidForm');
-    if (prepaidForm) {
-        prepaidForm.addEventListener('input', validatePrepaidForm);
-        prepaidForm.addEventListener('change', validatePrepaidForm);
-    }
-
-    // Price paid changes trigger benefit recalculation
-    const pricePaidInput = document.getElementById('apPricePaid');
-    if (pricePaidInput) {
-        pricePaidInput.addEventListener('input', () => {
-            validatePrepaidForm();
-            updatePrepaidSummary();
-        });
-    }
-
-    // Edit pay amount toggle
-    const editPayAmountBtn = document.getElementById('editPayAmount');
-    if (editPayAmountBtn) {
-        editPayAmountBtn.addEventListener('click', () => {
-            const payAmountInput = document.getElementById('apPayAmount');
-            if (payAmountInput.hasAttribute('readonly')) {
-                payAmountInput.removeAttribute('readonly');
-                payAmountInput.focus();
-                editPayAmountBtn.innerHTML = '<i class="fas fa-save"></i>';
-                editPayAmountBtn.title = 'Save Pay Amount';
-            } else {
-                payAmountInput.setAttribute('readonly', true);
-                editPayAmountBtn.innerHTML = '<i class="fas fa-edit"></i>';
-                editPayAmountBtn.title = 'Edit Pay Amount';
-
-                // Update price paid to match pay amount if not manually set
-                const pricePaidInput = document.getElementById('apPricePaid');
-                if (!pricePaidInput.value || pricePaidInput.value == payAmountInput.value) {
-                    pricePaidInput.value = payAmountInput.value;
-                }
-
-                validatePrepaidForm();
-            }
-        });
-    }
-});
-
-// Assign from template function (existing functionality)
-function assignFromTemplate(templateId, packageType) {
-    console.log('Assigning from template:', templateId, packageType);
-
-    // Find the button to get package data
-    const button = document.querySelector(`[data-template-id="${templateId}"]`);
-    if (!button) {
-        showToast('Package data not found', 'error');
-        return;
-    }
-
-    const packageName = button.dataset.packageName;
-    const packagePrice = button.dataset.packagePrice;
-
-    // Open the assign modal with pre-filled data
-    openAssignPackageModal(templateId, packageName, packageType, packagePrice);
-}
-
-// Expose functions to global scope
-window.PackagesUI.assignFromTemplate = assignFromTemplate;
-window.PackagesUI.assignPrepaidFromTemplate = assignPrepaidFromTemplate;
-
-/**
- * View assignment details modal
- */
-async function viewAssignmentDetails(assignmentId) {
-    try {
-        const response = await fetch(`/packages/api/view-assignment-details/${assignmentId}`);
-        const data = await response.json();
-
-        if (data.success) {
-            // Create and show modal with the returned HTML
-            const modalHtml = `
-                <div class="modal fade" id="viewAssignmentModal" tabindex="-1" data-bs-backdrop="static">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            ${data.html}
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Remove existing modal if any
-            const existingModal = document.getElementById('viewAssignmentModal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-
-            // Add new modal to body
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('viewAssignmentModal'));
-            modal.show();
-
-            // Remove modal from DOM when hidden
-            modal._element.addEventListener('hidden.bs.modal', () => {
-                modal._element.remove();
-            });
-        } else {
-            showToast(data.error || 'Error loading assignment details', 'error');
-        }
-    } catch (error) {
-        console.error('Error viewing assignment details:', error);
-        showToast('Error loading assignment details', 'error');
-    }
-}
-
-/**
- * View customer details modal  
- */
-async function viewCustomerDetails(customerId) {
-    try {
-        const response = await fetch(`/packages/api/customers/${customerId}`);
-        const data = await response.json();
-
-        if (data.success && data.customer) {
-            const customer = data.customer;
-
-            // Create modal HTML
-            const modalHtml = `
-                <div class="modal fade" id="viewCustomerModal" tabindex="-1" data-bs-backdrop="static">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">
-                                    <i class="fas fa-user text-primary me-2"></i>Customer Details
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <strong>Name:</strong><br>
-                                        ${customer.name}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Phone:</strong><br>
-                                        ${customer.phone || 'N/A'}
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <strong>Email:</strong><br>
-                                        ${customer.email || 'N/A'}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>Member Since:</strong><br>
-                                        ${customer.created_at || 'N/A'}
-                                    </div>
-                                </div>
-                                ${customer.address ? `
-                                <div class="row mb-3">
-                                    <div class="col-12">
-                                        <strong>Address:</strong><br>
-                                        ${customer.address}
-                                    </div>
-                                </div>
-                                ` : ''}
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Remove existing modal if any
-            const existingModal = document.getElementById('viewCustomerModal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-
-            // Add new modal to body
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('viewCustomerModal'));
-            modal.show();
-
-            // Remove modal from DOM when hidden
-            modal._element.addEventListener('hidden.bs.modal', () => {
-                modal._element.remove();
-            });
-        } else {
-            showToast(data.error || 'Error loading customer details', 'error');
-        }
-    } catch (error) {
-        console.error('Error viewing customer details:', error);
-        showToast('Error loading customer details', 'error');
-    }
-}
-
-// Add missing global functions
-window.viewAssignmentDetails = viewAssignmentDetails;
-window.viewCustomerDetails = viewCustomerDetails;
-
-// Make these functions available for yearly package assignments
-window.openAssignSimple = openAssignSimple;
-window.saveAssignSimple = saveAssignSimple;
-window.viewAssignedCustomers = viewAssignedCustomers;
-
-
-/**
- * Show package preview when template is selected
+ * Show package preview when a template is selected in the dropdown
  */
 function showPackagePreview() {
     const select = document.getElementById('assignPackage');
     const preview = document.getElementById('packagePreview');
     const itemsContainer = document.getElementById('packageItems');
     const priceInput = document.getElementById('assignPrice');
-    const assignServiceSelection = document.getElementById('assign_service_selection');
-    const assignPackageTypeInput = document.getElementById('assign_package_type');
 
     if (select.value) {
         const selectedOption = select.selectedOptions[0];
         const template = JSON.parse(selectedOption.dataset.template);
 
-        // Set default price
         priceInput.value = template.price;
 
-        // Show items
         itemsContainer.innerHTML = template.items.map(item => `
             <div class="col-md-6">
                 <div class="card border-secondary">
@@ -1184,27 +761,16 @@ function showPackagePreview() {
         `).join('');
 
         preview.style.display = 'block';
-
-        // Handle service package assignment
-        if (template.type === 'service_package') {
-            assignServiceSelection.style.display = 'block';
-            assignPackageTypeInput.value = 'service_package';
-        } else {
-            assignServiceSelection.style.display = 'none';
-            assignPackageTypeInput.value = 'prepaid';
-        }
-
     } else {
         preview.style.display = 'none';
         priceInput.value = '';
-        assignServiceSelection.style.display = 'none';
     }
 
-    validateAssignForm();
+    validateAssignForm(); // Re-validate form when preview changes
 }
 
 /**
- * Validate assign form
+ * Validate the assignment form fields
  */
 function validateAssignForm() {
     const form = document.getElementById('assignPackageForm');
@@ -1213,24 +779,21 @@ function validateAssignForm() {
     const customer = document.getElementById('assignCustomer').value;
     const package = document.getElementById('assignPackage').value;
     const price = document.getElementById('assignPrice').value;
-    const assignServiceId = document.getElementById('assign_service_id').value;
-    const packageType = document.getElementById('assign_package_type').value; // Get the actual package type
 
-    let isValid = customer && package && price && parseFloat(price) > 0;
+    // Basic validation: customer, package, and price must be selected/filled
+    const isValid = customer && package && price && parseFloat(price) > 0;
 
-    // If it's a service package and the service selection is visible, service ID is required
-    if (document.getElementById('assign_service_selection').style.display !== 'none' && packageType === 'service_package') {
-        isValid = isValid && assignServiceId;
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
     }
 
-    saveBtn.disabled = !isValid;
-
-    // Show validation feedback
-    form.classList.toggle('was-validated', isValid);
+    if (form) {
+        form.classList.toggle('was-validated', isValid);
+    }
 }
 
 /**
- * Save package assignment
+ * Save the package assignment to the backend
  */
 async function saveAssignment() {
     try {
@@ -1244,12 +807,7 @@ async function saveAssignment() {
 
         const expiresInput = document.getElementById('assignExpires');
         if (expiresInput.value) {
-            formData.expires_on = expiresInput.value + 'T23:59:59';
-        }
-
-        // Add service_id if it's a service package and selected
-        if (document.getElementById('assign_service_selection').style.display !== 'none' && document.getElementById('assign_package_type').value === 'service_package') {
-            formData.service_id = parseInt(document.getElementById('assign_service_id').value);
+            formData.expires_on = expiresInput.value + 'T23:59:59'; // Set to end of day
         }
 
         const response = await fetch('/packages/api/assign', {
@@ -1263,21 +821,9 @@ async function saveAssignment() {
         const data = await response.json();
 
         if (data.success) {
-            const packageName = document.getElementById('assign_package_name').value;
-            const customerSelect = document.getElementById('assign_customer_id');
-            const customerName = customerSelect.selectedOptions[0]?.text.split(' - ')[0] || 'customer';
-
-            let successMessage = `✅ "${packageName}" assigned to ${customerName}`;
-            if (formData.service_id) {
-                const serviceName = document.getElementById('assign_service_id').selectedOptions[0]?.text.split(' - ')[0];
-                successMessage = `✅ "${packageName}" assigned for ${serviceName} to ${customerName}`;
-            }
-
-            showToast(successMessage, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
-
-            // Refresh the page to show updated assignments
-            setTimeout(() => location.reload(), 1000);
+            showToast('Package assigned successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide(); // Close the modal
+            setTimeout(() => location.reload(), 1000); // Reload page to show updated assignments
         } else {
             showToast('Error: ' + (data.message || data.error), 'error');
         }
@@ -1288,23 +834,23 @@ async function saveAssignment() {
 }
 
 /**
- * Open package details modal (renamed to avoid conflict)
+ * Open package details modal and populate it
  */
 async function openPackageDetailsModal(packageId) {
     try {
-        currentPackageId = packageId;
+        currentPackageId = packageId; // Store the ID for potential later use
 
         const response = await fetch(`/packages/api/customer-packages/${packageId}`);
         const data = await response.json();
 
         if (data.success) {
-            currentPackageDetails = data.package;
-            renderPackageDetails();
+            currentPackageDetails = data.package; // Store details for other functions
+            renderPackageDetails(); // Populate the modal
 
             const modal = new bootstrap.Modal(document.getElementById('packageDetailsModal'));
             modal.show();
 
-            return Promise.resolve();
+            return Promise.resolve(); // Return a promise for chaining
         } else {
             showToast(data.error || 'Error loading package details', 'error');
             return Promise.reject(data.error);
@@ -1317,7 +863,7 @@ async function openPackageDetailsModal(packageId) {
 }
 
 /**
- * Show usage modal with current package data
+ * Show the usage recording modal
  */
 function showUsageModal() {
     if (!currentPackageDetails) {
@@ -1325,21 +871,21 @@ function showUsageModal() {
         return;
     }
 
-    // Reset form
+    // Reset the form
     const form = document.getElementById('recordUsageForm');
     if (form) {
         form.reset();
         form.classList.remove('was-validated');
     }
 
-    // Set current date/time
+    // Set current date/time for usage
     const now = new Date();
     const dateTimeInput = document.getElementById('usageDateTime');
     if (dateTimeInput) {
         dateTimeInput.value = now.toISOString().slice(0, 16);
     }
 
-    // Populate services from package items
+    // Populate services dropdown based on remaining items in the package
     const serviceSelect = document.getElementById('usageService');
     if (serviceSelect) {
         serviceSelect.innerHTML = '<option value="">Select service...</option>';
@@ -1350,14 +896,14 @@ function showUsageModal() {
                     const option = document.createElement('option');
                     option.value = item.service_id;
                     option.textContent = `${item.service_name} (${item.remaining_qty} remaining)`;
-                    option.dataset.remaining = item.remaining_qty;
+                    option.dataset.remaining = item.remaining_qty; // Store remaining quantity for validation
                     serviceSelect.appendChild(option);
                 }
             });
         }
     }
 
-    // Hide hints
+    // Hide any previous hints
     const hint = document.getElementById('usageHint');
     if (hint) {
         hint.style.display = 'none';
@@ -1368,7 +914,7 @@ function showUsageModal() {
 }
 
 /**
- * Show adjustment modal with current package data
+ * Show the adjustment/refund modal
  */
 function showAdjustModal() {
     if (!currentPackageDetails) {
@@ -1376,7 +922,7 @@ function showAdjustModal() {
         return;
     }
 
-    // Reset form
+    // Reset the form
     const form = document.getElementById('adjustRefundForm');
     if (form) {
         form.reset();
@@ -1389,7 +935,7 @@ function showAdjustModal() {
         refundMode.checked = true;
     }
 
-    // Populate services from package items
+    // Populate services dropdown based on package items
     const serviceSelect = document.getElementById('adjustService');
     if (serviceSelect) {
         serviceSelect.innerHTML = '<option value="">Select service...</option>';
@@ -1399,15 +945,15 @@ function showAdjustModal() {
                 const option = document.createElement('option');
                 option.value = item.service_id;
                 option.textContent = `${item.service_name} (${item.used_qty} used, ${item.remaining_qty} remaining)`;
-                option.dataset.used = item.used_qty;
-                option.dataset.remaining = item.remaining_qty;
-                option.dataset.total = item.total_qty;
+                option.dataset.used = item.used_qty; // Store used quantity for validation
+                option.dataset.remaining = item.remaining_qty; // Store remaining quantity
+                option.dataset.total = item.total_qty; // Store total quantity
                 serviceSelect.appendChild(option);
             });
         }
     }
 
-    // Hide hints
+    // Hide any previous hints
     const hint = document.getElementById('adjustHint');
     if (hint) {
         hint.style.display = 'none';
@@ -1418,14 +964,14 @@ function showAdjustModal() {
 }
 
 /**
- * Render package details in modal
+ * Render the package details in the modal body
  */
 function renderPackageDetails() {
     if (!currentPackageDetails) return;
 
     const pkg = currentPackageDetails;
 
-    // Header info
+    // Populate header information
     document.getElementById('detailCustomerName').textContent = pkg.customer_name;
     document.getElementById('detailPackageName').textContent = pkg.package_name;
     document.getElementById('detailPrice').textContent = pkg.price_paid.toFixed(2);
@@ -1434,11 +980,12 @@ function renderPackageDetails() {
 
     const statusBadge = document.getElementById('detailStatus');
     statusBadge.textContent = pkg.status;
-    statusBadge.className = `badge ${getStatusClass(pkg.status)}`;
+    statusBadge.className = `badge ${getStatusClass(pkg.status)}`; // Use helper function for badge class
 
-    // Service items
+    // Populate service items section
     const serviceItems = document.getElementById('serviceItems');
     serviceItems.innerHTML = pkg.items.map(item => {
+        // Calculate progress percentage for the service item
         const progressPercent = item.total_qty > 0 ? ((item.used_qty / item.total_qty) * 100).toFixed(1) : 0;
 
         return `
@@ -1459,7 +1006,7 @@ function renderPackageDetails() {
         `;
     }).join('');
 
-    // Recent usage
+    // Populate recent usage table
     const usageTable = document.getElementById('recentUsageTable');
     if (pkg.recent_usage.length === 0) {
         usageTable.innerHTML = `
@@ -1487,80 +1034,7 @@ function renderPackageDetails() {
 }
 
 /**
- * Open record usage modal
- */
-function openUseModal(packageId = null) {
-    if (packageId) {
-        currentPackageId = packageId;
-        openDetails(packageId).then(() => {
-            setTimeout(() => openUseModal(), 100);
-        });
-        return;
-    }
-
-    if (!currentPackageDetails) return;
-
-    // Reset form
-    document.getElementById('recordUsageForm').reset();
-
-    // Set current date/time
-    const now = new Date();
-    document.getElementById('usageDateTime').value = now.toISOString().slice(0, 16);
-
-    // Populate services from package items
-    const serviceSelect = document.getElementById('usageService');
-    serviceSelect.innerHTML = '<option value="">Select service...</option>';
-
-    currentPackageDetails.items.forEach(item => {
-        if (item.remaining_qty > 0) {
-            const option = document.createElement('option');
-            option.value = item.service_id;
-            option.textContent = `${item.service_name} (${item.remaining_qty} remaining)`;
-            option.dataset.remaining = item.remaining_qty;
-            serviceSelect.appendChild(option);
-        }
-    });
-
-    // Hide hints
-    document.getElementById('usageHint').style.display = 'none';
-
-    const modal = new bootstrap.Modal(document.getElementById('recordUsageModal'));
-    modal.show();
-}
-
-/**
- * Update usage hint
- */
-function updateUsageHint() {
-    const serviceSelect = document.getElementById('usageService');
-    const quantityInput = document.getElementById('usageQuantity');
-    const hint = document.getElementById('usageHint');
-    const hintText = document.getElementById('usageHintText');
-
-    if (serviceSelect.value && quantityInput.value) {
-        const selectedOption = serviceSelect.selectedOptions[0];
-        const remaining = parseInt(selectedOption.dataset.remaining);
-        const quantity = parseInt(quantityInput.value);
-
-        if (quantity > remaining) {
-            hintText.textContent = `Not enough balance! Only ${remaining} remaining.`;
-            hint.className = 'alert alert-danger';
-        } else {
-            const newRemaining = remaining - quantity;
-            hintText.textContent = `Remaining after this usage: ${newRemaining}`;
-            hint.className = 'alert alert-info';
-        }
-
-        hint.style.display = 'block';
-    } else {
-        hint.style.display = 'none';
-    }
-
-    validateUsageForm();
-}
-
-/**
- * Validate usage form
+ * Validate the usage form before submission
  */
 function validateUsageForm() {
     const form = document.getElementById('recordUsageForm');
@@ -1571,19 +1045,23 @@ function validateUsageForm() {
 
     let isValid = service && quantity && parseInt(quantity) > 0;
 
-    // Check if enough balance
+    // Additional check: ensure enough remaining balance
     if (isValid && service) {
         const selectedOption = document.getElementById('usageService').selectedOptions[0];
         const remaining = parseInt(selectedOption.dataset.remaining);
         isValid = parseInt(quantity) <= remaining;
     }
 
-    saveBtn.disabled = !isValid;
-    form.classList.toggle('was-validated', isValid);
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+    if (form) {
+        form.classList.toggle('was-validated', isValid);
+    }
 }
 
 /**
- * Save usage
+ * Save the recorded usage to the backend
  */
 async function saveUsage() {
     try {
@@ -1616,14 +1094,13 @@ async function saveUsage() {
         if (data.success) {
             showToast('Usage recorded successfully!', 'success');
 
-            // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('recordUsageModal'));
             modal.hide();
 
-            // Reload details and packages
+            // Refresh package details and the main package list
             await Promise.all([
-                openDetails(currentPackageId),
-                loadPackages()
+                openDetails(currentPackageId), // Re-opens details to show updated usage
+                loadPackages() // Reloads the main package list
             ]);
         } else {
             showToast(data.error || 'Error recording usage', 'error');
@@ -1635,92 +1112,7 @@ async function saveUsage() {
 }
 
 /**
- * Open adjust/refund modal
- */
-function openAdjustModal(packageId = null) {
-    if (packageId) {
-        currentPackageId = packageId;
-        openDetails(packageId).then(() => {
-            setTimeout(() => openAdjustModal(), 100);
-        });
-        return;
-    }
-
-    if (!currentPackageDetails) return;
-
-    // Reset form
-    document.getElementById('adjustRefundForm').reset();
-    document.getElementById('refundMode').checked = true;
-
-    // Populate services from package items
-    const serviceSelect = document.getElementById('adjustService');
-    serviceSelect.innerHTML = '<option value="">Select service...</option>';
-
-    currentPackageDetails.items.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item.service_id;
-        option.textContent = `${item.service_name} (${item.used_qty} used, ${item.remaining_qty} remaining)`;
-        option.dataset.used = item.used_qty;
-        option.dataset.remaining = item.remaining_qty;
-        option.dataset.total = item.total_qty;
-        serviceSelect.appendChild(option);
-    });
-
-    // Hide hints
-    document.getElementById('adjustHint').style.display = 'none';
-
-    const modal = new bootstrap.Modal(document.getElementById('adjustRefundModal'));
-    modal.show();
-}
-
-/**
- * Update adjust hint
- */
-function updateAdjustHint() {
-    const serviceSelect = document.getElementById('adjustService');
-    const quantityInput = document.getElementById('adjustQuantity');
-    const hint = document.getElementById('adjustHint');
-    const hintText = document.getElementById('adjustHintText');
-    const mode = document.querySelector('input[name="adjustMode"]:checked').value;
-
-    if (serviceSelect.value && quantityInput.value) {
-        const selectedOption = serviceSelect.selectedOptions[0];
-        const used = parseInt(selectedOption.dataset.used);
-        const remaining = parseInt(selectedOption.dataset.remaining);
-        const total = parseInt(selectedOption.dataset.total);
-        const quantity = parseInt(quantityInput.value);
-
-        if (mode === 'refund') {
-            if (quantity > used) {
-                hintText.textContent = `Cannot refund more than used! Only ${used} used.`;
-                hint.className = 'alert alert-danger';
-            } else {
-                const newRemaining = remaining + quantity;
-                hintText.textContent = `New remaining after refund: ${newRemaining}`;
-                hint.className = 'alert alert-info';
-            }
-        } else { // adjust
-            const newTotal = total + quantity;
-            const newRemaining = newTotal - used;
-            if (newRemaining < 0) {
-                hintText.textContent = `Adjustment would result in negative remaining balance!`;
-                hint.className = 'alert alert-danger';
-            } else {
-                hintText.textContent = `New remaining after adjustment: ${newRemaining}`;
-                hint.className = 'alert alert-info';
-            }
-        }
-
-        hint.style.display = 'block';
-    } else {
-        hint.style.display = 'none';
-    }
-
-    validateAdjustForm();
-}
-
-/**
- * Validate adjust form
+ * Validate the adjustment/refund form
  */
 function validateAdjustForm() {
     const form = document.getElementById('adjustRefundForm');
@@ -1733,7 +1125,7 @@ function validateAdjustForm() {
 
     let isValid = service && quantity && parseInt(quantity) > 0 && reason.trim();
 
-    // Check specific mode validations
+    // Specific validation based on mode (refund/adjust)
     if (isValid && service) {
         const selectedOption = document.getElementById('adjustService').selectedOptions[0];
         const used = parseInt(selectedOption.dataset.used);
@@ -1741,20 +1133,24 @@ function validateAdjustForm() {
         const qty = parseInt(quantity);
 
         if (mode === 'refund') {
-            isValid = qty <= used;
-        } else { // adjust
+            isValid = qty <= used; // Cannot refund more than used
+        } else { // 'adjust' mode
             const newTotal = total + qty;
             const newRemaining = newTotal - used;
-            isValid = newRemaining >= 0;
+            isValid = newRemaining >= 0; // Cannot result in negative remaining balance
         }
     }
 
-    saveBtn.disabled = !isValid;
-    form.classList.toggle('was-validated', isValid);
+    if (saveBtn) {
+        saveBtn.disabled = !isValid;
+    }
+    if (form) {
+        form.classList.toggle('was-validated', isValid);
+    }
 }
 
 /**
- * Save adjustment
+ * Save the adjustment or refund operation
  */
 async function saveAdjustment() {
     try {
@@ -1764,7 +1160,7 @@ async function saveAdjustment() {
             service_id: parseInt(document.getElementById('adjustService').value),
             qty: parseInt(document.getElementById('adjustQuantity').value),
             reason: document.getElementById('adjustReason').value,
-            change_type: mode
+            change_type: mode // 'refund' or 'adjust'
         };
 
         const response = await fetch(`/packages/api/customer-packages/${currentPackageId}/adjust`, {
@@ -1780,11 +1176,10 @@ async function saveAdjustment() {
         if (data.success) {
             showToast(`${mode === 'refund' ? 'Refund' : 'Adjustment'} processed successfully!`, 'success');
 
-            // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('adjustRefundModal'));
             modal.hide();
 
-            // Reload details and packages
+            // Refresh package details and the main package list
             await Promise.all([
                 openDetails(currentPackageId),
                 loadPackages()
@@ -1798,241 +1193,13 @@ async function saveAdjustment() {
     }
 }
 
-/**
- * Apply filters
- */
-function applyFilters() {
-    currentFilters = {};
-
-    const status = document.getElementById('statusFilter').value;
-    if (status) currentFilters.status = status;
-
-    const dateFrom = document.getElementById('dateFrom').value;
-    if (dateFrom) currentFilters.date_from = dateFrom;
-
-    const dateTo = document.getElementById('dateTo').value;
-    if (dateTo) currentFilters.date_to = dateTo;
-
-    currentPage = 1;
-    loadPackages();
-}
-
-/**
- * Clear filters
- */
-function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('statusFilter').value = '';
-    document.getElementById('dateFrom').value = '';
-    document.getElementById('dateTo').value = '';
-
-    currentFilters = {};
-    currentPage = 1;
-    loadPackages();
-}
-
-/**
- * Utility functions
- */
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-function showToast(message, type = 'info') {
-    // Use the existing notification system if available
-    if (typeof showNotification === 'function') {
-        showNotification(message, type);
-    } else {
-        // Create a simple Bootstrap toast
-        const toastContainer = document.getElementById('toast-container') || createToastContainer();
-
-        const toastId = 'toast-' + Date.now();
-        const bgClass = {
-            'success': 'bg-success',
-            'error': 'bg-danger',
-            'warning': 'bg-warning',
-            'info': 'bg-info'
-        }[type] || 'bg-info';
-
-        const toastHtml = `
-            <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header ${bgClass} text-white border-0">
-                    <strong class="me-auto">Notification</strong>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                </div>
-                <div class="toast-body">
-                    ${message}
-                </div>
-            </div>
-        `;
-
-        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-
-        const toastElement = document.getElementById(toastId);
-        const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 });
-        bsToast.show();
-
-        // Remove toast element after it's hidden
-        toastElement.addEventListener('hidden.bs.toast', () => {
-            toastElement.remove();
-        });
-    }
-}
-
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'toast-container position-fixed top-0 end-0 p-3';
-    container.style.zIndex = '1055';
-    document.body.appendChild(container);
-    return container;
-}
-
-/**
- * Format numbers and dates
- */
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-    }).format(amount);
-}
-
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString();
-}
-
-function formatDateTime(dateString) {
-    return new Date(dateString).toLocaleString();
-}
-
-/**
- * Handle the assignment confirmation after template selection
- */
-function confirmPackageAssignment() {
-    const form = document.getElementById('assignPackageForm');
-    const formData = new FormData(form);
-
-    // Validate required fields
-    const customerId = document.getElementById('assign_customer_id').value;
-    const packageType = document.getElementById('assign_package_type').value; // Get the actual package type from the hidden input
-    const serviceSelectionVisible = document.getElementById('assign_service_selection').style.display !== 'none';
-
-    if (!customerId) {
-        document.getElementById('assign_customer_id').classList.add('is-invalid');
-        showToast('Please select a customer', 'error');
-        return;
-    }
-    document.getElementById('assign_customer_id').classList.remove('is-invalid');
-
-    // Check service selection for service packages
-    if (serviceSelectionVisible && packageType === 'service_package') {
-        const serviceId = document.getElementById('assign_service_id').value;
-        if (!serviceId) {
-            document.getElementById('assign_service_id').classList.add('is-invalid');
-            showToast('Please select a service for this package', 'error');
-            return;
-        }
-        document.getElementById('assign_service_id').classList.remove('is-invalid');
-    }
-
-    // Disable button during submission
-    const submitButton = document.getElementById('saveAssignPackage'); // Corrected button ID
-    const originalText = submitButton.innerHTML;
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-
-    const data = {};
-    formData.forEach((value, key) => {
-        // Ensure we don't send empty values if they are not required or handled
-        if (value !== '' && value !== null) {
-            data[key] = value;
-        }
-    });
-
-    // Manually add service_id if it's a service package and selected
-    if (serviceSelectionVisible && packageType === 'service_package') {
-        data.service_id = document.getElementById('assign_service_id').value;
-    }
-
-    fetch('/packages/api/assign', { // Corrected API endpoint
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json', // Use JSON for body
-        },
-        body: JSON.stringify(data) // Stringify the data object
-    })
-    .then(response => response.json())
-    .then(data => {
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
-
-        if (data.success) {
-            const serviceName = serviceSelectionVisible ?
-                document.getElementById('assign_service_id').selectedOptions[0]?.text.split(' - ')[0] : '';
-            const successMessage = serviceName ?
-                `✅ "${data.package_name}" assigned for ${serviceName} to ${data.customer_name}` :
-                `✅ "${data.package_name}" assigned to ${data.customer_name}`;
-
-            showToast(successMessage, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showToast('Error: ' + (data.message || data.error), 'error');
-        }
-    })
-    .catch(error => {
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
-        console.error('Error:', error);
-        showToast('An error occurred while assigning the package.', 'error');
-    });
-}
-
-
-// Event delegation for assign buttons
-document.addEventListener('click', function(e) {
-    if (e.target.closest('[data-action="assign"]')) {
-        const btn = e.target.closest('[data-action="assign"]');
-        e.preventDefault();
-        e.stopPropagation();
-
-        const templateId = btn.dataset.templateId;
-        const packageType = btn.dataset.packageType || 'prepaid';
-
-        if (templateId) {
-            window.PackagesUI.assignFromTemplate(templateId, packageType);
-        }
-    }
-});
-
-// Keyboard support for assign buttons
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-        const btn = e.target.closest('[data-action="assign"]');
-        if (btn) {
-            e.preventDefault();
-            btn.click();
-        }
-    }
-});
-
 // ========================================
 // STUDENT OFFER MANAGEMENT
 // ========================================
 
-// Load student offers packages
 async function loadStudentPackages() {
     try {
-        console.log('Loading student packages specifically for student tab only');
+        console.log('Loading student packages...');
 
         const response = await fetch('/packages/api/student-offers');
         const data = await response.json();
@@ -2049,7 +1216,6 @@ async function loadStudentPackages() {
             data.forEach(offer => {
                 const row = document.createElement('tr');
                 const servicesList = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
-                const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
 
                 row.innerHTML = `
                     <td><strong>${offer.name || 'Student Offer'}</strong></td>
@@ -2061,15 +1227,11 @@ async function loadStudentPackages() {
                             <strong>To:</strong> ${offer.valid_to}
                         </small>
                     </td>
-                    <td><span class="badge bg-info">${offer.valid_days}</span></td>
                     <td>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-success btn-sm"
-                                    onclick="openAssignSimple(${offer.id}, 'student')"
-                                    title="Assign to Customer"
-                                    data-action="assign-simple"
-                                    data-template-id="${offer.id}"
-                                    data-package-type="student">
+                                    onclick="openAssignSimple(${offer.id}, 'student_offer')"
+                                    title="Assign to Customer">
                                 <i class="fas fa-user-plus"></i> Assign
                             </button>
                             <button class="btn btn-outline-primary" onclick="editStudentOffer(${offer.id})">
@@ -2084,7 +1246,6 @@ async function loadStudentPackages() {
                 tableBody.appendChild(row);
             });
 
-            // Update count
             const countElement = document.getElementById('student-total-count');
             if (countElement) {
                 countElement.textContent = data.length;
@@ -2092,7 +1253,7 @@ async function loadStudentPackages() {
         } else {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-4">
                         <i class="fas fa-info-circle me-2"></i>
                         No student offers found
                     </td>
@@ -2108,812 +1269,121 @@ async function loadStudentPackages() {
     }
 }
 
-/**
- * Delete student offer with confirmation
- */
-async function deleteStudentOffer(offerId) {
-    if (!confirm('Are you sure you want to delete this student offer?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
-            method: 'DELETE'
-        });
-
-        const result = await response.json();
-
-        if (result.success || response.ok) {
-            showToast('Student offer deleted successfully!', 'success');
-            await loadStudentPackages();
-        } else {
-            throw new Error(result.error || 'Failed to delete student offer');
-        }
-    } catch (error) {
-        console.error('Error deleting student offer:', error);
-        showToast('Error deleting student offer: ' + error.message, 'error');
-    }
-}
-
-/**
- * Edit student offer function
- */
 function editStudentOffer(offerId) {
-    if (typeof loadStudentOfferForEdit === 'function') {
-        loadStudentOfferForEdit(offerId);
-    } else {
-        console.log('Edit student offer:', offerId);
-        // Fallback to basic alert
-        alert('Edit functionality will be available soon');
-    }
+    console.log('Edit student offer:', offerId);
+    showToast('Edit functionality will be available soon', 'info');
 }
 
-// Initialize student offer modals
-function initializeStudentOfferModals() {
-    // Load services into dropdowns
-    loadServicesForStudentOffers();
-
-    // Set default dates (today and 6 months from now)
-    const today = new Date().toISOString().split('T')[0];
-    const sixMonthsLater = new Date();
-    sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
-    const futureDate = sixMonthsLater.toISOString().split('T')[0];
-
-    const validFromField = document.querySelector('input[name="valid_from"]');
-    const validToField = document.querySelector('input[name="valid_to"]');
-
-    if (validFromField) validFromField.value = today;
-    if (validToField) validToField.value = futureDate;
-
-    // Form validation event listeners
-    const addForm = document.getElementById('addStudentOfferForm');
-    if (addForm) {
-        addForm.addEventListener('input', validateStudentOfferForm);
-        addForm.addEventListener('change', validateStudentOfferForm);
-
-        // Initial validation to set correct button state
-        validateStudentOfferForm();
-    }
-
-    // Valid days dropdown change handler
-    const validDaysSelect = document.querySelector('select[name="valid_days"]');
-    if (validDaysSelect) {
-        validDaysSelect.addEventListener('change', function() {
-            const customDiv = document.getElementById('customValidDaysDiv');
-            if (this.value === 'Custom') {
-                customDiv.style.display = 'block';
-            } else {
-                customDiv.style.display = 'none';
-            }
-            updateStudentOfferPreview(); // Update preview when valid days change
-        });
-    }
-}
-
-// Load services for student offers
-async function loadServicesForStudentOffers() {
-    try {
-        const response = await fetch('/packages/api/services');
-        const data = await response.json();
-
-        if (data.success) {
-            const services = data.services;
-            const serviceSelect = document.getElementById('serviceIds');
-            const editServiceSelect = document.getElementById('editStudentOfferServices');
-
-            if (serviceSelect) {
-                serviceSelect.innerHTML = services.map(s =>
-                    `<option value="${s.id}">${s.name} - ₹${s.price}</option>`
-                ).join('');
-                // Initialize select with select2 or similar if needed
-                // $(serviceSelect).select2();
-            }
-            if (editServiceSelect) {
-                editServiceSelect.innerHTML = services.map(s =>
-                    `<option value="${s.id}">${s.name} - ₹${s.price}</option>`
-                ).join('');
-                 // $(editServiceSelect).select2();
-            }
-        }
-    } catch (error) {
-        console.error('Error loading services for student offers:', error);
-    }
-}
-
-// Validate student offer form
-function validateStudentOfferForm() {
-    const services = document.getElementById('serviceIds');
-    const discount = document.getElementById('discountPercentage');
-    const validDays = document.querySelector('select[name="valid_days"]');
-    const customValidDays = document.getElementById('customValidDays');
-    const saveButton = document.getElementById('saveStudentOffer');
-
-    // Check if at least one service is selected
-    const hasSelectedServices = services && services.selectedOptions && services.selectedOptions.length > 0;
-
-    // Check discount percentage
-    const discountValue = parseFloat(discount.value);
-    const isValidDiscount = discount && discountValue >= 1 && discountValue <= 100;
-
-    // Check valid days
-    let isValidValidDays = false;
-    if (validDays && validDays.value === 'Custom') {
-        isValidValidDays = customValidDays && customValidDays.value.trim() !== '';
-    } else {
-        isValidValidDays = validDays && validDays.value !== '';
-    }
-
-    const formIsValid = hasSelectedServices && isValidDiscount && isValidValidDays;
-
-    if (saveButton) {
-        saveButton.disabled = !formIsValid;
-    }
-
-    // Add/remove validation classes for feedback
-    services.classList.toggle('is-invalid', !hasSelectedServices);
-    discount.classList.toggle('is-invalid', !isValidDiscount);
-    if (validDays && validDays.value === 'Custom') {
-        customValidDays.classList.toggle('is-invalid', !isValidValidDays);
-    } else {
-        validDays.classList.toggle('is-invalid', !isValidValidDays);
-    }
-
-    updateStudentOfferPreview();
-}
-
-// Update student offer preview
-function updateStudentOfferPreview() {
-    const services = document.getElementById('serviceIds');
-    const discount = document.getElementById('discountPercentage');
-    const validDays = document.querySelector('select[name="valid_days"]');
-    const validFrom = document.querySelector('input[name="valid_from"]');
-    const validTo = document.querySelector('input[name="valid_to"]');
-    const preview = document.getElementById('studentOfferPreview');
-
-    if (services.selectedOptions.length > 0 && discount.value) {
-        const selectedServices = Array.from(services.selectedOptions).map(s => s.textContent);
-        const previewHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <strong>Services:</strong><br>
-                    <ul class="mb-2">
-                        ${selectedServices.map(s => `<li class="small">${s}</li>`).join('')}
-                    </ul>
-                </div>
-                <div class="col-md-6">
-                    <strong>Discount:</strong> ${discount.value}%<br>
-                    <strong>Valid:</strong> ${validDays.value}<br>
-                    <strong>Period:</strong> ${validFrom.value} to ${validTo.value}
-                </div>
-            </div>
-        `;
-        preview.innerHTML = previewHTML;
-    } else {
-        preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
-    }
-}
-
-// Save student offer
-async function saveStudentOffer() {
-    try {
-        const form = document.getElementById('addStudentOfferForm');
-        const formData = new FormData(form);
-
-        // Get selected service IDs from multi-select
-        const selectedServiceIds = Array.from(form.querySelectorAll('#serviceIds option:checked')).map(opt => parseInt(opt.value));
-
-        // Add selected services to form data
-        formData.append('service_ids', JSON.stringify(selectedServiceIds));
-
-        // Handle custom valid days
-        const validDaysSelect = form.querySelector('select[name="valid_days"]');
-        const customValidDaysInput = form.querySelector('input[name="custom_valid_days"]');
-        if (validDaysSelect && validDaysSelect.value === 'Custom' && customValidDaysInput && customValidDaysInput.value) {
-            formData.set('valid_days', customValidDaysInput.value);
-        }
-
-        // Convert FormData to JSON object for fetch API
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'service_ids') {
-                data[key] = JSON.parse(value); // Parse the JSON string back to an array
-            } else {
-                data[key] = value;
-            }
-        });
-
-        // Ensure discount is a number
-        data.discount_percentage = parseFloat(data.discount_percentage);
-
-        const response = await fetch('/packages/api/student-offers', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success === true) {
-            showToast('Student offer created successfully!', 'success');
-
-            // Close modal if it exists
-            const modal = document.getElementById('addStudentOfferModal');
-            if (modal) {
-                const modalInstance = bootstrap.Modal.getInstance(modal);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            }
-
-            // Reset form
-            form.reset();
-
-            // Reload table if function exists
-            if (typeof loadStudentPackages === 'function') {
-                await loadStudentPackages();
-
-                return;
-            }
-        } else {
-            throw new Error(result.error || 'Failed to create student offer');
-        }
-    } catch (error) {
-        console.error('Error saving student offer:', error);
-        showToast('Error saving student offer: ' + error.message, 'error');
-    }
-}
-
-// Load student offer for editing
-async function loadStudentOfferForEdit(offerId) {
-    try {
-        const response = await fetch(`/packages/api/student-offers/${offerId}`);
-        const result = await response.json();
-
-        if (result.success && result.offer) {
-            const offer = result.offer;
-
-            // Populate form fields
-            const editForm = document.getElementById('editStudentOfferForm');
-            const offerIdField = document.getElementById('editOfferId');
-            const discountField = document.getElementById('editStudentDiscountPercentage');
-            const validDaysField = document.getElementById('editStudentValidDays');
-            const customValidDaysField = document.getElementById('editCustomValidDays');
-            const validFromField = document.getElementById('editStudentValidFrom');
-            const validToField = document.getElementById('editStudentValidTo');
-            const conditionsField = document.getElementById('editStudentConditions');
-
-            if (offerIdField) offerIdField.value = offer.id;
-            if (discountField) discountField.value = offer.discount_percentage;
-            if (validDaysField) validDaysField.value = offer.valid_days;
-            if (validFromField) validFromField.value = offer.valid_from;
-            if (validToField) validToField.value = offer.valid_to;
-            if (conditionsField) conditionsField.value = offer.conditions || '';
-
-            // Handle service selection (checkboxes or multi-select)
-            const serviceCheckboxes = editForm.querySelectorAll('input[name="service_ids"]');
-            const serviceSelect = document.getElementById('editStudentOfferServices');
-
-            if (serviceCheckboxes.length > 0) {
-                // Handle checkbox-based service selection
-                serviceCheckboxes.forEach(checkbox => {
-                    checkbox.checked = offer.services.some(s => s.id == checkbox.value);
-                });
-            } else if (serviceSelect) {
-                // Handle multi-select dropdown
-                Array.from(serviceSelect.options).forEach(option => {
-                    option.selected = offer.services.some(s => s.id == option.value);
-                });
-            }
-
-            // Handle custom valid days
-            if (!['Mon-Fri', 'Mon-Sat', 'All Days', 'Weekends'].includes(offer.valid_days)) {
-                if (validDaysField) validDaysField.value = 'Custom';
-                const customDiv = document.getElementById('editCustomValidDaysDiv');
-                if (customDiv) customDiv.style.display = 'block';
-                if (customValidDaysField) customValidDaysField.value = offer.valid_days;
-            } else {
-                if (customValidDaysField) customValidDaysField.value = ''; // Clear custom days if not applicable
-            }
-
-            // Show modal
-            const modal = document.getElementById('editStudentOfferModal');
-            if (modal) {
-                const modalInstance = new bootstrap.Modal(modal);
-                modalInstance.show();
-            }
-        } else {
-            throw new Error(result.error || 'Student offer not found');
-        }
-    } catch (error) {
-        console.error('Error loading student offer for edit:', error);
-        showToast('Error loading student offer: ' + error.message, 'error');
-    }
-}
-
-// Update student offer
-async function updateStudentOffer() {
-    try {
-        const form = document.getElementById('editStudentOfferForm');
-        if (!form) {
-            console.error('Edit student offer form not found');
-            return;
-        }
-
-        const offerId = document.getElementById('editOfferId').value;
-        if (!offerId) {
-            throw new Error('Student offer ID not found');
-        }
-
-        // Get the update button for loading state
-        const updateBtn = document.getElementById('updateStudentOffer');
-        if (!updateBtn) {
-            console.error('Update button not found');
-            return;
-        }
-        const originalText = updateBtn.innerHTML;
-        updateBtn.disabled = true;
-        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-
-        // Client-side validation
-        const services = form.querySelectorAll('input[name="service_ids"]:checked, select[name="service_ids"] option:checked');
-        const discountInput = form.querySelector('input[name="discount_percentage"]');
-        const validFromInput = form.querySelector('input[name="valid_from"]');
-        const validToInput = form.querySelector('input[name="valid_to"]');
-
-        // Validate at least one service selected
-        if (services.length === 0) {
-            throw new Error('Please select at least one service');
-        }
-
-        // Validate discount percentage
-        const discount = parseFloat(discountInput.value);
-        if (!discount || discount < 1 || discount > 100) {
-            throw new Error('Discount percentage must be between 1 and 100');
-        }
-
-        // Validate dates
-        if (!validFromInput.value || !validToInput.value) {
-            throw new Error('Please select both valid from and to dates');
-        }
-
-        const validFrom = new Date(validFromInput.value);
-        const validTo = new Date(validToInput.value);
-        if (validTo < validFrom) {
-            throw new Error('Valid To Date must be greater than or equal to Valid From Date');
-        }
-
-        const formData = new FormData(form);
-
-        // Handle valid days
-        const validDaysSelect = form.querySelector('select[name="valid_days"]');
-        const customValidDays = form.querySelector('input[name="custom_valid_days"]');
-        if (validDaysSelect && validDaysSelect.value === 'Custom' && customValidDays && customValidDays.value) {
-            formData.set('valid_days', customValidDays.value);
-        }
-
-        // Convert to JSON
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'service_ids') {
-                if (!data[key]) data[key] = [];
-                data[key].push(parseInt(value));
-            } else {
-                data[key] = value;
-            }
-        });
-
-        console.log('Updating student offer data:', data);
-
-        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success === true) {
-            showToast('Student offer updated successfully!', 'success');
-
-            // Close modal if it exists
-            const modal = document.getElementById('editStudentOfferModal');
-            if (modal) {
-                const modalInstance = bootstrap.Modal.getInstance(modal);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            }
-
-            // Reload table if function exists
-            if (typeof loadStudentPackages === 'function') {
-                await loadStudentPackages();
-            }
-
-            // If on dedicated page, redirect back to packages
-            if (window.location.pathname.includes('/edit')) {
-                window.location.href = '/packages#assign-student';
-            }
-        } else {
-            throw new Error(result.error || 'Failed to update student offer');
-        }
-    } catch (error) {
-        console.error('Error updating student offer:', error);
-        // Display server error message or generic error
-        const errorMessage = error.message || 'An unexpected error occurred';
-        showToast('Error updating student offer: ' + errorMessage, 'error');
-    } finally {
-        // Always restore button state
-        const updateBtn = document.getElementById('updateStudentOffer');
-        if (updateBtn) {
-            updateBtn.disabled = false;
-            updateBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Student Offer';
-        }
-    }
-}
-
-// Delete student offer
-async function deleteStudentOffer(offerId) {
+function deleteStudentOffer(offerId) {
     if (!confirm('Are you sure you want to delete this student offer?')) {
         return;
     }
 
-    try {
-        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
-            method: 'DELETE'
-        });
-
-        const result = await response.json();
-
+    fetch(`/packages/api/student-offers/${offerId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(result => {
         if (result.success || response.ok) {
             showToast('Student offer deleted successfully!', 'success');
-            await loadStudentPackages();
+            loadStudentPackages();
         } else {
             throw new Error(result.error || 'Failed to delete student offer');
         }
-    } catch (error) {
+    })
+    .catch(error => {
         console.error('Error deleting student offer:', error);
         showToast('Error deleting student offer: ' + error.message, 'error');
-    }
+    });
 }
 
-// Assign student offer
 function assignStudentOffer(offerId) {
-    // Implement assignment logic similar to other package types
-    console.log('Assigning student offer:', offerId);
-    showToast('Student offer assignment feature coming soon!', 'info');
+    openAssignSimple(offerId, 'student_offer');
+}
+
+function saveStudentOffer() {
+    console.log('Save student offer function called');
+    showToast('Save functionality will be available soon', 'info');
+}
+
+function updateStudentOffer() {
+    console.log('Update student offer function called');
+    showToast('Update functionality will be available soon', 'info');
+}
+
+function initializeStudentOfferModals() {
+    console.log('Initializing student offer modals...');
+    // Further initialization logic for student offer modals would go here
 }
 
 // ========================================
-// MINIMAL ASSIGN FLOW FUNCTIONALITY
+// MEMBERSHIP PACKAGES
 // ========================================
 
-/**
- * Open assignment modal for packages (unified function)
- */
-function openAssignSimple(packageId, packageType) {
-    console.log('Opening assignment modal for:', packageId, packageType);
-
-    // Check if we have the main assign modal
-    const assignModal = document.getElementById('assignPackageModal');
-    if (assignModal) {
-        // Set the package details in the assignment modal
-        const packageIdInput = document.getElementById('assign_package_id');
-        const packageTypeInput = document.getElementById('assign_package_type');
-        const customerSelect = document.getElementById('assign_customer_id');
-
-        if (packageIdInput) {
-            packageIdInput.value = packageId;
-        }
-
-        if (packageTypeInput) {
-            packageTypeInput.value = packageType;
-        }
-
-        // Reset customer selection
-        if (customerSelect) {
-            customerSelect.value = '';
-        }
-
-        // Update modal title
-        const modalTitle = document.getElementById('assignPackageModalTitle');
-        if (modalTitle) {
-            modalTitle.innerHTML = `<i class="fas fa-user-plus me-2"></i>Assign ${packageType.replace('_', ' ')} to Customer`;
-        }
-
-        // Show the assignment modal
-        const modalInstance = new bootstrap.Modal(assignModal);
-        modalInstance.show();
-    } else {
-        // Try alternative modal IDs
-        const simpleModal = document.getElementById('assignSimpleModal');
-        if (simpleModal) {
-            // Set values for simple modal
-            const templateIdInput = document.getElementById('asTemplateId');
-            const packageTypeInputAlt = document.getElementById('asPackageType');
-
-            if (templateIdInput) templateIdInput.value = packageId;
-            if (packageTypeInputAlt) packageTypeInputAlt.value = packageType;
-
-            const modalInstance = new bootstrap.Modal(simpleModal);
-            modalInstance.show();
-        } else {
-            // Fallback: show alert with assignment info
-            const customerName = prompt(`Enter customer ID to assign ${packageType} package (ID: ${packageId}):`);
-            if (customerName) {
-                assignPackageToCustomer(packageId, customerName, packageType);
-            }
-        }
-    }
-}
-
-/**
- * View assignment details modal
- */
-async function viewAssignmentDetails(assignmentId) {
-    try {
-        const response = await fetch(`/packages/api/assignments/${assignmentId}`);
-        const data = await response.json();
-
-        if (data.success && data.assignment) {
-            const assignment = data.assignment;
-
-            // Populate modal fields
-            document.getElementById('viewAssignmentId').textContent = assignment.id;
-            document.getElementById('viewAssignmentCustomer').textContent = assignment.customer_name;
-            document.getElementById('viewAssignmentPackage').textContent = assignment.package_name;
-            document.getElementById('viewAssignmentDate').textContent = assignment.assigned_on;
-            document.getElementById('viewAssignmentPrice').textContent = formatCurrency(assignment.price_paid);
-            document.getElementById('viewAssignmentExpiry').textContent = assignment.expires_on || 'N/A';
-            document.getElementById('viewAssignmentStatus').textContent = assignment.status;
-            document.getElementById('viewAssignmentNotes').textContent = assignment.notes || 'No notes';
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('viewAssignmentDetailsModal'));
-            modal.show();
-        } else {
-            showToast(data.error || 'Error loading assignment details', 'error');
-        }
-    } catch (error) {
-        console.error('Error viewing assignment details:', error);
-        showToast('Error loading assignment details', 'error');
-    }
-}
-
-/**
- * View customer details modal
- */
-async function viewCustomerDetails(customerId) {
-    try {
-        const response = await fetch(`/packages/api/customers/${customerId}`);
-        const data = await response.json();
-
-        if (data.success && data.customer) {
-            const customer = data.customer;
-
-            // Populate modal fields
-            document.getElementById('viewCustomerName').textContent = customer.full_name;
-            document.getElementById('viewCustomerEmail').textContent = customer.email || 'N/A';
-            document.getElementById('viewCustomerPhone').textContent = customer.phone || 'N/A';
-            document.getElementById('viewCustomerAddress').textContent = customer.address || 'N/A';
-            document.getElementById('viewCustomerJoined').textContent = customer.created_at;
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('viewCustomerDetailsModal'));
-            modal.show();
-        } else {
-            showToast(data.error || 'Error loading customer details', 'error');
-        }
-    } catch (error) {
-        console.error('Error viewing customer details:', error);
-        showToast('Error loading customer details', 'error');
-    }
-}
-
-/**
- * Load customers for simple assign dropdown
- */
-async function loadCustomersForSimpleAssign() {
-    try {
-        const response = await fetch('/packages/api/customers');
-        const result = await response.json();
-
-        const customerSelect = document.getElementById('asCustomer');
-        customerSelect.innerHTML = '<option value="">Select customer...</option>';
-
-        if (result.success && result.customers) {
-            result.customers.forEach(customer => {
-                const option = document.createElement('option');
-                option.value = customer.id;
-                option.textContent = customer.full_name;
-                customerSelect.appendChild(option);
-            });
-        }
-
-        // Enable save button when customer is selected
-        customerSelect.addEventListener('change', function() {
-            const saveBtn = document.getElementById('asSave');
-            saveBtn.disabled = !this.value;
-        });
-
-    } catch (error) {
-        console.error('Error loading customers:', error);
-        showToast('Error loading customers', 'error');
-    }
-}
-
-/**
- * Save simple package assignment
- */
-async function saveAssignSimple() {
-    console.log('Saving simple package assignment...');
-
-    try {
-        const templateId = document.getElementById('asTemplateId').value;
-        const packageType = document.getElementById('asPackageType').value;
-        const customerId = document.getElementById('asCustomer').value;
-        const pricePaid = parseFloat(document.getElementById('asPricePaid').value) || 0;
-        const notes = document.getElementById('asNotes').value || '';
-
-        if (!templateId || !customerId) {
-            showToast('Please select a customer', 'warning');
-            return;
-        }
-
-        const data = {
-            customer_id: parseInt(customerId),
-            package_id: parseInt(templateId),
-            package_type: packageType,
-            price_paid: pricePaid,
-            notes: notes
-        };
-
-        const response = await fetch('/packages/api/assign', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showToast('Package assigned successfully!', 'success');
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
-            modal.hide();
-
-            // Reset form
-            document.getElementById('assignSimpleForm').reset();
-            document.getElementById('asSave').disabled = true;
-
-            // Refresh current tab table
-            await refreshCurrentTabTable();
-
-        } else {
-            showToast(result.error || 'Error assigning package', 'error');
-        }
-    } catch (error) {
-        console.error('Error saving package assignment:', error);
-        showToast('Error assigning package', 'error');
-    }
-}
-
-/**
- * Refresh the current tab's table
- */
-async function refreshCurrentTabTable() {
-    const activeTab = document.querySelector('.tab-pane.active');
-    if (activeTab) {
-        const tabId = activeTab.id;
-
-        // Determine which table to refresh based on active tab
-        if (tabId === 'assign-membership') {
-            await loadMembershipPackages();
-        } else if (tabId === 'assign-student') {
-            await loadStudentPackages();
-        } else if (tabId === 'assign-yearly') {
-            await loadYearlyPackages();
-        } else if (tabId === 'assign-kitty') {
-            await loadKittyPackages();
-        } else if (tabId === 'all-packages') {
-            await loadPackages();
-        }
-    }
-}
-
-/**
- * Load packages for tables
- */
 async function loadMembershipPackages() {
-    console.log('Loading membership packages specifically for membership tab only');
-
-    // Only load if we're on the membership tab
-    const membershipTab = document.getElementById('assign-membership');
-    if (!membershipTab || !membershipTab.classList.contains('active')) {
-        console.log('Not on membership tab, skipping membership load');
-        return;
-    }
-
-    await loadPackageTypeIntoTable('membership', 'tblMemberships');
-}
-
-async function loadStudentPackages() {
     try {
-        console.log('Loading student packages specifically for student tab only');
+        console.log('Loading membership packages...');
 
-        const response = await fetch('/packages/api/student-offers');
+        const response = await fetch('/api/memberships');
         const data = await response.json();
 
-        const tableBody = document.querySelector('#tblStudentOffers tbody');
+        const tableBody = document.querySelector('#tblMemberships tbody');
         if (!tableBody) {
-            console.error('Student offers table body not found');
+            console.error('Memberships table body not found');
             return;
         }
 
         tableBody.innerHTML = '';
 
         if (data && data.length > 0) {
-            data.forEach(offer => {
+            data.forEach(pkg => {
                 const row = document.createElement('tr');
-                const servicesList = offer.services ? offer.services.map(s => s.name).join(', ') : 'No services';
-                const validPeriod = `${offer.valid_from} to ${offer.valid_to}`;
 
                 row.innerHTML = `
-                    <td><strong>${offer.discount_percentage}%</strong></td>
-                    <td><small>${servicesList}</small></td>
-                    <td>${offer.valid_days}</td>
-                    <td><small>${validPeriod}</small></td>
-                    <td><small>${offer.conditions}</small></td>
+                    <td><strong>${pkg.name}</strong></td>
+                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
+                    <td>${pkg.validity_months || 12} months</td>
+                    <td>${pkg.description || 'No description'}</td>
                     <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-warning" onclick="editStudentOffer(${offer.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="deleteStudentOffer(${offer.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button class="btn btn-primary" onclick="assignStudentOffer(${offer.id})" title="Assign">
-                                <i class="fas fa-user-plus"></i>
-                            </button>
-                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'membership')" title="Assign">
+                            <i class="fas fa-user-plus"></i> Assign
+                        </button>
                     </td>
                 `;
+
                 tableBody.appendChild(row);
             });
 
-            // Update count
-            const countElement = document.getElementById('student-total-count');
+            const countElement = document.getElementById('membership-total-count');
             if (countElement) {
                 countElement.textContent = data.length;
             }
         } else {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-4">
                         <i class="fas fa-info-circle me-2"></i>
-                        No student offers found
+                        No membership packages found
                     </td>
                 </tr>
             `;
         }
 
-        console.log(`Successfully loaded ${data.length || 0} student offers`);
+        console.log(`Successfully loaded ${data.length || 0} membership packages`);
 
     } catch (error) {
-        console.error('Error loading student offers:', error);
-        showToast('Error loading student offers', 'error');
+        console.error('Error loading membership packages:', error);
+        showToast('Error loading membership packages', 'error');
     }
 }
 
+// ========================================
+// YEARLY PACKAGES
+// ========================================
+
 async function loadYearlyPackages() {
     try {
-        console.log('Loading yearly packages specifically for yearly tab only');
+        console.log('Loading yearly packages...');
 
         const response = await fetch('/api/yearly-memberships');
         const data = await response.json();
@@ -2933,12 +1403,10 @@ async function loadYearlyPackages() {
                 row.innerHTML = `
                     <td><strong>${pkg.name}</strong></td>
                     <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
-                    <td>${pkg.validity_months || 'N/A'} months</td>
+                    <td>${pkg.validity_months || 12} months</td>
                     <td>${pkg.discount_percent || 0}%</td>
                     <td>
-                        <button class="btn btn-primary btn-sm"
-                                onclick="openAssignSimple(${pkg.id}, 'yearly')"
-                                title="Assign to customer">
+                        <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'yearly')" title="Assign">
                             <i class="fas fa-user-plus"></i> Assign
                         </button>
                     </td>
@@ -2947,7 +1415,6 @@ async function loadYearlyPackages() {
                 tableBody.appendChild(row);
             });
 
-            // Update count
             const countElement = document.getElementById('yearly-total-count');
             if (countElement) {
                 countElement.textContent = data.length;
@@ -2971,266 +1438,131 @@ async function loadYearlyPackages() {
     }
 }
 
+// ========================================
+// KITTY PARTY PACKAGES
+// ========================================
+
 async function loadKittyPackages() {
-    console.log('Loading kitty packages specifically');
-    await loadPackageTypeIntoTable('kitty', 'tblKittyPackages');
-}
-
-/**
- * Generic function to load package type into table
- */
-async function loadPackageTypeIntoTable(packageType, tableId) {
     try {
-        console.log(`Loading ${packageType} packages into ${tableId}`);
+        console.log('Loading kitty party packages...');
 
-        // Check if the target table exists and is visible
-        const targetTable = document.getElementById(tableId);
-        if (!targetTable) {
-            console.log(`Table ${tableId} not found, skipping load`);
-            return;
-        }
-
-        // Check if we're on the correct tab for this package type
-        const tabMap = {
-            'tblMemberships': 'assign-membership',
-            'tblStudentOffers': 'assign-student',
-            'tblYearlyMemberships': 'assign-yearly',
-            'tblKittyPackages': 'assign-kitty'
-        };
-
-        const expectedTab = tabMap[tableId];
-        if (expectedTab) {
-            const tabElement = document.getElementById(expectedTab);
-            if (!tabElement || !tabElement.classList.contains('active')) {
-                console.log(`Not on correct tab for ${tableId}, skipping load`);
-                return;
-            }
-        }
-
-        // API endpoints for each package type
-        const endpoints = {
-            membership: '/api/memberships',
-            student: '/packages/api/student-offers',
-            yearly: '/api/yearly-memberships',
-            kitty: '/api/kitty-parties'
-        };
-
-        const endpoint = endpoints[packageType];
-        if (!endpoint) {
-            console.error(`No endpoint defined for package type: ${packageType}`);
-            return;
-        }
-
-        const response = await fetch(endpoint);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        const response = await fetch('/api/kitty-parties');
         const data = await response.json();
-        const packages = Array.isArray(data) ? data : (data.packages || data);
 
-        // Get the table body element
-        const tableBody = document.querySelector(`#${tableId} tbody`);
+        const tableBody = document.querySelector('#tblKittyPackages tbody');
         if (!tableBody) {
-            console.error(`Table body not found for tableId: ${tableId}`);
+            console.error('Kitty packages table body not found');
             return;
         }
 
-        // Clear existing content
         tableBody.innerHTML = '';
 
-        if (!packages || packages.length === 0) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No ${packageType} packages found
-                    </td>
-                </tr>
-            `;
-            return;
-        }
+        if (data.success && data.parties) {
+            data.parties.forEach(party => {
+                const row = document.createElement('tr');
+                const servicesList = party.services && party.services.length > 0 ?
+                    party.services.map(s => s.name).join(', ') : 'No services selected';
+                const validPeriod = party.valid_from && party.valid_to ?
+                    `${party.valid_from} to ${party.valid_to}` : 'No validity period';
+                const statusBadge = party.is_active ?
+                    '<span class="badge bg-success">Active</span>' :
+                    '<span class="badge bg-secondary">Inactive</span>';
 
-        // Populate table with packages
-        packages.forEach(pkg => {
-            const row = document.createElement('tr');
-
-            // Build services display
-            let servicesDisplay = 'No services specified';
-            if (pkg.services && pkg.services.length > 0) {
-                servicesDisplay = pkg.services.slice(0, 2).map(s => s.name).join(', ');
-                if (pkg.services.length > 2) {
-                    servicesDisplay += ` +${pkg.services.length - 2} more`;
-                }
-            } else if (pkg.selected_services && pkg.selected_services.length > 0) {
-                servicesDisplay = pkg.selected_services.slice(0, 2).map(s => s.name).join(', ');
-                if (pkg.selected_services.length > 2) {
-                    servicesDisplay += ` +${pkg.selected_services.length - 2} more`;
-                }
-            } else if (pkg.services_included) {
-                servicesDisplay = pkg.services_included.length > 50 ?
-                    pkg.services_included.substring(0, 50) + '...' :
-                    pkg.services_included;
-            }
-
-            if (packageType === 'membership') {
                 row.innerHTML = `
-                    <td><strong>${pkg.name}</strong></td>
-                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
-                    <td>${pkg.validity_months || 12} months</td>
-                    <td>${servicesDisplay}</td>
-                    <td>
-                        <span class="badge ${pkg.is_active ? 'bg-success' : 'bg-secondary'}">
-                            ${pkg.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'membership')" title="Assign">
-                            <i class="fas fa-user-plus"></i>
-                        </button>
-                    </td>
-                `;
-            } else if (packageType === 'yearly') {
-                row.innerHTML = `
-                    <td><strong>${pkg.name}</strong></td>
-                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
-                    <td>${pkg.validity_months || 12} months</td>
-                    <td>${pkg.discount_percent || 0}%</td>
-                    <td>
-                        <button class="btn btn-primary btn-sm" onclick="openAssignSimple(${pkg.id}, 'yearly')" title="Assign">
-                            <i class="fas fa-user-plus"></i>
-                        </button>
-                    </td>
-                `;
-            } else if (packageType === 'kitty') {
-                row.innerHTML = `
-                    <td><strong>${pkg.name}</strong></td>
-                    <td>₹${parseFloat(pkg.price || 0).toLocaleString()}</td>
-                    <td>₹${parseFloat(pkg.after_value || 0).toLocaleString()}</td>
-                    <td>${pkg.min_guests || 'N/A'}</td>
-                    <td>${servicesDisplay}</td>
-                    <td>${pkg.valid_from && pkg.valid_to ? `${pkg.valid_from} to ${pkg.valid_to}` : 'No validity period'}</td>
-                    <td>${pkg.conditions || 'No conditions'}</td>
-                    <td>
-                        <span class="badge ${pkg.is_active ? 'bg-success' : 'bg-secondary'}">
-                            ${pkg.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                    </td>
+                    <td><strong>${party.name}</strong></td>
+                    <td>₹${party.price}</td>
+                    <td>${party.min_guests}</td>
+                    <td><small>${servicesList}</small></td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-warning" onclick="editKittyParty(${pkg.id})" title="Edit">
+                            <button class="btn btn-outline-warning" onclick="editKittyParty(${party.id})" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-outline-danger" onclick="deleteKittyParty(${pkg.id})" title="Delete">
+                            <button class="btn btn-outline-danger" onclick="deleteKittyParty(${party.id})" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            <button class="btn btn-primary" onclick="assignKittyParty(${pkg.id})" title="Assign">
-                                <i class="fas fa-user-plus"></i>
+                            <button class="btn btn-primary" onclick="assignKittyParty(${party.id})" title="Assign">
+                                <i class="fas fa-user-plus"></i> Assign
                             </button>
                         </div>
                     </td>
                 `;
+                tableBody.appendChild(row);
+            });
+
+            const countElement = document.getElementById('kitty-total-count');
+            if (countElement) {
+                countElement.textContent = data.parties.length;
             }
-
-            tableBody.appendChild(row);
-        });
-
-        console.log(`Successfully loaded ${packages.length} ${packageType} packages`);
-
-    } catch (error) {
-        console.error(`Error loading ${packageType} packages:`, error);
-
-        const tableBody = document.querySelector(`#${tableId} tbody`);
-        if (tableBody) {
+        } else {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-danger py-4">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error loading ${packageType} packages
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No kitty parties found
                     </td>
                 </tr>
             `;
         }
+
+        console.log(`Successfully loaded ${data.parties?.length || 0} kitty parties`);
+
+    } catch (error) {
+        console.error('Error loading kitty party packages:', error);
+        showToast('Error loading kitty party packages', 'error');
     }
 }
 
-/**
- * Create table row for package with assign button
- */
-function createPackageTableRow(pkg, packageType) {
-    const row = document.createElement('tr');
-
-    // Column content based on package type
-    if (packageType === 'membership') {
-        row.innerHTML = `
-            <td><strong>${pkg.name}</strong></td>
-            <td>₹${pkg.price}</td>
-            <td>${pkg.validity_months} months</td>
-            <td>${pkg.description || 'No description'}</td>
-            <td>
-                <button class="btn btn-primary btn-sm"
-                        title="Assign to customer"
-                        data-action="assign-simple"
-                        data-template-id="${pkg.id}"
-                        data-package-type="membership">
-                    <i class="fas fa-user-plus"></i>
-                </button>
-            </td>
-        `;
-    } else if (packageType === 'student') {
-        row.innerHTML = `
-            <td><strong>${pkg.name}</strong></td>
-            <td>₹${pkg.actual_price}</td>
-            <td>₹${pkg.after_price}</td>
-            <td>${pkg.description || 'No description'}</td>
-            <td>
-                <button class="btn btn-primary btn-sm"
-                        title="Assign to customer"
-                        data-action="assign-simple"
-                        data-template-id="${pkg.id}"
-                        data-package-type="student">
-                    <i class="fas fa-user-plus"></i>
-                </button>
-            </td>
-        `;
-    } else if (packageType === 'yearly') {
-        row.innerHTML = `
-            <td><strong>${pkg.name}</strong></td>
-            <td>₹${pkg.price}</td>
-            <td>${pkg.validity_months} months</td>
-            <td>${pkg.discount_percent}%</td>
-            <td>
-                <button class="btn btn-primary btn-sm"
-                        title="Assign to customer"
-                        data-action="assign-simple"
-                        data-template-id="${pkg.id}"
-                        data-package-type="yearly">
-                    <i class="fas fa-user-plus"></i>
-                </button>
-            </td>
-        `;
-    } else if (packageType === 'kitty') {
-        row.innerHTML = `
-            <td><strong>${pkg.name}</strong></td>
-            <td>₹${pkg.price}</td>
-            <td>${pkg.min_guests}</td>
-            <td>${pkg.description || 'No description'}</td>
-            <td>
-                <button class="btn btn-primary btn-sm"
-                        title="Assign to customer"
-                        data-action="assign-simple"
-                        data-template-id="${pkg.id}"
-                        data-package-type="kitty">
-                    <i class="fas fa-user-plus"></i>
-                </button>
-            </td>
-        `;
-    }
-
-    return row;
+function editKittyParty(partyId) {
+    console.log('Edit kitty party:', partyId);
+    showToast('Edit functionality will be available soon', 'info');
 }
 
-// Event delegation for assign buttons - Wait for DOM to be ready
+function deleteKittyParty(partyId) {
+    if (!confirm('Are you sure you want to delete this kitty party?')) {
+        return;
+    }
+
+    fetch(`/api/kitty-parties/${partyId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success || response.ok) {
+            showToast('Kitty party deleted successfully!', 'success');
+            loadKittyPackages();
+        } else {
+            throw new Error(result.error || 'Failed to delete kitty party');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting kitty party:', error);
+        showToast('Error deleting kitty party: ' + error.message, 'error');
+    });
+}
+
+function assignKittyParty(partyId) {
+    openAssignSimple(partyId, 'kitty');
+}
+
+function saveKittyParty() {
+    console.log('Save kitty party function called');
+    showToast('Save functionality will be available soon', 'info');
+}
+
+function updateKittyParty() {
+    console.log('Update kitty party function called');
+    showToast('Update functionality will be available soon', 'info');
+}
+
+function initializeKittyPartyModals() {
+    console.log('Initializing kitty party modals...');
+}
+
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+
 function setupTableEventDelegation() {
     // Event delegation for assign buttons
     document.addEventListener('click', function(e) {
@@ -3241,606 +1573,74 @@ function setupTableEventDelegation() {
             openAssignSimple(templateId, packageType);
         }
     });
-
-    // Save button event listener for simple assign modal
-    const saveBtn = document.getElementById('asSave');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveAssignSimple);
-    }
 }
 
-// Expose functions to global scope
-window.loadMembershipPackages = loadMembershipPackages;
-window.loadStudentPackages = loadStudentPackages;
-window.loadYearlyPackages = loadYearlyPackages;
-window.loadKittyPackages = loadKittyPackages;
-window.openAssignSimple = openAssignSimple;
-window.saveAssignSimple = saveAssignSimple;
-
-// Kitty party functions
-window.loadKittyPackages = loadKittyPackages;
-window.editKittyParty = editKittyParty;
-window.deleteKittyParty = deleteKittyParty;
-window.assignKittyParty = assignKittyParty;
-
-
-// Load kitty packages for tables
-async function loadKittyPackages() {
-    try {
-        console.log('Loading kitty party packages...');
-
-        const response = await fetch('/api/kitty-parties');
-        const data = await response.json();
-
-        if (data.success && data.parties) {
-            const tableBody = document.querySelector('#tblKittyPackages tbody');
-            tableBody.innerHTML = '';
-
-            data.parties.forEach(party => {
-                const row = document.createElement('tr');
-                // Display linked services from kittyparty_services relationship
-                const servicesList = party.services && party.services.length > 0 ?
-                    party.services.map(s => s.name).join(', ') : 'No services selected';
-                const validPeriod = party.valid_from && party.valid_to ?
-                    `${party.valid_from} to ${party.valid_to}` : 'No validity period';
-                const afterValue = party.after_value ? `₹${party.after_value}` : 'N/A';
-                const conditions = party.conditions || 'No conditions';
-                const statusBadge = party.is_active ?
-                    '<span class="badge bg-success">Active</span>' :
-                    '<span class="badge bg-secondary">Inactive</span>';
-
-                row.innerHTML = `
-                    <td><strong>${party.name}</strong></td>
-                    <td>₹${party.price}</td>
-                    <td>${afterValue}</td>
-                    <td>${party.min_guests}</td>
-                    <td><small>${servicesList}</small></td>
-                    <td><small>${validPeriod}</small></td>
-                    <td><small>${conditions}</small></td>
-                    <td>${statusBadge}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-warning" onclick="editKittyParty(${party.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="deleteKittyParty(${party.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button class="btn btn-primary" onclick="assignKittyParty(${party.id})" title="Assign">
-                                <i class="fas fa-user-plus"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-
-            // Update count
-            document.getElementById('kitty-total-count').textContent = data.parties.length;
-        }
-    } catch (error) {
-        console.error('Error loading kitty party packages:', error);
-        showToast('Error loading kitty party packages', 'error');
-    }
+function viewAssignmentDetails(assignmentId) {
+    console.log('View assignment details:', assignmentId);
+    showToast('Assignment details functionality will be available soon', 'info');
 }
 
-// Initialize kitty party modals
-function initializeKittyPartyModals() {
-    // Load services into dropdowns
-    loadServicesForKittyParties();
-
-    // Set default dates (today and 3 months from now)
-    const today = new Date().toISOString().split('T')[0];
-    const threeMonthsLater = new Date();
-    threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
-    const futureDate = threeMonthsLater.toISOString().split('T')[0];
-
-    document.getElementById('kittyValidFrom').value = today;
-    document.getElementById('kittyValidTo').value = futureDate;
-
-    // Form validation event listeners
-    const addForm = document.getElementById('addKittyPartyForm');
-    if (addForm) {
-        addForm.addEventListener('input', validateKittyPartyForm);
-        addForm.addEventListener('change', validateKittyPartyForm);
-    }
-
-    // Save button event listener
-    const saveBtn = document.getElementById('saveKittyParty');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveKittyParty);
-    }
-
-    // Update button event listener
-    const updateBtn = document.getElementById('updateKittyParty');
-    if (updateBtn) {
-        updateBtn.addEventListener('click', updateKittyParty);
-    }
+function viewCustomerDetails(customerId) {
+    console.log('View customer details:', customerId);
+    showToast('Customer details functionality will be available soon', 'info');
 }
 
-// Load services for kitty party dropdowns
-async function loadServicesForKittyParties() {
-    try {
-        const response = await fetch('/packages/api/services');
-        const data = await response.json();
-
-        if (data.success) {
-            const addSelect = document.getElementById('kittyPartyServices');
-            const editSelect = document.getElementById('editKittyPartyServices');
-
-            const optionsHTML = data.services.map(service =>
-                `<option value="${service.id}">${service.name} - ₹${service.price}</option>`
-            ).join('');
-
-            if (addSelect) {
-                addSelect.innerHTML = optionsHTML;
-                addSelect.setAttribute('data-placeholder', 'Select services included in this Kitty Party');
-            }
-            if (editSelect) {
-                editSelect.innerHTML = optionsHTML;
-                editSelect.setAttribute('data-placeholder', 'Select services included in this Kitty Party');
-            }
-        }
-    } catch (error) {
-        console.error('Error loading services:', error);
-    }
-}
-
-// Validate kitty party form
-function validateKittyPartyForm() {
-    const name = document.getElementById('kittyPartyName');
-    const price = document.getElementById('kittyPrice');
-    const minGuests = document.getElementById('kittyMinGuests');
-    const services = document.getElementById('kittyPartyServices');
-    const saveBtn = document.getElementById('saveKittyParty');
-
-    const isValid = name.value.trim() &&
-                   price.value && parseFloat(price.value) > 0 &&
-                   minGuests.value && parseInt(minGuests.value) > 0 &&
-                   services.selectedOptions.length > 0;
-
-    if (saveBtn) {
-        saveBtn.disabled = !isValid;
-    }
-
-    // Show/hide validation feedback for services
-    if (services.selectedOptions.length === 0) {
-        services.classList.add('is-invalid');
-    } else {
-        services.classList.remove('is-invalid');
-    }
-
-    // Update preview
-    updateKittyPartyPreview();
-}
-
-// Update kitty party preview
-function updateKittyPartyPreview() {
-    const name = document.getElementById('kittyPartyName');
-    const price = document.getElementById('kittyPrice');
-    const afterValue = document.getElementById('kittyAfterValue');
-    const minGuests = document.getElementById('kittyMinGuests');
-    const services = document.getElementById('kittyPartyServices');
-    const validFrom = document.getElementById('kittyValidFrom');
-    const validTo = document.getElementById('kittyValidTo');
-    const preview = document.getElementById('kittyPartyPreview');
-
-    if (name.value && price.value && minGuests.value && services.selectedOptions.length > 0) {
-        const selectedServices = Array.from(services.selectedOptions).map(opt => opt.textContent);
-        const afterVal = afterValue.value ? `₹${afterValue.value}` : 'Not set';
-        const validPeriod = validFrom.value && validTo.value ?
-            `${validFrom.value} to ${validTo.value}` : 'No validity period';
-
-        const previewHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <strong>Party:</strong> ${name.value}<br>
-                    <strong>Price:</strong> ₹${price.value}<br>
-                    <strong>After Value:</strong> ${afterVal}<br>
-                    <strong>Min Guests:</strong> ${minGuests.value}
-                </div>
-                <div class="col-md-6">
-                    <strong>Services:</strong><br>
-                    <ul class="mb-2">
-                        ${selectedServices.map(s => `<li class="small">${s}</li>`).join('')}
-                    </ul>
-                    <strong>Valid:</strong> ${validPeriod}
-                </div>
-            </div>
-        `;
-        preview.innerHTML = previewHTML;
-    } else {
-        preview.innerHTML = '<p class="text-muted">Fill in party details to see preview</p>';
-    }
-}
-
-// Save kitty party
-function saveKittyParty() {
-    console.log('Submitting kitty party form...');
-
-    const form = document.getElementById('addKittyPartyForm');
-    if (!form) {
-        console.error('Kitty party form not found');
-        return;
-    }
-
-    // Show loading state
-    const submitBtn = document.querySelector('#kittyPartyModal button[type="submit"]') ||
-                     document.getElementById('saveKittyPartyBtn') ||
-                     event.target.querySelector('button[type="submit"]');
-
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Creating...';
-    }
-
-    const formData = new FormData(form);
-
-    // Convert to JSON
-    const data = {};
-    formData.forEach((value, key) => {
-        if (key === 'service_ids') {
-            if (!data[key]) data[key] = [];
-            data[key].push(value);
-        } else {
-            data[key] = value;
-        }
-    });
-
-    fetch('/api/kitty-parties', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success || response.ok) {
-            showToast('Kitty party created successfully!', 'success');
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addKittyPartyModal'));
-            if (modal) {
-                modal.hide();
-            }
-
-            // Reset form
-            if (form) {
-                form.reset();
-            }
-            if (submitBtn) {
-                submitBtn.disabled = true; // Keep disabled until new data is entered
-            }
-
-            // Reload table
-            loadKittyPackages();
-        } else {
-            throw new Error(result.error || 'Failed to create kitty party');
-        }
-    })
-    .catch(error => {
-        console.error('Error saving kitty party:', error);
-        showToast('Error creating kitty party: ' + error.message, 'error');
-    })
-    .finally(() => {
-        // Restore button state if button exists
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Kitty Party';
-        }
-    });
-}
-
-// Edit kitty party
-async function editKittyParty(partyId) {
-    try {
-        const response = await fetch(`/api/kitty-parties`);
-        const data = await response.json();
-        const party = data.parties.find(p => p.id === partyId);
-
-        if (party) {
-            // Populate edit form
-            document.getElementById('editPartyId').value = party.id;
-            document.getElementById('editKittyPartyName').value = party.name;
-            document.getElementById('editKittyPrice').value = party.price;
-            document.getElementById('editKittyAfterValue').value = party.after_value || '';
-            document.getElementById('editKittyMinGuests').value = party.min_guests;
-            document.getElementById('editKittyValidFrom').value = party.valid_from || '';
-            document.getElementById('editKittyValidTo').value = party.valid_to || '';
-            document.getElementById('editKittyConditions').value = party.conditions || '';
-
-            // Select services in multi-select dropdown
-            const serviceSelect = document.getElementById('editKittyPartyServices');
-            Array.from(serviceSelect.options).forEach(option => {
-                option.selected = party.services && party.services.some(s => s.id == option.value);
-            });
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('editKittyPartyModal'));
-            modal.show();
-        }
-    } catch (error) {
-        console.error('Error loading kitty party for edit:', error);
-        showToast('Error loading kitty party', 'error');
-    }
-}
-
-// Update kitty party
-async function updateKittyParty() {
-    try {
-        const form = document.getElementById('editKittyPartyForm');
-        const formData = new FormData(form);
-        const partyId = document.getElementById('editPartyId').value;
-
-        // Convert to JSON with proper service_ids handling
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'service_ids') {
-                if (!data[key]) data[key] = [];
-                data[key].push(value);
-            } else {
-                data[key] = value;
-            }
-        });
-
-        // Handle boolean conversion
-        data.is_active = form.querySelector('input[name="is_active"]').checked;
-
-        const response = await fetch(`/api/kitty-parties/${partyId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showToast('Kitty party updated successfully!', 'success');
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editKittyPartyModal'));
-            if (modal) {
-                modal.hide();
-            }
-
-            // Reload table
-            await loadKittyPackages();
-        } else {
-            throw new Error(result.error || 'Failed to update kitty party');
-        }
-    } catch (error) {
-        console.error('Error updating kitty party:', error);
-        showToast('Error updating kitty party: ' + error.message, 'error');
-    }
-}
-
-// Delete kitty party
-async function deleteKittyParty(partyId) {
-    if (!confirm('Are you sure you want to delete this kitty party?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/kitty-parties/${partyId}`, {
-            method: 'DELETE'
-        });
-
-        const result = await response.json();
-
-        if (result.success || response.ok) {
-            showToast('Kitty party deleted successfully!', 'success');
-            await loadKittyPackages();
-        } else {
-            throw new Error(result.error || 'Failed to delete kitty party');
-        }
-    } catch (error) {
-        console.error('Error deleting kitty party:', error);
-        showToast('Error deleting kitty party: ' + error.message, 'error');
-    }
-}
-
-// Assign kitty party
-function assignKittyParty(partyId) {
-    openAssignSimple(partyId, 'kitty');
-}
-
-// Expose functions globally for onclick handlers
-window.editStudentOffer = editStudentOffer;
-window.deleteStudentOffer = deleteStudentOffer;
-window.assignStudentOffer = assignStudentOffer;
-window.openAssignSimple = openAssignSimple;
-window.confirmAssignment = confirmAssignment;
-window.loadStudentOffersTable = loadStudentOffersTable;
-
-/**
- * Assign package to customer directly
- */
-function assignPackageToCustomer(packageId, customerId, packageType) {
-    const assignmentData = {
-        customer_id: parseInt(customerId),
-        package_id: parseInt(packageId),
-        package_type: packageType,
-        price_paid: 0.0,
-        notes: `${packageType} package assignment`
-    };
-
-    fetch('/packages/api/assign', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(assignmentData)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            showToast(`${packageType} package assigned successfully!`, 'success');
-            // Reload page to show updated assignments
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            throw new Error(result.error || 'Assignment failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error assigning package:', error);
-        showToast('Error assigning package: ' + error.message, 'error');
-    });
-}
-
-// Expose the assignment function specifically for student offers
-window.openAssignSimpleStudentOffer = function(offerId) {
-    console.log('Opening assignment for student offer:', offerId);
-    openAssignSimple(offerId, 'student_offer');
-};
-
-/**
- * Confirm package assignment from modal
- */
 function confirmPackageAssignment() {
-    const packageIdInput = document.getElementById('assign_package_id');
-    const customerSelect = document.getElementById('assign_customer_id');
-    const packageTypeInput = document.getElementById('assign_package_type');
-    const priceInput = document.getElementById('assign_custom_price');
-    const notesInput = document.getElementById('assign_notes');
+    console.log('Confirm package assignment');
+    showToast('Assignment confirmation functionality will be available soon', 'info');
+}
 
-    if (!packageIdInput || !packageIdInput.value) {
-        showToast('Package ID not found', 'error');
-        return;
-    }
-
-    if (!customerSelect || !customerSelect.value) {
-        showToast('Please select a customer', 'error');
-        return;
-    }
-
-    const packageId = parseInt(packageIdInput.value);
-    const customerId = parseInt(customerSelect.value);
-    const packageType = packageTypeInput ? packageTypeInput.value : 'membership';
-    const price = priceInput ? parseFloat(priceInput.value) || 0 : 0;
-    const notes = notesInput ? notesInput.value : '';
-
-    // Disable confirm button
-    const confirmBtn = document.getElementById('confirmAssignButton');
-    if (confirmBtn) {
-        confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-    }
-
-    const assignmentData = {
-        customer_id: customerId,
-        package_id: packageId,
-        package_type: packageType,
-        price_paid: price,
-        notes: notes
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
     };
+}
 
-    fetch('/packages/api/assign', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(assignmentData)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            showToast('Package assigned successfully!', 'success');
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
 
-            // Close modal
-            const assignModal = document.getElementById('assignPackageModal');
-            const modalInstance = bootstrap.Modal.getInstance(assignModal);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
+    const toastId = 'toast-' + Date.now();
+    const bgClass = {
+        'success': 'bg-success',
+        'error': 'bg-danger',
+        'warning': 'bg-warning',
+        'info': 'bg-info'
+    }[type] || 'bg-info';
 
-            // Reload page to show updated assignments
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            throw new Error(result.error || 'Assignment failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error assigning package:', error);
-        showToast('Error assigning package: ' + error.message, 'error');
-    })
-    .finally(() => {
-        // Restore button
-        if (confirmBtn) {
-            confirmBtn.disabled = false;
-            confirmBtn.innerHTML = '<i class="fas fa-check me-2"></i>Assign Package';
-        }
+    const toastHtml = `
+        <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header ${bgClass} text-white border-0">
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+    const toastElement = document.getElementById(toastId);
+    const bsToast = new bootstrap.Toast(toastElement, { delay: 5000 });
+    bsToast.show();
+
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
     });
 }
 
-// Expose globally
-window.confirmPackageAssignment = confirmPackageAssignment;
-
-/**
- * Save simple assignment
- */
-function saveSimpleAssignment() {
-    const templateId = document.getElementById('asTemplateId').value;
-    const packageType = document.getElementById('asPackageType').value;
-    const customerId = document.getElementById('asCustomer').value;
-    const pricePaid = parseFloat(document.getElementById('asPricePaid').value) || 0;
-    const notes = document.getElementById('asNotes').value || '';
-
-    if (!templateId || !customerId) {
-        showToast('Please select a customer', 'error');
-        return;
-    }
-
-    // Disable save button
-    const saveBtn = document.getElementById('asSave');
-    const originalText = saveBtn.innerHTML;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
-
-    const assignmentData = {
-        customer_id: parseInt(customerId),
-        package_id: parseInt(templateId),
-        package_type: packageType,
-        price_paid: pricePaid,
-        notes: notes
-    };
-
-    fetch('/packages/api/assign', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(assignmentData)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            showToast('Package assigned successfully!', 'success');
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal'));
-            if (modal) {
-                modal.hide();
-            }
-
-            // Reload page
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            throw new Error(result.error || 'Assignment failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error assigning package:', error);
-        showToast('Error assigning package: ' + error.message, 'error');
-    })
-    .finally(() => {
-        // Restore button
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText;
-    });
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1055';
+    document.body.appendChild(container);
+    return container;
 }
-
-// Expose globally
-window.saveSimpleAssignment = saveSimpleAssignment;
