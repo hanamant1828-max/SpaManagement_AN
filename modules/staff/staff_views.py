@@ -2,11 +2,14 @@
 Comprehensive Staff Management Views - Complete Implementation
 All 11 Requirements for Professional Staff Management System
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from app import app
+
+# Create Blueprint for staff management
+staff_bp = Blueprint('staff', __name__, url_prefix='/staff')
 from forms import UserForm, AdvancedUserForm, ComprehensiveStaffForm
 # Late imports to avoid circular dependency
 from app import db
@@ -32,7 +35,7 @@ print("Registering Staff Management routes...")
 print(f"App name: {app.name}")
 print(f"Current module: {__name__}")
 
-@app.route('/api/health', methods=['GET'])
+@staff_bp.route('/api/health', methods=['GET'])
 def api_health():
     """API health check endpoint"""
     return jsonify({
@@ -41,7 +44,7 @@ def api_health():
         'timestamp': datetime.utcnow().isoformat()
     })
 
-@app.route('/staff')
+@staff_bp.route('/')
 @login_required
 def staff():
     if not current_user.can_access('staff'):

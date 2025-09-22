@@ -203,6 +203,25 @@ from modules.packages.new_packages_views import *
 from modules.packages.membership_views import *
 from modules.packages.professional_packages_views import *
 
+# Missing route endpoints to fix template BuildErrors
+@app.route('/system_management')
+@login_required
+def system_management():
+    """System management page"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('system_management.html')
+
+@app.route('/role_management')
+@login_required
+def role_management():
+    """Role management page"""
+    if not current_user.can_access('settings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('settings.html')
+
 # Department Management Routes moved to routes.py to avoid conflicts
 
 @app.route('/')

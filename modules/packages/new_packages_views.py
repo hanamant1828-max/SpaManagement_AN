@@ -37,18 +37,14 @@ from datetime import datetime, timedelta
 # packages_blueprint = Blueprint('packages', __name__)
 # logger = logging.getLogger(__name__)
 
-# Placeholder for packages_blueprint and logger if not defined in the original context
-try:
-    packages_blueprint
-except NameError:
-    from flask import Blueprint
-    packages_blueprint = Blueprint('new_packages', __name__)
-    app.register_blueprint(packages_blueprint) # Register blueprint with app
+# Define packages_blueprint and logger properly
+from flask import Blueprint
+import logging
 
-try:
-    logger
-except NameError:
-    logger = logging.getLogger(__name__)
+# Create and configure logger
+logger = logging.getLogger(__name__)
+
+# Note: Blueprint registration handled in app.py to avoid circular imports
 
 # ========================================
 # MAIN PACKAGES PAGE WITH TABS
