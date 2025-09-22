@@ -343,7 +343,7 @@ async function handleFormSubmit(event) {
     };
 
     try {
-        const response = await fetch('/api/student-offers', {
+        const response = await fetch('/packages/api/student-offers', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -555,7 +555,7 @@ function assignStudentOffer(offerId) {
  */
 async function loadStudentOffersTable() {
     try {
-        const response = await fetch('/api/student-offers');
+        const response = await fetch('/packages/api/student-offers');
         const data = await response.json();
 
         const tableBody = document.querySelector('#tblStudentOffers tbody');

@@ -423,71 +423,8 @@ def api_get_student_offers():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/student-offers', methods=['POST'])
-@login_required
-def api_create_student_offer():
-    """Create new student offer with multiple service selection"""
-    try:
-        # Handle both JSON and form data (mirror update endpoint logic)
-        if request.is_json:
-            data = request.get_json()
-            print(f"📥 Received JSON data: {data}")
-        else:
-            data = request.form.to_dict()
-            # Handle multiple service selection from form data
-            if 'service_ids' in request.form:
-                data['service_ids'] = request.form.getlist('service_ids')
-            print(f"📥 Received form data: {data}")
-
-        if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
-
-        # Validate required fields
-        if not data.get('service_ids') or len(data['service_ids']) == 0:
-            return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
-
-        if not data.get('discount_percentage'):
-            return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
-
-        # Validate discount percentage range
-        try:
-            discount = float(data['discount_percentage'])
-            if discount < 1 or discount > 100:
-                return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
-        except (ValueError, TypeError):
-            return jsonify({'success': False, 'error': 'Invalid discount percentage format'}), 400
-
-        if not data.get('valid_from') or not data.get('valid_to'):
-            return jsonify({'success': False, 'error': 'Valid from and to dates are required'}), 400
-
-        # Validate date range
-        try:
-            from datetime import datetime
-            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
-            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
-            if valid_to < valid_from:
-                return jsonify({'success': False, 'error': 'Valid To Date must be greater than or equal to Valid From Date'}), 400
-        except ValueError:
-            return jsonify({'success': False, 'error': 'Invalid date format. Please use YYYY-MM-DD format'}), 400
-
-        print(f"🎯 Creating student offer with data: {data}")
-
-        offer = create_student_offer(data)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Student offer created successfully!',
-            'offer_id': offer.id
-        })
-        
-    except ValueError as e:
-        print(f"❌ Validation error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 400
-    except Exception as e:
-        print(f"❌ Error creating student offer: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': 'Error creating student offer. Please try again.'}), 500
+# NOTE: Student offer creation endpoint moved to modules/packages/routes.py
+# to avoid routing conflicts with the main packages blueprint
 
 @app.route('/api/student-offers/<int:offer_id>', methods=['GET'])
 @login_required

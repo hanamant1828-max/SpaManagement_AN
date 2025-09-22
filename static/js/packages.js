@@ -2034,7 +2034,7 @@ async function loadStudentPackages() {
     try {
         console.log('Loading student packages specifically for student tab only');
 
-        const response = await fetch('/api/student-offers');
+        const response = await fetch('/packages/api/student-offers');
         const data = await response.json();
 
         const tableBody = document.querySelector('#tblStudentOffers tbody');
@@ -2113,7 +2113,7 @@ async function deleteStudentOffer(offerId) {
     }
 
     try {
-        const response = await fetch(`/api/student-offers/${offerId}`, {
+        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
             method: 'DELETE'
         });
 
@@ -2321,7 +2321,7 @@ async function saveStudentOffer() {
         // Ensure discount is a number
         data.discount_percentage = parseFloat(data.discount_percentage);
 
-        const response = await fetch('/api/student-offers', {
+        const response = await fetch('/packages/api/student-offers', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -2364,7 +2364,7 @@ async function saveStudentOffer() {
 // Load student offer for editing
 async function loadStudentOfferForEdit(offerId) {
     try {
-        const response = await fetch(`/api/student-offers/${offerId}`);
+        const response = await fetch(`/packages/api/student-offers/${offerId}`);
         const result = await response.json();
 
         if (result.success && result.offer) {
@@ -2502,7 +2502,7 @@ async function updateStudentOffer() {
 
         console.log('Updating student offer data:', data);
 
-        const response = await fetch(`/api/student-offers/${offerId}`, {
+        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -2558,7 +2558,7 @@ async function deleteStudentOffer(offerId) {
     }
 
     try {
-        const response = await fetch(`/api/student-offers/${offerId}`, {
+        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
             method: 'DELETE'
         });
 
@@ -2819,7 +2819,7 @@ async function loadStudentPackages() {
     try {
         console.log('Loading student packages specifically for student tab only');
 
-        const response = await fetch('/api/student-offers');
+        const response = await fetch('/packages/api/student-offers');
         const data = await response.json();
 
         const tableBody = document.querySelector('#tblStudentOffers tbody');
@@ -2982,7 +2982,7 @@ async function loadPackageTypeIntoTable(packageType, tableId) {
         // API endpoints for each package type
         const endpoints = {
             membership: '/api/memberships',
-            student: '/api/student-offers',
+            student: '/packages/api/student-offers',
             yearly: '/api/yearly-memberships',
             kitty: '/api/kitty-parties'
         };
