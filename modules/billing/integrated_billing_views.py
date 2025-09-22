@@ -1080,6 +1080,7 @@ def api_get_batches_for_product(product_id):
                 'qty_available': float(batch.qty_available),
                 'unit_cost': float(batch.unit_cost or 0),
                 'selling_price': float(batch.selling_price or 0) if batch.selling_price else float(batch.unit_cost or 0),
+                'unit_price': float(batch.selling_price or 0) if batch.selling_price else float(batch.unit_cost or 0),
                 'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
                 'days_to_expiry': batch.days_to_expiry,
                 'location_name': batch.location.name if batch.location else 'Unknown',

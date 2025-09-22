@@ -664,9 +664,12 @@ function addProductRow() {
                 quantityInput.value = '1'; // Reset quantity to 1
                 validateInventoryQuantity(quantityInput); // Validate after setting max and default value
             }
-            // Set default price based on the selected batch's unit price if available
+            // Auto-populate price based on the first batch's selling price
             if (priceInput) {
-                priceInput.value = firstBatch.unit_price || '';
+                const sellingPrice = firstBatch.selling_price || firstBatch.unit_price || firstBatch.unit_cost || 0;
+                priceInput.value = parseFloat(sellingPrice).toFixed(2);
+                // Trigger calculation update after setting price
+                updateTaxCalculations();
             }
 
             // Update batch info when batch selection changes
@@ -686,9 +689,12 @@ function addProductRow() {
                         quantityInput.value = '1'; // Reset quantity to 1 on batch change
                         validateInventoryQuantity(quantityInput); // Re-validate
                     }
-                    // Update price based on selected batch
+                    // Auto-populate price based on selected batch's selling price
                     if (priceInput) {
-                        priceInput.value = selectedBatch.unit_price || '';
+                        const sellingPrice = selectedBatch.selling_price || selectedBatch.unit_price || selectedBatch.unit_cost || 0;
+                        priceInput.value = parseFloat(sellingPrice).toFixed(2);
+                        // Trigger calculation update
+                        updateTaxCalculations();
                     }
                 }
             });

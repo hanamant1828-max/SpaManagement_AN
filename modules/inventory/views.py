@@ -623,28 +623,34 @@ def api_get_batches_for_consumption():
         ).order_by(InventoryBatch.expiry_date.asc().nullslast(), InventoryBatch.batch_name).all()
 
         batch_data = []
-        for b in batches:
-            qty_available = float(b.qty_available or 0)
-            unit = b.product.unit_of_measure if b.product else 'pcs'
-            product_name = b.product.name if b.product else 'Unassigned'
-            location_name = b.location.name if b.location else 'Unassigned'
+        for batch in batches:
+            qty_available = float(batch.qty_available or 0)
+            unit = batch.product.unit_of_measure if batch.product else 'pcs'
+            product_name = batch.product.name if batch.product else 'Unassigned'
+            location_name = batch.location.name if batch.location else 'Unassigned'
 
             # Create dropdown display text
-            expiry_text = f", Exp: {b.expiry_date.strftime('%d/%m/%Y')}" if b.expiry_date else ""
-            dropdown_display = f"{b.batch_name} ({product_name}{expiry_text}) - Available: {qty_available} {unit}"
+            expiry_text = f", Exp: {batch.expiry_date.strftime('%d/%m/%Y')}" if batch.expiry_date else ""
+            dropdown_display = f"{batch.batch_name} ({product_name}{expiry_text}) - Available: {qty_available} {unit}"
 
-            batch_data.append({
-                'id': b.id,
-                'batch_name': b.batch_name,
-                'product_id': b.product_id,  # Add product_id for proper matching
-                'product_name': product_name,
-                'location_name': location_name,
-                'qty_available': qty_available,
-                'unit': unit,
-                'selling_price': float(b.selling_price) if b.selling_price else None,
-                'expiry_date': b.expiry_date.isoformat() if b.expiry_date else None,
+            # Include selling price in batch API response
+            batch_info = {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_id': batch.product_id,
+                'product_name': batch.product.name if batch.product else 'Unassigned',
+                'location': batch.location.name if batch.location else 'Unknown',
+                'qty_available': float(batch.qty_available or 0),
+                'unit_cost': float(batch.unit_cost or 0),
+                'selling_price': float(batch.selling_price or 0) if batch.selling_price else float(batch.unit_cost or 0),
+                'unit': batch.product.unit_of_measure if batch.product else 'pcs',
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'days_to_expiry': batch.days_to_expiry,
+                'is_near_expiry': batch.is_near_expiry,
+                'status': batch.status,
                 'dropdown_display': dropdown_display
-            })
+            }
+            batch_data.append(batch_info)
 
         return jsonify({
             'success': True,
