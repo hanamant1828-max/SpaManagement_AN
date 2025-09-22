@@ -197,6 +197,85 @@ def api_get_customer_packages():
             )
 
         # Order by assigned date (newest first)
+
+
+@packages_bp.route("/api/assign-service-package", methods=['POST'])
+@login_required
+def api_assign_service_package():
+    """Assign service package to customer"""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        required_fields = ['customer_id', 'package_id', 'package_type']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'{field} is required'}), 400
+
+        # Check if customer exists
+        customer = Customer.query.get(data['customer_id'])
+        if not customer:
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        # Check if service package exists
+        from modules.packages.new_packages_queries import get_service_package_by_id
+        service_package = get_service_package_by_id(data['package_id'])
+        if not service_package:
+            return jsonify({'success': False, 'error': 'Service package not found'}), 404
+
+        # Check if package is active
+        if not service_package.is_active:
+            return jsonify({'success': False, 'error': 'Service package is not active'}), 400
+
+        # Calculate validity dates
+        validity_months = service_package.validity_months or 6
+        assigned_date = datetime.utcnow()
+        expires_date = assigned_date + timedelta(days=validity_months * 30)
+
+        # Check for existing active assignment
+        existing_assignment = ServicePackageAssignment.query.filter_by(
+            customer_id=data['customer_id'],
+            package_reference_id=data['package_id'],
+            package_type='service_package',
+            status='active'
+        ).first()
+
+        if existing_assignment:
+            return jsonify({'success': False, 'error': 'Customer already has an active assignment for this service package'}), 409
+
+        # Create service package assignment
+        assignment = ServicePackageAssignment(
+            customer_id=data['customer_id'],
+            package_type='service_package',
+            package_reference_id=data['package_id'],
+            service_id=data.get('service_id'),
+            assigned_on=assigned_date,
+            expires_on=expires_date,
+            price_paid=0.0,  # Will be updated when payment is made
+            discount=0.0,
+            status='active',
+            notes=data.get('notes', ''),
+            total_sessions=service_package.total_services,
+            used_sessions=0,
+            remaining_sessions=service_package.total_services
+        )
+
+        db.session.add(assignment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Service package assigned successfully',
+            'assignment_id': assignment.id,
+            'expires_on': expires_date.strftime('%Y-%m-%d'),
+            'total_sessions': service_package.total_services
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error assigning service package: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
         query = query.order_by(desc(CustomerPackage.assigned_on))
 
         # Paginate

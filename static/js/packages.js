@@ -19,6 +19,7 @@ window.openAssignModal = openAssignModal;
 window.openAssignSimple = openAssignSimple;
 window.saveAssignSimple = saveAssignSimple;
 window.assignPackage = assignPackage;
+window.assignServicePackage = assignServicePackage;
 window.clearFilters = clearFilters;
 window.applyFilters = applyFilters;
 window.changePage = changePage;
@@ -199,6 +200,48 @@ function saveAssignSimple() {
 function assignPackage(packageId, packageType) {
     console.log('Assigning package:', packageId, packageType);
     openAssignSimple(packageId, packageType);
+}
+
+/**
+ * Assign Service Package function
+ */
+function assignServicePackage(packageId, packageName, serviceId = null) {
+    console.log('Assigning service package:', packageId, packageName, serviceId);
+    
+    // Set up assignment modal for service package
+    const modal = document.getElementById('assignServicePackageModal') || document.getElementById('assignPackageModal');
+    
+    if (!modal) {
+        console.error('Assignment modal not found');
+        showToast('Assignment modal not available', 'error');
+        return;
+    }
+
+    // Reset form
+    const form = document.getElementById('assignServicePackageForm') || document.getElementById('assignPackageForm');
+    if (form) {
+        form.reset();
+    }
+
+    // Set package details
+    const packageIdInput = document.getElementById('assign_service_package_id') || document.getElementById('assign_package_id');
+    const packageNameSpan = document.getElementById('assign_service_package_name') || document.getElementById('assign_package_name');
+    
+    if (packageIdInput) packageIdInput.value = packageId;
+    if (packageNameSpan) packageNameSpan.textContent = packageName;
+
+    // Set service if provided
+    if (serviceId) {
+        const serviceIdInput = document.getElementById('assign_service_id');
+        if (serviceIdInput) serviceIdInput.value = serviceId;
+    }
+
+    // Load customers for assignment
+    loadCustomersForServiceAssignment();
+
+    // Show modal
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
 }
 
 /**
@@ -501,6 +544,49 @@ async function loadCustomersForAssignment() {
  */
 async function loadCustomersForSimpleAssign() {
     return loadCustomersForAssignment();
+}
+
+/**
+ * Load customers for service package assignment
+ */
+async function loadCustomersForServiceAssignment() {
+    try {
+        const response = await fetch('/packages/api/customers');
+        const result = await response.json();
+
+        const customerSelect = document.getElementById('assign_service_customer') || 
+                             document.getElementById('assignCustomer') ||
+                             document.querySelector('select[name="customer_id"]');
+        
+        if (!customerSelect) {
+            console.error('Customer select element not found');
+            return;
+        }
+
+        customerSelect.innerHTML = '<option value="">Select customer...</option>';
+
+        if (result.success && result.customers) {
+            result.customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = `${customer.name} - ${customer.phone || 'No phone'}`;
+                customerSelect.appendChild(option);
+            });
+        }
+
+        // Enable save button when customer is selected
+        customerSelect.addEventListener('change', function() {
+            const saveBtn = document.getElementById('confirmServiceAssignBtn') || 
+                           document.getElementById('saveServiceAssignment');
+            if (saveBtn) {
+                saveBtn.disabled = !this.value;
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading customers:', error);
+        showToast('Error loading customers', 'error');
+    }
 }
 
 /**
@@ -841,6 +927,89 @@ async function saveAssignment() {
         showToast('Error assigning package', 'error');
     }
 }
+
+/**
+ * Save service package assignment
+ */
+async function saveServicePackageAssignment() {
+    console.log('Saving service package assignment...');
+
+    const packageId = document.getElementById('assign_service_package_id')?.value || 
+                     document.getElementById('assign_package_id')?.value;
+    const customerId = document.getElementById('assign_service_customer')?.value || 
+                      document.getElementById('assignCustomer')?.value;
+    const serviceId = document.getElementById('assign_service_id')?.value;
+    const notes = document.getElementById('assign_service_notes')?.value || '';
+
+    if (!packageId || !customerId) {
+        showToast('Please select a customer and package', 'warning');
+        return;
+    }
+
+    const saveBtn = document.getElementById('confirmServiceAssignBtn') || 
+                   document.getElementById('saveServiceAssignment');
+    const originalText = saveBtn?.innerHTML;
+    
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    }
+
+    const data = {
+        customer_id: parseInt(customerId),
+        package_id: parseInt(packageId),
+        package_type: 'service_package',
+        service_id: serviceId ? parseInt(serviceId) : null,
+        notes: notes
+    };
+
+    try {
+        const response = await fetch('/packages/api/assign-service-package', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('Service package assigned successfully!', 'success');
+
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById('assignServicePackageModal') || 
+                document.getElementById('assignPackageModal')
+            );
+            if (modal) {
+                modal.hide();
+            }
+
+            // Reset form
+            const form = document.getElementById('assignServicePackageForm') || 
+                        document.getElementById('assignPackageForm');
+            if (form) {
+                form.reset();
+            }
+
+            // Reload page to reflect changes
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Error assigning service package', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving service package assignment:', error);
+        showToast('Error assigning service package', 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// Make saveServicePackageAssignment globally available
+window.saveServicePackageAssignment = saveServicePackageAssignment;
 
 /**
  * Open package details modal and populate it

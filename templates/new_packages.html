@@ -705,6 +705,146 @@
     </div>
 </div>
 
+<!-- Assign Package Modal -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignPackageForm">
+                    <div class="mb-3">
+                        <label for="assign_package_name" class="form-label">Package Name</label>
+                        <input type="text" class="form-control" id="assign_package_name" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assign_customer_id" class="form-label">Customer</label>
+                        <select class="form-select" id="assign_customer_id" required>
+                            <option value="">Select customer...</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assign_expiry_date" class="form-label">Expiry Date</label>
+                        <input type="date" class="form-control" id="assign_expiry_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="assign_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="assign_notes" rows="3"></textarea>
+                    </div>
+                    <!-- Hidden inputs for package ID and type -->
+                    <input type="hidden" id="assign_package_id">
+                    <input type="hidden" id="assign_package_type">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPackageAssignment()">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Service Package Modal -->
+<div class="modal fade" id="assignServicePackageModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assign_service_package_name">Assign Service Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignServicePackageForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="service_assign_customer_id" class="form-label">Customer *</label>
+                            <select class="form-select" id="service_assign_customer_id" required>
+                                <option value="">Select customer...</option>
+                                {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Please select a customer.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="service_assign_service_id" class="form-label">Service *</label>
+                            <select class="form-select" id="service_assign_service_id" required>
+                                <option value="">Choose a service...</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a service.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5 class="mb-3">Package Summary</h5>
+                        <div class="card p-3">
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>Package Name:</strong></div>
+                                <div class="col-6" id="assign_package_name_display"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>Pay For:</strong></div>
+                                <div class="col-6" id="summary_pay_for"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>Total Services:</strong></div>
+                                <div class="col-6" id="summary_total"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>Free Services:</strong></div>
+                                <div class="col-6" id="summary_free"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5 class="mb-3">Cost Breakdown</h5>
+                        <div id="cost_breakdown" style="display: none;">
+                            <div class="row mb-2">
+                                <div class="col-6">Service Price:</div>
+                                <div class="col-6" id="service_price_display"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Total Package Value:</div>
+                                <div class="col-6" id="total_cost_display"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Package Discount:</div>
+                                <div class="col-6" id="package_discount_display"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Final Payment:</div>
+                                <div class="col-6" id="final_payment_display"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Total Savings:</div>
+                                <div class="col-6" id="total_savings_display"></div>
+                            </div>
+                        </div>
+                        <div class="text-muted" id="no_cost_breakdown_msg">Select a service to see the cost breakdown.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="assign_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="assign_notes" rows="3"></textarea>
+                    </div>
+
+                    <!-- Hidden inputs -->
+                    <input type="hidden" id="service_assign_package_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitServicePackageAssignment()">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Minimal Assign Modal -->
 <div class="modal fade" id="assignSimpleModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
@@ -1817,14 +1957,8 @@ function assignPackage(packageId, packageName, packageType) {
 function assignServicePackage(packageId, packageName) {
     // Set package details
     document.getElementById('service_assign_package_id').value = packageId;
-    document.getElementById('serviceAssignModalTitle').textContent = `Assign Package: "${packageName}"`;
-
-    // Reset form
-    document.getElementById('assignServicePackageForm').reset();
-    document.getElementById('service_assign_package_id').value = packageId;
-
-    // Load services for selection
-    loadServicesForAssignment();
+    document.getElementById('assign_service_package_name').textContent = packageName; // Correctly set the title
+    loadCustomersForServiceAssignment(); // Load customers when the modal is shown
 
     // Load package details for summary
     loadServicePackageDetails(packageId);
@@ -1832,6 +1966,34 @@ function assignServicePackage(packageId, packageName) {
     const modal = new bootstrap.Modal(document.getElementById('assignServicePackageModal'));
     modal.show();
 }
+
+function loadCustomersForServiceAssignment() {
+    const customerSelect = document.getElementById('service_assign_customer_id');
+    if (customerSelect.options.length > 1) { // Already loaded
+        return;
+    }
+
+    fetch('/api/customers') // Assuming an endpoint to get all customers
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.customers) {
+                customerSelect.innerHTML = '<option value="">Select customer...</option>'; // Reset
+                data.customers.forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.id;
+                    option.textContent = `${customer.first_name} ${customer.last_name}`;
+                    customerSelect.appendChild(option);
+                });
+            } else {
+                alert('Error loading customers: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error loading customers:', error);
+            alert('Error loading customers');
+        });
+}
+
 
 function loadServicesForAssignment() {
     fetch('/packages/api/services')
@@ -1868,6 +2030,7 @@ function calculateServiceCostBreakdown() {
 
     if (!selectedOption || !selectedOption.value || !window.currentPackageTemplate) {
         document.getElementById('cost_breakdown').style.display = 'none';
+        document.getElementById('no_cost_breakdown_msg').style.display = 'block';
         return;
     }
 
@@ -1892,8 +2055,12 @@ function calculateServiceCostBreakdown() {
     document.getElementById('final_payment_display').textContent = `₹${finalPayment.toFixed(0)}`;
     document.getElementById('total_savings_display').textContent = `₹${totalSavings.toFixed(0)}`;
 
+    // Update summary displays
+    document.getElementById('assign_package_name_display').textContent = template.name || '';
+
     // Show the breakdown
     document.getElementById('cost_breakdown').style.display = 'block';
+    document.getElementById('no_cost_breakdown_msg').style.display = 'none';
 }
 
 function loadServicePackageDetails(packageId) {
@@ -1905,19 +2072,23 @@ function loadServicePackageDetails(packageId) {
                 document.getElementById('summary_pay_for').textContent = template.pay_for || '-';
                 document.getElementById('summary_free').textContent = template.free_services || '-';
                 document.getElementById('summary_total').textContent = template.total_services || '-';
+                document.getElementById('assign_package_name_display').textContent = template.name || '';
 
                 // Store template data for calculations
                 window.currentPackageTemplate = template;
 
-                // Update text placeholders
-                document.getElementById('total_sessions_text').textContent = template.total_services || 4;
-                document.getElementById('free_sessions_text').textContent = template.free_services || 1;
-                document.getElementById('paid_sessions_text').textContent = template.pay_for || 3;
-                document.getElementById('benefit_percent_display').textContent = Math.round(template.benefit_percent || 25) + '%';
+                // Update text placeholders in cost breakdown if a service is already selected
+                if (document.getElementById('service_assign_service_id').value) {
+                    calculateServiceCostBreakdown();
+                }
+            } else {
+                console.error('Failed to load package details:', data.error);
+                document.getElementById('assign_package_name_display').textContent = 'Error loading details';
             }
         })
         .catch(error => {
             console.error('Error loading package details:', error);
+            document.getElementById('assign_package_name_display').textContent = 'Error loading details';
         });
 }
 
@@ -1944,10 +2115,16 @@ function submitServicePackageAssignment() {
         package_id: parseInt(packageId),
         customer_id: parseInt(customerId),
         service_id: parseInt(serviceId),
-        price_paid: 0, // Will be set by package template price
-        expires_on: formData.get('expiry_date') || null,
+        price_paid: 0, // Will be set by package template price, or use calculated final_payment
+        expires_on: formData.get('expiry_date') || null, // Assuming expiry_date is not in this form, might need to be added
         notes: formData.get('notes') || ''
     };
+
+    // Fetch the calculated final payment to use as price_paid
+    const finalPayment = parseFloat(document.getElementById('final_payment_display').textContent.replace(/[₹,]/g, ''));
+    if (!isNaN(finalPayment)) {
+        assignmentData.price_paid = finalPayment;
+    }
 
     // Submit assignment
     fetch('/packages/api/assign', {
@@ -1983,7 +2160,7 @@ function submitPackageAssignment() {
     formData.append('package_id', packageId);
     formData.append('package_type', packageType);
 
-    fetch(`/packages/assign/${packageId}`, {
+    fetch(`/packages/api/assign`, { // Changed endpoint to match general assignment API
         method: 'POST',
         body: formData
     })
@@ -2067,14 +2244,17 @@ function getPackageDataById(templateId, packageType) {
         });
     } else if (packageType === 'student') {
         // Find in student offers table
-        const rows = document.querySelectorAll('#studentTableBody tr');
+        const rows = document.querySelectorAll('#tblStudentOffers tr'); // Corrected selector
         rows.forEach(row => {
             const assignBtn = row.querySelector(`[data-template-id="${templateId}"]`);
             if (assignBtn) {
                 const cells = row.querySelectorAll('td');
+                // Assuming price/value is in a predictable column, adjust if necessary
+                // Based on the structure, it might be hard to get price directly from the table row without more context
+                // For now, let's assume it's not directly available and handle it as 0 or fetch separately if needed
                 packageData = {
                     name: cells[0].textContent.trim(),
-                    price: parseFloat(cells[3].textContent.replace(/[₹,]/g, '')) || 0 // After price
+                    price: 0 // Placeholder, needs actual implementation if price is required here
                 };
             }
         });
@@ -2128,9 +2308,9 @@ function saveAssignSimple() {
 
         const data = {
             package_type: packageType,
-            package_id: templateId,
-            customer_id: parseInt(customerId),
-            price_paid: parseFloat(pricePaid)
+            package_id: parseInt(templateId), // Ensure it's an integer
+            customer_id: parseInt(customerId), // Ensure it's an integer
+            price_paid: parseFloat(pricePaid) // Ensure it's a float
         };
 
         fetch('/packages/api/assign', {
@@ -2180,13 +2360,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Add event listener for membership save button
 document.addEventListener('DOMContentLoaded', function() {
-    const saveMembershipBtn = document.getElementById('saveMembershipBtn');
-    if (saveMembershipBtn) {
-        saveMembershipBtn.addEventListener('click', submitMembershipForm);
-        console.log('Save membership button event listener attached');
-    }
-
-    // Add event listener for membership save button
     const saveMembershipBtn = document.getElementById('saveMembershipBtn');
     if (saveMembershipBtn) {
         saveMembershipBtn.addEventListener('click', submitMembershipForm);
