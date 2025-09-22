@@ -1101,6 +1101,72 @@ def assign_package():
                 used_credit=0,
                 remaining_credit=0
             )
+        elif package_type == 'student_offer':
+            # Get student offer template
+            student_offer = get_student_offer_by_id(data['package_id'])
+            if not student_offer:
+                return jsonify({'success': False, 'error': 'Student offer not found'}), 404
+
+            # Calculate expiry date
+            expiry_date = None
+            if student_offer.valid_to:
+                expiry_date = student_offer.valid_to
+            elif data.get('expires_on'):
+                expiry_date = datetime.strptime(data['expires_on'], '%Y-%m-%d')
+
+            # Create assignment record for student offer
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='student_offer',
+                package_reference_id=student_offer.id,
+                service_id=data.get('service_id'), # Optional for student offers
+                assigned_on=datetime.utcnow(),
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Student offer tracking
+                total_sessions=0,
+                used_sessions=0,
+                remaining_sessions=0,
+                credit_amount=0,
+                used_credit=0,
+                remaining_credit=0
+            )
+        elif package_type == 'kitty' or package_type == 'kitty_party':
+            # Get kitty party template
+            kitty_party = get_kitty_party_by_id(data['package_id'])
+            if not kitty_party:
+                return jsonify({'success': False, 'error': 'Kitty party not found'}), 404
+
+            # Calculate expiry date
+            expiry_date = None
+            if kitty_party.valid_to:
+                expiry_date = kitty_party.valid_to
+            elif data.get('expires_on'):
+                expiry_date = datetime.strptime(data['expires_on'], '%Y-%m-%d')
+
+            # Create assignment record for kitty party
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='kitty_party',
+                package_reference_id=kitty_party.id,
+                service_id=data.get('service_id'), # Optional for kitty parties
+                assigned_on=datetime.utcnow(),
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Kitty party tracking
+                total_sessions=0,
+                used_sessions=0,
+                remaining_sessions=0,
+                credit_amount=0,
+                used_credit=0,
+                remaining_credit=0
+            )
         else:
             return jsonify({'success': False, 'error': f'Package type {package_type} not supported yet'}), 400
 

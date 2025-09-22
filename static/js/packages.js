@@ -159,11 +159,27 @@ function handleCustomerSelection() {
 function saveAssignSimple() {
     console.log('Saving simple assignment...');
 
-    const templateId = document.getElementById('asTemplateId')?.value;
-    const packageType = document.getElementById('asPackageType')?.value || 'membership';
-    const customerId = document.getElementById('asCustomer')?.value;
-    const pricePaid = parseFloat(document.getElementById('asPricePaid')?.value) || 0;
-    const notes = document.getElementById('asNotes')?.value || '';
+    // Try to get values from multiple possible modal implementations
+    const templateId = document.getElementById('asTemplateId')?.value || 
+                      document.getElementById('assignOfferReferenceId')?.value ||
+                      document.getElementById('selectedPackageId')?.value;
+    
+    const packageType = document.getElementById('asPackageType')?.value || 
+                       document.getElementById('assignOfferType')?.value ||
+                       document.getElementById('selectedPackageType')?.value ||
+                       'membership';
+    
+    const customerId = document.getElementById('asCustomer')?.value ||
+                      document.getElementById('assignCustomerSelect')?.value ||
+                      document.getElementById('assignmentCustomer')?.value;
+    
+    const pricePaid = parseFloat(document.getElementById('asPricePaid')?.value || 
+                                document.getElementById('assignPricePaid')?.value ||
+                                document.getElementById('assignmentPrice')?.value) || 0;
+    
+    const notes = document.getElementById('asNotes')?.value || 
+                 document.getElementById('assignNotes')?.value ||
+                 document.getElementById('assignmentNotes')?.value || '';
 
     console.log('Simple assignment data:', {
         templateId,
@@ -178,7 +194,12 @@ function saveAssignSimple() {
         return;
     }
 
-    const saveBtn = document.getElementById('asSave');
+    const saveBtn = document.getElementById('asSave') ||
+                   document.getElementById('confirmAssignBtn') ||
+                   document.getElementById('savePackageAssignment') ||
+                   document.querySelector('.btn-primary[onclick*="assign"]') ||
+                   document.querySelector('#assignPackageModal .btn-primary');
+    
     const originalText = saveBtn?.innerHTML || 'Assign Package';
     if (saveBtn) {
         saveBtn.disabled = true;
@@ -211,18 +232,34 @@ function saveAssignSimple() {
         if (result.success) {
             showToast('Package assigned successfully!', 'success');
 
-            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSimpleModal')) ||
-                         bootstrap.Modal.getInstance(document.getElementById('assignPackageModal'));
-            if (modal) {
-                modal.hide();
+            // Try to close any open assignment modal
+            const modals = [
+                'assignSimpleModal',
+                'assignPackageModal', 
+                'packageAssignmentModal'
+            ];
+            
+            for (const modalId of modals) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                if (modal) {
+                    modal.hide();
+                    break;
+                }
             }
 
-            // Reset form after successful assignment
-            const form = document.getElementById('assignSimpleForm') || 
-                        document.getElementById('assignPackageForm');
-            if (form) form.reset();
-
-            if (saveBtn) saveBtn.disabled = true; // Disable save button again until new selection
+            // Reset forms
+            const forms = [
+                'assignSimpleForm',
+                'assignPackageForm',
+                'packageAssignmentForm'
+            ];
+            
+            for (const formId of forms) {
+                const form = document.getElementById(formId);
+                if (form) {
+                    form.reset();
+                }
+            }
 
             setTimeout(() => location.reload(), 1000); // Reload page to reflect changes
         } else {
@@ -456,40 +493,73 @@ function setupEventListeners() {
         adjustForm.addEventListener('input', validateAdjustForm);
     }
 
-    // Save buttons - try multiple IDs for assignment buttons
-    const saveAssignBtn = document.getElementById('saveAssignPackage') ||
-                         document.getElementById('confirmAssignBtn') ||
-                         document.getElementById('confirmAssignButton') ||
-                         document.getElementById('asSave');
+    // Set up multiple assign button event listeners
+    const assignButtonSelectors = [
+        '#saveAssignPackage',
+        '#confirmAssignBtn', 
+        '#confirmAssignButton',
+        '#asSave',
+        '#savePackageAssignment'
+    ];
+
+    assignButtonSelectors.forEach(selector => {
+        const btn = document.querySelector(selector);
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Assignment button clicked:', selector);
+                saveAssignSimple();
+            });
+        }
+    });
+
     const saveUsageBtn = document.getElementById('saveUsage');
-    const saveAdjustBtn = document.getElementById('saveAdjustment');
-
-    if (saveAssignBtn) {
-        saveAssignBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Assignment button clicked');
-            saveAssignSimple();
-        });
-    }
-
     if (saveUsageBtn) {
         saveUsageBtn.addEventListener('click', saveUsage);
     }
 
+    const saveAdjustBtn = document.getElementById('saveAdjustment');
     if (saveAdjustBtn) {
         saveAdjustBtn.addEventListener('click', saveAdjustment);
     }
 
-    // Set up delegation for dynamically created assign buttons
+    // Set up comprehensive delegation for assign buttons
     document.addEventListener('click', function(e) {
+        // Check if clicked element is an assign button
         if (e.target.matches('.btn[onclick*="Assign"]') || 
             e.target.matches('button[data-action="assign"]') ||
-            e.target.closest('.btn[onclick*="Assign"]')) {
-            e.preventDefault();
-            console.log('Assign button clicked via delegation');
-            saveAssignSimple();
+            e.target.closest('.btn[onclick*="Assign"]') ||
+            e.target.textContent?.includes('Assign') && e.target.classList.contains('btn')) {
+            
+            // Only handle if it's in an assignment modal
+            const assignModal = e.target.closest('#assignPackageModal, #assignSimpleModal, #packageAssignmentModal');
+            if (assignModal) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Assign button clicked via delegation');
+                saveAssignSimple();
+            }
         }
     });
+
+    // Specific handler for the blue "Assign" button in the modal
+    setTimeout(() => {
+        const assignBtns = document.querySelectorAll('.btn-primary');
+        assignBtns.forEach(btn => {
+            if (btn.textContent.includes('Assign') && !btn.hasAttribute('data-assign-listener')) {
+                btn.setAttribute('data-assign-listener', 'true');
+                btn.addEventListener('click', function(e) {
+                    const modal = this.closest('.modal');
+                    if (modal && (modal.id.includes('assign') || modal.id.includes('package'))) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Blue assign button clicked');
+                        saveAssignSimple();
+                    }
+                });
+            }
+        });
+    }, 1000);
 }
 
 /**
