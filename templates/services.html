@@ -181,6 +181,7 @@
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
+</old_str>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -484,6 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+    
     const editForm = document.getElementById('editServiceForm');
     if (editForm) {
         editForm.addEventListener('submit', function(e) {
@@ -497,11 +499,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData
             })
-            .then(response => {
-                if (response.ok) {
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide modal and reload
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editServiceModal'));
+                    modal.hide();
                     location.reload();
                 } else {
-                    alert('Error updating service');
+                    alert('Error: ' + data.message);
                 }
             })
             .catch(error => {
@@ -523,69 +529,114 @@ function filterServices() {
 }
 
 function editService(serviceId) {
+    console.log('Editing service:', serviceId);
+    
     // Get service data and populate edit modal
     fetch(`/api/services/${serviceId}`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(service => {
-            if (service) {
+            console.log('Service data received:', service);
+            if (service && !service.error) {
                 // Populate edit modal
                 document.getElementById('editServiceId').value = serviceId;
-                document.getElementById('editServiceName').value = service.name;
+                document.getElementById('editServiceName').value = service.name || '';
                 document.getElementById('editServiceDescription').value = service.description || '';
-                document.getElementById('editServiceDuration').value = service.duration;
-                document.getElementById('editServicePrice').value = service.price;
+                document.getElementById('editServiceDuration').value = service.duration || 60;
+                document.getElementById('editServicePrice').value = service.price || 0;
                 document.getElementById('editServiceCategory').value = service.category_id || '';
                 document.getElementById('editServiceCommissionRate').value = service.commission_rate || 10;
                 document.getElementById('editServiceActive').checked = service.is_active;
                 
                 // Show modal
-                new bootstrap.Modal(document.getElementById('editServiceModal')).show();
+                const modal = new bootstrap.Modal(document.getElementById('editServiceModal'));
+                modal.show();
             } else {
-                alert('Service not found');
+                alert('Service not found: ' + (service.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error loading service data');
+            alert('Error loading service data: ' + error.message);
         });
 }
 
 function toggleService(serviceId) {
+    if (!serviceId) {
+        alert('Invalid service ID');
+        return;
+    }
+    
+    console.log('Toggling service:', serviceId);
+    
     fetch(`/services/${serviceId}/toggle`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Toggle response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Toggle response:', data);
         if (data.success) {
+            alert(data.message);
             location.reload();
         } else {
-            alert('Error: ' + data.message);
+            alert('Error: ' + (data.message || 'Unknown error'));
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred');
+        alert('An error occurred: ' + error.message);
     });
 }
 
 function deleteService(serviceId) {
+    if (!serviceId) {
+        alert('Invalid service ID');
+        return;
+    }
+    
     if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
-        // Create a form to submit the delete request
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/services/${serviceId}/delete`;
+        console.log('Deleting service:', serviceId);
         
-        // Add CSRF token
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        form.appendChild(csrfInput);
-        
-        // Submit form
-        document.body.appendChild(form);
-        form.submit();
+        fetch(`/services/${serviceId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Delete response:', data);
+            if (data.success) {
+                alert(data.message || 'Service deleted successfully');
+                location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred: ' + error.message);
+        });
     }
 }
 

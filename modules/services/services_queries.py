@@ -85,6 +85,7 @@ def create_service(data):
 
 def update_service(service_id, data):
     """Update existing service"""
+    from models import Service, Category
     try:
         service = Service.query.get(service_id)
         if not service:
@@ -108,22 +109,20 @@ def update_service(service_id, data):
 
 def delete_service(service_id):
     """Delete service with safety checks"""
+    from models import Service, Appointment
     try:
         service = Service.query.get(service_id)
         if not service:
             return {'success': False, 'message': 'Service not found'}
         
-        # Check if service is used in appointments or packages
-        from models import Appointment, PackageService
-        
+        # Check if service is used in appointments
         appointments_count = Appointment.query.filter_by(service_id=service_id).count()
-        packages_count = PackageService.query.filter_by(service_id=service_id).count()
         
-        if appointments_count > 0 or packages_count > 0:
+        if appointments_count > 0:
             # Soft delete - mark as inactive
             service.is_active = False
             db.session.commit()
-            return {'success': True, 'message': 'Service deactivated (has associated records)'}
+            return {'success': True, 'message': 'Service deactivated (has associated appointments)'}
         else:
             # Hard delete if no associations
             db.session.delete(service)

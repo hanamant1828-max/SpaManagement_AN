@@ -626,7 +626,7 @@ def create_staff_route():
             'email': form.email.data,
             'phone': form.phone.data,
             'role': form.role.data,
-            
+
             'password_hash': generate_password_hash('TempPass123!'),  # Temporary password - must be changed on first login
             'is_active': True
         }
@@ -795,8 +795,7 @@ def api_get_all_staff():
                 'designation': staff.designation,
                 'staff_code': staff.staff_code,
                 'employee_id': staff.employee_id,
-                'commission_rate': staff.commission_rate or 0,
-                'hourly_rate': staff.hourly_rate or 0,
+                
                 'is_active': staff.is_active,
                 'gender': staff.gender,
                 'date_of_birth': staff.date_of_birth.isoformat() if staff.date_of_birth else None,
@@ -815,7 +814,7 @@ def api_get_all_staff():
         
         roles_data = [{'id': r.id, 'name': r.name, 'display_name': r.display_name} for r in roles]
         departments_data = [{'id': d.id, 'name': d.name, 'display_name': d.display_name} for d in departments]
-        
+
         print(f"API Response - Roles: {len(roles_data)}, Departments: {len(departments_data)}")
         if departments_data:
             print("Available departments:", [d['display_name'] for d in departments_data])

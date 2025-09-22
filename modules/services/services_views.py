@@ -169,49 +169,66 @@ def create_service_route():
 def edit_service(service_id):
     """Edit service"""
     if not current_user.can_access('services'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('services'))
+        return jsonify({'success': False, 'message': 'Access denied'})
     
     service = get_service_by_id(service_id)
     if not service:
-        flash('Service not found', 'danger')
-        return redirect(url_for('services'))
+        return jsonify({'success': False, 'message': 'Service not found'})
     
-    form = ServiceForm()
-    if form.validate_on_submit():
+    try:
+        # Validate required fields
+        name = request.form.get('name', '').strip()
+        if not name:
+            return jsonify({'success': False, 'message': 'Service name is required'})
+        
         try:
-            update_service(service_id, {
-                'name': form.name.data,
-                'description': form.description.data,
-                'duration': form.duration.data,
-                'price': form.price.data,
-                'category_id': form.category_id.data,
-                'is_active': form.is_active.data
-            })
-            flash(f'Service "{service.name}" updated successfully', 'success')
-        except Exception as e:
-            flash(f'Error updating service: {str(e)}', 'danger')
-    
-    return redirect(url_for('services'))
+            duration = int(request.form.get('duration', 60))
+            price = float(request.form.get('price', 0))
+            commission_rate = float(request.form.get('commission_rate', 10))
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Invalid numeric values provided'})
+        
+        if price <= 0:
+            return jsonify({'success': False, 'message': 'Price must be greater than 0'})
+        
+        if duration < 15:
+            return jsonify({'success': False, 'message': 'Duration must be at least 15 minutes'})
+        
+        # Get form data
+        data = {
+            'name': name,
+            'description': request.form.get('description', '').strip(),
+            'duration': duration,
+            'price': price,
+            'category_id': int(request.form.get('category_id')) if request.form.get('category_id') else None,
+            'commission_rate': commission_rate,
+            'is_active': request.form.get('is_active') == 'on'
+        }
+        
+        update_service(service_id, data)
+        return jsonify({'success': True, 'message': 'Service updated successfully'})
+        
+    except Exception as e:
+        print(f"Error updating service {service_id}: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error updating service: {str(e)}'})
 
 @app.route('/services/<int:service_id>/delete', methods=['POST'])
 @login_required
 def delete_service_route(service_id):
     """Delete service"""
     if not current_user.can_access('services'):
-        flash('Access denied', 'danger')
-        return redirect(url_for('services'))
+        return jsonify({'success': False, 'message': 'Access denied'})
     
     try:
+        print(f"Attempting to delete service ID: {service_id}")
         result = delete_service(service_id)
-        if result['success']:
-            flash(result['message'], 'success')
-        else:
-            flash(result['message'], 'warning')
+        print(f"Delete result: {result}")
+        return jsonify(result)
+        
     except Exception as e:
-        flash(f'Error deleting service: {str(e)}', 'danger')
-    
-    return redirect(url_for('services'))
+        error_msg = f'Error deleting service: {str(e)}'
+        print(f"Delete error: {error_msg}")
+        return jsonify({'success': False, 'message': error_msg})
 
 @app.route('/services/<int:service_id>/toggle', methods=['POST'])
 @login_required
@@ -225,15 +242,19 @@ def toggle_service(service_id):
         if not service:
             return jsonify({'success': False, 'message': 'Service not found'})
         
-        update_service(service_id, {'is_active': not service.is_active})
-        status = 'activated' if not service.is_active else 'deactivated'
+        new_status = not service.is_active
+        print(f"Toggling service {service_id} from {service.is_active} to {new_status}")
+        
+        update_service(service_id, {'is_active': new_status})
+        status = 'activated' if new_status else 'deactivated'
         
         return jsonify({
             'success': True, 
             'message': f'Service {status} successfully',
-            'is_active': not service.is_active
+            'is_active': new_status
         })
     except Exception as e:
+        print(f"Error toggling service {service_id}: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/services/export')

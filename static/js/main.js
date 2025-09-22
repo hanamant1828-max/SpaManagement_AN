@@ -37,7 +37,7 @@ window.bookAppointmentFromModal = bookAppointmentFromModal;
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     initializeBootstrapComponents();
-    
+
     // Ensure customer data is immediately visible on customers page
     if (window.location.pathname.includes('/customers') || window.location.pathname.includes('/clients')) {
         ensureCustomerDataVisibility();
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Function to ensure customer data is visible immediately
 function ensureCustomerDataVisibility() {
     console.log('Ensuring customer data visibility...');
-    
+
     // Remove any loading overlays or spinners that might be hiding data
     const loadingElements = document.querySelectorAll('.spinner-border, .text-center[style*="loading"]');
     loadingElements.forEach(element => {
@@ -55,7 +55,7 @@ function ensureCustomerDataVisibility() {
             element.style.display = 'none';
         }
     });
-    
+
     // Ensure customer table is visible
     const customerTable = document.querySelector('.spa-table, table');
     if (customerTable) {
@@ -65,13 +65,13 @@ function ensureCustomerDataVisibility() {
             tableContainer.style.display = '';
         }
     }
-    
+
     // Ensure stats are visible
     const statsOverview = document.querySelector('.stats-overview');
     if (statsOverview) {
         statsOverview.style.display = 'block';
     }
-    
+
     console.log('Customer data visibility ensured');
 }
 
@@ -2769,119 +2769,6 @@ function updateServicePrice(serviceId, price) {
 // Make it globally available immediately
 window.updateServicePrice = updateServicePrice;
 
-// Staff management navigation function
-function navigateToStaffManagement() {
-    window.location.href = '/comprehensive_staff';
-}
-
-// Update service price function - consolidated and fixed
-function updateServicePrice(serviceId, price) {
-    try {
-        console.log('Service ' + serviceId + ' selected with price: ' + price);
-
-        // Update any price display elements
-        const priceDisplays = document.querySelectorAll('[data-service-price="' + serviceId + '"]');
-        priceDisplays.forEach(display => {
-            display.textContent = formatCurrency(price);
-        });
-
-        // Update service-specific price elements
-        const priceElements = document.querySelectorAll('.service-price');
-        priceElements.forEach(element => {
-            if (element.dataset.serviceId === serviceId) {
-                element.textContent = '$' + price;
-            }
-        });
-
-        // Update amount input if exists
-        const amountField = document.getElementById('amount');
-        if (amountField) {
-            amountField.value = price;
-        }
-
-        const serviceAmountField = document.getElementById('service_amount');
-        if (serviceAmountField) {
-            serviceAmountField.value = price;
-        }
-
-        // Trigger total calculation if on billing page
-        if (typeof calculateTotal === 'function') {
-            calculateTotal();
-        }
-
-        // Trigger custom price update events
-        document.dispatchEvent(new CustomEvent('servicePriceUpdated', {
-            detail: { serviceId: serviceId, price: price }
-        }));
-
-        document.dispatchEvent(new CustomEvent('servicePriceChanged', {
-            detail: { serviceId, price }
-        }));
-
-    } catch (error) {
-        console.error('Error updating service price:', error);
-    }
-}
-
-// Service selection handler for forms
-function handleServiceSelection(selectElement) {
-    try {
-        if (!selectElement) return;
-
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        if (selectedOption && selectedOption.dataset.price) {
-            const price = selectedOption.dataset.price;
-            updateServicePrice(selectElement.value, price);
-
-            // Update amount field if exists
-            const amountField = document.getElementById('amount');
-            if (amountField) {
-                amountField.value = price;
-            }
-        }
-    } catch (error) {
-        console.error('Error handling service selection:', error);
-    }
-}
-
-// Format currency helper function
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-    }).format(amount);
-}
-
-// Calculate total function for billing forms
-function calculateTotal() {
-    try {
-        let total = 0;
-        const serviceSelects = document.querySelectorAll('select[data-price]');
-
-        serviceSelects.forEach(select => {
-            if (select.value && select.selectedOptions[0]) {
-                const price = parseFloat(select.selectedOptions[0].dataset.price || 0);
-                total += price;
-            }
-        });
-
-        // Update total display
-        const totalDisplay = document.getElementById('total-amount');
-        if (totalDisplay) {
-            totalDisplay.textContent = '$' + total.toFixed(2);
-        }
-
-        // Update hidden total field
-        const totalField = document.getElementById('total_amount');
-        if (totalField) {
-            totalField.value = total.toFixed(2);
-        }
-
-    } catch (error) {
-        console.error('Error calculating total:', error);
-    }
-}
-
 // Staff form submission handler (to ensure data refresh)
 function handleStaffFormSubmit(event) {
     event.preventDefault();
@@ -2921,25 +2808,6 @@ function handleStaffFormSubmit(event) {
 // Face recognition functionality
 let video, canvas, context;
 let isRecognizing = false;
-
-// Book appointment from modal function - defined early
-function bookAppointmentFromModal() {
-    if (currentEditCustomerId) {
-        bookAppointment(currentEditCustomerId);
-    } else {
-        // Get customer ID from the modal if available
-        const customerDetails = document.getElementById('customerDetails');
-        if (customerDetails) {
-            // Try to extract customer ID from the modal content
-            const customerIdMatch = customerDetails.innerHTML.match(/data-customer-id="(\d+)"/);
-            if (customerIdMatch) {
-                bookAppointment(parseInt(customerIdMatch[1]));
-                return;
-            }
-        }
-        alert('No customer selected');
-    }
-}
 
 // Make bookAppointmentFromModal globally available immediately
 window.bookAppointmentFromModal = bookAppointmentFromModal;
