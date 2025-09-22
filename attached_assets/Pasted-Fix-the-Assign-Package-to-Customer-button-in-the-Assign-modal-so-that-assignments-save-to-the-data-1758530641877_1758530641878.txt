@@ -1,0 +1,44 @@
+Fix the "Assign Package to Customer" button in the Assign modal so that assignments save to the database.
+
+1. In templates/packages.html
+   - Ensure the Assign button calls confirmPackageAssignment():
+     <button type="button" class="btn btn-success" id="confirmAssignButton"
+             onclick="confirmPackageAssignment()">+ Assign</button>
+   - Ensure hidden fields exist:
+     <input type="hidden" id="assign_package_id" name="package_id">
+     <input type="hidden" id="assign_package_type" name="package_type">
+   - Ensure customer select has id="assign_customer_id".
+
+2. In the JS script:
+   - Define confirmPackageAssignment() as a global function:
+     - Collect form values: package_id, package_type, client_id, custom_price, discount, expiry_date, notes.
+     - Send POST request:
+       fetch("/packages/api/assign", {
+         method: "POST",
+         headers: {"Content-Type": "application/json"},
+         body: JSON.stringify(data)
+       })
+     - On success: show success toast, close modal, reload page.
+     - On error: show error toast.
+
+3. In routes.py
+   - Add Flask route:
+     @app.route("/packages/api/assign", methods=["POST"])
+     def assign_package():
+         data = request.get_json()
+         client_id = data.get("client_id")
+         package_id = data.get("package_id")
+         # validate inputs
+         assignment = ClientPackage(client_id=client_id, package_id=package_id,
+                                    custom_price=data.get("custom_price"),
+                                    discount=data.get("discount"),
+                                    expiry_date=data.get("expiry_date"),
+                                    notes=data.get("notes"))
+         db.session.add(assignment)
+         db.session.commit()
+         return jsonify({"success": True, "message": "Package assigned"})
+
+4. Restart app and test:
+   - Go to Package Management → click Assign.
+   - Select customer, click Assign.
+   - Confirm success toast + new record visible in client_packages table.
