@@ -1,3 +1,4 @@
+
 /**
  * Student Offers Management JavaScript
  * Handles add, edit, delete, and view operations for student offers
@@ -156,7 +157,7 @@ function setupStudentOfferEventListeners() {
 }
 
 /**
- * Validate student offer form
+ * Validate student offer form (ADD form)
  */
 function validateStudentOfferForm() {
     const servicesSelect = document.getElementById('serviceIds');
@@ -181,7 +182,7 @@ function validateStudentOfferForm() {
 
     // Date validation
     let validFromDate = validFromInput ? new Date(validFromInput.value) : null;
-    let validToDate = validToField ? new Date(validToField.value) : null;
+    let validToDate = validToInput ? new Date(validToInput.value) : null;
 
     if (!validFromDate || isNaN(validFromDate.getTime())) {
         errors.push('Valid From date is required.');
@@ -214,20 +215,20 @@ function validateStudentOfferForm() {
 }
 
 /**
- * Validate edit student offer form
+ * Validate edit student offer form (EDIT form)
  */
 function validateEditStudentOfferForm() {
-    const servicesSelect = document.getElementById('editStudentOfferServices');
-    const discountInput = document.getElementById('editStudentDiscountPercentage');
-    const validFromInput = document.getElementById('editStudentValidFrom');
-    const validToInput = document.getElementById('editStudentValidTo');
-    const updateBtn = document.getElementById('updateStudentOffer');
+    // Use checkboxes for edit form (services container)
+    const servicesCheckboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+    const discountInput = document.getElementById('discountPercentage');
+    const validFromInput = document.getElementById('validFrom');
+    const validToInput = document.getElementById('validTo');
+    const updateBtn = document.getElementById('updateStudentOfferBtn');
 
     let errors = [];
 
     // Service validation
-    const selectedServicesCount = servicesSelect ? servicesSelect.selectedOptions.length : 0;
-    if (selectedServicesCount === 0) {
+    if (servicesCheckboxes.length === 0) {
         errors.push('At least one service must be selected.');
     }
 
@@ -239,7 +240,7 @@ function validateEditStudentOfferForm() {
 
     // Date validation
     let validFromDate = validFromInput ? new Date(validFromInput.value) : null;
-    let validToDate = validToField ? new Date(validToField.value) : null;
+    let validToDate = validToInput ? new Date(validToInput.value) : null;
 
     if (!validFromDate || isNaN(validFromDate.getTime())) {
         errors.push('Valid From date is required.');
@@ -397,27 +398,27 @@ async function handleEditFormSubmit(event) {
     const editForm = document.getElementById('editStudentOfferForm');
     if (!editForm) return;
 
-    const offerId = editForm.dataset.offerId; // Assuming offerId is stored in a data attribute
+    const offerId = document.getElementById('offerId') ? document.getElementById('offerId').value : null;
     if (!offerId) {
         showToast('Error: Offer ID not found for editing.', 'error');
         return;
     }
 
     // Disable button to prevent multiple submissions
-    const updateBtn = document.getElementById('updateStudentOffer');
+    const updateBtn = document.getElementById('updateStudentOfferBtn');
     if (updateBtn) updateBtn.disabled = true;
 
-    const servicesSelect = document.getElementById('editStudentOfferServices');
-    const offerNameInput = document.getElementById('editOfferName');
-    const discountInput = document.getElementById('editStudentDiscountPercentage');
-    const validDaysSelect = document.getElementById('editStudentValidDays');
-    const customValidDaysInput = document.getElementById('editCustomValidDays');
-    const validFromInput = document.getElementById('editStudentValidFrom');
-    const validToInput = document.getElementById('editStudentValidTo');
-    const conditionsTextarea = document.getElementById('editStudentConditions');
+    const servicesCheckboxes = document.querySelectorAll('input[name="service_ids"]:checked');
+    const offerNameInput = document.getElementById('offerName');
+    const discountInput = document.getElementById('discountPercentage');
+    const validDaysSelect = document.getElementById('validDays');
+    const customValidDaysInput = document.getElementById('customValidDays');
+    const validFromInput = document.getElementById('validFrom');
+    const validToInput = document.getElementById('validTo');
+    const conditionsTextarea = document.getElementById('conditions');
 
     // Collect selected services
-    const selectedServices = servicesSelect ? Array.from(servicesSelect.selectedOptions).map(option => option.value) : [];
+    const selectedServices = Array.from(servicesCheckboxes).map(checkbox => checkbox.value);
 
     // Determine valid days value
     const validDaysValue = validDaysSelect ? validDaysSelect.value : '';
@@ -435,7 +436,7 @@ async function handleEditFormSubmit(event) {
     };
 
     try {
-        const response = await fetch(`/packages/api/student-offers/${offerId}`, {
+        const response = await fetch(`/api/student-offers/${offerId}`, {
             method: 'PUT', // Use PUT for updating
             headers: {
                 'Content-Type': 'application/json',
@@ -452,13 +453,7 @@ async function handleEditFormSubmit(event) {
                 await loadStudentOffersTable(); // Refresh the table
             }
             // Redirect to the main student offers page or close modal
-            window.location.href = '/student-offers'; // Example redirect
-            // Or if in a modal:
-            // const editOfferModal = document.getElementById('editStudentOfferModal'); // Assuming a modal
-            // if (editOfferModal && typeof bootstrap !== 'undefined') {
-            //     const modalInstance = new bootstrap.Modal(editOfferModal);
-            //     modalInstance.hide();
-            // }
+            window.location.href = '/packages#assign-student'; // Example redirect
         } else {
             throw new Error(result.error || 'Failed to update student offer. Please check your inputs.');
         }
@@ -484,27 +479,6 @@ function editStudentOffer(offerId) {
     console.log('Editing student offer:', offerId);
     // Option 1: Redirect to a dedicated edit page
     window.location.href = `/student-offers/edit?id=${offerId}`;
-
-    // Option 2: Load data into an edit modal (if using modals)
-    // fetch(`/api/student-offers/${offerId}`)
-    //     .then(response => response.json())
-    //     .then(offer => {
-    //         if (offer.success) {
-    //             populateEditForm(offer.offer); // Function to populate the modal form
-    //             const editOfferModal = document.getElementById('editStudentOfferModal');
-    //             if (editOfferModal && typeof bootstrap !== 'undefined') {
-    //                 const modalInstance = new bootstrap.Modal(editOfferModal);
-    //                 editOfferModal.dataset.offerId = offerId; // Store offerId for submission
-    //                 modalInstance.show();
-    //             }
-    //         } else {
-    //             throw new Error(offer.error || 'Failed to load offer details.');
-    //         }
-    //     })
-    //     .catch(error => {
-    //         console.error('Error loading offer for edit:', error);
-    //         showToast('Error loading offer details: ' + error.message, 'error');
-    //     });
 }
 
 /**

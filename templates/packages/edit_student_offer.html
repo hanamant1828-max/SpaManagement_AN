@@ -26,6 +26,7 @@
     border: 1px solid #dee2e6;
     border-radius: 8px;
     padding: 1rem;
+    background: white;
 }
 
 .service-checkbox {
@@ -63,6 +64,13 @@
     align-items: center;
     z-index: 9999;
 }
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: none;
+}
 </style>
 {% endblock %}
 
@@ -97,15 +105,10 @@
         </div>
     </div>
 
-    <script>
-    // Get offer ID from template or URL
-    const OFFER_ID = {{ offer_id if offer_id else 'null' }};
-    </script>
-
     <!-- Main Form -->
     <div class="row">
         <div class="col-lg-8">
-            <form id="editStudentOfferForm">
+            <form id="editStudentOfferForm" novalidate>
                 <input type="hidden" id="offerId" name="offer_id">
 
                 <!-- Service Selection Section -->
@@ -115,10 +118,31 @@
                     
                     <div class="service-selection-card">
                         <div id="servicesContainer">
-                            <!-- Services will be loaded here -->
+                            <div class="text-center p-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading services...</span>
+                                </div>
+                                <p class="mt-2 mb-0">Loading services...</p>
+                            </div>
                         </div>
                     </div>
+                    <div id="servicesError" class="error-message"></div>
                     <div class="form-text mt-2">Select at least one service for this offer</div>
+                </div>
+
+                <!-- Offer Name Section -->
+                <div class="form-section">
+                    <h5><i class="fas fa-tag me-2"></i>Offer Details</h5>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="offerName" class="form-label">Offer Name</label>
+                            <input type="text" class="form-control form-control-lg" id="offerName" 
+                                   name="offer_name" placeholder="e.g., Student Special Discount"
+                                   maxlength="100">
+                            <div id="offerNameError" class="error-message"></div>
+                            <div class="form-text">Optional: Give this offer a descriptive name</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Discount Configuration Section -->
@@ -129,12 +153,12 @@
                             <label for="discountPercentage" class="form-label">Discount Percentage *</label>
                             <div class="input-group">
                                 <input type="number" class="form-control form-control-lg" id="discountPercentage" 
-                                       name="discount_percentage" required min="1" max="100" step="0.1">
+                                       name="discount_percentage" required min="1" max="100" step="0.1"
+                                       placeholder="25">
                                 <span class="input-group-text">%</span>
                             </div>
-                            <div class="invalid-feedback">
-                                Please enter a discount between 1-100%
-                            </div>
+                            <div id="discountError" class="error-message"></div>
+                            <div class="form-text">Enter discount between 1% and 100%</div>
                         </div>
                         
                         <div class="col-md-6">
@@ -167,18 +191,14 @@
                             <label for="validFrom" class="form-label">Valid From *</label>
                             <input type="date" class="form-control form-control-lg" id="validFrom" 
                                    name="valid_from" required>
-                            <div class="invalid-feedback">
-                                Please select a valid from date
-                            </div>
+                            <div id="validFromError" class="error-message"></div>
                         </div>
 
                         <div class="col-md-6">
                             <label for="validTo" class="form-label">Valid Until *</label>
                             <input type="date" class="form-control form-control-lg" id="validTo" 
                                    name="valid_to" required>
-                            <div class="invalid-feedback">
-                                Please select a valid to date
-                            </div>
+                            <div id="validToError" class="error-message"></div>
                         </div>
                     </div>
                 </div>
@@ -187,9 +207,13 @@
                 <div class="form-section">
                     <h5><i class="fas fa-file-contract me-2"></i>Terms & Conditions</h5>
                     <textarea class="form-control" id="conditions" name="conditions" rows="4" 
-                              placeholder="Enter terms and conditions for this student offer"></textarea>
-                    <div class="form-text">Optional terms and conditions for this student offer</div>
+                              placeholder="Enter terms and conditions for this student offer"
+                              maxlength="500">Valid with Student ID only. Cannot be combined with other offers.</textarea>
+                    <div class="form-text">Optional terms and conditions for this student offer (max 500 characters)</div>
                 </div>
+
+                <!-- Form Error Display -->
+                <div id="editStudentOfferFormError" class="error-message" style="display: none;"></div>
 
                 <!-- Action Buttons -->
                 <div class="form-section">
@@ -285,6 +309,11 @@ async function loadServicesForPage() {
                 `;
                 container.appendChild(checkboxDiv);
             });
+            
+            // Add event listeners to checkboxes
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', validateEditStudentOfferForm);
+            });
         }
     } catch (error) {
         console.error('Error loading services:', error);
@@ -302,6 +331,7 @@ async function loadOfferData(offerId) {
             
             // Populate form fields
             document.getElementById('offerId').value = offer.id;
+            document.getElementById('offerName').value = offer.name || '';
             document.getElementById('discountPercentage').value = offer.discount_percentage;
             document.getElementById('validFrom').value = offer.valid_from ? offer.valid_from.split('T')[0] : '';
             document.getElementById('validTo').value = offer.valid_to ? offer.valid_to.split('T')[0] : '';
@@ -328,7 +358,7 @@ async function loadOfferData(offerId) {
             }
 
             // Validate form after loading data
-            validateForm();
+            validateEditStudentOfferForm();
         } else {
             throw new Error(data.error || 'Offer not found');
         }
@@ -341,8 +371,8 @@ async function loadOfferData(offerId) {
 function setupPageEventListeners() {
     // Form validation
     const form = document.getElementById('editStudentOfferForm');
-    form.addEventListener('input', validateForm);
-    form.addEventListener('change', validateForm);
+    form.addEventListener('input', validateEditStudentOfferForm);
+    form.addEventListener('change', validateEditStudentOfferForm);
 
     // Valid days dropdown
     const validDaysSelect = document.getElementById('validDays');
@@ -353,71 +383,14 @@ function setupPageEventListeners() {
         } else {
             customDiv.style.display = 'none';
         }
-        validateForm();
+        validateEditStudentOfferForm();
     });
 
     // Form submit
-    form.addEventListener('submit', handleFormSubmit);
+    form.addEventListener('submit', handleEditFormSubmit);
 }
 
-function validateForm() {
-    const services = document.querySelectorAll('input[name="service_ids"]:checked');
-    const discount = document.getElementById('discountPercentage');
-    const validFrom = document.getElementById('validFrom');
-    const validTo = document.getElementById('validTo');
-    const updateBtn = document.getElementById('updateStudentOfferBtn');
-
-    // Check all required fields
-    const isValid = services.length > 0 && 
-                   discount.value && parseFloat(discount.value) >= 1 && parseFloat(discount.value) <= 100 &&
-                   validFrom.value && validTo.value && 
-                   new Date(validTo.value) > new Date(validFrom.value);
-
-    updateBtn.disabled = !isValid;
-
-    // Update preview
-    updatePreview();
-}
-
-function updatePreview() {
-    const services = document.querySelectorAll('input[name="service_ids"]:checked');
-    const discount = document.getElementById('discountPercentage');
-    const validDays = document.getElementById('validDays');
-    const validFrom = document.getElementById('validFrom');
-    const validTo = document.getElementById('validTo');
-    const preview = document.getElementById('studentOfferPreview');
-
-    if (services.length > 0 && discount.value) {
-        const selectedServices = Array.from(services).map(s => {
-            const label = document.querySelector(`label[for="${s.id}"]`);
-            return label ? label.textContent : s.value;
-        });
-
-        const previewHTML = `
-            <div class="mb-3">
-                <strong>Services (${services.length}):</strong>
-                <ul class="mb-2">
-                    ${selectedServices.map(s => `<li class="small">${s}</li>`).join('')}
-                </ul>
-            </div>
-            <div class="mb-3">
-                <strong>Discount:</strong> <span class="badge bg-warning text-dark fs-6">${discount.value}%</span>
-            </div>
-            <div class="mb-3">
-                <strong>Valid Days:</strong> ${validDays.value}
-            </div>
-            <div>
-                <strong>Period:</strong><br>
-                <small>${validFrom.value || 'Not set'} to ${validTo.value || 'Not set'}</small>
-            </div>
-        `;
-        preview.innerHTML = previewHTML;
-    } else {
-        preview.innerHTML = '<p class="text-muted">Select services and discount to see preview</p>';
-    }
-}
-
-async function handleFormSubmit(event) {
+async function handleEditFormSubmit(event) {
     event.preventDefault();
 
     const updateBtn = document.getElementById('updateStudentOfferBtn');
