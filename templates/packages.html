@@ -161,13 +161,8 @@
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button type="button" class="btn btn-primary btn-sm" 
-                                                        title="Assign to customer" 
-                                                        data-action="{{ 'assign-prepaid' if package.package_type == 'prepaid' else 'assign' }}"
-                                                        data-template-id="{{ package.id }}"
-                                                        data-package-type="{{ package.package_type }}"
-                                                        data-package-name="{{ package.name }}"
-                                                        data-package-price="{{ package.total_price }}"
-                                                        data-choose-on-assign="{{ 'true' if package.package_type == 'service_package' else 'false' }}"
+                                                        title="Assign to customer"
+                                                        onclick="openAssignPackageModal({{ package.id }}, '{{ package.name }}', '{{ package.package_type }}')"
                                                         data-bs-toggle="tooltip"
                                                         tabindex="0">
                                                     <i class="fas fa-user-plus"></i>
@@ -755,7 +750,8 @@ function filterPackages(type) {
 }
 
 // Package assignment functions
-function openAssignPackageModal(packageId, packageName, packageType) {
+// Make openAssignPackageModal global
+window.openAssignPackageModal = function(packageId, packageName, packageType) {
     // Set package details
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
@@ -765,30 +761,73 @@ function openAssignPackageModal(packageId, packageName, packageType) {
     document.getElementById('display_package_name').textContent = packageName;
     document.getElementById('display_package_type').textContent = packageType.replace('_', ' ').toUpperCase();
 
-    // Reset form
+    // Reset form but preserve package details
     document.getElementById('assignPackageForm').reset();
     document.getElementById('assign_package_id').value = packageId;
     document.getElementById('assign_package_name').value = packageName;
     document.getElementById('assign_package_type').value = packageType;
+    document.getElementById('assign_discount').value = '0';
 
     // Update modal title
     document.getElementById('assignPackageModalTitle').innerHTML = 
         `<i class="fas fa-user-plus me-2"></i>Assign "${packageName}" to Customer`;
 
+    // Show/hide service selection based on package type
+    const serviceSelection = document.getElementById('assign_service_selection');
+    if (packageType === 'service_package') {
+        serviceSelection.style.display = 'block';
+        // Load services for selection
+        loadServicesForAssignment();
+    } else {
+        serviceSelection.style.display = 'none';
+    }
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('assignPackageModal'));
     modal.show();
+};
+
+// Function to load services for assignment
+function loadServicesForAssignment() {
+    fetch('/api/services')
+    .then(response => response.json())
+    .then(services => {
+        const serviceSelect = document.getElementById('assign_service_id');
+        serviceSelect.innerHTML = '<option value="">Select the service this package will cover...</option>';
+        
+        services.forEach(service => {
+            const option = document.createElement('option');
+            option.value = service.id;
+            option.textContent = `${service.name} - ₹${service.price} (${service.duration} min)`;
+            serviceSelect.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error loading services:', error);
+    });
 }
 
-function confirmPackageAssignment() {
+// Make confirmPackageAssignment global
+window.confirmPackageAssignment = function() {
     const form = document.getElementById('assignPackageForm');
-    const formData = new FormData(form);
+    
+    // Collect form values
+    const packageId = document.getElementById('assign_package_id').value;
+    const customerId = document.getElementById('assign_customer_id').value;
+    const customPrice = document.getElementById('assign_custom_price').value;
+    const discount = document.getElementById('assign_discount').value;
+    const expiryDate = document.getElementById('assign_expiry').value;
+    const notes = document.getElementById('assign_notes').value;
 
     // Validate required fields
-    const customerId = document.getElementById('assign_customer_id').value;
     if (!customerId) {
         document.getElementById('assign_customer_id').classList.add('is-invalid');
         showToast('Please select a customer', 'error');
+        return;
+    }
+
+    if (!packageId) {
+        showToast('Package ID is missing', 'error');
         return;
     }
 
@@ -801,29 +840,36 @@ function confirmPackageAssignment() {
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
 
-    const data = {};
-    formData.forEach((value, key) => {
-        if (value) data[key] = value;
-    });
+    // Prepare data object
+    const data = {
+        package_id: parseInt(packageId),
+        client_id: parseInt(customerId),
+        custom_price: customPrice ? parseFloat(customPrice) : null,
+        discount: discount ? parseFloat(discount) : 0,
+        expiry_date: expiryDate || null,
+        notes: notes || ''
+    };
 
-    fetch('/packages/assign', {
+    console.log('Sending assignment data:', data);
+
+    fetch('/packages/api/assign', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
         },
-        body: new URLSearchParams(data)
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
-    .then(data => {
+    .then(result => {
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
 
-        if (data.success) {
+        if (result.success) {
             showToast('Package assigned successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('assignPackageModal')).hide();
             setTimeout(() => location.reload(), 1000);
         } else {
-            showToast('Error: ' + (data.message || data.error), 'error');
+            showToast('Error: ' + (result.message || result.error), 'error');
         }
     })
     .catch(error => {
@@ -832,7 +878,7 @@ function confirmPackageAssignment() {
         console.error('Error:', error);
         showToast('An error occurred while assigning the package.', 'error');
     });
-}
+};
 
 function viewPackageDetails(packageId) {
     // This can be enhanced to show detailed package information
