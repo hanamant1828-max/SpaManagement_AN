@@ -300,7 +300,7 @@ async function saveStudentOffer() {
  * Edit student offer - redirect to dedicated page
  */
 function editStudentOffer(offerId) {
-    window.location.href = `/packages/student-offers/edit?id=${offerId}`;
+    window.location.href = `/packages/student-offers/edit/${offerId}`;
 }
 
 /**
