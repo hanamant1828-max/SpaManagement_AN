@@ -153,6 +153,123 @@ def health_check():
 def clients_redirect():
     return redirect(url_for('customers'))
 
+# Package Assignment API
+@app.route('/packages/api/assign', methods=['POST'])
+@login_required
+def assign_package():
+    """API endpoint to assign package to customer"""
+    try:
+        print("Package assignment API called")
+        data = request.get_json()
+        print(f"Received data: {data}")
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        # Handle both client_id and customer_id for compatibility
+        customer_id = data.get('customer_id') or data.get('client_id')
+        package_id = data.get('package_id')
+        package_type = data.get('package_type', 'membership')
+        
+        print(f"Package ID: {package_id}, Customer ID: {customer_id}, Package Type: {package_type}")
+        
+        if not package_id or not customer_id:
+            return jsonify({'success': False, 'error': 'Package ID and Customer ID are required'}), 400
+
+        # Import models
+        from models import Customer, ServicePackageAssignment, Membership, PrepaidPackage, ServicePackage
+        from datetime import datetime, timedelta
+        
+        # Verify customer exists  
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            print(f"Customer {customer_id} not found")
+            return jsonify({'success': False, 'error': 'Customer not found'}), 404
+
+        print(f"Found customer: {customer.full_name}")
+
+        # Get package details based on type
+        package_template = None
+        if package_type == 'membership':
+            package_template = Membership.query.get(package_id)
+        elif package_type == 'prepaid':
+            package_template = PrepaidPackage.query.get(package_id)
+        elif package_type == 'service_package':
+            package_template = ServicePackage.query.get(package_id)
+        
+        if not package_template:
+            return jsonify({'success': False, 'error': f'{package_type.title()} package not found'}), 404
+
+        print(f"Found package template: {package_template.name}")
+
+        # Calculate assignment details
+        price_paid = data.get('price_paid')
+        if price_paid is None:
+            if hasattr(package_template, 'price'):
+                price_paid = float(package_template.price)
+            elif hasattr(package_template, 'actual_price'):
+                price_paid = float(package_template.actual_price)
+            else:
+                price_paid = 0.0
+        else:
+            price_paid = float(price_paid)
+        
+        discount = float(data.get('discount', 0))
+        
+        print(f"Price paid: {price_paid}, discount: {discount}")
+        
+        # Calculate expiry date
+        expiry_date = None
+        if data.get('expiry_date'):
+            expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
+        else:
+            # Use package validity
+            if hasattr(package_template, 'validity_months') and package_template.validity_months:
+                expiry_date = datetime.utcnow() + timedelta(days=package_template.validity_months * 30)
+            else:
+                expiry_date = datetime.utcnow() + timedelta(days=365)  # Default 1 year
+
+        print(f"Expiry date: {expiry_date}")
+
+        # Create assignment using ServicePackageAssignment model
+        assignment = ServicePackageAssignment(
+            customer_id=customer_id,
+            package_type=package_type,
+            package_reference_id=package_id,
+            service_id=data.get('service_id'),  # Optional, for service packages
+            expires_on=expiry_date,
+            price_paid=price_paid,
+            discount=discount,
+            notes=data.get('notes', ''),
+            status='active'
+        )
+
+        # Set package-specific fields
+        if package_type == 'service_package' and hasattr(package_template, 'total_services'):
+            assignment.total_sessions = package_template.total_services
+            assignment.remaining_sessions = package_template.total_services
+        elif package_type == 'prepaid' and hasattr(package_template, 'after_value'):
+            assignment.credit_amount = package_template.after_value
+            assignment.remaining_credit = package_template.after_value
+
+        print("Creating assignment...")
+        db.session.add(assignment)
+        db.session.commit()
+        print("Assignment created successfully")
+
+        return jsonify({
+            'success': True,
+            'message': f'Package "{package_template.name}" assigned successfully to {customer.full_name}',
+            'assignment_id': assignment.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error assigning package: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Failed to assign package: {str(e)}'}), 500
+
 # Additional routes that don't fit in modules yet
 # alerts route is now handled in dashboard module
 

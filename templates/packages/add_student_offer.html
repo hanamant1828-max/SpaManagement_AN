@@ -236,7 +236,7 @@
                         <a href="{{ url_for('packages') }}#assign-student" class="btn btn-secondary btn-lg">
                             <i class="fas fa-times me-2"></i>Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary btn-lg btn-save" id="saveStudentOfferButton" disabled>
+                        <button type="submit" class="btn btn-secondary btn-lg btn-save" id="saveStudentOfferBtn" disabled>
                             <i class="fas fa-save me-2"></i>Save Student Offer
                         </button>
                     </div>
@@ -320,13 +320,20 @@
                     checkbox.addEventListener('change', validateStudentOfferServices);
                 });
                 
+                // Trigger initial validation
+                validateStudentOfferServices();
+                
             } else {
                 container.innerHTML = '<p class="text-danger">No services available. Please add services first.</p>';
+                studentOfferFormValidation.services = false;
+                updateStudentOfferSaveButton();
             }
         } catch (error) {
             console.error('Error loading services:', error);
             const container = document.getElementById('servicesContainer');
             container.innerHTML = '<p class="text-danger">Error loading services. Please refresh the page.</p>';
+            studentOfferFormValidation.services = false;
+            updateStudentOfferSaveButton();
         }
     }
 
@@ -345,29 +352,57 @@
     function setupStudentOfferEventListeners() {
         const form = document.getElementById('addStudentOfferForm');
         
-        // Form submission
-        form.addEventListener('submit', handleStudentOfferFormSubmit);
+        if (form) {
+            // Form submission
+            form.addEventListener('submit', handleStudentOfferFormSubmit);
+            
+            // Preview updates
+            ['input', 'change'].forEach(eventType => {
+                form.addEventListener(eventType, updateStudentOfferPreview);
+            });
+        }
         
         // Real-time validation
-        document.getElementById('discountPercentage').addEventListener('input', validateStudentOfferDiscount);
-        document.getElementById('validFrom').addEventListener('change', validateStudentOfferDates);
-        document.getElementById('validTo').addEventListener('change', validateStudentOfferDates);
+        const discountInput = document.getElementById('discountPercentage');
+        if (discountInput) {
+            discountInput.addEventListener('input', validateStudentOfferDiscount);
+        }
+        
+        const validFromInput = document.getElementById('validFrom');
+        if (validFromInput) {
+            validFromInput.addEventListener('change', validateStudentOfferDates);
+        }
+        
+        const validToInput = document.getElementById('validTo');
+        if (validToInput) {
+            validToInput.addEventListener('change', validateStudentOfferDates);
+        }
         
         // Valid days dropdown
-        document.getElementById('validDays').addEventListener('change', function() {
-            const customDiv = document.getElementById('customValidDaysDiv');
-            if (this.value === 'Custom') {
-                customDiv.style.display = 'block';
-            } else {
-                customDiv.style.display = 'none';
-            }
-            updateStudentOfferPreview();
-        });
+        const validDaysSelect = document.getElementById('validDays');
+        if (validDaysSelect) {
+            validDaysSelect.addEventListener('change', function() {
+                const customDiv = document.getElementById('customValidDaysDiv');
+                if (customDiv) {
+                    if (this.value === 'Custom') {
+                        customDiv.style.display = 'block';
+                    } else {
+                        customDiv.style.display = 'none';
+                    }
+                }
+                updateStudentOfferPreview();
+            });
+        }
         
-        // Preview updates
-        ['input', 'change'].forEach(eventType => {
-            form.addEventListener(eventType, updateStudentOfferPreview);
-        });
+        // Service checkboxes
+        const container = document.getElementById('servicesContainer');
+        if (container) {
+            container.addEventListener('change', function(e) {
+                if (e.target.type === 'checkbox' && e.target.name === 'service_ids') {
+                    validateStudentOfferServices();
+                }
+            });
+        }
     }
 
     function validateStudentOfferServices() {
@@ -375,14 +410,19 @@
         const errorDiv = document.getElementById('servicesError');
         
         if (checkboxes.length === 0) {
-            errorDiv.textContent = 'Please select at least one service';
-            errorDiv.style.display = 'block';
+            if (errorDiv) {
+                errorDiv.textContent = 'Please select at least one service';
+                errorDiv.style.display = 'block';
+            }
             studentOfferFormValidation.services = false;
         } else {
-            errorDiv.style.display = 'none';
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
             studentOfferFormValidation.services = true;
         }
         
+        console.log('Services validation:', studentOfferFormValidation.services);
         updateStudentOfferSaveButton();
         updateStudentOfferPreview();
     }
@@ -392,24 +432,33 @@
         const errorDiv = document.getElementById('discountError');
         const value = parseFloat(input.value);
         
-        input.classList.remove('is-invalid', 'is-valid');
+        if (input) {
+            input.classList.remove('is-invalid', 'is-valid');
+        }
         
-        if (!input.value) {
-            errorDiv.textContent = 'Discount percentage is required';
-            errorDiv.style.display = 'block';
-            input.classList.add('is-invalid');
+        if (!input || !input.value) {
+            if (errorDiv) {
+                errorDiv.textContent = 'Discount percentage is required';
+                errorDiv.style.display = 'block';
+            }
+            if (input) input.classList.add('is-invalid');
             studentOfferFormValidation.discount = false;
         } else if (isNaN(value) || value < 1 || value > 100) {
-            errorDiv.textContent = 'Discount must be between 1% and 100%';
-            errorDiv.style.display = 'block';
-            input.classList.add('is-invalid');
+            if (errorDiv) {
+                errorDiv.textContent = 'Discount must be between 1% and 100%';
+                errorDiv.style.display = 'block';
+            }
+            if (input) input.classList.add('is-invalid');
             studentOfferFormValidation.discount = false;
         } else {
-            errorDiv.style.display = 'none';
-            input.classList.add('is-valid');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
+            if (input) input.classList.add('is-valid');
             studentOfferFormValidation.discount = true;
         }
         
+        console.log('Discount validation:', studentOfferFormValidation.discount);
         updateStudentOfferSaveButton();
         updateStudentOfferPreview();
     }
@@ -467,14 +516,25 @@
         studentOfferFormValidation.validFrom = fromValid;
         studentOfferFormValidation.validTo = toValid;
         
+        console.log('Date validation:', studentOfferFormValidation.validFrom, studentOfferFormValidation.validTo);
         updateStudentOfferSaveButton();
         updateStudentOfferPreview();
     }
 
     function updateStudentOfferSaveButton() {
-        const saveBtn = document.getElementById('saveStudentOfferButton');
+        const saveBtn = document.getElementById('saveStudentOfferBtn');
         const isValid = Object.values(studentOfferFormValidation).every(valid => valid === true);
-        saveBtn.disabled = !isValid;
+        if (saveBtn) {
+            saveBtn.disabled = !isValid;
+            // Add visual feedback
+            if (isValid) {
+                saveBtn.classList.remove('btn-secondary');
+                saveBtn.classList.add('btn-primary');
+            } else {
+                saveBtn.classList.remove('btn-primary');
+                saveBtn.classList.add('btn-secondary');
+            }
+        }
     }
 
     function updateStudentOfferPreview() {
@@ -532,8 +592,8 @@
             return;
         }
 
-        const saveBtn = document.getElementById('saveStudentOfferButton');
-        const originalText = saveBtn.innerHTML;
+        const saveBtn = document.getElementById('saveStudentOfferBtn');
+        const originalText = saveBtn ? saveBtn.innerHTML : 'Save Student Offer';
         
         try {
             // Show loading state
@@ -550,16 +610,21 @@
                 formData.set('valid_days', customValidDays.value);
             }
 
-            // Convert to JSON
-            const data = {};
-            formData.forEach((value, key) => {
-                if (key === 'service_ids') {
-                    if (!data[key]) data[key] = [];
-                    data[key].push(parseInt(value));
-                } else {
-                    data[key] = value;
-                }
-            });
+            // Get selected services
+            const selectedServices = Array.from(document.querySelectorAll('input[name="service_ids"]:checked')).map(cb => parseInt(cb.value));
+            
+            // Build data object
+            const data = {
+                service_ids: selectedServices,
+                discount_percentage: parseFloat(document.getElementById('discountPercentage').value),
+                valid_from: document.getElementById('validFrom').value,
+                valid_to: document.getElementById('validTo').value,
+                valid_days: document.getElementById('validDays').value === 'Custom' ? 
+                            document.getElementById('customValidDays').value : 
+                            document.getElementById('validDays').value,
+                conditions: document.getElementById('conditions').value,
+                is_active: true
+            };
 
             console.log('Submitting student offer data:', data);
 
@@ -578,7 +643,7 @@
                 
                 // Redirect after 2 seconds
                 setTimeout(() => {
-                    window.location.href = "{{ url_for('packages') }}#assign-student";
+                    window.location.href = "/packages#assign-student";
                 }, 2000);
             } else {
                 throw new Error(result.error || 'Failed to create student offer');

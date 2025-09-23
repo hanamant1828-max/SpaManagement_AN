@@ -253,7 +253,7 @@ class StaffScheduleService:
                         iso_time=current_time.isoformat(),
                         reason="Staff not scheduled"
                     ))
-                    current_time += timedelta(minutes=self.slot_duration)
+                    current_time += timedelta(minutes=service_duration)
                 
                 return slots
         
@@ -301,7 +301,7 @@ class StaffScheduleService:
                         break
             
             slots.append(slot)
-            current_time += timedelta(minutes=self.slot_duration)
+            current_time += timedelta(minutes=service_duration)
         
         return slots
     

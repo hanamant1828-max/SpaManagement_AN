@@ -108,8 +108,32 @@
                     <h5 class="card-title mb-0">Staff Schedule</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
+                    <div class="calendar-container">
+                        <!-- Availability Legend -->
+                        <div class="availability-legend">
+                            <div class="legend-item">
+                                <div class="legend-color bg-success"></div>
+                                <span><i class="fas fa-clock"></i> Available for booking</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-danger"></div>
+                                <span><i class="fas fa-user"></i> Booked appointment</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-warning"></div>
+                                <span><i class="fas fa-coffee"></i> Break time</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-light border"></div>
+                                <span><i class="fas fa-moon"></i> Off duty</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-secondary"></div>
+                                <span><i class="fas fa-times"></i> Not available</span>
+                            </div>
+                        </div>
+
+                        <table class="table table-bordered schedule-table">
                             <thead class="table-dark">
                                 <tr>
                                     <th class="text-center" style="width: 100px;">Time</th>
@@ -155,69 +179,50 @@
                                     {% set slot_key = (staff_member.id, time_slot.start_time) %}
                                     {% set availability = staff_availability.get(slot_key, {'status': 'unknown'}) %}
 
-                                    <td class="text-center p-1">
-                                        {% if availability.status == 'booked' %}
-                                        <div class="{{ availability.css_class }} p-2 rounded small appointment-slot"
-                                             data-appointment-id="{{ availability.appointment.id if availability.appointment else '' }}"
-                                             style="cursor: pointer; min-height: 60px; display: flex; flex-direction: column; justify-content: center;"
-                                             onclick="showAppointmentDetails({{ availability.appointment.id if availability.appointment else 'null' }})">
-                                            <div class="fw-bold">{{ availability.client_name }}</div>
-                                            <div>{{ availability.service_name }}</div>
-                                        </div>
+                                    <td class="availability-cell p-1" style="position: relative;">
+                                        {% if availability.status == 'available' %}
+                                            <button class="btn btn-sm btn-success w-100 available-slot" 
+                                                    onclick="openBookingModal({{ staff_member.id }}, '{{ time_slot.start_time.strftime('%H:%M') }}', '{{ staff_member.first_name }} {{ staff_member.last_name }}')"
+                                                    title="Available - {{ availability.remaining_time }}min remaining in shift"
+                                                    data-staff-id="{{ staff_member.id }}"
+                                                    data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
+                                                    data-remaining-time="{{ availability.remaining_time }}">
+                                                <i class="fas fa-clock"></i>
+                                            </button>
+                                        {% elif availability.status == 'booked' %}
+                                            <div class="appointment-block bg-danger text-white p-1 w-100 text-center" 
+                                                 style="font-size: 0.7rem; border-radius: 3px; min-height: 40px;"
+                                                 title="{{ availability.client_name }} - {{ availability.service_name }} ({{ availability.service_duration }}min)">
+                                                <strong>{{ availability.client_name[:8] }}</strong><br>
+                                                <small>{{ availability.service_name[:10] }}</small><br>
+                                                <small><i class="fas fa-clock"></i> {{ availability.service_duration }}min</small>
+                                            </div>
+                                        {% elif availability.status == 'booked_continuation' %}
+                                            <div class="appointment-continuation bg-danger text-white p-1 w-100 text-center" 
+                                                 style="font-size: 0.6rem; border-radius: 3px; min-height: 40px; opacity: 0.8;">
+                                                ↑
+                                            </div>
                                         {% elif availability.status == 'break' %}
-                                        <div class="{{ availability.css_class }} p-2 rounded small" 
-                                             title="{{ availability.reason }}"
-                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                                            <div><i class="fas fa-coffee"></i></div>
-                                            <div class="small fw-bold">Break Time</div>
-                                            {% if availability.break_times %}
-                                            <div class="small">{{ availability.break_times }}</div>
-                                            {% endif %}
-                                        </div>
-                                        {% elif availability.status == 'absent' %}
-                                        <div class="{{ availability.css_class }} p-2 rounded small" 
-                                             title="{{ availability.reason }}"
-                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                                            <div><i class="fas fa-user-times"></i></div>
-                                            <div class="small fw-bold">Absent</div>
-                                        </div>
-                                        {% elif availability.status == 'not_available' %}
-                                        <div class="{{ availability.css_class }} p-2 rounded small" 
-                                             title="{{ availability.reason }}"
-                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                                            <div><i class="fas fa-ban"></i></div>
-                                            <div class="small fw-bold">Not Available</div>
-                                            <div class="small">No Shift</div>
-                                        </div>
+                                            <div class="break-block bg-warning text-dark p-1 w-100 text-center" 
+                                                 style="font-size: 0.7rem; border-radius: 3px; min-height: 40px;"
+                                                 title="{{ availability.reason }}">
+                                                <i class="fas fa-coffee"></i><br>
+                                                <small>Break</small>
+                                            </div>
                                         {% elif availability.status == 'off_duty' %}
-                                        <div class="{{ availability.css_class }} p-2 rounded small border" 
-                                             title="{{ availability.reason }}"
-                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                                            <div><i class="fas fa-clock"></i></div>
-                                            <div class="small fw-bold">Off Duty</div>
-                                            {% if availability.shift_times %}
-                                            <div class="small">Shift: {{ availability.shift_times }}</div>
-                                            {% endif %}
-                                        </div>
-                                        {% elif availability.status == 'available' %}
-                                        <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn"
-                                                data-staff-id="{{ staff_member.id }}"
-                                                data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
-                                                data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
-                                                data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
-                                                data-display-time="{{ time_slot.start_time.strftime('%I:%M %p') }}"
-                                                data-bs-toggle="modal" data-bs-target="#quickBookModal"
-                                                title="Available during shift: {{ availability.shift_times if availability.shift_times else 'Full day' }}"
-                                                style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                                            <div><i class="fas fa-plus"></i></div>
-                                            <div class="small">Book</div>
-                                        </button>
+                                            <div class="off-duty-block bg-light text-muted p-1 w-100 text-center" 
+                                                 style="font-size: 0.7rem; border-radius: 3px; min-height: 40px;"
+                                                 title="{{ availability.reason }}">
+                                                <i class="fas fa-moon"></i><br>
+                                                <small>Off</small>
+                                            </div>
                                         {% else %}
-                                        <div class="bg-light text-muted p-2 rounded small border" 
-                                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                                            <div><i class="fas fa-question"></i></div>
-                                            <div class="small">Unknown</div>
-                                        </div>
+                                            <div class="not-available-block bg-secondary text-white p-1 w-100 text-center" 
+                                                 style="font-size: 0.7rem; border-radius: 3px; min-height: 40px;"
+                                                 title="{{ availability.reason or 'Not Available' }}">
+                                                <i class="fas fa-times"></i><br>
+                                                <small>N/A</small>
+                                            </div>
                                         {% endif %}
                                     </td>
                                     {% endfor %}
@@ -322,24 +327,51 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="serviceSelect" class="form-label">Service</label>
-                        <select class="form-select" id="serviceSelect" required>
-                            <option value="">Select Service</option>
-                            {% for service in services %}
-                            <option value="{{ service.id }}" data-price="{{ service.price }}">
-                                {{ service.name }} - ${{ service.price }}
-                            </option>
-                            {% endfor %}
-                        </select>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="bookingService" class="form-label">Service <span class="text-danger">*</span></label>
+                                <select class="form-select" id="bookingService" required onchange="validateServiceDuration()">
+                                    <option value="">Select Service...</option>
+                                    {% for service in services %}
+                                    <option value="{{ service.id }}" 
+                                            data-duration="{{ service.duration }}" 
+                                            data-price="{{ service.price }}"
+                                            data-description="{{ service.description or '' }}">
+                                        {{ service.name }} - {{ service.duration }} minutes - ${{ service.price }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div id="serviceDurationInfo" class="mt-2" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <strong>Service Duration:</strong> <span id="selectedDuration"></span> minutes<br>
+                                        <strong>Estimated End Time:</strong> <span id="estimatedEndTime"></span><br>
+                                        <strong>Price:</strong> $<span id="selectedPrice"></span>
+                                    </div>
+                                </div>
+                                <div id="durationWarning" class="mt-2" style="display: none;">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        <strong>Warning:</strong> This service duration may extend beyond the staff member's shift hours.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="appointmentNotes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="appointmentNotes" rows="3"></textarea>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="bookingNotes" class="form-label">Notes (Optional)</label>
+                                <textarea class="form-control" id="bookingNotes" rows="2" 
+                                          placeholder="Any special requirements or preferences..."></textarea>
+                            </div>
+                        </div>
                     </div>
                     <input type="hidden" id="selectedStaffId">
                     <input type="hidden" id="selectedDate">
                     <input type="hidden" id="selectedTime">
+                    <span id="selectedStaffName" class="d-none"></span>
+                    <span id="selectedTimeDisplay" class="d-none"></span>
                 </form>
                 <div id="bookingSummary" class="mt-3 p-3 bg-light rounded d-none">
                     <h6>Booking Summary:</h6>
@@ -482,11 +514,11 @@ document.addEventListener('DOMContentLoaded', function() {
 function submitBooking() {
     const formData = {
         client_id: document.getElementById('clientSelect').value,
-        service_id: document.getElementById('serviceSelect').value,
+        service_id: document.getElementById('bookingService').value,
         staff_id: document.getElementById('selectedStaffId').value,
         appointment_date: document.getElementById('selectedDate').value,
         appointment_time: document.getElementById('selectedTime').value,
-        notes: document.getElementById('appointmentNotes').value
+        notes: document.getElementById('bookingNotes').value
     };
 
     // Validate required fields
@@ -604,20 +636,197 @@ function cancelAppointment(appointmentId) {
         });
     }
 }
+
+let selectedStaffRemainingTime = 0;
+
+function openBookingModal(staffId, time, staffName) {
+    document.getElementById('selectedStaffId').value = staffId;
+    document.getElementById('selectedTime').value = time;
+    document.getElementById('selectedStaffName').textContent = staffName;
+    document.getElementById('selectedTimeDisplay').textContent = time;
+
+    // Get remaining time from the clicked button
+    const clickedButton = event.target;
+    selectedStaffRemainingTime = parseInt(clickedButton.getAttribute('data-remaining-time') || '0');
+
+    // Reset form
+    document.getElementById('bookingService').value = '';
+    document.getElementById('serviceDurationInfo').style.display = 'none';
+    document.getElementById('durationWarning').style.display = 'none';
+
+    const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+    modal.show();
+}
+
+function validateServiceDuration() {
+    const serviceSelect = document.getElementById('bookingService');
+    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+
+    if (selectedOption.value) {
+        const duration = parseInt(selectedOption.getAttribute('data-duration'));
+        const price = parseFloat(selectedOption.getAttribute('data-price'));
+        const selectedTime = document.getElementById('selectedTime').value;
+
+        // Calculate end time
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        const startTime = new Date();
+        startTime.setHours(hours, minutes, 0, 0);
+        const endTime = new Date(startTime.getTime() + duration * 60000);
+
+        // Update service info
+        document.getElementById('selectedDuration').textContent = duration;
+        document.getElementById('selectedPrice').textContent = price.toFixed(2);
+        document.getElementById('estimatedEndTime').textContent = endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('serviceDurationInfo').style.display = 'block';
+
+        // Check if service duration exceeds remaining shift time
+        if (duration > selectedStaffRemainingTime) {
+            document.getElementById('durationWarning').style.display = 'block';
+        } else {
+            document.getElementById('durationWarning').style.display = 'none';
+        }
+    } else {
+        document.getElementById('serviceDurationInfo').style.display = 'none';
+        document.getElementById('durationWarning').style.display = 'none';
+    }
+}
 </script>
 
 <style>
-.appointment-slot {
-    cursor: pointer;
-    transition: transform 0.2s;
+.availability-cell {
+    height: 50px;
+    width: 70px;
+    vertical-align: middle;
+    padding: 2px !important;
 }
 
-.appointment-slot:hover {
+.time-header {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    padding: 8px 4px;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 0.8rem;
+    min-width: 70px;
+}
+
+.staff-name {
+    background-color: #e9ecef;
+    font-weight: bold;
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    width: 120px;
+    text-align: center;
+    padding: 10px 5px;
+}
+
+.appointment-block {
+    min-height: 45px !important;
+    font-size: 0.7rem !important;
+    line-height: 1.2;
+    border: 1px solid #dc3545;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.appointment-block:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.appointment-continuation {
+    min-height: 45px !important;
+    border: 1px solid #dc3545;
+    border-top: none;
+    opacity: 0.7;
+}
+
+.available-slot {
+    min-height: 45px !important;
+    transition: all 0.2s;
+    border: 1px solid #28a745;
+}
+
+.available-slot:hover {
+    background-color: #218838 !important;
     transform: scale(1.05);
 }
 
-.table td {
-    vertical-align: middle;
+.break-block, .off-duty-block, .not-available-block {
+    min-height: 45px !important;
+    font-size: 0.7rem !important;
+    opacity: 0.8;
+}
+
+.today-stats {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.calendar-container {
+    overflow-x: auto;
+    max-width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.schedule-table {
+    min-width: 1400px;
+    margin-bottom: 0;
+}
+
+.service-duration-badge {
+    background-color: #17a2b8;
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-top: 2px;
+}
+
+/* Legend */
+.availability-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .availability-cell {
+        width: 60px;
+        height: 45px;
+    }
+
+    .time-header {
+        font-size: 0.7rem;
+        min-width: 60px;
+    }
+
+    .staff-name {
+        width: 100px;
+        font-size: 0.8rem;
+    }
 }
 </style>
 {% endblock %}

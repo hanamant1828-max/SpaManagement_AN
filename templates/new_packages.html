@@ -196,14 +196,10 @@
                                                     <a href="{{ url_for('membership_edit', membership_id=membership.id) }}" class="btn btn-outline-primary btn-sm" title="Edit Membership">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <button class="btn btn-success btn-sm"
-                                                            onclick="openAssignSimple({{ membership.id }}, 'membership')"
-                                                            title="Assign to Customer"
-                                                            data-action="assign-simple"
-                                                            data-template-id="{{ membership.id }}"
-                                                            data-package-type="membership">
+                                                    <a href="{{ url_for('assign_package_page', package_type='membership', package_id=membership.id) }}" class="btn btn-success btn-sm"
+                                                            title="Assign to Customer">
                                                         <i class="fas fa-user-plus"></i> Assign
-                                                    </button>
+                                                    </a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -254,14 +250,10 @@
                                             <td><span class="badge bg-info">{{ offer.valid_days }}</span></td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-success btn-sm"
-                                                            onclick="openAssignSimple({{ offer.id }}, 'student')"
-                                                            title="Assign to Customer"
-                                                            data-action="assign-simple"
-                                                            data-template-id="{{ offer.id }}"
-                                                            data-package-type="student">
+                                                    <a href="{{ url_for('assign_package_page', package_type='student', package_id=offer.id) }}" class="btn btn-success btn-sm"
+                                                            title="Assign to Customer">
                                                         <i class="fas fa-user-plus"></i> Assign
-                                                    </button>
+                                                    </a>
                                                     <a href="{{ url_for('edit_student_offer', id=offer.id) }}" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
@@ -307,14 +299,10 @@
                                             <td>{{ membership.extra_benefits[:30] if membership.extra_benefits else 'None' }}...</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-success btn-sm"
-                                                            onclick="openAssignSimple({{ membership.id }}, 'yearly')"
-                                                            title="Assign to Customer"
-                                                            data-action="assign-simple"
-                                                            data-template-id="{{ membership.id }}"
-                                                            data-package-type="yearly">
+                                                    <a href="{{ url_for('assign_package_page', package_type='yearly', package_id=membership.id) }}" class="btn btn-success btn-sm"
+                                                            title="Assign to Customer">
                                                         <i class="fas fa-user-plus"></i> Assign
-                                                    </button>
+                                                    </a>
                                                     <button class="btn btn-outline-primary" onclick="editYearly({{ membership.id }})">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
@@ -397,14 +385,10 @@
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     {% if party.is_active %}
-                                                    <button class="btn btn-success btn-sm"
-                                                            onclick="openAssignSimple({{ party.id }}, 'kitty')"
-                                                            title="Assign to Customer"
-                                                            data-action="assign-simple"
-                                                            data-template-id="{{ party.id }}"
-                                                            data-package-type="kitty">
+                                                    <a href="{{ url_for('assign_package_page', package_type='kitty', package_id=party.id) }}" class="btn btn-success btn-sm"
+                                                            title="Assign to Customer">
                                                         <i class="fas fa-user-plus"></i>
-                                                    </button>
+                                                    </a>
                                                     {% endif %}
                                                     <button class="btn btn-outline-warning btn-sm" onclick="editKitty({{ party.id }})" title="Edit">
                                                         <i class="fas fa-edit"></i>
@@ -1959,6 +1943,7 @@ function assignServicePackage(packageId, packageName) {
     document.getElementById('service_assign_package_id').value = packageId;
     document.getElementById('assign_service_package_name').textContent = packageName; // Correctly set the title
     loadCustomersForServiceAssignment(); // Load customers when the modal is shown
+    loadServicesForAssignment(); // Load services when the modal is shown
 
     // Load package details for summary
     loadServicePackageDetails(packageId);
@@ -1996,11 +1981,32 @@ function loadCustomersForServiceAssignment() {
 
 
 function loadServicesForAssignment() {
-    fetch('/packages/api/services')
-        .then(response => response.json())
+    console.log('Loading services for assignment...');
+    
+    fetch('/packages/api/services', {
+        method: 'GET',
+        credentials: 'same-origin', // Include session cookies for authentication
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => {
+            console.log('Services API response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Services API response data:', data);
+            
             if (data.success) {
                 const serviceSelect = document.getElementById('service_assign_service_id');
+                if (!serviceSelect) {
+                    console.error('Service select element not found');
+                    return;
+                }
+                
                 serviceSelect.innerHTML = '<option value="">Choose a service...</option>';
 
                 data.services.forEach(service => {
@@ -2012,15 +2018,20 @@ function loadServicesForAssignment() {
                     serviceSelect.appendChild(option);
                 });
 
+                console.log(`Loaded ${data.services.length} services successfully`);
+
                 // Add event listener for service selection
                 serviceSelect.addEventListener('change', function() {
                     calculateServiceCostBreakdown();
                 });
+            } else {
+                console.error('Services API returned unsuccessful response:', data);
+                alert('Error loading services: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             console.error('Error loading services:', error);
-            alert('Error loading services');
+            alert('Error loading services: ' + error.message);
         });
 }
 

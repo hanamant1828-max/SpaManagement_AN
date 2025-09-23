@@ -901,6 +901,95 @@ body.sidebar-minimized {
     color: white !important;
 }
 
+/* ========== ATTRACTIVE COLORFUL DASHBOARD CARDS ========== */
+
+/* Gradient Cards for Dashboard Stats */
+.gradient-card-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    color: white !important;
+    transform: translateY(0);
+    transition: all 0.3s ease !important;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+}
+
+.gradient-card-primary:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4) !important;
+}
+
+.gradient-card-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+    border: none !important;
+    color: white !important;
+    transform: translateY(0);
+    transition: all 0.3s ease !important;
+    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.3) !important;
+}
+
+.gradient-card-success:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(17, 153, 142, 0.4) !important;
+}
+
+.gradient-card-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    border: none !important;
+    color: white !important;
+    transform: translateY(0);
+    transition: all 0.3s ease !important;
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3) !important;
+}
+
+.gradient-card-info:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(79, 172, 254, 0.4) !important;
+}
+
+.gradient-card-warning {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+    border: none !important;
+    color: white !important;
+    transform: translateY(0);
+    transition: all 0.3s ease !important;
+    box-shadow: 0 8px 25px rgba(250, 112, 154, 0.3) !important;
+}
+
+.gradient-card-warning:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(250, 112, 154, 0.4) !important;
+}
+
+/* Enhanced card content styling for gradient cards */
+.gradient-card-primary .text-primary,
+.gradient-card-success .text-success,
+.gradient-card-info .text-info,
+.gradient-card-warning .text-warning {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.gradient-card-primary i,
+.gradient-card-success i,
+.gradient-card-info i,
+.gradient-card-warning i {
+    color: rgba(255, 255, 255, 0.8) !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Stats text styling for gradient cards */
+.gradient-card-primary .h5,
+.gradient-card-success .h5,
+.gradient-card-info .h5,
+.gradient-card-warning .h5,
+.gradient-card-primary .font-weight-bold,
+.gradient-card-success .font-weight-bold,
+.gradient-card-info .font-weight-bold,
+.gradient-card-warning .font-weight-bold {
+    color: white !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Original border-left classes (keep for backward compatibility) */
 .border-left-primary { border-left: 0.25rem solid var(--bs-primary) !important; }
 .border-left-success { border-left: 0.25rem solid var(--bs-success) !important; }
 .border-left-info { border-left: 0.25rem solid var(--bs-info) !important; }

@@ -517,97 +517,6 @@
 </div>
 
 <!-- Include all original modals -->
-<!-- Assign Package Modal -->
-<div class="modal fade" id="assignPackageModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-gift text-primary me-2"></i>Assign Package to Customer
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="assignPackageForm">
-                    <div class="row g-3">
-                        <!-- Customer Selection -->
-                        <div class="col-md-6">
-                            <label for="assignCustomer" class="form-label">Customer *</label>
-                            <select class="form-select" id="assignCustomer" required>
-                                <option value="">Select customer...</option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select a customer.
-                            </div>
-                        </div>
-
-                        <!-- Package Template -->
-                        <div class="col-md-6">
-                            <label for="assignPackage" class="form-label">Package Template *</label>
-                            <select class="form-select" id="assignPackage" required>
-                                <option value="">Select package...</option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select a package template.
-                            </div>
-                        </div>
-
-                        <!-- Price Paid -->
-                        <div class="col-md-4">
-                            <label for="assignPrice" class="form-label">Price Paid *</label>
-                            <div class="input-group">
-                                <span class="input-group-text">₹</span>
-                                <input type="number" class="form-control" id="assignPrice" 
-                                       step="0.01" min="0" required>
-                            </div>
-                            <div class="invalid-feedback">
-                                Please enter a valid price.
-                            </div>
-                        </div>
-
-                        <!-- Discount -->
-                        <div class="col-md-4">
-                            <label for="assignDiscount" class="form-label">Discount</label>
-                            <div class="input-group">
-                                <span class="input-group-text">₹</span>
-                                <input type="number" class="form-control" id="assignDiscount" 
-                                       step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-
-                        <!-- Expires On -->
-                        <div class="col-md-4">
-                            <label for="assignExpires" class="form-label">Expires On</label>
-                            <input type="date" class="form-control" id="assignExpires">
-                            <div class="form-text">Leave blank for no expiry</div>
-                        </div>
-
-                        <!-- Notes -->
-                        <div class="col-12">
-                            <label for="assignNotes" class="form-label">Notes</label>
-                            <textarea class="form-control" id="assignNotes" rows="3" 
-                                      placeholder="Additional notes about this package assignment..."></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Package Preview -->
-                    <div id="packagePreview" class="mt-4" style="display: none;">
-                        <h6 class="text-muted">Package Components:</h6>
-                        <div id="packageItems" class="row g-2">
-                            <!-- Package items will be displayed here -->
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveAssignPackage" disabled>
-                    <i class="fas fa-save me-2"></i>Save Assignment
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Package Details Modal -->
 <div class="modal fade" id="packageDetailsModal" tabindex="-1">
@@ -937,7 +846,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="savePackageAssignment">
+                <button type="button" class="btn btn-primary" id="savePackageAssignment" onclick="saveAssignSimple()">
                     <i class="fas fa-save me-2"></i>Assign Package
                 </button>
             </div>
@@ -991,8 +900,7 @@
             </div>
         </div>
     </div>
-</div></old_str>
-
+</div>
 <!-- Assigned Customers Modal -->
 <div class="modal fade" id="assignedCustomersModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -1125,8 +1033,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmAssignBtn" onclick="confirmPackageAssignment()">
-                    <i class="fas fa-user-plus me-2"></i>Assign Package
+                <button type="button" class="btn btn-primary" id="confirmAssignBtn" onclick="saveAssignSimple()">
+                    <i class="fas fa-check me-2"></i>Assign Package
                 </button>
             </div>
         </div>

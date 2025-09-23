@@ -376,7 +376,7 @@ def add_student_offer():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     return render_template('packages/add_student_offer.html')
 
 @app.route('/student-offers/edit')
@@ -386,12 +386,12 @@ def edit_student_offer():
     if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     offer_id = request.args.get('id')
     if not offer_id:
         flash('Student offer ID is required', 'error')
         return redirect(url_for('packages'))
-    
+
     return render_template('packages/edit_student_offer.html', offer_id=offer_id)
 
 # ========================================
@@ -430,7 +430,7 @@ def api_get_student_offer(offer_id):
         offer = get_student_offer_by_id(offer_id)
         if not offer:
             return jsonify({'success': False, 'error': 'Student offer not found'}), 404
-            
+
         return jsonify({
             'success': True,
             'offer': {
@@ -513,7 +513,7 @@ def api_delete_student_offer(offer_id):
                 'success': False,
                 'error': 'Student offer not found'
             }), 404
-        
+
         delete_student_offer(offer_id)
         flash('Student offer deleted successfully!', 'success')
         return jsonify({
@@ -961,33 +961,31 @@ def assign_package():
 
         # Create package assignment based on type
         package_type = data['package_type']
+        package_id = data['package_id'] # Use package_id from data
 
         if package_type == 'membership':
-            # Get membership template
-            membership = Membership.query.get(data['package_id'])
+            # Get membership details
+            from models import Membership
+            membership = Membership.query.get(package_id)
             if not membership:
                 return jsonify({'success': False, 'error': 'Membership not found'}), 404
 
-            # Calculate expiry date
-            expiry_date = None
-            if data.get('expiry_date'):
-                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
-            else:
-                expiry_date = datetime.utcnow() + timedelta(days=membership.validity_months * 30)
+            # Calculate expiry date (membership validity in months)
+            expiry_date = datetime.utcnow() + timedelta(days=membership.validity_months * 30)
 
-            # Create assignment record
+            # Create assignment record for membership
             assignment = ServicePackageAssignment(
                 customer_id=customer_id,
                 package_type='membership',
                 package_reference_id=membership.id,
-                service_id=data.get('service_id'),  # Optional for memberships
+                service_id=data.get('service_id'), # Optional for memberships
                 assigned_on=datetime.utcnow(),
                 expires_on=expiry_date,
-                price_paid=float(data['price_paid']),
+                price_paid=float(data.get('price_paid', membership.price)),
                 discount=float(data.get('discount', 0)),
                 status='active',
                 notes=data.get('notes', ''),
-                # Membership doesn't use sessions/credit tracking
+                # Membership tracking
                 total_sessions=0,
                 used_sessions=0,
                 remaining_sessions=0,
@@ -996,11 +994,13 @@ def assign_package():
                 remaining_credit=0
             )
 
+            logging.info(f"Creating membership assignment: customer_id={customer_id}, membership_id={membership.id}, expires_on={expiry_date}")
+
         elif package_type == 'prepaid':
             # Get prepaid package template
             prepaid = PrepaidPackage.query.get(data['package_id'])
             if not prepaid:
-                return jsonify({'success': False, 'error': 'Prepaid package not found'}), 404
+                return jsonify({'success': False, 'error': 'Prepaid package not found'}), 400
 
             # Calculate expiry date
             expiry_date = None
@@ -1034,7 +1034,7 @@ def assign_package():
             # Get service package template
             service_pkg = ServicePackage.query.get(data['package_id'])
             if not service_pkg:
-                return jsonify({'success': False, 'error': 'Service package not found'}), 404
+                return jsonify({'success': False, 'error': 'Service package not found'}), 400
 
             # Service ID is required for service packages
             if not data.get('service_id'):
@@ -1094,6 +1094,72 @@ def assign_package():
                 status='active',
                 notes=data.get('notes', ''),
                 # Yearly membership tracking
+                total_sessions=0,
+                used_sessions=0,
+                remaining_sessions=0,
+                credit_amount=0,
+                used_credit=0,
+                remaining_credit=0
+            )
+        elif package_type == 'student_offer':
+            # Get student offer template
+            student_offer = get_student_offer_by_id(data['package_id'])
+            if not student_offer:
+                return jsonify({'success': False, 'error': 'Student offer not found'}), 404
+
+            # Calculate expiry date
+            expiry_date = None
+            if student_offer.valid_to:
+                expiry_date = student_offer.valid_to
+            elif data.get('expires_on'):
+                expiry_date = datetime.strptime(data['expires_on'], '%Y-%m-%d')
+
+            # Create assignment record for student offer
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='student_offer',
+                package_reference_id=student_offer.id,
+                service_id=data.get('service_id'), # Optional for student offers
+                assigned_on=datetime.utcnow(),
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Student offer tracking
+                total_sessions=0,
+                used_sessions=0,
+                remaining_sessions=0,
+                credit_amount=0,
+                used_credit=0,
+                remaining_credit=0
+            )
+        elif package_type == 'kitty' or package_type == 'kitty_party':
+            # Get kitty party template
+            kitty_party = get_kitty_party_by_id(data['package_id'])
+            if not kitty_party:
+                return jsonify({'success': False, 'error': 'Kitty party not found'}), 404
+
+            # Calculate expiry date
+            expiry_date = None
+            if kitty_party.valid_to:
+                expiry_date = kitty_party.valid_to
+            elif data.get('expires_on'):
+                expiry_date = datetime.strptime(data['expires_on'], '%Y-%m-%d')
+
+            # Create assignment record for kitty party
+            assignment = ServicePackageAssignment(
+                customer_id=customer_id,
+                package_type='kitty_party',
+                package_reference_id=kitty_party.id,
+                service_id=data.get('service_id'), # Optional for kitty parties
+                assigned_on=datetime.utcnow(),
+                expires_on=expiry_date,
+                price_paid=float(data['price_paid']),
+                discount=float(data.get('discount', 0)),
+                status='active',
+                notes=data.get('notes', ''),
+                # Kitty party tracking
                 total_sessions=0,
                 used_sessions=0,
                 remaining_sessions=0,
@@ -1395,3 +1461,45 @@ def view_assignment_details(assignment_id):
     except Exception as e:
         logging.error(f"Error getting assignment details: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========================================
+# PACKAGE ASSIGNMENT PAGE
+# ========================================
+
+@app.route('/packages/assign/<package_type>/<int:package_id>')
+@login_required
+def assign_package_page(package_type, package_id):
+    """New dedicated page for package assignment"""
+    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        # Get package details based on type
+        package_data = None
+        if package_type == 'membership':
+            package_data = get_membership_by_id(package_id)
+        elif package_type == 'student':
+            package_data = get_student_offer_by_id(package_id)
+        elif package_type == 'yearly':
+            package_data = get_yearly_membership_by_id(package_id)
+        elif package_type == 'kitty':
+            package_data = get_kitty_party_by_id(package_id)
+        
+        if not package_data:
+            flash('Package not found', 'danger')
+            return redirect(url_for('packages'))
+        
+        # Get all customers for the dropdown
+        customers = Customer.query.filter_by(is_active=True).order_by(Customer.first_name, Customer.last_name).all()
+        
+        return render_template('packages/assign_package.html', 
+                             package=package_data, 
+                             package_type=package_type,
+                             customers=customers)
+    
+    except Exception as e:
+        logger.error(f"Error loading assignment page: {e}")
+        flash('Error loading assignment page', 'danger')
+        return redirect(url_for('packages'))

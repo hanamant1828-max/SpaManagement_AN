@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Package - {{ package.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-plus text-primary me-2"></i>
+                            Assign Package to Customer
+                        </h4>
+                        <a href="{{ url_for('packages') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Packages
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Package Information Card -->
+                    <div class="card mb-4 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-box me-2"></i>Package Details
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5 class="text-primary">{{ package.name }}</h5>
+                                    <p class="text-muted mb-2">{{ package.description or 'No description available' }}</p>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <strong>Package Type:</strong> 
+                                            <span class="badge bg-info">{{ package_type.title() }}</span>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <strong>Validity:</strong> 
+                                            {% if package.validity_months %}
+                                                {{ package.validity_months }} months
+                                            {% elif package.valid_days %}
+                                                {{ package.valid_days }} days
+                                            {% else %}
+                                                Not specified
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="price-display">
+                                        <h3 class="text-success mb-0">₹{{ "{:,.0f}".format(package.price|default(0)) }}</h3>
+                                        <small class="text-muted">Package Price</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Assignment Form -->
+                    <form id="assignmentForm" method="POST" action="/packages/api/assign">
+                        <input type="hidden" name="package_id" value="{{ package.id }}">
+                        <input type="hidden" name="package_type" value="{{ package_type }}">
+                        <input type="hidden" name="price_paid" value="{{ package.price|default(0) }}">
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-user me-2"></i>Assignment Details
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="customer_id" class="form-label">
+                                                <i class="fas fa-user me-1"></i>Select Customer *
+                                            </label>
+                                            <select class="form-select" id="customer_id" name="customer_id" required>
+                                                <option value="">Choose a customer...</option>
+                                                {% for customer in customers %}
+                                                <option value="{{ customer.id }}">
+                                                    {{ customer.first_name }} {{ customer.last_name }} - {{ customer.phone }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="form-text">Select the customer who will receive this package</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="custom_price" class="form-label">
+                                                <i class="fas fa-rupee-sign me-1"></i>Custom Price (Optional)
+                                            </label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₹</span>
+                                                <input type="number" class="form-control" id="custom_price" 
+                                                       name="custom_price" step="0.01" min="0" 
+                                                       placeholder="{{ package.price|default(0) }}">
+                                            </div>
+                                            <div class="form-text">Leave empty to use default price: ₹{{ "{:,.0f}".format(package.price|default(0)) }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="mb-3">
+                                            <label for="notes" class="form-label">
+                                                <i class="fas fa-sticky-note me-1"></i>Notes (Optional)
+                                            </label>
+                                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                                      placeholder="Add any special notes or instructions for this assignment..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Summary Section -->
+                                <div class="alert alert-info d-none" id="assignmentSummary">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Assignment Summary</h6>
+                                    <div id="summaryContent"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="card mt-4">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.location.href='{{ url_for('packages') }}'">
+                                            <i class="fas fa-times me-2"></i>Cancel
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-success btn-lg" id="assignBtn">
+                                            <i class="fas fa-check me-2"></i>Assign Package
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update price when custom price is changed
+document.getElementById('custom_price').addEventListener('input', function() {
+    const customPrice = this.value;
+    const hiddenPriceField = document.querySelector('input[name="price_paid"]');
+    
+    if (customPrice && !isNaN(customPrice)) {
+        hiddenPriceField.value = customPrice;
+    } else {
+        hiddenPriceField.value = {{ package.price|default(0)|tojson }};
+    }
+});
+
+// Show assignment summary when customer is selected
+document.getElementById('customer_id').addEventListener('change', function() {
+    const customerSelect = this;
+    const selectedCustomer = customerSelect.options[customerSelect.selectedIndex];
+    const summaryDiv = document.getElementById('assignmentSummary');
+    const summaryContent = document.getElementById('summaryContent');
+    
+    if (this.value) {
+        const customPrice = document.getElementById('custom_price').value;
+        const finalPrice = customPrice || {{ package.price|default(0)|tojson }};
+        
+        summaryContent.innerHTML = `
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Customer:</strong><br>
+                    ${selectedCustomer.text}
+                </div>
+                <div class="col-md-4">
+                    <strong>Package:</strong><br>
+                    {{ package.name }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Final Price:</strong><br>
+                    ₹${parseFloat(finalPrice).toLocaleString()}
+                </div>
+            </div>
+        `;
+        summaryDiv.classList.remove('d-none');
+    } else {
+        summaryDiv.classList.add('d-none');
+    }
+});
+
+// Handle form submission
+document.getElementById('assignmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const assignBtn = document.getElementById('assignBtn');
+    const originalText = assignBtn.innerHTML;
+    
+    // Update button to show loading
+    assignBtn.disabled = true;
+    assignBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assigning...';
+    
+    // Prepare data for API
+    const data = {
+        customer_id: parseInt(formData.get('customer_id')),
+        package_id: parseInt(formData.get('package_id')),
+        package_type: formData.get('package_type'),
+        price_paid: parseFloat(formData.get('custom_price') || formData.get('price_paid') || {{ package.price|default(0)|tojson }}),
+        notes: formData.get('notes') || ''
+    };
+    
+    // Submit to API
+    fetch('/packages/api/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Show success message
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success alert-dismissible fade show';
+            successAlert.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Success!</strong> ${result.message || 'Package assigned successfully!'}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Insert at top of page
+            const container = document.querySelector('.container-fluid');
+            container.insertBefore(successAlert, container.firstChild);
+            
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '{{ url_for("packages") }}';
+            }, 2000);
+            
+        } else {
+            throw new Error(result.error || 'Assignment failed');
+        }
+    })
+    .catch(error => {
+        // Show error message
+        const errorAlert = document.createElement('div');
+        errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+        errorAlert.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Error!</strong> ${error.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at top of page
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(errorAlert, container.firstChild);
+        
+        // Restore button
+        assignBtn.disabled = false;
+        assignBtn.innerHTML = originalText;
+    });
+});
+</script>
+{% endblock %}
