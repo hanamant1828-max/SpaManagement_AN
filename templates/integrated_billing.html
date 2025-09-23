@@ -201,7 +201,7 @@
                                             <select class="form-select product-select" name="product_ids[]" onchange="loadBatchesForProduct(this)">
                                                 <option value="">Select Product</option>
                                                 {% for product in inventory_items %}
-                                                <option value="{{ product.id }}">{{ product.name }} (Total Stock: {{ product.total_stock }})</option>
+                                                <option value="{{ product.id }}" data-name="{{ product.name }}">{{ product.name }} (Total Stock: {{ product.total_stock }})</option>
                                                 {% endfor %}
                                             </select>
                                         </div>
@@ -214,12 +214,11 @@
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label">Quantity</label>
-                                            <input type="number" class="form-control quantity-input" name="product_quantities[]" placeholder="Qty" min="1" value="1" step="0.5" onchange="validateStock(this)">
-                                            <small class="text-muted available-stock"></small>
+                                            <input type="number" class="form-control quantity-input" name="product_quantities[]" value="1" min="0.1" step="0.1" onchange="validateInventoryQuantity(this)">
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label">Unit Price</label>
-                                            <input type="number" class="form-control unit-price" name="product_prices[]" placeholder="Price" step="0.01" readonly>
+                                            <input type="number" class="form-control unit-price" name="product_prices[]" placeholder="Price" step="0.01" min="0" required>
                                         </div>
                                         <div class="col-md-1">
                                             <label class="form-label">&nbsp;</label>
@@ -399,9 +398,10 @@
 
                         <div class="row">
                             <div class="col-md-4">
-                                <button type="button" class="btn btn-info w-100" onclick="saveAsDraft()">
+                                <button type="button" class="btn btn-info w-100" onclick="saveAsDraft()" id="saveDraftBtn">
                                     <i class="fas fa-save me-2"></i>Save as Draft
                                 </button>
+                                <div id="draftSaveStatus"></div>
                             </div>
                             <div class="col-md-4">
                                 <button type="button" class="btn btn-warning w-100" onclick="sendQuotation()">
@@ -516,6 +516,8 @@
 </div>
 
 <script>
+var availableBatches = []; // Global array to hold all available batches
+
 // Add service row
 function addServiceRow() {
     const container = document.getElementById('servicesContainer');
@@ -571,103 +573,182 @@ function addProductRow() {
     container.appendChild(newRow);
 }
 
-// Load batches for selected product (FIFO by expiry)
-function loadBatchesForProduct(productSelect) {
-    const productId = productSelect.value;
-    const productRow = productSelect.closest('.product-row');
-    const batchSelect = productRow.querySelector('.batch-select');
-    const batchInfo = productRow.querySelector('.batch-info');
-    const availableStock = productRow.querySelector('.available-stock');
-    const unitPrice = productRow.querySelector('.unit-price');
-
-    if (!productId) {
-        batchSelect.innerHTML = '<option value="">Select Product First</option>';
-        batchSelect.disabled = true;
-        batchInfo.innerHTML = '';
-        availableStock.innerHTML = '';
-        unitPrice.value = '';
-        return;
-    }
-
-    // Fetch batches for this product (FIFO by expiry)
-    fetch(`/api/inventory/batches/for-product/${productId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.batches.length > 0) {
-                batchSelect.innerHTML = '<option value="">Select Batch</option>';
-
-                data.batches.forEach(batch => {
-                    const option = document.createElement('option');
-                    option.value = batch.id;
-                    option.dataset.stock = batch.qty_available;
-                    option.dataset.price = batch.selling_price || batch.unit_cost || 0;
-                    option.dataset.expiry = batch.expiry_date;
-                    option.dataset.batchName = batch.batch_name;
-
-                    const expiryText = batch.expiry_date ? ` (Exp: ${new Date(batch.expiry_date).toLocaleDateString()})` : '';
-                    const stockText = ` - Stock: ${batch.qty_available}`;
-                    option.textContent = `${batch.batch_name}${expiryText}${stockText}`;
-
-                    batchSelect.appendChild(option);
+// Load available batches for consumption (FIFO ordering)
+        function loadAvailableBatches() {
+            fetch('/api/inventory/batches/for-consumption')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.batches) {
+                        availableBatches = data.batches;
+                        console.log('Available batches loaded:', availableBatches.length);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading batches:', error);
                 });
+        }
 
-                // Auto-select first batch (FIFO)
-                if (data.batches.length > 0) {
-                    const firstBatch = data.batches[0];
-                    batchSelect.value = firstBatch.id;
+        // Load batches for selected product (FIFO - First In First Out by expiry)
+        function loadBatchesForProduct(productSelect) {
+            const row = productSelect.closest('.row');
+            const batchSelect = row.querySelector('.batch-select');
+            const batchInfo = row.querySelector('.batch-info');
+            const quantityInput = row.querySelector('input[name="product_quantities[]"]');
+            const priceInput = row.querySelector('input[name="product_prices[]"]');
 
-                    // Update info displays
-                    const expiry = firstBatch.expiry_date ? new Date(firstBatch.expiry_date).toLocaleDateString() : 'No expiry';
-                    const daysToExpiry = firstBatch.days_to_expiry;
-                    const expiryClass = daysToExpiry <= 30 ? 'batch-warning' : 'batch-success';
+            const productId = parseInt(productSelect.value);
 
-                    batchInfo.innerHTML = `
-                        <strong>Auto-selected (FIFO):</strong> ${firstBatch.batch_name}<br>
-                        <span class="${expiryClass}">Expiry: ${expiry}</span>
-                    `;
-
-                    availableStock.innerHTML = `Available: ${firstBatch.qty_available}`;
-                    unitPrice.value = firstBatch.selling_price || firstBatch.unit_cost || 0;
-                }
-
-                batchSelect.disabled = false;
-            } else {
-                batchSelect.innerHTML = '<option value="">No batches with stock</option>';
-                batchSelect.disabled = true;
-                batchInfo.innerHTML = '<span class="batch-warning">No stock available for this product</span>';
-                availableStock.innerHTML = '';
-                unitPrice.value = '';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading batches:', error);
-            batchSelect.innerHTML = '<option value="">Error loading batches</option>';
+            // Reset batch selection
+            batchSelect.innerHTML = '<option value="">Loading batches...</option>';
             batchSelect.disabled = true;
-        });
-}
+            batchInfo.innerHTML = '';
+
+            if (!productId) {
+                batchSelect.innerHTML = '<option value="">Select Product First</option>';
+                return;
+            }
+
+            // Find batches for this product (FIFO by expiry date)
+            const productBatches = availableBatches.filter(batch => {
+                // Match by product_id which is more reliable than name comparison
+                return batch.product_id === productId && batch.qty_available > 0;
+            });
+
+            console.log(`DEBUG: Product ID ${productId} has ${productBatches.length} available batches`);
+            console.log('Available batches for this product:', productBatches);
+
+            if (productBatches.length === 0) {
+                batchSelect.innerHTML = '<option value="">No stock available</option>';
+                batchInfo.innerHTML = '<span class="text-danger">⚠️ No stock available for this product</span>';
+                // Clear previous quantity and price if any
+                if (quantityInput) quantityInput.value = '0';
+                if (priceInput) priceInput.value = '';
+                return;
+            }
+
+            // Sort by expiry date (FIFO - First to expire first)
+            productBatches.sort((a, b) => {
+                if (!a.expiry_date && !b.expiry_date) return 0;
+                if (!a.expiry_date) return 1;
+                if (!b.expiry_date) return -1;
+                return new Date(a.expiry_date) - new Date(b.expiry_date);
+            });
+
+            // Auto-select first batch (FIFO)
+            const firstBatch = productBatches[0];
+            batchSelect.innerHTML = `<option value="${firstBatch.id}" selected>${firstBatch.dropdown_display}</option>`;
+
+            // Add other batches as options
+            productBatches.slice(1).forEach(batch => {
+                const option = document.createElement('option');
+                option.value = batch.id;
+                option.textContent = batch.dropdown_display;
+                batchSelect.appendChild(option);
+            });
+
+            batchSelect.disabled = false;
+
+            // Show batch info
+            const expiryText = firstBatch.expiry_date ? 
+                `Expires: ${new Date(firstBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
+            batchInfo.innerHTML = `
+                <strong>Auto-selected:</strong> ${firstBatch.batch_name}<br>
+                <strong>Available:</strong> ${firstBatch.qty_available} ${firstBatch.unit}<br>
+                <strong>${expiryText}</strong>
+            `;
+
+            // Set max quantity and placeholder
+            if (quantityInput) {
+                quantityInput.max = firstBatch.qty_available;
+                quantityInput.placeholder = `Max: ${firstBatch.qty_available}`;
+                quantityInput.value = '1'; // Reset quantity to 1
+                validateInventoryQuantity(quantityInput); // Validate after setting max and default value
+            }
+            // Set default price based on the selected batch's unit price if available
+            if (priceInput) {
+                priceInput.value = firstBatch.unit_price || '';
+            }
+
+            // Update batch info when batch selection changes
+            batchSelect.addEventListener('change', function() {
+                const selectedBatch = productBatches.find(b => b.id == this.value);
+                if (selectedBatch) {
+                    const expiryText = selectedBatch.expiry_date ? 
+                        `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
+                    batchInfo.innerHTML = `
+                        <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
+                        <strong>Available:</strong> ${selectedBatch.qty_available} ${selectedBatch.unit}<br>
+                        <strong>${expiryText}</strong>
+                    `;
+                    if (quantityInput) {
+                        quantityInput.max = selectedBatch.qty_available;
+                        quantityInput.placeholder = `Max: ${selectedBatch.qty_available}`;
+                        quantityInput.value = '1'; // Reset quantity to 1 on batch change
+                        validateInventoryQuantity(quantityInput); // Re-validate
+                    }
+                    // Update price based on selected batch
+                    if (priceInput) {
+                        priceInput.value = selectedBatch.unit_price || '';
+                    }
+                }
+            });
+        }
+
 
 // Validate stock availability
 function validateStock(quantityInput) {
     const productRow = quantityInput.closest('.product-row');
     const batchSelect = productRow.querySelector('.batch-select');
     const selectedOption = batchSelect.options[batchSelect.selectedIndex];
-    const availableStock = productRow.querySelector('.available-stock');
+    const availableStockDiv = productRow.querySelector('.batch-info'); // Use batch-info div for feedback
 
-    if (selectedOption && selectedOption.dataset.stock) {
-        const available = parseFloat(selectedOption.dataset.stock);
+    if (!selectedOption || selectedOption.value === "") {
+        // No batch selected yet or product not selected
+        if (availableStockDiv) {
+            availableStockDiv.innerHTML = '<span class="text-muted">Select batch to see stock</span>';
+        }
+        quantityInput.setCustomValidity(''); // Clear any previous invalidity
+        return;
+    }
+
+    const selectedBatchId = selectedOption.value;
+    const selectedBatch = availableBatches.find(b => b.id == selectedBatchId);
+
+    if (selectedBatch) {
+        const available = parseFloat(selectedBatch.qty_available);
         const requested = parseFloat(quantityInput.value) || 0;
 
         if (requested > available) {
-            quantityInput.style.borderColor = '#dc3545';
-            availableStock.innerHTML = `<span class="batch-warning">Available: ${available} (Insufficient stock!)</span>`;
+            quantityInput.style.borderColor = '#dc3545'; // Red border for invalid input
+            if (availableStockDiv) {
+                availableStockDiv.innerHTML = `<span class="batch-warning">Available: ${available} (Insufficient stock!)</span>`;
+            }
             quantityInput.setCustomValidity('Insufficient stock');
         } else {
-            quantityInput.style.borderColor = '#28a745';
-            availableStock.innerHTML = `<span class="batch-success">Available: ${available}</span>`;
+            quantityInput.style.borderColor = '#28a745'; // Green border for valid input
+             if (availableStockDiv) {
+                const expiryText = selectedBatch.expiry_date ? 
+                    `Expires: ${new Date(selectedBatch.expiry_date).toLocaleDateString()}` : 'No expiry date';
+                availableStockDiv.innerHTML = `
+                    <strong>Selected:</strong> ${selectedBatch.batch_name}<br>
+                    <strong>Available:</strong> ${selectedBatch.qty_available} ${selectedBatch.unit}<br>
+                    <strong>${expiryText}</strong>
+                `;
+            }
             quantityInput.setCustomValidity('');
         }
+    } else {
+        // If selected batch is not found in availableBatches, reset
+        quantityInput.style.borderColor = '';
+        if (availableStockDiv) {
+            availableStockDiv.innerHTML = '';
+        }
+        quantityInput.setCustomValidity('');
     }
 }
+
+// Global variable to store customer package data for benefit calculations
+let customerPackageData = null;
 
 // Load customer packages
 document.getElementById('client_id').addEventListener('change', function() {
@@ -676,29 +757,66 @@ document.getElementById('client_id').addEventListener('change', function() {
 
     if (!clientId) {
         packagesDiv.innerHTML = '<small>Select a customer to view their active packages</small>';
+        customerPackageData = null;
+        updateTaxCalculations(); // Update totals when customer is deselected
         return;
     }
 
+    // Show loading state
+    packagesDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading packages...</small>';
+
     fetch(`/integrated-billing/customer-packages/${clientId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Package data received:', data); // Debug log
+            customerPackageData = data; // Store globally for package benefit calculations
+
+            if (data.error) {
+                packagesDiv.innerHTML = `<small class="text-danger">Error: ${data.error}</small>`;
+                customerPackageData = null;
+                return;
+            }
+
             if (data.packages && data.packages.length > 0) {
-                let html = '<strong>Active Packages:</strong><br>';
+                let html = '<div class="alert alert-success"><strong>Active Packages:</strong><br>';
                 data.packages.forEach(pkg => {
                     html += `<div class="badge badge-success me-1 mb-1">${pkg.package_name}</div>`;
+
+                    // Display package details based on type
                     pkg.sessions.forEach(session => {
-                        if (session.sessions_remaining > 0) {
+                        if (session.benefit_type === 'unlimited') {
+                            html += `<small class="d-block text-success">${session.service_name}: ${session.description}</small>`;
+                        } else if (session.benefit_type === 'prepaid') {
+                            html += `<small class="d-block text-info">${session.description}</small>`;
+                        } else if (session.sessions_remaining > 0) {
                             html += `<small class="d-block">${session.service_name}: ${session.sessions_remaining} sessions left</small>`;
                         }
                     });
                 });
+
+                // Add summary if available
+                if (data.summary) {
+                    html += `<hr><small class="text-muted">Total Active: ${data.summary.total_active_packages} packages</small>`;
+                }
+                html += '</div>';
+
                 packagesDiv.innerHTML = html;
             } else {
-                packagesDiv.innerHTML = '<small class="text-muted">No active packages</small>';
+                packagesDiv.innerHTML = '<small class="text-muted">No active packages found</small>';
             }
+
+            // Update calculations to apply package benefits
+            updateTaxCalculations();
         })
         .catch(error => {
-            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages</small>';
+            console.error('Error loading packages:', error);
+            packagesDiv.innerHTML = '<small class="text-danger">Error loading packages. Please try again.</button>';
+            customerPackageData = null;
         });
 });
 
@@ -716,8 +834,12 @@ function updateTaxCalculations() {
     if (discountType === 'percentage') {
         discountAmount = (grossSubtotal * discountValue) / 100;
     } else {
+        // Amount discount
         discountAmount = discountValue;
     }
+    // Ensure discount amount doesn't exceed gross subtotal
+    discountAmount = Math.min(discountAmount, grossSubtotal);
+
 
     const taxableAmount = grossSubtotal - discountAmount;
 
@@ -751,17 +873,206 @@ function updateTaxCalculations() {
 
 function calculateServicesSubtotal() {
     let total = 0;
-    document.querySelectorAll('.service-row').forEach(row => {
+    document.querySelectorAll('.service-row').forEach((row, index) => {
         const serviceSelect = row.querySelector('select[name="service_ids[]"]');
         const quantityInput = row.querySelector('input[name="service_quantities[]"]');
 
-        if (serviceSelect && serviceSelect.value && quantityInput) {
-            const price = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
-            const quantity = parseFloat(quantityInput.value) || 0;
-            total += price * quantity;
+        if (serviceSelect && serviceSelect.value && quantityInput && quantityInput.value) {
+            const originalPrice = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
+            const quantity = parseFloat(quantityInput.value) || 1; // Default to 1 if empty
+            const serviceId = parseInt(serviceSelect.value);
+            const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+
+            // Check if customer has package benefits for this service
+            let finalPrice = originalPrice * quantity;
+            let packageBenefit = null;
+
+            if (customerPackageData && customerPackageData.packages) {
+                packageBenefit = checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity);
+                if (packageBenefit) {
+                    finalPrice = packageBenefit.finalPrice;
+
+                    // Update service display to show package benefit
+                    updateServiceDisplayWithBenefit(row, packageBenefit, index);
+                }
+            }
+
+            if (!packageBenefit) {
+                // Clear any previous package benefit display
+                clearServiceBenefitDisplay(row, index);
+            }
+
+            total += finalPrice;
         }
     });
     return total;
+}
+
+// Check if customer has package benefits for a specific service
+function checkServicePackageBenefit(serviceId, serviceName, originalPrice, quantity) {
+    if (!customerPackageData || !customerPackageData.packages) {
+        return null;
+    }
+
+    // Ensure quantity is at least 1
+    quantity = Math.max(1, quantity);
+
+    // Check all packages for this service (priority: unlimited > service_package > prepaid)
+    for (const pkg of customerPackageData.packages) {
+        if (!pkg.is_active) continue;
+
+        // Check unlimited membership first (highest priority)
+        if (pkg.package_type === 'membership') {
+            for (const session of pkg.sessions) {
+                if (session.benefit_type === 'unlimited' && session.service_id === serviceId) {
+                    return {
+                        type: 'unlimited',
+                        packageName: pkg.package_name,
+                        originalPrice: originalPrice * quantity,
+                        finalPrice: 0, // FREE
+                        discount: originalPrice * quantity,
+                        description: `FREE via ${pkg.package_name} (Unlimited)`
+                    };
+                }
+            }
+        }
+
+        // Check service package benefits (specific service sessions) with quantity awareness
+        if (pkg.package_type === 'service_package') {
+            for (const session of pkg.sessions) {
+                if (session.service_id === serviceId && session.sessions_remaining > 0) {
+                    const pricePerSession = originalPrice; // Service price is for one session
+                    const sessionsToCover = Math.min(quantity, session.sessions_remaining);
+                    const sessionsToPayFor = Math.max(0, quantity - sessionsToCover);
+
+                    const coveredAmount = sessionsToCover * pricePerSession;
+                    const finalPrice = sessionsToPayFor * pricePerSession;
+
+                    // Ensure calculations are accurate
+                    const totalServicePrice = originalPrice * quantity;
+                    const actualDiscount = Math.min(coveredAmount, totalServicePrice);
+                    const actualFinalPrice = Math.max(0, totalServicePrice - actualDiscount);
+
+                    if (sessionsToPayFor > 0) {
+                        // Partial coverage - some sessions free, some charged
+                        return {
+                            type: 'service_package_partial',
+                            packageName: pkg.package_name,
+                            originalPrice: totalServicePrice,
+                            finalPrice: actualFinalPrice,
+                            discount: actualDiscount,
+                            description: `${sessionsToCover} of ${quantity} sessions FREE, ${sessionsToPayFor} charged via ${pkg.package_name}`,
+                            sessionsRemaining: session.sessions_remaining,
+                            sessionsCovered: sessionsToCover,
+                            sessionsToPayFor: sessionsToPayFor
+                        };
+                    } else {
+                        // Full coverage - all sessions free
+                        return {
+                            type: 'service_package_full',
+                            packageName: pkg.package_name,
+                            originalPrice: totalServicePrice,
+                            finalPrice: 0,
+                            discount: totalServicePrice,
+                            description: `All ${sessionsToCover} sessions FREE via ${pkg.package_name} (${session.sessions_remaining - sessionsToCover} remaining)`,
+                            sessionsRemaining: session.sessions_remaining,
+                            sessionsCovered: sessionsToCover,
+                            sessionsToPayFor: 0
+                        };
+                    }
+                }
+            }
+        }
+
+        // Check prepaid package benefits (can cover any service)
+        if (pkg.package_type === 'prepaid') {
+            for (const session of pkg.sessions) {
+                if (session.benefit_type === 'prepaid' && session.balance_remaining > 0) {
+                    const serviceTotal = originalPrice * quantity;
+                    if (session.balance_remaining >= serviceTotal) {
+                        // Full coverage
+                        return {
+                            type: 'prepaid_full',
+                            packageName: pkg.package_name,
+                            originalPrice: serviceTotal,
+                            finalPrice: 0, // FREE
+                            discount: serviceTotal,
+                            description: `FREE via ${pkg.package_name} (₹${session.balance_remaining} credit)`
+                        };
+                    } else {
+                        // Partial coverage
+                        return {
+                            type: 'prepaid_partial',
+                            packageName: pkg.package_name,
+                            originalPrice: serviceTotal,
+                            finalPrice: serviceTotal - session.balance_remaining,
+                            discount: session.balance_remaining,
+                            description: `₹${session.balance_remaining} off via ${pkg.package_name}`
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+// Update service display to show package benefit
+function updateServiceDisplayWithBenefit(row, benefit, index) {
+    // Add package benefit indicator to the service row
+    let benefitDisplay = row.querySelector('.package-benefit-display');
+    if (!benefitDisplay) {
+        benefitDisplay = document.createElement('div');
+        benefitDisplay.className = 'package-benefit-display mt-1';
+        row.appendChild(benefitDisplay);
+    }
+
+    if (benefit.finalPrice === 0) {
+        // Full coverage - all sessions free
+        benefitDisplay.innerHTML = `
+            <small class="text-success fw-bold">
+                <i class="fas fa-gift me-1"></i>FREE - ${benefit.description}
+                <br><strike class="text-muted">₹${benefit.originalPrice.toFixed(2)}</strike>
+                <span class="badge bg-success ms-1">100% Covered</span>
+            </small>
+        `;
+        benefitDisplay.style.backgroundColor = '#d4edda';
+        benefitDisplay.style.border = '1px solid #28a745';
+        benefitDisplay.style.padding = '6px 10px';
+        benefitDisplay.style.borderRadius = '6px';
+    } else {
+        // Partial coverage or discount
+        const isPartialCoverage = benefit.sessionsCovered && benefit.sessionsToPayFor;
+        const coveragePercent = Math.round((benefit.discount / benefit.originalPrice) * 100);
+
+        benefitDisplay.innerHTML = `
+            <small class="fw-bold">
+                <i class="fas fa-percentage me-1 text-info"></i>${benefit.description}
+                <br>
+                ${isPartialCoverage ? 
+                    `<span class="text-success">✓ Free: ${benefit.sessionsCovered} sessions</span> | <span class="text-warning">₹ Pay: ${benefit.sessionsToPayFor} sessions</span><br>` : 
+                    ''
+                }
+                <span class="text-dark">Pay: ₹${benefit.finalPrice.toFixed(2)}</span> 
+                <strike class="text-muted small">₹${benefit.originalPrice.toFixed(2)}</strike>
+                <span class="badge bg-info ms-1">${coveragePercent}% Saved</span>
+                <br><span class="text-success small">Package Discount: ₹${benefit.discount.toFixed(2)}</span>
+            </small>
+        `;
+        benefitDisplay.style.backgroundColor = '#e3f2fd';
+        benefitDisplay.style.border = '1px solid #2196f3';
+        benefitDisplay.style.padding = '6px 10px';
+        benefitDisplay.style.borderRadius = '6px';
+    }
+}
+
+// Clear service benefit display
+function clearServiceBenefitDisplay(row, index) {
+    const benefitDisplay = row.querySelector('.package-benefit-display');
+    if (benefitDisplay) {
+        benefitDisplay.remove();
+    }
 }
 
 function calculateInventorySubtotal() {
@@ -791,14 +1102,14 @@ function toggleTaxType() {
         cgstInput.disabled = true;
         sgstInput.disabled = true;
         igstInput.disabled = false;
-        if (igstInput.value === '0') igstInput.value = '18';
+        if (igstInput.value === '0') igstInput.value = '18'; // Default IGST to 18% if not set
     } else {
         igstInput.value = 0;
         igstInput.disabled = true;
         cgstInput.disabled = false;
         sgstInput.disabled = false;
-        if (cgstInput.value === '0') cgstInput.value = '9';
-        if (sgstInput.value === '0') sgstInput.value = '9';
+        if (cgstInput.value === '0') cgstInput.value = '9'; // Default CGST to 9% if not set
+        if (sgstInput.value === '0') sgstInput.value = '9'; // Default SGST to 9% if not set
     }
 
     updateTaxCalculations();
@@ -844,49 +1155,151 @@ function removePaymentMethod(button) {
 
 // Invoice Actions
 function previewInvoice() {
-    // Generate preview modal with current form data
-    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
-    const title = document.getElementById('resultModalTitle');
-    const body = document.getElementById('resultModalBody');
+    // Get the modal and elements
+    const modal = new bootstrap.Modal(document.getElementById('invoicePreviewModal'));
+    const previewBody = document.getElementById('invoicePreviewBody');
 
-    title.textContent = 'Invoice Preview';
-    title.className = 'text-info';
-
-    const customer = document.getElementById('client_id');
-    const customerName = customer.options[customer.selectedIndex].text;
+    // Collect current invoice data from the form
+    const customerId = document.getElementById('client_id').value;
+    const customerSelect = document.getElementById('client_id');
+    const customerName = customerSelect.options[customerSelect.selectedIndex].text;
 
     const servicesSubtotal = calculateServicesSubtotal();
     const inventorySubtotal = calculateInventorySubtotal();
     const grossSubtotal = servicesSubtotal + inventorySubtotal;
+    const discountType = document.getElementById('discount_type').value;
+    const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
+    const additionalCharges = parseFloat(document.getElementById('additional_charges').value) || 0;
+    const tipsAmount = parseFloat(document.getElementById('tips_amount').value) || 0;
+    const isInterstate = document.getElementById('is_interstate').checked;
+    const cgstRate = parseFloat(document.getElementById('cgst_rate').value) || 0;
+    const sgstRate = parseFloat(document.getElementById('sgst_rate').value) || 0;
+    const igstRate = parseFloat(document.getElementById('igst_rate').value) || 0;
 
-    body.innerHTML = `
-        <div class="invoice-preview">
-            <h5>Customer: ${customerName}</h5>
-            <hr>
-            <div class="row">
-                <div class="col-6"><strong>Services Subtotal:</strong></div>
-                <div class="col-6 text-end">₹${servicesSubtotal.toFixed(2)}</div>
-            </div>
-            <div class="row">
-                <div class="col-6"><strong>Inventory Subtotal:</strong></div>
-                <div class="col-6 text-end">₹${inventorySubtotal.toFixed(2)}</div>
-            </div>
-            <div class="row">
-                <div class="col-6"><strong>Gross Subtotal:</strong></div>
-                <div class="col-6 text-end">₹${grossSubtotal.toFixed(2)}</div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <p class="text-muted">This is a preview. Click "Generate Professional Invoice" to create the actual invoice.</p>
-            </div>
-        </div>
-    `;
+    const invoiceDataForPreview = {
+        customer_name: customerName.split(' - ')[0], // Extract name from "Name - Phone"
+        customer_id: customerId,
+        services: [],
+        inventory_items: [],
+        discount_type: discountType,
+        discount_value: discountValue,
+        additional_charges: additionalCharges,
+        tips_amount: tipsAmount,
+        is_interstate: isInterstate,
+        cgst_rate: cgstRate,
+        sgst_rate: sgstRate,
+        igst_rate: igstRate,
+        notes: document.getElementById('notes').value
+    };
 
-    modal.show();
+    // Collect service items
+    document.querySelectorAll('.service-row').forEach((row, index) => {
+        const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+        const quantityInput = row.querySelector('input[name="service_quantities[]"]');
+        const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
+        const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+        const originalPrice = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.price) || 0;
+        const quantity = parseFloat(quantityInput.value) || 1;
+        const appointmentId = appointmentIdInput.value;
+
+        if (serviceSelect.value) {
+            // Check for package benefits
+            const packageBenefit = checkServicePackageBenefit(parseInt(serviceSelect.value), serviceName, originalPrice, quantity);
+            let finalPrice = originalPrice * quantity;
+            let discount = 0;
+            let benefitDescription = '';
+
+            if (packageBenefit) {
+                finalPrice = packageBenefit.finalPrice;
+                discount = packageBenefit.discount;
+                benefitDescription = packageBenefit.description;
+            }
+
+            invoiceDataForPreview.services.push({
+                name: serviceName,
+                quantity: quantity,
+                unit_price: originalPrice,
+                subtotal: originalPrice * quantity,
+                final_price: finalPrice,
+                discount: discount,
+                package_benefit: benefitDescription
+            });
+        }
+    });
+
+    // Collect inventory items
+    document.querySelectorAll('.product-row').forEach(row => {
+        const productSelect = row.querySelector('.product-select');
+        const batchSelect = row.querySelector('.batch-select');
+        const quantityInput = row.querySelector('.quantity-input');
+        const priceInput = row.querySelector('.unit-price');
+
+        if (productSelect.value && batchSelect.value && quantityInput.value && priceInput.value) {
+            const productName = productSelect.options[productSelect.selectedIndex].text.split(' (')[0]; // Get name without stock info
+            const batchName = batchSelect.options[batchSelect.selectedIndex].text;
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(priceInput.value) || 0;
+            const subtotal = quantity * unitPrice;
+
+            invoiceDataForPreview.inventory_items.push({
+                name: productName,
+                batch: batchName,
+                quantity: quantity,
+                unit_price: unitPrice,
+                subtotal: subtotal
+            });
+        }
+    });
+
+    // Make the API call to get the preview HTML
+    fetch('/api/invoice-preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(invoiceDataForPreview)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && data.preview_html) {
+            previewBody.innerHTML = data.preview_html;
+            modal.show();
+        } else {
+            // Show error in the result modal instead of the preview modal
+            const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+            document.getElementById('resultModalTitle').textContent = 'Error generating preview';
+            document.getElementById('resultModalTitle').className = 'text-danger';
+            document.getElementById('resultModalBody').innerHTML = `<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>${data.error || 'Failed to load preview content.'}</div>`;
+            resultModal.show();
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching invoice preview:', error);
+        const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+        document.getElementById('resultModalTitle').textContent = 'Error';
+        document.getElementById('resultModalTitle').className = 'text-danger';
+        document.getElementById('resultModalBody').innerHTML = `<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Failed to generate invoice preview. ${error.message}</div>`;
+        resultModal.show();
+    });
 }
 
 function saveAsDraft() {
-    // Save current form as draft
+    // Get the save draft button and status div
+    const saveButton = document.getElementById('saveDraftBtn');
+    const statusDiv = document.getElementById('draftSaveStatus');
+    const originalText = saveButton.innerHTML;
+
+    // Show loading state
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    saveButton.disabled = true;
+    statusDiv.innerHTML = '';
+
+    // Prepare form data
     const formData = new FormData(document.getElementById('billingForm'));
     formData.append('save_as_draft', 'true');
 
@@ -894,17 +1307,57 @@ function saveAsDraft() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        // Reset button state
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+
         if (data.success) {
-            alert('Draft saved successfully!');
+            // Show success message
+            statusDiv.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show mt-2">
+                    <i class="fas fa-check-circle me-2"></i>Draft saved successfully! ${data.items_saved ? `(${data.items_saved} items)` : ''}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Auto-hide alert after 4 seconds
+            setTimeout(() => {
+                const alert = statusDiv.querySelector('.alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 4000);
         } else {
-            alert('Error saving draft: ' + data.message);
+            // Show error message
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show mt-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Error: ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error saving draft.');
+        // Reset button state
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+
+        console.error('Draft save error:', error);
+
+        // Show error message
+        statusDiv.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show mt-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>Network error while saving draft. Please check your connection.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
     });
 }
 
@@ -918,7 +1371,7 @@ function clearForm() {
         document.getElementById('billingForm').reset();
         updateTaxCalculations();
 
-        // Reset all dynamic elements
+        // Clear all dynamic elements
         const productRows = document.querySelectorAll('.product-row');
         productRows.forEach((row, index) => {
             if (index > 0) {
@@ -959,39 +1412,97 @@ document.addEventListener('change', function(e) {
 document.getElementById('billingForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    // Get submit button and show loading state
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Invoice...';
+    submitBtn.disabled = true;
+
+    // Basic validation for required fields (example: customer)
+    if (!document.getElementById('client_id').value) {
+        alert('Please select a customer.');
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+
+    // Check if at least one service or product is selected
+    const serviceSelected = Array.from(document.querySelectorAll('select[name="service_ids[]"]')).some(select => select.value);
+    const productSelected = Array.from(document.querySelectorAll('select[name="product_ids[]"]')).some(select => select.value);
+
+    if (!serviceSelected && !productSelected) {
+        alert('Please select at least one service or product to create an invoice.');
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+
     // Validate all stock quantities before submission
     const quantityInputs = document.querySelectorAll('.quantity-input');
     let hasStockErrors = false;
 
     quantityInputs.forEach(input => {
-        validateStock(input);
-        if (!input.checkValidity()) {
-            hasStockErrors = true;
+        const productRow = input.closest('.product-row');
+        const productSelect = productRow.querySelector('.product-select');
+
+        // Only validate if product is selected
+        if (productSelect && productSelect.value) {
+            validateInventoryQuantity(input);
+            if (!input.checkValidity()) {
+                hasStockErrors = true;
+            }
         }
     });
 
     if (hasStockErrors) {
         alert('Please check stock availability for all products before submitting.');
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
         return;
     }
 
     const formData = new FormData(this);
 
-    // Add tax calculation data
-    formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) || 0));
-    formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
-    formData.append('total_tax_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '')) + parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '')) || 0));
+    // Add tax calculation data to form data for submission
+    formData.append('cgst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('sgst_amount', (parseFloat(document.getElementById('display_sgst').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('igst_amount', (parseFloat(document.getElementById('display_cgst').textContent.replace('₹', '').replace(/,/g, '')) || 0)); // Assuming IGST is displayed in CGST placeholder if interstate
+    formData.append('discount_amount', (parseFloat(document.getElementById('display_discount').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('additional_charges_display', (parseFloat(document.getElementById('display_additional').textContent.replace('₹', '').replace(/,/g, '')) || 0));
+    formData.append('total_amount', (parseFloat(document.getElementById('display_total').textContent.replace('₹', '').replace(/,/g, '')) || 0));
 
     fetch('/integrated-billing/create-professional', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        // Always reset button state first
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         const modal = new bootstrap.Modal(document.getElementById('resultModal'));
         const title = document.getElementById('resultModalTitle');
         const body = document.getElementById('resultModalBody');
         const viewBtn = document.getElementById('viewInvoiceBtn');
+        const printBtn = document.getElementById('printInvoiceBtn');
+        const emailBtn = document.getElementById('emailInvoiceBtn');
+        const whatsappBtn = document.getElementById('whatsappInvoiceBtn');
+
+        // Reset all action buttons display
+        viewBtn.style.display = 'none';
+        printBtn.style.display = 'none';
+        emailBtn.style.display = 'none';
+        whatsappBtn.style.display = 'none';
+
 
         if (data.success) {
             title.textContent = 'Professional Invoice Created Successfully!';
@@ -1006,29 +1517,33 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
                 </div>
                 <div class="row">
                     <div class="col-6"><strong>Total Amount:</strong></div>
-                    <div class="col-6">₹${data.total_amount.toLocaleString()}</div>
+                    <div class="col-6">₹${data.total_amount.toLocaleString('en-IN')}</div>
                 </div>
                 <div class="row">
                     <div class="col-6"><strong>CGST:</strong></div>
-                    <div class="col-6">₹${data.cgst_amount.toLocaleString()}</div>
+                    <div class="col-6">₹${data.cgst_amount.toLocaleString('en-IN')}</div>
                 </div>
                 <div class="row">
                     <div class="col-6"><strong>SGST:</strong></div>
-                    <div class="col-6">₹${data.sgst_amount.toLocaleString()}</div>
+                    <div class="col-6">₹${data.sgst_amount.toLocaleString('en-IN')}</div>
                 </div>
             `;
 
             if (data.deductions_applied > 0) {
                 message += `<div class="row text-success">
                     <div class="col-6"><strong>Package Deductions:</strong></div>
-                    <div class="col-6">₹${data.deductions_applied.toLocaleString()}</div>
+                    <div class="col-6">₹${data.deductions_applied.toLocaleString('en-IN')}</div>
                 </div>`;
             }
 
-            if (data.stock_reduced) {
-                message += `<div class="row text-info">
-                    <div class="col-12"><small><strong>Stock Reduced:</strong> ${data.stock_reduced} items from batches</small></div>
-                </div>`;
+            if (data.stock_reduced && data.stock_reduced.length > 0) {
+                message += `<div class="row text-info mt-2">
+                    <div class="col-12"><small><strong>Stock Reduced:</strong></small></div>
+                    <ul class="mb-0">`;
+                data.stock_reduced.forEach(item => {
+                    message += `<li><small>${item.product_name} - Batch ${item.batch_name}: ${item.quantity_reduced} ${item.unit}</small></li>`;
+                });
+                message += `</ul></div>`;
             }
 
             message += '</div>';
@@ -1036,8 +1551,18 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
 
             viewBtn.style.display = 'block';
             viewBtn.href = `/integrated-billing/invoice/${data.invoice_id}`;
+            printBtn.style.display = 'block';
+            emailBtn.style.display = 'block';
+            whatsappBtn.style.display = 'block';
 
-            // Reset form
+            // Store invoice ID for action buttons
+            viewBtn.dataset.invoiceId = data.invoice_id;
+            printBtn.dataset.invoiceId = data.invoice_id;
+            emailBtn.dataset.invoiceId = data.invoice_id;
+            whatsappBtn.dataset.invoiceId = data.invoice_id;
+
+
+            // Reset form after successful submission
             clearForm();
 
         } else {
@@ -1053,27 +1578,176 @@ document.getElementById('billingForm').addEventListener('submit', function(e) {
         modal.show();
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Submission Error:', error);
+
+        // Ensure button state is reset
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
 
         const modal = new bootstrap.Modal(document.getElementById('resultModal'));
         const title = document.getElementById('resultModalTitle');
         const body = document.getElementById('resultModalBody');
+        const viewBtn = document.getElementById('viewInvoiceBtn');
+        const printBtn = document.getElementById('printInvoiceBtn');
+        const emailBtn = document.getElementById('emailInvoiceBtn');
+        const whatsappBtn = document.getElementById('whatsappInvoiceBtn');
 
-        title.textContent = 'Network Error';
+        // Hide action buttons on error
+        viewBtn.style.display = 'none';
+        printBtn.style.display = 'none';
+        emailBtn.style.display = 'none';
+        whatsappBtn.style.display = 'none';
+
+        title.textContent = 'Invoice Creation Failed';
         title.className = 'text-danger';
         body.innerHTML = `<div class="text-danger">
             <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-            <p>Unable to connect to the billing system. Please check your internet connection and try again.</p>
+            <h5>Invoice creation failed</h5>
+            <p>There was an error processing your invoice. Please try again.</p>
             <small class="text-muted">Error details: ${error.message}</small>
+            <hr>
+            <p class="text-muted"><strong>Troubleshooting tips:</strong></p>
+            <ul class="text-muted">
+                <li>Check that all required fields are filled</li>
+                <li>Verify sufficient stock for selected products</li>
+                <li>Ensure tax rates are valid numbers</li>
+                <li>Try refreshing the page and creating again</li>
+            </ul>
         </div>`;
 
         modal.show();
     });
 });
 
-// Initialize tax calculations on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateTaxCalculations();
-});
+// Validate inventory quantity against available stock
+        function validateInventoryQuantity(quantityInput) {
+            const row = quantityInput.closest('.row');
+            const batchSelect = row.querySelector('.batch-select');
+            const productSelect = row.querySelector('.product-select');
+
+            // Ensure product and batch are selected before validating
+            if (!batchSelect.value || !productSelect.value) {
+                // Clear any previous validation messages if product/batch not selected
+                quantityInput.classList.remove('is-invalid');
+                const errorMsg = row.querySelector('.quantity-error');
+                if (errorMsg) errorMsg.remove();
+                return;
+            }
+
+            const selectedBatch = availableBatches.find(b => b.id == batchSelect.value);
+            if (selectedBatch) {
+                const requestedQty = parseFloat(quantityInput.value);
+                const availableQty = parseFloat(selectedBatch.qty_available);
+
+                if (requestedQty > availableQty) {
+                    quantityInput.classList.add('is-invalid');
+                    // Show error message
+                    let errorMsg = row.querySelector('.quantity-error');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('div');
+                        errorMsg.className = 'quantity-error text-danger small mt-1';
+                        quantityInput.parentNode.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = `Maximum available: ${availableQty} ${selectedBatch.unit}`;
+                    // Optionally auto-correct or just show error
+                    // quantityInput.value = availableQty; // Auto-correct to max available
+                    // quantityInput.classList.remove('is-invalid'); // Remove invalid class if auto-corrected
+                    // errorMsg.remove(); // Remove error message if auto-corrected
+                } else {
+                    quantityInput.classList.remove('is-invalid');
+                    const errorMsg = row.querySelector('.quantity-error');
+                    if (errorMsg) errorMsg.remove();
+                }
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Integrated billing page loaded, initializing...');
+            loadAvailableBatches();
+            updateTaxCalculations(); // Initial calculation update based on default values
+            toggleTaxType(); // Apply initial tax type settings
+
+            // Add event listeners for real-time package benefit calculation
+            setupServiceChangeListeners();
+        });
+
+        // Setup event listeners for service selection changes
+        function setupServiceChangeListeners() {
+            // Monitor service dropdown changes
+            document.addEventListener('change', function(event) {
+                if (event.target.matches('select[name="service_ids[]"]') || 
+                    event.target.matches('input[name="service_quantities[]"]')) {
+                    // Service or quantity changed, update calculations
+                    setTimeout(updateTaxCalculations, 100); // Small delay to ensure DOM is updated
+                }
+            });
+
+            // Monitor when new service rows are added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('service-row')) {
+                            // New service row added, attach listeners
+                            const serviceSelect = node.querySelector('select[name="service_ids[]"]');
+                            const quantityInput = node.querySelector('input[name="service_quantities[]"]');
+
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+
+                            if (quantityInput) {
+                                quantityInput.addEventListener('input', () => {
+                                    setTimeout(updateTaxCalculations, 100);
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.getElementById('servicesContainer'), {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // --- Action button handlers ---
+        function proceedWithInvoiceCreation() {
+            document.getElementById('billingForm').submit();
+        }
+
+        function printInvoice() {
+            const invoiceId = document.getElementById('printInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                window.open(`/integrated-billing/print-invoice/${invoiceId}`, '_blank');
+            } else {
+                alert('Invoice ID not found. Cannot print.');
+            }
+        }
+
+        function emailInvoice() {
+            const invoiceId = document.getElementById('emailInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger an email sending process
+                alert(`Email invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/email-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot email.');
+            }
+        }
+
+        function whatsappInvoice() {
+            const invoiceId = document.getElementById('whatsappInvoiceBtn').dataset.invoiceId;
+            if (invoiceId) {
+                // In a real application, this would trigger a WhatsApp sharing process
+                alert(`WhatsApp invoice functionality for Invoice ID: ${invoiceId} is being processed.`);
+                // Example: fetch(`/integrated-billing/whatsapp-invoice/${invoiceId}`) ...
+            } else {
+                alert('Invoice ID not found. Cannot send via WhatsApp.');
+            }
+        }
 </script>
 {% endblock %}

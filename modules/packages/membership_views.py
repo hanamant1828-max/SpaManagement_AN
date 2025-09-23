@@ -86,6 +86,11 @@ def membership_add_submit():
         selected_services = request.form.getlist('service_ids')
         print(f"Debug - Selected services: {selected_services}")
         
+        # Validate that at least one service is selected
+        if not selected_services:
+            flash('Please select at least one service for the membership', 'error')
+            return redirect(url_for('membership_add'))
+        
         # Create membership
         membership = Membership(
             name=name,
@@ -126,8 +131,8 @@ def membership_add_submit():
         print(f"Full error traceback: {error_details}")
         
         # Return error response for AJAX requests
-        if request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-            return f'Error creating membership: {str(e)}', 500
+        if request.headers.get('Content-Type') == 'application/json' or request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
         
         flash(f'Error creating membership: {str(e)}', 'error')
         return redirect(url_for('membership_add'))

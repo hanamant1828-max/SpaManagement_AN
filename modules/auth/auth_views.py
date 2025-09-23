@@ -49,66 +49,61 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
 
-    form = LoginForm()
-    if form.validate_on_submit():
+    if request.method == 'POST':
         from werkzeug.security import check_password_hash
         from models import User
         
-        # Get user by identifier (username or email) - fallback for old form submissions
-        identifier = form.identifier.data.strip().lower() if hasattr(form, 'identifier') else form.username.data.strip().lower()
+        # Get form data directly for better debugging
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
         
-        user = db.session.query(User).filter(
-            or_(
-                and_(User.email.isnot(None), func.lower(User.email) == identifier),
-                func.lower(User.username) == identifier
-            )
-        ).first()
-        print(f"Login attempt for identifier: {identifier}")
+        print(f"Login attempt for username: {username}")
+        
+        if not username or not password:
+            flash('Username and password are required', 'danger')
+            return render_template('login.html')
+        
+        # Find user by username (case-insensitive)
+        user = User.query.filter(func.lower(User.username) == username.lower()).first()
         print(f"User found: {user is not None}")
         
-        # Check password validation
-        password_valid = False
         if user:
             print(f"User is active: {user.is_active}")
+            print(f"User has password_hash: {user.password_hash is not None}")
             
-            # Try multiple password validation methods
-            if hasattr(user, 'check_password') and callable(user.check_password):
+            # Check password
+            password_valid = False
+            if user.password_hash:
                 try:
-                    password_valid = user.check_password(form.password.data)
-                    print(f"check_password method result: {password_valid}")
+                    password_valid = check_password_hash(user.password_hash, password)
+                    print(f"Password validation result: {password_valid}")
                 except Exception as e:
-                    print(f"Error with check_password method: {e}")
+                    print(f"Error checking password: {e}")
+                    
+                # If standard check fails, try user's check_password method
+                if not password_valid and hasattr(user, 'check_password'):
+                    try:
+                        password_valid = user.check_password(password)
+                        print(f"User method password check: {password_valid}")
+                    except Exception as e:
+                        print(f"Error with user check_password: {e}")
             
-            # If user method fails or doesn't exist, try werkzeug directly
-            if not password_valid and user.password_hash:
-                try:
-                    password_valid = check_password_hash(user.password_hash, form.password.data)
-                    print(f"check_password_hash result: {password_valid}")
-                except Exception as e:
-                    print(f"Error with check_password_hash: {e}")
-            
-            # No plaintext password fallback for security
-
-        if user and user.is_active and password_valid:
-            login_user(user, remember=form.remember.data)
-            print(f"Login successful for user: {user.username}")
-            flash('Login successful!', 'success')
-            
-            next_page = request.args.get('next')
-            if next_page:
-                return redirect(next_page)
+            if password_valid and user.is_active:
+                login_user(user, remember=request.form.get('remember') == 'on')
+                print(f"Login successful for user: {user.username}")
+                flash('Login successful!', 'success')
+                
+                next_page = request.args.get('next')
+                return redirect(next_page) if next_page else redirect(url_for('dashboard'))
             else:
-                return redirect(url_for('dashboard'))
+                print(f"Login failed - Password valid: {password_valid}, Active: {user.is_active}")
+                flash('Invalid username or password', 'danger')
         else:
-            print(f"Login failed - User: {user is not None}, Active: {user.is_active if user else False}, Password Valid: {password_valid}")
+            print("User not found")
             flash('Invalid username or password', 'danger')
-
-    # If form validation fails, show errors
-    if form.errors:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'danger')
-
+    
+    # For GET requests or failed POST, show login form
+    form = LoginForm()
     return render_template('login.html', form=form)
 
 @app.route('/api/auth/login', methods=['POST'])

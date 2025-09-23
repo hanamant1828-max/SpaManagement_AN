@@ -67,56 +67,44 @@
                                       placeholder="Describe the membership benefits and terms..."></textarea>
                         </div>
 
-                        <div class="mb-4">
-                            <label for="services_included" class="form-label">Services Summary</label>
-                            <textarea class="form-control" id="services_included" name="services_included" rows="2" 
-                                      placeholder="Brief summary of included services (e.g., All spa services with 20% discount)"></textarea>
-                        </div>
+                        
+                        <div class="mb-3">
+                        <label for="services_included" class="form-label">Services Included Description</label>
+                        <textarea class="form-control" id="services_included" name="services_included" rows="3" 
+                                placeholder="Brief description of included services (e.g., 'All spa services', 'Facial and massage services only')"></textarea>
+                        <div class="form-text">Provide a brief description of what services are covered</div>
+                    </div>
 
-                        <!-- Service Selection -->
-                        <div class="mb-4">
-                            <h6 class="mb-3">
-                                <i class="fas fa-spa me-2"></i>Included Services
-                                <small class="text-muted">(Select services included in this membership)</small>
-                            </h6>
-
-                            {% if services %}
-                            <div class="row">
-                                {% for service in services %}
-                                <div class="col-md-6 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" 
-                                                       name="service_ids" value="{{ service.id }}" 
-                                                       id="service_{{ service.id }}">
-                                                <label class="form-check-label w-100" for="service_{{ service.id }}">
-                                                    <div class="d-flex justify-content-between align-items-start">
-                                                        <div>
-                                                            <h6 class="card-title mb-1">{{ service.name }}</h6>
-                                                            {% if service.description %}
-                                                            <p class="card-text small text-muted mb-2">{{ service.description[:60] }}...</p>
-                                                            {% endif %}
-                                                            <div class="badge bg-primary">₹{{ service.price }}</div>
-                                                            {% if service.duration %}
-                                                            <div class="badge bg-secondary ms-1">{{ service.duration }} min</div>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                No services available. Please add services first before creating memberships.
-                            </div>
-                            {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">Select Services Covered by Membership</label>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Important:</strong> Membership benefits will ONLY apply to the services you select below. 
+                            Services not selected will be charged at full price.
                         </div>
+                        <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                            {% for service in services %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="service_ids" value="{{ service.id }}" 
+                                       id="service_{{ service.id }}">
+                                <label class="form-check-label d-flex justify-content-between align-items-center" 
+                                       for="service_{{ service.id }}">
+                                    <span>
+                                        <strong>{{ service.name }}</strong>
+                                        {% if service.description %}
+                                        <br><small class="text-muted">{{ service.description }}</small>
+                                        {% endif %}
+                                    </span>
+                                    <span class="badge bg-primary">₹{{ "{:,.0f}".format(service.price) }}</span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text mt-2">
+                            Select all services that should be covered by this membership package.
+                        </div>
+                    </div>
 
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between">

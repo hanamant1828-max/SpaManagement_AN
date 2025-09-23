@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 import os
@@ -21,17 +20,17 @@ def main():
     print("🚀 Starting Spa Management System...")
     print(f"📡 Server will be available at: http://0.0.0.0:{port}")
     print("🌐 Access via webview or browser")
-    
+
     try:
         # Import app with error handling
         from app import app
         print("✅ App imported successfully")
-        
+
         # Health check route is handled in routes.py
-        
+
         # Start the server
         app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
-        
+
     except ImportError as e:
         print(f"❌ Import error: {e}")
         print("💡 Check if all required modules are available")

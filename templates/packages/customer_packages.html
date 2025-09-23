@@ -116,16 +116,14 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="assign-yearly-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#assign-yearly" type="button" role="tab"
-                                    onclick="loadYearlyPackages()">
+                                    data-bs-target="#assign-yearly" type="button" role="tab">
                                 <i class="fas fa-calendar-alt me-2"></i>Assign Yearly
                                 <span class="badge bg-dark ms-2" id="yearly-available">0</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="assign-kitty-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#assign-kitty" type="button" role="tab"
-                                    onclick="loadKittyPackages()">
+                                    data-bs-target="#assign-kitty" type="button" role="tab">
                                 <i class="fas fa-users me-2"></i>Assign Kitty Party
                                 <span class="badge bg-danger ms-2" id="kitty-available">0</span>
                             </button>
@@ -372,9 +370,9 @@
                                 <h5 class="mb-0">
                                     <i class="fas fa-graduation-cap me-2"></i>Student Offers Management
                                 </h5>
-                                <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addStudentOfferModal">
+                                <a href="{{ url_for('packages.add_student_offer') }}" class="btn btn-light">
                                     <i class="fas fa-plus me-2"></i>Add Student Offer
-                                </button>
+                                </a>
                             </div>
                         </div>
                         <div class="card-body">
@@ -401,11 +399,10 @@
                                 <table class="table table-striped table-hover" id="tblStudentOffers">
                                     <thead class="table-secondary">
                                         <tr>
-                                            <th>Discount %</th>
+                                            <th>Offer Name</th>
                                             <th>Services</th>
-                                            <th>Valid Days</th>
-                                            <th>Valid From–To</th>
-                                            <th>Conditions</th>
+                                            <th>Discount %</th>
+                                            <th>Validity</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -948,48 +945,53 @@
     </div>
 </div>
 
-<!-- Minimal Assign Modal -->
-<div class="modal fade" id="assignSimpleModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+<!-- Simple Assignment Modal for Packages -->
+<div class="modal fade" id="assignSimpleModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-user-plus text-primary me-2"></i>Assign Package to Customer
+                    <i class="fas fa-user-plus me-2"></i>Assign Package to Customer
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="assignSimpleForm">
-                    <div class="mb-3">
-                        <label for="asTemplateName" class="form-label">Package</label>
-                        <input type="text" class="form-control" id="asTemplateName" readonly>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="asCustomer" class="form-label">Customer *</label>
-                        <select class="form-select" id="asCustomer" required>
-                            <option value="">Select customer...</option>
-                        </select>
-                        <div class="invalid-feedback">
-                            Please select a customer.
-                        </div>
-                    </div>
-
-                    <!-- Hidden fields -->
                     <input type="hidden" id="asTemplateId">
                     <input type="hidden" id="asPackageType">
-                    <input type="hidden" id="asPricePaid">
+
+                    <div class="mb-3">
+                        <label class="form-label">Package Template</label>
+                        <input type="text" id="asTemplateName" class="form-control" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Customer *</label>
+                        <select id="asCustomer" class="form-select" required>
+                            <option value="">Choose customer...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Price Paid</label>
+                        <input type="number" id="asPricePaid" class="form-control" step="0.01" min="0" value="0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea id="asNotes" class="form-control" rows="3"></textarea>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="asSave" disabled>
-                    <i class="fas fa-user-plus me-2"></i>Assign
+                <button type="button" class="btn btn-success" id="asSave" disabled>
+                    <i class="fas fa-check me-2"></i>Assign Package
                 </button>
             </div>
         </div>
     </div>
-</div>
+</div></old_str>
 
 <!-- Assigned Customers Modal -->
 <div class="modal fade" id="assignedCustomersModal" tabindex="-1">
@@ -1079,194 +1081,52 @@
     </div>
 </div>
 
-<!-- Add Student Offer Modal -->
-<div class="modal fade" id="addStudentOfferModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg">
+<!-- Assignment Modal for Simple Assignment -->
+<div class="modal fade" id="assignPackageModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-graduation-cap text-secondary me-2"></i>Add Student Offer
+                    <i class="fas fa-user-plus text-primary me-2"></i>Assign Package to Customer
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="addStudentOfferForm">
-                    <div class="row g-3">
-                        <!-- Services Selection -->
-                        <div class="col-12">
-                            <label for="studentOfferServices" class="form-label">Select Services *</label>
-                            <select multiple class="form-select" id="studentOfferServices" name="service_ids" required style="height: 120px;">
-                                <!-- Services will be loaded here -->
-                            </select>
-                            <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
-                            <div class="invalid-feedback">
-                                Please select at least one service.
-                            </div>
-                        </div>
+                <form id="assignPackageForm">
+                    <!-- Hidden fields for package info -->
+                    <input type="hidden" id="assignOfferType" name="package_type">
+                    <input type="hidden" id="assignOfferReferenceId" name="package_id">
 
-                        <!-- Discount Percentage -->
-                        <div class="col-md-6">
-                            <label for="studentDiscountPercentage" class="form-label">Discount Percentage *</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="studentDiscountPercentage" 
-                                       name="discount_percentage" min="1" max="100" step="0.1" required>
-                                <span class="input-group-text">%</span>
-                            </div>
-                            <div class="invalid-feedback">
-                                Please enter a discount between 1-100%.
-                            </div>
+                    <div class="mb-3">
+                        <label for="assignCustomerSelect" class="form-label">Customer *</label>
+                        <select class="form-select" id="assignCustomerSelect" name="customer_id" required>
+                            <option value="">Choose customer...</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select a customer.
                         </div>
+                    </div>
 
-                        <!-- Valid Days -->
-                        <div class="col-md-6">
-                            <label for="studentValidDays" class="form-label">Valid Days</label>
-                            <select class="form-select" id="studentValidDays" name="valid_days">
-                                <option value="Mon-Fri" selected>Monday - Friday</option>
-                                <option value="Mon-Sat">Monday - Saturday</option>
-                                <option value="All Days">All Days</option>
-                                <option value="Weekends">Weekends Only</option>
-                                <option value="Custom">Custom</option>
-                            </select>
+                    <div class="mb-3">
+                        <label for="assignPricePaid" class="form-label">Price Paid</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="assignPricePaid" 
+                                   name="price_paid" step="0.01" min="0" value="0">
                         </div>
+                    </div>
 
-                        <!-- Custom Valid Days (hidden by default) -->
-                        <div class="col-12" id="customValidDaysDiv" style="display: none;">
-                            <label for="customValidDays" class="form-label">Custom Valid Days</label>
-                            <input type="text" class="form-control" id="customValidDays" 
-                                   placeholder="e.g., Mon, Wed, Fri">
-                            <div class="form-text">Enter specific days when this offer is valid</div>
-                        </div>
-
-                        <!-- Valid From Date -->
-                        <div class="col-md-6">
-                            <label for="studentValidFrom" class="form-label">Valid From *</label>
-                            <input type="date" class="form-control" id="studentValidFrom" 
-                                   name="valid_from" required>
-                            <div class="invalid-feedback">
-                                Please select a valid from date.
-                            </div>
-                        </div>
-
-                        <!-- Valid To Date -->
-                        <div class="col-md-6">
-                            <label for="studentValidTo" class="form-label">Valid To *</label>
-                            <input type="date" class="form-control" id="studentValidTo" 
-                                   name="valid_to" required>
-                            <div class="invalid-feedback">
-                                Please select a valid to date.
-                            </div>
-                        </div>
-
-                        <!-- Conditions -->
-                        <div class="col-12">
-                            <label for="studentConditions" class="form-label">Conditions</label>
-                            <textarea class="form-control" id="studentConditions" name="conditions" 
-                                      rows="3">Valid with Student ID</textarea>
-                            <div class="form-text">Terms and conditions for this student offer</div>
-                        </div>
-
-                        <!-- Preview Section -->
-                        <div class="col-12">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6 class="mb-3">Offer Preview:</h6>
-                                    <div id="studentOfferPreview">
-                                        <p class="text-muted">Select services and discount to see preview</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <label for="assignNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="assignNotes" name="notes" rows="2" 
+                                  placeholder="Additional notes..."></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveStudentOffer" disabled>
-                    <i class="fas fa-save me-2"></i>Save Student Offer
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Student Offer Modal -->
-<div class="modal fade" id="editStudentOfferModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-edit text-warning me-2"></i>Edit Student Offer
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editStudentOfferForm">
-                    <input type="hidden" id="editOfferId" name="offer_id">
-                    <div class="row g-3">
-                        <!-- Services Selection -->
-                        <div class="col-12">
-                            <label for="editStudentOfferServices" class="form-label">Select Services *</label>
-                            <select multiple class="form-select" id="editStudentOfferServices" name="service_ids" required style="height: 120px;">
-                                <!-- Services will be loaded here -->
-                            </select>
-                            <div class="form-text">Hold Ctrl/Cmd to select multiple services</div>
-                        </div>
-
-                        <!-- Discount Percentage -->
-                        <div class="col-md-6">
-                            <label for="editStudentDiscountPercentage" class="form-label">Discount Percentage *</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="editStudentDiscountPercentage" 
-                                       name="discount_percentage" min="1" max="100" step="0.1" required>
-                                <span class="input-group-text">%</span>
-                            </div>
-                        </div>
-
-                        <!-- Valid Days -->
-                        <div class="col-md-6">
-                            <label for="editStudentValidDays" class="form-label">Valid Days</label>
-                            <select class="form-select" id="editStudentValidDays" name="valid_days">
-                                <option value="Mon-Fri">Monday - Friday</option>
-                                <option value="Mon-Sat">Monday - Saturday</option>
-                                <option value="All Days">All Days</option>
-                                <option value="Weekends">Weekends Only</option>
-                                <option value="Custom">Custom</option>
-                            </select>
-                        </div>
-
-                        <!-- Custom Valid Days (hidden by default) -->
-                        <div class="col-12" id="editCustomValidDaysDiv" style="display: none;">
-                            <label for="editCustomValidDays" class="form-label">Custom Valid Days</label>
-                            <input type="text" class="form-control" id="editCustomValidDays" 
-                                   placeholder="e.g., Mon, Wed, Fri">
-                        </div>
-
-                        <!-- Valid From Date -->
-                        <div class="col-md-6">
-                            <label for="editStudentValidFrom" class="form-label">Valid From *</label>
-                            <input type="date" class="form-control" id="editStudentValidFrom" 
-                                   name="valid_from" required>
-                        </div>
-
-                        <!-- Valid To Date -->
-                        <div class="col-md-6">
-                            <label for="editStudentValidTo" class="form-label">Valid To *</label>
-                            <input type="date" class="form-control" id="editStudentValidTo" 
-                                   name="valid_to" required>
-                        </div>
-
-                        <!-- Conditions -->
-                        <div class="col-12">
-                            <label for="editStudentConditions" class="form-label">Conditions</label>
-                            <textarea class="form-control" id="editStudentConditions" name="conditions" rows="3"></textarea>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-warning" id="updateStudentOffer">
-                    <i class="fas fa-save me-2"></i>Update Student Offer
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAssignBtn" onclick="confirmPackageAssignment()">
+                    <i class="fas fa-user-plus me-2"></i>Assign Package
                 </button>
             </div>
         </div>
@@ -1407,7 +1267,7 @@
                             <input type="date" id="editKittyValidFrom" name="valid_from" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Valid To</label>
+                            <label for="editKittyValidTo" class="form-label">Valid To</label>
                             <input type="date" id="editKittyValidTo" name="valid_to" class="form-control">
                         </div>
                     </div>
@@ -1435,669 +1295,8 @@
     </div>
 </div>
 
-<!-- Include JavaScript -->
+<!-- Student offer modals removed - using dedicated pages instead -->
+
+<!-- Include JavaScript files -->
 <script src="{{ url_for('static', filename='js/packages.js') }}"></script>
-
-<script>
-// Enhanced Package Assignment System JavaScript
-let allPackageTypes = {};
-let selectedCustomerForAssignment = null;
-
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEnhancedPackages();
-});
-
-async function initializeEnhancedPackages() {
-    try {
-        // Load all package types and customers
-        await Promise.all([
-            loadAllPackageTypes(),
-            loadCustomersForAllTabs(),
-            loadAllPackageAssignments() // Load existing assignments
-        ]);
-
-        console.log('Enhanced package assignment system initialized');
-    } catch (error) {
-        console.error('Error initializing enhanced packages:', error);
-    }
-}
-
-async function loadAllPackageAssignments() {
-    try {
-        const response = await fetch('/packages/api/all-assignments');
-        const data = await response.json();
-
-        if (data.success) {
-            const tableBody = document.getElementById('packagesTableBody');
-            document.getElementById('all-count').textContent = data.total_assignments;
-
-            if (data.assignments.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="9" class="text-center py-4">
-                            <i class="fas fa-gift fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Package Assignments Found</h5>
-                            <p class="text-muted">Start assigning packages to customers to see them here.</p>
-                        </td>
-                    </tr>
-                `;
-            } else {
-                tableBody.innerHTML = data.assignments.map(assignment => {
-                    const statusBadge = getStatusBadge(assignment.status);
-
-                    let totalInfo, usedInfo, remainingInfo, progressBar;
-
-                    if (assignment.package_type === 'service_package') {
-                        totalInfo = `${assignment.total_sessions} sessions`;
-                        usedInfo = `${assignment.used_sessions} sessions`;
-                        remainingInfo = `${assignment.remaining_sessions} sessions`;
-                        const progress = assignment.total_sessions > 0 ? (assignment.used_sessions / assignment.total_sessions) * 100 : 0;
-                        progressBar = `
-                            <div class="progress mb-1" style="height: 20px;">
-                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
-                            </div>
-                        `;
-                    } else if (assignment.package_type === 'prepaid') {
-                        totalInfo = `₹${assignment.credit_amount}`;
-                        usedInfo = `₹${assignment.used_credit}`;
-                        remainingInfo = `₹${assignment.remaining_credit}`;
-                        const progress = assignment.credit_amount > 0 ? (assignment.used_credit / assignment.credit_amount) * 100 : 0;
-                        progressBar = `
-                            <div class="progress mb-1" style="height: 20px;">
-                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
-                            </div>
-                        `;
-                    } else {
-                        totalInfo = 'Membership';
-                        usedInfo = '-';
-                        remainingInfo = 'Active';
-                        progressBar = '<span class="text-muted">Membership</span>';
-                    }
-
-                    return `
-                        <tr>
-                            <td>
-                                <strong>${assignment.customer_name}</strong><br>
-                                <small class="text-muted">${assignment.customer_phone}</small>
-                            </td>
-                            <td>
-                                <strong>${assignment.package_name}</strong><br>
-                                <span class="badge bg-secondary">${assignment.package_type.replace('_', ' ').toUpperCase()}</span>
-                            </td>
-                            <td>
-                                <strong>Assigned:</strong> ${assignment.assigned_on}<br>
-                                <strong>Expires:</strong> ${assignment.expires_on}
-                            </td>
-                            <td>${totalInfo}</td>
-                            <td>${usedInfo}</td>
-                            <td>${remainingInfo}</td>
-                            <td>${progressBar}</td>
-                            <td>${statusBadge}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" onclick="window.viewAssignmentDetails(${assignment.assignment_id})" title="View Details">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-outline-info" onclick="window.viewCustomerDetails(${assignment.customer_id})" title="View Customer">
-                                        <i class="fas fa-user"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-
-            // Update assignment counts in package cards
-            await updatePackageAssignmentCounts();
-        }
-    } catch (error) {
-        console.error('Error loading package assignments:', error);
-        document.getElementById('packagesTableBody').innerHTML = `
-            <tr>
-                <td colspan="9" class="text-center py-4 text-danger">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                    <h5>Error Loading Assignments</h5>
-                    <p>Please refresh the page to try again.</p>
-                </td>
-            </tr>
-        `;
-    }
-}
-
-async function updatePackageAssignmentCounts() {
-    // Update the "View Assigned" button counts for each package card
-    try {
-        const packageTypes = ['prepaid', 'service', 'membership', 'student', 'yearly', 'kitty'];
-
-        for (const type of packageTypes) {
-            if (allPackageTypes[type]) {
-                for (const pkg of allPackageTypes[type]) {
-                    try {
-                        const response = await fetch(`/packages/api/assigned-customers/${type === 'service' ? 'service_package' : type}/${pkg.id}`);
-                        const data = await response.json();
-
-                        if (data.success) {
-                            // Update the count in the button
-                            const button = document.querySelector(`button[onclick*="viewAssignedCustomers('${pkg.id}', '${type === 'service' ? 'service_package' : type}'"]`);
-                            if (button) {
-                                button.innerHTML = `<i class="fas fa-users me-2"></i>View Assigned (${data.total_assignments})`;
-                            }
-                        }
-                    } catch (error) {
-                        console.error(`Error loading count for ${type} package ${pkg.id}:`, error);
-                    }
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error updating package assignment counts:', error);
-    }
-}
-
-async function loadAllPackageTypes() {
-    try {
-        // Load all package types
-        const endpoints = [
-            { key: 'prepaid', url: '/api/prepaid-packages' },
-            { key: 'service', url: '/api/service-packages' },
-            { key: 'membership', url: '/api/memberships' },
-            { key: 'student', url: '/api/student-offers' },
-            { key: 'yearly', url: '/api/yearly-memberships' },
-            { key: 'kitty', url: '/api/kitty-parties' }
-        ];
-
-        for (const endpoint of endpoints) {
-            const response = await fetch(endpoint.url);
-            const data = await response.json();
-            allPackageTypes[endpoint.key] = data.success ? data[endpoint.key] || data.packages || data.memberships || data.offers || data.parties || [] : [];
-
-            // Update counts
-            const countElement = document.getElementById(`${endpoint.key}-available`);
-            if (countElement) {
-                countElement.textContent = allPackageTypes[endpoint.key].length;
-            }
-
-            const totalCountElement = document.getElementById(`${endpoint.key}-total-count`);
-            if (totalCountElement) {
-                totalCountElement.textContent = allPackageTypes[endpoint.key].length;
-            }
-        }
-
-        // Render package cards for each type
-        renderPackageCards();
-
-    } catch (error) {
-        console.error('Error loading package types:', error);
-    }
-}
-
-async function loadCustomersForAllTabs() {
-    try {
-        const response = await fetch('/packages/api/customers');
-        const data = await response.json();
-
-        if (data.success) {
-            const customers = data.customers;
-
-            // Populate all customer dropdowns
-            const customerSelects = [
-                'prepaidCustomerSelect', 'serviceCustomerSelect', 'membershipCustomerSelect',
-                'studentCustomerSelect', 'yearlyCustomerSelect', 'kittyCustomerSelect',
-                'assignmentCustomer'
-            ];
-
-            customerSelects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    select.innerHTML = '<option value="">Choose customer...</option>';
-                    customers.forEach(customer => {
-                        const option = document.createElement('option');
-                        option.value = customer.id;
-                        option.textContent = `${customer.name} - ${customer.phone}`;
-                        select.appendChild(option);
-                    });
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Error loading customers:', error);
-    }
-}
-
-function renderPackageCards() {
-    const packageTypes = ['prepaid', 'service', 'membership', 'student', 'yearly', 'kitty'];
-
-    packageTypes.forEach(type => {
-        const container = document.getElementById(`${type}PackagesContainer`);
-        if (!container || !allPackageTypes[type]) return;
-
-        container.innerHTML = allPackageTypes[type].map(pkg => createPackageCard(pkg, type)).join('');
-    });
-}
-
-function createPackageCard(pkg, type) {
-    const typeConfig = {
-        prepaid: { 
-            icon: 'fas fa-credit-card', 
-            color: 'success',
-            priceField: 'actual_price',
-            valueField: 'after_value'
-        },
-        service: { 
-            icon: 'fas fa-spa', 
-            color: 'info',
-            priceField: 'pay_for',
-            valueField: 'total_services'
-        },
-        membership: { 
-            icon: 'fas fa-id-card', 
-            color: 'warning',
-            priceField: 'price',
-            valueField: 'validity_months'
-        },
-        student: { 
-            icon: 'fas fa-graduation-cap', 
-            color: 'secondary',
-            priceField: 'actual_price',
-            valueField: 'after_price'
-        },
-        yearly: { 
-            icon: 'fas fa-calendar-alt', 
-            color: 'dark',
-            priceField: 'price',
-            valueField: 'validity_months'
-        },
-        kitty: { 
-            icon: 'fas fa-users', 
-            color: 'danger',
-            priceField: 'price',
-            valueField: 'min_guests'
-        }
-    };
-
-    const config = typeConfig[type];
-    const price = pkg[config.priceField] || 0;
-    const value = pkg[config.valueField] || 0;
-
-    return `
-        <div class="col-md-6 mb-3">
-            <div class="card package-card" onclick="selectPackageForAssignment('${pkg.id}', '${type}', ${JSON.stringify(pkg).replace(/"/g, '&quot;')})">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <h5 class="card-title">
-                            <i class="${config.icon} text-${config.color} me-2"></i>
-                            ${pkg.name}
-                        </h5>
-                        <span class="badge bg-${config.color} badge-large">₹${price}</span>
-                    </div>
-
-                    <div class="row g-2 mb-3">
-                        ${type === 'prepaid' ? `
-                            <div class="col-6">
-                                <small class="text-muted">Pay Amount</small>
-                                <div class="fw-bold">₹${pkg.actual_price}</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Get Value</small>
-                                <div class="fw-bold text-success">₹${pkg.after_value}</div>
-                            </div>
-                        ` : type === 'service' ? `
-                            <div class="col-6">
-                                <small class="text-muted">Pay For</small>
-                                <div class="fw-bold">${pkg.pay_for} services</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Total Get</small>
-                                <div class="fw-bold text-success">${pkg.total_services} services</div>
-                            </div>
-                        ` : type === 'membership' ? `
-                            <div class="col-6">
-                                <small class="text-muted">Price</small>
-                                <div class="fw-bold">₹${pkg.price}</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Validity</small>
-                                <div class="fw-bold">${pkg.validity_months} months</div>
-                            </div>
-                        ` : type === 'student' ? `
-                            <div class="col-6">
-                                <small class="text-muted">Actual Price</small>
-                                <div class="fw-bold">₹${pkg.actual_price}</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">After Discount</small>
-                                <div class="fw-bold text-success">₹${pkg.after_price}</div>
-                            </div>
-                        ` : type === 'yearly' ? `
-                            <div class="col-6">
-                                <small class="text-muted">Price</small>
-                                <div class="fw-bold">₹${pkg.price}</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Discount</small>
-                                <div class="fw-bold text-success">${pkg.discount_percent}%</div>
-                            </div>
-                        ` : `
-                            <div class="col-6">
-                                <small class="text-muted">Price</small>
-                                <div class="fw-bold">₹${pkg.price}</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">Min Guests</small>
-                                <div class="fw-bold">${pkg.min_guests}</div>
-                            </div>
-                        `}
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-${config.color}">
-                            <i class="fas fa-user-plus me-2"></i>Assign to Customer
-                        </button>
-                        <button type="button" class="btn btn-outline-${config.color} btn-sm" 
-                                onclick="viewAssignedCustomers('${pkg.id}', '${type}', '${pkg.name}')">
-                            <i class="fas fa-users me-2"></i>View Assigned (0)
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function selectPackageForAssignment(packageId, packageType, packageData) {
-    // Show the assignment modal
-    const modal = new bootstrap.Modal(document.getElementById('packageAssignmentModal'));
-
-    // Update modal title
-    const modalTitle = document.getElementById('assignmentModalTitle');
-    modalTitle.innerHTML = `<i class="fas fa-gift text-primary me-2"></i>Assign ${packageData.name}`;
-
-    // Set hidden fields
-    document.getElementById('selectedPackageId').value = packageId;
-    document.getElementById('selectedPackageType').value = packageType;
-
-    // Set default price
-    const priceField = document.getElementById('assignmentPrice');
-    const price = packageData.price || packageData.actual_price || packageData.after_price || 0;
-    priceField.value = price;
-
-    // Show package details
-    const detailsContainer = document.getElementById('selectedPackageDetails');
-    detailsContainer.innerHTML = createPackageDetailsPreview(packageData, packageType);
-
-    // Pre-select customer if one is selected in the tab
-    const activeTab = document.querySelector('.tab-pane.active');
-    if (activeTab) {
-        const customerSelect = activeTab.querySelector('select[id$="CustomerSelect"]');
-        if (customerSelect && customerSelect.value) {
-            document.getElementById('assignmentCustomer').value = customerSelect.value;
-        }
-    }
-
-    modal.show();
-}
-
-function createPackageDetailsPreview(pkg, type) {
-    return `
-        <div class="row g-3">
-            <div class="col-md-6">
-                <strong>Package Name:</strong><br>
-                <span class="text-primary">${pkg.name}</span>
-            </div>
-            <div class="col-md-6">
-                <strong>Package Type:</strong><br>
-                <span class="badge bg-secondary">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
-            </div>
-            ${type === 'prepaid' ? `
-                <div class="col-md-4">
-                    <strong>Pay Amount:</strong><br>
-                    ₹${pkg.actual_price}
-                </div>
-                <div class="col-md-4">
-                    <strong>Get Value:</strong><br>
-                    <span class="text-success">₹${pkg.after_value}</span>
-                </div>
-                <div class="col-md-4">
-                    <strong>Savings:</strong><br>
-                    <span class="text-success">₹${pkg.money_saved || 0}</span>
-                </div>
-            ` : type === 'service' ? `
-                <div class="col-md-4">
-                    <strong>Pay For:</strong><br>
-                    ${pkg.pay_for} services
-                </div>
-                <div class="col-md-4">
-                    <strong>Total Get:</strong><br>
-                    <span class="text-success">${pkg.total_services} services</span>
-                </div>
-                <div class="col-md-4">
-                    <strong>Free Services:</strong><br>
-                    <span class="text-success">${pkg.free_services || 0}</span>
-                </div>
-            ` : `
-                <div class="col-12">
-                    <strong>Description:</strong><br>
-                    <span class="text-muted">${pkg.description || pkg.services_included || 'No description available'}</span>
-                </div>
-            `}
-        </div>
-    `;
-}
-
-// Save package assignment
-document.getElementById('savePackageAssignment').addEventListener('click', async function() {
-    const form = document.getElementById('packageAssignmentForm');
-    const formData = new FormData(form);
-
-    const data = {
-        package_id: formData.get('package_id'),
-        package_type: formData.get('package_type'),
-        customer_id: parseInt(formData.get('customer_id')),
-        price_paid: parseFloat(formData.get('price_paid')),
-        discount: parseFloat(formData.get('discount')) || 0,
-        notes: formData.get('notes')
-    };
-
-    if (formData.get('expires_on')) {
-        data.expires_on = formData.get('expires_on') + 'T23:59:59';
-    }
-
-    try {
-        const response = await fetch('/packages/api/assign', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showToast('Package assigned successfully!', 'success');
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('packageAssignmentModal'));
-            modal.hide();
-
-            // Reload the assignments
-            await loadPackages();
-
-            // Update counts
-            updateAssignmentCounts();
-
-        } else {
-            showToast(result.error || 'Error assigning package', 'error');
-        }
-    } catch (error) {
-        console.error('Error assigning package:', error);
-        showToast('Error assigning package', 'error');
-    }
-});
-
-// Function to view assigned customers for a specific package
-async function viewAssignedCustomers(packageId, packageType, packageName) {
-    try {
-        const response = await fetch(`/packages/api/assigned-customers/${packageType}/${packageId}`);
-        const data = await response.json();
-
-        if (data.success) {
-            // Update modal title and package info
-            document.getElementById('assignedCustomersModalTitle').innerHTML = 
-                `<i class="fas fa-users text-primary me-2"></i>Customers Assigned to "${packageName}"`;
-            document.getElementById('assignedPackageName').textContent = data.package_name;
-            document.getElementById('assignedPackageType').textContent = packageType.charAt(0).toUpperCase() + packageType.slice(1);
-            document.getElementById('assignedCustomersCount').textContent = data.total_assignments;
-
-            const tableBody = document.getElementById('assignedCustomersTableBody');
-            const noCustomersDiv = document.getElementById('noAssignedCustomers');
-
-            if (data.customers.length === 0) {
-                tableBody.innerHTML = '';
-                noCustomersDiv.style.display = 'block';
-            } else {
-                noCustomersDiv.style.display = 'none';
-
-                tableBody.innerHTML = data.customers.map(customer => {
-                    let progressInfo = '';
-                    if (customer.remaining_sessions !== null) {
-                        const totalSessions = customer.remaining_sessions + (customer.used_sessions || 0);
-                        const progress = totalSessions > 0 ? ((customer.used_sessions || 0) / totalSessions) * 100 : 0;
-                        progressInfo = `
-                            <div class="progress" style="height: 20px;">
-                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
-                            </div>
-                            <small class="text-muted">${customer.used_sessions || 0}/${totalSessions} sessions</small>
-                        `;
-                    } else if (customer.remaining_credit !== null) {
-                        const totalCredit = customer.remaining_credit + (customer.used_credit || 0);
-                        const progress = totalCredit > 0 ? ((customer.used_credit || 0) / totalCredit) * 100 : 0;
-                        progressInfo = `
-                            <div class="progress" style="height: 20px;">
-                                <div class="progress-bar" style="width: ${progress}%">${Math.round(progress)}%</div>
-                            </div>
-                            <small class="text-muted">₹${customer.used_credit || 0}/₹${totalCredit} used</small>
-                        `;
-                    } else {
-                        progressInfo = '<span class="text-muted">Membership</span>';
-                    }
-
-                    const statusBadge = getStatusBadge(customer.status);
-
-                    return `
-                        <tr>
-                            <td>
-                                <strong>${customer.customer_name}</strong><br>
-                                <small class="text-muted">ID: ${customer.customer_id}</small>
-                            </td>
-                            <td>${customer.customer_phone}</td>
-                            <td>${customer.assigned_on}</td>
-                            <td>${customer.expires_on}</td>
-                            <td>₹${customer.price_paid}${customer.discount > 0 ? `<br><small class="text-success">-₹${customer.discount} discount</small>` : ''}</td>
-                            <td>${progressInfo}</td>
-                            <td>${statusBadge}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" onclick="window.viewCustomerDetails(${customer.customer_id})" title="View Customer">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-outline-info" onclick="window.viewAssignmentDetails(${customer.assignment_id})" title="View Assignment">
-                                        <i class="fas fa-info-circle"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('assignedCustomersModal'));
-            modal.show();
-
-        } else {
-            showToast(data.error || 'Error loading assigned customers', 'error');
-        }
-    } catch (error) {
-        console.error('Error loading assigned customers:', error);
-        showToast('Error loading assigned customers', 'error');
-    }
-}
-
-function getStatusBadge(status) {
-    const statusMap = {
-        'active': 'bg-success',
-        'completed': 'bg-primary',
-        'expired': 'bg-warning text-dark',
-        'cancelled': 'bg-danger',
-        'paused': 'bg-secondary'
-    };
-
-    const badgeClass = statusMap[status] || 'bg-secondary';
-    return `<span class="badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
-}
-
-function clearAssignedFilters() {
-    document.getElementById('assignedCustomersSearch').value = '';
-    document.getElementById('assignedStatusFilter').value = '';
-    // Reload the table without filters
-    // This would need to be implemented based on current modal state
-}
-
-function filterAssignedCustomers() {
-    // Implement client-side filtering of the displayed table
-    const searchTerm = document.getElementById('assignedCustomersSearch').value.toLowerCase();
-    const statusFilter = document.getElementById('assignedStatusFilter').value;
-
-    const rows = document.querySelectorAll('#assignedCustomersTableBody tr');
-    rows.forEach(row => {
-        const customerName = row.cells[0].textContent.toLowerCase();
-        const customerPhone = row.cells[1].textContent.toLowerCase();
-        const status = row.cells[6].textContent.toLowerCase();
-
-        const matchesSearch = !searchTerm || customerName.includes(searchTerm) || customerPhone.includes(searchTerm);
-        const matchesStatus = !statusFilter || status.includes(statusFilter.toLowerCase());
-
-        if (matchesSearch && matchesStatus) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-}
-
-function openAssignToPackage() {
-    // Close current modal and open assignment modal
-    const currentModal = bootstrap.Modal.getInstance(document.getElementById('assignedCustomersModal'));
-    currentModal.hide();
-
-    // Open assignment modal with current package pre-selected
-    openAssignModal();
-}
-
-function updateAssignmentCounts() {
-    // This function would update the counts of assigned packages
-    // Implementation depends on your backend API structure
-}
-
-// Quick assign modal function
-function openQuickAssignModal() {
-    openAssignModal();
-}
-
-// Placeholder for loadKittyPackages function
-function loadKittyPackages() {
-    // Implement logic to fetch and display kitty party packages if not already loaded
-    // This might involve populating the #kittyPackagesContainer
-    if (allPackageTypes['kitty'] && allPackageTypes['kitty'].length > 0 && !document.getElementById('kittyPackagesContainer').innerHTML.trim()) {
-        renderPackageCards(); // Ensure cards are rendered if not already
-    } else if (!allPackageTypes['kitty'] || allPackageTypes['kitty'].length === 0) {
-        console.log("No Kitty Parties loaded or available.");
-    }
-}
-
-console.log('Enhanced customer package assignment system loaded');
-</script>
-
-{% endblock %}
+<script src="{{ url_for('static', filename='js/student_offers.js') }}"></script>

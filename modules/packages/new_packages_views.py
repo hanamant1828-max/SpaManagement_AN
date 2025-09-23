@@ -12,7 +12,7 @@ from .new_packages_queries import (
     # Prepaid Packages
     get_all_prepaid_packages, get_prepaid_package_by_id, create_prepaid_package, update_prepaid_package, delete_prepaid_package,
 
-    # Service Packages  
+    # Service Packages
     get_all_service_packages, get_service_package_by_id, create_service_package, update_service_package, delete_service_package,
 
     # Memberships
@@ -37,18 +37,14 @@ from datetime import datetime, timedelta
 # packages_blueprint = Blueprint('packages', __name__)
 # logger = logging.getLogger(__name__)
 
-# Placeholder for packages_blueprint and logger if not defined in the original context
-try:
-    packages_blueprint
-except NameError:
-    from flask import Blueprint
-    packages_blueprint = Blueprint('packages', __name__)
-    app.register_blueprint(packages_blueprint) # Register blueprint with app
+# Define packages_blueprint and logger properly
+from flask import Blueprint
+import logging
 
-try:
-    logger
-except NameError:
-    logger = logging.getLogger(__name__)
+# Create and configure logger
+logger = logging.getLogger(__name__)
+
+# Note: Blueprint registration handled in app.py to avoid circular imports
 
 # ========================================
 # MAIN PACKAGES PAGE WITH TABS
@@ -299,7 +295,7 @@ def api_get_memberships():
             'price': m.price,
             'validity_months': m.validity_months,
             'services_included': m.services_included,
-            'selected_services': [{'id': ms.service.id, 'name': ms.service.name, 'price': ms.service.price} 
+            'selected_services': [{'id': ms.service.id, 'name': ms.service.name, 'price': ms.service.price}
                                 for ms in m.membership_services] if hasattr(m, 'membership_services') else [],
             'is_active': m.is_active,
             'created_at': m.created_at.isoformat()
@@ -370,6 +366,35 @@ def api_delete_membership(membership_id):
         return jsonify({'error': str(e)}), 500
 
 # ========================================
+# STUDENT OFFERS PAGE ROUTES
+# ========================================
+
+@app.route('/student-offers/add')
+@login_required
+def add_student_offer():
+    """Add student offer page"""
+    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('packages/add_student_offer.html')
+
+@app.route('/student-offers/edit')
+@login_required
+def edit_student_offer():
+    """Edit student offer page"""
+    if not hasattr(current_user, 'can_access') or not current_user.can_access('packages'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    offer_id = request.args.get('id')
+    if not offer_id:
+        flash('Student offer ID is required', 'error')
+        return redirect(url_for('packages'))
+    
+    return render_template('packages/edit_student_offer.html', offer_id=offer_id)
+
+# ========================================
 # STUDENT OFFERS ENDPOINTS
 # ========================================
 
@@ -386,7 +411,7 @@ def api_get_student_offers():
             'valid_to': o.valid_to.isoformat(),
             'valid_days': o.valid_days,
             'conditions': o.conditions,
-            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price} 
+            'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price}
                         for sos in o.student_offer_services],
             'is_active': o.is_active,
             'created_at': o.created_at.isoformat()
@@ -394,29 +419,78 @@ def api_get_student_offers():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/student-offers', methods=['POST'])
+# NOTE: Student offer creation endpoint moved to modules/packages/routes.py
+# to avoid routing conflicts with the main packages blueprint
+
+@app.route('/api/student-offers/<int:offer_id>', methods=['GET'])
 @login_required
-def api_create_student_offer():
-    """Create new student offer"""
+def api_get_student_offer(offer_id):
+    """Get specific student offer by ID"""
     try:
-        data = request.get_json() or request.form.to_dict()
-        offer = create_student_offer(data)
-        flash('Student offer created successfully!', 'success')
+        offer = get_student_offer_by_id(offer_id)
+        if not offer:
+            return jsonify({'success': False, 'error': 'Student offer not found'}), 404
+            
         return jsonify({
             'success': True,
-            'message': 'Student offer created successfully',
-            'offer_id': offer.id
+            'offer': {
+                'id': offer.id,
+                'discount_percentage': offer.discount_percentage,
+                'valid_from': offer.valid_from.isoformat() if offer.valid_from else None,
+                'valid_to': offer.valid_to.isoformat() if offer.valid_to else None,
+                'valid_days': offer.valid_days,
+                'conditions': offer.conditions,
+                'services': [{'id': sos.service.id, 'name': sos.service.name, 'price': sos.service.price}
+                            for sos in offer.student_offer_services],
+                'is_active': offer.is_active
+            }
         })
     except Exception as e:
-        logging.error(f"Error creating student offer: {e}")
-        return jsonify({'error': str(e)}), 500
+        logging.error(f"Error getting student offer {offer_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/student-offers/<int:offer_id>', methods=['PUT'])
 @login_required
 def api_update_student_offer(offer_id):
     """Update student offer"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            # Handle multiple service selection from form data
+            if 'service_ids' in request.form:
+                data['service_ids'] = request.form.getlist('service_ids')
+
+        # Validate required fields (same as create)
+        if not data.get('service_ids') or len(data['service_ids']) == 0:
+            return jsonify({'success': False, 'error': 'Please select at least one service'}), 400
+
+        if not data.get('discount_percentage'):
+            return jsonify({'success': False, 'error': 'Discount percentage is required'}), 400
+
+        # Validate discount percentage range
+        try:
+            discount = float(data['discount_percentage'])
+            if discount < 1 or discount > 100:
+                return jsonify({'success': False, 'error': 'Discount percentage must be between 1 and 100'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid discount percentage format'}), 400
+
+        if not data.get('valid_from') or not data.get('valid_to'):
+            return jsonify({'success': False, 'error': 'Valid from and to dates are required'}), 400
+
+        # Validate date range
+        try:
+            from datetime import datetime
+            valid_from = datetime.strptime(data['valid_from'], '%Y-%m-%d').date()
+            valid_to = datetime.strptime(data['valid_to'], '%Y-%m-%d').date()
+            if valid_to < valid_from:
+                return jsonify({'success': False, 'error': 'Valid To Date must be greater than or equal to Valid From Date'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format. Please use YYYY-MM-DD format'}), 400
+
         offer = update_student_offer(offer_id, data)
         flash('Student offer updated successfully!', 'success')
         return jsonify({
@@ -425,13 +499,21 @@ def api_update_student_offer(offer_id):
         })
     except Exception as e:
         logging.error(f"Error updating student offer: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/student-offers/<int:offer_id>', methods=['DELETE'])
 @login_required
 def api_delete_student_offer(offer_id):
     """Delete student offer"""
     try:
+        # Check if student offer exists first by trying to get it
+        existing_offer = get_student_offer_by_id(offer_id)
+        if not existing_offer:
+            return jsonify({
+                'success': False,
+                'error': 'Student offer not found'
+            }), 404
+        
         delete_student_offer(offer_id)
         flash('Student offer deleted successfully!', 'success')
         return jsonify({
@@ -440,7 +522,10 @@ def api_delete_student_offer(offer_id):
         })
     except Exception as e:
         logging.error(f"Error deleting student offer: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 # ========================================
 # YEARLY MEMBERSHIPS ENDPOINTS
@@ -530,7 +615,7 @@ def api_get_kitty_parties():
             'after_value': p.after_value,
             'min_guests': p.min_guests,
             'services_included': p.services_included,
-            'selected_services': [{'id': kps.service.id, 'name': kps.service.name, 'price': kps.service.price} 
+            'selected_services': [{'id': kps.service.id, 'name': kps.service.name, 'price': kps.service.price}
                                 for kps in p.kittyparty_services] if hasattr(p, 'kittyparty_services') else [],
             'is_active': p.is_active,
             'created_at': p.created_at.isoformat()
@@ -770,7 +855,7 @@ def api_get_customers():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/packages/api/services', methods=['GET'])
-@login_required 
+@login_required
 def api_get_services():
     """Get available services"""
     try:

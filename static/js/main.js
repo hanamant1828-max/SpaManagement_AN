@@ -729,6 +729,23 @@ function handleButtonClick(event) {
             if (customerIdToEdit) {
                 editCustomer(customerIdToEdit);
             }
+            // Handle edit service button click
+            const serviceIdToEdit = button.dataset.serviceId;
+            if (serviceIdToEdit) {
+                editService(serviceIdToEdit);
+            }
+            break;
+        case 'toggle': // Handle toggle service button click
+            const serviceIdToToggle = button.dataset.serviceId;
+            if (serviceIdToToggle) {
+                toggleService(serviceIdToToggle);
+            }
+            break;
+        case 'delete-service': // Handle delete service button click
+            const serviceIdToDelete = button.dataset.serviceId;
+            if (serviceIdToDelete) {
+                deleteService(serviceIdToDelete);
+            }
             break;
         case 'book': // Handle book appointment button click
             const customerIdToBook = button.dataset.customerId;
@@ -1386,15 +1403,30 @@ function formatPhoneNumber(input) {
     input.value = value;
 }
 
-function updateServiceDependentFields(serviceSelect) {
-    const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-    const amountInput = document.getElementById('amount');
+function updateServicePrice(serviceId, price) {
+    console.log('Updating price for service:', serviceId, 'to', price);
+    const amountField = document.getElementById('amount');
+    if (amountField) {
+        amountField.value = parseFloat(price).toFixed(2);
+    }
+    const serviceAmountField = document.getElementById('service_amount');
+    if (serviceAmountField) {
+        serviceAmountField.value = parseFloat(price).toFixed(2);
+    }
+    // Trigger total calculation if on billing page
+    if (typeof calculateTotal === 'function') {
+        calculateTotal();
+    }
+}
 
-    if (selectedOption && amountInput) {
-        const priceMatch = selectedOption.text.match(/\$([0-9.]+)/);
-        if (priceMatch) {
-            amountInput.value = priceMatch[1];
-        }
+function handleServiceSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (selectedOption && selectedOption.dataset.price) {
+        const price = selectedOption.dataset.price;
+        updateServicePrice(selectElement.value, price);
+    } else {
+        // If no price is found (e.g., for "Select a service..."), reset price fields
+        updateServicePrice(selectElement.value, '0.00');
     }
 }
 
@@ -2816,3 +2848,117 @@ window.bookAppointmentFromModal = bookAppointmentFromModal;
 window.editCustomer = editCustomer;
 window.viewCustomer = viewCustomer;
 window.bookAppointment = bookAppointment;
+
+// Service management functions
+function editService(serviceId) {
+    console.log('Editing service:', serviceId);
+
+    // Get service data and populate edit modal
+    fetch(`/api/services/${serviceId}`)
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(service => {
+            console.log('Service data received:', service);
+            if (service && !service.error) {
+                // Populate edit modal
+                document.getElementById('editServiceId').value = serviceId;
+                document.getElementById('editServiceName').value = service.name || '';
+                document.getElementById('editServiceDescription').value = service.description || '';
+                document.getElementById('editServiceDuration').value = service.duration || 60;
+                document.getElementById('editServicePrice').value = service.price || 0;
+                document.getElementById('editServiceCategory').value = service.category_id || '';
+                document.getElementById('editServiceCommissionRate').value = service.commission_rate || 10;
+                document.getElementById('editServiceActive').checked = service.is_active;
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editServiceModal'));
+                modal.show();
+            } else {
+                showNotification('Service not found: ' + (service.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error loading service data: ' + error.message, 'error');
+        });
+}
+
+function toggleService(serviceId) {
+    if (!serviceId) {
+        showNotification('Invalid service ID', 'error');
+        return;
+    }
+
+    console.log('Toggling service:', serviceId);
+
+    fetch(`/services/${serviceId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+    })
+    .then(response => {
+        console.log('Toggle response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Toggle response:', data);
+        if (data.success) {
+            showNotification(data.message, 'success');
+            // Reload page to update button states and status badges
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showNotification('Error: ' + (data.message || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred: ' + error.message, 'error');
+    });
+}
+
+function deleteService(serviceId) {
+    if (!serviceId) {
+        showNotification('Invalid service ID', 'error');
+        return;
+    }
+
+    if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+        console.log('Deleting service:', serviceId);
+
+        fetch(`/services/${serviceId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Delete response:', data);
+            if (data.success) {
+                showNotification(data.message || 'Service deleted successfully', 'success');
+                location.reload();
+            } else {
+                showNotification('Error: ' + (data.message || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred: ' + error.message, 'error');
+        });
+    }
+}

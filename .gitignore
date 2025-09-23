@@ -249,6 +249,19 @@ temp/
 .env
 secrets.txt
 
+# Security - Session cookies and temporary auth files
+cookies.txt
+*.cookies
+session_cookies.txt
+
+# SQLite temporary files
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+
 # Keep the database file - this is our demo data!
 # DO NOT ignore instance/spa_management.db - we want this in version control
 

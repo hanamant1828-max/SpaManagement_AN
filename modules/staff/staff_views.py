@@ -1,13 +1,15 @@
-
 """
 Comprehensive Staff Management Views - Complete Implementation
 All 11 Requirements for Professional Staff Management System
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from app import app
+
+# Create Blueprint for staff management
+staff_bp = Blueprint('staff', __name__, url_prefix='/staff')
 from forms import UserForm, AdvancedUserForm, ComprehensiveStaffForm
 # Late imports to avoid circular dependency
 from app import db
@@ -33,20 +35,29 @@ print("Registering Staff Management routes...")
 print(f"App name: {app.name}")
 print(f"Current module: {__name__}")
 
-@app.route('/staff')
+@staff_bp.route('/api/health', methods=['GET'])
+def api_health():
+    """API health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'message': 'Staff Management API is running',
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+@staff_bp.route('/')
 @login_required
 def staff():
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     staff_list = get_all_staff()
     roles = get_active_roles()
     departments = get_active_departments()
-    
-    form = UserForm()
+
+    form = AdvancedUserForm()
     advanced_form = AdvancedUserForm()
-    
+
     # Set up form choices
     form.role.choices = [(r.name, r.display_name) for r in roles]
     # Set form choices if fields exist
@@ -54,9 +65,9 @@ def staff():
         advanced_form.role_id.choices = [(r.id, r.display_name) for r in roles]
     if hasattr(advanced_form, 'department_id'):
         advanced_form.department_id.choices = [(d.id, d.display_name) for d in departments]
-    
+
     return render_template('staff.html', 
-                         staff=staff_list,
+                         staff_members=staff_list,
                          form=form,
                          advanced_form=advanced_form,
                          roles=roles,
@@ -69,28 +80,28 @@ def comprehensive_staff():
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         print("Loading comprehensive staff management page...")
-        
+
         # Force fresh data retrieval
         db.session.expire_all()
-        
+
         # Get comprehensive staff data
         staff_list = get_comprehensive_staff()
         roles = get_active_roles()
         departments = get_active_departments()
         services = get_active_services()
-        
+
         print(f"Loaded {len(staff_list)} staff members")
         print(f"Available roles: {[r.display_name for r in roles]}")
         print(f"Available departments: {[d.display_name for d in departments]}")
-        
+
         # Apply filters if provided
         role_filter = request.args.get('role')
         department_filter = request.args.get('department')
         status_filter = request.args.get('status')
-        
+
         if role_filter:
             staff_list = [s for s in staff_list if s.role_id == int(role_filter)]
             print(f"Filtered by role: {len(staff_list)} remaining")
@@ -103,14 +114,14 @@ def comprehensive_staff():
             elif status_filter == 'inactive':
                 staff_list = [s for s in staff_list if not s.is_active]
             print(f"Filtered by status: {len(staff_list)} remaining")
-        
+
         # Force template cache refresh
         from flask import current_app
         if current_app.debug:
             current_app.jinja_env.cache = {}
-        
+
         flash(f'Staff Management Updated - {len(staff_list)} staff members loaded', 'success')
-        
+
         return render_template('comprehensive_staff.html', 
                              staff=staff_list,
                              roles=roles,
@@ -236,15 +247,15 @@ def edit_comprehensive_staff(staff_id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     staff_member = User.query.get_or_404(staff_id)
     form = ComprehensiveStaffForm(obj=staff_member)
-    
+
     # Populate form choices
     roles = Role.query.filter_by(is_active=True).all()
     departments = Department.query.filter_by(is_active=True).all()
     services = Service.query.filter_by(is_active=True).all()
-    
+
     form.role_id.choices = [(0, 'Select Role')] + [(r.id, r.display_name) for r in roles]
     form.department_id.choices = [(0, 'Select Department')] + [(d.id, d.display_name) for d in departments]
     form.assigned_services.choices = [(s.id, s.name) for s in services]
@@ -253,7 +264,7 @@ def edit_comprehensive_staff(staff_id):
     # Pre-populate assigned services
     assigned_service_ids = [ss.service_id for ss in staff_member.staff_services if ss.is_active]
     form.assigned_services.data = assigned_service_ids
-    
+
     if form.validate_on_submit():
         try:
             # Update staff member
@@ -276,22 +287,22 @@ def edit_comprehensive_staff(staff_id):
             staff_member.role_id = form.role_id.data if form.role_id.data != 0 else None
             staff_member.department_id = form.department_id.data if form.department_id.data != 0 else None
             staff_member.is_active = form.is_active.data
-            
+
             if form.password.data:
                 staff_member.password_hash = generate_password_hash(form.password.data)
-            
+
             # Update service assignments
             # Deactivate current assignments
             for ss in staff_member.staff_services:
                 ss.is_active = False
-            
+
             # Add new assignments
             for service_id in form.assigned_services.data:
                 existing = StaffService.query.filter_by(
                     staff_id=staff_member.id,
                     service_id=service_id
                 ).first()
-                
+
                 if existing:
                     existing.is_active = True
                 else:
@@ -301,15 +312,15 @@ def edit_comprehensive_staff(staff_id):
                         skill_level='beginner'
                     )
                     db.session.add(staff_service)
-            
+
             db.session.commit()
             flash(f'Staff member {staff_member.full_name} updated successfully!', 'success')
             return redirect(url_for('comprehensive_staff'))
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating staff member: {str(e)}', 'danger')
-    
+
     return render_template('comprehensive_staff_form.html', 
                          form=form, 
                          action='Edit',
@@ -324,11 +335,11 @@ def punch_in():
     """Handle staff check-in (manual or facial recognition)"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     data = request.get_json()
     staff_id = data.get('staff_id')
     method = data.get('method', 'manual')
-    
+
     try:
         # Check if already punched in today
         today = date.today()
@@ -337,10 +348,10 @@ def punch_in():
             date=today,
             check_out_time=None
         ).first()
-        
+
         if existing:
             return jsonify({'error': 'Already punched in today'}), 400
-        
+
         # Create attendance record
         attendance = Attendance(
             staff_id=staff_id,
@@ -348,16 +359,16 @@ def punch_in():
             check_in_method=method,
             date=today
         )
-        
+
         db.session.add(attendance)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Punched in successfully',
             'check_in_time': attendance.check_in_time.strftime('%H:%M:%S')
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -368,10 +379,10 @@ def punch_out():
     """Handle staff check-out"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     data = request.get_json()
     staff_id = data.get('staff_id')
-    
+
     try:
         # Find today's attendance record
         today = date.today()
@@ -380,27 +391,27 @@ def punch_out():
             date=today,
             check_out_time=None
         ).first()
-        
+
         if not attendance:
             return jsonify({'error': 'No punch-in record found for today'}), 400
-        
+
         # Update with check-out time
         checkout_time = datetime.now()
         attendance.check_out_time = checkout_time
-        
+
         # Calculate total hours
         time_diff = checkout_time - attendance.check_in_time
         attendance.total_hours = round(time_diff.total_seconds() / 3600, 2)
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Punched out successfully',
             'check_out_time': checkout_time.strftime('%H:%M:%S'),
             'total_hours': attendance.total_hours
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -412,38 +423,38 @@ def staff_performance(staff_id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     staff_member = User.query.get_or_404(staff_id)
-    
+
     # Get performance data
     current_month = datetime.now().month
     current_year = datetime.now().year
-    
+
     performance = StaffPerformance.query.filter_by(
         staff_id=staff_id,
         month=current_month,
         year=current_year
     ).first()
-    
+
     # Get attendance records for current month
     start_of_month = date(current_year, current_month, 1)
     if current_month == 12:
         end_of_month = date(current_year + 1, 1, 1) - timedelta(days=1)
     else:
         end_of_month = date(current_year, current_month + 1, 1) - timedelta(days=1)
-    
+
     attendance_records = Attendance.query.filter(
         Attendance.staff_id == staff_id,
         Attendance.date >= start_of_month,
         Attendance.date <= end_of_month
     ).all()
-    
+
     # Get recent appointments
     recent_appointments = get_staff_appointments(staff_id)[:10]
-    
+
     # Get commission data
     commissions = get_staff_commissions(staff_id)
-    
+
     return render_template('staff_performance.html',
                          staff_member=staff_member,
                          performance=performance,
@@ -458,13 +469,13 @@ def export_staff():
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         staff_list = User.query.filter_by(is_active=True).all()
-        
+
         output = io.StringIO()
         writer = csv.writer(output)
-        
+
         # Write headers
         headers = [
             'Staff Code', 'Name', 'Email', 'Phone', 'Gender', 'Designation',
@@ -473,7 +484,7 @@ def export_staff():
             'Average Rating', 'Verification Status', 'Active Status'
         ]
         writer.writerow(headers)
-        
+
         # Write data
         for staff in staff_list:
             row = [
@@ -497,15 +508,15 @@ def export_staff():
                 'Active' if staff.is_active else 'Inactive'
             ]
             writer.writerow(row)
-        
+
         # Create response
         output.seek(0)
         response = make_response(output.getvalue())
         response.headers['Content-Type'] = 'text/csv'
         response.headers['Content-Disposition'] = f'attachment; filename=staff_export_{datetime.now().strftime("%Y%m%d")}.csv'
-        
+
         return response
-        
+
     except Exception as e:
         flash(f'Error exporting data: {str(e)}', 'danger')
         return redirect(url_for('comprehensive_staff'))
@@ -516,26 +527,26 @@ def setup_facial_recognition():
     """Setup facial recognition for staff"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     data = request.get_json()
     staff_id = data.get('staff_id')
     face_encoding = data.get('face_encoding')
-    
+
     try:
         staff_member = User.query.get(staff_id)
         if not staff_member:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         staff_member.facial_encoding = json.dumps(face_encoding)
         staff_member.enable_face_checkin = True
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Facial recognition setup completed'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -546,10 +557,10 @@ def verify_facial_recognition():
     """Verify staff using facial recognition"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     data = request.get_json()
     face_encoding = data.get('face_encoding')
-    
+
     try:
         # Get all staff with facial recognition enabled
         staff_with_faces = User.query.filter(
@@ -557,16 +568,16 @@ def verify_facial_recognition():
             User.enable_face_checkin == True,
             User.is_active == True
         ).all()
-        
+
         # Here you would implement face matching logic
         # For now, return a placeholder response
-        
+
         return jsonify({
             'success': True,
             'message': 'Face verification in progress',
             'staff_count': len(staff_with_faces)
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -576,30 +587,30 @@ def save_face_image():
     """Save captured face image for staff member"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         data = request.get_json()
         staff_id = data.get('staff_id')
         face_image = data.get('face_image')
-        
+
         if not staff_id or not face_image:
             return jsonify({'error': 'Missing staff ID or face image'}), 400
-        
+
         staff_member = User.query.get(staff_id)
         if not staff_member:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         # Save base64 image data (you could also save to file system)
         staff_member.face_image_url = face_image
         staff_member.enable_face_checkin = True
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Face image saved successfully'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -613,11 +624,11 @@ def create_staff_route():
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
-    
-    form = UserForm()
+
+    form = AdvancedUserForm()
     roles = get_active_roles()
     form.role.choices = [(r.name, r.display_name) for r in roles]
-    
+
     if form.validate_on_submit():
         staff_data = {
             'username': form.username.data,
@@ -630,12 +641,12 @@ def create_staff_route():
             'password_hash': generate_password_hash('TempPass123!'),  # Temporary password - must be changed on first login
             'is_active': True
         }
-        
+
         create_staff(staff_data)
         flash('Staff member created successfully!', 'success')
     else:
         flash('Error creating staff member. Please check your input.', 'danger')
-    
+
     return redirect(url_for('staff'))
 
 @app.route('/staff/update/<int:id>', methods=['POST'])
@@ -649,11 +660,11 @@ def update_staff_route(id):
     if not staff_member:
         flash('Staff member not found', 'danger')
         return redirect(url_for('staff'))
-    
-    form = UserForm()
+
+    form = AdvancedUserForm()
     roles = get_active_roles()
     form.role.choices = [(r.name, r.display_name) for r in roles]
-    
+
     if form.validate_on_submit():
         staff_data = {
             'username': form.username.data,
@@ -665,16 +676,16 @@ def update_staff_route(id):
             'commission_rate': form.commission_rate.data,
             'hourly_rate': form.hourly_rate.data
         }
-        
+
         # Only update password if provided
         if form.password.data:
             staff_data['password_hash'] = generate_password_hash(form.password.data)
-        
+
         update_staff(id, staff_data)
         flash('Staff member updated successfully!', 'success')
     else:
         flash('Error updating staff member. Please check your input.', 'danger')
-    
+
     return redirect(url_for('staff'))
 
 @app.route('/staff/delete/<int:id>', methods=['POST'])
@@ -688,7 +699,7 @@ def delete_staff_route(id):
         flash('Staff member deleted successfully!', 'success')
     else:
         flash('Error deleting staff member', 'danger')
-    
+
     return redirect(url_for('staff'))
 
 @app.route('/staff/deactivate/<int:staff_id>', methods=['POST'])
@@ -697,17 +708,17 @@ def deactivate_staff(staff_id):
     """Deactivate a staff member"""
     if not current_user.has_role('admin'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         staff_member = User.query.get(staff_id)
         if not staff_member:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         staff_member.is_active = False
         db.session.commit()
-        
+
         return jsonify({'success': True, 'message': 'Staff member deactivated successfully'})
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -717,17 +728,17 @@ def deactivate_staff(staff_id):
 def staff_detail(id):
     if not current_user.can_access('staff'):
         flash('Access denied', 'danger')
-        return redirect(url_for('dashboard'))
-    
+        return redirect(url_for('staff'))
+
     staff_member = get_staff_by_id(id)
     if not staff_member:
         flash('Staff member not found', 'danger')
         return redirect(url_for('staff'))
-    
+
     appointments = get_staff_appointments(id)
     commissions = get_staff_commissions(id)
     stats = get_staff_stats(id)
-    
+
     return render_template('staff_detail.html',
                          staff_member=staff_member,
                          appointments=appointments,
@@ -770,12 +781,12 @@ def api_get_all_staff():
     """API endpoint to get all staff data for JavaScript"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         staff_list = get_comprehensive_staff()
         roles = get_active_roles()
         departments = get_active_departments()
-        
+
         # Convert staff to JSON-serializable format
         staff_data = []
         for staff in staff_list:
@@ -811,7 +822,7 @@ def api_get_all_staff():
                 'last_login': staff.last_login.isoformat() if staff.last_login else None,
                 'notes_bio': staff.notes_bio
             })
-        
+
         roles_data = [{'id': r.id, 'name': r.name, 'display_name': r.display_name} for r in roles]
         departments_data = [{'id': d.id, 'name': d.name, 'display_name': d.display_name} for d in departments]
 
@@ -829,7 +840,7 @@ def api_get_all_staff():
             'roles': roles_data,
             'departments': departments_data
         })
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -838,13 +849,13 @@ def api_get_staff(staff_id):
     """API endpoint to get single staff member data"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         # Use direct query to avoid conflicts
         staff = User.query.get(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
-            
+
         staff_data = {
             'id': staff.id,
             'username': staff.username,
@@ -871,9 +882,9 @@ def api_get_staff(staff_id):
             'enable_face_checkin': staff.enable_face_checkin or False,
             'notes_bio': staff.notes_bio or ''
         }
-        
+
         return jsonify({'success': True, 'staff': staff_data})
-        
+
     except Exception as e:
         print(f"Error in api_get_staff: {e}")
         return jsonify({'error': str(e)}), 500
@@ -883,7 +894,7 @@ def api_create_staff():
     """API endpoint to create new staff member"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         # Handle both JSON and form data with debugging
         if request.is_json:
@@ -903,7 +914,7 @@ def api_create_staff():
             'first_name': 'First name is required. Please enter the staff member\'s first name.',
             'last_name': 'Last name is required. Please enter the staff member\'s last name.'
         }
-        
+
         for field, message in required_fields.items():
             field_value = data.get(field)
             if not field_value or (isinstance(field_value, str) and not field_value.strip()):
@@ -926,7 +937,7 @@ def api_create_staff():
                 return max(min_val, min(max_val, result))
             except (ValueError, TypeError):
                 return default
-        
+
         def safe_date_parse(date_str, default=None):
             if not date_str or not str(date_str).strip():
                 return default
@@ -934,7 +945,7 @@ def api_create_staff():
                 return datetime.strptime(str(date_str).strip(), '%Y-%m-%d').date()
             except (ValueError, TypeError):
                 return default
-        
+
         def safe_time_parse(time_str):
             if not time_str or not str(time_str).strip():
                 return None
@@ -1013,7 +1024,7 @@ def api_create_staff():
                 'staff_code': new_staff.staff_code
             }
         })
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error in api_create_staff: {str(e)}")
@@ -1027,12 +1038,12 @@ def api_update_staff(staff_id):
     """API endpoint to update staff member"""
     if not current_user.can_access('staff'):
         return jsonify({'error': 'Access denied'}), 403
-    
+
     try:
         staff = get_staff_by_id(staff_id)
         if not staff:
             return jsonify({'error': 'Staff member not found'}), 404
-        
+
         data = request.get_json()
         if not data:
             return jsonify({'error': 'No data provided'}), 400

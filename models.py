@@ -18,7 +18,7 @@ class Role(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    users = db.relationship('User', backref='user_role', lazy=True, foreign_keys='User.role_id')
+    users = db.relationship('User', backref='dynamic_role', lazy=True, foreign_keys='User.role_id')
     permissions = db.relationship('RolePermission', backref='role', lazy=True, cascade='all, delete-orphan')
 
 class Permission(db.Model):
@@ -186,8 +186,8 @@ class User(UserMixin, db.Model):
 
     def has_role(self, role):
         # Support both dynamic and legacy role systems
-        if hasattr(self, 'user_role') and self.user_role:
-            return self.user_role.name == role
+        if self.role_id and hasattr(self, 'dynamic_role') and self.dynamic_role:
+            return self.dynamic_role.name == role
         return self.role == role
 
     def can_access(self, resource):
@@ -218,17 +218,22 @@ class User(UserMixin, db.Model):
         required_permissions = resource_permissions.get(resource, [])
         if not required_permissions:
             # If resource not defined, check basic role access
-            return self.role in ['manager', 'staff'] or (hasattr(self, 'user_role') and self.user_role and self.user_role.is_active)
+            return self.role in ['manager', 'staff'] or (hasattr(self, 'dynamic_role') and self.dynamic_role and self.dynamic_role.is_active)
 
         # Check dynamic role system first
-        if hasattr(self, 'user_role') and self.user_role and self.user_role.is_active:
-            user_permissions = []
-            for role_permission in self.user_role.permissions:
-                if role_permission.permission.is_active:
-                    user_permissions.append(role_permission.permission.name)
+        if self.role_id:
+            try:
+                user_role = Role.query.get(self.role_id)
+                if user_role and user_role.is_active:
+                    user_permissions = []
+                    for role_permission in user_role.permissions:
+                        if role_permission.permission.is_active:
+                            user_permissions.append(role_permission.permission.name)
 
-            # Check if user has any of the required permissions
-            return any(perm in user_permissions for perm in required_permissions)
+                    # Check if user has any of the required permissions
+                    return any(perm in user_permissions for perm in required_permissions)
+            except:
+                pass  # Fall back to legacy system
 
         # Fallback to legacy role system
         role_access_map = {
@@ -1055,6 +1060,110 @@ class StaffSchedule(db.Model):
 
     # Relationship
     staff = db.relationship('User', backref='schedules')
+
+# ========================================
+# COMPREHENSIVE PACKAGE BILLING INTEGRATION
+# ========================================
+
+class PackageBenefitTracker(db.Model):
+    """Tracks all package benefits and usage with billing integration"""
+    __tablename__ = 'package_benefit_tracker'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Customer and package references
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    package_assignment_id = db.Column(db.Integer, db.ForeignKey('service_package_assignment.id'), nullable=False)
+    
+    # Service benefit details
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)  # NULL for prepaid packages
+    benefit_type = db.Column(db.String(20), nullable=False)  # 'free', 'discount', 'prepaid', 'unlimited'
+    
+    # Usage tracking for limited benefits
+    total_allocated = db.Column(db.Integer, default=0)  # Total sessions/uses allocated
+    used_count = db.Column(db.Integer, default=0)  # Used sessions/uses
+    remaining_count = db.Column(db.Integer, default=0)  # Remaining sessions/uses (NULL for unlimited)
+    
+    # Monetary tracking for prepaid benefits
+    balance_total = db.Column(db.Float, default=0.0)  # Total prepaid balance
+    balance_used = db.Column(db.Float, default=0.0)  # Used prepaid balance
+    balance_remaining = db.Column(db.Float, default=0.0)  # Remaining prepaid balance
+    
+    # Discount tracking
+    discount_percentage = db.Column(db.Float, default=0.0)  # Discount percentage for discount packages
+    
+    # Status and validity
+    is_active = db.Column(db.Boolean, default=True)
+    valid_from = db.Column(db.DateTime, nullable=False)
+    valid_to = db.Column(db.DateTime, nullable=False)
+    
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    customer = db.relationship('Customer', backref='package_benefits')
+    service = db.relationship('Service', backref='package_benefits')
+    package_assignment = db.relationship('ServicePackageAssignment', backref='benefit_trackers')
+    
+    # Indexes for performance
+    __table_args__ = (
+        db.Index('ix_package_benefit_customer_service_active', 'customer_id', 'service_id', 'is_active'),
+        db.Index('ix_package_benefit_validity', 'valid_from', 'valid_to'),
+    )
+
+class PackageUsageHistory(db.Model):
+    """Comprehensive usage history with billing integration and idempotency"""
+    __tablename__ = 'package_usage_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # References
+    customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    package_benefit_id = db.Column(db.Integer, db.ForeignKey('package_benefit_tracker.id'), nullable=False)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=True)
+    invoice_item_id = db.Column(db.Integer, db.ForeignKey('invoice_item.id'), nullable=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
+    
+    # Idempotency and concurrency control
+    idempotency_key = db.Column(db.String(100), unique=True, nullable=False)  # invoice_id + line_id
+    
+    # Usage details
+    benefit_type = db.Column(db.String(20), nullable=False)  # 'free', 'discount', 'prepaid', 'unlimited'
+    qty_deducted = db.Column(db.Integer, default=0)  # Sessions used
+    amount_deducted = db.Column(db.Float, default=0.0)  # Monetary amount deducted (for prepaid)
+    discount_applied = db.Column(db.Float, default=0.0)  # Discount amount applied
+    
+    # Balance tracking after this transaction
+    balance_after_qty = db.Column(db.Integer, default=0)  # Remaining sessions after this use
+    balance_after_amount = db.Column(db.Float, default=0.0)  # Remaining balance after this use
+    
+    # Transaction details
+    transaction_type = db.Column(db.String(20), default='use')  # 'use', 'refund', 'void', 'adjustment'
+    reversal_reference_id = db.Column(db.Integer, db.ForeignKey('package_usage_history.id'), nullable=True)  # For reversals
+    
+    # Priority and rule tracking
+    applied_rule = db.Column(db.String(50))  # Which priority rule was used (auto/manual)
+    staff_override = db.Column(db.Boolean, default=False)  # Was this a manual staff override?
+    applied_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Audit fields
+    charge_date = db.Column(db.DateTime, nullable=False)  # Date of service/charge
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    customer = db.relationship('Customer', backref='package_usage_history')
+    package_benefit = db.relationship('PackageBenefitTracker', backref='usage_history')
+    service = db.relationship('Service', backref='package_usage_history')
+    applied_by_user = db.relationship('User', backref='package_usage_applications')
+    reversal_reference = db.relationship('PackageUsageHistory', remote_side=[id], backref='reversed_by')
+    
+    # Indexes for performance and integrity
+    __table_args__ = (
+        db.Index('ix_package_usage_customer_date', 'customer_id', 'charge_date'),
+        db.Index('ix_package_usage_invoice', 'invoice_id', 'invoice_item_id'),
+    )
 
 # Advanced Models for Real-World Operations
 
