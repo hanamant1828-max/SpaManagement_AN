@@ -430,35 +430,69 @@ def calendar_booking():
                     }
                     continue
 
-            # Check if this time slot is booked (only after break time check)
-            booked_appointment = None
-            for appointment in existing_appointments:
-                if (appointment.staff_id == staff.id and 
-                    appointment.appointment_date.time() == time_slot['start_time'].time() and
-                    appointment.status != 'cancelled'):
-                    booked_appointment = appointment
-                    break
+            # Check if this time slot conflicts with existing appointments
+            is_blocked_by_appointment = False
+            blocking_appointment = None
 
-            if booked_appointment:
-                staff_availability[slot_key] = {
-                    'status': 'booked',
-                    'appointment': booked_appointment,
-                    'client_name': booked_appointment.client.full_name if booked_appointment.client else 'Unknown',
-                    'service_name': booked_appointment.service.name if booked_appointment.service else 'Service',
-                    'display_text': 'Booked',
-                    'css_class': 'bg-danger text-white',
-                    'schedule_info': f'Booked: {booked_appointment.service.name if booked_appointment.service else "Service"} ({booked_appointment.client.full_name if booked_appointment.client else "Unknown"})'
-                }
+            for appointment in existing_appointments:
+                if appointment.staff_id == staff.id and appointment.status != 'cancelled':
+                    apt_start = appointment.appointment_date
+                    service_duration = appointment.service.duration if appointment.service else 60
+                    apt_end = apt_start + timedelta(minutes=service_duration)
+
+                    # Check if current slot overlaps with this appointment
+                    slot_start = time_slot['start_time']
+                    slot_end = slot_start + timedelta(minutes=15) # Assuming a minimum slot of 15 mins for checking overlap
+
+                    if not (slot_end <= apt_start or slot_start >= apt_end):
+                        is_blocked_by_appointment = True
+                        blocking_appointment = appointment
+                        break
+
+            if is_blocked_by_appointment and blocking_appointment:
+                # Show appointment details only on the first slot of the appointment
+                apt_start_time = blocking_appointment.appointment_date.time()
+                if slot_time == apt_start_time:
+                    service_duration = blocking_appointment.service.duration if blocking_appointment.service else 60
+                    end_time = blocking_appointment.appointment_date + timedelta(minutes=service_duration)
+                    staff_availability[slot_key] = {
+                        'status': 'booked',
+                        'appointment': blocking_appointment,
+                        'client_name': blocking_appointment.client.full_name if blocking_appointment.client else 'Unknown',
+                        'service_name': blocking_appointment.service.name if blocking_appointment.service else 'Service',
+                        'service_duration': service_duration,
+                        'end_time': end_time.strftime('%I:%M %p'),
+                        'display_text': f'{blocking_appointment.service.name if blocking_appointment.service else "Service"} ({service_duration}min)',
+                        'css_class': 'bg-danger text-white appointment-block',
+                        'schedule_info': f'{blocking_appointment.client.full_name if blocking_appointment.client else "Unknown"} - {blocking_appointment.service.name if blocking_appointment.service else "Service"}',
+                        'appointment_duration': service_duration,
+                        'can_book': False
+                    }
+                else:
+                    # Continuation of the same appointment
+                    staff_availability[slot_key] = {
+                        'status': 'booked_continuation',
+                        'display_text': '↑ Cont.',
+                        'css_class': 'bg-danger text-white appointment-continuation',
+                        'schedule_info': 'Appointment in progress',
+                        'can_book': False
+                    }
             else:
                 # Available slot within shift hours and outside break time
                 shift_start_12h = shift_start.strftime('%I:%M %p') if shift_start else 'N/A'
                 shift_end_12h = shift_end.strftime('%I:%M %p') if shift_end else 'N/A'
+
+                # Check if there's enough time for shortest service (15 minutes) before shift end
+                remaining_shift_time = (datetime.combine(selected_date, shift_end) - time_slot['start_time']).total_seconds() / 60 if shift_end else 480
+
                 staff_availability[slot_key] = {
                     'status': 'available',
                     'schedule_info': schedule_info['schedule_name'] if schedule_info else None,
                     'display_text': 'Available',
                     'shift_times': f'{shift_start_12h} - {shift_end_12h}',
-                    'css_class': 'btn btn-success'
+                    'css_class': 'btn btn-success available-slot',
+                    'remaining_time': int(remaining_shift_time),
+                    'can_book': remaining_shift_time >= 15
                 }
 
     # Get clients and services for booking form
@@ -799,35 +833,69 @@ def staff_availability():
                     }
                     continue
 
-            # Check if this time slot is booked (only after all other checks)
-            booked_appointment = None
-            for appointment in existing_appointments:
-                if (appointment.staff_id == staff.id and 
-                    appointment.appointment_date.time() == time_slot['start_time'].time() and
-                    appointment.status != 'cancelled'):
-                    booked_appointment = appointment
-                    break
+            # Check if this time slot conflicts with existing appointments
+            is_blocked_by_appointment = False
+            blocking_appointment = None
 
-            if booked_appointment:
-                staff_availability[slot_key] = {
-                    'status': 'booked',
-                    'appointment': booked_appointment,
-                    'client_name': booked_appointment.client.full_name if booked_appointment.client else 'Unknown',
-                    'service_name': booked_appointment.service.name if booked_appointment.service else 'Service',
-                    'display_text': 'Booked',
-                    'css_class': 'bg-danger text-white',
-                    'schedule_info': f'Appointment: {booked_appointment.service.name if booked_appointment.service else "Service"}'
-                }
+            for appointment in existing_appointments:
+                if appointment.staff_id == staff.id and appointment.status != 'cancelled':
+                    apt_start = appointment.appointment_date
+                    service_duration = appointment.service.duration if appointment.service else 60
+                    apt_end = apt_start + timedelta(minutes=service_duration)
+
+                    # Check if current slot overlaps with this appointment
+                    slot_start = time_slot['start_time']
+                    slot_end = slot_start + timedelta(minutes=15) # Assuming a minimum slot of 15 mins for checking overlap
+
+                    if not (slot_end <= apt_start or slot_start >= apt_end):
+                        is_blocked_by_appointment = True
+                        blocking_appointment = appointment
+                        break
+
+            if is_blocked_by_appointment and blocking_appointment:
+                # Show appointment details only on the first slot of the appointment
+                apt_start_time = blocking_appointment.appointment_date.time()
+                if slot_time == apt_start_time:
+                    service_duration = blocking_appointment.service.duration if blocking_appointment.service else 60
+                    end_time = blocking_appointment.appointment_date + timedelta(minutes=service_duration)
+                    staff_availability[slot_key] = {
+                        'status': 'booked',
+                        'appointment': blocking_appointment,
+                        'client_name': blocking_appointment.client.full_name if blocking_appointment.client else 'Unknown',
+                        'service_name': blocking_appointment.service.name if blocking_appointment.service else 'Service',
+                        'service_duration': service_duration,
+                        'end_time': end_time.strftime('%I:%M %p'),
+                        'display_text': f'{blocking_appointment.service.name if blocking_appointment.service else "Service"} ({service_duration}min)',
+                        'css_class': 'bg-danger text-white appointment-block',
+                        'schedule_info': f'{blocking_appointment.client.full_name if blocking_appointment.client else "Unknown"} - {blocking_appointment.service.name if blocking_appointment.service else "Service"}',
+                        'appointment_duration': service_duration,
+                        'can_book': False
+                    }
+                else:
+                    # Continuation of the same appointment
+                    staff_availability[slot_key] = {
+                        'status': 'booked_continuation',
+                        'display_text': '↑ Cont.',
+                        'css_class': 'bg-danger text-white appointment-continuation',
+                        'schedule_info': 'Appointment in progress',
+                        'can_book': False
+                    }
             else:
-                # Staff is available during shift hours and not on break or booked
-                shift_times = f"{shift_start.strftime('%I:%M %p')} - {shift_end.strftime('%I:%M %p')}" if shift_start and shift_end else 'Full day'
+                # Available slot within shift hours and outside break time
+                shift_start_12h = shift_start.strftime('%I:%M %p') if shift_start else 'N/A'
+                shift_end_12h = shift_end.strftime('%I:%M %p') if shift_end else 'N/A'
+
+                # Check if there's enough time for shortest service (15 minutes) before shift end
+                remaining_shift_time = (datetime.combine(selected_date, shift_end) - time_slot['start_time']).total_seconds() / 60 if shift_end else 480
+
                 staff_availability[slot_key] = {
                     'status': 'available',
-                    'reason': f'Available during shift: {shift_times}',
+                    'schedule_info': schedule_info['schedule_name'] if schedule_info else None,
                     'display_text': 'Available',
-                    'shift_times': shift_times,
-                    'css_class': 'btn btn-success',
-                    'schedule_info': f'Shift: {shift_times}'
+                    'shift_times': f'{shift_start_12h} - {shift_end_12h}',
+                    'css_class': 'btn btn-success available-slot',
+                    'remaining_time': int(remaining_shift_time),
+                    'can_book': remaining_shift_time >= 15
                 }
 
     # Calculate enhanced statistics
