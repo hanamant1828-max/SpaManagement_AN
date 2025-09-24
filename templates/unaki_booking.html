@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,219 +9,543 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            @apply bg-gray-100;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
 
-        .booking-modal .modal-content {
-            @apply rounded-xl border-none shadow-2xl;
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .booking-modal .modal-header {
-            @apply bg-blue-600 text-white rounded-t-xl;
-        }
-        .booking-modal .form-input {
-            @apply rounded-lg border-gray-300 px-4 py-2;
-        }
-        .booking-modal .btn-primary {
-            @apply bg-blue-600 border-none px-5 py-2.5 rounded-lg transition-colors duration-200 hover:bg-blue-700;
-        }
-        
+
         .schedule-grid {
             display: grid;
-            grid-template-columns: 200px repeat(10, minmax(100px, 1fr));
+            grid-template-columns: 220px repeat(10, minmax(120px, 1fr));
             grid-template-rows: auto;
-            grid-auto-rows: 60px; /* Reduced height for compactness */
+            grid-auto-rows: 70px;
             height: 80vh;
             overflow: auto;
-            border: 1px solid #9ca3af;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
         }
 
         .grid-cell {
-            @apply p-2 text-center text-sm font-semibold text-gray-700 border border-gray-300;
+            @apply p-3 text-center text-sm font-medium text-gray-700;
+            border: 1px solid rgba(229, 231, 235, 0.6);
+            transition: all 0.2s ease;
         }
 
         .time-header {
-            @apply grid-cell bg-blue-50 flex items-center justify-center border-l-2 border-gray-400;
+            @apply grid-cell flex items-center justify-center;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            font-weight: 600;
             position: sticky;
             top: 0;
-            z-index: 10;
-        }
-        .time-header:first-of-type {
-            @apply border-l;
+            z-index: 20;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .staff-cell {
-            @apply grid-cell flex flex-col items-start justify-center bg-gray-50;
+            @apply grid-cell flex flex-col items-center justify-center;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             position: sticky;
             left: 0;
-            z-index: 5;
+            z-index: 15;
+            font-weight: 600;
+            box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.1);
         }
-        
+
         .appointment-cell {
-            @apply relative;
-            background-color: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-            border-right: 1px solid #e5e7eb;
-            box-sizing: border-box;
+            @apply relative cursor-pointer;
+            background: rgba(248, 250, 252, 0.8);
+            transition: all 0.3s ease;
         }
-        .appointment-cell:nth-child(2n+1) {
-            border-right-style: dashed;
+
+        .appointment-cell:hover {
+            background: rgba(59, 130, 246, 0.05);
+            transform: scale(1.02);
         }
 
         .appointment-block {
-            @apply absolute z-20 bg-blue-600 text-white rounded-md p-1 md:p-2 shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden text-ellipsis;
-        }
-        
-        .break-block {
-            @apply absolute z-20 bg-yellow-400 text-gray-800 rounded-md p-1 md:p-2 shadow-md cursor-pointer overflow-hidden text-ellipsis;
+            @apply absolute z-30 rounded-lg p-3 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden;
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* Dashed lines for 30-minute intervals */
-        .half-hour-line {
-            @apply absolute top-1/2 left-0 w-full border-t border-dashed border-gray-400;
+        .break-block {
+            @apply absolute z-30 rounded-lg p-3 shadow-lg cursor-pointer overflow-hidden;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .available-slot {
+            @apply hover:bg-green-50 hover:border-green-200;
+        }
+
+        .modal-content {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .btn-primary-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            border: none;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-success-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            border: none;
+            box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+            transition: all 0.3s ease;
+        }
+
+        .btn-success-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.5);
+        }
+
+        .form-input-modern {
+            @apply rounded-lg border-0 bg-white bg-opacity-80 backdrop-blur-sm px-4 py-3 text-gray-900 placeholder-gray-500 shadow-sm ring-1 ring-gray-300 transition-all duration-200;
+        }
+
+        .form-input-modern:focus {
+            @apply ring-2 ring-blue-500 bg-opacity-100 outline-none;
+        }
+
+        .legend-item {
+            @apply flex items-center gap-3 p-3 rounded-lg bg-white bg-opacity-10 backdrop-blur-sm border border-white border-opacity-20;
+        }
+
+        .notification-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 2s infinite;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        /* Scrollbar styling */
+        .schedule-grid::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .schedule-grid::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .schedule-grid::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.6);
+            border-radius: 4px;
+        }
+
+        .schedule-grid::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.8);
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .schedule-grid {
+                grid-template-columns: 180px repeat(10, minmax(100px, 1fr));
+                grid-auto-rows: 60px;
+            }
+            
+            .grid-cell {
+                @apply p-2 text-xs;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-5 md:p-10">
-    <div class="container mx-auto">
-        <!-- Header -->
-        <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="text-center md:text-left">
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
-                        <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
-                        Unaki Appointment Booking
+<body class="min-h-screen">
+    <div class="container mx-auto p-6">
+        <!-- Enhanced Header -->
+        <div class="glass-effect rounded-2xl p-8 mb-8 fade-in">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
+                <div class="text-center lg:text-left">
+                    <h1 class="text-4xl lg:text-5xl font-bold text-white mb-3">
+                        <i class="fas fa-sparkles text-yellow-300 mr-3"></i>
+                        Unaki Appointment Studio
                     </h1>
-                    <p class="text-sm text-gray-500 mt-1">Interactive flexible scheduling system</p>
-                </div>
-                <div class="flex flex-col md:flex-row items-center gap-4">
-                    <div class="flex flex-col items-start">
-                        <label for="scheduleDate" class="text-xs text-gray-500 mb-1">Schedule Date:</label>
-                        <input type="date" id="scheduleDate" class="form-input text-sm rounded-md border border-gray-300 p-2" onchange="window.bookingSystem.loadScheduleForDate()" />
+                    <p class="text-xl text-white text-opacity-80">
+                        Professional Appointment Management System
+                    </p>
+                    <div class="flex items-center justify-center lg:justify-start gap-4 mt-4">
+                        <span class="px-3 py-1 bg-green-500 bg-opacity-20 text-green-100 rounded-full text-sm font-medium">
+                            <i class="fas fa-circle text-green-400 mr-2"></i>System Active
+                        </span>
+                        <span id="currentDateTime" class="text-white text-opacity-70 text-sm"></span>
                     </div>
-                    <button class="flex items-center justify-center bg-gray-100 text-gray-600 text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-200 active:bg-gray-300" onclick="window.bookingSystem.refreshSchedule()">
-                        <i class="fas fa-sync-alt mr-2"></i>Refresh
-                    </button>
-                    <button class="flex items-center justify-center bg-green-500 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-md transition-all duration-200 hover:bg-green-600 active:bg-green-700" onclick="window.bookingSystem.seedSampleData()" id="seedDataBtn">
-                        <i class="fas fa-database mr-2"></i>Load Sample Data
-                    </button>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <div class="flex flex-col items-center">
+                        <label for="scheduleDate" class="text-white text-sm mb-2 font-medium">Schedule Date:</label>
+                        <input type="date" id="scheduleDate" 
+                               class="form-input-modern text-center font-semibold" 
+                               onchange="window.bookingSystem.loadScheduleForDate()" />
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button class="btn-primary-gradient text-white font-medium py-3 px-6 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl" 
+                                onclick="window.bookingSystem.refreshSchedule()">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                        <button class="btn-success-gradient text-white font-medium py-3 px-6 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl" 
+                                onclick="window.bookingSystem.seedSampleData()" id="seedDataBtn">
+                            <i class="fas fa-database mr-2"></i>Load Demo Data
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="mt-4 text-center md:text-left">
-                <div id="userIdDisplay" class="text-xs text-gray-400"></div>
+            
+            <!-- Enhanced Statistics Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+                <div class="stat-card rounded-xl p-6 text-center">
+                    <div class="text-3xl text-blue-300 mb-2">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-white mb-1" id="todayAppointments">0</div>
+                    <div class="text-sm text-white text-opacity-70">Today's Appointments</div>
+                </div>
+                
+                <div class="stat-card rounded-xl p-6 text-center">
+                    <div class="text-3xl text-green-300 mb-2">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-white mb-1" id="activeStaff">0</div>
+                    <div class="text-sm text-white text-opacity-70">Active Staff</div>
+                </div>
+                
+                <div class="stat-card rounded-xl p-6 text-center">
+                    <div class="text-3xl text-yellow-300 mb-2">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-white mb-1" id="availableSlots">0</div>
+                    <div class="text-sm text-white text-opacity-70">Available Slots</div>
+                </div>
+                
+                <div class="stat-card rounded-xl p-6 text-center">
+                    <div class="text-3xl text-purple-300 mb-2">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-white mb-1" id="utilizationRate">0%</div>
+                    <div class="text-sm text-white text-opacity-70">Utilization Rate</div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-6">
+                <div id="userIdDisplay" class="text-sm text-white text-opacity-60"></div>
             </div>
         </div>
 
-        <!-- Schedule Container -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden relative min-h-[600px]">
-            <!-- Loading Overlay -->
-            <div id="loadingOverlay" class="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 transition-opacity duration-300" style="display: none;">
+        <!-- Enhanced Schedule Container -->
+        <div class="glass-effect rounded-2xl overflow-hidden relative min-h-[600px] fade-in">
+            <!-- Enhanced Loading Overlay -->
+            <div id="loadingOverlay" class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 transition-all duration-500" style="display: none;">
                 <div class="text-center">
-                    <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent"></div>
-                    <p class="text-gray-500 mt-2">Loading schedule...</p>
+                    <div class="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="text-gray-600 text-lg font-medium">Loading your schedule...</p>
+                    <p class="text-gray-400 text-sm">Please wait while we fetch the latest data</p>
+                </div>
+            </div>
+
+            <!-- Schedule Grid Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-bold">
+                        <i class="fas fa-calendar-alt mr-3"></i>
+                        Daily Schedule Overview
+                    </h2>
+                    <div class="text-sm opacity-90">
+                        Drag and drop to create appointments
+                    </div>
                 </div>
             </div>
 
             <!-- Main Schedule Grid -->
             <div id="scheduleGrid" class="schedule-grid">
-                <!-- Top-left empty cell -->
-                <div class="grid-cell bg-gray-100"></div>
-
-                <!-- Time header cells (generated dynamically) -->
-
-                <!-- Staff cells and appointment cells (generated dynamically) -->
+                <!-- Content will be dynamically generated -->
             </div>
         </div>
         
-        <!-- Legend -->
-        <div class="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
-            <div class="flex items-center gap-2">
-                <span class="w-5 h-4 bg-blue-600 rounded-sm"></span>
-                <span class="text-sm text-gray-600">Appointments</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="w-5 h-4 bg-yellow-400 rounded-sm"></span>
-                <span class="text-sm text-gray-600">Break Time</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="w-5 h-4 bg-blue-600 bg-opacity-50 border-2 border-blue-600 border-dashed rounded-sm"></span>
-                <span class="text-sm text-gray-600">New Booking</span>
+        <!-- Enhanced Legend -->
+        <div class="mt-8 fade-in">
+            <h3 class="text-2xl font-bold text-white mb-6 text-center">
+                <i class="fas fa-info-circle mr-2"></i>Schedule Legend
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="legend-item">
+                    <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg shadow-sm"></div>
+                    <span class="text-white font-medium">Booked Appointments</span>
+                </div>
+                <div class="legend-item">
+                    <div class="w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-sm"></div>
+                    <span class="text-white font-medium">Break Time</span>
+                </div>
+                <div class="legend-item">
+                    <div class="w-6 h-6 bg-gradient-to-r from-green-400 to-green-600 rounded-lg shadow-sm border-2 border-white border-opacity-50"></div>
+                    <span class="text-white font-medium">Available Slots</span>
+                </div>
+                <div class="legend-item">
+                    <div class="w-6 h-6 bg-gradient-to-r from-blue-400 to-blue-600 rounded-lg shadow-sm border-2 border-dashed border-white border-opacity-70"></div>
+                    <span class="text-white font-medium">New Booking</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Booking Modal -->
-    <div id="bookingModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900 bg-opacity-50">
-        <div class="modal-content bg-white p-6 rounded-xl shadow-lg w-full max-w-lg mx-4 md:mx-0">
-            <div class="modal-header flex items-center justify-between p-4 rounded-t-xl bg-blue-600">
-                <h5 class="text-lg font-semibold text-white">
-                    <i class="fas fa-calendar-plus mr-2"></i>
-                    New Appointment
-                </h5>
-                <button type="button" class="text-white opacity-70 hover:opacity-100" onclick="window.bookingSystem.closeBookingModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <form id="bookingForm">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="col-span-1">
-                            <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">Client Name *</label>
-                            <input type="text" class="form-input w-full" id="clientName" required>
-                        </div>
-                        <div class="col-span-1">
-                            <label for="clientPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                            <input type="tel" class="form-input w-full" id="clientPhone">
-                        </div>
-                        <div class="col-span-1">
-                            <label for="serviceType" class="block text-sm font-medium text-gray-700 mb-1">Service *</label>
-                            <select class="form-input w-full" id="serviceType" required>
-                                <option value="">Select Service</option>
-                                <option value="Facial Treatment">Facial Treatment</option>
-                                <option value="Massage Therapy">Massage Therapy</option>
-                                <option value="Manicure">Manicure</option>
-                                <option value="Pedicure">Pedicure</option>
-                                <option value="Waxing">Waxing</option>
-                                <option value="Hair Cut">Hair Cut</option>
-                                <option value="Hair Coloring">Hair Coloring</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1">
-                            <label for="assignedStaff" class="block text-sm font-medium text-gray-700 mb-1">Staff Member *</label>
-                            <select class="form-input w-full" id="assignedStaff" required></select>
-                        </div>
-                        <div class="col-span-1">
-                            <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
-                            <input type="time" class="form-input w-full" id="startTime" required>
-                        </div>
-                        <div class="col-span-1">
-                            <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
-                            <input type="time" class="form-input w-full" id="endTime" required>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <label for="appointmentNotes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                        <textarea class="form-input w-full resize-none" id="appointmentNotes" rows="3"></textarea>
-                    </form>
-                </div>
-                <div class="modal-footer p-4 border-t border-gray-200 flex justify-end gap-2">
-                    <button type="button" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors" onclick="window.bookingSystem.closeBookingModal()">Cancel</button>
-                    <button type="button" class="btn-primary" id="bookAppointmentBtn">
-                        <i class="fas fa-check mr-2"></i>Book Appointment
+    <!-- Enhanced Booking Modal -->
+    <div id="bookingModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+        <div class="modal-content p-0 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 md:mx-0 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+                <div class="flex items-center justify-between">
+                    <h5 class="text-2xl font-bold">
+                        <i class="fas fa-calendar-plus mr-3"></i>
+                        Create New Appointment
+                    </h5>
+                    <button type="button" class="text-white text-opacity-70 hover:text-opacity-100 text-2xl transition-all duration-200" 
+                            onclick="window.bookingSystem.closeBookingModal()">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
+                <p class="text-blue-100 mt-2">Fill in the details below to schedule a new appointment</p>
+            </div>
+            
+            <div class="p-8">
+                <form id="bookingForm">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="space-y-6">
+                            <div>
+                                <label for="clientName" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-user mr-2 text-blue-500"></i>Client Name *
+                                </label>
+                                <input type="text" class="form-input-modern w-full" id="clientName" 
+                                       placeholder="Enter client's full name" required>
+                            </div>
+                            
+                            <div>
+                                <label for="clientPhone" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-phone mr-2 text-blue-500"></i>Phone Number
+                                </label>
+                                <input type="tel" class="form-input-modern w-full" id="clientPhone" 
+                                       placeholder="Enter phone number">
+                            </div>
+                            
+                            <div>
+                                <label for="serviceType" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-spa mr-2 text-blue-500"></i>Service Type *
+                                </label>
+                                <select class="form-input-modern w-full" id="serviceType" required>
+                                    <option value="">Select a service</option>
+                                    <option value="Facial Treatment">💆‍♀️ Facial Treatment</option>
+                                    <option value="Massage Therapy">💆 Massage Therapy</option>
+                                    <option value="Manicure">💅 Manicure</option>
+                                    <option value="Pedicure">🦶 Pedicure</option>
+                                    <option value="Waxing">✨ Waxing</option>
+                                    <option value="Hair Cut">✂️ Hair Cut</option>
+                                    <option value="Hair Coloring">🎨 Hair Coloring</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <label for="assignedStaff" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-user-tie mr-2 text-blue-500"></i>Staff Member *
+                                </label>
+                                <select class="form-input-modern w-full" id="assignedStaff" required></select>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="startTime" class="block text-sm font-semibold text-gray-700 mb-2">
+                                        <i class="fas fa-clock mr-2 text-blue-500"></i>Start Time *
+                                    </label>
+                                    <input type="time" class="form-input-modern w-full" id="startTime" required>
+                                </div>
+                                <div>
+                                    <label for="endTime" class="block text-sm font-semibold text-gray-700 mb-2">
+                                        <i class="fas fa-clock mr-2 text-blue-500"></i>End Time *
+                                    </label>
+                                    <input type="time" class="form-input-modern w-full" id="endTime" required>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label for="appointmentNotes" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-sticky-note mr-2 text-blue-500"></i>Additional Notes
+                                </label>
+                                <textarea class="form-input-modern w-full resize-none" id="appointmentNotes" rows="4" 
+                                          placeholder="Any special requirements or notes..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Booking Summary -->
+                <div id="bookingSummary" class="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200 hidden">
+                    <h6 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-clipboard-check mr-2 text-blue-500"></i>Booking Summary
+                    </h6>
+                    <div id="summaryDetails" class="text-gray-700"></div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 px-8 py-6 flex flex-col sm:flex-row gap-4 justify-end">
+                <button type="button" class="px-6 py-3 bg-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-400 transition-colors duration-200" 
+                        onclick="window.bookingSystem.closeBookingModal()">
+                    <i class="fas fa-times mr-2"></i>Cancel
+                </button>
+                <button type="button" class="btn-primary-gradient text-white font-medium px-8 py-3 rounded-xl" id="bookAppointmentBtn">
+                    <i class="fas fa-check mr-2"></i>Book Appointment
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS with Popper -->
+    <!-- Enhanced Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Local Storage Implementation -->
     <script>
-        // Simple localStorage-based data management
+        // Update current date and time
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            document.getElementById('currentDateTime').textContent = now.toLocaleDateString('en-US', options);
+        }
+        
+        // Update every minute
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+        
+        // Enhanced notification system
+        function showEnhancedNotification(message, type = 'info', duration = 5000) {
+            const notification = document.createElement('div');
+            notification.className = `notification-toast p-4 mb-4 rounded-xl shadow-lg border-l-4 fade-in`;
+            
+            const colors = {
+                'success': 'border-green-500 bg-green-50 text-green-800',
+                'error': 'border-red-500 bg-red-50 text-red-800',
+                'warning': 'border-yellow-500 bg-yellow-50 text-yellow-800',
+                'info': 'border-blue-500 bg-blue-50 text-blue-800'
+            };
+            
+            const icons = {
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'info': 'fas fa-info-circle'
+            };
+            
+            notification.className += ` ${colors[type] || colors.info}`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="${icons[type] || icons.info} mr-3"></i>
+                    <span class="font-medium">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-current opacity-50 hover:opacity-100">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, duration);
+        }
+        
+        // Enhanced localStorage implementation with better error handling
         const STORAGE_KEY_PREFIX = 'unaki-schedule-';
         
         function getStorageKey(date) {
@@ -229,11 +554,17 @@
         
         function saveToLocalStorage(date, data) {
             try {
-                localStorage.setItem(getStorageKey(date), JSON.stringify(data));
+                const dataWithMetadata = {
+                    ...data,
+                    timestamp: new Date().toISOString(),
+                    version: '1.0'
+                };
+                localStorage.setItem(getStorageKey(date), JSON.stringify(dataWithMetadata));
                 console.log('Data saved to localStorage for date:', date);
                 return true;
             } catch (error) {
                 console.error('Error saving to localStorage:', error);
+                showEnhancedNotification('Failed to save data locally. Storage may be full.', 'warning');
                 return false;
             }
         }
@@ -241,13 +572,25 @@
         function loadFromLocalStorage(date) {
             try {
                 const data = localStorage.getItem(getStorageKey(date));
-                return data ? JSON.parse(data) : null;
+                if (data) {
+                    const parsedData = JSON.parse(data);
+                    // Check if data is not too old (optional)
+                    if (parsedData.timestamp) {
+                        const dataAge = Date.now() - new Date(parsedData.timestamp).getTime();
+                        if (dataAge > 24 * 60 * 60 * 1000) { // 24 hours
+                            console.log('Data is older than 24 hours, will refresh from server');
+                        }
+                    }
+                    return parsedData;
+                }
+                return null;
             } catch (error) {
                 console.error('Error loading from localStorage:', error);
                 return null;
             }
         }
 
+        // Enhanced Unaki Booking System Class
         class UnakiBookingSystem {
             constructor() {
                 this.staff = [];
@@ -258,6 +601,12 @@
                 this.dragStaffIndex = null;
                 this.tempBlock = null;
                 this.currentDate = new Date().toISOString().split('T')[0];
+                this.statistics = {
+                    totalAppointments: 0,
+                    activeStaff: 0,
+                    availableSlots: 0,
+                    utilizationRate: 0
+                };
 
                 this.init();
             }
@@ -268,10 +617,28 @@
                     this.setupEventListeners();
                     this.setCurrentDate();
                     this.loadScheduleData();
+                    this.updateStatistics();
                 } catch (error) {
                     console.error("Error initializing Unaki Booking System:", error);
-                    this.showNotification("Error initializing booking system. Please check the console for details.", 'error');
+                    showEnhancedNotification("Error initializing booking system. Please refresh the page.", 'error');
                 }
+            }
+
+            updateStatistics() {
+                // Update statistics in the UI
+                document.getElementById('todayAppointments').textContent = this.appointments.length;
+                document.getElementById('activeStaff').textContent = this.staff.filter(s => s.is_working).length;
+                
+                // Calculate available slots (simplified)
+                const totalSlots = this.staff.length * 20; // 20 slots per staff per day
+                const bookedSlots = this.appointments.length + this.breaks.length;
+                const availableSlots = Math.max(0, totalSlots - bookedSlots);
+                
+                document.getElementById('availableSlots').textContent = availableSlots;
+                
+                // Calculate utilization rate
+                const utilizationRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+                document.getElementById('utilizationRate').textContent = utilizationRate + '%';
             }
 
             async loadScheduleData() {
@@ -290,7 +657,8 @@
                         breaks: this.breaks.length
                     });
                     this.renderSchedule();
-                    this.showNotification('Schedule loaded from local storage.', 'success', 2000);
+                    this.updateStatistics();
+                    showEnhancedNotification('Schedule loaded from local storage.', 'success', 2000);
                 } else {
                     // Try to load from Flask API if localStorage is empty
                     try {
@@ -311,7 +679,8 @@
                                     breaks: this.breaks.length
                                 });
                                 this.renderSchedule();
-                                this.showNotification('Schedule loaded from server.', 'success', 2000);
+                                this.updateStatistics();
+                                showEnhancedNotification('Schedule loaded from server.', 'success', 2000);
                             } else {
                                 throw new Error(data.error || 'Failed to load schedule');
                             }
@@ -324,7 +693,8 @@
                         this.appointments = [];
                         this.breaks = [];
                         this.renderSchedule();
-                        this.showNotification('No schedule found for this date. Use "Load Sample Data" to begin.', 'info', 5000);
+                        this.updateStatistics();
+                        showEnhancedNotification('No schedule found for this date. Use "Load Demo Data" to begin.', 'info', 5000);
                     }
                 }
                 this.showLoading(false);
@@ -342,17 +712,19 @@
 
             showLoading(show) {
                 const overlay = document.getElementById('loadingOverlay');
-                overlay.style.display = show ? 'flex' : 'none';
+                if (overlay) {
+                    overlay.style.display = show ? 'flex' : 'none';
+                }
             }
 
             timeToPixels(timeStr) {
                 const [hours, minutes] = timeStr.split(':').map(Number);
                 const totalMinutes = (hours - 8) * 60 + minutes;
-                return (totalMinutes / 60) * 100;
+                return (totalMinutes / 60) * 120; // Increased from 100 to 120 for better spacing
             }
 
             pixelsToTime(pixels) {
-                const totalMinutes = (pixels / 100) * 60;
+                const totalMinutes = (pixels / 120) * 60; // Updated to match timeToPixels
                 const hours = Math.floor(totalMinutes / 60) + 8;
                 const minutes = Math.round(totalMinutes % 60);
                 const formattedHours = String(hours).padStart(2, '0');
@@ -376,6 +748,7 @@
             }
             
             refreshSchedule() {
+                showEnhancedNotification('Refreshing schedule...', 'info', 1000);
                 this.loadScheduleData();
             }
 
@@ -416,15 +789,16 @@
                         
                         // Re-render the schedule
                         this.renderSchedule();
+                        this.updateStatistics();
                         
                         console.log('Sample data loaded successfully.');
-                        this.showNotification('Sample data loaded!', 'success');
+                        showEnhancedNotification('Demo data loaded successfully!', 'success');
                     } else {
                         throw new Error('Failed to save to localStorage');
                     }
                 } catch (error) {
                     console.error('Error loading sample data:', error);
-                    this.showNotification('Error loading sample data: ' + error.message, 'error');
+                    showEnhancedNotification('Error loading sample data: ' + error.message, 'error');
                 } finally {
                     this.showLoading(false);
                 }
@@ -437,13 +811,13 @@
                 const gridX = e.clientX - rect.left;
                 const gridY = e.clientY - rect.top;
 
-                const staffHeight = 60; // Fixed height for each staff member row
-                const headerHeight = 60; // Height of the time header row
+                const staffHeight = 70; // Updated to match new grid height
+                const headerHeight = 70; // Updated to match new header height
                 const staffIndex = Math.floor((gridY - headerHeight) / staffHeight);
 
-                if (gridX < 200 || gridY < headerHeight || staffIndex < 0 || staffIndex >= this.staff.length) return;
+                if (gridX < 220 || gridY < headerHeight || staffIndex < 0 || staffIndex >= this.staff.length) return;
                 
-                const timeStartPx = gridX - 200;
+                const timeStartPx = gridX - 220;
                 
                 this.isDragging = true;
                 this.dragStart = timeStartPx;
@@ -455,10 +829,10 @@
                 if (!this.isDragging || !this.tempBlock) return;
                 const grid = document.getElementById('scheduleGrid');
                 const rect = grid.getBoundingClientRect();
-                const gridX = e.clientX - rect.left - 200;
+                const gridX = e.clientX - rect.left - 220;
                 const startX = Math.min(this.dragStart, gridX);
                 const width = Math.abs(gridX - this.dragStart);
-                const finalWidth = Math.max(width, 20);
+                const finalWidth = Math.max(width, 30); // Increased minimum width
                 this.tempBlock.style.left = `${startX}px`;
                 this.tempBlock.style.width = `${finalWidth}px`;
             }
@@ -467,13 +841,13 @@
                 if (!this.isDragging || !this.tempBlock) return;
                 const grid = document.getElementById('scheduleGrid');
                 const rect = grid.getBoundingClientRect();
-                const gridX = e.clientX - rect.left - 200;
+                const gridX = e.clientX - rect.left - 220;
                 
                 const startX = Math.min(this.dragStart, gridX);
                 const endX = Math.max(this.dragStart, gridX);
                 const width = endX - startX;
 
-                if (width >= 20) {
+                if (width >= 30) { // Updated minimum width
                     const startTime = this.pixelsToTime(startX);
                     const endTime = this.pixelsToTime(endX);
                     const staffId = this.staff[this.dragStaffIndex].id;
@@ -497,15 +871,21 @@
 
             createTempBlock(left, width, staffIndex) {
                 const grid = document.getElementById('scheduleGrid');
-                const staffHeight = 60;
-                const headerHeight = 60;
+                const staffHeight = 70; // Updated
+                const headerHeight = 70; // Updated
                 
                 this.tempBlock = document.createElement('div');
-                this.tempBlock.className = 'absolute z-30 transition-all duration-100 ease-in-out bg-blue-600 bg-opacity-50 border-2 border-blue-600 border-dashed rounded-md pointer-events-none';
-                this.tempBlock.style.top = `${headerHeight + staffIndex * staffHeight + 2}px`;
-                this.tempBlock.style.height = `${staffHeight - 4}px`;
-                this.tempBlock.style.left = `${200 + left}px`;
-                this.tempBlock.style.width = `${Math.max(width, 20)}px`;
+                this.tempBlock.className = 'absolute z-40 transition-all duration-100 ease-in-out rounded-lg shadow-lg';
+                this.tempBlock.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(30, 64, 175, 0.8))';
+                this.tempBlock.style.border = '2px dashed rgba(255, 255, 255, 0.8)';
+                this.tempBlock.style.backdropFilter = 'blur(4px)';
+                this.tempBlock.style.top = `${headerHeight + staffIndex * staffHeight + 4}px`;
+                this.tempBlock.style.height = `${staffHeight - 8}px`;
+                this.tempBlock.style.left = `${220 + left}px`;
+                this.tempBlock.style.width = `${Math.max(width, 30)}px`;
+
+                // Add a subtle pulsing effect
+                this.tempBlock.style.animation = 'pulse 1s infinite';
 
                 grid.appendChild(this.tempBlock);
             }
@@ -531,6 +911,50 @@
                 document.getElementById('clientPhone').value = '';
                 document.getElementById('serviceType').value = '';
                 document.getElementById('appointmentNotes').value = '';
+                
+                // Show booking summary
+                this.updateBookingSummary();
+            }
+
+            updateBookingSummary() {
+                const staffSelect = document.getElementById('assignedStaff');
+                const serviceSelect = document.getElementById('serviceType');
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                const clientName = document.getElementById('clientName').value;
+                
+                if (staffSelect.value && serviceSelect.value && startTime && endTime) {
+                    const staffName = staffSelect.options[staffSelect.selectedIndex].textContent;
+                    const serviceName = serviceSelect.options[serviceSelect.selectedIndex].textContent;
+                    
+                    document.getElementById('summaryDetails').innerHTML = `
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Client:</strong> ${clientName || 'Not specified'}</div>
+                            <div><strong>Service:</strong> ${serviceName}</div>
+                            <div><strong>Staff:</strong> ${staffName}</div>
+                            <div><strong>Time:</strong> ${startTime} - ${endTime}</div>
+                            <div><strong>Duration:</strong> ${this.calculateDuration(startTime, endTime)}</div>
+                            <div><strong>Date:</strong> ${this.currentDate}</div>
+                        </div>
+                    `;
+                    document.getElementById('bookingSummary').classList.remove('hidden');
+                } else {
+                    document.getElementById('bookingSummary').classList.add('hidden');
+                }
+            }
+
+            calculateDuration(startTime, endTime) {
+                const start = new Date(`2000-01-01 ${startTime}`);
+                const end = new Date(`2000-01-01 ${endTime}`);
+                const diff = end - start;
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                if (hours > 0) {
+                    return `${hours}h ${minutes}m`;
+                } else {
+                    return `${minutes}m`;
+                }
             }
 
             async bookAppointment() {
@@ -571,13 +995,15 @@
                         if (response.ok) {
                             const result = await response.json();
                             console.log('Appointment saved to database:', result);
+                            showEnhancedNotification('Appointment saved to server successfully!', 'success');
                         } else {
                             const errorData = await response.json();
                             console.log('API error:', errorData);
-                            // Continue to save locally even if API fails
+                            showEnhancedNotification('Server error, but appointment saved locally', 'warning');
                         }
                     } catch (apiError) {
                         console.log('API request failed, saving locally only:', apiError);
+                        showEnhancedNotification('Saved locally (server unavailable)', 'warning');
                     }
 
                     // Always save to localStorage
@@ -586,29 +1012,18 @@
                     
                     // Re-render the schedule
                     this.renderSchedule();
+                    this.updateStatistics();
                     
                     console.log('Appointment booked successfully.');
-                    this.showNotification('Appointment booked successfully!', 'success');
+                    showEnhancedNotification('Appointment booked successfully!', 'success');
                     this.closeBookingModal();
                 } catch (error) {
                     console.error('Error booking appointment:', error);
-                    this.showNotification('Error booking appointment: ' + error.message, 'error');
+                    showEnhancedNotification('Error booking appointment: ' + error.message, 'error');
                 } finally {
                     bookBtn.disabled = false;
                     bookBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Book Appointment';
                 }
-            }
-
-            closeBookingModal() {
-                const modal = document.getElementById('bookingModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                
-                // Clear form fields
-                document.getElementById('clientName').value = '';
-                document.getElementById('clientPhone').value = '';
-                document.getElementById('serviceType').value = '';
-                document.getElementById('appointmentNotes').value = '';
             }
 
             setCurrentDate() {
@@ -623,13 +1038,22 @@
                 grid.innerHTML = '';
 
                 if (this.staff.length === 0) {
-                    grid.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-center text-gray-400 p-4">No staff members found.<br>Please use the "Load Sample Data" button to get started.</div>`;
+                    grid.innerHTML = `
+                        <div class="absolute inset-0 flex items-center justify-center text-center p-8">
+                            <div>
+                                <i class="fas fa-calendar-times text-6xl text-gray-300 mb-4"></i>
+                                <p class="text-xl text-gray-500 mb-2">No staff members found</p>
+                                <p class="text-gray-400">Please use the "Load Demo Data" button to get started</p>
+                            </div>
+                        </div>
+                    `;
                     return;
                 }
 
                 // Create the top-left empty cell
                 const emptyCell = document.createElement('div');
-                emptyCell.className = 'grid-cell bg-gray-100 sticky top-0 left-0 z-20';
+                emptyCell.className = 'grid-cell bg-gradient-to-br from-gray-100 to-gray-200 sticky top-0 left-0 z-30 font-bold text-gray-600';
+                emptyCell.innerHTML = '<i class="fas fa-clock mr-2"></i>Schedule';
                 grid.appendChild(emptyCell);
 
                 // Create the horizontal time header cells
@@ -639,23 +1063,34 @@
                     const timeString = `${time % 12 === 0 ? 12 : time % 12}:00 ${time >= 12 ? 'PM' : 'AM'}`;
                     const timeHeader = document.createElement('div');
                     timeHeader.className = 'time-header';
-                    timeHeader.textContent = timeString;
+                    timeHeader.innerHTML = `<div class="text-center"><i class="far fa-clock mr-2"></i>${timeString}</div>`;
                     grid.appendChild(timeHeader);
                 }
 
                 // Create staff cells and their corresponding appointment cells
-                this.staff.forEach(staff => {
+                this.staff.forEach((staff, index) => {
                     const staffCell = document.createElement('div');
                     staffCell.className = 'staff-cell';
                     staffCell.innerHTML = `
-                        <div class="font-semibold text-gray-800">${staff.name}</div>
-                        <div class="text-xs text-gray-500">${staff.specialty}</div>
+                        <div class="text-center">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg mb-2 mx-auto">
+                                ${staff.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div class="font-bold text-gray-800 text-sm">${staff.name}</div>
+                            <div class="text-xs text-gray-500 mt-1">${staff.specialty}</div>
+                            <div class="text-xs text-green-600 mt-1">
+                                <i class="fas fa-circle text-green-400 mr-1"></i>
+                                ${staff.shift_start} - ${staff.shift_end}
+                            </div>
+                        </div>
                     `;
                     grid.appendChild(staffCell);
 
                     for (let i = 0; i < timeIntervals; i++) {
                         const apptCell = document.createElement('div');
                         apptCell.className = 'appointment-cell';
+                        apptCell.dataset.staffIndex = index;
+                        apptCell.dataset.timeIndex = i;
                         grid.appendChild(apptCell);
                     }
                 });
@@ -674,24 +1109,56 @@
                     if (staffIndex === -1) return;
 
                     const block = document.createElement('div');
-                    block.className = `absolute z-20 rounded-md p-1 md:p-2 shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden text-ellipsis ${type === 'break' ? 'bg-yellow-400 text-gray-800 break-block' : 'bg-blue-600 text-white appointment-block'}`;
+                    block.className = `${type === 'break' ? 'break-block' : 'appointment-block'}`;
                     
-                    const staffHeight = 60;
-                    const topOffset = 60 + staffIndex * staffHeight;
-                    const leftOffset = 200 + this.timeToPixels(data.startTime);
+                    const staffHeight = 70;
+                    const topOffset = 70 + staffIndex * staffHeight;
+                    const leftOffset = 220 + this.timeToPixels(data.startTime);
                     const width = this.timeToPixels(data.endTime) - this.timeToPixels(data.startTime);
 
-                    block.style.top = `${topOffset + 2}px`;
-                    block.style.height = `${staffHeight - 4}px`;
+                    block.style.top = `${topOffset + 4}px`;
+                    block.style.height = `${staffHeight - 8}px`;
                     block.style.left = `${leftOffset + 2}px`;
                     block.style.width = `${width - 4}px`;
 
-                    block.innerHTML = `
-                        <div class="font-bold text-sm leading-tight">${type === 'break' ? '<i class="fas fa-coffee mr-1"></i>Break' : data.clientName}</div>
-                        <div class="text-xs opacity-90 leading-tight">${type === 'break' ? data.reason : data.service}</div>
-                        <div class="text-[10px] opacity-80 mt-1 leading-none">${data.startTime} - ${data.endTime}</div>
-                    `;
-                    block.title = `${type === 'break' ? data.reason : data.clientName + ' - ' + data.service}\n${data.startTime} - ${data.endTime}${data.clientPhone ? '\nPhone: ' + data.clientPhone : ''}${data.notes ? '\nNotes: ' + data.notes : ''}`;
+                    if (type === 'break') {
+                        block.innerHTML = `
+                            <div class="flex items-center h-full">
+                                <div class="flex-1">
+                                    <div class="font-bold text-sm leading-tight">
+                                        <i class="fas fa-coffee mr-2"></i>${data.reason}
+                                    </div>
+                                    <div class="text-xs opacity-90 leading-tight mt-1">
+                                        ${data.startTime} - ${data.endTime}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        block.innerHTML = `
+                            <div class="flex items-center h-full">
+                                <div class="flex-1">
+                                    <div class="font-bold text-sm leading-tight">
+                                        <i class="fas fa-user mr-2"></i>${data.clientName}
+                                    </div>
+                                    <div class="text-xs opacity-90 leading-tight">${data.service}</div>
+                                    <div class="text-xs opacity-80 mt-1 leading-none">
+                                        ${data.startTime} - ${data.endTime}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Add click handler for appointment details
+                        block.addEventListener('click', () => {
+                            this.showAppointmentDetails(data);
+                        });
+                    }
+                    
+                    block.title = type === 'break' ? 
+                        `${data.reason}\n${data.startTime} - ${data.endTime}` :
+                        `${data.clientName} - ${data.service}\n${data.startTime} - ${data.endTime}${data.clientPhone ? '\nPhone: ' + data.clientPhone : ''}${data.notes ? '\nNotes: ' + data.notes : ''}`;
+                    
                     grid.appendChild(block);
                 };
 
@@ -699,38 +1166,46 @@
                 this.breaks.forEach(breakItem => renderBlock(breakItem, 'break'));
             }
 
-            showNotification(message, type = 'info', duration = 5000) {
-                const notification = document.createElement('div');
-                let bgColor = 'bg-blue-500';
-                if (type === 'success') bgColor = 'bg-green-500';
-                if (type === 'error') bgColor = 'bg-red-500';
-                notification.className = `fixed top-5 left-1/2 -translate-x-1/2 z-[1000] p-4 rounded-lg shadow-xl text-white font-medium transition-all duration-300 transform-gpu opacity-0 scale-95 ${bgColor}`;
-                notification.textContent = message;
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    notification.classList.add('opacity-100', 'scale-100');
-                }, 10);
-
-                setTimeout(() => {
-                    notification.classList.remove('opacity-100', 'scale-100');
-                    notification.classList.add('opacity-0', 'scale-95');
-                    setTimeout(() => notification.remove(), 300);
-                }, duration);
+            showAppointmentDetails(appointment) {
+                // Enhanced appointment details modal could be implemented here
+                showEnhancedNotification(`Appointment Details: ${appointment.clientName} - ${appointment.service}`, 'info', 3000);
             }
         }
         
+        // Enhanced initialization
         let bookingSystem;
         window.bookingSystem = null;
+        
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 bookingSystem = new UnakiBookingSystem();
                 window.bookingSystem = bookingSystem;
                 console.log('Unaki Booking System initialized successfully');
+                
+                // Add event listeners for form updates
+                ['assignedStaff', 'serviceType', 'startTime', 'endTime', 'clientName'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('change', () => bookingSystem.updateBookingSummary());
+                        element.addEventListener('input', () => bookingSystem.updateBookingSummary());
+                    }
+                });
+                
             } catch (error) {
                 console.error('Error initializing booking system:', error);
+                showEnhancedNotification('Failed to initialize booking system. Please refresh the page.', 'error');
             }
         });
+        
+        // Add CSS for pulse animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
