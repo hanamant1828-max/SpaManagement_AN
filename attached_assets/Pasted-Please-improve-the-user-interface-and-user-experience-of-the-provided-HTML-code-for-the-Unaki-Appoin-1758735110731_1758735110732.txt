@@ -1,0 +1,54 @@
+Please improve the user interface and user experience of the provided HTML code for the Unaki Appointment Booking application.
+
+**CRITICAL CONSTRAINT:** Do not alter the core JavaScript logic or any of the data handling functions (e.g., `loadScheduleData`, `bookAppointment`, `seedSampleData`). Your changes should be limited to the presentation layer.
+
+**UI/UX Improvement Objectives:**
+
+1.  **Visual Polish:**
+    * Give the entire application a more modern and professional feel with a refined color palette, font styles, and spacing.
+    * Enhance the visual design of all components, including the header, buttons, input fields, and the booking modal, using Tailwind CSS classes.
+    * Apply subtle visual effects like shadows and transitions to create a more dynamic and interactive user interface.
+
+2.  **Layout and Readability:**
+    * Optimize the schedule grid to be more readable and intuitive. Add clear visual markers to represent half-hour time slots.
+    * Ensure the layout is fully responsive and looks great on both mobile and desktop screens.
+
+3.  **User Experience (UX):**
+    * Add clear visual cues to guide the user, such as icons or loading indicators.
+    * Make interactive elements, like buttons and the draggable schedule, feel more responsive and intuitive to use.
+
+The final output should be a single, complete, and runnable `index.html` file that fulfills these requirements without changing any of the application's existing logic.
+This prompt is effective because it clearly separates the "what" (UI/UX) from the "how" (the specific methods and logic), which is exactly what you need.
+
+
+
+
+
+
+
+
+add semtemec act as assign a role ai
+
+
+Yes, that's an easy addition. Here is the updated prompt that includes a role assignment for the AI agent. This helps frame the request and encourages a specific type of output.
+
+Act as a world-class UI/UX designer and front-end developer. Your task is to improve the user interface and user experience of the provided HTML code for the Unaki Appointment Booking application.
+
+**CRITICAL CONSTRAINT:** Do not alter the core JavaScript logic or any of the data handling functions (e.g., `loadScheduleData`, `bookAppointment`, `seedSampleData`). Your changes should be limited to the presentation layer (HTML structure and CSS classes).
+
+**UI/UX Improvement Objectives:**
+
+1.  **Visual Polish:**
+    * Give the entire application a more modern and professional feel with a refined color palette, font styles, and spacing.
+    * Enhance the visual design of all components, including the header, buttons, input fields, and the booking modal, using updated Tailwind CSS classes for better visual appeal and user experience.
+    * Apply subtle visual effects like shadows and transitions to create a more dynamic and interactive user interface.
+
+2.  **Layout and Readability:**
+    * Optimize the schedule grid to be more readable and intuitive. Add clear visual markers to represent half-hour time slots.
+    * Ensure the layout is fully responsive and looks great on both mobile and desktop screens.
+
+3.  **User Experience (UX):**
+    * Add clear visual cues to guide the user, such as icons or loading indicators.
+    * Make interactive elements, like buttons and the draggable schedule, feel more responsive and intuitive to use.
+
+The final output should be a single, complete, and runnable `index.html` file that fulfills these requirements without changing any of the application's existing logic.
