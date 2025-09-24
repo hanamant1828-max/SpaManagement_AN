@@ -300,16 +300,30 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Start Time *</label>
                                     <input type="time" id="startTime" class="form-control" required>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Duration *</label>
+                                    <select id="appointmentDuration" class="form-select" required onchange="updateEndTime()">
+                                        <option value="30">30 minutes</option>
+                                        <option value="45">45 minutes</option>
+                                        <option value="60" selected>1 hour</option>
+                                        <option value="90">1 hour 30 minutes</option>
+                                        <option value="120">2 hours</option>
+                                        <option value="150">2 hours 30 minutes</option>
+                                        <option value="180">3 hours</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">End Time *</label>
-                                    <input type="time" id="endTime" class="form-control" required>
+                                    <input type="time" id="endTime" class="form-control" required readonly>
                                 </div>
                             </div>
                         </div>
@@ -346,6 +360,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('scheduleDate').value = currentDate;
             loadScheduleForDate();
+            
+            // Add event listener for start time changes
+            document.getElementById('startTime').addEventListener('change', updateEndTime);
         });
 
         function generateTimeSlots() {
@@ -386,13 +403,28 @@
                     { id: 5, name: 'Linda Davis', role: 'Makeup Artist' }
                 ],
                 appointments: [
-                    { id: 1, staffId: 1, clientName: 'Jessica Brown', service: 'Deep Cleansing Facial', startTime: '09:00', endTime: '10:30' },
-                    { id: 2, staffId: 3, clientName: 'Robert Taylor', service: 'Swedish Massage', startTime: '10:00', endTime: '11:00' },
-                    { id: 3, staffId: 5, clientName: 'Linda Anderson', service: 'Hair Cut & Style', startTime: '10:30', endTime: '12:00' }
+                    // 1.5 hour appointments
+                    { id: 1, staffId: 1, clientName: 'Jessica Brown', service: 'Deep Cleansing Facial', startTime: '09:00', endTime: '10:30', duration: 90 },
+                    { id: 2, staffId: 2, clientName: 'Amanda White', service: 'Hot Stone Massage', startTime: '08:30', endTime: '10:00', duration: 90 },
+                    { id: 3, staffId: 5, clientName: 'Linda Anderson', service: 'Hair Cut & Color', startTime: '10:30', endTime: '12:00', duration: 90 },
+                    
+                    // 2 hour appointments
+                    { id: 4, staffId: 3, clientName: 'Maria Garcia', service: 'Full Hair Treatment', startTime: '13:00', endTime: '15:00', duration: 120 },
+                    { id: 5, staffId: 1, clientName: 'Emma Thompson', service: 'Premium Facial Package', startTime: '11:00', endTime: '13:00', duration: 120 },
+                    
+                    // 45 minute appointments
+                    { id: 6, staffId: 4, clientName: 'Robert Taylor', service: 'Express Manicure', startTime: '09:00', endTime: '09:45', duration: 45 },
+                    { id: 7, staffId: 4, clientName: 'Sophie Miller', service: 'Quick Pedicure', startTime: '10:15', endTime: '11:00', duration: 45 },
+                    
+                    // 30 minute appointments
+                    { id: 8, staffId: 2, clientName: 'David Brown', service: 'Consultation', startTime: '11:00', endTime: '11:30', duration: 30 },
+                    { id: 9, staffId: 5, clientName: 'Kate Wilson', service: 'Eyebrow Shaping', startTime: '14:00', endTime: '14:30', duration: 30 }
                 ],
                 breaks: [
                     { id: 1, staffId: 2, startTime: '12:00', endTime: '12:30', reason: 'Lunch Break' },
-                    { id: 2, staffId: 4, startTime: '14:00', endTime: '14:15', reason: 'Break' }
+                    { id: 2, staffId: 4, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' },
+                    { id: 3, staffId: 1, startTime: '13:30', endTime: '14:00', reason: 'Lunch Break' },
+                    { id: 4, staffId: 3, startTime: '12:00', endTime: '13:00', reason: 'Lunch Hour' }
                 ]
             };
 
@@ -435,16 +467,35 @@
                 grid.appendChild(staffCell);
 
                 // Time slots for this staff member
-                timeSlots.forEach(slot => {
+                timeSlots.forEach((slot, slotIndex) => {
                     const timeSlot = document.createElement('div');
                     timeSlot.className = 'time-slot';
                     timeSlot.dataset.staffId = staff.id;
                     timeSlot.dataset.time = slot.time;
                     
-                    // Check for appointments
+                    // Check for appointments that start at this time
                     const appointment = scheduleData.appointments.find(apt => 
                         apt.staffId === staff.id && apt.startTime === slot.time
                     );
+                    
+                    // Check if this slot is occupied by an ongoing appointment
+                    const ongoingAppointment = scheduleData.appointments.find(apt => {
+                        if (apt.staffId !== staff.id) return false;
+                        
+                        const aptStartHour = parseInt(apt.startTime.split(':')[0]);
+                        const aptStartMinute = parseInt(apt.startTime.split(':')[1]);
+                        const aptEndHour = parseInt(apt.endTime.split(':')[0]);
+                        const aptEndMinute = parseInt(apt.endTime.split(':')[1]);
+                        
+                        const slotHour = parseInt(slot.time.split(':')[0]);
+                        const slotMinute = parseInt(slot.time.split(':')[1]);
+                        
+                        const aptStartTime = aptStartHour * 60 + aptStartMinute;
+                        const aptEndTime = aptEndHour * 60 + aptEndMinute;
+                        const slotTime = slotHour * 60 + slotMinute;
+                        
+                        return slotTime >= aptStartTime && slotTime < aptEndTime;
+                    });
                     
                     // Check for breaks
                     const breakItem = scheduleData.breaks.find(brk => 
@@ -452,10 +503,24 @@
                     );
 
                     if (appointment) {
+                        // Calculate span based on duration
+                        const duration = appointment.duration || 60;
+                        const durationText = duration >= 60 ? 
+                            `${Math.floor(duration / 60)}h ${duration % 60 > 0 ? duration % 60 + 'm' : ''}`.trim() :
+                            `${duration}m`;
+                        
                         timeSlot.innerHTML = `
                             <div class="appointment-block">
                                 <div class="appointment-client">${appointment.clientName}</div>
                                 <div class="appointment-service">${appointment.service}</div>
+                                <div class="appointment-duration" style="font-size: 10px; opacity: 0.8;">${durationText}</div>
+                            </div>
+                        `;
+                    } else if (ongoingAppointment && !appointment) {
+                        // This slot is part of an ongoing appointment
+                        timeSlot.innerHTML = `
+                            <div class="appointment-block" style="background: #1d4ed8; opacity: 0.8;">
+                                <div class="appointment-client" style="font-size: 10px;">↑ ${ongoingAppointment.clientName}</div>
                             </div>
                         `;
                     } else if (breakItem) {
@@ -546,6 +611,23 @@
             modal.show();
         }
 
+        function updateEndTime() {
+            const startTime = document.getElementById('startTime').value;
+            const duration = parseInt(document.getElementById('appointmentDuration').value);
+            
+            if (startTime) {
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const startMinutes = hours * 60 + minutes;
+                const endMinutes = startMinutes + duration;
+                
+                const endHours = Math.floor(endMinutes / 60);
+                const endMins = endMinutes % 60;
+                
+                const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                document.getElementById('endTime').value = endTime;
+            }
+        }
+
         function bookAppointment() {
             const form = document.getElementById('bookingForm');
             if (!form.checkValidity()) {
@@ -553,6 +635,8 @@
                 return;
             }
 
+            const duration = parseInt(document.getElementById('appointmentDuration').value);
+            
             const newAppointment = {
                 id: Date.now(),
                 staffId: parseInt(document.getElementById('staffSelect').value),
@@ -560,6 +644,7 @@
                 service: document.getElementById('serviceType').value,
                 startTime: document.getElementById('startTime').value,
                 endTime: document.getElementById('endTime').value,
+                duration: duration,
                 phone: document.getElementById('clientPhone').value,
                 notes: document.getElementById('appointmentNotes').value
             };
