@@ -525,16 +525,21 @@
                             `${Math.floor(duration / 60)}h ${duration % 60 > 0 ? duration % 60 + 'm' : ''}`.trim() :
                             `${duration}m`;
                         
-                        // Calculate how many slots this appointment spans horizontally
-                        const slotsSpanned = Math.ceil(duration / 60);
+                        // Calculate the actual width based on duration percentage within the current time slot
+                        // For durations <= 60 minutes, keep within current slot
+                        // For longer durations, calculate how much extends into next slots
+                        let blockWidth = '100%';
                         
-                        // Calculate the width to span multiple time columns
-                        // Each slot has width from grid-template-columns: repeat(8, 1fr), so 1fr each
-                        // We need to span across multiple columns, accounting for borders
-                        const totalWidth = `calc(${slotsSpanned * 100}% + ${(slotsSpanned - 1)}px)`;
+                        if (duration > 60) {
+                            // Calculate how many additional time slots this spans
+                            const additionalSlots = Math.floor((duration - 1) / 60);
+                            // Width calculation: 100% of current slot + width of additional slots
+                            // Each additional slot is the same width as current slot
+                            blockWidth = `calc(${100 + (additionalSlots * 100)}% + ${additionalSlots}px)`;
+                        }
                         
                         timeSlot.innerHTML = `
-                            <div class="appointment-block" style="width: ${totalWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
+                            <div class="appointment-block" style="width: ${blockWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
                                 <div class="appointment-client">${appointment.clientName}</div>
                                 <div class="appointment-service">${appointment.service}</div>
                                 <div class="appointment-duration" style="font-size: 10px; opacity: 0.8;">${durationText}</div>
@@ -564,13 +569,18 @@
                         const brkEndTime = brkEndHour * 60 + brkEndMinute;
                         const breakDuration = brkEndTime - brkStartTime;
                         
-                        const breakSlotsSpanned = Math.ceil(breakDuration / 60);
+                        // Calculate the actual width based on break duration
+                        let breakWidth = '100%';
                         
-                        // Calculate the width to span multiple time columns horizontally
-                        const totalBreakWidth = `calc(${breakSlotsSpanned * 100}% + ${(breakSlotsSpanned - 1)}px)`;
+                        if (breakDuration > 60) {
+                            // Calculate how many additional time slots this spans
+                            const additionalBreakSlots = Math.floor((breakDuration - 1) / 60);
+                            // Width calculation: 100% of current slot + width of additional slots
+                            breakWidth = `calc(${100 + (additionalBreakSlots * 100)}% + ${additionalBreakSlots}px)`;
+                        }
                         
                         timeSlot.innerHTML = `
-                            <div class="break-block" style="width: ${totalBreakWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
+                            <div class="break-block" style="width: ${breakWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
                                 <i class="fas fa-coffee me-1"></i>Break
                             </div>
                         `;
