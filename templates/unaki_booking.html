@@ -810,9 +810,12 @@ class UnakiBookingSystem {
     }
 }
 
+// Global variable for booking system
+let bookingSystem;
+
 // Initialize the booking system when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    const bookingSystem = new UnakiBookingSystem();
+    bookingSystem = new UnakiBookingSystem();
     console.log('Unaki Booking System initialized successfully');
 });
 </script>

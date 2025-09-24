@@ -1,0 +1,40 @@
+The error "Uncaught ReferenceError: bookingSystem is not defined" is a classic JavaScript issue. It means the `bookingSystem` variable or class is being used before it has been declared or initialized. This usually happens when a script tries to call a function or method from a class that hasn't been loaded yet.
+
+Here's a prompt to fix this issue.
+
+-----
+
+### Prompt to Fix "ReferenceError: bookingSystem is not defined"
+
+````
+Act as a senior JavaScript developer tasked with fixing a "ReferenceError" in a web application. The console logs "Uncaught ReferenceError: bookingSystem is not defined." This error indicates that the `bookingSystem` object is being called before it has been properly initialized or defined.
+
+**Objective:**
+Fix the JavaScript code to ensure the `bookingSystem` class is instantiated and assigned to the global `bookingSystem` variable before any of its methods are called.
+
+**Instructions:**
+
+1.  **Locate the Initialization Code:** Find the section of the code where the `UnakiBookingSystem` class is defined and where it is intended to be instantiated.
+2.  **Ensure Proper Timing:** The initialization of the `bookingSystem` object must happen after the `UnakiBookingSystem` class itself has been defined, and it must happen before any other code tries to use it.
+3.  **Use a `DOMContentLoaded` Event Listener:** The safest and most robust way to ensure everything is loaded is to wrap the initialization code in a `DOMContentLoaded` event listener. This guarantees that the HTML document and all scripts have been fully loaded and parsed.
+4.  **Correct the Logic:**
+    * Find the line where `const bookingSystem = new UnakiBookingSystem();` (or similar) is supposed to be.
+    * Move this line so that it is placed inside a `DOMContentLoaded` listener. This ensures that the class definition is available.
+    * The corrected logic should look like this:
+
+        ```javascript
+        // UnakiBookingSystem class definition goes here...
+        class UnakiBookingSystem {
+            // ... class methods and properties ...
+        }
+
+        // Wait for the DOM to be fully loaded before initializing
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the booking system
+            const bookingSystem = new UnakiBookingSystem();
+        });
+        ```
+
+**Final Output:**
+Provide the complete, updated JavaScript code for the `UnakiBookingSystem` class and the initialization logic. The code should be fully self-contained and ready to be placed inside a `<script>` tag at the end of the HTML body. The corrected code must use a `DOMContentLoaded` event listener to prevent the "ReferenceError."
+````
