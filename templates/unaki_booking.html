@@ -87,6 +87,8 @@
             overflow: hidden;
             cursor: pointer;
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            min-height: 56px;
+            z-index: 10;
         }
 
         .appointment-client {
@@ -116,6 +118,8 @@
             justify-content: center;
             font-weight: 600;
             cursor: default;
+            min-height: 56px;
+            z-index: 10;
         }
 
         .drag-selection {
@@ -497,10 +501,29 @@
                         return slotTime >= aptStartTime && slotTime < aptEndTime;
                     });
                     
-                    // Check for breaks
+                    // Check for breaks that start at this time
                     const breakItem = scheduleData.breaks.find(brk => 
                         brk.staffId === staff.id && brk.startTime === slot.time
                     );
+                    
+                    // Check if this slot is occupied by an ongoing break
+                    const ongoingBreak = scheduleData.breaks.find(brk => {
+                        if (brk.staffId !== staff.id) return false;
+                        
+                        const brkStartHour = parseInt(brk.startTime.split(':')[0]);
+                        const brkStartMinute = parseInt(brk.startTime.split(':')[1]);
+                        const brkEndHour = parseInt(brk.endTime.split(':')[0]);
+                        const brkEndMinute = parseInt(brk.endTime.split(':')[1]);
+                        
+                        const slotHour = parseInt(slot.time.split(':')[0]);
+                        const slotMinute = parseInt(slot.time.split(':')[1]);
+                        
+                        const brkStartTime = brkStartHour * 60 + brkStartMinute;
+                        const brkEndTime = brkEndHour * 60 + brkEndMinute;
+                        const slotTime = slotHour * 60 + slotMinute;
+                        
+                        return slotTime >= brkStartTime && slotTime < brkEndTime;
+                    });
 
                     if (appointment) {
                         // Calculate span based on duration
@@ -509,26 +532,59 @@
                             `${Math.floor(duration / 60)}h ${duration % 60 > 0 ? duration % 60 + 'm' : ''}`.trim() :
                             `${duration}m`;
                         
+                        // Calculate how many slots this appointment spans
+                        const slotsSpanned = Math.ceil(duration / 60);
+                        const heightMultiplier = slotsSpanned;
+                        
                         timeSlot.innerHTML = `
-                            <div class="appointment-block">
+                            <div class="appointment-block" style="height: ${heightMultiplier * 100}%; z-index: 10;">
                                 <div class="appointment-client">${appointment.clientName}</div>
                                 <div class="appointment-service">${appointment.service}</div>
                                 <div class="appointment-duration" style="font-size: 10px; opacity: 0.8;">${durationText}</div>
                             </div>
                         `;
+                        
+                        // Mark the time slot as having a starting appointment
+                        timeSlot.dataset.hasAppointment = 'start';
+                        
                     } else if (ongoingAppointment && !appointment) {
-                        // This slot is part of an ongoing appointment
+                        // This slot is part of an ongoing appointment - make it invisible but blocked
                         timeSlot.innerHTML = `
-                            <div class="appointment-block" style="background: #1d4ed8; opacity: 0.8;">
-                                <div class="appointment-client" style="font-size: 10px;">↑ ${ongoingAppointment.clientName}</div>
-                            </div>
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; cursor: not-allowed;"></div>
                         `;
+                        timeSlot.dataset.hasAppointment = 'ongoing';
+                        timeSlot.style.background = '#f8f9fa';
+                        timeSlot.style.borderTop = 'none';
+                        
                     } else if (breakItem) {
+                        // Calculate break duration for spanning
+                        const brkStartHour = parseInt(breakItem.startTime.split(':')[0]);
+                        const brkStartMinute = parseInt(breakItem.startTime.split(':')[1]);
+                        const brkEndHour = parseInt(breakItem.endTime.split(':')[0]);
+                        const brkEndMinute = parseInt(breakItem.endTime.split(':')[1]);
+                        
+                        const brkStartTime = brkStartHour * 60 + brkStartMinute;
+                        const brkEndTime = brkEndHour * 60 + brkEndMinute;
+                        const breakDuration = brkEndTime - brkStartTime;
+                        
+                        const breakSlotsSpanned = Math.ceil(breakDuration / 60);
+                        const breakHeightMultiplier = breakSlotsSpanned;
+                        
                         timeSlot.innerHTML = `
-                            <div class="break-block">
+                            <div class="break-block" style="height: ${breakHeightMultiplier * 100}%; z-index: 10;">
                                 <i class="fas fa-coffee me-1"></i>Break
                             </div>
                         `;
+                        timeSlot.dataset.hasBreak = 'start';
+                        
+                    } else if (ongoingBreak && !breakItem) {
+                        // This slot is part of an ongoing break - make it invisible but blocked
+                        timeSlot.innerHTML = `
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: transparent; cursor: not-allowed;"></div>
+                        `;
+                        timeSlot.dataset.hasBreak = 'ongoing';
+                        timeSlot.style.background = '#fff3cd';
+                        timeSlot.style.borderTop = 'none';
                     }
                     
                     grid.appendChild(timeSlot);
