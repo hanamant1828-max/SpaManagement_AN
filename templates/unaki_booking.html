@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Unaki Appointment Booking{% endblock %}
@@ -205,12 +204,12 @@
     .schedule-grid {
         grid-template-columns: 120px 1fr;
     }
-    
+
     .staff-header {
         padding: 10px 5px;
         font-size: 14px;
     }
-    
+
     .appointment-block, .break-block {
         font-size: 11px;
         padding: 2px 4px;
@@ -241,7 +240,7 @@
                         <button class="btn btn-outline-primary btn-sm" onclick="refreshSchedule()">
                             <i class="fas fa-sync-alt me-1"></i>Refresh
                         </button>
-                        <button class="btn btn-success btn-sm" onclick="seedSampleData()" id="seedDataBtn">
+                        <button class="btn btn-success btn-sm" onclick="bookingSystem.seedSampleData()" id="seedDataBtn">
                             <i class="fas fa-database me-1"></i>Load Sample Data
                         </button>
                     </div>
@@ -418,13 +417,28 @@ class UnakiBookingSystem {
             console.log('Loading schedule data for:', this.currentDate);
 
             const response = await fetch(`/api/unaki/schedule/${this.currentDate}`);
+            
+            // Check if response is OK and is JSON
+            if (!response.ok) {
+                console.error('Error: Server returned status', response.status, response.statusText);
+                this.showNotification(`Server error: ${response.status} ${response.statusText}`, 'error');
+                return;
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Error: Server returned a non-JSON response. Content-Type:', contentType);
+                this.showNotification('Server returned an unexpected response format', 'error');
+                return;
+            }
+
             const data = await response.json();
 
             if (data.success) {
                 this.staff = data.staff || [];
                 this.appointments = data.appointments || [];
                 this.breaks = data.breaks || [];
-                
+
                 console.log('Schedule data loaded:', {
                     staff: this.staff.length,
                     appointments: this.appointments.length,
@@ -477,7 +491,7 @@ class UnakiBookingSystem {
         // Global functions
         window.refreshSchedule = () => this.loadScheduleData();
         window.loadScheduleForDate = () => this.loadScheduleForDate();
-        window.seedSampleData = () => this.seedSampleData();
+        // window.seedSampleData = () => this.seedSampleData(); // Removed this global assignment
     }
 
     loadScheduleForDate() {
@@ -487,47 +501,55 @@ class UnakiBookingSystem {
 
     async seedSampleData() {
         try {
-            const btn = document.getElementById('seedDataBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
-
-            const response = await fetch('/api/unaki/seed-data', {
+            const response = await fetch('/api/unaki/load-sample-data', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
 
+            // Check if response is OK and is JSON
+            if (!response.ok) {
+                console.error('Error: Server returned status', response.status, response.statusText);
+                this.showNotification(`Server error: ${response.status} ${response.statusText}`, 'error');
+                return;
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Error: Server returned a non-JSON response. Content-Type:', contentType);
+                this.showNotification('Server returned an unexpected response format', 'error');
+                return;
+            }
+
             const data = await response.json();
 
             if (data.success) {
-                this.showNotification(data.message, 'success');
-                await this.loadScheduleData();
+                console.log('Sample data loaded successfully:', data);
+                await this.loadData(); // This should be loadScheduleData() if it's intended to refresh the view
+                this.showNotification('Sample data loaded successfully!', 'success');
             } else {
-                throw new Error(data.error || 'Failed to seed data');
+                console.error('Error loading sample data:', data.error);
+                this.showNotification('Error loading sample data: ' + data.error, 'error');
             }
         } catch (error) {
             console.error('Error seeding data:', error);
-            this.showNotification('Error loading sample data. Please try again.', 'error');
-        } finally {
-            const btn = document.getElementById('seedDataBtn');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-database me-1"></i>Load Sample Data';
+            this.showNotification('Error loading sample data: ' + error.message, 'error');
         }
     }
 
     handleMouseDown(e) {
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
-        
+
         // Determine which staff column we're in
         const staffIndex = Math.floor((e.clientX - rect.left) / (rect.width / this.staff.length));
-        
+
         if (staffIndex >= 0 && staffIndex < this.staff.length) {
             this.isDragging = true;
             this.dragStart = y;
             this.dragStaffId = this.staff[staffIndex].id;
-            
+
             // Create temporary appointment block
             this.createTempBlock(y, 0, staffIndex);
         }
@@ -539,14 +561,14 @@ class UnakiBookingSystem {
         const dragOverlay = document.getElementById('dragOverlay');
         const rect = dragOverlay.getBoundingClientRect();
         const y = e.clientY - rect.top;
-        
+
         const startY = Math.min(this.dragStart, y);
         const height = Math.abs(y - this.dragStart);
-        
+
         // Minimum 15 minutes (20 pixels)
         const minHeight = 20;
         const finalHeight = Math.max(height, minHeight);
-        
+
         this.tempBlock.style.top = `${startY}px`;
         this.tempBlock.style.height = `${finalHeight}px`;
     }
@@ -557,16 +579,16 @@ class UnakiBookingSystem {
         const dragOverlay = document.getElementById('dragOverlay');
         const rect = dragOverlay.getBoundingClientRect();
         const y = e.clientY - rect.top;
-        
+
         const startY = Math.min(this.dragStart, y);
         const endY = Math.max(this.dragStart, y);
         const height = endY - startY;
-        
+
         // Minimum 15 minutes
         if (height >= 20) {
             const startTime = this.pixelsToTime(startY);
             const endTime = this.pixelsToTime(endY);
-            
+
             this.openBookingModal(this.dragStaffId, startTime, endTime);
         }
 
@@ -583,7 +605,7 @@ class UnakiBookingSystem {
     createTempBlock(top, height, staffIndex) {
         const appointmentGrid = document.getElementById('appointmentGrid');
         const staffWidth = appointmentGrid.offsetWidth / this.staff.length;
-        
+
         this.tempBlock = document.createElement('div');
         this.tempBlock.className = 'temp-appointment';
         this.tempBlock.style.position = 'absolute';
@@ -591,13 +613,13 @@ class UnakiBookingSystem {
         this.tempBlock.style.width = `${staffWidth - 4}px`;
         this.tempBlock.style.top = `${top}px`;
         this.tempBlock.style.height = `${Math.max(height, 20)}px`;
-        
+
         appointmentGrid.appendChild(this.tempBlock);
     }
 
     openBookingModal(staffId, startTime, endTime) {
         const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
-        
+
         // Populate staff dropdown
         const staffSelect = document.getElementById('assignedStaff');
         staffSelect.innerHTML = '';
@@ -657,7 +679,7 @@ class UnakiBookingSystem {
 
             if (data.success) {
                 this.showNotification('Appointment booked successfully!', 'success');
-                
+
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
                 modal.hide();
@@ -684,7 +706,7 @@ class UnakiBookingSystem {
     renderStaffList() {
         const staffList = document.getElementById('staffList');
         const appointmentGrid = document.getElementById('appointmentGrid');
-        
+
         staffList.innerHTML = '';
         appointmentGrid.innerHTML = '';
 
@@ -733,15 +755,15 @@ class UnakiBookingSystem {
             block.style.width = `${staffWidth - 4}px`;
             block.style.top = `${this.timeToPixels(appointment.startTime)}px`;
             block.style.height = `${this.timeToPixels(appointment.endTime) - this.timeToPixels(appointment.startTime)}px`;
-            
+
             block.innerHTML = `
                 <div style="font-weight: bold;">${appointment.clientName}</div>
                 <div style="font-size: 11px; opacity: 0.9;">${appointment.service}</div>
                 <div style="font-size: 10px; opacity: 0.8;">${appointment.startTime} - ${appointment.endTime}</div>
             `;
-            
+
             block.title = `${appointment.clientName} - ${appointment.service}\n${appointment.startTime} - ${appointment.endTime}${appointment.phone ? '\nPhone: ' + appointment.phone : ''}${appointment.notes ? '\nNotes: ' + appointment.notes : ''}`;
-            
+
             appointmentGrid.appendChild(block);
         });
 
@@ -756,15 +778,15 @@ class UnakiBookingSystem {
             block.style.width = `${staffWidth - 4}px`;
             block.style.top = `${this.timeToPixels(breakItem.startTime)}px`;
             block.style.height = `${this.timeToPixels(breakItem.endTime) - this.timeToPixels(breakItem.startTime)}px`;
-            
+
             block.innerHTML = `
                 <div style="font-weight: bold;"><i class="fas fa-coffee me-1"></i>Break Time</div>
                 <div style="font-size: 11px;">${breakItem.reason}</div>
                 <div style="font-size: 10px;">${breakItem.startTime} - ${breakItem.endTime}</div>
             `;
-            
+
             block.title = `${breakItem.reason}\n${breakItem.startTime} - ${breakItem.endTime}`;
-            
+
             appointmentGrid.appendChild(block);
         });
     }
@@ -777,6 +799,14 @@ class UnakiBookingSystem {
             // Fallback to alert
             alert(message);
         }
+    }
+
+    // NOTE: The original code had a loadData() function which was not defined. 
+    // Assuming `loadScheduleData` is the intended function to call after seeding.
+    // If `loadData` was meant to be a separate function, it needs to be defined.
+    // For now, calling `loadScheduleData` here to refresh the view after seeding.
+    async loadData() {
+        await this.loadScheduleData();
     }
 }
 

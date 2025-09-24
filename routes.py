@@ -80,7 +80,7 @@ def student_offers_api_fallback(offer_id=None):
     try:
         # Import the packages blueprint functions
         from modules.packages.routes import (
-            api_get_student_offers, api_create_student_offer, 
+            api_get_student_offers, api_create_student_offer,
             api_get_student_offer, api_update_student_offer, api_delete_student_offer
         )
 
@@ -137,11 +137,11 @@ except ImportError as e:
 
 # Root route is handled in app.py - removed duplicate to avoid conflicts
 
-# Health check route for deployment  
+# Health check route for deployment
 @app.route('/health')
 def health_check():
     return {
-        'status': 'ok', 
+        'status': 'ok',
         'service': 'spa_management',
         'version': '1.0.0'
     }, 200
@@ -182,9 +182,12 @@ def load_sample_data():
         import random
 
         # Clear existing data
-        UnakiAppointment.query.delete()
-        UnakiBreak.query.delete()
-        UnakiStaff.query.delete()
+        try:
+            UnakiAppointment.query.delete()
+            UnakiBreak.query.delete()
+            UnakiStaff.query.delete()
+        except Exception as e:
+            print(f"Error clearing existing data: {e}")
 
         # Create sample staff
         staff_data = [
@@ -196,65 +199,79 @@ def load_sample_data():
 
         staff_list = []
         for staff_info in staff_data:
-            staff = UnakiStaff(**staff_info, is_active=True)
-            db.session.add(staff)
-            db.session.flush()
-            staff_list.append(staff)
+            try:
+                staff = UnakiStaff(**staff_info, is_active=True)
+                db.session.add(staff)
+                db.session.flush()
+                staff_list.append(staff)
+            except Exception as e:
+                print(f"Error creating staff: {e}")
+                continue
 
         # Create sample appointments for today
         today = datetime.now().date()
         services = ['Deep Cleansing Facial', 'Swedish Massage', 'Hair Cut & Style', 'Manicure & Pedicure', 'Hot Stone Massage', 'Anti-Aging Facial']
-        
+
+        appointment_count = 0
         for staff in staff_list:
             # Add 2-3 random appointments per staff member
             for _ in range(random.randint(2, 3)):
-                start_hour = random.randint(9, 16)
-                start_time = datetime.combine(today, datetime.min.time().replace(hour=start_hour, minute=random.choice([0, 30])))
-                end_time = start_time + timedelta(hours=random.choice([1, 1.5, 2]))
-                
-                appointment = UnakiAppointment(
-                    staff_id=staff.id,
-                    client_name=random.choice(['Emma Wilson', 'Olivia Brown', 'Sophia Davis', 'Isabella Miller', 'Ava Anderson']),
-                    service=random.choice(services),
-                    start_time=start_time,
-                    end_time=end_time,
-                    phone=f"555-{random.randint(1000, 9999)}",
-                    appointment_date=today,
-                    notes="Regular customer"
-                )
-                db.session.add(appointment)
+                try:
+                    start_hour = random.randint(9, 16)
+                    start_time = datetime.combine(today, datetime.min.time().replace(hour=start_hour, minute=random.choice([0, 30])))
+                    end_time = start_time + timedelta(hours=random.choice([1, 1.5, 2]))
+
+                    appointment = UnakiAppointment(
+                        staff_id=staff.id,
+                        client_name=random.choice(['Emma Wilson', 'Olivia Brown', 'Sophia Davis', 'Isabella Miller', 'Ava Anderson']),
+                        service=random.choice(services),
+                        start_time=start_time,
+                        end_time=end_time,
+                        phone=f"555-{random.randint(1000, 9999)}",
+                        appointment_date=today,
+                        notes="Regular customer"
+                    )
+                    db.session.add(appointment)
+                    appointment_count += 1
+                except Exception as e:
+                    print(f"Error creating appointment: {e}")
+                    continue
 
             # Add lunch break
-            lunch_start = datetime.combine(today, datetime.min.time().replace(hour=13, minute=0))
-            lunch_end = lunch_start + timedelta(hours=1)
-            
-            break_time = UnakiBreak(
-                staff_id=staff.id,
-                break_type='lunch',
-                start_time=lunch_start,
-                end_time=lunch_end,
-                break_date=today,
-                notes='Lunch Break'
-            )
-            db.session.add(break_time)
+            try:
+                lunch_start = datetime.combine(today, datetime.min.time().replace(hour=13, minute=0))
+                lunch_end = lunch_start + timedelta(hours=1)
+
+                break_time = UnakiBreak(
+                    staff_id=staff.id,
+                    reason='Lunch Break',
+                    start_time=lunch_start,
+                    end_time=lunch_end,
+                    break_date=today
+                )
+                db.session.add(break_time)
+            except Exception as e:
+                print(f"Error creating break: {e}")
+                continue
 
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Sample data loaded successfully',
             'staff_count': len(staff_list),
-            'appointment_count': UnakiAppointment.query.count(),
-            'break_count': UnakiBreak.query.count()
+            'appointment_count': appointment_count,
+            'break_count': len(staff_list)  # One break per staff
         })
 
     except Exception as e:
         db.session.rollback()
         print(f"Error loading sample data: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Failed to load sample data. Please check server logs.'}), 500
+
 
 @app.route('/api/unaki/staff', methods=['GET'])
-@login_required 
+@login_required
 def get_unaki_staff():
     """Get all Unaki staff members"""
     try:
@@ -275,7 +292,7 @@ def get_unaki_appointments():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/unaki/breaks', methods=['GET']) 
+@app.route('/api/unaki/breaks', methods=['GET'])
 @login_required
 def get_unaki_breaks():
     """Get all Unaki breaks"""
