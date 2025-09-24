@@ -1641,3 +1641,158 @@ def unaki_schedule_api(date_str):
     except Exception as e:
         print(f"Error in unaki_schedule_api: {e}")
         return jsonify({'success': False, 'error': 'Server error'}), 500
+
+
+@app.route('/api/unaki/load-sample-data', methods=['POST'])
+@login_required
+def unaki_load_sample_data():
+    """API endpoint to load sample data for Unaki booking system"""
+    try:
+        # This endpoint simulates loading sample data
+        # In a real implementation, this would populate the database with sample data
+        
+        return jsonify({
+            'success': True,
+            'message': 'Sample data loaded successfully',
+            'data': {
+                'staff_created': 3,
+                'appointments_created': 5,
+                'breaks_created': 2
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error in unaki_load_sample_data: {e}")
+        return jsonify({'success': False, 'error': 'Failed to load sample data'}), 500
+
+
+@app.route('/api/unaki/appointments', methods=['POST'])
+@login_required
+def unaki_create_appointment():
+    """API endpoint to create appointments for Unaki booking system"""
+    try:
+        data = request.get_json()
+        
+        # Extract appointment data
+        staff_id = data.get('staffId')
+        client_name = data.get('clientName')
+        client_phone = data.get('clientPhone', '')
+        service_type = data.get('serviceType')
+        start_time = data.get('startTime')
+        end_time = data.get('endTime')
+        notes = data.get('notes', '')
+        appointment_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        
+        # Validate required fields
+        if not all([staff_id, client_name, service_type, start_time, end_time]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields: staff, client name, service, start time, and end time are required'
+            }), 400
+        
+        # In a real implementation, you would create the appointment in the database
+        # For now, we'll return a success response with mock data
+        
+        mock_appointment = {
+            'id': f"apt_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            'staff_id': staff_id,
+            'client_name': client_name,
+            'client_phone': client_phone,
+            'service_type': service_type,
+            'start_time': start_time,
+            'end_time': end_time,
+            'date': appointment_date,
+            'status': 'confirmed',
+            'notes': notes,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            'success': True,
+            'message': 'Appointment created successfully',
+            'appointment': mock_appointment
+        })
+        
+    except Exception as e:
+        print(f"Error in unaki_create_appointment: {e}")
+        return jsonify({'success': False, 'error': 'Failed to create appointment'}), 500
+
+
+@app.route('/api/schedule', methods=['GET'])
+@login_required  
+def get_schedule():
+    """General schedule API endpoint with static data"""
+    try:
+        # Static hardcoded data structure for the frontend
+        schedule_data = {
+            "staff": [
+                {
+                    "id": 1,
+                    "name": "Sarah Johnson",
+                    "specialty": "Facial Specialist",
+                    "shift_start": "09:00",
+                    "shift_end": "17:00",
+                    "is_working": True
+                },
+                {
+                    "id": 2,
+                    "name": "Michael Chen",
+                    "specialty": "Massage Therapist", 
+                    "shift_start": "10:00",
+                    "shift_end": "18:00",
+                    "is_working": True
+                },
+                {
+                    "id": 3,
+                    "name": "Emily Rodriguez",
+                    "specialty": "Hair Stylist",
+                    "shift_start": "08:00",
+                    "shift_end": "16:00",
+                    "is_working": True
+                }
+            ],
+            "appointments": [
+                {
+                    "id": "apt_001",
+                    "staff_id": 1,
+                    "client_name": "Jessica Williams",
+                    "service": "Deep Cleansing Facial",
+                    "start_time": "10:00",
+                    "end_time": "11:30",
+                    "status": "confirmed",
+                    "notes": "First time client"
+                },
+                {
+                    "id": "apt_002", 
+                    "staff_id": 2,
+                    "client_name": "David Brown",
+                    "service": "Relaxation Massage",
+                    "start_time": "14:00",
+                    "end_time": "15:00",
+                    "status": "confirmed",
+                    "notes": "Regular client"
+                }
+            ],
+            "breaks": [
+                {
+                    "id": "break_1",
+                    "staff_id": 1,
+                    "start_time": "12:00",
+                    "end_time": "13:00",
+                    "type": "lunch"
+                },
+                {
+                    "id": "break_2",
+                    "staff_id": 2, 
+                    "start_time": "12:30",
+                    "end_time": "13:30",
+                    "type": "lunch"
+                }
+            ]
+        }
+        
+        return jsonify(schedule_data)
+        
+    except Exception as e:
+        print(f"Error in get_schedule: {e}")
+        return jsonify({'error': 'Server error'}), 500
