@@ -526,7 +526,7 @@ class UnakiBookingSystem {
 
             if (data.success) {
                 console.log('Sample data loaded successfully:', data);
-                await this.loadData(); // This should be loadScheduleData() if it's intended to refresh the view
+                await this.loadScheduleData(); // Fixed: was loadData(), now loadScheduleData()
                 this.showNotification('Sample data loaded successfully!', 'success');
             } else {
                 console.error('Error loading sample data:', data.error);

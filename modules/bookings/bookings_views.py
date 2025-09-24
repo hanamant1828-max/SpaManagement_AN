@@ -1570,3 +1570,74 @@ def edit_appointment(appointment_id):
                          clients=clients,
                          services=services,
                          staff_members=staff_members)
+
+
+# Unaki Booking System API endpoints
+@app.route('/api/unaki/schedule/<date_str>')
+@login_required
+def unaki_schedule_api(date_str):
+    """API endpoint to get schedule data for Unaki booking system"""
+    try:
+        # Parse the date
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get staff members
+        staff_members = get_staff_members()
+        staff_data = []
+        
+        for staff in staff_members:
+            schedule = get_staff_schedule_for_date(staff.id, target_date)
+            staff_info = {
+                'id': staff.id,
+                'name': staff.username,
+                'specialty': getattr(staff, 'specialization', 'General'),
+                'shift_start': schedule['shift_start_time'].strftime('%H:%M') if schedule and schedule['shift_start_time'] else '09:00',
+                'shift_end': schedule['shift_end_time'].strftime('%H:%M') if schedule and schedule['shift_end_time'] else '17:00',
+                'is_working': schedule['is_working_day'] if schedule else True
+            }
+            staff_data.append(staff_info)
+        
+        # Get appointments for the date
+        appointments_data = []
+        appointments = get_appointments_by_date(target_date)
+        
+        for appointment in appointments:
+            appointment_info = {
+                'id': appointment.id,
+                'staff_id': appointment.staff_id,
+                'client_name': appointment.client.full_name if appointment.client else 'Unknown',
+                'service': appointment.service.name if appointment.service else 'Service',
+                'start_time': appointment.appointment_date.strftime('%H:%M'),
+                'end_time': appointment.end_time.strftime('%H:%M') if appointment.end_time else None,
+                'status': appointment.status,
+                'notes': appointment.notes or ''
+            }
+            appointments_data.append(appointment_info)
+        
+        # Get breaks data (simplified for now)
+        breaks_data = []
+        for staff in staff_members:
+            schedule = get_staff_schedule_for_date(staff.id, target_date)
+            if schedule and schedule.get('break_start_time') and schedule.get('break_end_time'):
+                break_info = {
+                    'id': f"break_{staff.id}",
+                    'staff_id': staff.id,
+                    'start_time': schedule['break_start_time'].strftime('%H:%M'),
+                    'end_time': schedule['break_end_time'].strftime('%H:%M'),
+                    'type': 'break'
+                }
+                breaks_data.append(break_info)
+        
+        return jsonify({
+            'success': True,
+            'date': date_str,
+            'staff': staff_data,
+            'appointments': appointments_data,
+            'breaks': breaks_data
+        })
+        
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid date format'}), 400
+    except Exception as e:
+        print(f"Error in unaki_schedule_api: {e}")
+        return jsonify({'success': False, 'error': 'Server error'}), 500
