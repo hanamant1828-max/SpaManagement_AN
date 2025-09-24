@@ -220,6 +220,9 @@ from modules.packages.new_packages_views import *
 from modules.packages.membership_views import *
 from modules.packages.professional_packages_views import *
 
+# Import routes.py to ensure all API endpoints including Unaki are available
+import routes
+
 # Missing route endpoints to fix template BuildErrors
 @app.route('/unaki-booking')
 @login_required

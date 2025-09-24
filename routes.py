@@ -106,24 +106,26 @@ def student_offers_api_fallback(offer_id=None):
 
 # Import module views individually to avoid conflicts
 try:
-    from modules.auth import auth_views
-    from modules.dashboard import dashboard_views
-    from modules.bookings import bookings_views
-    from modules.clients import clients_views
-    from modules.services import services_views
-    from modules.inventory import views as inventory_views
-    from modules.expenses import expenses_views
-    from modules.reports import reports_views
-    from modules.packages import packages_views
-    from modules.packages import membership_views
-    from modules.checkin import checkin_views
-    from modules.notifications import notifications_views
-    from modules.settings import settings_views
-    from modules.staff import staff_views
-    from modules.billing import integrated_billing_views
+    from modules.auth.auth_views import *
+    from modules.dashboard.dashboard_views import *
+    from modules.clients.clients_views import *
+    from modules.services.services_views import *
+    from modules.bookings.bookings_views import *
+    from modules.staff.staff_views import *
+    from modules.expenses.expenses_views import *
+    from modules.reports.reports_views import *
+    from modules.settings.settings_views import *
+    from modules.notifications.notifications_views import *
+    from modules.checkin.checkin_views import *
+    from modules.billing.billing_views import *
+    from modules.billing.integrated_billing_views import *
+    from modules.inventory.views import *
+    from modules.packages.new_packages_views import *
+    from modules.packages.membership_views import *
+    from modules.packages.professional_packages_views import *
+    # Unaki Booking System API Routes imports
+    from modules.unaki_booking.routes import *
 
-    # Note: shift_scheduler_bp is already registered in app.py
-    print("Integrated billing views imported successfully")
     print("All modules imported successfully")
 except ImportError as e:
     print(f"Module import error: {e}")
@@ -159,7 +161,7 @@ def assign_package():
         print("Package assignment API called")
         data = request.get_json()
         print(f"Received data: {data}")
-        
+
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
@@ -167,16 +169,16 @@ def assign_package():
         customer_id = data.get('customer_id') or data.get('client_id')
         package_id = data.get('package_id')
         package_type = data.get('package_type', 'membership')
-        
+
         print(f"Package ID: {package_id}, Customer ID: {customer_id}, Package Type: {package_type}")
-        
+
         if not package_id or not customer_id:
             return jsonify({'success': False, 'error': 'Package ID and Customer ID are required'}), 400
 
         # Import models
         from models import Customer, ServicePackageAssignment, Membership, PrepaidPackage, ServicePackage
         from datetime import datetime, timedelta
-        
+
         # Verify customer exists  
         customer = Customer.query.get(customer_id)
         if not customer:
@@ -193,7 +195,7 @@ def assign_package():
             package_template = PrepaidPackage.query.get(package_id)
         elif package_type == 'service_package':
             package_template = ServicePackage.query.get(package_id)
-        
+
         if not package_template:
             return jsonify({'success': False, 'error': f'{package_type.title()} package not found'}), 404
 
@@ -210,11 +212,11 @@ def assign_package():
                 price_paid = 0.0
         else:
             price_paid = float(price_paid)
-        
+
         discount = float(data.get('discount', 0))
-        
+
         print(f"Price paid: {price_paid}, discount: {discount}")
-        
+
         # Calculate expiry date
         expiry_date = None
         if data.get('expiry_date'):
@@ -584,6 +586,8 @@ def delete_role(role_id):
 
     try:
         role = Role.query.get_or_404(role_id)
+        if role.name == 'admin':
+            return {'error': 'Cannot delete admin role'}, 400
         db.session.delete(role)
         db.session.commit()
         flash('Role deleted successfully!', 'success')
@@ -768,221 +772,3 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
-
-
-# Unaki Booking System API Routes
-@app.route('/api/unaki/schedule/<date>')
-@login_required
-def get_unaki_schedule(date):
-    """Get schedule data for a specific date"""
-    try:
-        from datetime import datetime
-        from models import UnakiStaff, UnakiAppointment, UnakiBreak
-        
-        # Parse date
-        schedule_date = datetime.strptime(date, '%Y-%m-%d').date()
-        
-        # Get all active staff
-        staff = UnakiStaff.query.filter_by(active=True).all()
-        
-        # Get appointments for the date
-        appointments = UnakiAppointment.query.filter_by(appointment_date=schedule_date).all()
-        
-        # Get breaks for the date
-        breaks = UnakiBreak.query.filter_by(break_date=schedule_date).all()
-        
-        return jsonify({
-            'success': True,
-            'staff': [s.to_dict() for s in staff],
-            'appointments': [a.to_dict() for a in appointments],
-            'breaks': [b.to_dict() for b in breaks]
-        })
-        
-    except Exception as e:
-        print(f"Error fetching schedule: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/unaki/appointments', methods=['POST'])
-@login_required
-def create_unaki_appointment():
-    """Create a new appointment"""
-    try:
-        from datetime import datetime, time
-        from models import UnakiAppointment, UnakiStaff
-        
-        data = request.get_json()
-        
-        # Validate required fields
-        required_fields = ['staffId', 'clientName', 'service', 'startTime', 'endTime', 'appointmentDate']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'success': False, 'error': f'{field} is required'}), 400
-        
-        # Parse date and times
-        appointment_date = datetime.strptime(data['appointmentDate'], '%Y-%m-%d').date()
-        start_time = datetime.strptime(f"{data['appointmentDate']} {data['startTime']}", '%Y-%m-%d %H:%M')
-        end_time = datetime.strptime(f"{data['appointmentDate']} {data['endTime']}", '%Y-%m-%d %H:%M')
-        
-        # Validate staff exists
-        staff = UnakiStaff.query.get(data['staffId'])
-        if not staff:
-            return jsonify({'success': False, 'error': 'Staff member not found'}), 404
-        
-        # Check for conflicts
-        existing_appointments = UnakiAppointment.query.filter(
-            UnakiAppointment.staff_id == data['staffId'],
-            UnakiAppointment.appointment_date == appointment_date,
-            db.or_(
-                db.and_(UnakiAppointment.start_time <= start_time, UnakiAppointment.end_time > start_time),
-                db.and_(UnakiAppointment.start_time < end_time, UnakiAppointment.end_time >= end_time),
-                db.and_(UnakiAppointment.start_time >= start_time, UnakiAppointment.end_time <= end_time)
-            )
-        ).first()
-        
-        if existing_appointments:
-            return jsonify({'success': False, 'error': 'Time slot conflicts with existing appointment'}), 400
-        
-        # Create appointment
-        appointment = UnakiAppointment(
-            staff_id=data['staffId'],
-            client_name=data['clientName'],
-            service=data['service'],
-            start_time=start_time,
-            end_time=end_time,
-            appointment_date=appointment_date,
-            phone=data.get('phone', ''),
-            notes=data.get('notes', '')
-        )
-        
-        db.session.add(appointment)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Appointment created successfully',
-            'appointment': appointment.to_dict()
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error creating appointment: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/unaki/staff')
-@login_required
-def get_unaki_staff():
-    """Get all active staff members"""
-    try:
-        from models import UnakiStaff
-        
-        staff = UnakiStaff.query.filter_by(active=True).all()
-        return jsonify({
-            'success': True,
-            'staff': [s.to_dict() for s in staff]
-        })
-        
-    except Exception as e:
-        print(f"Error fetching staff: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/unaki/seed-data', methods=['POST'])
-@login_required
-def seed_unaki_data():
-    """Seed initial data for Unaki booking system"""
-    try:
-        from models import UnakiStaff, UnakiAppointment, UnakiBreak
-        from datetime import datetime, date, time, timedelta
-        
-        # Check if data already exists
-        if UnakiStaff.query.count() > 0:
-            return jsonify({'success': True, 'message': 'Data already exists'})
-        
-        # Create sample staff
-        staff_data = [
-            {'name': 'Sarah Johnson', 'specialty': 'Facial Specialist'},
-            {'name': 'Michael Chen', 'specialty': 'Massage Therapist'},
-            {'name': 'Emily Davis', 'specialty': 'Hair Stylist'},
-            {'name': 'James Wilson', 'specialty': 'Nail Technician'}
-        ]
-        
-        staff_members = []
-        for staff_info in staff_data:
-            staff = UnakiStaff(**staff_info)
-            db.session.add(staff)
-            staff_members.append(staff)
-        
-        db.session.flush()  # To get IDs
-        
-        # Create sample appointments for today
-        today = date.today()
-        appointments_data = [
-            {
-                'staff_id': staff_members[0].id,
-                'client_name': 'Jessica Brown',
-                'service': 'Deep Cleansing Facial',
-                'start_time': datetime.combine(today, time(9, 0)),
-                'end_time': datetime.combine(today, time(10, 30)),
-                'phone': '555-0101',
-                'notes': 'First time client'
-            },
-            {
-                'staff_id': staff_members[1].id,
-                'client_name': 'Robert Taylor',
-                'service': 'Swedish Massage',
-                'start_time': datetime.combine(today, time(10, 0)),
-                'end_time': datetime.combine(today, time(11, 0)),
-                'phone': '555-0102',
-                'notes': 'Prefers firm pressure'
-            },
-            {
-                'staff_id': staff_members[2].id,
-                'client_name': 'Linda Anderson',
-                'service': 'Hair Cut & Style',
-                'start_time': datetime.combine(today, time(14, 0)),
-                'end_time': datetime.combine(today, time(15, 30)),
-                'phone': '555-0103',
-                'notes': 'Regular client'
-            }
-        ]
-        
-        for apt_data in appointments_data:
-            appointment = UnakiAppointment(
-                appointment_date=today,
-                **apt_data
-            )
-            db.session.add(appointment)
-        
-        # Create sample breaks
-        breaks_data = [
-            {
-                'staff_id': staff_members[0].id,
-                'reason': 'Lunch Break',
-                'start_time': datetime.combine(today, time(12, 0)),
-                'end_time': datetime.combine(today, time(13, 0))
-            },
-            {
-                'staff_id': staff_members[1].id,
-                'reason': 'Lunch Break',
-                'start_time': datetime.combine(today, time(12, 30)),
-                'end_time': datetime.combine(today, time(13, 30))
-            }
-        ]
-        
-        for break_data in breaks_data:
-            break_item = UnakiBreak(
-                break_date=today,
-                **break_data
-            )
-            db.session.add(break_item)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Sample data created successfully'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error seeding data: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
