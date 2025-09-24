@@ -366,8 +366,15 @@
             const slots = [];
             for (let hour = 8; hour < 16; hour++) {
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-                let displayTime = hour <= 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
-                if (hour === 12) displayTime = '12:00 PM';
+                let displayTime;
+                if (hour <= 12) {
+                    displayTime = `${hour}:00 AM`;
+                } else {
+                    displayTime = `${hour - 12}:00 PM`;
+                }
+                if (hour === 12) {
+                    displayTime = '12:00 PM';
+                }
                 slots.push({ time: timeStr, display: displayTime });
             }
             return slots;
@@ -552,7 +559,8 @@
                             <div class="appointment-block" style="width: ${blockWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
                                 <div class="appointment-client">${appointment.clientName}</div>
                                 <div class="appointment-service">${appointment.service}</div>
-                                <div class="appointment-duration" style="font-size: 10px; opacity: 0.8;">${durationText}</div>
+                                <div class="appointment-time" style="font-size: 10px; opacity: 0.9; font-weight: 600;">${appointment.startTime} - ${appointment.endTime}</div>
+                                <div class="appointment-duration" style="font-size: 9px; opacity: 0.8;">${durationText}</div>
                             </div>
                         `;
                         
@@ -603,7 +611,8 @@
                         
                         timeSlot.innerHTML = `
                             <div class="break-block" style="width: ${breakWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
-                                <i class="fas fa-coffee me-1"></i>Break
+                                <div><i class="fas fa-coffee me-1"></i>Break</div>
+                                <div class="break-time" style="font-size: 9px; opacity: 0.9; margin-top: 2px;">${breakItem.startTime} - ${breakItem.endTime}</div>
                             </div>
                         `;
                         timeSlot.dataset.hasBreak = 'start';
