@@ -31,8 +31,8 @@ def compute_sqlite_uri():
 
 def configure_sqlite_pragmas(dbapi_connection, connection_record):
     """Configure SQLite-specific PRAGMA settings"""
-    # Only apply to SQLite connections
-    if hasattr(dbapi_connection, 'execute'):
+    # Only apply to SQLite connections (check if this is actually SQLite)
+    if hasattr(dbapi_connection, 'execute') and 'sqlite' in str(type(dbapi_connection)).lower():
         cursor = dbapi_connection.cursor()
         # Enable foreign key constraints
         cursor.execute('PRAGMA foreign_keys=ON')
@@ -60,14 +60,25 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 # Handle trailing slash variations
 app.url_map.strict_slashes = False
 
-# Configure the database - always use SQLite with hanamantdatabase folder for each clone
-app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "connect_args": {
-        "check_same_thread": False  # Allow SQLite to be used across threads
+# Configure the database - use PostgreSQL in Replit environment
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    # Use PostgreSQL
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
     }
-}
-print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    print(f"Using PostgreSQL database: {database_url[:50]}...")
+else:
+    # Fallback to SQLite for local development
+    app.config["SQLALCHEMY_DATABASE_URI"] = compute_sqlite_uri()
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "connect_args": {
+            "check_same_thread": False  # Allow SQLite to be used across threads
+        }
+    }
+    print(f"Using SQLite database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Configure cache control for Replit webview
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
