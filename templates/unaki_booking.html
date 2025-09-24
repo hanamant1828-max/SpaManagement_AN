@@ -73,11 +73,6 @@
         }
 
         .appointment-block {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            bottom: 2px;
             background: #2563eb;
             color: white;
             border-radius: 4px;
@@ -89,6 +84,9 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
             min-height: 56px;
             z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         .appointment-client {
@@ -102,11 +100,6 @@
         }
 
         .break-block {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            bottom: 2px;
             background: #f59e0b;
             color: white;
             border-radius: 4px;
@@ -534,10 +527,14 @@
                         
                         // Calculate how many slots this appointment spans
                         const slotsSpanned = Math.ceil(duration / 60);
-                        const heightMultiplier = slotsSpanned;
+                        
+                        // Calculate the actual height needed to span multiple slots
+                        // Each slot is 60px + 1px border, so we need to account for the gaps
+                        const slotHeight = 60; // Base height of each time slot
+                        const totalHeight = (slotsSpanned * slotHeight) + ((slotsSpanned - 1) * 1); // Add border spacing
                         
                         timeSlot.innerHTML = `
-                            <div class="appointment-block" style="height: ${heightMultiplier * 100}%; z-index: 10;">
+                            <div class="appointment-block" style="height: ${totalHeight}px; z-index: 10; position: absolute; top: 2px; left: 2px; right: 2px;">
                                 <div class="appointment-client">${appointment.clientName}</div>
                                 <div class="appointment-service">${appointment.service}</div>
                                 <div class="appointment-duration" style="font-size: 10px; opacity: 0.8;">${durationText}</div>
@@ -568,10 +565,13 @@
                         const breakDuration = brkEndTime - brkStartTime;
                         
                         const breakSlotsSpanned = Math.ceil(breakDuration / 60);
-                        const breakHeightMultiplier = breakSlotsSpanned;
+                        
+                        // Calculate the actual height for break blocks
+                        const slotHeight = 60;
+                        const totalBreakHeight = (breakSlotsSpanned * slotHeight) + ((breakSlotsSpanned - 1) * 1);
                         
                         timeSlot.innerHTML = `
-                            <div class="break-block" style="height: ${breakHeightMultiplier * 100}%; z-index: 10;">
+                            <div class="break-block" style="height: ${totalBreakHeight}px; z-index: 10; position: absolute; top: 2px; left: 2px; right: 2px;">
                                 <i class="fas fa-coffee me-1"></i>Break
                             </div>
                         `;
