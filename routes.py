@@ -302,35 +302,61 @@ def unaki_appointments_api():
         elif request.method == 'POST':
             data = request.get_json()
             
-            # Validate required fields
+            # Validate required fields - check for both old and new field names for compatibility
             required_fields = ['staffId', 'clientName', 'service', 'startTime', 'endTime']
+            missing_fields = []
+            
             for field in required_fields:
-                if field not in data or not data[field]:
-                    return jsonify({
-                        'success': False,
-                        'error': f'Missing required field: {field}'
-                    }), 400
+                if field not in data or not data[field] or str(data[field]).strip() == '':
+                    missing_fields.append(field)
+            
+            if missing_fields:
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required fields: {", ".join(missing_fields)}. All fields (staff, client name, service, start time, and end time) are required'
+                }), 400
             
             # Import models
             from models import UnakiAppointment, UnakiStaff
             from datetime import datetime, date
             
             # Validate staff exists
-            staff = UnakiStaff.query.get(data['staffId'])
-            if not staff:
+            try:
+                staff_id = int(data['staffId'])
+                staff = UnakiStaff.query.get(staff_id)
+                if not staff:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Staff member with ID {staff_id} not found'
+                    }), 404
+            except (ValueError, TypeError):
                 return jsonify({
                     'success': False,
-                    'error': 'Staff member not found'
-                }), 404
+                    'error': 'Invalid staff ID format'
+                }), 400
             
-            # Parse date and times
-            appointment_date = datetime.strptime(data.get('appointmentDate', date.today().isoformat()), '%Y-%m-%d').date()
-            start_time = datetime.strptime(data['startTime'], '%H:%M').time()
-            end_time = datetime.strptime(data['endTime'], '%H:%M').time()
-            
-            # Create datetime objects
-            start_datetime = datetime.combine(appointment_date, start_time)
-            end_datetime = datetime.combine(appointment_date, end_time)
+            # Parse date and times with better error handling
+            try:
+                appointment_date = datetime.strptime(data.get('appointmentDate', date.today().isoformat()), '%Y-%m-%d').date()
+                start_time = datetime.strptime(data['startTime'], '%H:%M').time()
+                end_time = datetime.strptime(data['endTime'], '%H:%M').time()
+                
+                # Validate time logic
+                if start_time >= end_time:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Start time must be before end time'
+                    }), 400
+                
+                # Create datetime objects
+                start_datetime = datetime.combine(appointment_date, start_time)
+                end_datetime = datetime.combine(appointment_date, end_time)
+                
+            except ValueError as e:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid date/time format: {str(e)}'
+                }), 400
             
             # Create new appointment
             appointment = UnakiAppointment(
