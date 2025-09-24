@@ -1,0 +1,43 @@
+I will provide a prompt that guides you to create a Python script to test the new endpoints in your Flask backend. This will allow you to verify that the API is working correctly before you integrate it with the frontend.
+
+-----
+
+### Prompt to Create a Python API Testing Script
+
+```
+Act as a senior software tester and developer. Your task is to create a Python script that systematically tests the backend API for the "Unaki Appointment Booking" application. This script will ensure that the `/api/schedule` and `/api/book-appointment` endpoints are functioning as expected, handling both success and error cases.
+
+**Objective:**
+Write a complete, runnable Python script (`test_api.py`) that uses the `requests` library to make HTTP calls to the backend API and validate the responses.
+
+**Instructions:**
+
+1.  **Imports and Setup:**
+    * Import the `requests` and `json` libraries.
+    * Define a base URL for the API (e.g., `BASE_URL = "http://127.0.0.1:5000/api"`).
+2.  **Test Case 1: Fetching Schedule Data:**
+    * Create a function to test the `GET` request to `/api/schedule`.
+    * Make a `GET` request to this endpoint.
+    * Assert that the response status code is `200`.
+    * Assert that the response body is a valid JSON object with the keys `staff`, `appointments`, and `breaks`.
+    * Print a success or failure message for this test.
+3.  **Test Case 2: Successful Appointment Booking:**
+    * Create a function to test the `POST` request to `/api/book-appointment`.
+    * Define a Python dictionary representing a valid appointment with all required fields (e.g., `staffId`, `clientName`, `service`, `startTime`, `endTime`).
+    * Make a `POST` request to this endpoint with the JSON data.
+    * Assert that the response status code is `201` (Created).
+    * Assert that the response contains the success message `"Appointment booked successfully!"`.
+    * Print a success or failure message for this test.
+4.  **Test Case 3: Failed Booking (Missing Data):**
+    * Create a function to test the validation logic.
+    * Define a Python dictionary representing an invalid appointment (e.g., missing the `endTime` field).
+    * Make a `POST` request to `/api/book-appointment` with this invalid data.
+    * Assert that the response status code is `400` (Bad Request).
+    * Assert that the response body contains the correct error message, such as `"Missing required fields: ..."`.
+    * Print a success or failure message for this test.
+5.  **Main Execution:**
+    * Call each of the test functions from the main part of the script (`if __name__ == "__main__":`).
+
+**Final Output:**
+Provide the complete, self-contained Python code for `test_api.py`. The code should be a single, runnable file that you can execute from your terminal to verify the functionality of your backend.
+```
