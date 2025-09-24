@@ -123,8 +123,7 @@ try:
     from modules.packages.new_packages_views import *
     from modules.packages.membership_views import *
     from modules.packages.professional_packages_views import *
-    # Unaki Booking System API Routes imports
-    from modules.unaki_booking.routes import *
+    # Unaki Booking System routes handled in main routes file
 
     print("All modules imported successfully")
 except ImportError as e:
@@ -152,122 +151,7 @@ def health_check():
 def clients_redirect():
     return redirect(url_for('customers'))
 
-# Package Assignment API
-@app.route('/packages/api/assign', methods=['POST'])
-@login_required
-def assign_package():
-    """API endpoint to assign package to customer"""
-    try:
-        print("Package assignment API called")
-        data = request.get_json()
-        print(f"Received data: {data}")
 
-        if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
-
-        # Handle both client_id and customer_id for compatibility
-        customer_id = data.get('customer_id') or data.get('client_id')
-        package_id = data.get('package_id')
-        package_type = data.get('package_type', 'membership')
-
-        print(f"Package ID: {package_id}, Customer ID: {customer_id}, Package Type: {package_type}")
-
-        if not package_id or not customer_id:
-            return jsonify({'success': False, 'error': 'Package ID and Customer ID are required'}), 400
-
-        # Import models
-        from models import Customer, ServicePackageAssignment, Membership, PrepaidPackage, ServicePackage
-        from datetime import datetime, timedelta
-
-        # Verify customer exists  
-        customer = Customer.query.get(customer_id)
-        if not customer:
-            print(f"Customer {customer_id} not found")
-            return jsonify({'success': False, 'error': 'Customer not found'}), 404
-
-        print(f"Found customer: {customer.full_name}")
-
-        # Get package details based on type
-        package_template = None
-        if package_type == 'membership':
-            package_template = Membership.query.get(package_id)
-        elif package_type == 'prepaid':
-            package_template = PrepaidPackage.query.get(package_id)
-        elif package_type == 'service_package':
-            package_template = ServicePackage.query.get(package_id)
-
-        if not package_template:
-            return jsonify({'success': False, 'error': f'{package_type.title()} package not found'}), 404
-
-        print(f"Found package template: {package_template.name}")
-
-        # Calculate assignment details
-        price_paid = data.get('price_paid')
-        if price_paid is None:
-            if hasattr(package_template, 'price'):
-                price_paid = float(package_template.price)
-            elif hasattr(package_template, 'actual_price'):
-                price_paid = float(package_template.actual_price)
-            else:
-                price_paid = 0.0
-        else:
-            price_paid = float(price_paid)
-
-        discount = float(data.get('discount', 0))
-
-        print(f"Price paid: {price_paid}, discount: {discount}")
-
-        # Calculate expiry date
-        expiry_date = None
-        if data.get('expiry_date'):
-            expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
-        else:
-            # Use package validity
-            if hasattr(package_template, 'validity_months') and package_template.validity_months:
-                expiry_date = datetime.utcnow() + timedelta(days=package_template.validity_months * 30)
-            else:
-                expiry_date = datetime.utcnow() + timedelta(days=365)  # Default 1 year
-
-        print(f"Expiry date: {expiry_date}")
-
-        # Create assignment using ServicePackageAssignment model
-        assignment = ServicePackageAssignment(
-            customer_id=customer_id,
-            package_type=package_type,
-            package_reference_id=package_id,
-            service_id=data.get('service_id'),  # Optional, for service packages
-            expires_on=expiry_date,
-            price_paid=price_paid,
-            discount=discount,
-            notes=data.get('notes', ''),
-            status='active'
-        )
-
-        # Set package-specific fields
-        if package_type == 'service_package' and hasattr(package_template, 'total_services'):
-            assignment.total_sessions = package_template.total_services
-            assignment.remaining_sessions = package_template.total_services
-        elif package_type == 'prepaid' and hasattr(package_template, 'after_value'):
-            assignment.credit_amount = package_template.after_value
-            assignment.remaining_credit = package_template.after_value
-
-        print("Creating assignment...")
-        db.session.add(assignment)
-        db.session.commit()
-        print("Assignment created successfully")
-
-        return jsonify({
-            'success': True,
-            'message': f'Package "{package_template.name}" assigned successfully to {customer.full_name}',
-            'assignment_id': assignment.id
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error assigning package: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': f'Failed to assign package: {str(e)}'}), 500
 
 # Additional routes that don't fit in modules yet
 # alerts route is now handled in dashboard module
@@ -286,6 +170,121 @@ def unaki_booking():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
     return render_template('unaki_booking.html')
+
+# API routes for Unaki Booking System
+@app.route('/api/unaki/load-sample-data', methods=['POST'])
+@login_required
+def load_sample_data():
+    """Load sample data for Unaki booking system"""
+    try:
+        from models import UnakiStaff, UnakiAppointment, UnakiBreak
+        from datetime import datetime, timedelta
+        import random
+
+        # Clear existing data
+        UnakiAppointment.query.delete()
+        UnakiBreak.query.delete()
+        UnakiStaff.query.delete()
+
+        # Create sample staff
+        staff_data = [
+            {'name': 'Sarah Johnson', 'specialization': 'Facial Treatments', 'color': '#FF6B6B'},
+            {'name': 'Maria Garcia', 'specialization': 'Massage Therapy', 'color': '#4ECDC4'},
+            {'name': 'Amanda Lee', 'specialization': 'Hair Services', 'color': '#45B7D1'},
+            {'name': 'Jennifer Smith', 'specialization': 'Nail Care', 'color': '#96CEB4'}
+        ]
+
+        staff_list = []
+        for staff_info in staff_data:
+            staff = UnakiStaff(**staff_info, is_active=True)
+            db.session.add(staff)
+            db.session.flush()
+            staff_list.append(staff)
+
+        # Create sample appointments for today
+        today = datetime.now().date()
+        services = ['Deep Cleansing Facial', 'Swedish Massage', 'Hair Cut & Style', 'Manicure & Pedicure', 'Hot Stone Massage', 'Anti-Aging Facial']
+        
+        for staff in staff_list:
+            # Add 2-3 random appointments per staff member
+            for _ in range(random.randint(2, 3)):
+                start_hour = random.randint(9, 16)
+                start_time = datetime.combine(today, datetime.min.time().replace(hour=start_hour, minute=random.choice([0, 30])))
+                end_time = start_time + timedelta(hours=random.choice([1, 1.5, 2]))
+                
+                appointment = UnakiAppointment(
+                    staff_id=staff.id,
+                    client_name=random.choice(['Emma Wilson', 'Olivia Brown', 'Sophia Davis', 'Isabella Miller', 'Ava Anderson']),
+                    service=random.choice(services),
+                    start_time=start_time,
+                    end_time=end_time,
+                    phone=f"555-{random.randint(1000, 9999)}",
+                    appointment_date=today,
+                    notes="Regular customer"
+                )
+                db.session.add(appointment)
+
+            # Add lunch break
+            lunch_start = datetime.combine(today, datetime.min.time().replace(hour=13, minute=0))
+            lunch_end = lunch_start + timedelta(hours=1)
+            
+            break_time = UnakiBreak(
+                staff_id=staff.id,
+                break_type='lunch',
+                start_time=lunch_start,
+                end_time=lunch_end,
+                break_date=today,
+                notes='Lunch Break'
+            )
+            db.session.add(break_time)
+
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Sample data loaded successfully',
+            'staff_count': len(staff_list),
+            'appointment_count': UnakiAppointment.query.count(),
+            'break_count': UnakiBreak.query.count()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error loading sample data: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/unaki/staff', methods=['GET'])
+@login_required 
+def get_unaki_staff():
+    """Get all Unaki staff members"""
+    try:
+        from models import UnakiStaff
+        staff = UnakiStaff.query.filter_by(is_active=True).all()
+        return jsonify([s.to_dict() for s in staff])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/unaki/appointments', methods=['GET'])
+@login_required
+def get_unaki_appointments():
+    """Get all Unaki appointments"""
+    try:
+        from models import UnakiAppointment
+        appointments = UnakiAppointment.query.all()
+        return jsonify([a.to_dict() for a in appointments])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/unaki/breaks', methods=['GET']) 
+@login_required
+def get_unaki_breaks():
+    """Get all Unaki breaks"""
+    try:
+        from models import UnakiBreak
+        breaks = UnakiBreak.query.all()
+        return jsonify([b.to_dict() for b in breaks])
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/billing')
 def billing():

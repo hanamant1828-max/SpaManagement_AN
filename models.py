@@ -1020,6 +1020,25 @@ class UnakiStaff(db.Model):
             'active': self.active
         }
 
+class UnakiStaff(db.Model):
+    __tablename__ = 'unaki_staff'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    specialization = db.Column(db.String(100))
+    color = db.Column(db.String(20), default='#007bff')
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'specialization': self.specialization,
+            'color': self.color,
+            'isActive': self.is_active
+        }
+
 class UnakiAppointment(db.Model):
     __tablename__ = 'unaki_appointments'
     
@@ -1045,6 +1064,29 @@ class UnakiAppointment(db.Model):
             'phone': self.phone,
             'notes': self.notes,
             'appointmentDate': self.appointment_date.strftime('%Y-%m-%d')
+        }
+
+class UnakiBreak(db.Model):
+    __tablename__ = 'unaki_breaks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
+    break_type = db.Column(db.String(50), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    break_date = db.Column(db.Date, nullable=False)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'staffId': self.staff_id,
+            'breakType': self.break_type,
+            'startTime': self.start_time.strftime('%H:%M'),
+            'endTime': self.end_time.strftime('%H:%M'),
+            'breakDate': self.break_date.strftime('%Y-%m-%d'),
+            'notes': self.notes
         }
 
 class UnakiBreak(db.Model):
