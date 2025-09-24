@@ -2,21 +2,21 @@
 
 {% block title %}Staff Availability - Quick Book - Spa Management{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/flexible_schedule.css') }}">
+<script src="{{ url_for('static', filename='js/flexible_schedule.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-0">
-                    <i class="fas fa-users-cog me-2"></i>Staff Availability - Quick Book
+                    <i class="fas fa-users-cog me-2"></i>Staff Availability - Flexible Schedule
                 </h1>
                 <div class="d-flex gap-2">
-                    <input type="date" class="form-control" id="dateSelector" value="{{ selected_date.strftime('%Y-%m-%d') }}"
-                           onchange="window.location.href='{{ url_for('staff_availability') }}?date=' + this.value">
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#quickBookModal">
                     <a href="{{ url_for('bookings') }}" class="btn btn-outline-primary">
                         <i class="fas fa-arrow-left me-2"></i>Back to Bookings
                     </a>
@@ -28,19 +28,11 @@
         </div>
     </div>
 
-    <!-- Date Header -->
-    <div class="row mb-3">
     <!-- Date Navigation -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">{{ selected_date.strftime('%A, %B %d, %Y') }}</h5>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <div class="bg-success rounded" style="width: 20px; height: 20px;"></div>
                     <div class="row align-items-center">
                         <div class="col-md-6">
                             <div class="d-flex align-items-center gap-3">
@@ -58,12 +50,32 @@
                                 <button class="btn btn-primary" onclick="goToTodayAvailability()">
                                     <i class="fas fa-home me-1"></i>Today
                                 </button>
-                                </div>
-                                <span>Available & On Duty</span>
                             </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="text-end">
                                 <h4 class="mb-0 text-primary">{{ selected_date.strftime('%A, %B %d, %Y') }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-success rounded" style="width: 20px; height: 20px;"></div>
+                                </div>
+                                <span>Available & On Duty</span>
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <div class="d-flex align-items-center">
@@ -103,141 +115,19 @@
         </div>
     </div>
 
-    <!-- Staff Availability Grid -->
+    <!-- Staff Availability Grid - Flexible Schedule -->
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-body">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>Staff Availability
+                        <i class="fas fa-clock me-2"></i>Staff Availability - Flexible Schedule
+                        <small class="text-muted ms-2">(Click and drag to create appointments)</small>
                     </h5>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                        <table class="table table-bordered staff-availability-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Staff Member</th>
-                                    {% for time_slot in time_slots %}
-                                    <th class="text-center" style="min-width: 120px;">
-                                        <div class="fw-bold">{{ time_slot.start_time.strftime('%I:%M %p') }}</div>
-                                    </th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for staff_member in staff_members %}
-                                <tr>
-                                    <td class="fw-bold text-center" style="min-width: 180px;">
-                                        <div>{{ staff_member.first_name }} {{ staff_member.last_name }}</div>
-                                        <small class="text-muted">{{ staff_member.role }}</small>
-                                        {% set schedule = staff_schedules.get(staff_member.id) %}
-                                        {% if schedule and schedule.has_shift %}
-                                            {% if schedule.is_absent %}
-                                            <div class="badge bg-dark mt-1">
-                                                <i class="fas fa-user-times me-1"></i>{{ schedule.schedule_name }}
-                                            </div>
-                                            {% else %}
-                                            <div class="badge bg-info mt-1">
-                                                <i class="fas fa-clock me-1"></i>
-                                                {{ schedule.shift_start.strftime('%I:%M %p') if schedule.shift_start else 'N/A' }} -
-                                                {{ schedule.shift_end.strftime('%I:%M %p') if schedule.shift_end else 'N/A' }}
-                                            </div>
-                                            {% if schedule.break_start and schedule.break_end %}
-                                            <div class="badge bg-warning text-dark mt-1">
-                                                <i class="fas fa-coffee me-1"></i>
-                                                Break: {{ schedule.break_start.strftime('%I:%M %p') }} - {{ schedule.break_end.strftime('%I:%M %p') }}
-                                            </div>
-                                            {% endif %}
-                                            {% if schedule.schedule_name %}
-                                            <div class="badge bg-light text-dark mt-1">
-                                                <i class="fas fa-calendar me-1"></i>{{ schedule.schedule_name }}
-                                            </div>
-                                            {% endif %}
-                                            {% endif %}
-                                        {% else %}
-                                        <div class="badge bg-secondary mt-1">
-                                            <i class="fas fa-ban me-1"></i>{{ schedule.schedule_name if schedule else 'Not Scheduled' }}
-                                        </div>
-                                        {% endif %}
-                                    </td>
-                                    {% for time_slot in time_slots %}
-                                    {% set slot_key = (staff_member.id, time_slot.start_time) %}
-                                    {% set availability = staff_availability.get(slot_key, {'status': 'available'}) %}
-                                    <td class="text-center p-1">
-                        {% if availability.status == 'booked' %}
-                        <div class="{{ availability.css_class }} p-2 rounded small appointment-slot"
-                             data-appointment-id="{{ availability.appointment.id if availability.appointment else '' }}"
-                             style="cursor: pointer; min-height: 60px;"
-                             onclick="showAppointmentDetails({{ availability.appointment.id if availability.appointment else 'null' }})"
-                             title="Booked: {{ availability.client_name }} - {{ availability.service_name }}">
-                            <div class="fw-bold">{{ availability.client_name }}</div>
-                            <div class="small">{{ availability.service_name }}</div>
-                        </div>
-                        {% elif availability.status == 'break' %}
-                        <div class="{{ availability.css_class }} p-2 rounded small" 
-                             title="{{ availability.reason }}"
-                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                            <div><i class="fas fa-coffee"></i></div>
-                            <div class="small fw-bold">Break Time</div>
-                            {% if availability.break_times %}
-                            <div class="small">{{ availability.break_times }}</div>
-                            {% endif %}
-                        </div>
-                        {% elif availability.status == 'absent' %}
-                        <div class="{{ availability.css_class }} p-2 rounded small" 
-                             title="{{ availability.reason }}"
-                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                            <div><i class="fas fa-user-times"></i></div>
-                            <div class="small fw-bold">Absent</div>
-                        </div>
-                        {% elif availability.status == 'not_available' %}
-                        <div class="{{ availability.css_class }} p-2 rounded small" 
-                             title="{{ availability.reason }}"
-                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                            <div><i class="fas fa-ban"></i></div>
-                            <div class="small fw-bold">Not Available</div>
-                            <div class="small">No Shift</div>
-                        </div>
-                        {% elif availability.status == 'off_duty' %}
-                        <div class="{{ availability.css_class }} p-2 rounded small border" 
-                             title="{{ availability.reason }}"
-                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                            <div><i class="fas fa-clock"></i></div>
-                            <div class="small fw-bold">Off Duty</div>
-                            {% if availability.shift_times %}
-                            <div class="small">Shift: {{ availability.shift_times }}</div>
-                            {% endif %}
-                        </div>
-                        {% elif availability.status == 'available' %}
-                        <button type="button" class="btn btn-success btn-sm w-100 quick-book-btn"
-                                data-staff-id="{{ staff_member.id }}"
-                                data-staff-name="{{ staff_member.first_name }} {{ staff_member.last_name }}"
-                                data-date="{{ selected_date.strftime('%Y-%m-%d') }}"
-                                data-time="{{ time_slot.start_time.strftime('%H:%M') }}"
-                                data-display-time="{{ time_slot.start_time.strftime('%I:%M %p') }}"
-                                data-bs-toggle="modal" data-bs-target="#quickBookModal"
-                                title="Available during shift: {{ availability.shift_times if availability.shift_times else 'Full day' }}"
-                                style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                            <div><i class="fas fa-plus"></i></div>
-                            <div class="small">Book</div>
-                        </button>
-                        {% else %}
-                        <div class="bg-light text-muted p-2 rounded small border" 
-                             style="min-height: 60px; display: flex; flex-direction: column; justify-content: center;">
-                            <div><i class="fas fa-question"></i></div>
-                            <div class="small">Unknown</div>
-                        </div>
-                        {% endif %}
-                    </td>
-                                    {% endfor %}
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    <!-- Flexible Schedule Container -->
+                    <div id="flexibleScheduleContainer"></div>
                 </div>
             </div>
         </div>
@@ -289,11 +179,9 @@
 
 <!-- Quick Book Modal -->
 <div class="modal fade" id="quickBookModal" tabindex="-1">
-    <div class="modal-dialog">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Quick Book Appointment</h5>
                 <h5 class="modal-title">
                     <i class="fas fa-plus me-2"></i>Quick Book Appointment
                 </h5>
@@ -301,12 +189,13 @@
             </div>
             <form id="quickBookForm" method="POST" action="{{ url_for('quick_book_appointment') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="selected_staff_id" id="selectedStaffId">
-                <input type="hidden" name="selected_time" id="selectedTime">
+                <input type="hidden" name="staff_id" id="selectedStaffId">
+                <input type="hidden" name="appointment_time" id="selectedTime">
+                <input type="hidden" name="appointment_end_time" id="selectedEndTime">
                 <input type="hidden" name="appointment_date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
                 
-            <div class="modal-body">
-                <form id="quickBookForm">
+                <div class="modal-body">
+                    <div id="selected-time-info" class="alert alert-info" style="display: none;"></div>
                     <div class="mb-3">
                         <label for="clientSelect" class="form-label">Client</label>
                         <select class="form-select" id="clientSelect" required>
@@ -573,5 +462,102 @@ ${appointment.notes ? '- Notes: ' + appointment.notes : ''}
         alert('Error loading appointment details');
     });
 }
+</script>
+
+<script>
+// Initialize flexible schedule data and scheduler
+document.addEventListener('DOMContentLoaded', function() {
+    const scheduleContainer = document.getElementById('flexibleScheduleContainer');
+    if (scheduleContainer) {
+        // Create scheduler instance
+        window.scheduler = new FlexibleScheduler(scheduleContainer, {
+            startHour: 8,
+            endHour: 18,
+            pixelsPerHour: 80,
+            timeInterval: 15
+        });
+        
+        // Prepare staff data
+        const staffData = [];
+        {% for staff_member in staff_members %}
+        {% set schedule = staff_schedules.get(staff_member.id) %}
+        staffData.push({
+            id: {{ staff_member.id }},
+            first_name: "{{ staff_member.first_name }}",
+            last_name: "{{ staff_member.last_name }}",
+            role: "{{ staff_member.role }}",
+            {% if schedule and schedule.shift_start and schedule.shift_end %}
+            shift_start: "{{ schedule.shift_start.strftime('%H:%M') }}",
+            shift_end: "{{ schedule.shift_end.strftime('%H:%M') }}"
+            {% else %}
+            shift_start: "08:00",
+            shift_end: "17:00"
+            {% endif %}
+        });
+        {% endfor %}
+        
+        // Prepare appointment data
+        const appointmentData = [];
+        {% for appointment in today_appointments %}
+        {% if appointment.customer and appointment.service %}
+        {% set duration = appointment.service.duration if appointment.service.duration else 60 %}
+        {% set end_datetime = appointment.appointment_datetime + timedelta(minutes=duration) %}
+        appointmentData.push({
+            id: {{ appointment.id }},
+            staff_id: {{ appointment.staff_id }},
+            client_name: "{{ appointment.customer.first_name }} {{ appointment.customer.last_name }}",
+            service_name: "{{ appointment.service.name }}",
+            start_time: "{{ appointment.appointment_datetime.strftime('%H:%M') }}",
+            end_time: "{{ end_datetime.strftime('%H:%M') }}"
+        });
+        {% endif %}
+        {% endfor %}
+        
+        // Prepare break data
+        const breakData = [];
+        {% for staff_member in staff_members %}
+        {% set schedule = staff_schedules.get(staff_member.id) %}
+        {% if schedule and schedule.break_start and schedule.break_end %}
+        breakData.push({
+            staff_id: {{ staff_member.id }},
+            start_time: "{{ schedule.break_start.strftime('%H:%M') }}",
+            end_time: "{{ schedule.break_end.strftime('%H:%M') }}"
+        });
+        {% endif %}
+        {% endfor %}
+        
+        // Initialize scheduler with data
+        console.log('Initializing flexible scheduler with:', staffData.length, 'staff,', appointmentData.length, 'appointments,', breakData.length, 'breaks');
+        window.scheduler.setStaffMembers(staffData);
+        window.scheduler.setAppointments(appointmentData);
+        window.scheduler.setBreaks(breakData);
+    }
+});
+
+// Date navigation functions
+function changeAvailabilityDate(date) {
+    window.location.href = "{{ url_for('staff_availability') }}?date=" + date;
+}
+
+function goToTodayAvailability() {
+    const today = new Date().toISOString().split('T')[0];
+    changeAvailabilityDate(today);
+}
+
+// Add time info display to booking modal
+document.addEventListener('DOMContentLoaded', function() {
+    // Create a container for selected time info in the booking modal if it doesn't exist
+    const modal = document.getElementById('quickBookModal');
+    if (modal && !document.getElementById('selected-time-info')) {
+        const modalBody = modal.querySelector('.modal-body');
+        if (modalBody) {
+            const timeInfoDiv = document.createElement('div');
+            timeInfoDiv.id = 'selected-time-info';
+            timeInfoDiv.className = 'alert alert-info';
+            timeInfoDiv.style.display = 'none';
+            modalBody.insertBefore(timeInfoDiv, modalBody.firstChild);
+        }
+    }
+});
 </script>
 {% endblock %}

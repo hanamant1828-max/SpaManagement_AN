@@ -1,0 +1,54 @@
+That's an excellent point. You're right, for a real-world salon or spa, time slots need to be **flexible**, not rigidly fixed (e.g., only 8:00 AM, 9:00 AM, etc.). A client might book a 45-minute massage, or a 2.5-hour special package.
+
+To handle this, we need to modify the design and logic in two key ways:
+
+### 1\. Flexible Time Slots
+
+Instead of fixed time slots in your grid (e.g., a new `<td>` for every 60 minutes), the grid should represent a continuous timeline. The **booking blocks themselves will determine the duration** by their height and position.
+
+  * **UI Change:** The vertical axis of your grid should be continuous time (e.g., 8:00 AM, 8:15 AM, 8:30 AM). The booking blocks (appointments, breaks) will span multiple time intervals based on their duration.
+  * **Logic Change:** When you render the schedule, you'll calculate the block's `top` position based on its start time and its `height` based on its duration. A 90-minute appointment would be 1.5 times the height of a 60-minute one.
+
+### 2\. Click and Drag for New Bookings
+
+A flexible time slot system is best paired with a more intuitive booking method. Instead of just clicking a single cell, the UI should allow a user to:
+
+  * **Click an empty area** to create a new appointment block at that time.
+  * **Click and drag** to define both the start and end times in one action. This is a far more efficient way to book appointments of varying lengths.
+
+This approach will make your frontend prototype feel much more like a professional scheduling tool.
+
+-----
+
+### Prompt for Flexible Time Slots
+
+To achieve this, you need to adjust the previous prompt to tell the AI to build a dynamic schedule with flexible, rather than fixed, slots.
+
+```
+Act as a senior frontend developer specializing in building dynamic, interactive user interfaces with JavaScript and CSS. Your task is to modify the previous booking schedule to use flexible time slots. The schedule should no longer be based on a rigid table of fixed-length cells.
+
+**Objective:**
+Build a dynamic schedule grid where the height and position of appointment blocks are determined by their start time and duration. The user should be able to click and drag on the grid to create a new appointment of a custom length.
+
+**Instructions:**
+
+1.  **HTML Structure:**
+    * The main schedule container should use a CSS Grid or Flexbox layout to represent a continuous timeline, not fixed time slots.
+    * The horizontal axis will represent staff members.
+    * The vertical axis will be a continuous timeline. A simple `div` for each 15 or 30-minute interval can serve as a visual guide.
+2.  **CSS Styling:**
+    * Use **CSS Grid** for the main schedule layout. Define columns for each staff member.
+    * Use **absolute positioning** for the appointment and break blocks.
+    * Calculate the `top` and `height` CSS properties of each block dynamically using JavaScript. The `top` should be based on the appointment's start time (e.g., `start_time` - 8:00 AM) and the `height` should be based on the appointment's duration (e.g., `(end_time - start_time) / 60 * 100` for 100px per hour).
+3.  **JavaScript Logic:**
+    * **Data Structure:** Ensure your hardcoded data has `start_time` and `end_time` for each appointment and break, not just a single time slot.
+    * **Dynamic Rendering:** Modify the `renderSchedule()` function to:
+        * Iterate through the staff members.
+        * For each staff member, iterate through their appointments and breaks.
+        * For each appointment/break, calculate its position and height dynamically in pixels based on its start and end times.
+        * Create and position the HTML element for the appointment/break using the calculated values.
+    * **Click-and-Drag (Bonus):** Add an event listener to the empty schedule area. When the user clicks, start a drag operation. On `mouseup`, calculate the start and end times based on the drag's duration and position, and open the booking modal with these times pre-filled.
+
+**Final Output:**
+Provide the complete, self-contained HTML file with the revised JavaScript and CSS to create a flexible, dynamic schedule. The code should be well-commented to explain the new positioning and sizing logic.
+```
