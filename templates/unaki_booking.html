@@ -503,12 +503,55 @@
                                     <label class="form-label">Service *</label>
                                     <select id="serviceType" class="form-select" required>
                                         <option value="">Select Service</option>
-                                        <option value="Deep Cleansing Facial">Deep Cleansing Facial</option>
-                                        <option value="Swedish Massage">Swedish Massage</option>
-                                        <option value="Hair Cut & Style">Hair Cut & Style</option>
-                                        <option value="Classic Manicure">Classic Manicure</option>
-                                        <option value="Pedicure">Pedicure</option>
-                                        <option value="Waxing">Waxing</option>
+                                        <optgroup label="Facial Treatments">
+                                            <option value="Deep Cleansing Facial">Deep Cleansing Facial (90 min)</option>
+                                            <option value="Anti-Aging Facial">Anti-Aging Facial (90 min)</option>
+                                            <option value="Hydrating Facial">Hydrating Facial (60 min)</option>
+                                            <option value="Express Facial">Express Facial (45 min)</option>
+                                            <option value="Acne Treatment Facial">Acne Treatment Facial (75 min)</option>
+                                        </optgroup>
+                                        <optgroup label="Massage Therapy">
+                                            <option value="Swedish Massage">Swedish Massage (60 min)</option>
+                                            <option value="Deep Tissue Massage">Deep Tissue Massage (90 min)</option>
+                                            <option value="Hot Stone Massage">Hot Stone Massage (90 min)</option>
+                                            <option value="Sports Massage">Sports Massage (60 min)</option>
+                                            <option value="Aromatherapy Massage">Aromatherapy Massage (75 min)</option>
+                                        </optgroup>
+                                        <optgroup label="Hair Services">
+                                            <option value="Hair Cut & Style">Hair Cut & Style (75 min)</option>
+                                            <option value="Hair Wash & Blow Dry">Hair Wash & Blow Dry (45 min)</option>
+                                            <option value="Hair Color & Highlights">Hair Color & Highlights (150 min)</option>
+                                            <option value="Hair Treatment">Hair Treatment (60 min)</option>
+                                        </optgroup>
+                                        <optgroup label="Nail Care">
+                                            <option value="Classic Manicure">Classic Manicure (45 min)</option>
+                                            <option value="Gel Manicure">Gel Manicure (60 min)</option>
+                                            <option value="French Manicure">French Manicure (45 min)</option>
+                                            <option value="Spa Pedicure">Spa Pedicure (60 min)</option>
+                                            <option value="Express Pedicure">Express Pedicure (45 min)</option>
+                                        </optgroup>
+                                        <optgroup label="Body Treatments">
+                                            <option value="Body Scrub">Body Scrub (90 min)</option>
+                                            <option value="Body Wrap Treatment">Body Wrap Treatment (90 min)</option>
+                                            <option value="Cellulite Treatment">Cellulite Treatment (60 min)</option>
+                                        </optgroup>
+                                        <optgroup label="Ayurvedic Treatments">
+                                            <option value="Abhyanga Massage">Abhyanga Massage (90 min)</option>
+                                            <option value="Shirodhara Treatment">Shirodhara Treatment (60 min)</option>
+                                            <option value="Marma Point Therapy">Marma Point Therapy (60 min)</option>
+                                            <option value="Ayurvedic Consultation">Ayurvedic Consultation (30 min)</option>
+                                        </optgroup>
+                                        <optgroup label="Makeup & Styling">
+                                            <option value="Bridal Makeup Trial">Bridal Makeup Trial (120 min)</option>
+                                            <option value="Evening Makeup">Evening Makeup (60 min)</option>
+                                            <option value="Party Makeup">Party Makeup (45 min)</option>
+                                        </optgroup>
+                                        <optgroup label="Waxing Services">
+                                            <option value="Full Leg Wax">Full Leg Wax (45 min)</option>
+                                            <option value="Brazilian Wax">Brazilian Wax (45 min)</option>
+                                            <option value="Eyebrow Threading">Eyebrow Threading (15 min)</option>
+                                            <option value="Upper Lip Wax">Upper Lip Wax (15 min)</option>
+                                        </optgroup>
                                     </select>
                                 </div>
                             </div>
@@ -530,13 +573,16 @@
                                 <div class="mb-3">
                                     <label class="form-label">Duration *</label>
                                     <select id="appointmentDuration" class="form-select" required onchange="updateEndTime()">
+                                        <option value="15">15 minutes</option>
                                         <option value="30">30 minutes</option>
                                         <option value="45">45 minutes</option>
                                         <option value="60" selected>1 hour</option>
+                                        <option value="75">1 hour 15 minutes</option>
                                         <option value="90">1 hour 30 minutes</option>
                                         <option value="120">2 hours</option>
                                         <option value="150">2 hours 30 minutes</option>
                                         <option value="180">3 hours</option>
+                                        <option value="240">4 hours</option>
                                     </select>
                                 </div>
                             </div>
@@ -661,35 +707,68 @@
         function loadSampleData() {
             scheduleData = {
                 staff: [
-                    { id: 1, name: 'Sarah Johnson', role: 'Facial Specialist' },
+                    { id: 1, name: 'Sarah Johnson', role: 'Senior Facial Specialist' },
                     { id: 2, name: 'Michael Chen', role: 'Massage Therapist' },
-                    { id: 3, name: 'Emily Rodriguez', role: 'Hair Stylist' },
+                    { id: 3, name: 'Emily Rodriguez', role: 'Hair Stylist & Colorist' },
                     { id: 4, name: 'James Wilson', role: 'Nail Technician' },
-                    { id: 5, name: 'Linda Davis', role: 'Makeup Artist' }
+                    { id: 5, name: 'Linda Davis', role: 'Makeup Artist' },
+                    { id: 6, name: 'Priya Sharma', role: 'Ayurvedic Therapist' },
+                    { id: 7, name: 'Alex Thompson', role: 'Body Treatment Specialist' },
+                    { id: 8, name: 'Maria Santos', role: 'Waxing Specialist' }
                 ],
                 appointments: [
-                    // 1.5 hour appointments
-                    { id: 1, staffId: 1, clientName: 'Jessica Brown', service: 'Deep Cleansing Facial', startTime: '09:00', endTime: '10:30', duration: 90 },
+                    // Morning rush (8:00-10:00)
+                    { id: 1, staffId: 1, clientName: 'Jessica Brown', service: 'Deep Cleansing Facial', startTime: '08:00', endTime: '09:30', duration: 90 },
                     { id: 2, staffId: 2, clientName: 'Amanda White', service: 'Hot Stone Massage', startTime: '08:30', endTime: '10:00', duration: 90 },
-                    { id: 3, staffId: 5, clientName: 'Linda Anderson', service: 'Hair Cut & Color', startTime: '10:30', endTime: '12:00', duration: 90 },
+                    { id: 3, staffId: 3, clientName: 'Rachel Green', service: 'Hair Wash & Blow Dry', startTime: '08:15', endTime: '09:00', duration: 45 },
+                    { id: 4, staffId: 4, clientName: 'Robert Taylor', service: 'Express Manicure', startTime: '08:00', endTime: '08:45', duration: 45 },
+                    { id: 5, staffId: 6, clientName: 'Ananya Patel', service: 'Abhyanga Massage', startTime: '08:00', endTime: '09:30', duration: 90 },
+                    { id: 6, staffId: 7, clientName: 'Catherine Moore', service: 'Body Scrub', startTime: '08:30', endTime: '10:00', duration: 90 },
                     
-                    // 2 hour appointments
-                    { id: 4, staffId: 3, clientName: 'Maria Garcia', service: 'Full Hair Treatment', startTime: '13:00', endTime: '15:00', duration: 120 },
-                    { id: 5, staffId: 1, clientName: 'Emma Thompson', service: 'Premium Facial Package', startTime: '11:00', endTime: '13:00', duration: 120 },
+                    // Mid-morning (10:00-12:00)
+                    { id: 7, staffId: 1, clientName: 'Emma Thompson', service: 'Anti-Aging Facial', startTime: '10:00', endTime: '11:30', duration: 90 },
+                    { id: 8, staffId: 2, clientName: 'David Brown', service: 'Swedish Massage', startTime: '10:30', endTime: '11:30', duration: 60 },
+                    { id: 9, staffId: 3, clientName: 'Sophie Miller', service: 'Hair Cut & Style', startTime: '09:30', endTime: '10:45', duration: 75 },
+                    { id: 10, staffId: 4, clientName: 'Lisa Anderson', service: 'Gel Manicure', startTime: '09:15', endTime: '10:15', duration: 60 },
+                    { id: 11, staffId: 5, clientName: 'Kate Wilson', service: 'Bridal Makeup Trial', startTime: '10:00', endTime: '12:00', duration: 120 },
+                    { id: 12, staffId: 6, clientName: 'Meera Gupta', service: 'Shirodhara Treatment', startTime: '10:00', endTime: '11:00', duration: 60 },
+                    { id: 13, staffId: 7, clientName: 'Jennifer Davis', service: 'Cellulite Treatment', startTime: '10:30', endTime: '11:30', duration: 60 },
+                    { id: 14, staffId: 8, clientName: 'Hannah White', service: 'Full Leg Wax', startTime: '10:00', endTime: '10:45', duration: 45 },
                     
-                    // 45 minute appointments
-                    { id: 6, staffId: 4, clientName: 'Robert Taylor', service: 'Express Manicure', startTime: '09:00', endTime: '09:45', duration: 45 },
-                    { id: 7, staffId: 4, clientName: 'Sophie Miller', service: 'Quick Pedicure', startTime: '10:15', endTime: '11:00', duration: 45 },
+                    // Afternoon (13:00-15:00)
+                    { id: 15, staffId: 1, clientName: 'Victoria James', service: 'Hydrating Facial', startTime: '13:00', endTime: '14:00', duration: 60 },
+                    { id: 16, staffId: 2, clientName: 'Mark Johnson', service: 'Deep Tissue Massage', startTime: '13:30', endTime: '15:00', duration: 90 },
+                    { id: 17, staffId: 3, clientName: 'Maria Garcia', service: 'Hair Color & Highlights', startTime: '13:00', endTime: '15:30', duration: 150 },
+                    { id: 18, staffId: 4, clientName: 'Sarah Connor', service: 'Spa Pedicure', startTime: '13:00', endTime: '14:00', duration: 60 },
+                    { id: 19, staffId: 6, clientName: 'Ravi Kumar', service: 'Marma Point Therapy', startTime: '13:00', endTime: '14:00', duration: 60 },
+                    { id: 20, staffId: 7, clientName: 'Michelle Obama', service: 'Body Wrap Treatment', startTime: '13:30', endTime: '15:00', duration: 90 },
+                    { id: 21, staffId: 8, clientName: 'Taylor Swift', service: 'Brazilian Wax', startTime: '13:15', endTime: '14:00', duration: 45 },
                     
-                    // 30 minute appointments
-                    { id: 8, staffId: 2, clientName: 'David Brown', service: 'Consultation', startTime: '11:00', endTime: '11:30', duration: 30 },
-                    { id: 9, staffId: 5, clientName: 'Kate Wilson', service: 'Eyebrow Shaping', startTime: '14:00', endTime: '14:30', duration: 30 }
+                    // Late afternoon (15:00-16:00)
+                    { id: 22, staffId: 1, clientName: 'Grace Kelly', service: 'Express Facial', startTime: '14:30', endTime: '15:15', duration: 45 },
+                    { id: 23, staffId: 2, clientName: 'Chris Evans', service: 'Sports Massage', startTime: '15:30', endTime: '16:30', duration: 60 },
+                    { id: 24, staffId: 4, clientName: 'Natalie Portman', service: 'French Manicure', startTime: '14:30', endTime: '15:15', duration: 45 },
+                    { id: 25, staffId: 5, clientName: 'Scarlett Johansson', service: 'Evening Makeup', startTime: '15:00', endTime: '16:00', duration: 60 },
+                    { id: 26, staffId: 6, clientName: 'Deepika Singh', service: 'Ayurvedic Consultation', startTime: '14:30', endTime: '15:00', duration: 30 },
+                    { id: 27, staffId: 8, clientName: 'Emma Watson', service: 'Eyebrow Threading', startTime: '15:00', endTime: '15:15', duration: 15 }
                 ],
                 breaks: [
-                    { id: 1, staffId: 2, startTime: '12:00', endTime: '12:30', reason: 'Lunch Break' },
-                    { id: 2, staffId: 4, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' },
-                    { id: 3, staffId: 1, startTime: '13:30', endTime: '14:00', reason: 'Lunch Break' },
-                    { id: 4, staffId: 3, startTime: '12:00', endTime: '13:00', reason: 'Lunch Hour' }
+                    // Lunch breaks
+                    { id: 1, staffId: 1, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
+                    { id: 2, staffId: 2, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
+                    { id: 3, staffId: 3, startTime: '11:30', endTime: '12:30', reason: 'Lunch Break' },
+                    { id: 4, staffId: 4, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
+                    { id: 5, staffId: 5, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
+                    { id: 6, staffId: 6, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
+                    { id: 7, staffId: 7, startTime: '12:30', endTime: '13:30', reason: 'Lunch Break' },
+                    { id: 8, staffId: 8, startTime: '12:00', endTime: '13:00', reason: 'Lunch Break' },
+                    
+                    // Short breaks
+                    { id: 9, staffId: 2, startTime: '11:30', endTime: '11:45', reason: 'Coffee Break' },
+                    { id: 10, staffId: 4, startTime: '10:15', endTime: '10:30', reason: 'Equipment Setup' },
+                    { id: 11, staffId: 5, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' },
+                    { id: 12, staffId: 7, startTime: '11:30', endTime: '11:45', reason: 'Equipment Cleaning' },
+                    { id: 13, staffId: 8, startTime: '14:00', endTime: '14:15', reason: 'Coffee Break' }
                 ]
             };
 
