@@ -3,32 +3,822 @@
 
 {% block title %}Unaki Appointment Booking{% endblock %}
 
+{% block extra_head %}
+<style>
+/* Unaki Booking Specific Styles */
+.unaki-booking {
+    background: #f8f9fa;
+    min-height: 100vh;
+    padding: 20px 0;
+}
+
+.booking-header {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.schedule-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    position: relative;
+    height: 800px; /* 10 hours * 80px */
+}
+
+.staff-column {
+    border-right: 2px solid #e9ecef;
+    background: #f8f9fa;
+    position: relative;
+}
+
+.staff-header {
+    padding: 15px;
+    background: #495057;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.timeline-column {
+    position: relative;
+    background: #ffffff;
+}
+
+.time-grid {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 79px,
+        #e9ecef 79px,
+        #e9ecef 80px
+    );
+}
+
+.staff-row {
+    position: relative;
+    height: 100%;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.appointment-block {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    background: #007bff;
+    color: white;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 2;
+    border: 1px solid #0056b3;
+}
+
+.break-block {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    background: #ffc107;
+    color: #212529;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    z-index: 2;
+    border: 1px solid #d39e00;
+}
+
+.temp-appointment {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    background: rgba(0, 123, 255, 0.5);
+    border: 2px dashed #007bff;
+    border-radius: 4px;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.time-labels {
+    position: absolute;
+    left: -60px;
+    top: 0;
+    width: 50px;
+    height: 100%;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+}
+
+.time-label {
+    position: absolute;
+    right: 10px;
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: bold;
+    transform: translateY(-50%);
+}
+
+.drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    cursor: crosshair;
+}
+
+/* Modal Styling */
+.booking-modal .modal-content {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+}
+
+.booking-modal .modal-header {
+    background: #007bff;
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+
+.booking-modal .form-control {
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    padding: 10px 15px;
+}
+
+.booking-modal .btn-primary {
+    background: #007bff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+.legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 15px;
+    border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+    .schedule-grid {
+        grid-template-columns: 120px 1fr;
+    }
+    
+    .staff-header {
+        padding: 10px 5px;
+        font-size: 14px;
+    }
+    
+    .appointment-block, .break-block {
+        font-size: 11px;
+        padding: 2px 4px;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
+<div class="unaki-booking">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="booking-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
                     <h1 class="h3 mb-0">
-                        <i class="fas fa-calendar-plus me-2"></i>Unaki Appointment Booking
+                        <i class="fas fa-calendar-plus me-2 text-primary"></i>
+                        Unaki Appointment Booking
                     </h1>
-                    <p class="text-muted">Advanced appointment booking system</p>
+                    <p class="text-muted mb-0">Interactive flexible scheduling system</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex align-items-center justify-content-end gap-3">
+                        <div>
+                            <label for="scheduleDate" class="form-label mb-1 small">Schedule Date:</label>
+                            <input type="date" id="scheduleDate" class="form-control form-control-sm" />
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshSchedule()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Content will be added here in future development -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
-                    <h4 class="text-muted">Unaki Appointment Booking</h4>
-                    <p class="text-muted">This page is ready for future development</p>
+        <!-- Schedule Container -->
+        <div class="schedule-container">
+            <!-- Time Labels -->
+            <div class="time-labels">
+                <div class="time-label" style="top: 0px;">8:00 AM</div>
+                <div class="time-label" style="top: 80px;">9:00 AM</div>
+                <div class="time-label" style="top: 160px;">10:00 AM</div>
+                <div class="time-label" style="top: 240px;">11:00 AM</div>
+                <div class="time-label" style="top: 320px;">12:00 PM</div>
+                <div class="time-label" style="top: 400px;">1:00 PM</div>
+                <div class="time-label" style="top: 480px;">2:00 PM</div>
+                <div class="time-label" style="top: 560px;">3:00 PM</div>
+                <div class="time-label" style="top: 640px;">4:00 PM</div>
+                <div class="time-label" style="top: 720px;">5:00 PM</div>
+            </div>
+
+            <!-- Main Schedule Grid -->
+            <div id="scheduleGrid" class="schedule-grid">
+                <div class="staff-column">
+                    <div class="staff-header">Staff Members</div>
+                    <div id="staffList"></div>
                 </div>
+                <div class="timeline-column">
+                    <div class="time-grid"></div>
+                    <div id="appointmentGrid" class="appointment-grid"></div>
+                    <div class="drag-overlay" id="dragOverlay"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #007bff;"></div>
+                <span>Appointments</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffc107;"></div>
+                <span>Break Time</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(0, 123, 255, 0.5); border: 2px dashed #007bff;"></div>
+                <span>New Booking (Drag to Create)</span>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Booking Modal -->
+<div class="modal fade booking-modal" id="bookingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-plus me-2"></i>New Appointment
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bookingForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="clientName" class="form-label">Client Name *</label>
+                                <input type="text" class="form-control" id="clientName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="clientPhone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="clientPhone">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="serviceType" class="form-label">Service *</label>
+                                <select class="form-control" id="serviceType" required>
+                                    <option value="">Select Service</option>
+                                    <option value="facial">Facial Treatment</option>
+                                    <option value="massage">Massage Therapy</option>
+                                    <option value="manicure">Manicure</option>
+                                    <option value="pedicure">Pedicure</option>
+                                    <option value="waxing">Waxing</option>
+                                    <option value="haircut">Hair Cut</option>
+                                    <option value="coloring">Hair Coloring</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assignedStaff" class="form-label">Staff Member *</label>
+                                <select class="form-control" id="assignedStaff" required></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="startTime" class="form-label">Start Time *</label>
+                                <input type="time" class="form-control" id="startTime" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="endTime" class="form-label">End Time *</label>
+                                <input type="time" class="form-control" id="endTime" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="appointmentNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="appointmentNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="bookAppointmentBtn">
+                    <i class="fas fa-check me-1"></i>Book Appointment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Unaki Booking System JavaScript
+class UnakiBookingSystem {
+    constructor() {
+        this.staff = [];
+        this.appointments = [];
+        this.breaks = [];
+        this.isDragging = false;
+        this.dragStart = null;
+        this.dragStaffId = null;
+        this.tempBlock = null;
+
+        this.init();
+    }
+
+    init() {
+        this.seedData();
+        this.loadData();
+        this.setupEventListeners();
+        this.renderSchedule();
+        this.setCurrentDate();
+    }
+
+    seedData() {
+        const hasData = localStorage.getItem('unaki_staff') && 
+                       localStorage.getItem('unaki_appointments') && 
+                       localStorage.getItem('unaki_breaks');
+
+        if (!hasData) {
+            // Sample staff data
+            const staffData = [
+                { id: 1, name: 'Sarah Johnson', specialty: 'Facial Specialist', active: true },
+                { id: 2, name: 'Michael Chen', specialty: 'Massage Therapist', active: true },
+                { id: 3, name: 'Emily Davis', specialty: 'Hair Stylist', active: true },
+                { id: 4, name: 'James Wilson', specialty: 'Nail Technician', active: true }
+            ];
+
+            // Sample appointments
+            const appointmentData = [
+                {
+                    id: 1,
+                    staffId: 1,
+                    clientName: 'Jessica Brown',
+                    service: 'Deep Cleansing Facial',
+                    startTime: '09:00',
+                    endTime: '10:30',
+                    phone: '555-0101',
+                    notes: 'First time client'
+                },
+                {
+                    id: 2,
+                    staffId: 2,
+                    clientName: 'Robert Taylor',
+                    service: 'Swedish Massage',
+                    startTime: '10:00',
+                    endTime: '11:00',
+                    phone: '555-0102',
+                    notes: 'Prefers firm pressure'
+                },
+                {
+                    id: 3,
+                    staffId: 3,
+                    clientName: 'Linda Anderson',
+                    service: 'Hair Cut & Style',
+                    startTime: '14:00',
+                    endTime: '15:30',
+                    phone: '555-0103',
+                    notes: 'Regular client'
+                },
+                {
+                    id: 4,
+                    staffId: 1,
+                    clientName: 'David Martinez',
+                    service: 'Anti-Aging Treatment',
+                    startTime: '15:30',
+                    endTime: '16:45',
+                    phone: '555-0104',
+                    notes: 'Sensitive skin'
+                }
+            ];
+
+            // Sample breaks
+            const breakData = [
+                {
+                    id: 1,
+                    staffId: 1,
+                    reason: 'Lunch Break',
+                    startTime: '12:00',
+                    endTime: '13:00'
+                },
+                {
+                    id: 2,
+                    staffId: 2,
+                    reason: 'Lunch Break',
+                    startTime: '12:30',
+                    endTime: '13:30'
+                },
+                {
+                    id: 3,
+                    staffId: 3,
+                    reason: 'Break',
+                    startTime: '11:00',
+                    endTime: '11:15'
+                },
+                {
+                    id: 4,
+                    staffId: 4,
+                    reason: 'Lunch Break',
+                    startTime: '12:00',
+                    endTime: '13:00'
+                }
+            ];
+
+            // Save to localStorage
+            localStorage.setItem('unaki_staff', JSON.stringify(staffData));
+            localStorage.setItem('unaki_appointments', JSON.stringify(appointmentData));
+            localStorage.setItem('unaki_breaks', JSON.stringify(breakData));
+
+            console.log('Demo data seeded successfully');
+        }
+    }
+
+    loadData() {
+        try {
+            this.staff = JSON.parse(localStorage.getItem('unaki_staff') || '[]');
+            this.appointments = JSON.parse(localStorage.getItem('unaki_appointments') || '[]');
+            this.breaks = JSON.parse(localStorage.getItem('unaki_breaks') || '[]');
+        } catch (error) {
+            console.error('Error loading data:', error);
+            this.staff = [];
+            this.appointments = [];
+            this.breaks = [];
+        }
+    }
+
+    saveData() {
+        try {
+            localStorage.setItem('unaki_staff', JSON.stringify(this.staff));
+            localStorage.setItem('unaki_appointments', JSON.stringify(this.appointments));
+            localStorage.setItem('unaki_breaks', JSON.stringify(this.breaks));
+        } catch (error) {
+            console.error('Error saving data:', error);
+        }
+    }
+
+    setCurrentDate() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('scheduleDate').value = today;
+    }
+
+    timeToPixels(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const totalMinutes = (hours - 8) * 60 + minutes; // 8 AM = 0 pixels
+        return (totalMinutes / 60) * 80; // 80 pixels per hour
+    }
+
+    pixelsToTime(pixels) {
+        const totalMinutes = (pixels / 80) * 60;
+        const hours = Math.floor(totalMinutes / 60) + 8;
+        const minutes = Math.round(totalMinutes % 60);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    setupEventListeners() {
+        const dragOverlay = document.getElementById('dragOverlay');
+        const bookBtn = document.getElementById('bookAppointmentBtn');
+
+        // Mouse events for drag functionality
+        dragOverlay.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+
+        // Book appointment button
+        bookBtn.addEventListener('click', () => this.bookAppointment());
+
+        // Refresh button
+        window.refreshSchedule = () => this.renderSchedule();
+    }
+
+    handleMouseDown(e) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        
+        // Determine which staff column we're in
+        const staffIndex = Math.floor((e.clientX - rect.left) / (rect.width / this.staff.length));
+        
+        if (staffIndex >= 0 && staffIndex < this.staff.length) {
+            this.isDragging = true;
+            this.dragStart = y;
+            this.dragStaffId = this.staff[staffIndex].id;
+            
+            // Create temporary appointment block
+            this.createTempBlock(y, 0, staffIndex);
+        }
+    }
+
+    handleMouseMove(e) {
+        if (!this.isDragging || !this.tempBlock) return;
+
+        const dragOverlay = document.getElementById('dragOverlay');
+        const rect = dragOverlay.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        
+        const startY = Math.min(this.dragStart, y);
+        const height = Math.abs(y - this.dragStart);
+        
+        // Minimum 15 minutes (20 pixels)
+        const minHeight = 20;
+        const finalHeight = Math.max(height, minHeight);
+        
+        this.tempBlock.style.top = `${startY}px`;
+        this.tempBlock.style.height = `${finalHeight}px`;
+    }
+
+    handleMouseUp(e) {
+        if (!this.isDragging || !this.tempBlock) return;
+
+        const dragOverlay = document.getElementById('dragOverlay');
+        const rect = dragOverlay.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        
+        const startY = Math.min(this.dragStart, y);
+        const endY = Math.max(this.dragStart, y);
+        const height = endY - startY;
+        
+        // Minimum 15 minutes
+        if (height >= 20) {
+            const startTime = this.pixelsToTime(startY);
+            const endTime = this.pixelsToTime(endY);
+            
+            this.openBookingModal(this.dragStaffId, startTime, endTime);
+        }
+
+        // Cleanup
+        this.isDragging = false;
+        this.dragStart = null;
+        this.dragStaffId = null;
+        if (this.tempBlock) {
+            this.tempBlock.remove();
+            this.tempBlock = null;
+        }
+    }
+
+    createTempBlock(top, height, staffIndex) {
+        const appointmentGrid = document.getElementById('appointmentGrid');
+        const staffWidth = appointmentGrid.offsetWidth / this.staff.length;
+        
+        this.tempBlock = document.createElement('div');
+        this.tempBlock.className = 'temp-appointment';
+        this.tempBlock.style.position = 'absolute';
+        this.tempBlock.style.left = `${staffIndex * staffWidth + 2}px`;
+        this.tempBlock.style.width = `${staffWidth - 4}px`;
+        this.tempBlock.style.top = `${top}px`;
+        this.tempBlock.style.height = `${Math.max(height, 20)}px`;
+        
+        appointmentGrid.appendChild(this.tempBlock);
+    }
+
+    openBookingModal(staffId, startTime, endTime) {
+        const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+        
+        // Populate staff dropdown
+        const staffSelect = document.getElementById('assignedStaff');
+        staffSelect.innerHTML = '';
+        this.staff.forEach(staff => {
+            const option = document.createElement('option');
+            option.value = staff.id;
+            option.textContent = `${staff.name} - ${staff.specialty}`;
+            option.selected = staff.id === staffId;
+            staffSelect.appendChild(option);
+        });
+
+        // Set times
+        document.getElementById('startTime').value = startTime;
+        document.getElementById('endTime').value = endTime;
+
+        // Clear other fields
+        document.getElementById('clientName').value = '';
+        document.getElementById('clientPhone').value = '';
+        document.getElementById('serviceType').value = '';
+        document.getElementById('appointmentNotes').value = '';
+
+        modal.show();
+    }
+
+    bookAppointment() {
+        const form = document.getElementById('bookingForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const newAppointment = {
+            id: this.appointments.length + 1,
+            staffId: parseInt(document.getElementById('assignedStaff').value),
+            clientName: document.getElementById('clientName').value,
+            service: document.getElementById('serviceType').options[document.getElementById('serviceType').selectedIndex].text,
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value,
+            phone: document.getElementById('clientPhone').value,
+            notes: document.getElementById('appointmentNotes').value
+        };
+
+        // Check for conflicts
+        if (this.hasConflict(newAppointment)) {
+            alert('This time slot conflicts with an existing appointment or break. Please choose a different time.');
+            return;
+        }
+
+        this.appointments.push(newAppointment);
+        this.saveData();
+        this.renderSchedule();
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+        modal.hide();
+
+        // Show success message
+        this.showNotification('Appointment booked successfully!', 'success');
+    }
+
+    hasConflict(newAppointment) {
+        const newStart = this.timeToMinutes(newAppointment.startTime);
+        const newEnd = this.timeToMinutes(newAppointment.endTime);
+
+        // Check appointments
+        for (const apt of this.appointments) {
+            if (apt.staffId === newAppointment.staffId) {
+                const existingStart = this.timeToMinutes(apt.startTime);
+                const existingEnd = this.timeToMinutes(apt.endTime);
+                
+                if (newStart < existingEnd && newEnd > existingStart) {
+                    return true;
+                }
+            }
+        }
+
+        // Check breaks
+        for (const brk of this.breaks) {
+            if (brk.staffId === newAppointment.staffId) {
+                const breakStart = this.timeToMinutes(brk.startTime);
+                const breakEnd = this.timeToMinutes(brk.endTime);
+                
+                if (newStart < breakEnd && newEnd > breakStart) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    timeToMinutes(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    }
+
+    renderSchedule() {
+        this.renderStaffList();
+        this.renderAppointments();
+    }
+
+    renderStaffList() {
+        const staffList = document.getElementById('staffList');
+        const appointmentGrid = document.getElementById('appointmentGrid');
+        
+        staffList.innerHTML = '';
+        appointmentGrid.innerHTML = '';
+
+        const staffHeight = 800 / this.staff.length;
+
+        this.staff.forEach((staff, index) => {
+            // Staff name in left column
+            const staffDiv = document.createElement('div');
+            staffDiv.className = 'staff-row';
+            staffDiv.style.height = `${staffHeight}px`;
+            staffDiv.style.display = 'flex';
+            staffDiv.style.alignItems = 'center';
+            staffDiv.style.justifyContent = 'center';
+            staffDiv.style.borderBottom = '1px solid #dee2e6';
+            staffDiv.style.background = '#f8f9fa';
+            staffDiv.style.padding = '10px';
+            staffDiv.style.textAlign = 'center';
+            staffDiv.innerHTML = `
+                <div>
+                    <div style="font-weight: bold; font-size: 14px;">${staff.name}</div>
+                    <div style="font-size: 11px; color: #6c757d;">${staff.specialty}</div>
+                </div>
+            `;
+            staffList.appendChild(staffDiv);
+        });
+    }
+
+    renderAppointments() {
+        const appointmentGrid = document.getElementById('appointmentGrid');
+        const gridWidth = appointmentGrid.offsetWidth;
+        const staffWidth = gridWidth / this.staff.length;
+
+        // Render appointments
+        this.appointments.forEach(appointment => {
+            const staffIndex = this.staff.findIndex(s => s.id === appointment.staffId);
+            if (staffIndex === -1) return;
+
+            const block = document.createElement('div');
+            block.className = 'appointment-block';
+            block.style.left = `${staffIndex * staffWidth + 2}px`;
+            block.style.width = `${staffWidth - 4}px`;
+            block.style.top = `${this.timeToPixels(appointment.startTime)}px`;
+            block.style.height = `${this.timeToPixels(appointment.endTime) - this.timeToPixels(appointment.startTime)}px`;
+            
+            block.innerHTML = `
+                <div style="font-weight: bold;">${appointment.clientName}</div>
+                <div style="font-size: 11px; opacity: 0.9;">${appointment.service}</div>
+                <div style="font-size: 10px; opacity: 0.8;">${appointment.startTime} - ${appointment.endTime}</div>
+            `;
+            
+            block.title = `${appointment.clientName} - ${appointment.service}\n${appointment.startTime} - ${appointment.endTime}${appointment.phone ? '\nPhone: ' + appointment.phone : ''}${appointment.notes ? '\nNotes: ' + appointment.notes : ''}`;
+            
+            appointmentGrid.appendChild(block);
+        });
+
+        // Render breaks
+        this.breaks.forEach(breakItem => {
+            const staffIndex = this.staff.findIndex(s => s.id === breakItem.staffId);
+            if (staffIndex === -1) return;
+
+            const block = document.createElement('div');
+            block.className = 'break-block';
+            block.style.left = `${staffIndex * staffWidth + 2}px`;
+            block.style.width = `${staffWidth - 4}px`;
+            block.style.top = `${this.timeToPixels(breakItem.startTime)}px`;
+            block.style.height = `${this.timeToPixels(breakItem.endTime) - this.timeToPixels(breakItem.startTime)}px`;
+            
+            block.innerHTML = `
+                <div style="font-weight: bold;"><i class="fas fa-coffee me-1"></i>Break Time</div>
+                <div style="font-size: 11px;">${breakItem.reason}</div>
+                <div style="font-size: 10px;">${breakItem.startTime} - ${breakItem.endTime}</div>
+            `;
+            
+            block.title = `${breakItem.reason}\n${breakItem.startTime} - ${breakItem.endTime}`;
+            
+            appointmentGrid.appendChild(block);
+        });
+    }
+
+    showNotification(message, type = 'info') {
+        // Use the existing notification system if available
+        if (typeof showNotification === 'function') {
+            showNotification(message, type, 3000);
+        } else {
+            alert(message);
+        }
+    }
+}
+
+// Initialize the booking system when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    new UnakiBookingSystem();
+    console.log('Unaki Booking System initialized successfully');
+});
+</script>
 {% endblock %}
