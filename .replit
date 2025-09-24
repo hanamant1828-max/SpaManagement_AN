@@ -10,7 +10,7 @@ run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "main:app"]
 build = ["echo", "No build needed - Flask app ready to deploy"]
 
 [workflows]
-runButton = "Start Spa Management System"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start Flask App"
@@ -112,16 +112,25 @@ task = "shell.exec"
 args = "python main.py"
 
 [[workflows.workflow]]
+name = "Start Spa Management System"
+author = 47939238
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+
+[[workflows.workflow]]
 name = "Project"
 mode = "parallel"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Spa Management System"
+args = "Flask Server"
 
 [[workflows.workflow]]
-name = "Spa Management System"
+name = "Flask Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]
@@ -132,22 +141,9 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
-[[workflows.workflow]]
-name = "Start Spa Management System"
-author = 47939238
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 34287
-externalPort = 3001
 
 [agent]
 expertMode = true
