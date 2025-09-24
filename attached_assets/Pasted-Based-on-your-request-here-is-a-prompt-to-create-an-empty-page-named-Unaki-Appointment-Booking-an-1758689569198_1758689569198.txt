@@ -1,0 +1,42 @@
+Based on your request, here is a prompt to create an empty page named "Unaki Appointment Booking" and add a corresponding menu item. This prompt is structured to guide a code-generating AI through both the backend and frontend changes required.
+
+-----
+
+### Prompt to Create a New Page and Menu Item
+
+```
+Act as a senior full-stack developer specializing in Flask and Jinja2. Your task is to create a new, empty page and a new menu item for a spa management application.
+
+**Page Details:**
+* **Page Name:** "Unaki Appointment Booking"
+* **URL Endpoint:** `/unaki-booking`
+* **Content:** The page should be completely empty except for the standard page layout. It should serve as a placeholder for future development.
+
+**Menu Item Details:**
+* **Menu Item Name:** "Unaki Appointment Booking"
+* **Location:** The menu item should be added to the main navigation bar.
+
+**Instructions:**
+
+1.  **Backend (`app.py`):**
+    * Create a new Flask route at the `/unaki-booking` endpoint.
+    * The route function should be named `unaki_booking`.
+    * This function should simply render a new Jinja2 template named `unaki_booking.html`.
+
+2.  **Frontend Template (`unaki_booking.html`):**
+    * Create a new HTML file with this name.
+    * Ensure the file extends your existing base template (`base.html`) to inherit the navigation bar and overall layout.
+    * Use the `{% block title %}` and `{% block content %}` Jinja2 syntax.
+    * Set the title block to "Unaki Appointment Booking".
+    * Leave the `content` block empty.
+
+3.  **Menu Item Modification (`base.html`):**
+    * Locate the main navigation section of your `base.html` file, where menu items are defined (usually with `<ul>` and `<li>` tags).
+    * Add a new `<li>` element.
+    * Inside the new `<li>`, add an `<a>` tag.
+    * Set the `href` attribute of the `<a>` tag to the URL for the new page using Flask's `url_for` function: `{{ url_for('unaki_booking') }}`.
+    * Set the visible text of the `<a>` tag to "Unaki Appointment Booking".
+
+**Final Output:**
+Provide the complete code for the new Flask route in `app.py`, the complete code for the new `unaki_booking.html` template, and the modified section of the `base.html` file showing the newly added menu item.
+```
