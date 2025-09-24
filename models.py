@@ -170,14 +170,14 @@ class User(UserMixin, db.Model):
         """Check password against hash with fallback options"""
         if not password:
             return False
-            
+
         # Primary method: check against password_hash
         if self.password_hash:
             try:
                 return check_password_hash(self.password_hash, password)
             except Exception as e:
                 print(f"Password hash check error: {e}")
-        
+
         return False
 
     @property
@@ -439,7 +439,7 @@ class Appointment(db.Model):
 class PrepaidPackage(db.Model):
     """Prepaid credit packages - Pay X, Get Y"""
     __tablename__ = "prepaid_packages"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     actual_price = db.Column(db.Float, nullable=False)   # Price customer pays
@@ -456,7 +456,7 @@ class PrepaidPackage(db.Model):
 class ServicePackage(db.Model):
     """Service packages - Pay for X services, get Y total"""
     __tablename__ = "service_packages"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)  # Nullable for template creation
@@ -478,7 +478,7 @@ class ServicePackage(db.Model):
 class Membership(db.Model):
     """Membership packages"""
     __tablename__ = "memberships"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
@@ -494,7 +494,7 @@ class Membership(db.Model):
 class StudentOffer(db.Model):
     """Student discount offers"""
     __tablename__ = "student_offers"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     discount_percentage = db.Column(db.Float, nullable=False)  # 1-100
     valid_from = db.Column(db.Date, nullable=False)
@@ -511,7 +511,7 @@ class StudentOffer(db.Model):
 class StudentOfferService(db.Model):
     """Many-to-many relationship for student offers and services"""
     __tablename__ = 'student_offer_services'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     offer_id = db.Column(db.Integer, db.ForeignKey('student_offers.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
@@ -525,7 +525,7 @@ class StudentOfferService(db.Model):
 class YearlyMembership(db.Model):
     """Yearly membership packages"""
     __tablename__ = "yearly_memberships"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
@@ -538,7 +538,7 @@ class YearlyMembership(db.Model):
 class KittyParty(db.Model):
     """Kitty party packages"""
     __tablename__ = "kitty_parties"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
@@ -559,7 +559,7 @@ class KittyParty(db.Model):
 class MembershipService(db.Model):
     """Many-to-many relationship for memberships and services"""
     __tablename__ = 'membership_services'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     membership_id = db.Column(db.Integer, db.ForeignKey('memberships.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
@@ -573,7 +573,7 @@ class MembershipService(db.Model):
 class KittyPartyService(db.Model):
     """Many-to-many relationship for kitty parties and services"""
     __tablename__ = 'kittyparty_services'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     kittyparty_id = db.Column(db.Integer, db.ForeignKey('kitty_parties.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
@@ -593,17 +593,17 @@ class KittyPartyService(db.Model):
 class ServicePackageAssignment(db.Model):
     """Customer package assignments for new package system"""
     __tablename__ = 'service_package_assignment'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
-    
+
     # Package reference
     package_type = db.Column(db.String(20), nullable=False)  # prepaid, service_package, membership, etc.
     package_reference_id = db.Column(db.Integer, nullable=False)  # ID in respective package table
-    
+
     # Service assignment (for service packages)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
-    
+
     # Assignment details
     assigned_on = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     expires_on = db.Column(db.DateTime, nullable=True)
@@ -611,25 +611,25 @@ class ServicePackageAssignment(db.Model):
     discount = db.Column(db.Float, default=0)
     status = db.Column(db.String(20), default='active')  # active, completed, expired, cancelled
     notes = db.Column(db.Text)
-    
+
     # Service package specific fields
     total_sessions = db.Column(db.Integer, default=0)
     used_sessions = db.Column(db.Integer, default=0)
     remaining_sessions = db.Column(db.Integer, default=0)
-    
+
     # Prepaid package specific fields
     credit_amount = db.Column(db.Float, default=0)
     used_credit = db.Column(db.Float, default=0)
     remaining_credit = db.Column(db.Float, default=0)
-    
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     customer = db.relationship('Customer', backref='service_package_assignments')
     service = db.relationship('Service', backref='package_assignments')
     usage_logs = db.relationship('PackageAssignmentUsage', backref='assignment', lazy=True, cascade='all, delete-orphan')
-    
+
     def get_package_template(self):
         """Get the package template based on type and reference ID"""
         if self.package_type == 'prepaid':
@@ -645,13 +645,13 @@ class ServicePackageAssignment(db.Model):
         elif self.package_type == 'kitty_party':
             return KittyParty.query.get(self.package_reference_id)
         return None
-    
+
     def is_expired(self):
         """Check if assignment is expired"""
         if self.expires_on and self.expires_on < datetime.utcnow():
             return True
         return False
-    
+
     def auto_update_status(self):
         """Auto-update status based on usage and expiry"""
         if self.is_expired():
@@ -661,7 +661,7 @@ class ServicePackageAssignment(db.Model):
         elif self.package_type == 'prepaid' and self.remaining_credit <= 0:
             self.status = 'completed'
         return self.status
-    
+
     def __repr__(self):
         return f'<ServicePackageAssignment {self.id}: Customer {self.customer_id} - {self.package_type} {self.package_reference_id}>'
 
@@ -669,29 +669,29 @@ class ServicePackageAssignment(db.Model):
 class PackageAssignmentUsage(db.Model):
     """Usage log for package assignments"""
     __tablename__ = 'package_assignment_usage'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey('service_package_assignment.id'), nullable=False)
     usage_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+
     # Usage details
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
     sessions_used = db.Column(db.Integer, default=0)
     credit_used = db.Column(db.Float, default=0)
-    
+
     # Staff and appointment references
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=True)
-    
+
     change_type = db.Column(db.String(20), default='use')  # use, refund, adjust
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     service = db.relationship('Service', backref='assignment_usage_logs')
     staff = db.relationship('User', backref='assignment_staff_usage_logs')
     appointment = db.relationship('Appointment', backref='assignment_appointment_usage_logs')
-    
+
     def __repr__(self):
         return f'<PackageAssignmentUsage {self.id}: Assignment {self.assignment_id} - {self.change_type}>'
 
@@ -702,7 +702,7 @@ class PackageAssignmentUsage(db.Model):
 class PackageTemplate(db.Model):
     """Template for package definitions"""
     __tablename__ = 'package_template'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
@@ -711,11 +711,11 @@ class PackageTemplate(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     template_items = db.relationship('PackageTemplateItem', backref='package_template', lazy=True, cascade='all, delete-orphan')
     customer_packages = db.relationship('CustomerPackage', backref='package_template', lazy=True)
-    
+
     def __repr__(self):
         return f'<PackageTemplate {self.name}>'
 
@@ -723,16 +723,16 @@ class PackageTemplate(db.Model):
 class PackageTemplateItem(db.Model):
     """Components per service for package templates"""
     __tablename__ = 'package_template_item'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     package_id = db.Column(db.Integer, db.ForeignKey('package_template.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     qty = db.Column(db.Integer, nullable=False)  # For value-type packages, omit items
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     service = db.relationship('Service', backref='package_template_items')
-    
+
     def __repr__(self):
         return f'<PackageTemplateItem Package:{self.package_id} Service:{self.service_id} Qty:{self.qty}>'
 
@@ -740,7 +740,7 @@ class PackageTemplateItem(db.Model):
 class CustomerPackage(db.Model):
     """Customer package assignments"""
     __tablename__ = 'customer_package'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)  # FK to client table
     package_id = db.Column(db.Integer, db.ForeignKey('package_template.id'), nullable=False)
@@ -752,29 +752,29 @@ class CustomerPackage(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     customer = db.relationship('Customer', backref='customer_packages')  # Customer model uses 'client' table
     package_items = db.relationship('CustomerPackageItem', backref='customer_package', lazy=True, cascade='all, delete-orphan')
     usage_logs = db.relationship('PackageUsage', backref='customer_package', lazy=True)
-    
+
     # Indexes
     __table_args__ = (
         db.Index('ix_customer_package_customer_status', 'customer_id', 'status'),
     )
-    
+
     def get_total_services(self):
         """Get total services count"""
         return sum(item.total_qty for item in self.package_items)
-    
+
     def get_used_services(self):
         """Get used services count"""
         return sum(item.used_qty for item in self.package_items)
-    
+
     def get_remaining_services(self):
         """Get remaining services count"""
         return sum(item.get_remaining_qty() for item in self.package_items)
-    
+
     def get_usage_percentage(self):
         """Get usage percentage"""
         total = self.get_total_services()
@@ -782,13 +782,13 @@ class CustomerPackage(db.Model):
             return 0
         used = self.get_used_services()
         return round((used / total) * 100, 2)
-    
+
     def is_expired(self):
         """Check if package is expired"""
         if self.expires_on and self.expires_on < datetime.utcnow():
             return True
         return False
-    
+
     def auto_update_status(self):
         """Auto-update status based on usage and expiry"""
         if self.is_expired():
@@ -796,7 +796,7 @@ class CustomerPackage(db.Model):
         elif self.get_remaining_services() == 0:
             self.status = 'completed'
         return self.status
-    
+
     def __repr__(self):
         return f'<CustomerPackage {self.id}: Customer {self.customer_id} - Package {self.package_id}>'
 
@@ -804,7 +804,7 @@ class CustomerPackage(db.Model):
 class CustomerPackageItem(db.Model):
     """Per-service balances for customer packages"""
     __tablename__ = 'customer_package_item'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     customer_package_id = db.Column(db.Integer, db.ForeignKey('customer_package.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
@@ -812,25 +812,25 @@ class CustomerPackageItem(db.Model):
     used_qty = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     service = db.relationship('Service', backref='customer_package_items')
     usage_logs = db.relationship('PackageUsage', backref='customer_package_item', lazy=True)
-    
+
     # Indexes
     __table_args__ = (
         db.Index('ix_customer_package_item_package', 'customer_package_id'),
         db.Index('ix_customer_package_item_service', 'service_id'),
     )
-    
+
     def get_remaining_qty(self):
         """Get remaining quantity (computed)"""
         return max(self.total_qty - self.used_qty, 0)
-    
+
     def can_use(self, qty):
         """Check if can use specified quantity"""
         return self.get_remaining_qty() >= qty
-    
+
     def use_services(self, qty):
         """Use services and update used_qty"""
         if self.can_use(qty):
@@ -838,7 +838,7 @@ class CustomerPackageItem(db.Model):
             self.updated_at = datetime.utcnow()
             return True
         return False
-    
+
     def refund_services(self, qty):
         """Refund services and update used_qty"""
         if self.used_qty >= qty:
@@ -846,7 +846,7 @@ class CustomerPackageItem(db.Model):
             self.updated_at = datetime.utcnow()
             return True
         return False
-    
+
     def adjust_services(self, qty):
         """Adjust total quantity"""
         new_total = self.total_qty + qty
@@ -855,7 +855,7 @@ class CustomerPackageItem(db.Model):
             self.updated_at = datetime.utcnow()
             return True
         return False
-    
+
     def __repr__(self):
         return f'<CustomerPackageItem {self.id}: Package {self.customer_package_id} - Service {self.service_id} ({self.used_qty}/{self.total_qty})>'
 
@@ -863,7 +863,7 @@ class CustomerPackageItem(db.Model):
 class PackageUsage(db.Model):
     """Audit log for package usage"""
     __tablename__ = 'package_usage'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     customer_package_id = db.Column(db.Integer, db.ForeignKey('customer_package.id'), nullable=False)
     customer_package_item_id = db.Column(db.Integer, db.ForeignKey('customer_package_item.id'), nullable=True)
@@ -875,19 +875,19 @@ class PackageUsage(db.Model):
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=True)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     service = db.relationship('Service', backref='package_usage_logs')
     staff = db.relationship('User', backref='staff_package_usage_logs')
     appointment = db.relationship('Appointment', backref='appointment_package_usage_logs')
-    
+
     # Indexes
     __table_args__ = (
         db.Index('ix_package_usage_customer_package', 'customer_package_id'),
         db.Index('ix_package_usage_service', 'service_id'),
         db.Index('ix_package_usage_date', 'usage_date'),
     )
-    
+
     def __repr__(self):
         return f'<PackageUsage {self.id}: {self.change_type} {self.qty} - Package {self.customer_package_id}>'
 
@@ -919,7 +919,7 @@ class Invoice(db.Model):
     discount_amount = db.Column(db.Float, default=0.0)
     tips_amount = db.Column(db.Float, default=0.0)
     total_amount = db.Column(db.Float, nullable=False)
-    payment_status = db.Column(db.String(20), default='pending')  # pending, paid, overdue
+    payment_status = db.Column(db.String(20), default='pending')  # pending, paid, partial
     payment_method = db.Column(db.String(20))  # cash, card, online
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -1001,17 +1001,18 @@ class InvoiceItem(db.Model):
 # Unaki Booking System Models
 class UnakiStaff(db.Model):
     __tablename__ = 'unaki_staff'
-    
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     specialty = db.Column(db.String(100), nullable=False)
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     appointments = db.relationship('UnakiAppointment', backref='staff_member', lazy=True)
     breaks = db.relationship('UnakiBreak', backref='staff_member', lazy=True)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1022,14 +1023,15 @@ class UnakiStaff(db.Model):
 
 class UnakiStaff(db.Model):
     __tablename__ = 'unaki_staff'
-    
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     specialization = db.Column(db.String(100))
     color = db.Column(db.String(20), default='#007bff')
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1041,7 +1043,7 @@ class UnakiStaff(db.Model):
 
 class UnakiAppointment(db.Model):
     __tablename__ = 'unaki_appointments'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
     client_name = db.Column(db.String(100), nullable=False)
@@ -1052,7 +1054,7 @@ class UnakiAppointment(db.Model):
     notes = db.Column(db.Text)
     appointment_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1068,7 +1070,8 @@ class UnakiAppointment(db.Model):
 
 class UnakiBreak(db.Model):
     __tablename__ = 'unaki_breaks'
-    
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
     break_type = db.Column(db.String(50), nullable=False)
@@ -1077,7 +1080,7 @@ class UnakiBreak(db.Model):
     break_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1091,7 +1094,8 @@ class UnakiBreak(db.Model):
 
 class UnakiBreak(db.Model):
     __tablename__ = 'unaki_breaks'
-    
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
     reason = db.Column(db.String(100), nullable=False)
@@ -1099,7 +1103,7 @@ class UnakiBreak(db.Model):
     end_time = db.Column(db.DateTime, nullable=False)
     break_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1182,44 +1186,44 @@ class StaffSchedule(db.Model):
 class PackageBenefitTracker(db.Model):
     """Tracks all package benefits and usage with billing integration"""
     __tablename__ = 'package_benefit_tracker'
-    
+
     id = db.Column(db.Integer, primary_key=True)
-    
+
     # Customer and package references
     customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     package_assignment_id = db.Column(db.Integer, db.ForeignKey('service_package_assignment.id'), nullable=False)
-    
+
     # Service benefit details
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)  # NULL for prepaid packages
     benefit_type = db.Column(db.String(20), nullable=False)  # 'free', 'discount', 'prepaid', 'unlimited'
-    
+
     # Usage tracking for limited benefits
     total_allocated = db.Column(db.Integer, default=0)  # Total sessions/uses allocated
     used_count = db.Column(db.Integer, default=0)  # Used sessions/uses
     remaining_count = db.Column(db.Integer, default=0)  # Remaining sessions/uses (NULL for unlimited)
-    
+
     # Monetary tracking for prepaid benefits
     balance_total = db.Column(db.Float, default=0.0)  # Total prepaid balance
     balance_used = db.Column(db.Float, default=0.0)  # Used prepaid balance
     balance_remaining = db.Column(db.Float, default=0.0)  # Remaining prepaid balance
-    
+
     # Discount tracking
     discount_percentage = db.Column(db.Float, default=0.0)  # Discount percentage for discount packages
-    
+
     # Status and validity
     is_active = db.Column(db.Boolean, default=True)
     valid_from = db.Column(db.DateTime, nullable=False)
     valid_to = db.Column(db.DateTime, nullable=False)
-    
+
     # Audit fields
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     customer = db.relationship('Customer', backref='package_benefits')
     service = db.relationship('Service', backref='package_benefits')
     package_assignment = db.relationship('ServicePackageAssignment', backref='benefit_trackers')
-    
+
     # Indexes for performance
     __table_args__ = (
         db.Index('ix_package_benefit_customer_service_active', 'customer_id', 'service_id', 'is_active'),
@@ -1229,50 +1233,50 @@ class PackageBenefitTracker(db.Model):
 class PackageUsageHistory(db.Model):
     """Comprehensive usage history with billing integration and idempotency"""
     __tablename__ = 'package_usage_history'
-    
+
     id = db.Column(db.Integer, primary_key=True)
-    
+
     # References
     customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     package_benefit_id = db.Column(db.Integer, db.ForeignKey('package_benefit_tracker.id'), nullable=False)
     invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=True)
     invoice_item_id = db.Column(db.Integer, db.ForeignKey('invoice_item.id'), nullable=True)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
-    
+
     # Idempotency and concurrency control
     idempotency_key = db.Column(db.String(100), unique=True, nullable=False)  # invoice_id + line_id
-    
+
     # Usage details
     benefit_type = db.Column(db.String(20), nullable=False)  # 'free', 'discount', 'prepaid', 'unlimited'
     qty_deducted = db.Column(db.Integer, default=0)  # Sessions used
     amount_deducted = db.Column(db.Float, default=0.0)  # Monetary amount deducted (for prepaid)
     discount_applied = db.Column(db.Float, default=0.0)  # Discount amount applied
-    
+
     # Balance tracking after this transaction
     balance_after_qty = db.Column(db.Integer, default=0)  # Remaining sessions after this use
     balance_after_amount = db.Column(db.Float, default=0.0)  # Remaining balance after this use
-    
+
     # Transaction details
     transaction_type = db.Column(db.String(20), default='use')  # 'use', 'refund', 'void', 'adjustment'
     reversal_reference_id = db.Column(db.Integer, db.ForeignKey('package_usage_history.id'), nullable=True)  # For reversals
-    
+
     # Priority and rule tracking
     applied_rule = db.Column(db.String(50))  # Which priority rule was used (auto/manual)
     staff_override = db.Column(db.Boolean, default=False)  # Was this a manual staff override?
     applied_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
+
     # Audit fields
     charge_date = db.Column(db.DateTime, nullable=False)  # Date of service/charge
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     customer = db.relationship('Customer', backref='package_usage_history')
     package_benefit = db.relationship('PackageBenefitTracker', backref='usage_history')
     service = db.relationship('Service', backref='package_usage_history')
     applied_by_user = db.relationship('User', backref='package_usage_applications')
     reversal_reference = db.relationship('PackageUsageHistory', remote_side=[id], backref='reversed_by')
-    
+
     # Indexes for performance and integrity
     __table_args__ = (
         db.Index('ix_package_usage_customer_date', 'customer_id', 'charge_date'),
