@@ -198,6 +198,9 @@ try:
 except Exception as e:
     print(f"Error registering packages blueprint: {e}")
 
+# Import routes.py removed due to route conflicts
+# Adding specific missing routes instead
+
 # Import all views to register routes
 from modules.auth.auth_views import *
 from modules.dashboard.dashboard_views import *
@@ -218,6 +221,12 @@ from modules.packages.membership_views import *
 from modules.packages.professional_packages_views import *
 
 # Missing route endpoints to fix template BuildErrors
+@app.route('/unaki-booking')
+@login_required
+def unaki_booking():
+    """Unaki Appointment Booking page"""
+    return render_template('unaki_booking.html')
+
 @app.route('/system_management')
 @login_required
 def system_management():
