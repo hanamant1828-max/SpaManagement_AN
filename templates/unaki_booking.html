@@ -218,23 +218,35 @@
 
     <!-- Bootstrap JS with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Firebase Libraries -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        setLogLevel('debug');
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let app, db, auth, userId;
-        let isAuthReady = false;
-
-        const collectionPath = `artifacts/${appId}/public/data/unaki-schedule`;
+    <!-- Local Storage Implementation -->
+    <script>
+        // Simple localStorage-based data management
+        const STORAGE_KEY_PREFIX = 'unaki-schedule-';
+        
+        function getStorageKey(date) {
+            return STORAGE_KEY_PREFIX + date;
+        }
+        
+        function saveToLocalStorage(date, data) {
+            try {
+                localStorage.setItem(getStorageKey(date), JSON.stringify(data));
+                console.log('Data saved to localStorage for date:', date);
+                return true;
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+                return false;
+            }
+        }
+        
+        function loadFromLocalStorage(date) {
+            try {
+                const data = localStorage.getItem(getStorageKey(date));
+                return data ? JSON.parse(data) : null;
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+                return null;
+            }
+        }
 
         class UnakiBookingSystem {
             constructor() {
@@ -246,78 +258,67 @@
                 this.dragStaffIndex = null;
                 this.tempBlock = null;
                 this.currentDate = new Date().toISOString().split('T')[0];
-                this.firestoreListener = null;
 
                 this.init();
             }
 
             async init() {
                 try {
-                    app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-                    console.log('Firebase initialized.');
-                    this.setupAuthListener();
+                    console.log('Unaki Booking System initialized successfully');
                     this.setupEventListeners();
                     this.setCurrentDate();
+                    this.loadScheduleData();
                 } catch (error) {
-                    console.error("Error initializing Firebase:", error);
-                    this.showNotification("Error initializing Firebase. Please check the console for details.", 'error');
+                    console.error("Error initializing Unaki Booking System:", error);
+                    this.showNotification("Error initializing booking system. Please check the console for details.", 'error');
                 }
-            }
-            
-            setupAuthListener() {
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        isAuthReady = true;
-                        document.getElementById('userIdDisplay').textContent = `User ID: ${userId}`;
-                        console.log('User signed in:', userId);
-                        this.loadScheduleData();
-                    } else {
-                        isAuthReady = true;
-                        console.log("No user signed in. Attempting anonymous sign-in.");
-                        try {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                            } else {
-                                await signInAnonymously(auth);
-                            }
-                        } catch (error) {
-                            console.error("Error signing in:", error);
-                            this.showNotification("Error signing in. Some features may not work.", 'error');
-                        }
-                    }
-                });
             }
 
             async loadScheduleData() {
-                if (!isAuthReady) {
-                    console.log('Waiting for authentication to be ready...');
-                    return;
-                }
-
+                console.log('Loading schedule data for:', this.currentDate);
                 this.showLoading(true);
-                const docRef = doc(db, collectionPath, this.currentDate);
 
-                if (this.firestoreListener) {
-                    this.firestoreListener();
-                }
-
-                this.firestoreListener = onSnapshot(docRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        this.staff = data.staff || [];
-                        this.appointments = data.appointments || [];
-                        this.breaks = data.breaks || [];
-                        console.log('Schedule data loaded from Firestore:', {
-                            staff: this.staff.length,
-                            appointments: this.appointments.length,
-                            breaks: this.breaks.length
-                        });
-                        this.renderSchedule();
-                        this.showNotification('Schedule updated successfully.', 'success', 2000);
-                    } else {
+                // Try to load from localStorage first
+                const localData = loadFromLocalStorage(this.currentDate);
+                if (localData) {
+                    this.staff = localData.staff || [];
+                    this.appointments = localData.appointments || [];
+                    this.breaks = localData.breaks || [];
+                    console.log('Schedule data loaded:', {
+                        staff: this.staff.length,
+                        appointments: this.appointments.length,
+                        breaks: this.breaks.length
+                    });
+                    this.renderSchedule();
+                    this.showNotification('Schedule loaded from local storage.', 'success', 2000);
+                } else {
+                    // Try to load from Flask API if localStorage is empty
+                    try {
+                        const response = await fetch(`/api/unaki/schedule/${this.currentDate}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.staff = data.staff || [];
+                                this.appointments = data.appointments || [];
+                                this.breaks = data.breaks || [];
+                                
+                                // Save to localStorage for future use
+                                this.saveScheduleData();
+                                
+                                console.log('Schedule data loaded from API:', {
+                                    staff: this.staff.length,
+                                    appointments: this.appointments.length,
+                                    breaks: this.breaks.length
+                                });
+                                this.renderSchedule();
+                                this.showNotification('Schedule loaded from server.', 'success', 2000);
+                            } else {
+                                throw new Error(data.error || 'Failed to load schedule');
+                            }
+                        } else {
+                            throw new Error('Server error');
+                        }
+                    } catch (error) {
                         console.log("No schedule found for this date. Displaying empty grid.");
                         this.staff = [];
                         this.appointments = [];
@@ -325,12 +326,18 @@
                         this.renderSchedule();
                         this.showNotification('No schedule found for this date. Use "Load Sample Data" to begin.', 'info', 5000);
                     }
-                    this.showLoading(false);
-                }, (error) => {
-                    console.error("Error fetching schedule data:", error);
-                    this.showNotification("Error fetching schedule data. Check console for details.", 'error');
-                    this.showLoading(false);
-                });
+                }
+                this.showLoading(false);
+            }
+
+            saveScheduleData() {
+                const data = {
+                    staff: this.staff,
+                    appointments: this.appointments,
+                    breaks: this.breaks,
+                    lastUpdated: new Date().toISOString()
+                };
+                saveToLocalStorage(this.currentDate, data);
             }
 
             showLoading(show) {
@@ -374,7 +381,6 @@
 
             async seedSampleData() {
                 this.showLoading(true);
-                const docRef = doc(db, collectionPath, this.currentDate);
 
                 const sampleData = {
                     staff: [
@@ -396,16 +402,29 @@
                         { staffId: 2, reason: 'Quick Break', startTime: '15:00', endTime: '15:15' },
                         { staffId: 3, reason: 'Lunch Break', startTime: '13:00', endTime: '13:30' },
                         { staffId: 5, reason: 'Out of Office', startTime: '12:00', endTime: '14:00' }
-                    ]
+                    ],
+                    lastUpdated: new Date().toISOString()
                 };
 
                 try {
-                    await setDoc(docRef, sampleData);
-                    console.log('Sample data seeded successfully.');
-                    this.showNotification('Sample data loaded!', 'success');
+                    // Save to localStorage
+                    if (saveToLocalStorage(this.currentDate, sampleData)) {
+                        // Update current data
+                        this.staff = sampleData.staff;
+                        this.appointments = sampleData.appointments;
+                        this.breaks = sampleData.breaks;
+                        
+                        // Re-render the schedule
+                        this.renderSchedule();
+                        
+                        console.log('Sample data loaded successfully.');
+                        this.showNotification('Sample data loaded!', 'success');
+                    } else {
+                        throw new Error('Failed to save to localStorage');
+                    }
                 } catch (error) {
-                    console.error('Error seeding sample data:', error);
-                    this.showNotification('Error seeding sample data: ' + error.message, 'error');
+                    console.error('Error loading sample data:', error);
+                    this.showNotification('Error loading sample data: ' + error.message, 'error');
                 } finally {
                     this.showLoading(false);
                 }
@@ -533,25 +552,41 @@
                         startTime: document.getElementById('startTime').value,
                         endTime: document.getElementById('endTime').value,
                         clientPhone: document.getElementById('clientPhone').value,
-                        notes: document.getElementById('appointmentNotes').value
+                        notes: document.getElementById('appointmentNotes').value,
+                        date: this.currentDate
                     };
 
-                    const docRef = doc(db, collectionPath, this.currentDate);
-                    const docSnap = await getDoc(docRef);
+                    console.log('Sending appointment data:', appointmentData);
 
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        const existingAppointments = data.appointments || [];
-                        await setDoc(docRef, {
-                            appointments: [...existingAppointments, appointmentData]
-                        }, { merge: true });
-                    } else {
-                        await setDoc(docRef, {
-                            appointments: [appointmentData],
-                            staff: this.staff,
-                            breaks: this.breaks
+                    // Try to save to Flask API first
+                    try {
+                        const response = await fetch('/api/unaki/appointments', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(appointmentData)
                         });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('Appointment saved to database:', result);
+                        } else {
+                            const errorData = await response.json();
+                            console.log('API error:', errorData);
+                            // Continue to save locally even if API fails
+                        }
+                    } catch (apiError) {
+                        console.log('API request failed, saving locally only:', apiError);
                     }
+
+                    // Always save to localStorage
+                    this.appointments.push(appointmentData);
+                    this.saveScheduleData();
+                    
+                    // Re-render the schedule
+                    this.renderSchedule();
+                    
                     console.log('Appointment booked successfully.');
                     this.showNotification('Appointment booked successfully!', 'success');
                     this.closeBookingModal();
@@ -561,6 +596,25 @@
                 } finally {
                     bookBtn.disabled = false;
                     bookBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Book Appointment';
+                }
+            }
+
+            closeBookingModal() {
+                const modal = document.getElementById('bookingModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                
+                // Clear form fields
+                document.getElementById('clientName').value = '';
+                document.getElementById('clientPhone').value = '';
+                document.getElementById('serviceType').value = '';
+                document.getElementById('appointmentNotes').value = '';
+            }
+
+            setCurrentDate() {
+                const dateInput = document.getElementById('scheduleDate');
+                if (dateInput) {
+                    dateInput.value = this.currentDate;
                 }
             }
 
