@@ -17,6 +17,7 @@ class UnakiAPITester:
     def __init__(self):
         self.session = requests.Session()
         self.test_results = []
+        self.authenticated = False
         
     def log_test(self, test_name, success, message):
         """Log test results"""
@@ -28,24 +29,79 @@ class UnakiAPITester:
             'message': message
         })
     
+    def login(self):
+        """Attempt to login with default admin credentials"""
+        try:
+            # First get the login page to establish session
+            login_page = self.session.get(f"{BASE_URL}/login")
+            if login_page.status_code != 200:
+                self.log_test("Login", False, f"Cannot access login page: {login_page.status_code}")
+                return False
+            
+            # Attempt login with default admin credentials
+            login_data = {
+                'username': 'admin',
+                'password': 'admin123'
+            }
+            
+            response = self.session.post(f"{BASE_URL}/login", data=login_data, allow_redirects=False)
+            
+            # Check if login was successful (usually returns a redirect)
+            if response.status_code in [200, 302]:
+                # Check if we can access a protected endpoint
+                dashboard_response = self.session.get(f"{BASE_URL}/dashboard")
+                if dashboard_response.status_code == 200 and 'login' not in dashboard_response.url:
+                    self.authenticated = True
+                    self.log_test("Login", True, "Successfully authenticated")
+                    return True
+            
+            self.log_test("Login", False, "Authentication failed - check credentials")
+            return False
+            
+        except Exception as e:
+            self.log_test("Login", False, f"Login error: {str(e)}")
+            return False
+    
     def test_health_check(self):
         """Test basic server connectivity"""
         try:
+            # Try the health endpoint first
             response = self.session.get(f"{BASE_URL}/health")
             if response.status_code == 200:
                 self.log_test("Health Check", True, "Server is running")
                 return True
-            else:
-                self.log_test("Health Check", False, f"Server returned {response.status_code}")
-                return False
+            
+            # If health endpoint fails, try ping endpoint
+            response = self.session.get(f"{BASE_URL}/ping")
+            if response.status_code == 200:
+                self.log_test("Health Check", True, "Server is running (ping endpoint)")
+                return True
+            
+            # If both fail, try root endpoint
+            response = self.session.get(f"{BASE_URL}/")
+            if response.status_code in [200, 302]:  # 302 is redirect which is also good
+                self.log_test("Health Check", True, "Server is running (root endpoint)")
+                return True
+            
+            self.log_test("Health Check", False, f"Server returned {response.status_code}")
+            return False
+            
         except requests.exceptions.ConnectionError:
             self.log_test("Health Check", False, "Cannot connect to server")
+            return False
+        except Exception as e:
+            self.log_test("Health Check", False, f"Unexpected error: {str(e)}")
             return False
     
     def test_get_staff(self):
         """Test Case 1: Fetching Staff Data"""
         try:
             response = self.session.get(f"{API_BASE}/staff")
+            
+            # Check if we need authentication
+            if response.status_code == 401 or (response.status_code == 302 and 'login' in response.headers.get('Location', '')):
+                self.log_test("Get Staff", False, "Authentication required")
+                return False, None
             
             if response.status_code == 200:
                 data = response.json()
@@ -285,7 +341,13 @@ class UnakiAPITester:
             print("\n❌ Server is not running. Please start the Flask application first.")
             return False
         
-        # Test 2: Load sample data first
+        # Test 2: Authentication
+        print("\n🔐 Testing authentication...")
+        if not self.login():
+            print("\n⚠️  Authentication failed. Some tests may not work properly.")
+            print("   Make sure admin user exists with username 'admin' and password 'admin123'")
+        
+        # Test 3: Load sample data first
         print("\n📊 Loading sample data...")
         self.test_load_sample_data()
         
