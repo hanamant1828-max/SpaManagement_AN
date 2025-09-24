@@ -525,16 +525,16 @@
                             `${Math.floor(duration / 60)}h ${duration % 60 > 0 ? duration % 60 + 'm' : ''}`.trim() :
                             `${duration}m`;
                         
-                        // Calculate how many slots this appointment spans
+                        // Calculate how many slots this appointment spans horizontally
                         const slotsSpanned = Math.ceil(duration / 60);
                         
-                        // Calculate the actual height needed to span multiple slots
-                        // Each slot is 60px + 1px border, so we need to account for the gaps
-                        const slotHeight = 60; // Base height of each time slot
-                        const totalHeight = (slotsSpanned * slotHeight) + ((slotsSpanned - 1) * 1); // Add border spacing
+                        // Calculate the width to span multiple time columns
+                        // Each slot has width from grid-template-columns: repeat(8, 1fr), so 1fr each
+                        // We need to span across multiple columns, accounting for borders
+                        const totalWidth = `calc(${slotsSpanned * 100}% + ${(slotsSpanned - 1)}px)`;
                         
                         timeSlot.innerHTML = `
-                            <div class="appointment-block" style="height: ${totalHeight}px; z-index: 10; position: absolute; top: 2px; left: 2px; right: 2px;">
+                            <div class="appointment-block" style="width: ${totalWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
                                 <div class="appointment-client">${appointment.clientName}</div>
                                 <div class="appointment-service">${appointment.service}</div>
                                 <div class="appointment-duration" style="font-size: 10px; opacity: 0.8;">${durationText}</div>
@@ -566,12 +566,11 @@
                         
                         const breakSlotsSpanned = Math.ceil(breakDuration / 60);
                         
-                        // Calculate the actual height for break blocks
-                        const slotHeight = 60;
-                        const totalBreakHeight = (breakSlotsSpanned * slotHeight) + ((breakSlotsSpanned - 1) * 1);
+                        // Calculate the width to span multiple time columns horizontally
+                        const totalBreakWidth = `calc(${breakSlotsSpanned * 100}% + ${(breakSlotsSpanned - 1)}px)`;
                         
                         timeSlot.innerHTML = `
-                            <div class="break-block" style="height: ${totalBreakHeight}px; z-index: 10; position: absolute; top: 2px; left: 2px; right: 2px;">
+                            <div class="break-block" style="width: ${totalBreakWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
                                 <i class="fas fa-coffee me-1"></i>Break
                             </div>
                         `;
