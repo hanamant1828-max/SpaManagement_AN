@@ -996,6 +996,78 @@ class InvoiceItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=False)
 
+
+
+# Unaki Booking System Models
+class UnakiStaff(db.Model):
+    __tablename__ = 'unaki_staff'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    specialty = db.Column(db.String(100), nullable=False)
+    active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    appointments = db.relationship('UnakiAppointment', backref='staff_member', lazy=True)
+    breaks = db.relationship('UnakiBreak', backref='staff_member', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'specialty': self.specialty,
+            'active': self.active
+        }
+
+class UnakiAppointment(db.Model):
+    __tablename__ = 'unaki_appointments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
+    client_name = db.Column(db.String(100), nullable=False)
+    service = db.Column(db.String(100), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    phone = db.Column(db.String(20))
+    notes = db.Column(db.Text)
+    appointment_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'staffId': self.staff_id,
+            'clientName': self.client_name,
+            'service': self.service,
+            'startTime': self.start_time.strftime('%H:%M'),
+            'endTime': self.end_time.strftime('%H:%M'),
+            'phone': self.phone,
+            'notes': self.notes,
+            'appointmentDate': self.appointment_date.strftime('%Y-%m-%d')
+        }
+
+class UnakiBreak(db.Model):
+    __tablename__ = 'unaki_breaks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('unaki_staff.id'), nullable=False)
+    reason = db.Column(db.String(100), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    break_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'staffId': self.staff_id,
+            'reason': self.reason,
+            'startTime': self.start_time.strftime('%H:%M'),
+            'endTime': self.end_time.strftime('%H:%M'),
+            'breakDate': self.break_date.strftime('%Y-%m-%d')
+        }
+
     # Item details
     item_type = db.Column(db.String(20), nullable=False)  # service, package_service, inventory, subscription
     item_id = db.Column(db.Integer)  # ID of service/inventory item

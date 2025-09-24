@@ -188,6 +188,19 @@
     border-radius: 3px;
 }
 
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
 @media (max-width: 768px) {
     .schedule-grid {
         grid-template-columns: 120px 1fr;
@@ -223,10 +236,13 @@
                     <div class="d-flex align-items-center justify-content-end gap-3">
                         <div>
                             <label for="scheduleDate" class="form-label mb-1 small">Schedule Date:</label>
-                            <input type="date" id="scheduleDate" class="form-control form-control-sm" />
+                            <input type="date" id="scheduleDate" class="form-control form-control-sm" onchange="loadScheduleForDate()" />
                         </div>
                         <button class="btn btn-outline-primary btn-sm" onclick="refreshSchedule()">
                             <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="seedSampleData()" id="seedDataBtn">
+                            <i class="fas fa-database me-1"></i>Load Sample Data
                         </button>
                     </div>
                 </div>
@@ -235,6 +251,16 @@
 
         <!-- Schedule Container -->
         <div class="schedule-container">
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading schedule...</p>
+                </div>
+            </div>
+
             <!-- Time Labels -->
             <div class="time-labels">
                 <div class="time-label" style="top: 0px;">8:00 AM</div>
@@ -361,7 +387,7 @@
 </div>
 
 <script>
-// Unaki Booking System JavaScript
+// Unaki Booking System JavaScript - Backend Integrated Version
 class UnakiBookingSystem {
     constructor() {
         this.staff = [];
@@ -371,143 +397,56 @@ class UnakiBookingSystem {
         this.dragStart = null;
         this.dragStaffId = null;
         this.tempBlock = null;
+        this.currentDate = new Date().toISOString().split('T')[0];
 
         this.init();
     }
 
     init() {
-        this.seedData();
-        this.loadData();
         this.setupEventListeners();
-        this.renderSchedule();
         this.setCurrentDate();
-    }
-
-    seedData() {
-        const hasData = localStorage.getItem('unaki_staff') && 
-                       localStorage.getItem('unaki_appointments') && 
-                       localStorage.getItem('unaki_breaks');
-
-        if (!hasData) {
-            // Sample staff data
-            const staffData = [
-                { id: 1, name: 'Sarah Johnson', specialty: 'Facial Specialist', active: true },
-                { id: 2, name: 'Michael Chen', specialty: 'Massage Therapist', active: true },
-                { id: 3, name: 'Emily Davis', specialty: 'Hair Stylist', active: true },
-                { id: 4, name: 'James Wilson', specialty: 'Nail Technician', active: true }
-            ];
-
-            // Sample appointments
-            const appointmentData = [
-                {
-                    id: 1,
-                    staffId: 1,
-                    clientName: 'Jessica Brown',
-                    service: 'Deep Cleansing Facial',
-                    startTime: '09:00',
-                    endTime: '10:30',
-                    phone: '555-0101',
-                    notes: 'First time client'
-                },
-                {
-                    id: 2,
-                    staffId: 2,
-                    clientName: 'Robert Taylor',
-                    service: 'Swedish Massage',
-                    startTime: '10:00',
-                    endTime: '11:00',
-                    phone: '555-0102',
-                    notes: 'Prefers firm pressure'
-                },
-                {
-                    id: 3,
-                    staffId: 3,
-                    clientName: 'Linda Anderson',
-                    service: 'Hair Cut & Style',
-                    startTime: '14:00',
-                    endTime: '15:30',
-                    phone: '555-0103',
-                    notes: 'Regular client'
-                },
-                {
-                    id: 4,
-                    staffId: 1,
-                    clientName: 'David Martinez',
-                    service: 'Anti-Aging Treatment',
-                    startTime: '15:30',
-                    endTime: '16:45',
-                    phone: '555-0104',
-                    notes: 'Sensitive skin'
-                }
-            ];
-
-            // Sample breaks
-            const breakData = [
-                {
-                    id: 1,
-                    staffId: 1,
-                    reason: 'Lunch Break',
-                    startTime: '12:00',
-                    endTime: '13:00'
-                },
-                {
-                    id: 2,
-                    staffId: 2,
-                    reason: 'Lunch Break',
-                    startTime: '12:30',
-                    endTime: '13:30'
-                },
-                {
-                    id: 3,
-                    staffId: 3,
-                    reason: 'Break',
-                    startTime: '11:00',
-                    endTime: '11:15'
-                },
-                {
-                    id: 4,
-                    staffId: 4,
-                    reason: 'Lunch Break',
-                    startTime: '12:00',
-                    endTime: '13:00'
-                }
-            ];
-
-            // Save to localStorage
-            localStorage.setItem('unaki_staff', JSON.stringify(staffData));
-            localStorage.setItem('unaki_appointments', JSON.stringify(appointmentData));
-            localStorage.setItem('unaki_breaks', JSON.stringify(breakData));
-
-            console.log('Demo data seeded successfully');
-        }
-    }
-
-    loadData() {
-        try {
-            this.staff = JSON.parse(localStorage.getItem('unaki_staff') || '[]');
-            this.appointments = JSON.parse(localStorage.getItem('unaki_appointments') || '[]');
-            this.breaks = JSON.parse(localStorage.getItem('unaki_breaks') || '[]');
-        } catch (error) {
-            console.error('Error loading data:', error);
-            this.staff = [];
-            this.appointments = [];
-            this.breaks = [];
-        }
-    }
-
-    saveData() {
-        try {
-            localStorage.setItem('unaki_staff', JSON.stringify(this.staff));
-            localStorage.setItem('unaki_appointments', JSON.stringify(this.appointments));
-            localStorage.setItem('unaki_breaks', JSON.stringify(this.breaks));
-        } catch (error) {
-            console.error('Error saving data:', error);
-        }
+        this.loadScheduleData();
     }
 
     setCurrentDate() {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('scheduleDate').value = today;
+        document.getElementById('scheduleDate').value = this.currentDate;
+    }
+
+    async loadScheduleData() {
+        try {
+            this.showLoading(true);
+            console.log('Loading schedule data for:', this.currentDate);
+
+            const response = await fetch(`/api/unaki/schedule/${this.currentDate}`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.staff = data.staff || [];
+                this.appointments = data.appointments || [];
+                this.breaks = data.breaks || [];
+                
+                console.log('Schedule data loaded:', {
+                    staff: this.staff.length,
+                    appointments: this.appointments.length,
+                    breaks: this.breaks.length
+                });
+
+                this.renderSchedule();
+                this.showNotification('Schedule loaded successfully', 'success', 2000);
+            } else {
+                throw new Error(data.error || 'Failed to load schedule');
+            }
+        } catch (error) {
+            console.error('Error loading schedule:', error);
+            this.showNotification('Error loading schedule. Please try again.', 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    showLoading(show) {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.style.display = show ? 'flex' : 'none';
     }
 
     timeToPixels(timeStr) {
@@ -535,8 +474,46 @@ class UnakiBookingSystem {
         // Book appointment button
         bookBtn.addEventListener('click', () => this.bookAppointment());
 
-        // Refresh button
-        window.refreshSchedule = () => this.renderSchedule();
+        // Global functions
+        window.refreshSchedule = () => this.loadScheduleData();
+        window.loadScheduleForDate = () => this.loadScheduleForDate();
+        window.seedSampleData = () => this.seedSampleData();
+    }
+
+    loadScheduleForDate() {
+        this.currentDate = document.getElementById('scheduleDate').value;
+        this.loadScheduleData();
+    }
+
+    async seedSampleData() {
+        try {
+            const btn = document.getElementById('seedDataBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
+
+            const response = await fetch('/api/unaki/seed-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showNotification(data.message, 'success');
+                await this.loadScheduleData();
+            } else {
+                throw new Error(data.error || 'Failed to seed data');
+            }
+        } catch (error) {
+            console.error('Error seeding data:', error);
+            this.showNotification('Error loading sample data. Please try again.', 'error');
+        } finally {
+            const btn = document.getElementById('seedDataBtn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-database me-1"></i>Load Sample Data';
+        }
     }
 
     handleMouseDown(e) {
@@ -645,76 +622,58 @@ class UnakiBookingSystem {
         modal.show();
     }
 
-    bookAppointment() {
+    async bookAppointment() {
         const form = document.getElementById('bookingForm');
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
 
-        const newAppointment = {
-            id: this.appointments.length + 1,
-            staffId: parseInt(document.getElementById('assignedStaff').value),
-            clientName: document.getElementById('clientName').value,
-            service: document.getElementById('serviceType').options[document.getElementById('serviceType').selectedIndex].text,
-            startTime: document.getElementById('startTime').value,
-            endTime: document.getElementById('endTime').value,
-            phone: document.getElementById('clientPhone').value,
-            notes: document.getElementById('appointmentNotes').value
-        };
+        const bookBtn = document.getElementById('bookAppointmentBtn');
+        bookBtn.disabled = true;
+        bookBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Booking...';
 
-        // Check for conflicts
-        if (this.hasConflict(newAppointment)) {
-            alert('This time slot conflicts with an existing appointment or break. Please choose a different time.');
-            return;
-        }
+        try {
+            const appointmentData = {
+                staffId: parseInt(document.getElementById('assignedStaff').value),
+                clientName: document.getElementById('clientName').value,
+                service: document.getElementById('serviceType').options[document.getElementById('serviceType').selectedIndex].text,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                appointmentDate: this.currentDate,
+                phone: document.getElementById('clientPhone').value,
+                notes: document.getElementById('appointmentNotes').value
+            };
 
-        this.appointments.push(newAppointment);
-        this.saveData();
-        this.renderSchedule();
+            const response = await fetch('/api/unaki/appointments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(appointmentData)
+            });
 
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-        modal.hide();
+            const data = await response.json();
 
-        // Show success message
-        this.showNotification('Appointment booked successfully!', 'success');
-    }
-
-    hasConflict(newAppointment) {
-        const newStart = this.timeToMinutes(newAppointment.startTime);
-        const newEnd = this.timeToMinutes(newAppointment.endTime);
-
-        // Check appointments
-        for (const apt of this.appointments) {
-            if (apt.staffId === newAppointment.staffId) {
-                const existingStart = this.timeToMinutes(apt.startTime);
-                const existingEnd = this.timeToMinutes(apt.endTime);
+            if (data.success) {
+                this.showNotification('Appointment booked successfully!', 'success');
                 
-                if (newStart < existingEnd && newEnd > existingStart) {
-                    return true;
-                }
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                modal.hide();
+
+                // Refresh schedule
+                await this.loadScheduleData();
+            } else {
+                throw new Error(data.error || 'Failed to book appointment');
             }
+        } catch (error) {
+            console.error('Error booking appointment:', error);
+            this.showNotification('Error booking appointment: ' + error.message, 'error');
+        } finally {
+            bookBtn.disabled = false;
+            bookBtn.innerHTML = '<i class="fas fa-check me-1"></i>Book Appointment';
         }
-
-        // Check breaks
-        for (const brk of this.breaks) {
-            if (brk.staffId === newAppointment.staffId) {
-                const breakStart = this.timeToMinutes(brk.startTime);
-                const breakEnd = this.timeToMinutes(brk.endTime);
-                
-                if (newStart < breakEnd && newEnd > breakStart) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    timeToMinutes(timeStr) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + minutes;
     }
 
     renderSchedule() {
@@ -728,6 +687,11 @@ class UnakiBookingSystem {
         
         staffList.innerHTML = '';
         appointmentGrid.innerHTML = '';
+
+        if (this.staff.length === 0) {
+            staffList.innerHTML = '<div class="text-center p-3 text-muted">No staff members found</div>';
+            return;
+        }
 
         const staffHeight = 800 / this.staff.length;
 
@@ -805,11 +769,12 @@ class UnakiBookingSystem {
         });
     }
 
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', duration = 5000) {
         // Use the existing notification system if available
         if (typeof showNotification === 'function') {
-            showNotification(message, type, 3000);
+            showNotification(message, type, duration);
         } else {
+            // Fallback to alert
             alert(message);
         }
     }
@@ -817,7 +782,7 @@ class UnakiBookingSystem {
 
 // Initialize the booking system when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    new UnakiBookingSystem();
+    const bookingSystem = new UnakiBookingSystem();
     console.log('Unaki Booking System initialized successfully');
 });
 </script>
