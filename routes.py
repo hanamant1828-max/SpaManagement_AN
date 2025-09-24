@@ -181,32 +181,38 @@ def load_sample_data():
         from datetime import datetime, timedelta
         import random
 
-        # Clear existing data
+        # Clear existing Unaki data only
         try:
             UnakiAppointment.query.delete()
             UnakiBreak.query.delete()
-            UnakiStaff.query.delete()
+            # Don't delete UnakiStaff if they already exist, just add more if needed
         except Exception as e:
             print(f"Error clearing existing data: {e}")
 
-        # Create sample staff
-        staff_data = [
-            {'name': 'Sarah Johnson', 'specialization': 'Facial Treatments', 'color': '#FF6B6B'},
-            {'name': 'Maria Garcia', 'specialization': 'Massage Therapy', 'color': '#4ECDC4'},
-            {'name': 'Amanda Lee', 'specialization': 'Hair Services', 'color': '#45B7D1'},
-            {'name': 'Jennifer Smith', 'specialization': 'Nail Care', 'color': '#96CEB4'}
-        ]
+        # Check if we already have Unaki staff
+        existing_staff = UnakiStaff.query.all()
+        
+        if not existing_staff:
+            # Create sample staff
+            staff_data = [
+                {'name': 'Sarah Johnson', 'specialization': 'Facial Treatments', 'color': '#FF6B6B'},
+                {'name': 'Maria Garcia', 'specialization': 'Massage Therapy', 'color': '#4ECDC4'},
+                {'name': 'Amanda Lee', 'specialization': 'Hair Services', 'color': '#45B7D1'},
+                {'name': 'Jennifer Smith', 'specialization': 'Nail Care', 'color': '#96CEB4'}
+            ]
 
-        staff_list = []
-        for staff_info in staff_data:
-            try:
-                staff = UnakiStaff(**staff_info, is_active=True)
-                db.session.add(staff)
-                db.session.flush()
-                staff_list.append(staff)
-            except Exception as e:
-                print(f"Error creating staff: {e}")
-                continue
+            staff_list = []
+            for staff_info in staff_data:
+                try:
+                    staff = UnakiStaff(**staff_info, is_active=True)
+                    db.session.add(staff)
+                    db.session.flush()
+                    staff_list.append(staff)
+                except Exception as e:
+                    print(f"Error creating staff: {e}")
+                    continue
+        else:
+            staff_list = existing_staff[:4]  # Use first 4 existing staff
 
         # Create sample appointments for today
         today = datetime.now().date()
@@ -214,12 +220,12 @@ def load_sample_data():
 
         appointment_count = 0
         for staff in staff_list:
-            # Add 2-3 random appointments per staff member
-            for _ in range(random.randint(2, 3)):
+            # Add 1-2 random appointments per staff member
+            for _ in range(random.randint(1, 2)):
                 try:
-                    start_hour = random.randint(9, 16)
+                    start_hour = random.randint(10, 15)
                     start_time = datetime.combine(today, datetime.min.time().replace(hour=start_hour, minute=random.choice([0, 30])))
-                    end_time = start_time + timedelta(hours=random.choice([1, 1.5, 2]))
+                    end_time = start_time + timedelta(hours=random.choice([1, 1.5]))
 
                     appointment = UnakiAppointment(
                         staff_id=staff.id,
@@ -229,7 +235,7 @@ def load_sample_data():
                         end_time=end_time,
                         phone=f"555-{random.randint(1000, 9999)}",
                         appointment_date=today,
-                        notes="Regular customer"
+                        notes="Sample appointment"
                     )
                     db.session.add(appointment)
                     appointment_count += 1
@@ -239,8 +245,8 @@ def load_sample_data():
 
             # Add lunch break
             try:
-                lunch_start = datetime.combine(today, datetime.min.time().replace(hour=13, minute=0))
-                lunch_end = lunch_start + timedelta(hours=1)
+                lunch_start = datetime.combine(today, datetime.min.time().replace(hour=12, minute=30))
+                lunch_end = lunch_start + timedelta(minutes=30)
 
                 break_time = UnakiBreak(
                     staff_id=staff.id,
@@ -259,9 +265,11 @@ def load_sample_data():
         return jsonify({
             'success': True,
             'message': 'Sample data loaded successfully',
-            'staff_count': len(staff_list),
-            'appointment_count': appointment_count,
-            'break_count': len(staff_list)  # One break per staff
+            'data': {
+                'staff_created': len(staff_list),
+                'appointments_created': appointment_count,
+                'breaks_created': len(staff_list)
+            }
         })
 
     except Exception as e:
@@ -281,15 +289,100 @@ def get_unaki_staff():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/unaki/appointments', methods=['GET'])
+@app.route('/api/unaki/appointments', methods=['GET', 'POST'])
 @login_required
-def get_unaki_appointments():
-    """Get all Unaki appointments"""
+def unaki_appointments_api():
+    """Handle Unaki appointments - GET to retrieve, POST to create"""
+    try:
+        if request.method == 'GET':
+            from models import UnakiAppointment
+            appointments = UnakiAppointment.query.all()
+            return jsonify([a.to_dict() for a in appointments])
+        
+        elif request.method == 'POST':
+            data = request.get_json()
+            
+            # Validate required fields
+            required_fields = ['staffId', 'clientName', 'service', 'startTime', 'endTime']
+            for field in required_fields:
+                if field not in data or not data[field]:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Missing required field: {field}'
+                    }), 400
+            
+            # Import models
+            from models import UnakiAppointment, UnakiStaff
+            from datetime import datetime, date
+            
+            # Validate staff exists
+            staff = UnakiStaff.query.get(data['staffId'])
+            if not staff:
+                return jsonify({
+                    'success': False,
+                    'error': 'Staff member not found'
+                }), 404
+            
+            # Parse date and times
+            appointment_date = datetime.strptime(data.get('appointmentDate', date.today().isoformat()), '%Y-%m-%d').date()
+            start_time = datetime.strptime(data['startTime'], '%H:%M').time()
+            end_time = datetime.strptime(data['endTime'], '%H:%M').time()
+            
+            # Create datetime objects
+            start_datetime = datetime.combine(appointment_date, start_time)
+            end_datetime = datetime.combine(appointment_date, end_time)
+            
+            # Create new appointment
+            appointment = UnakiAppointment(
+                staff_id=data['staffId'],
+                client_name=data['clientName'],
+                service=data['service'],
+                start_time=start_datetime,
+                end_time=end_datetime,
+                phone=data.get('clientPhone', ''),
+                notes=data.get('notes', ''),
+                appointment_date=appointment_date
+            )
+            
+            db.session.add(appointment)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Appointment created successfully',
+                'appointment': appointment.to_dict()
+            })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in unaki appointments API: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/unaki/appointments/<int:appointment_id>', methods=['DELETE'])
+@login_required
+def delete_unaki_appointment(appointment_id):
+    """Delete a specific Unaki appointment"""
     try:
         from models import UnakiAppointment
-        appointments = UnakiAppointment.query.all()
-        return jsonify([a.to_dict() for a in appointments])
+        
+        appointment = UnakiAppointment.query.get(appointment_id)
+        if not appointment:
+            return jsonify({
+                'success': False,
+                'error': 'Appointment not found'
+            }), 404
+        
+        db.session.delete(appointment)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Appointment deleted successfully'
+        })
+    
     except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting appointment: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/unaki/breaks', methods=['GET'])

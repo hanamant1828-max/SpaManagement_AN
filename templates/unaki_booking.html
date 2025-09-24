@@ -240,7 +240,7 @@
                         <button class="btn btn-outline-primary btn-sm" onclick="refreshSchedule()">
                             <i class="fas fa-sync-alt me-1"></i>Refresh
                         </button>
-                        <button class="btn btn-success btn-sm" onclick="bookingSystem.seedSampleData()" id="seedDataBtn">
+                        <button class="btn btn-success btn-sm" onclick="if(window.bookingSystem) { window.bookingSystem.seedSampleData(); } else { alert('Booking system not ready. Please wait.'); }" id="seedDataBtn">
                             <i class="fas fa-database me-1"></i>Load Sample Data
                         </button>
                     </div>
@@ -422,6 +422,9 @@ class UnakiBookingSystem {
             if (!response.ok) {
                 console.error('Error: Server returned status', response.status, response.statusText);
                 this.showNotification(`Server error: ${response.status} ${response.statusText}`, 'error');
+                
+                // Fallback to static data if API fails
+                this.loadFallbackData();
                 return;
             }
 
@@ -429,6 +432,7 @@ class UnakiBookingSystem {
             if (!contentType || !contentType.includes('application/json')) {
                 console.error('Error: Server returned a non-JSON response. Content-Type:', contentType);
                 this.showNotification('Server returned an unexpected response format', 'error');
+                this.loadFallbackData();
                 return;
             }
 
@@ -452,10 +456,23 @@ class UnakiBookingSystem {
             }
         } catch (error) {
             console.error('Error loading schedule:', error);
-            this.showNotification('Error loading schedule. Please try again.', 'error');
+            this.showNotification('Error loading schedule. Using fallback data.', 'warning');
+            this.loadFallbackData();
         } finally {
             this.showLoading(false);
         }
+    }
+
+    loadFallbackData() {
+        // Fallback static data if API fails
+        this.staff = [
+            { id: 1, name: 'Sarah Johnson', specialty: 'Facial Specialist', shift_start: '09:00', shift_end: '17:00', is_working: true },
+            { id: 2, name: 'Michael Chen', specialty: 'Massage Therapist', shift_start: '10:00', shift_end: '18:00', is_working: true },
+            { id: 3, name: 'Emily Rodriguez', specialty: 'Hair Stylist', shift_start: '08:00', shift_end: '16:00', is_working: true }
+        ];
+        this.appointments = [];
+        this.breaks = [];
+        this.renderSchedule();
     }
 
     showLoading(show) {
@@ -656,16 +673,19 @@ class UnakiBookingSystem {
         bookBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Booking...';
 
         try {
+            const serviceSelect = document.getElementById('serviceType');
             const appointmentData = {
                 staffId: parseInt(document.getElementById('assignedStaff').value),
                 clientName: document.getElementById('clientName').value,
-                service: document.getElementById('serviceType').options[document.getElementById('serviceType').selectedIndex].text,
+                service: serviceSelect.value || serviceSelect.options[serviceSelect.selectedIndex]?.text || 'General Service',
                 startTime: document.getElementById('startTime').value,
                 endTime: document.getElementById('endTime').value,
                 appointmentDate: this.currentDate,
-                phone: document.getElementById('clientPhone').value,
+                clientPhone: document.getElementById('clientPhone').value,
                 notes: document.getElementById('appointmentNotes').value
             };
+
+            console.log('Sending appointment data:', appointmentData);
 
             const response = await fetch('/api/unaki/appointments', {
                 method: 'POST',
@@ -674,6 +694,12 @@ class UnakiBookingSystem {
                 },
                 body: JSON.stringify(appointmentData)
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error response:', errorText);
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
 
             const data = await response.json();
 
@@ -815,8 +841,13 @@ let bookingSystem;
 
 // Initialize the booking system when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    bookingSystem = new UnakiBookingSystem();
-    console.log('Unaki Booking System initialized successfully');
+    try {
+        bookingSystem = new UnakiBookingSystem();
+        window.bookingSystem = bookingSystem; // Make it globally accessible
+        console.log('Unaki Booking System initialized successfully');
+    } catch (error) {
+        console.error('Error initializing booking system:', error);
+    }
 });
 </script>
 {% endblock %}
