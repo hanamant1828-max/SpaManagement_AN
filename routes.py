@@ -286,10 +286,7 @@ def get_unaki_breaks():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/billing')
-def billing():
-    """Redirect to integrated billing"""
-    return redirect(url_for('integrated_billing'))
+# Billing route removed - handled in integrated_billing_views.py
 
 @app.route('/communications')
 

@@ -10,6 +10,8 @@ import json
 # CRUD System Models for Dynamic Configuration
 class Role(db.Model):
     """Dynamic roles management"""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     display_name = db.Column(db.String(100), nullable=False)
