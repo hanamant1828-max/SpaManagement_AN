@@ -1,0 +1,28 @@
+I will provide a prompt that guides you to add the next piece of functionality to your Flask backend: a route for deleting an existing hardcoded appointment. This will further expand your API's capabilities while keeping the data simple.
+
+-----
+
+### Prompt to Add Appointment Deletion Endpoint
+
+```
+Act as a senior full-stack developer specializing in Flask and RESTful API design. Your task is to extend the existing "Unaki Appointment Booking" backend to allow for the deletion of an appointment. The frontend will need to send a `DELETE` request to a specific URL to remove an appointment.
+
+**Objective:**
+Modify the `app.py` file to create a new API route that handles `DELETE` requests to a specific appointment ID. This will simulate the process of removing an appointment from storage.
+
+**Instructions:**
+
+1.  **Backend Routes (`app.py`):**
+    * Create a new Flask route, `/api/appointments/<string:appointment_id>`, that responds to a `DELETE` request. The `<string:appointment_id>` part of the URL makes the ID a dynamic variable accessible in your function.
+    * The route function should be named `delete_appointment`.
+    * Inside the function, retrieve the `appointment_id` from the URL parameters.
+    * Implement logic to "delete" the appointment from the hardcoded list.
+        * Iterate through the `HARDCODED_SCHEDULE_DATA["appointments"]` list.
+        * If an appointment with a matching `id` is found, remove it from the list.
+        * **Important:** Since we are modifying a global variable, be mindful of this for a real application. For this simulation, it's the correct approach.
+    * Return a `200` status with a success message `"Appointment deleted successfully!"` if the appointment was found and removed.
+    * If the appointment ID is not found in the list, return a `404` status with an error message `"Appointment not found."`.
+
+**Final Output:**
+Provide the complete, updated Python code for `app.py`. The code should include the new `DELETE` route and all the logic required to handle the deletion request, along with the existing routes and hardcoded data.
+```
