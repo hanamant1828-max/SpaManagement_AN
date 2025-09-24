@@ -1,0 +1,45 @@
+Understood. You need a prompt to generate the code for your Unaki Appointment Booking page.
+
+Based on our previous discussions and the images you've provided, here's a comprehensive prompt that will create a full, working frontend prototype using a modern, flexible approach.
+
+-----
+
+### Prompt for a Complete Frontend Booking Page
+
+```
+Act as a senior frontend developer specializing in building dynamic, interactive single-page applications with JavaScript and CSS. Your task is to create the "Unaki Appointment Booking" page. This is a prototype that uses hardcoded data stored in the browser's local storage to dynamically render a flexible staff schedule.
+
+**Objective:**
+The page must function as a visual calendar where a staff member can quickly view appointments and breaks, and interactively book new appointments with a click-and-drag motion. The UI should be clean and professional, matching the style of the provided login page image.
+
+**Instructions:**
+
+1.  **HTML Structure:**
+    * Create a single HTML file (`unaki_booking.html`) that extends a base template to maintain the site's header and overall layout.
+    * The main content area should contain a header for the page title and date.
+    * Use a main container `div` for the schedule grid.
+    * Inside the grid container, create `div` elements to represent staff rows and a continuous timeline. Do not use a static HTML `<table>`.
+    * Include a hidden modal for booking new appointments. The modal should have input fields for Client, Service, a Staff Member, Start Time, and End Time.
+2.  **JavaScript Logic:**
+    * **Data Management:**
+        * Create a hardcoded JavaScript object containing sample data for `staff`, `appointments`, and `breaks`. Each appointment and break object must have a `staffId`, `startTime`, and `endTime`.
+        * Implement a `seedData()` function that checks if local storage is empty. If it is, save the hardcoded data to local storage.
+        * Implement a `loadData()` function to retrieve the data from local storage.
+    * **Dynamic Rendering:**
+        * Create a `renderSchedule()` function that dynamically generates the schedule grid and populates it with appointments and breaks from the loaded data.
+        * Use JavaScript to set the CSS `top` and `height` of each appointment/break block based on its start time and duration.
+    * **Interactivity:**
+        * Implement **click-and-drag functionality** on the empty grid space. When a user clicks and drags, a temporary new appointment block should appear, visually representing the time slot they are selecting.
+        * When the user releases the mouse button (`mouseup`), a modal should pop up, pre-filled with the staff member, start time, and end time from the drag action.
+    * **Booking Modal:**
+        * Add event listeners to the modal's "Book Appointment" button.
+        * The `bookAppointment()` function should validate the form data, save the new appointment to the data in local storage, and then re-render the schedule to show the new appointment.
+3.  **CSS Styling:**
+    * Use **CSS Grid** for the main layout to create columns for staff and a flexible timeline.
+    * Style the dynamically created appointment and break blocks. Use different background colors for each type of block.
+    * Use **absolute positioning** for the blocks within their respective staff columns to allow for flexible, non-fixed durations.
+    * The UI should be clean, modern, and match the visual style of the provided images, using a professional color palette and typography.
+
+**Final Output:**
+Provide the complete, self-contained HTML file (`unaki_booking.html`) including the HTML structure, JavaScript logic, and CSS styling. The code should be fully functional when opened in a browser.
+```
