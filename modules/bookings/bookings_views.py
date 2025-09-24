@@ -1589,8 +1589,8 @@ def unaki_schedule_api(date_str):
             schedule = get_staff_schedule_for_date(staff.id, target_date)
             staff_info = {
                 'id': staff.id,
-                'name': staff.username,
-                'specialty': getattr(staff, 'specialization', 'General'),
+                'name': staff.full_name or staff.username,
+                'specialty': getattr(staff, 'specialization', staff.role if hasattr(staff, 'role') else 'General'),
                 'shift_start': schedule['shift_start_time'].strftime('%H:%M') if schedule and schedule['shift_start_time'] else '09:00',
                 'shift_end': schedule['shift_end_time'].strftime('%H:%M') if schedule and schedule['shift_end_time'] else '17:00',
                 'is_working': schedule['is_working_day'] if schedule else True
@@ -1604,11 +1604,12 @@ def unaki_schedule_api(date_str):
         for appointment in appointments:
             appointment_info = {
                 'id': appointment.id,
-                'staff_id': appointment.staff_id,
-                'client_name': appointment.client.full_name if appointment.client else 'Unknown',
+                'staffId': appointment.staff_id,
+                'clientName': appointment.client.full_name if appointment.client else 'Unknown',
+                'clientPhone': appointment.client.phone if appointment.client else '',
                 'service': appointment.service.name if appointment.service else 'Service',
-                'start_time': appointment.appointment_date.strftime('%H:%M'),
-                'end_time': appointment.end_time.strftime('%H:%M') if appointment.end_time else None,
+                'startTime': appointment.appointment_date.strftime('%H:%M'),
+                'endTime': appointment.end_time.strftime('%H:%M') if appointment.end_time else None,
                 'status': appointment.status,
                 'notes': appointment.notes or ''
             }
@@ -1671,6 +1672,7 @@ def unaki_load_sample_data():
 def unaki_create_appointment():
     """API endpoint to create appointments for Unaki booking system"""
     try:
+        from app import db
         data = request.get_json()
         
         # Extract appointment data
@@ -1681,7 +1683,7 @@ def unaki_create_appointment():
         start_time = data.get('startTime')
         end_time = data.get('endTime')
         notes = data.get('notes', '')
-        appointment_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        appointment_date_str = data.get('date', datetime.now().strftime('%Y-%m-%d'))
         
         # Validate required fields
         if not all([staff_id, client_name, service_type, start_time, end_time]):
@@ -1690,32 +1692,80 @@ def unaki_create_appointment():
                 'error': 'Missing required fields: staff, client name, service, start time, and end time are required'
             }), 400
         
-        # In a real implementation, you would create the appointment in the database
-        # For now, we'll return a success response with mock data
+        # Parse date and times
+        appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+        start_datetime = datetime.combine(appointment_date, datetime.strptime(start_time, '%H:%M').time())
+        end_datetime = datetime.combine(appointment_date, datetime.strptime(end_time, '%H:%M').time())
         
-        mock_appointment = {
-            'id': f"apt_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            'staff_id': staff_id,
-            'client_name': client_name,
-            'client_phone': client_phone,
-            'service_type': service_type,
-            'start_time': start_time,
-            'end_time': end_time,
-            'date': appointment_date,
-            'status': 'confirmed',
-            'notes': notes,
-            'created_at': datetime.now().isoformat()
-        }
+        # Find or create customer
+        from models import Customer, Service, User, Appointment
+        customer = Customer.query.filter_by(full_name=client_name).first()
+        if not customer:
+            customer = Customer(
+                full_name=client_name,
+                phone=client_phone,
+                email=f"{client_name.lower().replace(' ', '.')}@customer.spa"  # Temporary email
+            )
+            db.session.add(customer)
+            db.session.flush()  # Get the ID
+        
+        # Find service by name or create a generic one
+        service = Service.query.filter_by(name=service_type).first()
+        if not service:
+            service = Service(
+                name=service_type,
+                duration=60,  # Default 60 minutes
+                price=100.0,  # Default price
+                is_active=True
+            )
+            db.session.add(service)
+            db.session.flush()
+        
+        # Verify staff exists
+        staff = User.query.get(staff_id)
+        if not staff:
+            return jsonify({
+                'success': False,
+                'error': 'Staff member not found'
+            }), 400
+        
+        # Create the appointment
+        appointment = Appointment(
+            client_id=customer.id,
+            service_id=service.id,
+            staff_id=staff_id,
+            appointment_date=start_datetime,
+            end_time=end_datetime,
+            status='confirmed',
+            notes=notes,
+            amount=service.price
+        )
+        
+        db.session.add(appointment)
+        db.session.commit()
         
         return jsonify({
             'success': True,
             'message': 'Appointment created successfully',
-            'appointment': mock_appointment
+            'appointment': {
+                'id': appointment.id,
+                'staff_id': staff_id,
+                'client_name': client_name,
+                'client_phone': client_phone,
+                'service_type': service_type,
+                'start_time': start_time,
+                'end_time': end_time,
+                'date': appointment_date_str,
+                'status': 'confirmed',
+                'notes': notes,
+                'created_at': appointment.created_at.isoformat()
+            }
         })
         
     except Exception as e:
+        db.session.rollback()
         print(f"Error in unaki_create_appointment: {e}")
-        return jsonify({'success': False, 'error': 'Failed to create appointment'}), 500
+        return jsonify({'success': False, 'error': f'Failed to create appointment: {str(e)}'}), 500
 
 
 @app.route('/api/schedule', methods=['GET'])
