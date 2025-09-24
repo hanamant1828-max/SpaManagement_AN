@@ -115,6 +115,14 @@
 
                     {% if true %}
                     <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('unaki_booking') }}">
+                            <i class="fas fa-calendar-plus me-2"></i><span>Unaki Appointment Booking</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if true %}
+                    <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('notifications') }}">
                             <i class="fas fa-bell me-2"></i><span>WhatsApp Notifications</span>
                         </a>

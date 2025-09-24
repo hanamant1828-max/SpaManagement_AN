@@ -279,6 +279,15 @@ def test_navigation():
     """Navigation testing page"""
     return render_template('test_navigation.html')
 
+@app.route('/unaki-booking')
+@login_required
+def unaki_booking():
+    """Unaki Appointment Booking page"""
+    if not current_user.can_access('bookings'):
+        flash('Access denied', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('unaki_booking.html')
+
 @app.route('/billing')
 def billing():
     """Redirect to integrated billing"""
