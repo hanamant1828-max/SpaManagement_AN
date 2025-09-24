@@ -368,6 +368,26 @@ def api_get_customer(customer_id):
 def api_customers():
     from models import Customer
 
+    # Check if searching by phone
+    phone = request.args.get('phone')
+    if phone:
+        customer = Customer.query.filter_by(phone=phone, is_active=True).first()
+        if customer:
+            return jsonify({
+                'success': True,
+                'customer': {
+                    'id': customer.id,
+                    'full_name': customer.full_name,
+                    'phone': customer.phone,
+                    'email': customer.email,
+                    'total_visits': customer.total_visits or 0,
+                    'last_visit': customer.last_visit.isoformat() if customer.last_visit else None
+                }
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Customer not found'})
+
+    # Return all customers
     customers = Customer.query.filter_by(is_active=True).all()
     return jsonify([{
         'id': c.id,
