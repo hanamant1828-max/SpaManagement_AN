@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Booking Schedule</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        .time-slot {
+            min-width: 60px;
+            height: 60px;
+        }
+        .staff-row {
+            height: 60px;
+        }
+        .appointment-block {
+            position: absolute;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .break-block {
+            position: absolute;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .dragging {
+            opacity: 0.8;
+            z-index: 20;
+        }
+        .grid-cell {
+            border: 1px solid #e5e7eb;
+            position: relative;
+        }
+        .timeline-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 30;
+        }
+        .staff-column {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 25;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-2xl font-bold text-gray-900">Appointment Schedule</h1>
+                <div class="flex space-x-3">
+                    <button id="addStaffBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Add Staff
+                    </button>
+                    <button id="refreshBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Refresh
+                    </button>
+                    <button id="saveBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <!-- Schedule Grid Container -->
+            <div id="scheduleContainer" class="overflow-auto max-h-screen">
+                <div id="scheduleGrid" class="relative">
+                    <!-- Timeline Header -->
+                    <div id="timelineHeader" class="timeline-header flex border-b-2 border-gray-300">
+                        <div class="staff-column w-40 p-3 bg-gray-50 font-semibold text-gray-700 border-r-2 border-gray-300">
+                            Staff
+                        </div>
+                        <div id="timeSlots" class="flex">
+                            <!-- Time slots will be generated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Staff Rows -->
+                    <div id="staffRows">
+                        <!-- Staff rows will be generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Appointment Modal -->
+    <div id="appointmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Book Appointment</h3>
+            <form id="appointmentForm">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
+                        <input type="text" id="clientName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                        <select id="service" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Select a service</option>
+                            <option value="Massage">Massage</option>
+                            <option value="Facial">Facial</option>
+                            <option value="Manicure">Manicure</option>
+                            <option value="Pedicure">Pedicure</option>
+                            <option value="Hair Cut">Hair Cut</option>
+                            <option value="Hair Color">Hair Color</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                            <input type="time" id="startTime" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <input type="time" id="endTime" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea id="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Optional notes..."></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelBtn" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+                        Book Appointment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        let firebaseConfig = null;
+        let db = null;
+        let appId = null;
+
+        // Initialize Firebase if global variables are available
+        function initializeFirebase() {
+            try {
+                if (typeof __firebase_config !== 'undefined' && typeof __app_id !== 'undefined') {
+                    firebaseConfig = __firebase_config;
+                    appId = __app_id;
+                    
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    
+                    db = firebase.firestore();
+                    
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        // Use initial auth token if available
+                        console.log('Firebase initialized with auth token');
+                    }
+                    
+                    console.log('Firebase initialized successfully');
+                    return true;
+                } else {
+                    console.log('Firebase global variables not found, using local storage');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error initializing Firebase:', error);
+                return false;
+            }
+        }
+
+        // Sample data
+        const sampleStaff = [
+            { id: 1, name: 'Sarah Johnson', specialty: 'Massage Therapist' },
+            { id: 2, name: 'Mike Chen', specialty: 'Hair Stylist' },
+            { id: 3, name: 'Emma Davis', specialty: 'Esthetician' },
+            { id: 4, name: 'James Wilson', specialty: 'Nail Technician' }
+        ];
+
+        const sampleAppointments = [
+            { id: 1, staffId: 1, clientName: 'John Doe', service: 'Deep Tissue Massage', startTime: '09:00', endTime: '10:30', notes: 'First time client' },
+            { id: 2, staffId: 2, clientName: 'Jane Smith', service: 'Hair Cut', startTime: '10:00', endTime: '11:00', notes: '' },
+            { id: 3, staffId: 3, clientName: 'Bob Wilson', service: 'Facial', startTime: '14:00', endTime: '15:30', notes: 'Sensitive skin' },
+            { id: 4, staffId: 1, clientName: 'Alice Brown', service: 'Swedish Massage', startTime: '15:00', endTime: '16:00', notes: '' }
+        ];
+
+        const sampleBreaks = [
+            { id: 1, staffId: 1, type: 'Lunch', startTime: '12:00', endTime: '13:00' },
+            { id: 2, staffId: 2, type: 'Break', startTime: '15:00', endTime: '15:15' },
+            { id: 3, staffId: 3, type: 'Lunch', startTime: '12:30', endTime: '13:30' },
+            { id: 4, staffId: 4, type: 'Break', startTime: '11:00', endTime: '11:15' }
+        ];
+
+        // Application state
+        let staff = [...sampleStaff];
+        let appointments = [...sampleAppointments];
+        let breaks = [...sampleBreaks];
+        let isDragging = false;
+        let dragStartData = null;
+        let currentStaffId = null;
+
+        // Generate time slots for the day (8 AM to 8 PM)
+        function generateTimeSlots() {
+            const slots = [];
+            for (let hour = 8; hour <= 20; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    slots.push(time);
+                }
+            }
+            return slots;
+        }
+
+        // Convert time to position
+        function timeToPosition(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            const totalMinutes = (hours - 8) * 60 + minutes;
+            return (totalMinutes / 30) * 60; // 60px per 30-minute slot
+        }
+
+        // Convert position to time
+        function positionToTime(position) {
+            const totalMinutes = (position / 60) * 30;
+            const hours = Math.floor(totalMinutes / 60) + 8;
+            const minutes = totalMinutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        // Create timeline header
+        function createTimelineHeader() {
+            const timeSlots = generateTimeSlots();
+            const timeSlotsContainer = document.getElementById('timeSlots');
+            timeSlotsContainer.innerHTML = '';
+
+            timeSlots.forEach(time => {
+                const slot = document.createElement('div');
+                slot.className = 'time-slot border-r border-gray-200 flex items-center justify-center text-xs font-medium text-gray-600 bg-gray-50';
+                slot.textContent = time;
+                timeSlotsContainer.appendChild(slot);
+            });
+        }
+
+        // Create staff row
+        function createStaffRow(staffMember) {
+            const row = document.createElement('div');
+            row.className = 'flex border-b border-gray-200';
+            row.dataset.staffId = staffMember.id;
+
+            // Staff info column
+            const staffInfo = document.createElement('div');
+            staffInfo.className = 'staff-column w-40 p-3 bg-gray-50 border-r-2 border-gray-300 flex flex-col justify-center';
+            staffInfo.innerHTML = `
+                <div class="font-medium text-gray-900 text-sm">${staffMember.name}</div>
+                <div class="text-xs text-gray-500">${staffMember.specialty}</div>
+            `;
+
+            // Time slots for this staff member
+            const timeSlots = generateTimeSlots();
+            const slotsContainer = document.createElement('div');
+            slotsContainer.className = 'flex relative';
+
+            timeSlots.forEach((time, index) => {
+                const slot = document.createElement('div');
+                slot.className = 'time-slot grid-cell bg-white hover:bg-gray-50 transition-colors';
+                slot.dataset.time = time;
+                slot.dataset.staffId = staffMember.id;
+                slot.addEventListener('mousedown', handleSlotMouseDown);
+                slotsContainer.appendChild(slot);
+            });
+
+            row.appendChild(staffInfo);
+            row.appendChild(slotsContainer);
+
+            return row;
+        }
+
+        // Create appointment block
+        function createAppointmentBlock(appointment) {
+            const block = document.createElement('div');
+            const startPos = timeToPosition(appointment.startTime);
+            const endPos = timeToPosition(appointment.endTime);
+            const width = endPos - startPos;
+
+            block.className = 'appointment-block bg-blue-500 text-white p-1 text-xs overflow-hidden';
+            block.style.left = `${startPos}px`;
+            block.style.width = `${width}px`;
+            block.style.height = '56px';
+            block.style.top = '2px';
+            
+            block.innerHTML = `
+                <div class="font-medium truncate">${appointment.clientName}</div>
+                <div class="truncate">${appointment.service}</div>
+                <div class="text-xs opacity-75">${appointment.startTime} - ${appointment.endTime}</div>
+            `;
+
+            block.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editAppointment(appointment);
+            });
+
+            return block;
+        }
+
+        // Create break block
+        function createBreakBlock(breakItem) {
+            const block = document.createElement('div');
+            const startPos = timeToPosition(breakItem.startTime);
+            const endPos = timeToPosition(breakItem.endTime);
+            const width = endPos - startPos;
+
+            block.className = 'break-block bg-gray-400 text-white p-1 text-xs overflow-hidden';
+            block.style.left = `${startPos}px`;
+            block.style.width = `${width}px`;
+            block.style.height = '56px';
+            block.style.top = '2px';
+            
+            block.innerHTML = `
+                <div class="font-medium">${breakItem.type}</div>
+                <div class="text-xs">${breakItem.startTime} - ${breakItem.endTime}</div>
+            `;
+
+            return block;
+        }
+
+        // Handle slot mouse down for drag to create
+        function handleSlotMouseDown(e) {
+            if (e.button !== 0) return; // Only left click
+
+            isDragging = true;
+            currentStaffId = parseInt(e.target.dataset.staffId);
+            const startTime = e.target.dataset.time;
+            
+            dragStartData = {
+                staffId: currentStaffId,
+                startTime: startTime,
+                startX: e.clientX
+            };
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            e.preventDefault();
+        }
+
+        // Handle mouse move during drag
+        function handleMouseMove(e) {
+            if (!isDragging || !dragStartData) return;
+
+            // Visual feedback could be added here
+        }
+
+        // Handle mouse up to complete drag
+        function handleMouseUp(e) {
+            if (!isDragging || !dragStartData) return;
+
+            isDragging = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+
+            // Calculate end time based on drag distance
+            const dragDistance = e.clientX - dragStartData.startX;
+            const slots = Math.max(1, Math.round(dragDistance / 60)); // Minimum 1 slot (30 minutes)
+            
+            const startTimeMinutes = timeToMinutes(dragStartData.startTime);
+            const endTimeMinutes = startTimeMinutes + (slots * 30);
+            const endTime = minutesToTime(endTimeMinutes);
+
+            // Open modal with pre-filled data
+            openAppointmentModal(dragStartData.staffId, dragStartData.startTime, endTime);
+            
+            dragStartData = null;
+        }
+
+        // Time utility functions
+        function timeToMinutes(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            return (hours - 8) * 60 + minutes;
+        }
+
+        function minutesToTime(minutes) {
+            const hours = Math.floor(minutes / 60) + 8;
+            const mins = minutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
+        // Open appointment modal
+        function openAppointmentModal(staffId = null, startTime = '', endTime = '') {
+            const modal = document.getElementById('appointmentModal');
+            const form = document.getElementById('appointmentForm');
+            
+            // Pre-fill form if data provided
+            if (startTime) document.getElementById('startTime').value = startTime;
+            if (endTime) document.getElementById('endTime').value = endTime;
+            
+            currentStaffId = staffId;
+            modal.classList.remove('hidden');
+        }
+
+        // Close appointment modal
+        function closeAppointmentModal() {
+            const modal = document.getElementById('appointmentModal');
+            const form = document.getElementById('appointmentForm');
+            form.reset();
+            currentStaffId = null;
+            modal.classList.add('hidden');
+        }
+
+        // Edit appointment
+        function editAppointment(appointment) {
+            const modal = document.getElementById('appointmentModal');
+            document.getElementById('clientName').value = appointment.clientName;
+            document.getElementById('service').value = appointment.service;
+            document.getElementById('startTime').value = appointment.startTime;
+            document.getElementById('endTime').value = appointment.endTime;
+            document.getElementById('notes').value = appointment.notes || '';
+            
+            currentStaffId = appointment.staffId;
+            modal.classList.remove('hidden');
+        }
+
+        // Render schedule
+        function renderSchedule() {
+            const staffRows = document.getElementById('staffRows');
+            staffRows.innerHTML = '';
+
+            staff.forEach(staffMember => {
+                const row = createStaffRow(staffMember);
+                staffRows.appendChild(row);
+
+                // Add appointments for this staff member
+                const slotsContainer = row.querySelector('.flex.relative');
+                appointments.filter(apt => apt.staffId === staffMember.id).forEach(appointment => {
+                    const block = createAppointmentBlock(appointment);
+                    slotsContainer.appendChild(block);
+                });
+
+                // Add breaks for this staff member
+                breaks.filter(brk => brk.staffId === staffMember.id).forEach(breakItem => {
+                    const block = createBreakBlock(breakItem);
+                    slotsContainer.appendChild(block);
+                });
+            });
+        }
+
+        // Save data to Firebase or localStorage
+        async function saveData() {
+            const data = {
+                staff: staff,
+                appointments: appointments,
+                breaks: breaks,
+                lastUpdated: new Date().toISOString()
+            };
+
+            try {
+                if (db && appId) {
+                    // Save to Firebase
+                    await db.collection(`artifacts/${appId}/public/data`).doc('unaki-schedule').set(data);
+                    console.log('Data saved to Firebase');
+                } else {
+                    // Save to localStorage as fallback
+                    localStorage.setItem('unaki-schedule-data', JSON.stringify(data));
+                    console.log('Data saved to localStorage');
+                }
+                
+                // Show success feedback
+                const saveBtn = document.getElementById('saveBtn');
+                const originalText = saveBtn.textContent;
+                saveBtn.textContent = 'Saved!';
+                saveBtn.classList.add('bg-green-600');
+                setTimeout(() => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.classList.remove('bg-green-600');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error saving data:', error);
+                alert('Error saving data. Please try again.');
+            }
+        }
+
+        // Load data from Firebase or localStorage
+        async function loadData() {
+            try {
+                let data = null;
+                
+                if (db && appId) {
+                    // Load from Firebase
+                    const doc = await db.collection(`artifacts/${appId}/public/data`).doc('unaki-schedule').get();
+                    if (doc.exists) {
+                        data = doc.data();
+                        console.log('Data loaded from Firebase');
+                    }
+                } else {
+                    // Load from localStorage as fallback
+                    const stored = localStorage.getItem('unaki-schedule-data');
+                    if (stored) {
+                        data = JSON.parse(stored);
+                        console.log('Data loaded from localStorage');
+                    }
+                }
+
+                if (data) {
+                    staff = data.staff || sampleStaff;
+                    appointments = data.appointments || sampleAppointments;
+                    breaks = data.breaks || sampleBreaks;
+                } else {
+                    // Use sample data if no saved data
+                    staff = [...sampleStaff];
+                    appointments = [...sampleAppointments];
+                    breaks = [...sampleBreaks];
+                }
+                
+                renderSchedule();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                // Use sample data on error
+                staff = [...sampleStaff];
+                appointments = [...sampleAppointments];
+                breaks = [...sampleBreaks];
+                renderSchedule();
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Firebase
+            initializeFirebase();
+            
+            // Create timeline header
+            createTimelineHeader();
+            
+            // Load and render data
+            loadData();
+
+            // Modal event listeners
+            document.getElementById('cancelBtn').addEventListener('click', closeAppointmentModal);
+            document.getElementById('appointmentModal').addEventListener('click', function(e) {
+                if (e.target === this) closeAppointmentModal();
+            });
+
+            // Form submission
+            document.getElementById('appointmentForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const clientName = document.getElementById('clientName').value;
+                const service = document.getElementById('service').value;
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                const notes = document.getElementById('notes').value;
+
+                if (!currentStaffId) {
+                    alert('Please select a staff member');
+                    return;
+                }
+
+                // Create new appointment
+                const newAppointment = {
+                    id: Date.now(),
+                    staffId: currentStaffId,
+                    clientName: clientName,
+                    service: service,
+                    startTime: startTime,
+                    endTime: endTime,
+                    notes: notes
+                };
+
+                appointments.push(newAppointment);
+                renderSchedule();
+                closeAppointmentModal();
+            });
+
+            // Action buttons
+            document.getElementById('saveBtn').addEventListener('click', saveData);
+            document.getElementById('refreshBtn').addEventListener('click', loadData);
+            document.getElementById('addStaffBtn').addEventListener('click', function() {
+                const name = prompt('Enter staff member name:');
+                const specialty = prompt('Enter specialty:');
+                if (name && specialty) {
+                    const newStaff = {
+                        id: Date.now(),
+                        name: name,
+                        specialty: specialty
+                    };
+                    staff.push(newStaff);
+                    renderSchedule();
+                }
+            });
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            // Redraw schedule if needed
+            renderSchedule();
+        });
+    </script>
+</body>
+</html>

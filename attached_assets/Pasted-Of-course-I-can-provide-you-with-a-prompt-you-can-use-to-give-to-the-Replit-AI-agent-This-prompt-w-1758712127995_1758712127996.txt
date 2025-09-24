@@ -1,0 +1,20 @@
+Of course. I can provide you with a prompt you can use to give to the Replit AI agent. This prompt will instruct it to create the same UI we've been working on, based on the code you've received.
+
+You can copy and paste this into the Replit agent chat window:
+
+```
+I'd like you to create a web application. The application should be a single HTML file named `index.html`. It must use Tailwind CSS for styling and be a self-contained, runnable file.
+
+Here are the requirements:
+
+1.  **Core Functionality:** Create an appointment booking schedule UI.
+2.  **Layout:** The main content should have a clear header with a title and action buttons. Below that, there should be a schedule grid.
+3.  **Schedule Grid:** The grid must have staff names on the left and a timeline on top, similar to a calendar view. It needs to be compact, with each staff row being approximately 60px in height.
+4.  **Styling:** The design should be clean and professional, with clear grid lines. Use Tailwind CSS classes for all styling.
+5.  **Data:** The application should display sample data for staff, appointments, and breaks. Appointments and breaks should be shown as colored blocks within the grid at the correct times.
+6.  **Interactivity:** The schedule grid should be interactive. A user should be able to click and drag to create a new appointment block. This action should then open a modal for booking the appointment.
+7.  **Modal:** The modal should collect details such as client name, service, and start and end times.
+8.  **Firebase Integration:** The application needs to be set up to use Firestore for data storage. It should include the necessary Firebase SDK imports and initialize Firebase using global variables like `__app_id`, `__firebase_config`, and `__initial_auth_token`. It should have functions to load and save data to a collection at `artifacts/{appId}/public/data/unaki-schedule`.
+
+Please provide only the `index.html` file with all the necessary HTML, CSS, and JavaScript. Ensure the code is well-structured and runnable.
+```
