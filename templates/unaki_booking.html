@@ -123,22 +123,28 @@
         }
 
         .staff-name {
-            font-size: 16px;
+            font-size: 14px;
             color: #2d3748;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             font-weight: 700;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .staff-role {
-            font-size: 12px;
+            font-size: 10px;
             color: #4a5568;
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.3px;
+            opacity: 0.8;
+            line-height: 1.1;
         }
 
         .time-slot {
-            min-height: 80px;
+            min-height: 70px;
             background: white;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -146,6 +152,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2px;
         }
 
         .time-slot:hover {
@@ -168,22 +175,23 @@
         }
 
         .appointment-block {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 8px;
-            padding: 12px;
-            font-size: 13px;
-            line-height: 1.4;
+            padding: 8px;
+            font-size: 11px;
+            line-height: 1.2;
             cursor: pointer;
-            min-height: 66px;
+            min-height: 60px;
             z-index: 10;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: space-between;
             position: relative;
             transition: all 0.2s ease;
-            border: 2px solid #667eea;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3);
+            overflow: hidden;
         }
 
         .appointment-block:hover {
@@ -193,13 +201,35 @@
         }
 
         .appointment-client {
-            font-weight: 600;
-            margin-bottom: 2px;
+            font-weight: 700;
+            margin-bottom: 1px;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .appointment-service {
-            font-size: 11px;
-            opacity: 0.9;
+            font-size: 9px;
+            opacity: 0.85;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 1px;
+        }
+
+        .appointment-time {
+            font-size: 8px !important;
+            opacity: 0.8 !important;
+            font-weight: 500 !important;
+            margin-top: auto;
+        }
+
+        .appointment-duration {
+            font-size: 7px !important;
+            opacity: 0.7 !important;
+            text-align: right;
+            margin-top: 1px;
         }
 
         .break-block {
@@ -992,6 +1022,47 @@
             updateStats();
         }
 
+        // Add context menu for appointments
+        function showAppointmentContextMenu(e, appointment) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Remove any existing context menu
+            const existingMenu = document.querySelector('.appointment-context-menu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+            
+            const contextMenu = document.createElement('div');
+            contextMenu.className = 'appointment-context-menu position-absolute bg-white border rounded shadow-lg p-2';
+            contextMenu.style.left = `${e.pageX}px`;
+            contextMenu.style.top = `${e.pageY}px`;
+            contextMenu.style.zIndex = '1000';
+            contextMenu.style.minWidth = '150px';
+            
+            contextMenu.innerHTML = `
+                <div class="btn btn-sm btn-outline-primary d-block mb-1" onclick="viewAppointment(${appointment.id})">
+                    <i class="fas fa-eye me-2"></i>View Details
+                </div>
+                <div class="btn btn-sm btn-outline-warning d-block mb-1" onclick="editAppointment(${appointment.id})">
+                    <i class="fas fa-edit me-2"></i>Edit
+                </div>
+                <div class="btn btn-sm btn-outline-danger d-block" onclick="cancelAppointment(${appointment.id})">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </div>
+            `;
+            
+            document.body.appendChild(contextMenu);
+            
+            // Remove context menu when clicking elsewhere
+            setTimeout(() => {
+                document.addEventListener('click', function removeMenu() {
+                    contextMenu.remove();
+                    document.removeEventListener('click', removeMenu);
+                });
+            }, 10);
+        }
+
         function renderSchedule() {
             const grid = document.getElementById('scheduleGrid');
             const timeSlots = generateTimeSlots();
@@ -1108,14 +1179,30 @@
                             }
                         }
 
-                        timeSlot.innerHTML = `
-                            <div class="appointment-block" style="width: ${blockWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
-                                <div class="appointment-client">${appointment.clientName}</div>
-                                <div class="appointment-service">${appointment.service}</div>
-                                <div class="appointment-time" style="font-size: 10px; opacity: 0.9; font-weight: 600;">${appointment.startTime} - ${appointment.endTime}</div>
-                                <div class="appointment-duration" style="font-size: 9px; opacity: 0.8;">${durationText}</div>
+                        const appointmentBlock = document.createElement('div');
+                        appointmentBlock.className = 'appointment-block';
+                        appointmentBlock.style.width = blockWidth;
+                        appointmentBlock.style.zIndex = '10';
+                        appointmentBlock.style.position = 'absolute';
+                        appointmentBlock.style.top = '1px';
+                        appointmentBlock.style.left = '1px';
+                        appointmentBlock.style.height = 'calc(100% - 2px)';
+                        
+                        appointmentBlock.innerHTML = `
+                            <div class="appointment-client" title="${appointment.clientName}">${appointment.clientName}</div>
+                            <div class="appointment-service" title="${appointment.service}">${appointment.service}</div>
+                            <div style="margin-top: auto;">
+                                <div class="appointment-time">${appointment.startTime} - ${appointment.endTime}</div>
+                                <div class="appointment-duration">${durationText}</div>
                             </div>
                         `;
+                        
+                        // Add right-click context menu
+                        appointmentBlock.addEventListener('contextmenu', (e) => {
+                            showAppointmentContextMenu(e, appointment);
+                        });
+                        
+                        timeSlot.appendChild(appointmentBlock);
 
                         // Mark the time slot as having a starting appointment
                         timeSlot.dataset.hasAppointment = 'start';
@@ -1167,9 +1254,9 @@
                         }
 
                         timeSlot.innerHTML = `
-                            <div class="break-block" style="width: ${breakWidth}; z-index: 10; position: absolute; top: 2px; left: 2px; height: calc(100% - 4px);">
-                                <div><i class="fas fa-coffee me-1"></i>Break</div>
-                                <div class="break-time" style="font-size: 9px; opacity: 0.9; margin-top: 2px;">${breakItem.startTime} - ${breakItem.endTime}</div>
+                            <div class="break-block" style="width: ${breakWidth}; z-index: 10; position: absolute; top: 1px; left: 1px; height: calc(100% - 2px);">
+                                <div style="font-size: 10px;"><i class="fas fa-coffee me-1"></i>Break</div>
+                                <div class="break-time" style="font-size: 8px; opacity: 0.9; margin-top: 2px;">${breakItem.startTime} - ${breakItem.endTime}</div>
                             </div>
                         `;
                         timeSlot.dataset.hasBreak = 'start';
@@ -1468,7 +1555,21 @@
                     const modal = bootstrap.Modal.getInstance(modalElement);
                     modal.hide();
 
-                    alert('Appointment booked successfully!');
+                    showNotification(`
+                        🎉 <strong>Appointment Booked Successfully!</strong><br>
+                        Client: ${appointmentData.clientName}<br>
+                        Service: ${appointmentData.serviceType}<br>
+                        Time: ${appointmentData.startTime} - ${appointmentData.endTime}
+                    `, 'success', 4000);
+                    
+                    // Highlight the new appointment with a glow effect
+                    setTimeout(() => {
+                        const newAppointments = document.querySelectorAll('.appointment-block');
+                        if (newAppointments.length > 0) {
+                            const lastAppointment = newAppointments[newAppointments.length - 1];
+                            lastAppointment.style.animation = 'pulse 1s ease-in-out 3';
+                        }
+                    }, 500);
 
                 } else {
                     alert('Error creating appointment: ' + data.error);
@@ -1509,6 +1610,73 @@
         function refreshSchedule() {
             loadScheduleForDate();
         }
+
+        // Appointment management functions
+        function viewAppointment(appointmentId) {
+            const appointment = scheduleData.appointments.find(apt => apt.id === appointmentId);
+            if (appointment) {
+                const staff = scheduleData.staff.find(s => s.id === appointment.staffId);
+                showNotification(`
+                    <strong>${appointment.clientName}</strong><br>
+                    Service: ${appointment.service}<br>
+                    Staff: ${staff ? staff.name : 'Unknown'}<br>
+                    Time: ${appointment.startTime} - ${appointment.endTime}<br>
+                    Duration: ${appointment.duration} minutes
+                `, 'info', 5000);
+            }
+        }
+
+        function editAppointment(appointmentId) {
+            showNotification('Edit functionality coming soon!', 'info');
+        }
+
+        function cancelAppointment(appointmentId) {
+            if (confirm('Are you sure you want to cancel this appointment?')) {
+                showNotification('Cancel functionality coming soon!', 'warning');
+            }
+        }
+
+        // Enhanced notification system
+        function showNotification(message, type = 'success', duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'} position-fixed`;
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '9999';
+            notification.style.minWidth = '300px';
+            notification.style.animation = 'slideInRight 0.3s ease-out';
+            
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    <div>${message}</div>
+                    <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-out';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, duration);
+        }
+
+        // Add animation keyframes
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
 
         // Global mouse up handler to ensure dragging stops even if mouse button is released outside a slot
         document.addEventListener('mouseup', function() {
