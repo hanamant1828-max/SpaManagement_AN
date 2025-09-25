@@ -458,7 +458,7 @@ def unaki_load_sample_data():
             'error': f'Failed to load sample data: {str(e)}'
         })
 
-@app.route('/api/unaki/create-appointment', methods=['POST'])
+@app.route('/api/unaki/appointments', methods=['POST'])
 def unaki_create_appointment():
     """Create appointment for Unaki booking system using UnakiBooking table"""
     try:
